@@ -1,0 +1,61 @@
+{
+  "schema": "arc-relay-opening-cohort-v1",
+  "cohortId": "arc-relay-tapline-opening-cohort-v8",
+  "preparedBeforeOutcomes": true,
+  "supersedes": "arc-relay-tapline-opening-cohort-v7 (one distributed-wells cell failed formation-freeze because exact Well claims treated an already-departed outstanding Core as still present; v4 continuously patrols each Well and reserves exact collection for visible or remembered loose Cores)",
+  "purpose": "Final all-eligible comparison of four coherent Tapline opening strategies with rules, map, mind, composition, seeds, and side assignments controlled.",
+  "candidatePreparation": "Direct Mid v3 and Distributed Wells v4 each passed their exact prior failure seed plus a standard six-cell exhibit. Pincer v3 and Split v2 are unchanged. The executor now rejects an inherited first action that is unavailable on the current tick. Seeds 9801-9812 are fresh.",
+  "eligibilityBars": "arc-relay-felt-degeneracy-bars-v4.json",
+  "controlledComposition": [
+    "kestrel", "kestrel", "veil", "hush",
+    "towline", "sunder", "patchbay", "relay"
+  ],
+  "entrants": [
+    {
+      "entrantId": "direct-mid",
+      "label": "Direct Mid",
+      "intent": "Stay together, win the shortest centre Core race, then maintain moving pressure around whichever known Core can be converted through the shortest path.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-mid-rush-control-v3/orders.json",
+      "sheetSha256": "e4519d308059456815075b4b46386be65733be5ec0971bc09bfd5943eaa6135b"
+    },
+    {
+      "entrantId": "shadow-pincer",
+      "label": "Four-plus-four Pincer",
+      "intent": "Send two self-sufficient four-body wings through the full outer corridors, contest the enemy Well from both sides, and convert any Core either wing wins.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-shadow-scissors-v3/orders.json",
+      "sheetSha256": "3fc29eba6015411a313efd342633cfc8d0cab0b9ce673d5e3433355160128d18"
+    },
+    {
+      "entrantId": "split-intercept",
+      "label": "Split Interception",
+      "intent": "Watch both outer corridors with paired interceptors, screen centre, and keep a home logistics pair active around the own Well.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-split-intercept-v2/orders.json",
+      "sheetSha256": "ff042a51e3d699b8b0751b44237233203fb6e2196264464d5bca8f843ecb2df0"
+    },
+    {
+      "entrantId": "distributed-wells",
+      "label": "Distributed Wells",
+      "intent": "Field a continuous 3-3-2 economy across all Wells and release at most one local worker per remembered loose Core.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-distributed-wells-v4/orders.json",
+      "sheetSha256": "118979b24f93b0c1cae046bcb55ddff8b1255ad1f0bf4f1d48db44c55a226fd5"
+    }
+  ],
+  "evaluation": {
+    "design": "twelve fresh seed blocks, every unordered pair, both side assignments",
+    "outcomesAre": "a deterministic design screen over these registered seeds, not a human-fun or population claim",
+    "allCellsMustPassFeltEligibility": true,
+    "dominanceAlarm": { "pairPointRateAtLeastAgainstEveryOpponent": 0.7 },
+    "dominatedAlarm": { "pairPointRateAtMostAgainstEveryOpponent": 0.3 },
+    "horizonAlert": { "shareAtLeast": 0.25 },
+    "sideAlert": { "absolutePointRateGapAtLeast": 0.15 },
+    "leverPolicy": "A cross-matchup dominance or dominated alarm authorizes one minimal one-factor probe. Test a geometry-only flank timing adjustment first; change Core supply or cadence only if geometry cannot isolate the mechanism. Never rewrite a candidate inside the comparison."
+  }
+}

@@ -1,0 +1,1851 @@
+{
+  "cells": [
+    {
+      "cellId": "direct-mid--distributed-wells--s9801--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9801--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9801--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9801--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9801--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9801--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9801--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9801--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9801--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9801--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9801--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9801--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9801",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9802--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9802--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9802--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9802--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9802--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9802--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9802--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9802--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9802--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9802--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9802--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9802--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9802",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9803--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9803--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9803--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9803--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9803--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9803--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9803--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9803--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9803--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9803--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9803--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9803--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9803",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9804--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9804--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9804--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9804--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9804--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9804--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9804--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9804--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9804--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9804--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9804--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9804--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9804",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9805--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9805--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9805--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9805--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9805--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9805--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9805--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9805--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9805--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9805--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9805--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9805--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9805",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9806--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9806--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9806--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9806--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9806--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9806--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9806--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9806--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9806--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9806--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9806--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9806--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9806",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9807--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9807--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9807--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9807--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9807--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9807--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9807--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9807--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9807--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9807--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9807--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9807--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9807",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9808--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9808--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9808--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9808--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9808--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9808--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9808--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9808--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9808--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9808--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9808--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9808--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9808",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9809--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9809--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9809--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9809--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9809--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9809--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9809--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9809--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9809--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9809--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9809--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9809--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9809",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9810--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9810--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9810--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9810--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9810--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9810--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9810--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9810--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9810--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9810--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9810--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9810--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9810",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9811--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9811--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9811--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9811--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9811--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9811--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9811--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9811--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9811--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9811--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9811--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9811--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9811",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9812--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "direct-mid",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--distributed-wells--s9812--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "distributed-wells",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9812--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9812--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9812--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "direct-mid",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--split-intercept--s9812--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "split-intercept",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9812--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9812--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9812--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "distributed-wells",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--split-intercept--s9812--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "split-intercept",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9812--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9812--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9812",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    }
+  ],
+  "cohortFile": "balance/arc-relay-tapline-opening-cohort-v8.json",
+  "cohortId": "arc-relay-tapline-opening-cohort-v8",
+  "cohortSha256": "91fb8a76ad21d59157cb4114efa0a0296b848dd098c4e7ef1ea1a80c5829b085",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v4.json",
+  "eligibilityBarsSha256": "be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "direct-mid": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Stay together, win the shortest centre Core race, then maintain moving pressure around whichever known Core can be converted through the shortest path.",
+      "label": "Direct Mid",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-mid-rush-control-v3/orders.json",
+      "sheetSha256": "e4519d308059456815075b4b46386be65733be5ec0971bc09bfd5943eaa6135b",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    },
+    "distributed-wells": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Field a continuous 3-3-2 economy across all Wells and release at most one local worker per remembered loose Core.",
+      "label": "Distributed Wells",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-distributed-wells-v4/orders.json",
+      "sheetSha256": "118979b24f93b0c1cae046bcb55ddff8b1255ad1f0bf4f1d48db44c55a226fd5",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    },
+    "shadow-pincer": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Send two self-sufficient four-body wings through the full outer corridors, contest the enemy Well from both sides, and convert any Core either wing wins.",
+      "label": "Four-plus-four Pincer",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-shadow-scissors-v3/orders.json",
+      "sheetSha256": "3fc29eba6015411a313efd342633cfc8d0cab0b9ce673d5e3433355160128d18",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    },
+    "split-intercept": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Watch both outer corridors with paired interceptors, screen centre, and keep a home logistics pair active around the own Well.",
+      "label": "Split Interception",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-split-intercept-v2/orders.json",
+      "sheetSha256": "ff042a51e3d699b8b0751b44237233203fb6e2196264464d5bca8f843ecb2df0",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    }
+  },
+  "evaluation": {
+    "allCellsMustPassFeltEligibility": true,
+    "design": "twelve fresh seed blocks, every unordered pair, both side assignments",
+    "dominanceAlarm": {
+      "pairPointRateAtLeastAgainstEveryOpponent": 0.7
+    },
+    "dominatedAlarm": {
+      "pairPointRateAtMostAgainstEveryOpponent": 0.3
+    },
+    "horizonAlert": {
+      "shareAtLeast": 0.25
+    },
+    "leverPolicy": "A cross-matchup dominance or dominated alarm authorizes one minimal one-factor probe. Test a geometry-only flank timing adjustment first; change Core supply or cadence only if geometry cannot isolate the mechanism. Never rewrite a candidate inside the comparison.",
+    "outcomesAre": "a deterministic design screen over these registered seeds, not a human-fun or population claim",
+    "sideAlert": {
+      "absolutePointRateGapAtLeast": 0.15
+    }
+  },
+  "loopProfile": "tapline-3",
+  "mapFingerprint": "058c97bf95bf7175a37952a4b3207199cad7e9c011cd1af50b4ed3a84781433a",
+  "mapId": "arc-relay-tapline-01",
+  "outcomeBlindReview": {
+    "cells": [
+      {
+        "cellId": "direct-mid--split-intercept--s9810--a1",
+        "reviewId": "blind-01"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9809--a0",
+        "reviewId": "blind-02"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9807--a1",
+        "reviewId": "blind-03"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9802--a0",
+        "reviewId": "blind-04"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9809--a0",
+        "reviewId": "blind-05"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9812--a0",
+        "reviewId": "blind-06"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9804--a0",
+        "reviewId": "blind-07"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9812--a1",
+        "reviewId": "blind-08"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9810--a1",
+        "reviewId": "blind-09"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9807--a1",
+        "reviewId": "blind-10"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9809--a1",
+        "reviewId": "blind-11"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9805--a0",
+        "reviewId": "blind-12"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9802--a1",
+        "reviewId": "blind-13"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9811--a0",
+        "reviewId": "blind-14"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9803--a1",
+        "reviewId": "blind-15"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9806--a0",
+        "reviewId": "blind-16"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9811--a1",
+        "reviewId": "blind-17"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9812--a0",
+        "reviewId": "blind-18"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9808--a1",
+        "reviewId": "blind-19"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9812--a1",
+        "reviewId": "blind-20"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9803--a1",
+        "reviewId": "blind-21"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9801--a0",
+        "reviewId": "blind-22"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9810--a1",
+        "reviewId": "blind-23"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9802--a1",
+        "reviewId": "blind-24"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9807--a0",
+        "reviewId": "blind-25"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9805--a1",
+        "reviewId": "blind-26"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9805--a0",
+        "reviewId": "blind-27"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9807--a0",
+        "reviewId": "blind-28"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9812--a1",
+        "reviewId": "blind-29"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9810--a0",
+        "reviewId": "blind-30"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9802--a0",
+        "reviewId": "blind-31"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9808--a0",
+        "reviewId": "blind-32"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9810--a0",
+        "reviewId": "blind-33"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9807--a0",
+        "reviewId": "blind-34"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9803--a0",
+        "reviewId": "blind-35"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9806--a1",
+        "reviewId": "blind-36"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9808--a1",
+        "reviewId": "blind-37"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9809--a0",
+        "reviewId": "blind-38"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9812--a0",
+        "reviewId": "blind-39"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9804--a0",
+        "reviewId": "blind-40"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9805--a1",
+        "reviewId": "blind-41"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9805--a0",
+        "reviewId": "blind-42"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9804--a1",
+        "reviewId": "blind-43"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9811--a0",
+        "reviewId": "blind-44"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9810--a0",
+        "reviewId": "blind-45"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9802--a0",
+        "reviewId": "blind-46"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9808--a1",
+        "reviewId": "blind-47"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9806--a0",
+        "reviewId": "blind-48"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9806--a1",
+        "reviewId": "blind-49"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9803--a1",
+        "reviewId": "blind-50"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9811--a0",
+        "reviewId": "blind-51"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9809--a0",
+        "reviewId": "blind-52"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9803--a1",
+        "reviewId": "blind-53"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9809--a0",
+        "reviewId": "blind-54"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9811--a1",
+        "reviewId": "blind-55"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9804--a0",
+        "reviewId": "blind-56"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9809--a1",
+        "reviewId": "blind-57"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9802--a1",
+        "reviewId": "blind-58"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9804--a1",
+        "reviewId": "blind-59"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9806--a1",
+        "reviewId": "blind-60"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9807--a0",
+        "reviewId": "blind-61"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9809--a1",
+        "reviewId": "blind-62"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9806--a0",
+        "reviewId": "blind-63"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9807--a0",
+        "reviewId": "blind-64"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9803--a1",
+        "reviewId": "blind-65"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9808--a1",
+        "reviewId": "blind-66"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9808--a0",
+        "reviewId": "blind-67"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9808--a0",
+        "reviewId": "blind-68"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9811--a0",
+        "reviewId": "blind-69"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9804--a0",
+        "reviewId": "blind-70"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9810--a0",
+        "reviewId": "blind-71"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9806--a1",
+        "reviewId": "blind-72"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9806--a0",
+        "reviewId": "blind-73"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9805--a0",
+        "reviewId": "blind-74"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9811--a1",
+        "reviewId": "blind-75"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9812--a0",
+        "reviewId": "blind-76"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9801--a1",
+        "reviewId": "blind-77"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9809--a1",
+        "reviewId": "blind-78"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9809--a1",
+        "reviewId": "blind-79"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9808--a1",
+        "reviewId": "blind-80"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9803--a0",
+        "reviewId": "blind-81"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9805--a1",
+        "reviewId": "blind-82"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9811--a1",
+        "reviewId": "blind-83"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9810--a0",
+        "reviewId": "blind-84"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9810--a1",
+        "reviewId": "blind-85"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9801--a1",
+        "reviewId": "blind-86"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9801--a1",
+        "reviewId": "blind-87"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9803--a0",
+        "reviewId": "blind-88"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9804--a1",
+        "reviewId": "blind-89"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9804--a0",
+        "reviewId": "blind-90"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9804--a0",
+        "reviewId": "blind-91"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9805--a0",
+        "reviewId": "blind-92"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9811--a0",
+        "reviewId": "blind-93"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9808--a0",
+        "reviewId": "blind-94"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9801--a0",
+        "reviewId": "blind-95"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9802--a1",
+        "reviewId": "blind-96"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9802--a0",
+        "reviewId": "blind-97"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9806--a1",
+        "reviewId": "blind-98"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9802--a0",
+        "reviewId": "blind-99"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9812--a0",
+        "reviewId": "blind-100"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9801--a1",
+        "reviewId": "blind-101"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9801--a1",
+        "reviewId": "blind-102"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9810--a1",
+        "reviewId": "blind-103"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9801--a1",
+        "reviewId": "blind-104"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9809--a1",
+        "reviewId": "blind-105"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9805--a1",
+        "reviewId": "blind-106"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9804--a1",
+        "reviewId": "blind-107"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9812--a1",
+        "reviewId": "blind-108"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9802--a1",
+        "reviewId": "blind-109"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9807--a1",
+        "reviewId": "blind-110"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9812--a1",
+        "reviewId": "blind-111"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9804--a1",
+        "reviewId": "blind-112"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9810--a1",
+        "reviewId": "blind-113"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9809--a0",
+        "reviewId": "blind-114"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9811--a0",
+        "reviewId": "blind-115"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9801--a0",
+        "reviewId": "blind-116"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9807--a0",
+        "reviewId": "blind-117"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9806--a1",
+        "reviewId": "blind-118"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9807--a1",
+        "reviewId": "blind-119"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9805--a1",
+        "reviewId": "blind-120"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9811--a1",
+        "reviewId": "blind-121"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9803--a1",
+        "reviewId": "blind-122"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9806--a0",
+        "reviewId": "blind-123"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9807--a1",
+        "reviewId": "blind-124"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9808--a0",
+        "reviewId": "blind-125"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9807--a1",
+        "reviewId": "blind-126"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9802--a0",
+        "reviewId": "blind-127"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9805--a0",
+        "reviewId": "blind-128"
+      },
+      {
+        "cellId": "direct-mid--split-intercept--s9801--a0",
+        "reviewId": "blind-129"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9803--a0",
+        "reviewId": "blind-130"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9805--a1",
+        "reviewId": "blind-131"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9801--a0",
+        "reviewId": "blind-132"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9806--a0",
+        "reviewId": "blind-133"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9804--a1",
+        "reviewId": "blind-134"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9803--a0",
+        "reviewId": "blind-135"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9803--a0",
+        "reviewId": "blind-136"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9812--a0",
+        "reviewId": "blind-137"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9810--a0",
+        "reviewId": "blind-138"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9802--a1",
+        "reviewId": "blind-139"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9811--a1",
+        "reviewId": "blind-140"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9808--a0",
+        "reviewId": "blind-141"
+      },
+      {
+        "cellId": "distributed-wells--split-intercept--s9801--a0",
+        "reviewId": "blind-142"
+      },
+      {
+        "cellId": "direct-mid--distributed-wells--s9812--a1",
+        "reviewId": "blind-143"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9808--a1",
+        "reviewId": "blind-144"
+      }
+    ],
+    "containsOutcomesScoresOrDurations": false,
+    "orderSeed": "20260814",
+    "preparedBeforeOutcomes": true,
+    "schema": "arc-relay-sweep-blind-review-v1"
+  },
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "0ed35d080ffc90fa796f0c3c95b4931e81d1bbbfc8be41ce71125a7bd3399415",
+  "rulesetId": "arc-relay-tapline-03",
+  "runtime": "in-process",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-tapline-opening-matrix-v8"
+}
