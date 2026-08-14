@@ -231,6 +231,27 @@ const ENGAGED_ABOVE_VETERANCY_GAP = 0.19;
 const ATTACK_COOLDOWN_COLOR = '#f87171';
 const SIGNATURE_COOLDOWN_COLOR = '#78aeb3';
 
+type VeterancyChevronWeight = 'thin' | 'thick';
+
+/**
+ * The visible rank grammar starts at one, then compresses once a row would become noisy.
+ * A thick chevron carries the first three ranks; any remainder stays as thin chevrons above
+ * it. Level three deliberately remains three thin marks so the first three ranks read
+ * as a simple count before level four introduces the compressed form.
+ */
+function veterancyChevronCount(level: number): number {
+  const rank = Math.max(1, Math.floor(level));
+  return rank <= 3 ? rank : Math.floor(rank / 3) + (rank % 3);
+}
+
+function veterancyChevronWeightAt(
+  level: number,
+  index: number,
+): VeterancyChevronWeight {
+  const rank = Math.max(1, Math.floor(level));
+  return rank > 3 && index < Math.floor(rank / 3) ? 'thick' : 'thin';
+}
+
 /**
  * How far in FRONT of a body its role caption sits, in tiles.
  *
@@ -429,6 +450,17 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   };
   const presenter = createPresenter(replay);
   const veterancy = arcVeterancyFor(replay);
+  const rawGameMode = replay.contract.kind === 'v3-generic'
+    ? replay.contract.rawContract.rules.gameMode
+    : null;
+  const veterancyEnabled = veterancy.hasLevels || (
+    rawGameMode?.kind === 'arc-relay' &&
+    (rawGameMode.veterancyXpPerLevel ?? 0) > 0 &&
+    (rawGameMode.veterancyMaxLevel ?? 0) >= 2
+  );
+  const veterancyLevelCeiling = rawGameMode?.kind === 'arc-relay'
+    ? Math.max(veterancy.maxLevel, rawGameMode.veterancyMaxLevel ?? 1)
+    : veterancy.maxLevel;
   // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
   // visibility still uses the effective form's own maximum.
   const maxHealth = replayMaxHealth(replay);
@@ -1165,18 +1197,29 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     );
 
     // Veterancy is the compact brass stack from the approved board. It sits ABOVE the
-    // health row, never beside or through it; level 1 shows nothing and each earned level
-    // adds one open-V facet. A row of solid triangle circles looked like unrelated warning
-    // markers and grew sideways into the health bibs.
-    const chevronShape = new THREE.Shape();
-    chevronShape.moveTo(-0.065, -0.025);
-    chevronShape.lineTo(0, 0.045);
-    chevronShape.lineTo(0.065, -0.025);
-    chevronShape.lineTo(0.065, 0.015);
-    chevronShape.lineTo(0, 0.085);
-    chevronShape.lineTo(-0.065, 0.015);
-    chevronShape.closePath();
-    const chevronGeometry = new THREE.ShapeGeometry(chevronShape);
+    // health row, never beside or through it. The authoritative starting level is visible
+    // as one open-V facet; levels two and three add another thin facet, then level four
+    // compresses the first three into one thick facet so the level-five read stays compact.
+    // A row of solid triangle circles looked like unrelated warning markers and grew
+    // sideways into the health bibs.
+    const thinChevronShape = new THREE.Shape();
+    thinChevronShape.moveTo(-0.065, -0.025);
+    thinChevronShape.lineTo(0, 0.045);
+    thinChevronShape.lineTo(0.065, -0.025);
+    thinChevronShape.lineTo(0.065, 0.015);
+    thinChevronShape.lineTo(0, 0.085);
+    thinChevronShape.lineTo(-0.065, 0.015);
+    thinChevronShape.closePath();
+    const thinChevronGeometry = new THREE.ShapeGeometry(thinChevronShape);
+    const thickChevronShape = new THREE.Shape();
+    thickChevronShape.moveTo(-0.07, -0.025);
+    thickChevronShape.lineTo(0, 0.025);
+    thickChevronShape.lineTo(0.07, -0.025);
+    thickChevronShape.lineTo(0.07, 0.025);
+    thickChevronShape.lineTo(0, 0.085);
+    thickChevronShape.lineTo(-0.07, 0.025);
+    thickChevronShape.closePath();
+    const thickChevronGeometry = new THREE.ShapeGeometry(thickChevronShape);
     const chevronMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color('#d9a441'),
       transparent: true,
@@ -1194,14 +1237,23 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     faceStatusElement(veterancyStack);
     pips.add(veterancyStack);
     const levelPips: THREE.Mesh[] = [];
-    for (let index = 0; index < Math.max(0, veterancy.maxLevel - 1); index++) {
-      const chevron = new THREE.Mesh(chevronGeometry, chevronMaterial);
+    const veterancyCapacity = veterancyEnabled
+      ? veterancyChevronCount(veterancyLevelCeiling)
+      : 0;
+    for (let index = 0; index < veterancyCapacity; index++) {
+      const chevron = new THREE.Mesh(thinChevronGeometry, chevronMaterial);
       chevron.userData.cue = 'veterancy-chevron';
+      chevron.userData.weight = 'thin';
+      chevron.userData.rankValue = 1;
       chevron.visible = false;
       veterancyStack.add(chevron);
       levelPips.push(chevron);
     }
-    disposables.push(chevronGeometry, chevronMaterial);
+    disposables.push(
+      thinChevronGeometry,
+      thickChevronGeometry,
+      chevronMaterial,
+    );
 
     // Crossed blades over the health row — see ENGAGED_MARK_*. Two quads in one
     // group so the whole mark toggles with a single `visible`, and squared to
@@ -1559,6 +1611,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       litPip,
       lostPip,
       levelPips,
+      thinChevronGeometry,
+      thickChevronGeometry,
       channelRing,
       channelMaterial,
       screenRing,
@@ -2141,20 +2195,28 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       if (screening) bot.screenMaterial.opacity = 0.24;
 
       // Veterancy chevrons: one compact vertical stack above health. Level is a per-life
-      // fold, so a respawned body starts blank without any reset logic here.
+      // fold, so a respawned body returns to the visible level-one mark without reset logic.
       const level = veterancy.levelAt(
         time,
         pose.teamId,
         pose.unitId,
         pose.lifeId,
       );
+      const visibleVeterancy = veterancyEnabled
+        ? veterancyChevronCount(level)
+        : 0;
       for (const [index, chevron] of bot.levelPips.entries()) {
-        chevron.visible = bot.pips.visible && index < level - 1;
+        chevron.visible = bot.pips.visible && index < visibleVeterancy;
+        const weight = veterancyChevronWeightAt(level, index);
+        chevron.geometry = weight === 'thick'
+          ? bot.thickChevronGeometry
+          : bot.thinChevronGeometry;
+        chevron.userData.weight = weight;
+        chevron.userData.rankValue = weight === 'thick' ? 3 : 1;
         chevron.position.x = 0;
         chevron.position.y = index * VETERANCY_SPACING;
         chevron.position.z = 0;
       }
-      const visibleVeterancy = Math.max(0, level - 1);
       bot.engagedMark.position.y = visibleVeterancy > 0
         ? VETERANCY_LIFT
           + (visibleVeterancy - 1) * VETERANCY_SPACING

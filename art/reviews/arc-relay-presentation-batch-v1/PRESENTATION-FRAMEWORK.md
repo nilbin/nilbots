@@ -45,7 +45,7 @@ deployment, capacity, suppression, trigger, and fire presentation.
 | Kinetic Burst | High: contracting boundary, low torus, wakes only on relocated bodies | No opaque central machine, camera shake, or full-screen distortion. |
 | Trip Node | High: inward floor rails, one deliberately small approved mine emerging from below, low trigger pressure | The hidden trap gains no globally visible pre-placement telegraph. |
 | Sentinel Seed | High: compact destination socket/seed, floor-safe forward body press, one deliberately small approved sentry growing from the floor, observed-shot head yaw | Nest's monolithic body never pitches nose-down; the model is a stationary-base/yaw-head split rather than a skeletal rig. |
-| Level Up | High after correction: brass ring, three converging facets, vertically stacked persistent chevrons above health | No side-by-side triangles, health overlap, full-height column, or white flash. |
+| Level Up | High after correction: brass ring, three converging facets, and a persistent vertical rank stack above health; levels 1–3 count thin chevrons, while 4–5 compress the first three ranks into one thick chevron | No side-by-side triangles, four/five-mark towers, health overlap, full-height column, or white flash. |
 | Sixteen attack heads | High silhouette fidelity at 16–28 pixels | SVG-derived 3D relief retains the shapes, not the board's close-up microtexture. |
 
 ### Fidelity acceptance gate

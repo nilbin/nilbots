@@ -506,8 +506,14 @@ its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
-rules-owned chevron. Temporary geometry is gone by 1.8 presentation ticks; the
-effect has no white flash, full-height column, camera shake, or mesh mutation.
+rules-owned rank stack. In WebGL that stack starts visibly at authoritative
+level 1: levels 1, 2, and 3 use one, two, and three thin brass chevrons. Level 4
+compresses to one thick chevron worth three ranks plus one thin chevron; level
+5 adds a second thin chevron. The thick mark stays at the bottom of the stack,
+so higher ranks remain a compact vertical read clear of the health bib. Modes
+without a veterancy rule or facts receive no rank mark. Temporary level-up
+geometry is gone by 1.8 presentation ticks; the effect has no white flash,
+full-height column, camera shake, or mesh mutation.
 
 The approval artifact and per-effect fidelity target live under
 `art/reviews/arc-relay-presentation-batch-v1`. A release capture uses a real

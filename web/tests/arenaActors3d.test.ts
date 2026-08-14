@@ -51,6 +51,12 @@ const emptyFrontlinePrefix = loadReplayJson(
     'utf8',
   ),
 ).replay;
+const arcCoreRoster = loadReplayJson(
+  gunzipSync(readFileSync(new URL(
+    '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+    import.meta.url,
+  ))).toString('utf8'),
+).replay;
 
 /** The tick this fixture's loser dies on, and who it is. */
 const DEATH_TICK = 96;
@@ -120,6 +126,25 @@ function veterancyChevronsOf(
   return chevrons;
 }
 
+function planarGeometryArea(geometry: THREE.BufferGeometry): number {
+  const positions = geometry.getAttribute('position');
+  const indices = geometry.getIndex();
+  const a = new THREE.Vector3();
+  const b = new THREE.Vector3();
+  const c = new THREE.Vector3();
+  const triangle = new THREE.Triangle();
+  let area = 0;
+  const vertexIndex = (offset: number) => indices?.getX(offset) ?? offset;
+  const triangleVertexCount = indices?.count ?? positions.count;
+  for (let offset = 0; offset < triangleVertexCount; offset += 3) {
+    a.fromBufferAttribute(positions, vertexIndex(offset));
+    b.fromBufferAttribute(positions, vertexIndex(offset + 1));
+    c.fromBufferAttribute(positions, vertexIndex(offset + 2));
+    area += triangle.set(a, b, c).getArea();
+  }
+  return area;
+}
+
 function statusCueOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
@@ -150,12 +175,7 @@ function intentLabelOf(
 }
 
 test('3D activity text remains visible with every visible bot', () => {
-  const arc = loadReplayJson(
-    gunzipSync(readFileSync(new URL(
-      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
-      import.meta.url,
-    ))).toString('utf8'),
-  ).replay;
+  const arc = arcCoreRoster;
   const actors = buildActors(arc);
   try {
     actors.update(10.5, null, false);
@@ -469,7 +489,7 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;
   const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
   assert.ok(template);
-  for (const [tick, level] of [[1, 2], [2, 3]] as const) {
+  for (const [tick, level] of [[1, 2], [2, 3], [3, 4], [4, 5]] as const) {
     leveled.ticks[tick]!.events.push({
       ...template,
       eventId: `arc:level-up:test:${level}`,
@@ -482,10 +502,32 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
     });
   }
   const actors = buildActors(leveled);
-  actors.update(2.25, null, false);
   const chevrons = veterancyChevronsOf(actors.group, actor.unitKey);
-  const visible = chevrons.filter((chevron) => chevron.visible);
-  assert.equal(visible.length, 2);
+  const visibleAt = (time: number) => {
+    actors.update(time, null, false);
+    return chevrons.filter((chevron) => chevron.visible);
+  };
+  const weightsAt = (time: number) =>
+    visibleAt(time).map((chevron) => chevron.userData.weight);
+
+  assert.deepEqual(weightsAt(0.25), ['thin']);
+  assert.deepEqual(weightsAt(1.25), ['thin', 'thin']);
+  assert.deepEqual(weightsAt(2.25), ['thin', 'thin', 'thin']);
+  assert.deepEqual(weightsAt(3.25), ['thick', 'thin']);
+  assert.deepEqual(weightsAt(4.25), ['thick', 'thin', 'thin']);
+
+  const visible = visibleAt(4.25);
+  assert.deepEqual(
+    visible.map((chevron) => chevron.userData.rankValue),
+    [3, 1, 1],
+  );
+  const thick = visible[0] as THREE.Mesh<THREE.BufferGeometry>;
+  const thin = visible[1] as THREE.Mesh<THREE.BufferGeometry>;
+  assert.notEqual(thick.geometry, thin.geometry);
+  assert.ok(
+    planarGeometryArea(thick.geometry) > planarGeometryArea(thin.geometry) * 1.35,
+    'the compressed three-rank chevron is visibly thicker than a thin rank',
+  );
   assert.ok(visible.every((chevron) => chevron.position.x === 0));
   const stack = visible[0]!.parent;
   assert.equal(stack?.userData.cue, 'veterancy-stack');
@@ -524,7 +566,7 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
     return centre.project(camera).x;
   });
   assert.ok(
-    Math.abs(screenXs[0]! - screenXs[1]!) < 1e-9,
+    screenXs.slice(1).every((screenX) => Math.abs(screenXs[0]! - screenX) < 1e-9),
     `veterancy facets share one screen column (${screenXs.join(', ')})`,
   );
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
@@ -534,6 +576,42 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
     'combat state moves above the veteran stack instead of overlapping it',
   );
   actors.dispose();
+});
+
+test('only a veterancy-enabled replay receives the visible level-one rank', () => {
+  const plainActors = buildActors(replay);
+  try {
+    plainActors.update(0.25, null, false);
+    assert.equal(
+      veterancyChevronsOf(plainActors.group, 'duel:0:unit:0').length,
+      0,
+    );
+  } finally {
+    plainActors.dispose();
+  }
+
+  const unpromotedArc = structuredClone(arcCoreRoster);
+  for (const tick of unpromotedArc.ticks) {
+    tick.events = tick.events.filter(
+      (event) => event.arcRelayFact?.kind !== 'leveled-up',
+    );
+    tick.lifecycleEvents = tick.lifecycleEvents.filter(
+      (event) => event.arcRelayFact?.kind !== 'leveled-up',
+    );
+  }
+  const arcActors = buildActors(unpromotedArc);
+  try {
+    const unitKey = unpromotedArc.ticks[0]!.after.actors[0]!.unitKey;
+    arcActors.update(0.25, null, false);
+    const chevrons = veterancyChevronsOf(arcActors.group, unitKey);
+    assert.equal(chevrons.length, 3, 'level-five rules reserve a compact three-mark stack');
+    const visible = chevrons.filter((chevron) => chevron.visible);
+    assert.equal(visible.length, 1);
+    assert.equal(visible[0]!.userData.weight, 'thin');
+    assert.equal(visible[0]!.userData.rankValue, 1);
+  } finally {
+    arcActors.dispose();
+  }
 });
 
 test('bot solids own the layer immediately above persistent constructs', () => {
@@ -596,12 +674,7 @@ test('bot solids own the layer immediately above persistent constructs', () => {
 });
 
 test('3D attack and signature cooldowns drain in separate thin tracks below health', () => {
-  const arc = loadReplayJson(
-    gunzipSync(readFileSync(new URL(
-      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
-      import.meta.url,
-    ))).toString('utf8'),
-  ).replay;
+  const arc = arcCoreRoster;
   const actors = buildActors(arc);
   const attacker = 'generic:0:unit:5' as ReplayStableUnitKey;
   const caster = 'generic:0:unit:7' as ReplayStableUnitKey;

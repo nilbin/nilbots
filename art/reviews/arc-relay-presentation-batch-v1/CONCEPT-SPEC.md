@@ -97,13 +97,15 @@ the outcome.
 
 ## Level-up beat
 
-The existing brass chevron is the persistent truth. At an authoritative
-`leveled-up` fact:
+The compact brass rank stack is the persistent truth. WebGL shows level 1 as
+one thin chevron, levels 2 and 3 as two and three thin chevrons, level 4 as one
+thick three-rank chevron plus one thin chevron, and level 5 as one thick plus
+two thin chevrons. At an authoritative `leveled-up` fact:
 
 1. A thin brass floor ring expands for 0.18 visual ticks.
 2. Three short matte facets rise around the body over 0.36 ticks.
-3. The facets converge toward the UI row and the newly earned chevron appears.
-4. All temporary geometry is gone by 1.8 presentation ticks; the chevron remains.
+3. The facets converge toward the UI row and the updated rank stack appears.
+4. All temporary geometry is gone by 1.8 presentation ticks; the rank stack remains.
 
 There is no white flash, full-height column, camera shake, or mesh deformation.
 The accepted `level-up` SFX remains unchanged.
