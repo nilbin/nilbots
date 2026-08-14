@@ -1,0 +1,42 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-mid-rush-control-v3",
+  "status": "immutable-reference",
+  "source": "tapline-three-moving-shortest-path-control",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "supersedes": "tapline-mid-rush-control-v2 (one fresh matrix cell froze all eight bodies around an empty enemy Well while its Core remained outstanding)",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "e4519d308059456815075b4b46386be65733be5ec0971bc09bfd5943eaa6135b"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "6f87940948690bd133bdee496e0a72526af982b545dd61e83373e6571d476076"
+    },
+    "atl2": {
+      "sha256": "902c63c7c8505884143915f08a8c1650830a8d8153ea90b03f98fef91b2db699",
+      "bytes": 3521,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Keep the identical eight-class composition together, collect and bank known Cores through the shortest paths, patrol centre between births, and maintain moving pressure around the enemy Well and exits while its Core is outstanding.",
+  "portabilityBoundary": "The orders carry the semantic opening. Tapline coordinates live only in map-plan.json, so ordinary numeric rules tuning and small geometry edits that preserve named objects do not rewrite the strategy.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-shadow-scissors-v3",
+      "cells": [
+        "w-9001",
+        "w-9002",
+        "e-9005",
+        "e-9009",
+        "w-9012",
+        "e-9004"
+      ],
+      "record": "5-1 in these six exhibition cells; five reactor-destroyed and one horizon-ranked finish",
+      "purpose": "moving pressure and shortest-path control reference, not a balance verdict",
+      "eligibility": "all six cells passed frozen felt-degeneracy bars v4; the exact v2 failure seed 9501 also passed after the revision"
+    }
+  ]
+}
