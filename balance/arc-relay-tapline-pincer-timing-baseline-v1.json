@@ -1,0 +1,544 @@
+{
+  "cells": [
+    {
+      "cellId": "direct-mid--shadow-pincer--s9901--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9901",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9901--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9901",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9901--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9901",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9901--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9901",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9901--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9901",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9901--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9901",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9902--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9902",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9902--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9902",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9902--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9902",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9902--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9902",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9902--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9902",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9902--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9902",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9903--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9903",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9903--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9903",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9903--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9903",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9903--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9903",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9903--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9903",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9903--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9903",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9904--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9904",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9904--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9904",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9904--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9904",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9904--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9904",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9904--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9904",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9904--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9904",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9905--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9905",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9905--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9905",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9905--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9905",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9905--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9905",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9905--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9905",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9905--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9905",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9906--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9906",
+      "team0": "direct-mid",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "direct-mid--shadow-pincer--s9906--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9906",
+      "team0": "shadow-pincer",
+      "team1": "direct-mid",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9906--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9906",
+      "team0": "distributed-wells",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "distributed-wells--shadow-pincer--s9906--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9906",
+      "team0": "shadow-pincer",
+      "team1": "distributed-wells",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9906--a0",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9906",
+      "team0": "shadow-pincer",
+      "team1": "split-intercept",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    },
+    {
+      "cellId": "shadow-pincer--split-intercept--s9906--a1",
+      "matchContractFingerprint": "c889e26d182d663629c6a39506838eac1671057367928303ca457a8f71c5411a",
+      "seed": "9906",
+      "team0": "split-intercept",
+      "team1": "shadow-pincer",
+      "topologyFingerprint": "bb81d769fb7bb6d32ccaaabc9fdd87da546c8ee3f3a66c504455142cc42a7a99"
+    }
+  ],
+  "cohortFile": "balance/arc-relay-tapline-pincer-timing-cohort-v1.json",
+  "cohortId": "arc-relay-tapline-pincer-timing-cohort-v1",
+  "cohortSha256": "4f64378ee2667069a7d97c66bf6f71b8cae2607b0c547f9e0543a49dcddd870e",
+  "eligibilityBars": "balance/arc-relay-felt-degeneracy-bars-v4.json",
+  "eligibilityBarsSha256": "be728f90a22c36b087cd056ef4efd8bb6ca8400933ddf7fe277c35824a9cb5ef",
+  "engineVersion": "1.0.5",
+  "entrants": {
+    "direct-mid": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Stay together, win the shortest centre Core race, then maintain moving pressure around whichever known Core can be converted through the shortest path.",
+      "label": "Direct Mid",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-mid-rush-control-v3/orders.json",
+      "sheetSha256": "e4519d308059456815075b4b46386be65733be5ec0971bc09bfd5943eaa6135b",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    },
+    "distributed-wells": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Field a continuous 3-3-2 economy across all Wells and release at most one local worker per remembered loose Core.",
+      "label": "Distributed Wells",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-distributed-wells-v4/orders.json",
+      "sheetSha256": "118979b24f93b0c1cae046bcb55ddff8b1255ad1f0bf4f1d48db44c55a226fd5",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    },
+    "shadow-pincer": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Send two self-sufficient four-body wings through the full outer corridors, contest the enemy Well from both sides, and convert any Core either wing wins.",
+      "label": "Four-plus-four Pincer",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-shadow-scissors-v3/orders.json",
+      "sheetSha256": "3fc29eba6015411a313efd342633cfc8d0cab0b9ce673d5e3433355160128d18",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    },
+    "split-intercept": {
+      "artifact": "arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "classes": [
+        "kestrel",
+        "kestrel",
+        "veil",
+        "hush",
+        "towline",
+        "sunder",
+        "patchbay",
+        "relay"
+      ],
+      "intent": "Watch both outer corridors with paired interceptors, screen centre, and keep a home logistics pair active around the own Well.",
+      "label": "Split Interception",
+      "runtimeArtifactPolicy": "capture-consistent-at-run",
+      "sheet": "arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-split-intercept-v2/orders.json",
+      "sheetSha256": "ff042a51e3d699b8b0751b44237233203fb6e2196264464d5bca8f843ecb2df0",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb"
+    }
+  },
+  "evaluation": {
+    "allCellsMustPassFeltEligibility": true,
+    "decision": "keep the profile only if the registered mechanism support is met; otherwise reject the lever and retain Tapline-3 unchanged",
+    "design": "six fresh seed blocks, pincer against each opponent, both side assignments, same cells under baseline and probe",
+    "mechanismSupport": "probe raises pincer mean banks by at least 1.0 and aggregate point rate by at least 0.10 without increasing horizon share or reducing minimum value bodies",
+    "outcomesAre": "a paired causal probe, not a balance verdict"
+  },
+  "loopProfile": "tapline-3",
+  "mapFingerprint": "058c97bf95bf7175a37952a4b3207199cad7e9c011cd1af50b4ed3a84781433a",
+  "mapId": "arc-relay-tapline-01",
+  "outcomeBlindReview": {
+    "cells": [
+      {
+        "cellId": "shadow-pincer--split-intercept--s9905--a1",
+        "reviewId": "blind-01"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9902--a0",
+        "reviewId": "blind-02"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9904--a1",
+        "reviewId": "blind-03"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9901--a0",
+        "reviewId": "blind-04"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9902--a1",
+        "reviewId": "blind-05"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9901--a0",
+        "reviewId": "blind-06"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9902--a0",
+        "reviewId": "blind-07"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9901--a0",
+        "reviewId": "blind-08"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9903--a1",
+        "reviewId": "blind-09"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9906--a0",
+        "reviewId": "blind-10"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9905--a0",
+        "reviewId": "blind-11"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9904--a1",
+        "reviewId": "blind-12"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9904--a1",
+        "reviewId": "blind-13"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9901--a1",
+        "reviewId": "blind-14"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9906--a0",
+        "reviewId": "blind-15"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9905--a1",
+        "reviewId": "blind-16"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9906--a0",
+        "reviewId": "blind-17"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9903--a0",
+        "reviewId": "blind-18"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9903--a0",
+        "reviewId": "blind-19"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9905--a1",
+        "reviewId": "blind-20"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9903--a1",
+        "reviewId": "blind-21"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9903--a0",
+        "reviewId": "blind-22"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9906--a1",
+        "reviewId": "blind-23"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9904--a0",
+        "reviewId": "blind-24"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9904--a0",
+        "reviewId": "blind-25"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9903--a1",
+        "reviewId": "blind-26"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9905--a0",
+        "reviewId": "blind-27"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9905--a0",
+        "reviewId": "blind-28"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9902--a0",
+        "reviewId": "blind-29"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9906--a1",
+        "reviewId": "blind-30"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9906--a1",
+        "reviewId": "blind-31"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9901--a1",
+        "reviewId": "blind-32"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9901--a1",
+        "reviewId": "blind-33"
+      },
+      {
+        "cellId": "direct-mid--shadow-pincer--s9902--a1",
+        "reviewId": "blind-34"
+      },
+      {
+        "cellId": "distributed-wells--shadow-pincer--s9904--a0",
+        "reviewId": "blind-35"
+      },
+      {
+        "cellId": "shadow-pincer--split-intercept--s9902--a1",
+        "reviewId": "blind-36"
+      }
+    ],
+    "containsOutcomesScoresOrDurations": false,
+    "orderSeed": "2501",
+    "preparedBeforeOutcomes": true,
+    "schema": "arc-relay-sweep-blind-review-v1"
+  },
+  "preparedBeforeOutcomes": true,
+  "rulesFingerprint": "0ed35d080ffc90fa796f0c3c95b4931e81d1bbbfc8be41ce71125a7bd3399415",
+  "rulesetId": "arc-relay-tapline-03",
+  "runtime": "in-process",
+  "schema": "arc-relay-sweep-plan-v1",
+  "sweepId": "arc-relay-tapline-pincer-timing-baseline-v1"
+}
