@@ -655,6 +655,14 @@ public sealed class OrdersMovementSceneTests
         "tapline-shadow-scissors-v2",
         "tapline-distributed-wells-v1",
         9306)]
+    [InlineData(
+        "tapline-split-intercept-v2",
+        "tapline-shadow-scissors-v3",
+        9403)]
+    [InlineData(
+        "tapline-distributed-wells-v2",
+        "tapline-shadow-scissors-v3",
+        9406)]
     public void HostileMoveContentionIsRememberedAcrossCarrierCadenceHold(
         string westStrategy,
         string eastStrategy,
@@ -718,8 +726,12 @@ public sealed class OrdersMovementSceneTests
         // bodies repeatedly entered one visibly empty tile together. The
         // carrier's mandatory relocation wait then erased the generic
         // PreviousActionResolution memory, so it retried forever (59 and 32
-        // ticks respectively). The planner must carry that denial across the
-        // cadence hold and visibly select a different operation.
+        // ticks respectively). Two later three-step-planner scenes exposed
+        // the second half of the same contract: making the denied tile illegal
+        // without putting it in the carrier's distance field scored WAIT as
+        // cheaper than every valid detour and produced 30/34-tick stalls.
+        // The planner must carry that denial across the cadence hold and score
+        // a genuinely different operation against the same obstacle set.
         Assert.True(deniedStepTraces > 0,
             "The scenes never exercised remembered denied-step routing.");
         Assert.True(longestStationaryCarrier < 30,

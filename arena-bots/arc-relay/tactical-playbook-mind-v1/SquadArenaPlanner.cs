@@ -357,7 +357,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // obstacle so the next operation actually tries another way around.
         // This is physical collision memory only: it does not change the
         // authored goal, assignment, route commitment, or route direction.
-        if (ActiveDeniedStep(intent.Body) is DeniedStep denied)
+        DeniedStep? activeDenied = ActiveDeniedStep(intent.Body);
+        if (activeDenied is DeniedStep denied)
             durable.Add(denied.Tile);
         int[]? distanceField = null;
         if (IsCarrierReturn(intent))
@@ -374,6 +375,15 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             // Every generated state is already legal against durable, so only
             // the body's tick-start tile needs the same explicit exemption.
             distanceObstacles.Remove(intent.Body.Position);
+            // Score a carried-Core detour against the same temporary obstacle
+            // that makes the denied step illegal. Leaving this tile out of the
+            // reverse field makes every legal detour initially look farther
+            // than waiting on the nominal route; when the four-tick memory
+            // expires the carrier retries that occupied square and can repeat
+            // forever. One obstacle set must answer both "may I step there?"
+            // and "which legal course makes progress?".
+            if (activeDenied is DeniedStep carrierDenied)
+                distanceObstacles.Add(carrierDenied.Tile);
             distanceField = ArenaBasics.StaticRouteDistanceField(
                 contract,
                 intent.Body,
