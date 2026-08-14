@@ -1,0 +1,32 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-split-intercept-v1",
+  "status": "immutable-reference",
+  "source": "current-map-split-control-and-interception",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "049b31aa40f92d22e84925aa041f58f92f7a351710bcdeb8c9e24b7f2fc01308"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "c5bc1427700854c9f254f351b3894c5e320a2c9d2b42567edff47b0529b5267b"
+    },
+    "atl2": {
+      "sha256": "96a6dcd7a0f973ab5f1c2cc15304b93e4dfc2486454aa6b63f3a47088afe4616",
+      "bytes": 4054,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Hold the upper and lower corridors with paired interceptors, work the centre Well with a three-body screen, and keep a two-body home logistics pair available to collect and relay Cores.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-shadow-scissors-v2",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "6-0 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "interception behavior and role-participation reference, not a balance claim"
+    }
+  ]
+}
