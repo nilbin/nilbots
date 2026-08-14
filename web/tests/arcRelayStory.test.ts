@@ -666,7 +666,7 @@ test('the 3D renderer moves the one authoritative Arc Toss Core through its publ
   overlays.dispose();
 });
 
-test('an Arc Toss landing with an immediate pickup levitates once from the landing tile', () => {
+test('an Arc Toss landing with an immediate pickup flows directly into carried height', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(
       '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
@@ -701,44 +701,59 @@ test('an Arc Toss landing with an immediate pickup levitates once from the landi
   );
 
   const overlays = buildOverlays(replay);
-  const pickupCoreAt = (time: number) => {
+  const corePointAt = (time: number, motion: string) => {
     overlays.update(time, null, false);
-    const objects: THREE.Object3D[] = [];
-    overlays.group.traverse((node) => objects.push(node));
-    const rig = objects.find(
-      (node) => node.visible &&
-        node.userData.coreKey === key &&
-        node.userData.coreMotion === 'pickup',
-    );
+    let rig: THREE.Object3D | null = null;
+    overlays.group.traverse((node) => {
+      if (node.visible &&
+          node.userData.coreKey === key &&
+          node.userData.coreMotion === motion)
+        rig = node;
+    });
     const sphere = rig?.children.find(
       (node) => node.userData.kind === 'arc-relay-core-sphere',
     ) as THREE.Mesh | undefined;
-    assert.ok(rig, `pickup owns Core ${key} at ${time}`);
+    assert.ok(rig, `${motion} owns Core ${key} at ${time}`);
     assert.ok(sphere);
-    return { rig, sphere };
+    overlays.group.updateMatrixWorld(true);
+    return new THREE.Vector3().setFromMatrixPosition(sphere.matrixWorld);
   };
   try {
-    const start = pickupCoreAt(landingTick);
+    const justBeforeLanding = corePointAt(landingTick - 0.001, 'arc-toss');
+    const start = corePointAt(landingTick, 'arc-toss-catch');
     assert.ok(
-      Math.abs(start.rig.position.x - (pickup.position.x + 0.5)) < 1e-6 &&
-        Math.abs(start.rig.position.z - (pickup.position.y + 0.5)) < 1e-6,
-      'landing custody starts where the toss landed instead of replaying the flight',
+      Math.abs(start.x - (pickup.position.x + 0.5)) < 1e-6 &&
+        Math.abs(start.z - (pickup.position.y + 0.5)) < 1e-6,
+      'landing custody starts over the receiving ally',
     );
-    assert.equal(start.sphere.position.y, 0.4);
+    assert.ok(
+      start.distanceTo(justBeforeLanding) < 0.01,
+      'the toss reaches carried height continuously at the custody boundary',
+    );
+    assert.ok(start.y > 1.1, 'the caught Core never returns to the floor');
 
-    const middle = pickupCoreAt(landingTick + 0.5);
+    const middleTime = landingTick + 0.5;
+    const middle = corePointAt(middleTime, 'arc-toss-catch');
+    const receiver = posesAt(replay, middleTime).find(
+      (pose) => pose.actorKey === pickup.carrierActor.actorKey,
+    );
+    assert.ok(receiver);
     assert.ok(
-      Math.abs(middle.rig.position.x - start.rig.position.x) < 1e-6 &&
-        Math.abs(middle.rig.position.z - start.rig.position.z) < 1e-6,
-      'the handoff rises vertically rather than drawing a second toss',
+      middle.y > 1.1,
+      'the Core remains at carried height instead of replaying a floor pickup',
     );
     assert.ok(
-      middle.sphere.position.y > 0.8 && middle.sphere.position.y < 1.18,
-      'the landed Core visibly rises from floor height toward its ally',
+      Math.abs(middle.x - (receiver.x + 0.5)) < 1e-6 &&
+        Math.abs(middle.z - (receiver.y + 0.5)) < 1e-6,
+      'the caught Core follows the receiver immediately',
     );
 
-    const end = pickupCoreAt(landingTick + 0.99);
-    assert.ok(end.sphere.position.y > 1.15, 'the same lift settles at carried height');
+    const end = corePointAt(landingTick + 0.999, 'arc-toss-catch');
+    const settled = corePointAt(landingTick + 1, 'settled');
+    assert.ok(
+      end.distanceTo(settled) < 0.02,
+      'the catch meets ordinary carried custody without an end snap',
+    );
   } finally {
     overlays.dispose();
   }

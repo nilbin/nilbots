@@ -2624,7 +2624,12 @@ function buildArcRelayStory(
     return cores[index]!;
   };
 
-  type CoreTransitionKind = 'pickup' | 'handoff' | 'drop' | 'bank';
+  type CoreTransitionKind =
+    | 'pickup'
+    | 'arc-toss-catch'
+    | 'handoff'
+    | 'drop'
+    | 'bank';
   interface CoreTransition {
     coreKey: string;
     kind: CoreTransitionKind;
@@ -2638,24 +2643,35 @@ function buildArcRelayStory(
     `${coreId.sourceWellId}:${coreId.sourceOrdinal}`;
   const coreTransitionsAt = (tickIndex: number): CoreTransition[] => {
     const tick = replay.ticks[tickIndex];
-    const result: CoreTransition[] = [];
-    for (const event of [
+    const facts = [
       ...(tick?.lifecycleEvents ?? []),
       ...(tick?.events ?? []),
-    ]) {
-      const fact = event.arcRelayFact;
-      if (!fact) continue;
-      const transition = coreTransition(fact);
+    ].flatMap((event) => event.arcRelayFact ? [event.arcRelayFact] : []);
+    const arcTossLandings = new Set(
+      facts.flatMap((fact) =>
+        fact.kind === 'core-relocated' &&
+          fact.relocationKind === 'arc-toss-landing'
+          ? [coreKey(fact.coreId)]
+          : []),
+    );
+    const result: CoreTransition[] = [];
+    for (const fact of facts) {
+      const transition = coreTransition(fact, arcTossLandings);
       if (transition) result.push(transition);
     }
     return result;
   };
-  const coreTransition = (fact: ReplayArcRelayFact): CoreTransition | null => {
+  const coreTransition = (
+    fact: ReplayArcRelayFact,
+    arcTossLandings: ReadonlySet<string>,
+  ): CoreTransition | null => {
     switch (fact.kind) {
       case 'core-picked-up':
         return {
           coreKey: coreKey(fact.coreId),
-          kind: 'pickup',
+          kind: arcTossLandings.has(coreKey(fact.coreId))
+            ? 'arc-toss-catch'
+            : 'pickup',
           sourceWellId: fact.coreId.sourceWellId,
           sourceActor: null,
           targetActor: fact.carrierActor,
@@ -3055,7 +3071,13 @@ function buildArcRelayStory(
         1.18,
         arcTossFlight.position.y + 0.5,
       );
-      const target = arcTossFlight.flightTarget ?? arcTossFlight.position;
+      const catchTransition = coreTransitionsAt(
+        arcTossFlight.flightCompletesAtTick!,
+      ).find((transition) =>
+        transition.coreKey === arcTossFlight.key &&
+        transition.kind === 'arc-toss-catch');
+      const target = catchTransition?.position ??
+        arcTossFlight.flightTarget ?? arcTossFlight.position;
       const progress = easeCore(
         (time - arcTossFlight.flightStartedAtTick!) /
           Math.max(
@@ -3064,9 +3086,15 @@ function buildArcRelayStory(
               arcTossFlight.flightStartedAtTick!,
           ),
       );
+      const targetHeight = catchTransition
+        ? carriedCoreHeight(
+            arcTossFlight.key,
+            arcTossFlight.flightCompletesAtTick!,
+          )
+        : 0.4;
       const position = new THREE.Vector3(
         source.x + (target.x + 0.5 - source.x) * progress,
-        source.y + (0.4 - source.y) * progress +
+        source.y + (targetHeight - source.y) * progress +
           Math.sin(progress * Math.PI) * 0.94,
         source.z + (target.y + 0.5 - source.z) * progress,
       );
@@ -3088,15 +3116,14 @@ function buildArcRelayStory(
       const rig = core(usedCoreRigs++);
       rig.group.userData.coreKey = transition.coreKey;
       rig.group.userData.coreMotion = transition.kind;
-      // Pickup is a levitation gesture, not a discrete state swap. The shared 85% state
-      // cutoff plus cubic easing packed most of the ascent into two or three frames and
-      // then held it at carrier height, which read as a snap. Let this one visual bridge
-      // use its whole public tick with a gentler smoothstep; the authoritative custody
-      // still changes on exactly the same engine fact and every other transition keeps
-      // the shared settle boundary.
-      const settledProgress = transition.kind === 'pickup'
-        ? tickFraction * tickFraction * (3 - 2 * tickFraction)
-        : easeCore(tickFraction / STATE_SETTLES_AT);
+      // An ordinary floor pickup is a levitation gesture, not a discrete state swap. The
+      // Arc Toss catch is already at carried height when custody begins; every other
+      // transition keeps the shared settle boundary.
+      const settledProgress = transition.kind === 'arc-toss-catch'
+        ? 1
+        : transition.kind === 'pickup'
+          ? tickFraction * tickFraction * (3 - 2 * tickFraction)
+          : easeCore(tickFraction / STATE_SETTLES_AT);
       const beforeCore = replay.ticks[tickIndex]?.before.mode?.kind === 'arc-relay' &&
           'visibleCores' in replay.ticks[tickIndex]!.before.mode
         ? replay.ticks[tickIndex]!.before.mode.visibleCores.find(
@@ -3140,11 +3167,12 @@ function buildArcRelayStory(
           : ground;
       const target = transition.kind === 'bank'
         ? new THREE.Vector3(ground.x, 0.23, ground.z)
-        : transition.kind === 'pickup' && transition.targetActor
+        : (transition.kind === 'pickup' ||
+            transition.kind === 'arc-toss-catch') && transition.targetActor
           // The bot renderer deliberately glides across occupancy boundaries instead of
-          // snapping to the tick's `after` tile. Pickup has to meet that same rendered
-          // body, otherwise the Core finishes above the authoritative tile and jumps up
-          // to half a tile when custody becomes the ordinary carried state.
+          // snapping to the tick's `after` tile. Pickup and an automatic Arc Toss catch
+          // have to meet that same rendered body, otherwise the Core finishes above the
+          // authoritative tile and jumps when custody becomes ordinary carried state.
           ? posePoint(transition.targetActor, actorPoses) ??
             snapshotActorPoint(transition.targetActor, tickIndex, 'after') ??
             eventActorPosition
@@ -3153,11 +3181,19 @@ function buildArcRelayStory(
             posePoint(transition.targetActor, actorPoses) ?? eventActorPosition
           : ground;
       const position = new THREE.Vector3().lerpVectors(source, target, settledProgress);
-      const levitation = transition.kind === 'bank'
+      const levitation = transition.kind === 'arc-toss-catch'
+        ? 0
+        : transition.kind === 'bank'
         ? Math.sin(settledProgress * Math.PI) * 0.42
         : Math.sin(settledProgress * Math.PI) * 0.28;
       position.y += levitation;
-      if (transition.kind === 'pickup') {
+      if (transition.kind === 'arc-toss-catch') {
+        // Arc Toss and its automatic catch are one continuous visual action. The engine
+        // publishes a 2D landing followed by custody in the same tick; neither fact says
+        // the Core touched the floor, so meet the receiver at carried height and follow
+        // its rendered pose without replaying the ordinary floor-pickup levitation.
+        position.y = carriedCoreHeight(transition.coreKey, time);
+      } else if (transition.kind === 'pickup') {
         // Join the exact stable carried hover at the boundary. Applying the bob across
         // the whole ascent would move the floor contact; weighting it by pickup progress
         // keeps the start planted while making the final frame continuous.
@@ -3168,6 +3204,7 @@ function buildArcRelayStory(
         ? Math.max(0.08, 1 - settledProgress ** 2 * 0.92)
         : 1 + Math.sin(settledProgress * Math.PI) * 0.12;
       const carried = transition.kind === 'handoff' ||
+        transition.kind === 'arc-toss-catch' ||
         (transition.kind === 'pickup' && settledProgress > 0.5) ||
         (transition.kind === 'drop' && settledProgress < 0.5) ||
         transition.kind === 'bank';
