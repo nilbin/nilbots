@@ -3,6 +3,7 @@ import test from 'node:test';
 import {
   ARC_SIGNATURE_PROP_SCALE,
   SENTINEL_YAW_SETTLE_TICKS,
+  SURVEY_FLARE_LANDED_ROLL,
   ARC_SIGNATURE_PRESENTATION_ID,
   ARC_SIGNATURE_WEBGL_PAINTERS,
   CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
@@ -19,6 +20,7 @@ import {
   resolveArcSignaturePresentation,
   sentinelYawTarget,
   surveyFlareFlightEndpoints,
+  surveyFlareFlightRotation,
   buildArcVeterancy,
   buildOverlays,
   LEVEL_UP_BEAT_TICKS,
@@ -265,6 +267,43 @@ test('Survey Flare restores flight direction from its owner after canonical endp
   assert.ok(flight);
   assert.equal(flight.from, launch);
   assert.equal(flight.to, target);
+});
+
+test('Survey Flare turns upright during flight and meets its landed pose continuously', () => {
+  const launch = surveyFlareFlightRotation(0, false);
+  const airborne = surveyFlareFlightRotation(0.5, false);
+  const landing = surveyFlareFlightRotation(1, false);
+  const reducedAirborne = surveyFlareFlightRotation(0.5, true);
+
+  assert.deepEqual(launch, { tumbleX: 0, uprightRollZ: 0 });
+  assert.ok(
+    airborne.uprightRollZ > 0 &&
+      airborne.uprightRollZ < SURVEY_FLARE_LANDED_ROLL,
+    `the rigid model is already turning upright in the air (${airborne.uprightRollZ})`,
+  );
+  assert.equal(landing.tumbleX, Math.PI * 4, 'two complete airborne tumbles');
+  assert.equal(landing.uprightRollZ, SURVEY_FLARE_LANDED_ROLL);
+  assert.equal(
+    reducedAirborne.tumbleX,
+    0,
+    'reduced motion removes decorative tumbling',
+  );
+  assert.ok(
+    reducedAirborne.uprightRollZ > 0 &&
+      reducedAirborne.uprightRollZ < SURVEY_FLARE_LANDED_ROLL,
+    'reduced motion retains the structural airborne reorientation',
+  );
+
+  const flightEndpoint = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(landing.tumbleX, 0, landing.uprightRollZ),
+  );
+  const activeStart = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(0, 0, SURVEY_FLARE_LANDED_ROLL),
+  );
+  assert.ok(
+    flightEndpoint.angleTo(activeStart) < 1e-7,
+    `the last airborne and first landed orientations agree (${flightEndpoint.angleTo(activeStart)})`,
+  );
 });
 
 test('review corrections remove beam-like guide geometry from Vector Dash and Target Paint', () => {

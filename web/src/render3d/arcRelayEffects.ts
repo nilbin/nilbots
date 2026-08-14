@@ -30,9 +30,14 @@ import {
   areaBounds as signatureAreaBounds,
   phaseProgress as signaturePhaseProgress,
   surveyFlareFlightEndpoints,
+  surveyFlareFlightRotation,
 } from './signatures/primitives';
 
-export { surveyFlareFlightEndpoints } from './signatures/primitives';
+export {
+  SURVEY_FLARE_LANDED_ROLL,
+  surveyFlareFlightEndpoints,
+  surveyFlareFlightRotation,
+} from './signatures/primitives';
 import {
   centreStatusPips,
   createStatusPipGeometry,
@@ -803,13 +808,18 @@ export function buildArcRelayEffects(
         const fromY = sentinel || surveyFlare ? 0 : -0.24;
         if (surveyFlare && phase === 'in-flight') {
           const { from, to } = surveyFlareFlightEndpoints(points, owner)!;
-          const progress = easeOutDeploy(signaturePhaseProgress(signature, time));
+          const phaseProgress = signaturePhaseProgress(signature, time);
+          const progress = easeOutDeploy(phaseProgress);
           slot.group.position.lerpVectors(from, to, progress);
           slot.group.position.y = 0.14 + Math.sin(progress * Math.PI) * 1.15;
           slot.group.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
           if (slot.model) {
-            slot.model.rotation.x = reducedMotion ? 0 : progress * Math.PI * 4;
-            slot.model.rotation.z = 0;
+            const rotation = surveyFlareFlightRotation(
+              phaseProgress,
+              reducedMotion,
+            );
+            slot.model.rotation.x = rotation.tumbleX;
+            slot.model.rotation.z = rotation.uprightRollZ;
           }
         } else {
           // Survey's active positions are its complete reveal footprint. Park the
