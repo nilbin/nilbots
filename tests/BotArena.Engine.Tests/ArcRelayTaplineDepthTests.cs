@@ -175,6 +175,52 @@ public sealed class ArcRelayTaplineDepthTests
         }
     }
 
+    [Fact]
+    public void CombinedDepthReplayRoundTripsTheScaledCombatContract()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.TaplineDepthPack);
+        Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
+            factories = GenericMindSessionTestFixture.Factories(definition);
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericMindSessionTestFixture.Configurations(definition, factories),
+            matchSeed: 20_260_814UL);
+        session.Run();
+
+        ReplayV3 replay = ReplayV3Projection.Project(session.Chronology);
+        string replayJson = ReplayV3Serializer.ToJson(replay);
+        ReplayV3 reread = ReplayV3Serializer.ReadCanonicalComplete(replayJson);
+        GenericActorResolvedMatchContract contract =
+            ActorCanonicalContractReader.Parse(
+                reread.Header.Contract.CanonicalJson);
+        var mode = Assert.IsType<
+            GenericActorRulesContract.ArcRelayGameMode>(
+                contract.Rules.GameMode);
+
+        Assert.Equal(
+            "arc-relay-tapline-depth-pack-02",
+            reread.Header.GameRulesVersion);
+        Assert.Equal(
+            ReplayV3Serializer.ComputeHash(replay),
+            ReplayV3Serializer.ComputeHash(reread));
+        Assert.Equal(5, mode.VeterancyDamagePerPoint);
+        Assert.Equal(10, mode.VeterancyDamageBonusCap);
+        Assert.True(mode.VeterancyBonusAfterRearArc);
+        Assert.Equal(10, mode.VitalityHealthPerPoint);
+        Assert.Equal(10, mode.HealZoneHealthPerActivation);
+        Assert.Equal(
+            [30, 40, 50],
+            contract.Rules.Forms
+                .Where(form => form.Id.StartsWith(
+                    ArcRelayH0Definition.FormPrefix,
+                    StringComparison.Ordinal))
+                .Select(form => form.MaxHealth)
+                .Distinct()
+                .Order()
+                .ToArray());
+    }
+
     [Theory]
     [InlineData(0, false, 0, 10)]
     [InlineData(1, false, 0, 15)]
