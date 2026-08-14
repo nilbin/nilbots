@@ -1,5 +1,9 @@
 import * as THREE from 'three';
 import { CAMERA_PITCH } from './arenaScene';
+import {
+  HEALTH_BAR_RELATIVE_WIDTH,
+  healthBarState,
+} from '../presentation/healthBar';
 
 /**
  * One world-space grammar for compact status attached to a body or construct.
@@ -14,6 +18,104 @@ export const STATUS_BIB_SETBACK = 0.55;
 export const STATUS_PIP_RADIUS = 0.06;
 export const STATUS_PIP_SPACING = 0.17;
 export const STATUS_BIB_RENDER_ORDER = 10;
+/** Health and cooldown are one fixed-width stack; only their fill changes. */
+export const STATUS_TRACK_WIDTH = HEALTH_BAR_RELATIVE_WIDTH;
+export const STATUS_HEALTH_BAR_HEIGHT = 0.072;
+const STATUS_HEALTH_BAR_INNER_WIDTH = 0.49;
+const STATUS_HEALTH_BAR_INNER_HEIGHT = 0.048;
+
+export interface StatusHealthBarRig {
+  group: THREE.Group;
+  fill: THREE.Mesh;
+  fillMaterial: THREE.MeshBasicMaterial;
+  frameMaterial: THREE.MeshBasicMaterial;
+  trackMaterial: THREE.MeshBasicMaterial;
+  disposables: Array<THREE.Material | THREE.BufferGeometry>;
+}
+
+/**
+ * Fixed-width health bar with a restrained team-colour rim. Health itself uses
+ * the universal green/amber/red language so the same wound state reads across teams.
+ */
+export function createStatusHealthBar(
+  teamAccent: THREE.ColorRepresentation,
+): StatusHealthBarRig {
+  const group = new THREE.Group();
+  group.userData.cue = 'health-bar-track';
+  group.userData.width = STATUS_TRACK_WIDTH;
+  group.userData.height = STATUS_HEALTH_BAR_HEIGHT;
+
+  const frameGeometry = new THREE.PlaneGeometry(
+    STATUS_TRACK_WIDTH,
+    STATUS_HEALTH_BAR_HEIGHT,
+  );
+  const innerGeometry = new THREE.PlaneGeometry(
+    STATUS_HEALTH_BAR_INNER_WIDTH,
+    STATUS_HEALTH_BAR_INNER_HEIGHT,
+  );
+  const frameMaterial = new THREE.MeshBasicMaterial({
+    color: teamAccent,
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const trackMaterial = new THREE.MeshBasicMaterial({
+    color: '#071017',
+    transparent: true,
+    opacity: 0.9,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const fillMaterial = new THREE.MeshBasicMaterial({
+    color: '#4ade80',
+    transparent: true,
+    opacity: 0.98,
+    depthWrite: false,
+    depthTest: false,
+  });
+  const frame = new THREE.Mesh(frameGeometry, frameMaterial);
+  frame.userData.cue = 'health-bar-frame';
+  const track = new THREE.Mesh(innerGeometry, trackMaterial);
+  track.userData.cue = 'health-bar-backing';
+  track.position.z = 0.002;
+  const fill = new THREE.Mesh(innerGeometry, fillMaterial);
+  fill.userData.cue = 'health-bar-fill';
+  fill.position.z = 0.004;
+  for (const element of [frame, track, fill]) faceStatusElement(element);
+  group.add(frame, track, fill);
+  return {
+    group,
+    fill,
+    fillMaterial,
+    frameMaterial,
+    trackMaterial,
+    disposables: [
+      frameGeometry,
+      innerGeometry,
+      frameMaterial,
+      trackMaterial,
+      fillMaterial,
+    ],
+  };
+}
+
+/** Paint a left-anchored proportional fill without changing the bar's footprint. */
+export function paintStatusHealthBar(
+  rig: StatusHealthBarRig,
+  currentHealth: number,
+  maximumHealth: number,
+): void {
+  const state = healthBarState(currentHealth, maximumHealth);
+  rig.fillMaterial.color.set(state.color);
+  rig.fill.visible = state.fraction > 0;
+  rig.fill.scale.x = Math.max(state.fraction, 0.001);
+  rig.fill.position.x = -STATUS_HEALTH_BAR_INNER_WIDTH * (1 - state.fraction) / 2;
+  rig.group.userData.currentHealth = state.current;
+  rig.group.userData.maximumHealth = state.maximum;
+  rig.group.userData.remainingFraction = state.fraction;
+  rig.group.userData.healthTone = state.tone;
+}
 
 export function createStatusPipGeometry(): THREE.CircleGeometry {
   return new THREE.CircleGeometry(STATUS_PIP_RADIUS, 12);

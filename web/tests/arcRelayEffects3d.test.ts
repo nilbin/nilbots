@@ -845,6 +845,7 @@ test('Sentinel Seed transforms upward from its floor seed', () => {
     return effects.group.children.find(
       (candidate) =>
         candidate.visible &&
+        candidate.userData.kind === 'arc-relay-signature-prop' &&
         candidate.userData.signatureId === 'sentinel-seed' &&
         candidate.userData.phase === undefined,
     );
@@ -941,11 +942,11 @@ test('mine and sentry bibs use the derived low construct placement', () => {
     effects.group.traverse((node) => {
       if (
         node.visible &&
-        node.userData.cue === 'health-pips' &&
+        node.userData.cue === 'health-bar' &&
         node.userData.signatureId === signatureId
       ) found = node;
     });
-    assert.ok(found, `no ${signatureId} health bib`);
+    assert.ok(found, `no ${signatureId} health bar`);
     return found;
   };
   const propModel = (signatureId: 'trip-node' | 'sentinel-seed') => {
@@ -989,19 +990,18 @@ test('mine and sentry bibs use the derived low construct placement', () => {
     if (!sentryModel.model)
       assert.equal(sentry.position.y, CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT);
     assert.deepEqual(sentry.scale.toArray(), [1, 1, 1]);
-    assert.equal(sentry.children.length, 2);
-    for (const pip of sentry.children) {
-      assert.equal(
-        (pip as THREE.Mesh).geometry.type,
-        'CircleGeometry',
-        'construct health uses the same flat circle as bot health',
-      );
-      const material = (pip as THREE.Mesh).material;
-      assert.ok(material instanceof THREE.MeshBasicMaterial);
-      assert.equal(material.depthTest, false);
-    }
-    assert.equal(sentry.children[0]!.position.x, -0.085);
-    assert.equal(sentry.children[1]!.position.x, 0.085);
+    assert.equal(sentry.children.length, 1);
+    const track = sentry.children[0]!;
+    assert.equal(track.userData.cue, 'health-bar-track');
+    assert.equal(track.userData.width, 0.52);
+    assert.equal(track.children.length, 3);
+    const fill = track.children.find(
+      (child) => child.userData.cue === 'health-bar-fill',
+    ) as THREE.Mesh | undefined;
+    assert.ok(fill);
+    assert.equal(fill.geometry.type, 'PlaneGeometry');
+    assert.ok(fill.material instanceof THREE.MeshBasicMaterial);
+    assert.equal(fill.material.depthTest, false);
   } finally {
     for (const disposable of disposables) disposable.dispose();
   }

@@ -36,10 +36,6 @@ import {
 import { volleyLanes } from '../render/volley';
 import { buildVolleyArrows } from './volleyArrows';
 import { maxHealthForActor } from '../replayMetadata';
-import {
-  healthSegments,
-  MAX_HEALTH_SEGMENTS,
-} from '../presentation/healthSegments';
 import { createPresenter } from '../replayPresentation';
 import { settledStateTick } from '../render/tickClock';
 import { arcVeterancyFor } from '../replayArcVeterancy';
@@ -55,13 +51,11 @@ import {
   type ArcSignatureBodyState,
 } from './arcModelMotion';
 import {
-  centreStatusPips,
-  createStatusPipGeometry,
-  createStatusPipMaterial,
+  createStatusHealthBar,
   faceStatusElement,
+  paintStatusHealthBar,
   placeStatusBib,
-  STATUS_PIP_RADIUS,
-  STATUS_PIP_SPACING,
+  STATUS_TRACK_WIDTH,
 } from './statusBib';
 import {
   teamVisionAt,
@@ -214,7 +208,7 @@ export const PROJECTILE_HOVER = 0.2;
  * and triangles on veterancy. An X reads at a glance and survives the fog
  * dimming, which a hue-only cue would not.
  *
- * It rides in the pips group: that group is already positioned in world space
+ * It rides in the status bib: that group is already positioned in world space
  * each frame, already squared to the camera, and already hides with the body —
  * so the mark cannot outlive a death or leak through fog by construction.
  */
@@ -226,7 +220,6 @@ const ENGAGED_MARK_COLOR = '#f87171';
 /** Compact status layout: veterancy shares the health row; recharge sits below it. */
 const ATTACK_COOLDOWN_LIFT = -0.13;
 const SIGNATURE_COOLDOWN_LIFT = -0.205;
-const COOLDOWN_TRACK_WIDTH = 0.52;
 const COOLDOWN_TRACK_HEIGHT = 0.026;
 const VETERANCY_BADGE_WIDTH = 0.23;
 const VETERANCY_BADGE_HEIGHT = 0.2;
@@ -460,9 +453,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   const veterancyLevelCeiling = rawGameMode?.kind === 'arc-relay'
     ? Math.max(veterancy.maxLevel, rawGameMode.veterancyMaxLevel ?? 1)
     : veterancy.maxLevel;
-  // Ten pooled segments cover historical one-point pips and every larger
-  // combat-scale/vitality life without creating 100 meshes per body.
-  const maxHealthSegments = MAX_HEALTH_SEGMENTS;
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
@@ -1097,31 +1087,21 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       repaint();
     };
 
-    // Health, as pips floating over the bot — the one piece of state the flat renderer puts
+    // Health, as a fixed-width bar floating over the bot — the one piece of state the flat renderer puts
     // on the arena rather than in a panel, because it is the thing you need while watching
     // rather than afterwards.
     //
     // **Not a child of the chassis**, which is the obvious place for them and the wrong one.
-    // The chassis turns with the bot, so pips parented to it turn too: edge-on whenever the
+    // The chassis turns with the bot, so a bar parented to it turns too: edge-on whenever the
     // bot faced east, and the offset that lifts them clear of the hull swinging round with
     // the facing. They live in world space and are moved to follow instead.
-    const pips = new THREE.Group();
-    pips.userData.cue = 'health-pips';
-    pips.userData.forUnitKey = unit.unitKey;
-    const pipGeometry = createStatusPipGeometry();
-    const litPip = createStatusPipMaterial(accent);
-    const lostPip = createStatusPipMaterial('#64748b', true);
-    const pipMeshes: THREE.Mesh[] = [];
-    for (let index = 0; index < maxHealthSegments; index++) {
-      const pip = new THREE.Mesh(pipGeometry, litPip);
-      pip.userData.cue = 'health-pip';
-      faceStatusElement(pip);
-      pips.add(pip);
-      pipMeshes.push(pip);
-    }
-    centreStatusPips(pipMeshes, maxHealthSegments);
-    group.add(pips);
-    disposables.push(pipGeometry, litPip, lostPip);
+    const statusBib = new THREE.Group();
+    statusBib.userData.cue = 'health-bar';
+    statusBib.userData.forUnitKey = unit.unitKey;
+    const healthBar = createStatusHealthBar(accent);
+    statusBib.add(healthBar.group);
+    group.add(statusBib);
+    disposables.push(...healthBar.disposables);
 
     /**
      * Two deliberately unlabeled tracks below health. Their fixed order and colour are
@@ -1129,7 +1109,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      * only while its clock is live, so a ready body keeps the old uncluttered health bib.
      */
     const cooldownTrackGeometry = new THREE.PlaneGeometry(
-      COOLDOWN_TRACK_WIDTH,
+      STATUS_TRACK_WIDTH,
       COOLDOWN_TRACK_HEIGHT,
     );
     const cooldownTrackMaterial = new THREE.MeshBasicMaterial({
@@ -1175,7 +1155,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       fill.position.z = 0.003;
       fill.renderOrder = 11;
       track.add(backing, fill);
-      pips.add(track);
+      statusBib.add(track);
       return { group: track, fill };
     };
     const attackCooldown = cooldownTrack(
@@ -1295,7 +1275,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       veterancyBadge.add(digit);
       veterancyDigits.push(digit);
     }
-    if (veterancyEnabled) pips.add(veterancyBadge);
+    if (veterancyEnabled) statusBib.add(veterancyBadge);
     disposables.push(
       veterancyBadgeGeometry,
       horizontalSegmentGeometry,
@@ -1330,7 +1310,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       blade.renderOrder = 10;
       engagedMark.add(blade);
     }
-    pips.add(engagedMark);
+    statusBib.add(engagedMark);
     disposables.push(bladeGeometry, bladeMaterial);
 
     // The channel ring: this body is holding the point still, or standing off
@@ -1432,7 +1412,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     upgradeRing.visible = false;
     chassis.add(upgradeRing);
 
-    // The load. World-space like the pips, for the same reason: parented to
+    // The load. World-space like the status bib, for the same reason: parented to
     // the chassis these would swing round with the facing.
     const carry = new THREE.Group();
     carry.userData.cue = 'carried-scrap';
@@ -1575,8 +1555,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     );
 
     fading.push(
-      { material: litPip, base: 1, alwaysTransparent: true },
-      { material: lostPip, base: 0.35, alwaysTransparent: true },
+      { material: healthBar.frameMaterial, base: 0.9, alwaysTransparent: true },
+      { material: healthBar.trackMaterial, base: 0.9, alwaysTransparent: true },
+      { material: healthBar.fillMaterial, base: 0.98, alwaysTransparent: true },
       { material: cooldownTrackMaterial, base: 0.62, alwaysTransparent: true },
       { material: attackCooldownMaterial, base: 0.88, alwaysTransparent: true },
       { material: signatureCooldownMaterial, base: 0.9, alwaysTransparent: true },
@@ -1655,13 +1636,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       highlight,
       charge,
       flash,
-      pips,
-      pipMeshes,
+      statusBib,
+      healthBar,
       attackCooldown,
       signatureCooldown,
       engagedMark,
-      litPip,
-      lostPip,
       veterancyBadge,
       veterancyDigits,
       channelRing,
@@ -2048,7 +2027,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // destroyed life behind.
     for (const bot of bots) {
       bot.chassis.visible = false;
-      bot.pips.visible = false;
+      bot.statusBib.visible = false;
       bot.anchorRing.visible = false;
       bot.scan.visible = false;
       bot.stance.visible = false;
@@ -2206,10 +2185,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         pose.unitKey === selectedUnitKey && pose.status === 'active',
       );
 
-      // Pips follow rather than ride, and use the effective form's maximum. A mobile
+      // The status bar follows rather than rides, and uses the effective form's maximum. A mobile
       // child must not look wounded merely because its future turret form has more HP.
-      bot.pips.visible = bot.chassis.visible;
-      placeStatusBib(bot.pips, glide.x + 0.5, glide.y + 0.5);
+      bot.statusBib.visible = bot.chassis.visible;
+      placeStatusBib(bot.statusBib, glide.x + 0.5, glide.y + 0.5);
       const mechanics = settledUnits.find(
         (candidate) => candidate.unitKey === pose.unitKey,
       );
@@ -2220,13 +2199,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           health: pose.health,
         },
       );
-      const health = healthSegments(pose.health, effectiveMaxHealth);
-      bot.pips.userData.currentHealth = pose.health;
-      bot.pips.userData.maximumHealth = effectiveMaxHealth;
-      for (const [index, pip] of bot.pipMeshes.entries()) {
-        pip.material = index < health.filled ? bot.litPip : bot.lostPip;
-      }
-      centreStatusPips(bot.pipMeshes, health.count);
+      paintStatusHealthBar(bot.healthBar, pose.health, effectiveMaxHealth);
+      bot.statusBib.userData.currentHealth = pose.health;
+      bot.statusBib.userData.maximumHealth = effectiveMaxHealth;
+      bot.statusBib.userData.remainingFraction =
+        bot.healthBar.group.userData.remainingFraction;
 
       // What this body is doing about the two mechanics the arena now carries:
       // holding the point (or guarding whoever is), and whether it is worth
@@ -2239,7 +2216,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // Crossed blades: this body has a live fight. Always on, for every body,
       // which is the only way a spectator can read who is committed in a
       // warren of eight machines.
-      bot.engagedMark.visible = bot.pips.visible && mechanics?.engaged === true;
+      bot.engagedMark.visible = bot.statusBib.visible && mechanics?.engaged === true;
       bot.channelRing.visible = channelling;
       bot.screenRing.visible = screening;
       if (channelling) {
@@ -2260,24 +2237,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         pose.lifeId,
       );
       const rank = Math.max(1, Math.floor(level));
-      const badgeVisible = veterancyEnabled && bot.pips.visible;
+      const badgeVisible = veterancyEnabled && bot.statusBib.visible;
       bot.veterancyBadge.visible = badgeVisible;
       bot.veterancyBadge.userData.rankValue = rank;
       for (const digit of bot.veterancyDigits) {
         digit.visible = badgeVisible && digit.userData.rankValue === rank;
       }
       if (badgeVisible) {
-        // Centre the complete badge + gap + pip row over the body. The pips remain centred
-        // among themselves; they simply move right by half the plate-and-gap width.
-        const pipWidth = STATUS_PIP_RADIUS * 2
-          + Math.max(0, effectiveMaxHealth - 1) * STATUS_PIP_SPACING;
-        const pipShift = (VETERANCY_BADGE_WIDTH + VETERANCY_BADGE_GAP) / 2;
-        for (const pip of bot.pipMeshes) {
-          if (pip.visible) pip.position.x += pipShift;
-        }
+        // Centre the complete badge + gap + fixed health bar over the body.
+        const barShift = (VETERANCY_BADGE_WIDTH + VETERANCY_BADGE_GAP) / 2;
+        bot.healthBar.group.position.x = barShift;
         bot.veterancyBadge.position.x =
-          -(pipWidth + VETERANCY_BADGE_GAP) / 2;
-      }
+          -(STATUS_TRACK_WIDTH + VETERANCY_BADGE_GAP) / 2;
+      } else bot.healthBar.group.position.x = 0;
       bot.engagedMark.position.y = ENGAGED_MARK_LIFT;
 
       const declaredAttackCooldown =
@@ -2301,7 +2273,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           + (closingCooldown - openingCooldown) * fraction;
       paintCooldownTrack(
         bot.attackCooldown,
-        bot.pips.visible ? attackRemaining / attackCooldownMax : 0,
+        bot.statusBib.visible ? attackRemaining / attackCooldownMax : 0,
       );
       const signatureWindow = signatureCooldownAt(
         signatureCooldowns.get(pose.actorKey) ?? [],
@@ -2309,7 +2281,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       paintCooldownTrack(
         bot.signatureCooldown,
-        bot.pips.visible ? signatureWindow?.remainingFraction ?? 0 : 0,
+        bot.statusBib.visible ? signatureWindow?.remainingFraction ?? 0 : 0,
       );
 
       // The heal channel glows while zone-heals are landing and fades
@@ -2778,7 +2750,7 @@ function paintCooldownTrack(
   const remaining = Math.max(0, Math.min(remainingFraction, 1));
   track.group.visible = remaining > 0.001;
   track.fill.scale.x = Math.max(remaining, 0.001);
-  track.fill.position.x = -COOLDOWN_TRACK_WIDTH * (1 - remaining) / 2;
+  track.fill.position.x = -STATUS_TRACK_WIDTH * (1 - remaining) / 2;
   track.group.userData.remainingFraction = remaining;
 }
 

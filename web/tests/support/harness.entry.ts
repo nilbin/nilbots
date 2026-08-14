@@ -145,6 +145,6 @@ export {
   LEVEL_UP_BEAT_TICKS,
 } from '../../src/replayArcVeterancy';
 export {
-  healthSegments,
-  MAX_HEALTH_SEGMENTS,
-} from '../../src/presentation/healthSegments';
+  healthBarState,
+  HEALTH_BAR_COLORS,
+} from '../../src/presentation/healthBar';

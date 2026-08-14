@@ -21,7 +21,10 @@ import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
 } from './arcSignaturePresentation';
-import { healthSegments } from '../presentation/healthSegments';
+import {
+  HEALTH_BAR_RELATIVE_WIDTH,
+  healthBarState,
+} from '../presentation/healthBar';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -958,24 +961,15 @@ function drawSentinelTurret(
   );
   ctx.fill();
 
-  const durability = healthSegments(
+  drawDurabilityBar(
+    ctx,
+    point.x,
+    point.y + tile * 0.82,
+    tile,
     signature.remainingCapacity,
     signature.maximumCapacity ?? signature.remainingCapacity,
+    accent,
   );
-  for (let pip = 0; pip < durability.count; pip += 1) {
-    ctx.fillStyle = pip < durability.filled
-      ? withAlpha(accent, 0.95)
-      : 'rgba(100, 116, 139, 0.38)';
-    ctx.beginPath();
-    ctx.arc(
-      point.x - tile * 0.18 + pip * tile * 0.36,
-      point.y + tile * 0.82,
-      tile * 0.09,
-      0,
-      Math.PI * 2,
-    );
-    ctx.fill();
-  }
 }
 
 function drawConstructDurability(
@@ -987,18 +981,44 @@ function drawConstructDurability(
 ): void {
   if (signature.maximumCapacity === undefined) return;
   ctx.setLineDash([]);
-  const durability = healthSegments(
+  drawDurabilityBar(
+    ctx,
+    point.x,
+    point.y + tile * 0.52,
+    tile,
     signature.remainingCapacity,
     signature.maximumCapacity,
+    accent,
   );
-  const maximum = durability.count;
-  for (let index = 0; index < maximum; index += 1) {
-    const x = point.x + (index - (maximum - 1) / 2) * tile * 0.18;
-    ctx.fillStyle = index < durability.filled
-      ? withAlpha(accent, 0.95)
-      : 'rgba(100, 116, 139, 0.4)';
-    ctx.fillRect(x - tile * 0.055, point.y + tile * 0.48, tile * 0.11, tile * 0.13);
-  }
+}
+
+function drawDurabilityBar(
+  ctx: CanvasRenderingContext2D,
+  centreX: number,
+  centreY: number,
+  tile: number,
+  current: number,
+  maximum: number,
+  accent: string,
+): void {
+  const health = healthBarState(current, maximum);
+  const width = tile * HEALTH_BAR_RELATIVE_WIDTH;
+  const height = Math.max(4, tile * 0.075);
+  const rim = Math.max(1, tile * 0.018);
+  const x = centreX - width / 2;
+  const y = centreY - height / 2;
+  ctx.fillStyle = withAlpha(accent, 0.95);
+  ctx.fillRect(x, y, width, height);
+  ctx.fillStyle = 'rgba(7, 16, 23, 0.92)';
+  ctx.fillRect(x + rim, y + rim, width - rim * 2, height - rim * 2);
+  if (health.fraction <= 0) return;
+  ctx.fillStyle = health.color;
+  ctx.fillRect(
+    x + rim,
+    y + rim,
+    (width - rim * 2) * health.fraction,
+    height - rim * 2,
+  );
 }
 
 function drawMine(
