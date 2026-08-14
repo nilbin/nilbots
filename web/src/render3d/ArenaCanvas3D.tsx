@@ -380,6 +380,11 @@ export default function ArenaCanvas3D({
       scale: () =>
         container.clientHeight /
         Math.max(camera?.frame.height ?? framing.mapHeight, 1e-6),
+      // The pitched ground plane projects a tile smaller than the plan-view estimate.
+      // A small gain restores decisive travel, while direct tracking removes the much
+      // larger source of sluggishness: waiting for the spectator spring after every move.
+      dragGain: 1.35,
+      directDrag: true,
       onOverride: () => frameState.current.onManualCamera?.(),
     });
 

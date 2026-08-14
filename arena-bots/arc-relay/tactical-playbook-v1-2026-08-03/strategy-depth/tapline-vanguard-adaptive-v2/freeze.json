@@ -1,0 +1,38 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-vanguard-adaptive-v2",
+  "status": "immutable-reference",
+  "source": "strategy-depth-counter-counter-experiment",
+  "parentStrategy": "tapline-vanguard-v1",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "92e4e0ad09aad59c77ab51c75c717c50d6360badb0c3cb963b135747521880fc"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "ff71ba5a68c7b75792b18ed218eddcffe404faa281ec952e2fcad5987e77f152"
+    },
+    "atl2": {
+      "sha256": "0fbb05394d9c77598fd7729cda2ffb9223df586d3174b660b3fd81a0d5db0fb9",
+      "bytes": 5706,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Preserve Vanguard's home, far-Well, supported Towline, and northern-flank structure, but replace its centre trio with a Hush-Repulsor-Patchbay response that returns home only when remembered enemy mass reveals Counterfort's return-lane denial.",
+  "recognition": {
+    "entry": "remembered-enemies-in-zone(home-return-sector, 45 ticks) >= 3",
+    "response": "Hush suppresses the denial signatures, Repulsor breaks the packed body wall, Patchbay sustains the sweep, and all three focus the home-lane carrier before reclaiming the own Well",
+    "fallback": "at one or fewer recently remembered home-lane enemies, the trio resumes loose-Core collection, centre signatures, ordinary combat, and centre-Well control"
+  },
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-counterfort-v1",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "3 wins, 2 losses, 1 simultaneous-reactor draw in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "counter-counter interaction reference, not a balance claim"
+    }
+  ]
+}

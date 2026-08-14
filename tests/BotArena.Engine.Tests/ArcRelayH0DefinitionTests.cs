@@ -259,7 +259,7 @@ public sealed class ArcRelayH0DefinitionTests
             ArcRelayH0ReplayPresentation.Create(definition);
 
         Assert.Equal(
-            "arc-relay-signatures-v1",
+            "arc-relay-signatures-v2",
             presentation.SignaturePresentationId);
     }
 

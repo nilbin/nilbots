@@ -90,6 +90,16 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
     'signature-exchange',
     'signature-target',
     'signature-kinetic',
+    'signature-mason',
+    'signature-repair',
+    'signature-falling-star',
+    'signature-trip-deploy',
+    'signature-trip-trigger',
+    'signature-arc-toss',
+    'signature-rail-charge',
+    'signature-rail-release',
+    'signature-sentinel-deploy',
+    'signature-sentinel-fire',
     'core-family',
     'silent',
   ]);
@@ -99,6 +109,37 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
     ),
     'presentation definitions cannot name an unowned audio intent',
   );
+  const primaryCueBySignature = new Map([
+    ['vector-dash', 'signature-motion'],
+    ['prism-wall', 'signature-construct'],
+    ['tractor-hook', 'signature-tether'],
+    ['repair-beam', 'signature-repair'],
+    ['survey-flare', 'signature-survey'],
+    ['falling-star', 'signature-falling-star'],
+    ['trip-node', 'signature-trip-deploy'],
+    ['null-field', 'signature-null'],
+    ['arc-toss', 'signature-arc-toss'],
+    ['exchange', 'signature-exchange'],
+    ['rail-line', 'signature-rail-release'],
+    ['hardlight-block', 'signature-mason'],
+    ['target-paint', 'signature-target'],
+    ['kinetic-burst', 'signature-kinetic'],
+    ['smoke-canister', 'signature-smoke'],
+    ['sentinel-seed', 'signature-sentinel-deploy'],
+  ] as const);
+  assert.equal(
+    new Set(primaryCueBySignature.values()).size,
+    signatureIds.length,
+    'each launch signature must own a distinct primary audio identity',
+  );
+  for (const definition of definitions) {
+    const primaryCue = primaryCueBySignature.get(definition.signatureId);
+    assert.ok(primaryCue, `${definition.signatureId} needs a primary cue`);
+    assert.ok(
+      definition.audio.some((binding) => binding.cue === primaryCue),
+      `${definition.signatureId} must bind its primary cue '${primaryCue}'`,
+    );
+  }
   const hook = definitions.find(
     (definition) => definition.signatureId === 'tractor-hook',
   );
@@ -327,6 +368,71 @@ test('Prism Wall and Hardlight Block deploy body-height matte silhouettes', () =
     } finally {
       for (const disposable of disposables) disposable.dispose();
     }
+  }
+});
+
+test('Hardlight Block is a grid-aligned framed energy block, not borrowed map masonry', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    effects.update(52.68);
+    const group = effects.group.children.find(
+      (candidate) =>
+        candidate.visible && candidate.userData.signatureId === 'hardlight-block',
+    );
+    assert.ok(group, 'Hardlight Block has a visible deployment rig');
+    const meshes = group!.children.filter(
+      (candidate): candidate is THREE.Mesh =>
+        candidate.visible && (candidate as THREE.Mesh).isMesh,
+    );
+    const frames = meshes.filter(
+      (mesh) => mesh.geometry.type === 'ExtrudeGeometry',
+    );
+    const panes = meshes.filter((mesh) => {
+      if (mesh.geometry.type !== 'BoxGeometry') return false;
+      const parameters = (mesh.geometry as THREE.BoxGeometry).parameters;
+      return parameters.width === 0.78 && parameters.height === 0.64 &&
+        parameters.depth === 0.08;
+    });
+    const masonryBlocks = meshes.filter((mesh) => {
+      if (mesh.geometry.type !== 'BoxGeometry') return false;
+      const parameters = (mesh.geometry as THREE.BoxGeometry).parameters;
+      return parameters.width === 0.88 && parameters.height === 0.22 &&
+        parameters.depth === 0.88;
+    });
+
+    assert.equal(frames.length, 5, 'four faces and the cap each have a slim frame');
+    assert.equal(panes.length, 5, 'four faces and the cap each contain hardlight');
+    assert.equal(masonryBlocks.length, 0, 'the old opaque arena-material cube is gone');
+
+    const sideFrames = frames.filter((frame) => Math.abs(frame.rotation.x) < 1e-6);
+    assert.equal(sideFrames.length, 4);
+    assert.ok(
+      sideFrames.every((frame) => {
+        const quarterTurns = frame.rotation.y / (Math.PI / 2);
+        return Math.abs(quarterTurns - Math.round(quarterTurns)) < 1e-6;
+      }),
+      'every side follows the arena grid rather than an arbitrary facing',
+    );
+    const frameMaterial = sideFrames[0]!.material as THREE.MeshStandardMaterial;
+    const paneMaterial = panes[0]!.material as THREE.MeshBasicMaterial;
+    assert.ok(frameMaterial.roughness >= 0.88 && frameMaterial.metalness <= 0.1);
+    assert.ok(paneMaterial.opacity >= 0.1 && paneMaterial.opacity <= 0.2);
+
+    group!.updateMatrixWorld(true);
+    const bounds = new THREE.Box3();
+    for (const mesh of meshes) bounds.expandByObject(mesh);
+    const width = bounds.max.x - bounds.min.x;
+    const depth = bounds.max.z - bounds.min.z;
+    assert.ok(Math.abs(width - depth) < 0.04, 'the closed barrier reads as one square block');
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
   }
 });
 

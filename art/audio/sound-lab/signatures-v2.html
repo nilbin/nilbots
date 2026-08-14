@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta
+      name="description"
+      content="Focused owner review of the current nilbots Tapline signature sound effects."
+    />
+    <title>nilbots — Tapline signature SFX review</title>
+    <link rel="stylesheet" href="./signatures-v2.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Tapline signature SFX review">
+        <span>nilbots</span>
+        <small>SFX / 13</small>
+      </a>
+      <p><i aria-hidden="true"></i> CURRENT TAPLINE PACKAGE</p>
+      <button type="button" data-stop>Stop audio</button>
+    </header>
+
+    <main id="top">
+      <section class="hero" aria-labelledby="page-title">
+        <div>
+          <p class="eyebrow">ASTRAL RELAY · SIGNATURE PASS V2</p>
+          <h1 id="page-title">Sixteen skills.<br /><em>One calm battlefield.</em></h1>
+          <p class="lede">
+            Every Tapline launch skill now has a distinct primary audio identity.
+            Secondary sounds exist only for a public second beat such as a mine
+            trigger, rail release, or sentry shot. The page uses the shipped AAC
+            files at their declared game gains.
+          </p>
+          <div class="hero-actions">
+            <button type="button" class="primary" data-tour>Play the 16-skill tour</button>
+            <a href="#inventory">Review one by one</a>
+          </div>
+        </div>
+
+        <aside class="mix-card" aria-label="Runtime mix summary">
+          <div class="mix-card__signal" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <dl>
+            <div><dt>Signature identities</dt><dd>16</dd></div>
+            <div><dt>Signature deliveries</dt><dd>19</dd></div>
+            <div><dt>Complete runtime pack</dt><dd>33</dd></div>
+            <div><dt>Ambient loops</dt><dd>0</dd></div>
+          </dl>
+          <p>Dry · low-mid · maximum two signature voices per tick</p>
+        </aside>
+      </section>
+
+      <section class="controls" aria-label="Review controls">
+        <div>
+          <label for="review-volume">Cue level</label>
+          <span>100% reproduces each manifest gain; use device volume for comfort.</span>
+        </div>
+        <input
+          id="review-volume"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          value="1"
+          data-volume
+        />
+        <output for="review-volume" data-volume-output>100%</output>
+        <p role="status" aria-live="polite" data-status>Ready. Nothing plays automatically.</p>
+      </section>
+
+      <section class="comparisons" aria-labelledby="comparisons-title">
+        <div class="section-heading">
+          <p class="eyebrow">FAST DIFFERENCE CHECKS</p>
+          <h2 id="comparisons-title">The pairs most likely to blur.</h2>
+          <p>Each button plays a short authored sentence at runtime level.</p>
+        </div>
+        <div class="comparison-grid" data-comparisons></div>
+      </section>
+
+      <section class="inventory" id="inventory" aria-labelledby="inventory-title">
+        <div class="section-heading">
+          <p class="eyebrow">COMPLETE TAPLINE INVENTORY</p>
+          <h2 id="inventory-title">One primary read per signature.</h2>
+          <p>
+            A labelled secondary button is a separate authoritative event, not a
+            decorative layer. Shared armor, healing-tile, and Core outcomes are marked.
+          </p>
+        </div>
+        <div class="skill-grid" data-skills></div>
+      </section>
+
+      <section class="safety" aria-labelledby="safety-title">
+        <div>
+          <p class="eyebrow">STRICT COMFORT BAR</p>
+          <h2 id="safety-title">Signal first. Spectacle second.</h2>
+        </div>
+        <ul>
+          <li>Every signature cue is 700 ms or shorter and dry.</li>
+          <li>Spectral centroid is at most 1 kHz; energy above 4 kHz is at most 0.5%.</li>
+          <li>The 513 decoded crowded-fight variants remain below −6 dBTP.</li>
+          <li>Human listening at normal volume remains the final taste gate.</li>
+        </ul>
+      </section>
+    </main>
+
+    <footer>
+      <p>Music is unchanged. No ambient loop ships or plays.</p>
+      <a href="./index.html">Open the archived multi-theme sound lab</a>
+    </footer>
+
+    <template id="skill-template">
+      <article class="skill-card">
+        <div class="skill-card__head">
+          <span class="skill-card__number"></span>
+          <div>
+            <p class="skill-card__class"></p>
+            <h3 class="skill-card__name"></h3>
+          </div>
+        </div>
+        <p class="skill-card__summary"></p>
+        <div class="skill-card__events"></div>
+      </article>
+    </template>
+
+    <noscript>This review needs JavaScript to trigger audio playback.</noscript>
+    <script src="./signatures-v2.js" defer></script>
+  </body>
+</html>

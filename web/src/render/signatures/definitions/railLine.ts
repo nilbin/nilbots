@@ -7,8 +7,20 @@ export default defineArcSignature({
   canvasMarker: 'pressure-lane',
   webglPainterId: 'rail-line',
   audio: [
-    { trigger: 'started', cue: 'attack-windup' },
-    { trigger: 'completed', cue: 'projectile' },
+    {
+      trigger: 'started',
+      cue: 'signature-rail-charge',
+      priority: 5,
+      tickOffset: 0.1,
+      replacesGenericWindup: true,
+    },
+    {
+      trigger: 'completed',
+      cue: 'signature-rail-release',
+      priority: 7,
+      tickOffset: 0.4,
+      replacesGenericRelease: true,
+    },
     { trigger: 'damage-fact', cue: 'impact' },
     { trigger: 'cancelled', cue: 'silent' },
   ],

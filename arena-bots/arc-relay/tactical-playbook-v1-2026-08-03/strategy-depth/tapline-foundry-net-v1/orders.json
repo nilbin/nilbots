@@ -1,0 +1,163 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-foundry-net-v1",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "near-courier",
+      "classes": ["relay"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "id": "arc-pass-near", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-near-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "centre-courier",
+      "classes": ["relay"],
+      "upgradePath": ["reach", "vitality"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "id": "arc-pass-centre", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-centre-well", "move": { "to": { "well": "centre" }, "posture": "line" } }
+      ]
+    },
+    {
+      "id": "mine-layer",
+      "classes": ["minesmith"],
+      "upgradePath": ["vision", "vitality", "damage"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "id": "seed-near-trip", "when": { "all": ["at-near-mine-stage", "signature-ready"] }, "use": { "skill": "trip-node", "target": "nearest-ally", "at": "near-trip" } },
+        { "id": "seed-far-trip", "when": { "all": ["at-far-mine-stage", "signature-ready"] }, "use": { "skill": "trip-node", "target": "nearest-ally", "at": "far-trip" } },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "patrol-trip-circuit", "urgency": "routine", "move": { "patrol": "trip-circuit", "posture": "line" } }
+      ]
+    },
+    {
+      "id": "nest-keeper",
+      "classes": ["nest"],
+      "upgradePath": ["vision", "damage", "vitality"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "id": "seed-near-sentry", "when": { "all": ["at-near-nest-stage", "signature-ready"] }, "use": { "skill": "sentinel-seed", "target": "nearest-ally", "at": "near-sentry" } },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "hold-near-sentry", "urgency": "routine", "move": { "to": { "adjacentTo": "near-sentry" }, "via": "nest-ingress", "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "gate-mason",
+      "classes": ["mason"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "id": "block-enemy-return-gate", "when": { "all": ["empty-handed", "at-enemy-gate-stage", "signature-ready"] }, "use": { "skill": "hardlight-block", "target": "nearest-ally", "at": "enemy-return-gate" } },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "stage-at-enemy-return-gate", "urgency": "routine", "move": { "to": { "adjacentTo": "enemy-return-gate" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "lantern-scout",
+      "classes": ["lantern"],
+      "upgradePath": ["vision", "reach", "vitality"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "id": "flare-contact", "when": { "all": ["empty-handed", "enemy-visible", "signature-ready"] }, "use": { "skill": "survey-flare", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "watch-centre-circuit", "urgency": "routine", "move": { "patrol": "watch-circuit", "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "far-hook",
+      "classes": ["towline"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        { "id": "hook-carrier", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-far-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "field-medic",
+      "classes": ["patchbay"],
+      "upgradePath": ["reach", "vitality"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        { "shared": "collect-loose-core" },
+        { "id": "repair-net", "when": "signature-ready", "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "trail-far-hook", "move": { "follow": "far-hook", "posture": "rear" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "handoff-core-forward": { "when": "carrying-core", "handoff": { "target": "nearest-ally-toward-own-reactor" } },
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [{ "id": "return-to-reactor", "move": { "to": "own-reactor" } }]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "move": { "to": "nearest-heal-zone", "posture": "rear" }
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-nearby"] },
+      "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 }
+    }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "enemy-visible": { "fact": "visible-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "battlefield" },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 },
+    "at-near-mine-stage": { "fact": "self-in-zone", "operator": "equals", "value": 1, "zone": "near-mine-stage" },
+    "at-far-mine-stage": { "fact": "self-in-zone", "operator": "equals", "value": 1, "zone": "far-mine-stage" },
+    "at-near-nest-stage": { "fact": "self-in-zone", "operator": "equals", "value": 1, "zone": "near-nest-stage" },
+    "at-enemy-gate-stage": { "fact": "self-in-zone", "operator": "equals", "value": 1, "zone": "enemy-gate-stage" }
+  }
+}

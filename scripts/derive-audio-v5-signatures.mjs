@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// Deterministic local delivery mastering for the six approved signature sources.
+// Deterministic local delivery mastering for approved signature sources.
 // This script never reads credentials, contacts SFX Engine, or synthesizes audio.
 
 import { createHash } from "node:crypto";
@@ -22,9 +22,18 @@ const generationPath = path.join(
 );
 const generationDirectory = path.dirname(generationPath);
 const generation = JSON.parse(await readFile(generationPath, "utf8"));
+const addendumPath = path.join(
+  generationDirectory,
+  "signature-v2-sfx-engine-generation.json",
+);
+const addendum = JSON.parse(await readFile(addendumPath, "utf8"));
 const sourceDirectory = path.resolve(
   generationDirectory,
   generation.outputDirectory,
+);
+const addendumSourceDirectory = path.resolve(
+  generationDirectory,
+  addendum.outputDirectory,
 );
 const outputDirectory = path.join(
   generationDirectory,
@@ -64,6 +73,62 @@ const sources = {
     cueId: "signature-source-kinetic",
     outputSha256:
       "5e7b84b908c2b741e732604dbdf49c87e12bdc8eea2fab7349dbbeccda6bbb71",
+  },
+  mason: {
+    cueId: "signature-v2-source-mason",
+    outputSha256:
+      "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  repair: {
+    cueId: "signature-v2-source-repair",
+    outputSha256:
+      "2e52e37e87ec53f55b858f01e59d2c21d054a5fec9ff2aaed56066b6ac374464",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  fallingStar: {
+    cueId: "signature-v2-source-falling-star",
+    outputSha256:
+      "8f82573435ebdc2e7b4d549186b7c83d4c0ddef8c4d2b57be9a190b1357bf62a",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  tripNode: {
+    cueId: "signature-v2-source-trip-node",
+    outputSha256:
+      "2ff3336169d2395d4a5405f52ddabb4350c8d139c6df51a0d4828da7f637c663",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  tripTrigger: {
+    cueId: "signature-v2-source-trip-trigger",
+    outputSha256:
+      "5f1d8fe5dba67c78b9253a1e86297a7d8276d89b978f08f405693538cf144dea",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  arcToss: {
+    cueId: "signature-v2-source-arc-toss",
+    outputSha256:
+      "ae628c82cb0771bbd45d5d129d30eb335ef0c63255a7a5af8602db06eb312abe",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  railLine: {
+    cueId: "signature-v2-source-rail-line",
+    outputSha256:
+      "6726b2842d6aff1e58d2243b51779c34d49459e21de300bae7db455199c88c61",
+    generation: addendum,
+    directory: addendumSourceDirectory,
+  },
+  sentinel: {
+    cueId: "signature-v2-source-sentinel",
+    outputSha256:
+      "12fbf70f08338a3e5ddc17c005caa34b65ed2e3b7c50eada35d6dac66492bb70",
+    generation: addendum,
+    directory: addendumSourceDirectory,
   },
 };
 
@@ -194,6 +259,146 @@ const deliveries = [
     description:
       "The generated repulsion's compact pressure onset, with its near-inverted stereo corrected.",
   },
+  {
+    id: "signature-mason",
+    source: "mason",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0.48,
+    playbackRate: 0.9,
+    durationSeconds: 0.44,
+    lowPassHz: 700,
+    fadeInSeconds: 0.02,
+    fadeOutSeconds: 0.11,
+    targetSamplePeak: 0.18,
+    description:
+      "The replacement mineral condensation and cushioned ceramic seat, retaining audible low-mid texture distinct from Palisade's energy-panel lock.",
+  },
+  {
+    id: "signature-repair",
+    source: "repair",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0,
+    playbackRate: 0.62,
+    durationSeconds: 0.66,
+    lowPassHz: 650,
+    fadeInSeconds: 0.04,
+    fadeOutSeconds: 0.18,
+    targetSamplePeak: 0.18,
+    description:
+      "The generated warm braided transfer compacted into a soft low restoration pulse for medic repairs only.",
+  },
+  {
+    id: "signature-falling-star",
+    source: "fallingStar",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0.14,
+    playbackRate: 0.78,
+    durationSeconds: 0.68,
+    lowPassHz: 700,
+    fadeInSeconds: 0.025,
+    fadeOutSeconds: 0.2,
+    targetSamplePeak: 0.19,
+    description:
+      "The generated orbital descent and matte arrival retained as one compact completion gesture.",
+  },
+  {
+    id: "signature-trip-deploy",
+    source: "tripNode",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0,
+    playbackRate: 0.9,
+    durationSeconds: 0.38,
+    lowPassHz: 650,
+    fadeInSeconds: 0.02,
+    fadeOutSeconds: 0.12,
+    targetSamplePeak: 0.17,
+    description:
+      "The replacement gravity sensor's soft levitating unfold and magnetic settle, used only when a Trip Node is placed.",
+  },
+  {
+    id: "signature-trip-trigger",
+    source: "tripTrigger",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0,
+    playbackRate: 0.9,
+    durationSeconds: 0.32,
+    lowPassHz: 600,
+    fadeInSeconds: 0.01,
+    fadeOutSeconds: 0.11,
+    targetSamplePeak: 0.18,
+    description:
+      "The replacement local gravity pinch and muted pressure bloom, reserved for an authoritative triggered removal.",
+  },
+  {
+    id: "signature-arc-toss",
+    source: "arcToss",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0.02,
+    playbackRate: 0.7,
+    durationSeconds: 0.64,
+    lowPassHz: 700,
+    fadeInSeconds: 0.035,
+    fadeOutSeconds: 0.18,
+    targetSamplePeak: 0.18,
+    description:
+      "The generated levitation lift and release, used when the authoritative Core leaves its carrier.",
+  },
+  {
+    id: "signature-rail-charge",
+    source: "railLine",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0,
+    playbackRate: 0.58,
+    durationSeconds: 0.38,
+    lowPassHz: 600,
+    fadeInSeconds: 0.05,
+    fadeOutSeconds: 0.12,
+    targetSamplePeak: 0.16,
+    description:
+      "The generated rail bed's low opening pressure, replacing the ordinary attack wind-up.",
+  },
+  {
+    id: "signature-rail-release",
+    source: "railLine",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 1.28,
+    playbackRate: 0.58,
+    durationSeconds: 0.62,
+    lowPassHz: 500,
+    fadeInSeconds: 0.018,
+    fadeOutSeconds: 0.18,
+    targetSamplePeak: 0.18,
+    description:
+      "The generated rail's late discharge, slowed, mono-folded, and softened for the completed line.",
+  },
+  {
+    id: "signature-sentinel-deploy",
+    source: "sentinel",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0,
+    playbackRate: 0.38,
+    durationSeconds: 0.64,
+    lowPassHz: 400,
+    fadeInSeconds: 0.025,
+    fadeOutSeconds: 0.18,
+    targetSamplePeak: 0.18,
+    description:
+      "The generated seed-to-sentry unfold, aligned with the authoritative deployed fact.",
+  },
+  {
+    id: "signature-sentinel-fire",
+    source: "sentinel",
+    channelTransform: "mid-to-dual-mono",
+    sourceStartSeconds: 0.02,
+    playbackRate: 0.38,
+    durationSeconds: 0.24,
+    lowPassHz: 400,
+    fadeInSeconds: 0.01,
+    fadeOutSeconds: 0.1,
+    targetSamplePeak: 0.15,
+    description:
+      "The generated sentry's compact low pulse, shortened for repeated bolt launches.",
+  },
 ];
 
 assert(generation.provider === "sfx-engine", "Unexpected signature provider.");
@@ -203,16 +408,33 @@ assert(
     generation.cues?.length === 6,
   "Signature generation authorization differs from the approved six-job batch.",
 );
+assert(addendum.provider === "sfx-engine", "Unexpected signature addendum provider.");
+const addendumProviderJobs = addendum.cues.reduce(
+  (total, cue) => total + 1 + (cue.attempts?.length ?? 0),
+  0,
+);
+assert(
+  addendum.batch?.maximumProviderJobs === 10 &&
+    addendum.batch?.automaticRerolls === false &&
+    addendum.batch?.ambience === false &&
+    addendum.cues?.length === 8 &&
+    addendumProviderJobs === 10,
+  "Signature addendum differs from the approved ten-job batch.",
+);
 
 const decodedSources = new Map();
 for (const [name, pin] of Object.entries(sources)) {
-  const cue = generation.cues.find((candidate) => candidate.id === pin.cueId);
+  const sourceGeneration = pin.generation ?? generation;
+  const sourceRoot = pin.directory ?? sourceDirectory;
+  const cue = sourceGeneration.cues.find(
+    (candidate) => candidate.id === pin.cueId,
+  );
   assert(cue?.result?.status === "generated", `${pin.cueId} is not generated.`);
   assert(
     cue.result.outputSha256 === pin.outputSha256,
     `${pin.cueId} generation result differs from the checked-in source pin.`,
   );
-  const sourcePath = path.join(sourceDirectory, cue.file);
+  const sourcePath = path.join(sourceRoot, cue.file);
   const bytes = await readFile(sourcePath);
   assert(
     sha256(bytes) === pin.outputSha256,
@@ -226,6 +448,7 @@ for (const [name, pin] of Object.entries(sources)) {
   const samples = decodePcm16(bytes, wav);
   decodedSources.set(name, {
     cue,
+    generation: sourceGeneration,
     samples,
     wav,
     interchannelCorrelation: interchannelCorrelation(samples, wav.channels),
@@ -233,9 +456,12 @@ for (const [name, pin] of Object.entries(sources)) {
 }
 
 const previousById = new Map(
-  (generation.deliveries ?? []).map((delivery) => [delivery.id, delivery]),
+  [...(generation.deliveries ?? []), ...(addendum.deliveries ?? [])].map(
+    (delivery) => [delivery.id, delivery],
+  ),
 );
-const deliveryRecords = [];
+const baseDeliveryRecords = [];
+const addendumDeliveryRecords = [];
 for (const delivery of deliveries) {
   const source = decodedSources.get(delivery.source);
   assert(source, `${delivery.id} names an unknown source.`);
@@ -266,7 +492,7 @@ for (const delivery of deliveries) {
   );
   validateDelivery(delivery.id, metrics);
   const previous = previousById.get(delivery.id);
-  deliveryRecords.push({
+  const record = {
     id: delivery.id,
     file: `${delivery.id}.wav`,
     status: "derived",
@@ -303,7 +529,11 @@ for (const delivery of deliveries) {
       roomSend: false,
     },
     metrics,
-  });
+  };
+  (source.generation === addendum
+    ? addendumDeliveryRecords
+    : baseDeliveryRecords
+  ).push(record);
   console.log(
     `${delivery.id}: ${metrics.durationSeconds.toFixed(2)}s, ` +
       `${metrics.spectralCentroidHz} Hz centroid, ` +
@@ -312,15 +542,15 @@ for (const delivery of deliveries) {
   );
 }
 
-generation.derivation = {
+const derivation = {
   script: scriptPath,
   policy:
     "Hash-pinned source selection, channel fold, resampling, low-pass, endpoint fades, and conservative peak normalization only; no synthesized layer and no provider request.",
   runtimeGain,
   limits: {
     maximumDurationSeconds: 0.7,
-    maximumSpectralCentroidHz: 1_200,
-    maximumEnergyAbove4kPercent: 1,
+    maximumSpectralCentroidHz: 1_000,
+    maximumEnergyAbove4kPercent: 0.5,
     maximumEnergyAbove8kPercent: 0.05,
     maximumEnergyAbove12kPercent: 0.01,
     maximumEffectiveSamplePeakDbfs: -22,
@@ -331,14 +561,25 @@ generation.derivation = {
     roomSend: false,
   },
 };
-generation.deliveries = deliveryRecords;
+generation.derivation = derivation;
+generation.deliveries = baseDeliveryRecords;
+addendum.derivation = derivation;
+addendum.deliveries = addendumDeliveryRecords;
 const temporaryGenerationPath = `${generationPath}.tmp`;
+const temporaryAddendumPath = `${addendumPath}.tmp`;
 await writeFile(
   temporaryGenerationPath,
   `${JSON.stringify(generation, null, 2)}\n`,
 );
+await writeFile(
+  temporaryAddendumPath,
+  `${JSON.stringify(addendum, null, 2)}\n`,
+);
 await rename(temporaryGenerationPath, generationPath);
-console.log(`Derived and validated ${deliveryRecords.length} signature cues.`);
+await rename(temporaryAddendumPath, addendumPath);
+console.log(
+  `Derived and validated ${baseDeliveryRecords.length + addendumDeliveryRecords.length} signature cues.`,
+);
 
 function shapeDelivery(source, wav, processing) {
   const frameCount = Math.round(
@@ -417,8 +658,8 @@ function shapeDelivery(source, wav, processing) {
 function validateDelivery(id, metrics) {
   const limits = {
     maximumDurationSeconds: 0.7,
-    maximumSpectralCentroidHz: 1_200,
-    maximumEnergyAbove4kPercent: 1,
+    maximumSpectralCentroidHz: 1_000,
+    maximumEnergyAbove4kPercent: 0.5,
     maximumEnergyAbove8kPercent: 0.05,
     maximumEnergyAbove12kPercent: 0.01,
     maximumEffectiveSamplePeakDbfs: -22,

@@ -1,6 +1,12 @@
 import type { ReplayModel } from '../replayModel';
-import { ARC_SIGNATURE_PRESENTATION_ID } from './arcSignaturePresentationId';
-export { ARC_SIGNATURE_PRESENTATION_ID } from './arcSignaturePresentationId';
+import {
+  ARC_SIGNATURE_PRESENTATION_ID,
+  isKnownArcSignaturePresentationId,
+} from './arcSignaturePresentationId';
+export {
+  ARC_SIGNATURE_LEGACY_PRESENTATION_ID,
+  ARC_SIGNATURE_PRESENTATION_ID,
+} from './arcSignaturePresentationId';
 
 export type ArcSignaturePublicPhase =
   | 'tell'
@@ -51,6 +57,16 @@ export type ArcSignatureAudioCueIntent =
   | 'signature-exchange'
   | 'signature-target'
   | 'signature-kinetic'
+  | 'signature-mason'
+  | 'signature-repair'
+  | 'signature-falling-star'
+  | 'signature-trip-deploy'
+  | 'signature-trip-trigger'
+  | 'signature-arc-toss'
+  | 'signature-rail-charge'
+  | 'signature-rail-release'
+  | 'signature-sentinel-deploy'
+  | 'signature-sentinel-fire'
   | 'core-family'
   | 'silent';
 
@@ -62,12 +78,21 @@ export interface ArcSignatureAudioBinding {
     | 'activated'
     | 'acquired'
     | 'completed'
+    | 'deployed'
+    | 'triggered'
+    | 'projectile-launched'
     | 'repair-fact'
     | 'damage-fact'
     | 'core-facts'
     | 'maintained'
     | 'cancelled';
   cue: ArcSignatureAudioCueIntent;
+  /** Relative importance inside the two-voice signature comfort budget. */
+  priority?: number;
+  /** Position within the visual tick. */
+  tickOffset?: number;
+  /** A replacement is used instead of the shared regular wind-up voice. */
+  replacesGenericWindup?: boolean;
   /** A replacement is used instead of the shared regular release voice. */
   replacesGenericRelease?: boolean;
 }
@@ -89,6 +114,8 @@ export interface ArcSignaturePresentationDefinition {
   canvasMarker: ArcSignatureCanvasMarker;
   webglPainterId: string;
   audio: readonly ArcSignatureAudioBinding[];
+  /** Attack profiles whose authoritative launch traversal belongs to this prop. */
+  projectileAudioProfileIds?: readonly string[];
   reducedMotion: {
     retain: 'tell-and-footprint' | 'endpoints-and-outcome' | 'prop-and-capacity';
     travelSamples: number;
@@ -146,7 +173,7 @@ export function resolveArcSignaturePresentation(
 ): ArcSignaturePresentationResolution {
   if (replay.signaturePresentationId == null)
     return { kind: 'legacy', definition: null };
-  if (replay.signaturePresentationId !== ARC_SIGNATURE_PRESENTATION_ID)
+  if (!isKnownArcSignaturePresentationId(replay.signaturePresentationId))
     return { kind: 'generic', definition: null };
   const definition = definitions.get(signatureId);
   return definition

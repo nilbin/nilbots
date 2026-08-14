@@ -1324,6 +1324,39 @@ export class ArenaCamera {
     };
   }
 
+  /**
+   * A direct drag gesture: keep the rendered frame under the pointer instead of asking the
+   * spectator spring to catch up after the hand. The first drag also discards an unfinished
+   * director/follow move; subsequent drag samples preserve a pinch's pending zoom target.
+   */
+  drag(dx: number, dy: number, framing: ArenaFraming): void {
+    const wasAlreadyHeld = this.allegiance === 'hand';
+    const pending = wasAlreadyHeld ? this.target : this.frame;
+    this.release();
+
+    const x = frameCentre(
+      this.frame.x + dx,
+      this.frame.width,
+      framing.mapWidth,
+    );
+    const y = frameCentre(
+      this.frame.y + dy,
+      this.frame.height,
+      framing.mapHeight,
+    );
+    const appliedX = x - this.frame.x;
+    const appliedY = y - this.frame.y;
+    this.frame = { ...this.frame, x, y };
+    this.target = {
+      ...pending,
+      x: frameCentre(pending.x + appliedX, pending.width, framing.mapWidth),
+      y: frameCentre(pending.y + appliedY, pending.height, framing.mapHeight),
+    };
+    this.velocity.x = 0;
+    this.velocity.y = 0;
+    if (!wasAlreadyHeld) this.velocity.span = 0;
+  }
+
   /** A gesture. `factor` above 1 moves closer. */
   zoom(factor: number, framing: ArenaFraming): void {
     this.release();

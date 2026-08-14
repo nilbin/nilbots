@@ -1,0 +1,10 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-counterfort-v1-map",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {
+    "enemy-score-corridor": { "rect": [18, 16, 25, 23] }
+  },
+  "routes": {},
+  "anchors": {}
+}

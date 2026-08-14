@@ -273,8 +273,8 @@
     "runtimeGain": 0.16,
     "limits": {
       "maximumDurationSeconds": 0.7,
-      "maximumSpectralCentroidHz": 1200,
-      "maximumEnergyAbove4kPercent": 1,
+      "maximumSpectralCentroidHz": 1000,
+      "maximumEnergyAbove4kPercent": 0.5,
       "maximumEnergyAbove8kPercent": 0.05,
       "maximumEnergyAbove12kPercent": 0.01,
       "maximumEffectiveSamplePeakDbfs": -22,

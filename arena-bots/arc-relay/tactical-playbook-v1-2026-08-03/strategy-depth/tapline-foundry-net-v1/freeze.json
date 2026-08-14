@@ -1,0 +1,39 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-foundry-net-v1",
+  "status": "immutable-reference",
+  "source": "strategy-depth-independent-archetype-experiment",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "ae5d6ffa18adf6efc2e030f0b7d1bcb6f338b04b256d8200ad14cd2a7344212c"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "a76dd20dbb2b6424c026c61f9b811f65fa028984d4424bb6b5fb25237fa01642"
+    },
+    "atl2": {
+      "sha256": "c7cad38c5840cc546d7117f0382e2f93b3b2ff6c42cc44a738abcb885aeafaba",
+      "bytes": 6757,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Invest in persistent map control: Minesmith loops between two centre trip anchors, Nest repeatedly seeds a guarded centre approach, Mason fortifies the enemy return gate, Lantern patrols for vision, and a Relay-Towline-Patchbay spine converts loose Cores.",
+  "signatureEvidence": {
+    "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+    "tripNodeUses": [5, 9, 13, 11, 7, 11],
+    "sentinelSeedUses": [3, 4, 17, 5, 7, 15],
+    "hardlightBlockUses": [15, 16, 5, 11, 0, 6],
+    "surveyFlareUses": [10, 10, 16, 14, 14, 16]
+  },
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-vanguard-v1",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "2-4 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "independent-archetype behavior reference, not a balance claim"
+    }
+  ]
+}

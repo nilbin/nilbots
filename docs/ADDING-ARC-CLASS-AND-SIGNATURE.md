@@ -109,6 +109,12 @@ but not rules, map, or match fingerprints. Absence selects the frozen legacy
 treatment; an unknown ID or signature renders a generic public phase/footprint
 marker instead of disappearing or borrowing today's treatment.
 
+Current grammar-3 replays use `arc-relay-signatures-v2`. V1 remains a recognized
+historical package with its original audio bindings; V2 deliberately reuses the
+same authored visuals because the version boundary is audio-only. A future
+visual change still mints a new package rather than mutating either historical
+read.
+
 ## 4. Visual assets and painters
 
 Add one internal class look package and one `arc-shot-<class-id>` white-alpha
@@ -144,6 +150,23 @@ visual treatment. A binding names an authoritative trigger and either a runtime
 cue intent or `silent`; omission is not a silence decision. The browser-
 independent audio registry imports those same leaf definitions so replay tests
 can run without Vite or WebGL.
+
+Use `priority` only to choose which two distinct signature moments survive one
+crowded tick, and `tickOffset` only to align the cue inside the already-public
+visual tick. Set `replacesGenericWindup` or `replacesGenericRelease` when a
+signature owns that part of the attack sentence; otherwise the scheduler may
+truthfully layer the shared attack voice. Persistent props may name stable
+`projectileAudioProfileIds` so an authoritative `attack-launch` traversal gets
+one prop-specific shot without retriggering on later advances. Bind repair and
+damage outcomes to their explicit facts. Do not infer them from animation,
+health deltas, or a future tick.
+
+Every roster signature needs one distinct primary identity. A second cue is
+justified only by a separately useful public beat such as Trip Node triggering,
+Rail Line releasing, or Sentinel firing. Ordinary armor impact, healing-tile,
+and Core outcomes remain shared vocabulary. Cancellation, maintenance,
+suppression, replacement, and expiry are explicitly silent unless they gain a
+clear player-useful outcome.
 
 New audio must follow `docs/AUDIO-DESIGN.md`: private provider provenance,
 hash-pinned deterministic delivery processing, decoded-runtime comfort gates,

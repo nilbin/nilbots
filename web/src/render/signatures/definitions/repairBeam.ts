@@ -7,7 +7,12 @@ export default defineArcSignature({
   canvasMarker: 'braid',
   webglPainterId: 'repair-beam',
   audio: [
-    { trigger: 'repair-fact', cue: 'healing' },
+    {
+      trigger: 'repair-fact',
+      cue: 'signature-repair',
+      priority: 6,
+      tickOffset: 0.28,
+    },
     { trigger: 'maintained', cue: 'silent' },
     { trigger: 'cancelled', cue: 'silent' },
   ],

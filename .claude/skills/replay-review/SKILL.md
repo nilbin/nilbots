@@ -51,6 +51,34 @@ These stage broadcasts are already compact format-2 runtime payloads and may be
 installed directly; the canonical-to-transport projection rule below is for
 large canonical diagnostic/audit replays, not this focused stage command.
 
+For Core pickup, carried-height, handoff, drop, and Arc Toss animation review,
+use the separate eight-body custody stage:
+
+```bash
+dotnet run --project src/BotArena.Cli -- \
+  experiment arc-relay-core-stage --out <dir>
+node scripts/build-arc-relay-core-stage-review.mjs
+```
+
+It fields exactly eight distinct chassis around one centre-Well Core. The real
+rules drive carried movement through every body, six adjacent handoffs, two
+voluntary drops with cross-team reacquisition, and one long Arc Toss. Its
+receipt refuses to write a review replay unless all eight bodies handled the
+same Core and every custody beat completed. Like a signature stage, it is a
+presentation diagnostic and makes no balance, pathing, or doctrine claim.
+
+To place that already-built viewer under `/core-stage/` in the existing private
+sound-lab Sites package, rebuild the package explicitly with:
+
+```bash
+node scripts/build-audio-sound-lab-site.mjs --include-core-stage
+```
+
+The flag is deliberate: the ordinary audio-only site build stays independent
+of generated replay output, while a Core handoff copies `web/dist-review` as a
+relative-path-safe subtree. This still does not authorize either capture
+harness.
+
 The two retained all-signature capture programs are **owner-request-only**:
 `scripts/capture-arc-relay-presentation-proof.mjs` and
 `scripts/capture-arc-relay-signature-motion-proof.mjs`. Never invoke either

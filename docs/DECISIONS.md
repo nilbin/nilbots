@@ -8235,3 +8235,149 @@ with a mine or sentry without becoming an always-on-top silhouette through
 walls or other bots, and double-sided constructs retain correct self-occlusion.
 This is presentation only: occupancy, collision, targeting, visibility, hull
 and signature timing do not change.
+
+## 308. Every Tapline signature owns one calm audio identity; V2 preserves V1
+
+Owner-approved audio ruling (2026-08-14). Current grammar-3 replays mint
+`arc-relay-signatures-v2`. This is an audio-only successor to V1: the authored
+visual definitions are unchanged, while recorded V1 replays remain recognized
+and keep their original bindings. No rule, signature chronology, target,
+projectile path, damage, repair, cooldown, observation, or match fingerprint
+changes.
+
+Every launch signature owns one distinct primary cue. Palisade keeps its energy
+panel materialization while Mason gains a separate earthy ceramic construction.
+Patchbay repair separates from the arena healing tile. Falling Star, Arc Toss,
+and Sentinel deployment gain their own resolve identities. Trip Node has quiet
+deployment and higher-priority trigger beats; Rail Line has a dedicated charge
+and release that replace the generic attack layers; Sentinel bolts speak once
+at authoritative launch rather than on projectile advance. Tractor Hook keeps
+the shared low wind-up plus its own tether. Arc Toss suppresses only the
+signature-departure Core drop and returns to the shared Core family on landing.
+Rail and Sentinel retain ordinary armor impact only when an explicit
+`signature-damage` fact says contact occurred. Maintenance, cancellation,
+interruption, suppression, replacement, and expiry remain intentionally silent.
+
+Seven private SFX Engine jobs—with no rerolls and no ambience—supply the V2
+addendum. Hash-pinned deterministic processing derives ten deliveries from
+those seven sources and retains the original nine deliveries from six earlier
+sources. Runtime manifest v13 therefore carries 33 one-shots: fourteen shared
+Arc cues and nineteen signature deliveries. Each signature delivery is dry,
+dual-mono, no longer than 700 ms, at 0.16 gain, and passes the stricter 1 kHz
+centroid, 0.5% energy-above-4-kHz, -34 dBFS effective-RMS, and -22 dBFS
+effective-peak ceilings. At most two distinct signature voices survive one
+tick by explicit priority. The decoded dry, centered crowd proof covers all 171
+signature pairs across three Core variants—513 sums—and peaks at -7.43 dBTP
+against the -6 dBTP ceiling without limiter or room credit.
+
+The focused `signatures-v2.html` review page plays exact shipped AAC files at
+their declared gains and inventories all sixteen skills. It has no autoplay,
+music, ambience, or replay dependency. The retained replay-capture harness is
+not part of audio iteration and is not run without a separate owner request.
+Neon Protocol remains unchanged, and no ambient loop ships or plays.
+
+## 309. Mason and Trip Node receive separate low-mid owner-review replacements
+
+Owner audio correction (2026-08-14). The first `signature-mason`,
+`signature-trip-deploy`, and `signature-trip-trigger` deliveries do not clear
+the listening gate. Their authoritative events, priorities, voice limits, and
+the `arc-relay-signatures-v2` visual package remain unchanged; this is an asset
+replacement only and changes no signature timing, mechanics, replay fact, or
+gameplay fingerprint.
+
+Exactly three further private SFX Engine requests are authorized, with no
+automatic rerolls and no ambience. Mason replaces its sub-heavy first take with
+warm mineral condensation and a cushioned ceramic seat. Trip no longer derives
+placement and trigger from one compromised sequence: its placement uses a soft
+levitating sensor unfold, while its trigger uses a separate local gravity pinch
+and muted pressure bloom. The generation record retains the rejected Mason and
+combined Trip results under their attempts. The V2 addendum therefore records
+ten provider jobs: eight current sources and two archived rejected attempts;
+together with the original six-source batch, sixteen jobs still derive the
+same nineteen runtime signature deliveries.
+
+Decoded runtime centroids move from 35 Hz to 175 Hz for Mason and from 890/541
+Hz to 258/267 Hz for Trip deploy/trigger. Their energy above 4 kHz is 0.06%,
+0.01%, and 0.00%; all remain dry, dual-mono, at 0.16 gain, and inside the
+existing duration, RMS, peak, and crowd gates. The 33-cue runtime package is
+499,736 bytes and the unchanged 513-variant crowd worst case remains -7.43
+dBTP. V2 keeps its ID because this correction occurs inside its owner-review
+gate before a public gameplay deployment; a post-release audio change would
+mint another presentation identity. Music remains unchanged and no ambient
+loop ships or plays.
+
+## 310. Shared impact is shorter and darker; uncertain Trip stays pinned
+
+Owner audio correction (2026-08-14). The current shared armor-impact delivery
+is still too sharp in the ear during play. Keep its accepted, hash-pinned SFX
+Engine source and authoritative damage mapping, but shorten the deterministic
+runtime excerpt from 1.0 to 0.8 seconds, lower its low-pass from 3.6 to 2.2 kHz,
+lengthen the onset fade from 20 to 30 ms, lower its peak fit from 0.45 to 0.38,
+and lower runtime gain from 0.32 to 0.28. This makes no provider request and
+adds no synthesized layer.
+
+After AAC decode the revised impact has a 1,560 Hz centroid, 1.03% energy above
+4 kHz, 0.01% above 8 kHz, -19.44 dBFS effective peak, and -34.42 dBFS
+effective RMS. The 33-cue pack is 499,098 bytes. Its unchanged 513-variant
+crowd proof improves from -7.43 to -8.13 dBTP against the -6 dBTP ceiling,
+without limiter or room credit.
+
+The same listen describes Trip Node as understated and lofi, but explicitly
+leaves open that its restraint may work in a real fight. Do not spend another
+provider call or replace it from an isolated impression: keep the current
+258/267 Hz deployment/trigger pair for the next in-game listen. Runtime
+manifest v13 and `arc-relay-signatures-v2` remain in their owner-review gate;
+music, ambience, signature facts, priorities, mechanics, and visuals do not
+change.
+
+## 311. Core custody review is one eight-chassis real-rules stage
+
+Owner review workflow ruling (2026-08-14). Core pickup, carried motion,
+handoff, voluntary drop, reacquisition, and Arc Toss need one compact replay
+that exposes size-dependent animation faults without running the retained
+all-signature capture harness. `experiment arc-relay-core-stage` therefore
+fields exactly eight distinct Tapline chassis—Relay, Kestrel, Mason, Mortar,
+Nest, Palisade, Towline, and Patchbay—around the centre Well and suppresses the
+two unused Well births only inside its diagnostic contract.
+
+The ordinary authoritative rules must complete one Core birth, all eight
+distinct handlers, six adjacent ally handoffs, two voluntary drops with
+cross-team reacquisition, at least eight carried relocations, and an Arc Toss
+of at least four tiles before the command writes a replay. The current pinned
+stage records ten carried relocations and a four-tile toss. Bodies move between
+custody beats, and the initial receiver is faced into its review lane; these are
+stage deployment/choreography choices, not changes to movement, custody,
+signature, collision, pathing, or balance rules.
+
+`scripts/build-arc-relay-core-stage-review.mjs` installs only this compact
+format-2 broadcast into the existing 3D review build. The replay-review skill
+documents the path and continues to forbid both retained screenshot/capture
+harnesses unless the owner separately requests them. Its receipt labels the
+artifact a presentation diagnostic with no balance, doctrine, pathing, or
+audit claim.
+
+## 312. Tapline depth work narrows to five independently testable candidates
+
+Owner gameplay-direction ruling (2026-08-14). The next implementation brief is
+[`EXPERIMENTAL-ARC-RELAY-TAPLINE-DEPTH.md`](EXPERIMENTAL-ARC-RELAY-TAPLINE-DEPTH.md).
+It retains exactly five candidates: team-relative own/centre/enemy Core charge
+of 1/2/4 while preserving three charge per Pulse and three Pulses to win;
+veteran-centred ace/support strategies expressed through narrow Orders v2
+facts and selectors; synchronized public respawn waves; an eight-body roster
+with at least seven distinct classes and therefore one possible duplicate
+pair; and explicit persistent-deployment control led by a targetable
+three-health, long-duration Mason Hardlight Block that is replaced on recast.
+
+Two earlier directions are rejected by this narrowing. A two-origin Pulse is
+not pursued because own plus centre would formalize Tapline's existing dominant
+route mix rather than create a new choice. A new named-play state machine is
+not pursued because roles, priority branches, shared orders, follow, capacities,
+and small general selectors can express the intended coordination without
+reviving operations/gambits above the Orders tree.
+
+These five candidates are not jointly promoted rules. Tapline-3 and hosted
+playlist v21 remain immutable; each mechanic receives a separately identified
+prototype cell before any combined pack or product claim. “Hardlight” remains
+the stable prototype identity and means a projected solid-energy barrier;
+player-facing copy must explain that meaning, while a display-name change
+remains a later owner choice.

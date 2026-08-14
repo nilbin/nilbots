@@ -1016,6 +1016,45 @@ test('a gesture takes the camera and only the control gives it back', () => {
   assert.equal(wide.aim(focusFrame([{ x: 20, y: 12 }], FRAMING)), true);
 });
 
+test('a direct drag follows the hand immediately instead of trailing on the spring', () => {
+  const camera = new ArenaCamera(FRAMING);
+  const start = focusFrame([{ x: 14, y: 10 }], FRAMING);
+  camera.settle(start);
+  camera.aim(focusFrame([{ x: 28, y: 16 }], FRAMING));
+
+  camera.drag(2.5, 1.5, FRAMING);
+  assert.equal(camera.auto, false);
+  assert.equal(camera.frame.x, start.x + 2.5);
+  assert.equal(camera.frame.y, start.y + 1.5);
+  assert.deepEqual(
+    camera.aimed,
+    camera.frame,
+    'grabbing the view cancels an unfinished director move',
+  );
+
+  const held = { ...camera.frame };
+  camera.advance(0.1);
+  assert.ok(
+    Math.hypot(camera.frame.x - held.x, camera.frame.y - held.y) < 1e-9,
+    'release leaves no residual pan glide',
+  );
+  assert.equal(camera.frame.width, held.width);
+  assert.equal(camera.frame.height, held.height);
+});
+
+test('direct dragging preserves a pinch zoom already owned by the hand', () => {
+  const camera = new ArenaCamera(FRAMING);
+  camera.settle(focusFrame([{ x: 20, y: 12 }], FRAMING));
+  camera.release();
+  camera.zoom(1.4, FRAMING);
+  const zoomTarget = camera.aimed;
+
+  camera.drag(1, -1, FRAMING);
+  assert.equal(camera.aimed.width, zoomTarget.width);
+  assert.equal(camera.aimed.height, zoomTarget.height);
+  assert.notEqual(camera.frame.x, 20, 'the frame still follows the drag immediately');
+});
+
 test('manual zoom obeys the same limits the fit does', () => {
   const camera = new ArenaCamera(FRAMING);
   for (let step = 0; step < 40; step++) camera.zoom(1.6, FRAMING);

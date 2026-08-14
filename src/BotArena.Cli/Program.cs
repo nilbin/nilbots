@@ -52,6 +52,8 @@ try
             ArcRelayH0SmokeCommand.Run(rest),
         ["experiment", "arc-relay-signature-stage", .. var rest] =>
             ArcRelaySignatureStageCommand.Run(rest),
+        ["experiment", "arc-relay-core-stage", .. var rest] =>
+            ArcRelayCoreStageCommand.Run(rest),
         ["experiment", "arc-relay", .. var rest] =>
             ArcRelayExperimentCommand.Run(rest),
         ["experiment", "arc-relay-screen-batch", .. var rest] =>
@@ -162,6 +164,13 @@ static int Help(int exitCode = 1)
                                                   real-rules caster with only
                                                   required ally/enemy context;
                                                   compact replay, no balance claim
+          nilbots experiment arc-relay-core-stage
+                        [--seed 8108] [--ticks 88..160] [--out <dir>]
+                                                  PRESENTATION DIAGNOSTIC:
+                                                  exactly eight distinct class
+                                                  bodies share one Core through
+                                                  movement, handoffs, drops and
+                                                  Arc Toss; no balance claim
           nilbots experiment arc-relay-screen-batch
                         (--plan <screen-plan.json> |
                          --sweep-plan <sweep-plan.json> --bot <project>)

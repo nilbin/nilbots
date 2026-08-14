@@ -6,9 +6,26 @@ export default defineArcSignature({
   phases: ['tell', 'active'],
   canvasMarker: 'prop',
   webglPainterId: 'sentinel-seed',
+  projectileAudioProfileIds: ['sentinel-bolt'],
   audio: [
-    { trigger: 'started', cue: 'silent' },
-    { trigger: 'damage-fact', cue: 'projectile' },
+    {
+      trigger: 'started',
+      cue: 'silent',
+      replacesGenericWindup: true,
+    },
+    {
+      trigger: 'deployed',
+      cue: 'signature-sentinel-deploy',
+      priority: 6,
+      tickOffset: 0.3,
+    },
+    {
+      trigger: 'projectile-launched',
+      cue: 'signature-sentinel-fire',
+      priority: 3,
+      tickOffset: 0.08,
+    },
+    { trigger: 'damage-fact', cue: 'impact' },
     { trigger: 'maintained', cue: 'silent' },
   ],
   reducedMotion: {

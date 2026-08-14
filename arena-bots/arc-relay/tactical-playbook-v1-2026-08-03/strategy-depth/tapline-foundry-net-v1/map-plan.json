@@ -1,0 +1,29 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-foundry-net-v1-map",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {
+    "battlefield": { "rect": [1, 1, 29, 25] },
+    "near-mine-stage": { "rect": [10, 11, 12, 15] },
+    "far-mine-stage": { "rect": [18, 11, 20, 15] },
+    "near-nest-stage": { "rect": [12, 11, 14, 13] },
+    "enemy-gate-stage": { "rect": [22, 10, 27, 16] }
+  },
+  "routes": {
+    "trip-circuit": {
+      "waypoints": [[11, 13], [12, 12], [15, 13], [18, 14], [19, 13], [15, 13]]
+    },
+    "nest-ingress": {
+      "waypoints": [[6, 4], [8, 7], [11, 9], [13, 11]]
+    },
+    "watch-circuit": {
+      "waypoints": [[10, 9], [13, 7], [15, 13], [18, 19], [20, 17], [15, 13]]
+    }
+  },
+  "anchors": {
+    "near-trip": [12, 13],
+    "far-trip": [18, 13],
+    "near-sentry": [13, 12],
+    "enemy-return-gate": [25, 13]
+  }
+}

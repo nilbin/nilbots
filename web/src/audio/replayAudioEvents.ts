@@ -9,7 +9,11 @@ import {
   isAttackEvent,
   isDestructionEvent,
 } from '../replayModel';
-import { resolveArcSignatureAudioBinding } from '../render/arcSignatureAudio';
+import {
+  resolveArcSignatureAudioBinding,
+  resolveArcSignatureAudioTriggerBinding,
+  resolveArcSignatureProjectileAudioBinding,
+} from '../render/arcSignatureAudio';
 import type { SoundEffectCueId } from './soundEffects';
 
 export interface ReplayAudioEvent {
@@ -93,6 +97,37 @@ export function replayAudioEventsAt(
         : [];
     }),
   );
+  const signatureWindupActors = new Set(
+    authoritativeEvents.flatMap((event) => {
+      const fact = event.arcRelayFact;
+      if (
+        fact?.kind !== 'signature-changed' ||
+        fact.reason !== 'started'
+      ) {
+        return [];
+      }
+      return resolveArcSignatureAudioBinding(
+        replay,
+        fact.signatureId,
+        fact.reason,
+      )?.replacesGenericWindup
+        ? [fact.ownerActor.actorKey]
+        : [];
+    }),
+  );
+  const signatureReleaseActors = new Set(
+    authoritativeEvents.flatMap((event) => {
+      const fact = event.arcRelayFact;
+      if (fact?.kind !== 'signature-changed') return [];
+      return resolveArcSignatureAudioBinding(
+        replay,
+        fact.signatureId,
+        fact.reason,
+      )?.replacesGenericRelease
+        ? [fact.ownerActor.actorKey]
+        : [];
+    }),
+  );
   const beforeStrikes = pendingStrikes(tick.before);
   const afterStrikeKeys = new Set(
     pendingStrikes(tick.after).map(strikeKey),
@@ -106,9 +141,26 @@ export function replayAudioEventsAt(
   // later movement traversals are not fresh launches.
   const presentedAttackProfiles = projectilePresentationProfileIds(replay);
   for (const traversal of tick.projectileTraversals) {
+    const signatureProjectile = resolveArcSignatureProjectileAudioBinding(
+      replay,
+      traversal.attackProfileId,
+    );
+    if (signatureProjectile && traversal.trigger === 'attack-launch') {
+      if (signatureProjectile.cue !== 'silent') {
+        scheduled.push({
+          cue: signatureProjectile.cue,
+          tickOffset:
+            signatureProjectile.tickOffset ?? SIGNATURE_CUE_TICK_OFFSET,
+          priority: signatureProjectile.priority ?? 5,
+          pan: panAt(traversal.from.x),
+        });
+      }
+      continue;
+    }
     if (
       traversal.attackProfileId === undefined ||
       !presentedAttackProfiles.has(traversal.attackProfileId) ||
+      signatureReleaseActors.has(traversal.ownerActorKey) ||
       (traversal.attackProfileId === 'hook-bolt' &&
         (hookLaunchActors.has(traversal.ownerActorKey) ||
           hookLaunchOperations.has(traversal.projectileId)))
@@ -123,6 +175,7 @@ export function replayAudioEventsAt(
 
   for (const strike of pendingStrikes(tick.after)) {
     if (beforeStrikeKeys.has(strikeKey(strike))) continue;
+    if (signatureWindupActors.has(strike.shooter.actorKey)) continue;
     scheduled.push({
       cue: 'attack-windup',
       tickOffset: 0.12,
@@ -208,8 +261,8 @@ export function replayAudioEventsAt(
       if (binding && binding.cue !== 'silent') {
         scheduled.push({
           cue: binding.cue,
-          tickOffset: SIGNATURE_CUE_TICK_OFFSET,
-          priority: 5,
+          tickOffset: binding.tickOffset ?? SIGNATURE_CUE_TICK_OFFSET,
+          priority: binding.priority ?? 5,
           pan: panAt(
             actorPosition(
               fact.ownerActor.actorKey,
@@ -222,9 +275,8 @@ export function replayAudioEventsAt(
     }
     switch (fact.kind) {
       case 'zone-healed':
-      case 'signature-repair':
-        // Ground stations and medic beams restore the same thing at the same body.
-        // Share one restrained field-seal voice and pan it from the healed target.
+        // Ground stations keep the shared field-seal voice. Signature repairs
+        // resolve through their co-located skill definition below.
         scheduled.push({
           cue: 'healing',
           tickOffset: 0.42,
@@ -232,6 +284,40 @@ export function replayAudioEventsAt(
           pan: factPan,
         });
         break;
+      case 'signature-repair': {
+        const binding = resolveArcSignatureAudioTriggerBinding(
+          replay,
+          fact.signatureId,
+          'repair-fact',
+        );
+        scheduled.push({
+          cue:
+            binding && binding.cue !== 'silent'
+              ? binding.cue
+              : 'healing',
+          tickOffset:
+            binding?.tickOffset ?? 0.42,
+          priority: binding?.priority ?? 5,
+          pan: factPan,
+        });
+        break;
+      }
+      case 'signature-damage': {
+        const binding = resolveArcSignatureAudioTriggerBinding(
+          replay,
+          fact.signatureId,
+          'damage-fact',
+        );
+        if (binding && binding.cue !== 'silent') {
+          scheduled.push({
+            cue: binding.cue,
+            tickOffset: binding.tickOffset ?? 0.56,
+            priority: binding.priority ?? 4,
+            pan: factPan,
+          });
+        }
+        break;
+      }
       case 'core-born':
         scheduled.push({
           cue: 'arc-birth',
@@ -262,6 +348,20 @@ export function replayAudioEventsAt(
       case 'core-relocated':
         break;
       case 'core-dropped':
+        if (
+          fact.dropKind === 'signature-departure' &&
+          authoritativeEvents.some((event) => {
+            const candidate = event.arcRelayFact;
+            return (
+              candidate?.kind === 'signature-changed' &&
+              candidate.signatureId === 'arc-toss' &&
+              candidate.reason === 'launched' &&
+              candidate.ownerActor.actorKey === fact.sourceActor.actorKey
+            );
+          })
+        ) {
+          break;
+        }
         scheduled.push({
           cue: 'arc-drop',
           tickOffset: 0.34,
@@ -369,6 +469,16 @@ function sparseTickMix(
     'signature-exchange',
     'signature-target',
     'signature-kinetic',
+    'signature-mason',
+    'signature-repair',
+    'signature-falling-star',
+    'signature-trip-deploy',
+    'signature-trip-trigger',
+    'signature-arc-toss',
+    'signature-rail-charge',
+    'signature-rail-release',
+    'signature-sentinel-deploy',
+    'signature-sentinel-fire',
   ]);
 
   // Tapline can show up to four distinct ordinary releases on one tick. Keep

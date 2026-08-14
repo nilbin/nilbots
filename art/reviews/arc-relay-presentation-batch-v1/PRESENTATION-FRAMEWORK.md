@@ -32,7 +32,7 @@ deployment, capacity, suppression, trigger, and fire presentation.
 | Tractor Hook | High: one extending team-tinted cable and taut authored pull | The bulky procedural grapple head is omitted for now; one narrow solid strand replaces the generic strike ray, additive lane, and dark second wire. |
 | Falling Star | High after correction: cardinal tell, translucent faceted descent, low five-tile impact | No opaque central mass, generated sky column, permanent crater, or floor deformation. |
 | Rail Line | High after correction: thin wind-up, narrow pressure pass, one faint afterimage | Resolve is substantially dimmer and less saturated than the board for comfort in stacked fights. |
-| Hardlight Block | High: compact one-tile frame, low rising slabs, matte settled obstacle | The collision-readable full envelope appears immediately; slab settling is cosmetic. |
+| Hardlight Block | High: one grid-aligned block made from four framed hardlight faces and a top pane, with three restrained hull bars | The collision-readable edge cage appears immediately; pane rise is cosmetic. The closed block shares Prism Wall's low-specular energy-panel grammar without borrowing the arena wall material. |
 | Repair Beam | High: three braided bands, travelling packets, one seam-closing repair beat | Bands are pooled segmented ribbons, not spline geometry rebuilt every frame. |
 | Survey Flare | High: real flight, calibration ring, exact reveal footprint | Sparse floor ticks replace tiny board detail that would alias. |
 | Null Field | High after correction: contracting boundary and shallow dark floor lens | No central hub, dome, screen distortion, or full-scene post-process. |

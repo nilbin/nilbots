@@ -1,6 +1,12 @@
 import type { ReplayModel } from '../replayModel';
-import type { ArcSignatureAudioBinding } from './arcSignaturePresentation';
-import { ARC_SIGNATURE_PRESENTATION_ID } from './arcSignaturePresentationId';
+import type {
+  ArcSignatureAudioBinding,
+  ArcSignaturePresentationDefinition,
+} from './arcSignaturePresentation';
+import {
+  ARC_SIGNATURE_LEGACY_PRESENTATION_ID,
+  ARC_SIGNATURE_PRESENTATION_ID,
+} from './arcSignaturePresentationId';
 import arcToss from './signatures/definitions/arcToss';
 import exchange from './signatures/definitions/exchange';
 import fallingStar from './signatures/definitions/fallingStar';
@@ -39,6 +45,44 @@ const audioDefinitions = new Map(
   ].map((definition) => [definition.signatureId, definition] as const),
 );
 
+const legacyAudioBindings = new Map<string, readonly ArcSignatureAudioBinding[]>([
+  ['vector-dash', [{ trigger: 'completed', cue: 'signature-motion' }]],
+  ['prism-wall', [{ trigger: 'started', cue: 'signature-construct' }]],
+  [
+    'tractor-hook',
+    [
+      { trigger: 'started', cue: 'attack-windup' },
+      {
+        trigger: 'launched',
+        cue: 'signature-tether',
+        replacesGenericRelease: true,
+      },
+    ],
+  ],
+  ['survey-flare', [{ trigger: 'landed', cue: 'signature-survey' }]],
+  ['null-field', [{ trigger: 'activated', cue: 'signature-null' }]],
+  ['exchange', [{ trigger: 'completed', cue: 'signature-exchange' }]],
+  ['hardlight-block', [{ trigger: 'started', cue: 'signature-construct' }]],
+  ['target-paint', [{ trigger: 'acquired', cue: 'signature-target' }]],
+  ['kinetic-burst', [{ trigger: 'completed', cue: 'signature-kinetic' }]],
+  ['smoke-canister', [{ trigger: 'landed', cue: 'signature-smoke' }]],
+]);
+
+const projectileAudioDefinitions = new Map<
+  string,
+  ArcSignaturePresentationDefinition
+>();
+for (const definition of audioDefinitions.values()) {
+  for (const profileId of definition.projectileAudioProfileIds ?? []) {
+    if (projectileAudioDefinitions.has(profileId)) {
+      throw new Error(
+        `Duplicate Arc signature projectile audio profile '${profileId}'.`,
+      );
+    }
+    projectileAudioDefinitions.set(profileId, definition);
+  }
+}
+
 export type ArcSignatureRuntimeAudioCue = Exclude<
   ArcSignatureAudioBinding['cue'],
   'core-family' | 'silent'
@@ -61,17 +105,46 @@ export function resolveArcSignatureAudioBinding(
   signatureId: string,
   reason: string,
 ): ArcSignatureResolvedAudioBinding | null {
-  if (replay.signaturePresentationId !== ARC_SIGNATURE_PRESENTATION_ID) {
-    return null;
-  }
-  const definition = audioDefinitions.get(signatureId);
   const trigger = triggerForSignatureReason(reason);
-  if (!definition || !trigger) return null;
-  const binding = definition.audio.find(
-    (candidate) => candidate.trigger === trigger,
-  );
+  return trigger
+    ? resolveArcSignatureAudioTriggerBinding(replay, signatureId, trigger)
+    : null;
+}
+
+export function resolveArcSignatureAudioTriggerBinding(
+  replay: Pick<ReplayModel, 'signaturePresentationId'>,
+  signatureId: string,
+  trigger: ArcSignatureAudioBinding['trigger'],
+): ArcSignatureResolvedAudioBinding | null {
+  const bindings =
+    replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID
+      ? audioDefinitions.get(signatureId)?.audio
+      : replay.signaturePresentationId ===
+          ARC_SIGNATURE_LEGACY_PRESENTATION_ID
+        ? legacyAudioBindings.get(signatureId)
+        : null;
+  const binding = bindings?.find((candidate) => candidate.trigger === trigger);
   if (!binding || binding.cue === 'core-family') return null;
   return binding as ArcSignatureResolvedAudioBinding;
+}
+
+export function resolveArcSignatureProjectileAudioBinding(
+  replay: Pick<ReplayModel, 'signaturePresentationId'>,
+  attackProfileId: string | undefined,
+): ArcSignatureResolvedAudioBinding | null {
+  if (
+    replay.signaturePresentationId !== ARC_SIGNATURE_PRESENTATION_ID ||
+    attackProfileId === undefined
+  ) {
+    return null;
+  }
+  const definition = projectileAudioDefinitions.get(attackProfileId);
+  if (!definition) return null;
+  return resolveArcSignatureAudioTriggerBinding(
+    replay,
+    definition.signatureId,
+    'projectile-launched',
+  );
 }
 
 export function arcSignatureAudioDefinitionIds(): readonly string[] {
@@ -88,6 +161,8 @@ function triggerForSignatureReason(
     case 'activated':
     case 'acquired':
     case 'completed':
+    case 'deployed':
+    case 'triggered':
       return reason;
     case 'cancelled':
     case 'moved':
@@ -96,6 +171,14 @@ function triggerForSignatureReason(
     case 'target-destroyed':
     case 'target-out-of-range':
     case 'target-out-of-sight':
+    case 'abandoned-move':
+    case 'cancelled-damage':
+    case 'interrupted-damage':
+    case 'interrupted-movement':
+    case 'ended-null-field':
+    case 'channel-ended':
+    case 'replaced':
+    case 'expired':
       return 'cancelled';
     default:
       return null;

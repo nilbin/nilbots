@@ -14,8 +14,27 @@ import { fileURLToPath } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptDirectory, "..");
 const sourceDirectory = resolve(repositoryRoot, "art/audio/sound-lab");
+const runtimeAudioDirectory = resolve(
+  repositoryRoot,
+  "web/src/assets/audio/effects/astral-relay",
+);
+const coreStageDirectory = resolve(repositoryRoot, "web/dist-review");
+const cliArguments = process.argv.slice(2);
+const includeCoreStage = cliArguments.includes("--include-core-stage");
+const positionalArguments = cliArguments.filter(
+  (value) => value !== "--include-core-stage",
+);
+if (
+  positionalArguments.length > 1 ||
+  positionalArguments.some((value) => value.startsWith("--"))
+) {
+  throw new Error(
+    "Usage: build-audio-sound-lab-site.mjs [--include-core-stage] [output]",
+  );
+}
 const destinationDirectory = resolve(
-  process.argv[2] ?? resolve(repositoryRoot, "sandbox/audio-sound-lab-site"),
+  positionalArguments[0] ??
+    resolve(repositoryRoot, "sandbox/audio-sound-lab-site"),
 );
 const hostingSource = resolve(repositoryRoot, ".openai/hosting.json");
 
@@ -42,6 +61,19 @@ assertSafeDestination();
 if (!existsSync(sourceDirectory)) {
   throw new Error(`Missing sound-lab source: ${sourceDirectory}`);
 }
+if (!existsSync(resolve(runtimeAudioDirectory, "manifest.json"))) {
+  throw new Error(`Missing Astral Relay runtime audio: ${runtimeAudioDirectory}`);
+}
+if (
+  includeCoreStage &&
+  (!existsSync(resolve(coreStageDirectory, "index.html")) ||
+    !existsSync(resolve(coreStageDirectory, "replay.json.gz")))
+) {
+  throw new Error(
+    "Missing focused Core review; run " +
+      "node scripts/build-arc-relay-core-stage-review.mjs first.",
+  );
+}
 
 const hosting = JSON.parse(readFileSync(hostingSource, "utf8"));
 if (typeof hosting.project_id !== "string" || hosting.project_id.length === 0) {
@@ -57,7 +89,39 @@ mkdirSync(resolve(destinationDirectory, ".openai"), { recursive: true });
 cpSync(sourceDirectory, resolve(destinationDirectory, ".open-next/assets"), {
   recursive: true,
 });
+cpSync(
+  runtimeAudioDirectory,
+  resolve(destinationDirectory, ".open-next/assets/runtime-audio"),
+  { recursive: true },
+);
+if (includeCoreStage) {
+  cpSync(
+    coreStageDirectory,
+    resolve(destinationDirectory, ".open-next/assets/core-stage"),
+    { recursive: true },
+  );
+}
 cpSync(hostingSource, resolve(destinationDirectory, ".openai/hosting.json"));
+
+const coreStageRoutes = includeCoreStage
+  ? `
+    if (url.pathname === "/core-stage") {
+      url.pathname = "/core-stage/";
+      return Response.redirect(url, 308);
+    }
+
+    if (url.pathname === "/core-stage/") {
+      url.pathname = "/core-stage/index.html";
+      return env.ASSETS.fetch(new Request(url, request));
+    }
+`
+  : "";
+const coreStageReadme = includeCoreStage
+  ? "`core-stage/` serves the focused eight-body Core custody replay copied " +
+    "from\n`web/dist-review`; generate it with\n" +
+    "`scripts/build-arc-relay-core-stage-review.mjs` before rebuilding this " +
+    "site.\n"
+  : "";
 
 writeFileSync(
   resolve(destinationDirectory, ".open-next/worker.js"),
@@ -69,6 +133,8 @@ writeFileSync(
       url.pathname = "/index.html";
       return env.ASSETS.fetch(new Request(url, request));
     }
+
+${coreStageRoutes}
 
     return env.ASSETS.fetch(request);
   },
@@ -84,6 +150,9 @@ Generated from \`art/audio/sound-lab\` by
 \`scripts/build-audio-sound-lab-site.mjs\`.
 
 The deployable worker serves the static review lab from \`.open-next/assets\`.
+\`signatures-v2.html\` auditions exact shipped AAC files copied from the
+approved Astral Relay runtime package into \`runtime-audio\` during this build.
+${coreStageReadme}
 Edit the repository source and regenerate instead of editing this package.
 `,
 );
