@@ -1,0 +1,179 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-shadow-scissors-v2",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "north-runner",
+      "classes": ["kestrel"],
+      "upgradePath": ["reach", "vision", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "north-runner-opening",
+          "timeout": 110,
+          "cooldown": 1200,
+          "orders": [
+            {
+              "id": "north-runner-breach",
+              "when": { "all": ["north-runner-ready", "north-screen-ready", "south-screen-ready", "south-runner-ready"] },
+              "until": "breach-window-spent",
+              "timeout": 90,
+              "cooldown": 1200,
+              "orders": [
+                { "id": "north-runner-claim-core", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+              ]
+            },
+            { "id": "north-runner-contact", "when": "enemy-nearby", "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } },
+            { "id": "stage-north-runner", "move": { "to": { "zone": "north-rear-rally" }, "via": "north-shadow-ingress", "posture": "front" } }
+          ]
+        },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "north-runner-pressure", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "north-screen",
+      "classes": ["kestrel", "veil", "hush"],
+      "upgradePath": ["damage", "reach", "vision"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "north-screen-opening",
+          "timeout": 110,
+          "cooldown": 1200,
+          "orders": [
+            {
+              "id": "north-screen-breach",
+              "when": { "all": ["north-runner-ready", "north-screen-ready", "south-screen-ready", "south-runner-ready"] },
+              "until": "breach-window-spent",
+              "timeout": 90,
+              "cooldown": 1200,
+              "orders": [
+                { "id": "dash-rear-contact", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "vector-dash", "target": "nearest-enemy" } },
+                { "id": "smoke-rear-contact", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "smoke-canister", "target": "self" } },
+                { "id": "silence-rear-contact", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "null-field", "target": "self" } },
+                { "id": "north-screen-fight", "when": "enemy-nearby", "fight": { "targets": ["carrier", "medic", "weakest", "nearest"], "style": "advance", "chaseLimit": 7 } },
+                { "id": "north-breach-escort", "move": { "follow": "north-runner", "posture": "rear" } }
+              ]
+            },
+            { "id": "north-screen-contact", "when": "enemy-nearby", "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } },
+            { "id": "stage-north-screen", "move": { "to": { "zone": "north-rear-rally" }, "via": "north-shadow-ingress", "posture": "front" } }
+          ]
+        },
+        { "shared": "fight-visible-enemy" },
+        { "id": "north-screen-pressure", "move": { "to": { "zone": "enemy-return-screen" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "south-screen",
+      "classes": ["towline", "sunder", "patchbay"],
+      "upgradePath": ["damage", "vitality", "vision"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "south-screen-opening",
+          "timeout": 110,
+          "cooldown": 1200,
+          "orders": [
+            {
+              "id": "south-screen-breach",
+              "when": { "all": ["north-runner-ready", "north-screen-ready", "south-screen-ready", "south-runner-ready"] },
+              "until": "breach-window-spent",
+              "timeout": 90,
+              "cooldown": 1200,
+              "orders": [
+                { "id": "hook-rear-carrier", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+                { "id": "paint-rear-carrier", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "target-paint", "target": "enemy-carrier" } },
+                { "id": "repair-south-screen", "when": "signature-ready", "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+                { "id": "south-screen-fight", "when": "enemy-nearby", "fight": { "targets": ["carrier", "marked", "medic", "weakest", "nearest"], "style": "advance", "chaseLimit": 7 } },
+                { "id": "south-breach-escort", "move": { "follow": "south-runner", "posture": "rear" } }
+              ]
+            },
+            { "id": "south-screen-contact", "when": "enemy-nearby", "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } },
+            { "id": "stage-south-screen", "move": { "to": { "zone": "south-rear-rally" }, "via": "south-shadow-ingress", "posture": "front" } }
+          ]
+        },
+        { "shared": "fight-visible-enemy" },
+        { "id": "south-screen-pressure", "move": { "to": { "zone": "enemy-return-screen" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "south-runner",
+      "classes": ["relay"],
+      "upgradePath": ["vitality", "vision", "reach"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "south-runner-opening",
+          "timeout": 110,
+          "cooldown": 1200,
+          "orders": [
+            {
+              "id": "south-runner-breach",
+              "when": { "all": ["north-runner-ready", "north-screen-ready", "south-screen-ready", "south-runner-ready"] },
+              "until": "breach-window-spent",
+              "timeout": 90,
+              "cooldown": 1200,
+              "orders": [
+                { "id": "south-runner-claim-core", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+              ]
+            },
+            { "id": "south-runner-contact", "when": "enemy-nearby", "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } },
+            { "id": "stage-south-runner", "move": { "to": { "zone": "south-rear-rally" }, "via": "south-shadow-ingress", "posture": "front" } }
+          ]
+        },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "south-runner-pressure", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [{ "id": "return-to-reactor", "move": { "to": "own-reactor" } }]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [{ "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }]
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-nearby"] },
+      "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 }
+    }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 30 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 70 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 },
+    "breach-window-spent": { "fact": "self-order-ticks", "operator": "at-least", "value": 80 },
+    "north-runner-ready": { "fact": "role-in-zone-count", "operator": "at-least", "value": 1, "role": "north-runner", "zone": "north-rear-rally" },
+    "north-screen-ready": { "fact": "role-in-zone-count", "operator": "at-least", "value": 2, "role": "north-screen", "zone": "north-rear-rally" },
+    "south-screen-ready": { "fact": "role-in-zone-count", "operator": "at-least", "value": 2, "role": "south-screen", "zone": "south-rear-rally" },
+    "south-runner-ready": { "fact": "role-in-zone-count", "operator": "at-least", "value": 1, "role": "south-runner", "zone": "south-rear-rally" }
+  }
+}

@@ -126,8 +126,10 @@ Frozen references live under
 
 ## Gallery and validation
 
-Public gallery:
-https://ties-kurt-zope-historic.trycloudflare.com/
+The original v1 gallery at this URL was intentionally replaced in place by its
+successor v2 exhibit. The v1 raw replays remain under the local exhibit output;
+the current public gallery is documented in
+`ARC-RELAY-SHADOW-SCISSORS-V2-EXHIBIT.md`.
 
 - standard cells: `w-9001`, `w-9002`, `e-9005`, `e-9009`, `w-9012`,
   `e-9004`;
