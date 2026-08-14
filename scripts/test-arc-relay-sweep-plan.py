@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+import tempfile
 import unittest
 
 
@@ -45,6 +46,26 @@ class PairSelectionTests(unittest.TestCase):
                 {"balanced", "relay"},
             )
 
+
+class ProjectSourceHashTests(unittest.TestCase):
+    def test_generated_outputs_do_not_move_source_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            (project / "Mind.cs").write_text("one", encoding="utf-8")
+            before = PLAN.project_source_sha256(project)
+            (project / "bin").mkdir()
+            (project / "bin" / "Mind.dll").write_text("generated", encoding="utf-8")
+            (project / "bot.wasm").write_text("generated", encoding="utf-8")
+            self.assertEqual(before, PLAN.project_source_sha256(project))
+
+    def test_authored_input_moves_source_hash(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            source = project / "Mind.cs"
+            source.write_text("one", encoding="utf-8")
+            before = PLAN.project_source_sha256(project)
+            source.write_text("two", encoding="utf-8")
+            self.assertNotEqual(before, PLAN.project_source_sha256(project))
 
 if __name__ == "__main__":
     unittest.main()

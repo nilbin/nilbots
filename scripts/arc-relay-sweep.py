@@ -39,6 +39,30 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def project_source_sha256(path: Path) -> str:
+    """Hash authored project inputs while excluding generated build output."""
+    ignored_directories = {"bin", "obj", "out", ".git"}
+    ignored_files = {"bot.wasm", "bot.build-receipt.json"}
+    files = sorted(
+        candidate
+        for candidate in path.rglob("*")
+        if candidate.is_file()
+        and not any(part in ignored_directories for part in candidate.parts)
+        and candidate.name not in ignored_files
+    )
+    if not files:
+        raise ValueError(f"{path}: in-process project has no authored inputs")
+    digest = hashlib.sha256()
+    for candidate in files:
+        relative = candidate.relative_to(path).as_posix().encode("utf-8")
+        content = candidate.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
 def sha256_values(values: list[tuple[str, str]]) -> str:
     encoded = json.dumps(
         values,
@@ -117,17 +141,33 @@ def validate_manifest(path: Path) -> dict[str, Any]:
     for entrant_id, entrant in entrants.items():
         artifact = resolve_repo_path(entrant["artifact"])
         sheet = resolve_repo_path(entrant["sheet"])
-        if not artifact.is_file() or not sheet.is_file():
+        if not artifact.exists() or not sheet.is_file():
             raise FileNotFoundError(f"{entrant_id}: missing artifact or sheet")
-        for file_path, field in (
-            (artifact, "artifactSha256"),
-            (sheet, "sheetSha256"),
-        ):
-            actual = sha256(file_path)
-            if actual != entrant[field]:
+        if artifact.is_file():
+            actual_artifact = sha256(artifact)
+            if actual_artifact != entrant.get("artifactSha256"):
                 raise ValueError(
-                    f"{entrant_id} {field}: declared {entrant[field]}, actual {actual}"
-                )
+                    f"{entrant_id} artifactSha256: declared "
+                    f"{entrant.get('artifactSha256')}, actual {actual_artifact}")
+        elif manifest.get("runtime") == "in-process":
+            actual_source = project_source_sha256(artifact)
+            if actual_source != entrant.get("sourceSha256"):
+                raise ValueError(
+                    f"{entrant_id} sourceSha256: declared "
+                    f"{entrant.get('sourceSha256')}, actual {actual_source}")
+            runtime_hash = entrant.get("runtimeArtifactSha256")
+            if not isinstance(runtime_hash, str) or len(runtime_hash) != 64:
+                raise ValueError(
+                    f"{entrant_id}: in-process project needs a frozen "
+                    "runtimeArtifactSha256")
+        else:
+            raise ValueError(
+                f"{entrant_id}: project directories require in-process runtime")
+        actual_sheet = sha256(sheet)
+        if actual_sheet != entrant["sheetSha256"]:
+            raise ValueError(
+                f"{entrant_id} sheetSha256: declared "
+                f"{entrant['sheetSha256']}, actual {actual_sheet}")
     ids: set[str] = set()
     for cell in cells:
         cell_id = cell.get("cellId")
@@ -383,7 +423,9 @@ def validate_record(
         entrant = entrants[entrant_id]
         if participant["entrantId"] != entrant_id:
             raise ValueError(f"{cell['cellId']}: participant order changed")
-        if participant["artifactHash"] != entrant["artifactSha256"]:
+        expected_artifact_hash = entrant.get(
+            "runtimeArtifactSha256", entrant.get("artifactSha256"))
+        if participant["artifactHash"] != expected_artifact_hash:
             raise ValueError(f"{cell['cellId']}: algorithm/artifact hash changed")
         if participant["sheetHash"] != entrant["sheetSha256"]:
             raise ValueError(f"{cell['cellId']}: sheet hash changed")
