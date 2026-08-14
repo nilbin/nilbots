@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import importlib.util
 from pathlib import Path
+from unittest import mock
 import unittest
 
 
@@ -131,6 +132,79 @@ class ReplayMechanismTests(unittest.TestCase):
         self.assertEqual(1, west["valueBodies"])
         self.assertEqual(1, east["signatureBodies"])
         self.assertEqual(1, west["longestStationaryRun"])
+
+
+class SparseMatrixTests(unittest.TestCase):
+    def test_omitted_pairs_are_absent_not_zero_game_records(self) -> None:
+        entrants = {
+            entrant: {"label": entrant, "intent": entrant}
+            for entrant in ("pincer", "direct", "distributed", "split")
+        }
+        cells = []
+        for opponent in ("direct", "distributed", "split"):
+            cells.extend([
+                {
+                    "cellId": f"pincer--{opponent}--a0",
+                    "seed": "1",
+                    "team0": "pincer",
+                    "team1": opponent,
+                },
+                {
+                    "cellId": f"pincer--{opponent}--a1",
+                    "seed": "1",
+                    "team0": opponent,
+                    "team1": "pincer",
+                },
+            ])
+        team = {
+            "firstAttackTick": 1,
+            "firstPickupTick": 2,
+            "firstBankTick": 3,
+            "banks": 1,
+            "carrierInterceptions": 0,
+            "movementBodies": 8,
+            "valueBodies": 8,
+            "stationaryShare": 0.1,
+            "longestStationaryRun": 2,
+            "openingTheaterShares": {
+                "north": 0.3,
+                "centre": 0.4,
+                "south": 0.3,
+            },
+            "openingOpponentHalfShare": 0.5,
+        }
+        metrics = {
+            "winnerTeamId": 0,
+            "completionReason": "reactor-destroyed",
+            "endTick": 10,
+            "teams": {"0": team, "1": team},
+        }
+        plan = {
+            "sweepId": "sparse",
+            "runtime": "in-process",
+            "loopProfile": "tapline-3",
+            "entrants": entrants,
+            "cells": cells,
+        }
+
+        with mock.patch.object(
+                READ,
+                "accepted_cell",
+                return_value=(Path("."), {
+                    "matchEligibleForCohortRead": True,
+                })), mock.patch.object(
+                    READ, "read_json", return_value={}), mock.patch.object(
+                        READ, "replay_metrics", return_value=metrics):
+            reduced = READ.summarize(plan, Path("."), opening_ticks=120)
+
+        self.assertEqual(
+            {
+                "direct--pincer",
+                "distributed--pincer",
+                "pincer--split",
+            },
+            set(reduced["pairings"]),
+        )
 
 
 if __name__ == "__main__":

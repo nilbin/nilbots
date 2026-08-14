@@ -361,6 +361,11 @@ def summarize(
                 cell for cell in cells
                 if {cell["team0"], cell["team1"]} == {left, right}
             ]
+            # Sparse registered probes intentionally omit irrelevant pairs.
+            # Absence is not a 0-0 matchup and must not be represented as one
+            # (or divided by zero); only materialized cells enter pair reads.
+            if not relevant:
+                continue
             records: dict[str, Any] = {}
             for entrant in (left, right):
                 wins = sum(cell["winner"] == entrant for cell in relevant)
