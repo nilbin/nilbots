@@ -298,7 +298,7 @@ const candidates = [
           }),
           ref("fight-visible-enemy"),
           move("cash-out-the-crown", "enemy", "front", { when: "ace-awakened" }),
-          { id: "earn-the-crown-on-patrol", move: { patrol: "centre-rail-loop", posture: "line" } },
+          { id: "earn-the-crown-on-patrol", move: { patrol: "centre-rail-loop", via: "north-rail-ingress", posture: "line" } },
         ]),
         role("ace-medic", ["patchbay"], ["reach", "vitality", "vision"], [
           ...standardPrefix(),
@@ -314,7 +314,7 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          { id: "patrol-the-designator-line", move: { patrol: "north-rail-loop", posture: "front" } },
+          { id: "patrol-the-designator-line", move: { patrol: "north-rail-loop", via: "north-rail-ingress", posture: "front" } },
         ]),
         role("firing-line", ["mason", "palisade"], ["vitality", "vision", "damage"], [
           ...standardPrefix(),
@@ -325,7 +325,7 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          { id: "patrol-the-rail-line", move: { patrol: "south-rail-loop", posture: "line" } },
+          { id: "patrol-the-rail-line", move: { patrol: "south-rail-loop", via: "south-rail-ingress", posture: "line" } },
         ]),
         role("spotter", ["lantern"], ["vision", "reach", "vitality"], [
           ...standardPrefix(),
@@ -333,7 +333,7 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          { id: "spot-the-centre-rail", move: { patrol: "north-rail-loop", posture: "rear" } },
+          { id: "spot-the-centre-rail", move: { patrol: "north-rail-loop", via: "north-rail-ingress", posture: "rear" } },
         ]),
         role("rail-guard", ["repulsor"], ["vitality", "damage", "vision"], [
           ...standardPrefix(),
@@ -358,6 +358,12 @@ const candidates = [
     ),
     map: mapPlan("tapline-crowned-rail-v1", {
       routes: {
+        "north-rail-ingress": {
+          waypoints: [[3, 3], [8, 3], [12, 11]],
+        },
+        "south-rail-ingress": {
+          waypoints: [[3, 9], [8, 9], [12, 14]],
+        },
         "centre-rail-loop": {
           waypoints: [[15, 13], [16, 12], [17, 13], [16, 14], [15, 13], [14, 14], [13, 13], [14, 12], [15, 13]],
         },

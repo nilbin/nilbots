@@ -4,6 +4,38 @@
   "mapId": "arc-relay-tapline-01",
   "zones": {},
   "routes": {
+    "north-rail-ingress": {
+      "waypoints": [
+        [
+          3,
+          3
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          12,
+          11
+        ]
+      ]
+    },
+    "south-rail-ingress": {
+      "waypoints": [
+        [
+          3,
+          9
+        ],
+        [
+          8,
+          9
+        ],
+        [
+          12,
+          14
+        ]
+      ]
+    },
     "centre-rail-loop": {
       "waypoints": [
         [

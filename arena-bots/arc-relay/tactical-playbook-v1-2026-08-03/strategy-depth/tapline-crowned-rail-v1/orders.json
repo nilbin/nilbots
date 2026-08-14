@@ -55,6 +55,7 @@
           "id": "earn-the-crown-on-patrol",
           "move": {
             "patrol": "centre-rail-loop",
+            "via": "north-rail-ingress",
             "posture": "line"
           }
         }
@@ -148,6 +149,7 @@
           "id": "patrol-the-designator-line",
           "move": {
             "patrol": "north-rail-loop",
+            "via": "north-rail-ingress",
             "posture": "front"
           }
         }
@@ -209,6 +211,7 @@
           "id": "patrol-the-rail-line",
           "move": {
             "patrol": "south-rail-loop",
+            "via": "south-rail-ingress",
             "posture": "line"
           }
         }
@@ -255,6 +258,7 @@
           "id": "spot-the-centre-rail",
           "move": {
             "patrol": "north-rail-loop",
+            "via": "north-rail-ingress",
             "posture": "rear"
           }
         }
