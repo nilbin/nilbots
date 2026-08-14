@@ -95,7 +95,8 @@ normalizes the pair, and computes identity.
 
 Flattening every `classes` list in source order assigns unit ids 0–7. The
 flattened list must contain exactly eight launch classes, with at most two
-copies of any class. A body keeps its role across death and respawn. There is
+copies of any class and at least seven distinct classes on the current
+Tapline-4 line. A body keeps its role across death and respawn. There is
 no candidate pool, allocator, vacancy, promotion, overflow, or reassignment.
 
 `upgradePath` contains one to four values from `damage`, `vision`, `reach`, and
@@ -520,10 +521,10 @@ lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v21 is the promoted Orders v2/Tapline-3 line. It pins
+Hosted entrant playlist v22 is the promoted Orders v2/Tapline-4 line. It pins
 the coordinated EPIBT executor, body-local signature orders, the current
-controlled WASM artifact, and a fresh rating book. Playlist v20 remains
-immutable Tapline-1 history.
+controlled WASM artifact, the combined depth rules, and a fresh rating book.
+Playlist v21 remains immutable Tapline-3 history.
 
 ## 12. Executor-owned squad micro
 
@@ -531,6 +532,6 @@ Orders state tactical intent, not squad micro. The executor jointly assigns
 distinct contribution tiles and resolves physical motion with deterministic
 EPIBT planning. Authored urgency participates only after an order is selected;
 it may settle allied right-of-way but cannot reorder the sheet. Acyclic convoy
-steps into a pre-tick vacancy are legal on Tapline-3, while swaps and closed
+steps into a pre-tick vacancy are legal on Tapline-4, while swaps and closed
 cycles remain blocked. Do not smuggle pathing policy into author-visible orders
 or add route-defense fields to compensate for executor behavior.

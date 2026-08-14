@@ -14,8 +14,8 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v21: rules and map
-`arc-relay-tapline-03` on the 31x27 Tapline, matching the default local
+The current hosted identity is immutable entrant playlist v22: rules and map
+`arc-relay-tapline-04` on the 31x27 Tapline, matching the default local
 `nilbots arc-relay` command and its coordinated planner. v7 began the Warren
 development rating era; v8 repaired its frozen WASM artifact. Public Season 1
 began at 1200 on a separate v8 ladder. v9 moves the stock participant to the
@@ -51,6 +51,10 @@ Tapline map and its native Hunter/Wellwright layouts. A different map is a
 different competitive era, so v19 starts every opted-in entrant at the default
 rating while retaining v18 as readable history. v20 introduced the Orders v2
 sheet line on Tapline-1; v21 promotes Tapline-3 and starts a fresh rating book.
+v22 promotes the combined Tapline-4 game—team-relative 1/2/4 Core charge,
+veteran command, public respawn waves, a seven-distinct-class roster floor,
+durable deployments, and scaled combat—and starts another fresh book with
+Tempered Standard as its frozen stock sheet.
 Completed historical broadcasts remain readable, but old Arc Relay playlist
 jobs are replay-only rather than executable by a current worker.
 ForwardCombat/Counterflow v6 ratings and matches remain readable history but
@@ -59,7 +63,8 @@ were not copied.
 ## Admission and composition
 
 Both kinds snapshot eight unlocked classes with no more than two copies of one
-class. Custom minds declare that composition at submission and revision time;
+class and at least seven distinct classes. Custom minds declare that
+composition at submission and revision time;
 the reserved adaptive-composition fields remain empty in v1. The server
 validates declarations against current ownership before it accepts them.
 
@@ -70,10 +75,11 @@ and anchors. The server stores the exact playbook and layout sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v21's stock sheet is the
-Tapline-native Wellwright Orders v2 sheet. New map plans are authored directly
+sheet and opens it in the ordinary replay viewer. v22's stock sheet is the
+Tapline-native Tempered Standard Orders v2 sheet, and six additional named
+strategy sheets are available as practice opponents. New map plans are authored directly
 on the Tapline export; earlier-map sheets are shown as legacy and cannot enter
-v21 until replotted.
+v22 until replotted and brought up to the current roster rule.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault

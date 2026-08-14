@@ -8,29 +8,31 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile tapline-3` (rules
-`arc-relay-tapline-03`, map `arc-relay-tapline-01`): the accepted Tapline
+The command defaults to `--loop-profile tapline-4` (rules
+`arc-relay-tapline-04`, map `arc-relay-tapline-01`): the accepted Tapline
 geometry, declared strikes, veterancy, rear-arc damage, and the complete
-signature grammar 3. Its joint movement step also permits an acyclic convoy to
+signature grammar 3, plus the promoted combined depth rules. Its joint movement step also permits an acyclic convoy to
 advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
 still block. `h0`, `tapline-1`, `tapline-2`, and every historical profile
 remain explicit immutable compatibility selections.
 
-**Hosted entrant playlist v21 pins Tapline-3.** It freezes the
-`arc-relay-orders-v2` sheet format, Wellwright v2 stock participant, authored
+**Hosted entrant playlist v22 pins Tapline-4.** It freezes the
+`arc-relay-orders-v2` sheet format, Tempered Standard stock participant, authored
 movement urgency, body-local fight contact, and atomic EPIBT squad planning on
-the direct ATL2 executor. The promoted map/planner/stock gameplay starts a fresh
-rating book; v20's Tapline-1 ratings and matches remain readable history.
+the direct ATL2 executor, together with team-relative Core value, veteran
+command, public respawn waves, roster variety, and durable deployments. The
+promoted rules and stock gameplay start a fresh rating book; v21's Tapline-3
+ratings and matches remain readable history.
 Earlier playlist definitions and artifacts remain immutable, and geometry is
 never projected between maps.
 
 ## Match shape
 
 - Head-to-head, one participant-scoped mind per team.
-- Eight fixed unit slots per side, all active at tick 0 and automatically
-  returning 20 ticks after destruction.
+- Eight fixed unit slots per side, all active at tick 0. A destroyed body is
+  eligible after 15 ticks and returns on the next public 30-tick wave.
 - A sheet fills all eight slots from the 16 launch classes. A class may appear
-  once or twice; therefore a legal sheet contains 4–8 distinct classes.
+  once or twice and at least seven distinct classes must be fielded.
 - There is no five-class stable. The sheet chooses from whatever the player
   has unlocked. A stable is only a future roster-scale or format lever.
 - There is no economy and no score-to-power. Deliveries never improve stats,
@@ -52,7 +54,7 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 Three public Wells stand at north `(11,6)`, centre `(15,13)`, and south
 `(19,20)`. Their nominal first beats are centre 25, north 50, and south 75;
 the seed-phased lead and ±6-tick birth jitter below choose the exact order and
-tick. Each then repeats on the 75-tick schedule through the horizon. A Well has at most one unresolved
+tick. Each then repeats on the 65-tick schedule for nine rounds. A Well has at most one unresolved
 Core and one visible pending charge, so at most three Cores are live.
 
 A body ending movement on a loose Core picks it up. A Core can relocate only
@@ -63,8 +65,11 @@ signature while the Core recovers.
 
 Bring a surviving carrier to its own delivery shoulder—west `(6..8,6..8)`,
 east `(22..24,18..20)`—to deliver. The reactor itself sits at west `(2,5)` or
-east `(28,21)`. Three deliveries create one arena-wide Pulse. The third
-Pulse destroys the opposing reactor and wins. A delivery grants score only.
+east `(28,21)`. A Core from the Well nearest your reactor is worth 1 charge,
+the centre Well 2, and the enemy-side Well 4. Every three accumulated charge
+creates one arena-wide Pulse; a single bank may therefore create two Pulses.
+The third Pulse destroys the opposing reactor and wins. A delivery grants
+score only.
 
 `handoff-core` names an adjacent allied unit. The receiver must remain alive,
 carry no Core, and submit `Wait`; the source spends its action. `drop-core`
@@ -148,7 +153,7 @@ Run a native mind locally with:
 nilbots experiment arc-relay \
   --bot <project-or-wasm> --opponent <project-or-wasm> \
   --sheet0 <sheet.json> --sheet1 <sheet.json> \
-  --loop-profile tapline-3 --seed 42
+  --loop-profile tapline-4 --seed 42
 ```
 
 Current sheets pair an `arc-relay-orders-v2` Orders document with an
@@ -230,8 +235,8 @@ stock artifacts, and ratings remain immutable.
 
 This distinction is the repository extension rule, not a Tapline exception:
 grammar generations cover the complete roster, while concrete definition
-versions exist only for real mechanic or chronology changes. Hosted v21 now
-pins grammar 3 and Tapline-3; v20 remains immutable Tapline-1 history. The end-to-end
+versions exist only for real mechanic or chronology changes. Hosted v22 now
+pins grammar 3 and Tapline-4; v21 remains immutable Tapline-3 history. The end-to-end
 class/signature checklist is in
 [`ADDING-ARC-CLASS-AND-SIGNATURE.md`](ADDING-ARC-CLASS-AND-SIGNATURE.md).
 

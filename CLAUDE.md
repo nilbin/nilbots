@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-3                             # the current local Arc Relay line
+  --loop-profile tapline-4                             # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,15 +208,16 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-3`, whose atomic occupancy contract
+  `--loop-profile` defaults to `tapline-4`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
   `--mind-stepper greedy` is a historical diagnostic control, never the
   implicit owner-gallery path.
-  Immutable hosted entrant playlist v21 pins `tapline-3`, Tapline-native
-  Orders v2 sheets, atomic EPIBT squad movement, and the parity-proven ATL2
-  WASM mirror. v20 remains immutable, replay-only Tapline-1 history. v7
+  Immutable hosted entrant playlist v22 pins `tapline-4`, Tapline-native
+  Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
+  and the parity-proven ATL2 WASM mirror. v21 remains immutable, replay-only
+  Tapline-3 history. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -248,6 +249,10 @@ Project boundaries that must not be violated:
   v21 starts fresh because Tapline-3, authored movement urgency, body-local
   fight contact, the EPIBT planner, and registered stock gameplay change;
   v20 ratings are never copied into v21.
+  v22 starts fresh because the promoted 1/2/4 Core economy, veteran command,
+  public respawn waves, seven-class roster floor, durable deployments,
+  combat scale, stock sheet, and registered stock gameplay change; v21
+  ratings are never copied into v22.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

@@ -8448,3 +8448,32 @@ XP thresholds, promotion chronology, maximum level, per-life reset, replay
 facts, bot selection, game rules, or the Canvas compatibility renderer. The
 level-up ring and converging-facet beat remain unchanged and resolve into the
 updated persistent plate.
+
+## 316. The combined Tapline depth game promotes as Tapline-4 and hosted v22
+
+Owner product ruling (2026-08-14). The candidate-only framing ends: the
+combined rules pack becomes the current Arc Relay game as `tapline-4` /
+`arc-relay-tapline-04`, while retaining the accepted `arc-relay-tapline-01`
+map. It combines team-relative own/centre/enemy Core charge of 1/2/4, veteran
+command, public 30-tick respawn waves with a 15-tick minimum absence, an
+eight-slot composition with at least seven distinct classes, durable
+deployments, tenfold combat magnitude, and Tapline-3's coordinated movement.
+The local command, exhibit harness, sheet catalog, editor validation, and
+hosted product all select this one line. The isolated candidate profiles stay
+registered only as development evidence; they are not alternate current games.
+
+Hosted entrant playlist v22 freezes the freshly controlled-build tactical mind
+and `tempered-standard-v1` as its stock sheet. It starts a fresh rating book at
+1200: the rules, stock sheet, artifact, and registered stock gameplay differ
+from v21, so no Elo is copied. Playlist v21, its Tapline-3 stock artifact,
+matches, ratings, canonical definition, and provenance remain immutable and
+readable history. The trusted in-process and WASM mirrors produce the same
+gameplay-state digest for the frozen Tapline-4 stock cell.
+
+Seven named Tapline-4 sheets become product practice opponents: Tempered
+Standard, Relay Circuit, Crowned Rail, Lockbox, Demolition March, Rising
+Standard, and Wavebreak. They are distinct authored strategies for replay
+review, not a balance verdict or a claim that the game is fun. The next owner
+gate is one mixed six-match exhibit that exposes each strategy and its intended
+counterplay; any mechanic or sheet tuning follows what those replays actually
+show.
