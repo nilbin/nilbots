@@ -175,7 +175,18 @@ python3 - "$NAME" "$OUTDIR" "$BCAST" "$SHEET_A" "$REPO" "${CELLS[@]}" <<'EOF'
 import gzip, json, os, subprocess, sys
 name, outdir, bcast, sheet_a, repo = sys.argv[1:6]
 cells = sys.argv[6:]
-sheet_key = os.path.basename(sheet_a).removesuffix('.json')
+sheet_path = os.path.realpath(
+    sheet_a if os.path.isabs(sheet_a) else os.path.join(repo, sheet_a))
+
+def sheet_id(path):
+    try:
+        with open(path, encoding='utf-8') as stream:
+            value = json.load(stream)
+        return value.get('sheetId') or os.path.basename(path).removesuffix('.json')
+    except (OSError, ValueError, TypeError):
+        return os.path.basename(path).removesuffix('.json')
+
+sheet_key = sheet_id(sheet_path)
 
 manifest = {
     'sampleVersion': 2,
@@ -193,11 +204,14 @@ for i, cell in enumerate(cells, 1):
             f'{outdir}/{name}-{cell}/replay.json.gz',
             'rt', encoding='utf-8') as raw_stream:
         contract = json.load(raw_stream)['header']['contract']
-    team = next(p['TeamId'] for p in run['Participants']
-                if sheet_key in (p.get('SheetPath') or ''))
-    opponent = next(
-        os.path.basename(p.get('SheetPath') or '?').removesuffix('.json')
+    entrant = next(
+        p for p in run['Participants']
+        if os.path.realpath(p.get('SheetPath') or '') == sheet_path)
+    team = entrant['TeamId']
+    opponent_path = next(
+        p.get('SheetPath') or '?'
         for p in run['Participants'] if p['TeamId'] != team)
+    opponent = sheet_id(opponent_path)
     winner = run['Result'].get('WinnerTeamId')
     win = winner == team
     outcome = 'win' if win else 'draw' if winner is None else 'loss'
