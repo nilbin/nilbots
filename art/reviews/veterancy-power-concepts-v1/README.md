@@ -23,6 +23,11 @@ shared attachment:
 The full-roster generation prompt is preserved in
 [`FULL-ROSTER-PROMPT.md`](./FULL-ROSTER-PROMPT.md).
 
+The concrete five-model production and 3D-agent handoff is preserved in
+[`MESHY-7-HANDOFF-PLAN.md`](./MESHY-7-HANDOFF-PLAN.md). It keeps the existing
+sixteen chassis untouched and defines one shared crown plus four reusable
+mantle-piece families.
+
 ## How to read the board
 
 Every row uses the same representative matte Arc chassis. The columns are
