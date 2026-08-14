@@ -315,6 +315,11 @@ public sealed class GenericActorStrikeWindupRootingTests
         Assert.Single(matured.ProjectileTraversals);
         Assert.Equal(3, duel.Body(matured, 1, 0).Health);
         Assert.Equal(3, duel.Body(matured, 1, 1).Health);
+
+        // Replay validation must agree with runtime admission: UnitTarget is
+        // optional beside a heading, not an all-or-nothing action payload.
+        string replay = ReplayV3Serializer.ToJson(duel.Replay());
+        Assert.Contains("\"projectile-heading\"", replay);
     }
 
     [Fact]
@@ -569,6 +574,9 @@ public sealed class GenericActorStrikeWindupRootingTests
                 ProjectileHeading.East,
                 range,
                 diagonalCornersMustBeClear: true);
+
+        public ReplayV3 Replay() =>
+            ReplayV3Projection.Project(_session.Chronology);
 
         public void Dispose() => _session.Dispose();
 

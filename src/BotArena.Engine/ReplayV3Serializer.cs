@@ -3467,16 +3467,29 @@ internal static class ReplayV3Serializer
                     return parameter;
                 })
                 .ToImmutableArray();
-            result.Add(
-                new ContractAction(
-                    id,
-                    code,
-                    parameters,
-                    string.Equals(
-                        kind,
-                        "attack",
-                        StringComparison.Ordinal)
-                    && optionalAttackActions.Contains(id)));
+            var optionalParameters = ImmutableArray.CreateBuilder<string>();
+            // Windup attacks admit a heading-only suppressive declaration:
+            // UnitTarget is a lock, not a required aiming argument. Runtime
+            // admission and chronology already enforce that rule; replay-v3
+            // must validate the same legal partial payload instead of
+            // requiring either every argument or none.
+            if (string.Equals(kind, "attack", StringComparison.Ordinal)
+                && parameters.Contains("unit-target", StringComparer.Ordinal)
+                && parameters.Contains(
+                    "projectile-heading", StringComparer.Ordinal))
+            {
+                optionalParameters.Add("unit-target");
+            }
+            if (optionalAttackActions.Contains(id)
+                && parameters.Contains("shot-program", StringComparer.Ordinal))
+            {
+                optionalParameters.Add("shot-program");
+            }
+            result.Add(new ContractAction(
+                id,
+                code,
+                parameters,
+                optionalParameters.ToImmutable()));
         }
 
         ImmutableArray<ContractAction> actions = result.ToImmutable();
@@ -6544,16 +6557,26 @@ internal static class ReplayV3Serializer
                 $"Replay-v3 {context} resolved action does not match the embedded catalog.");
         }
         RequireInitialized(action.Arguments, $"{context} arguments");
-        bool exactArguments = action.Arguments
-            .Select(value => value.Kind)
-            .SequenceEqual(known.ParameterKinds);
-        bool omittedOptionalArguments =
-            action.Arguments.IsEmpty
-            && known.AllowsOmittedArguments;
-        if (!exactArguments && !omittedOptionalArguments)
+        string[] actualKinds = [.. action.Arguments.Select(value => value.Kind)];
+        HashSet<string> actualSet = actualKinds.ToHashSet(StringComparer.Ordinal);
+        bool compatibleArguments =
+            actualSet.Count == actualKinds.Length
+            && actualKinds.All(kind => known.ParameterKinds.Contains(
+                kind, StringComparer.Ordinal))
+            && known.ParameterKinds
+                .Where(kind => !known.OptionalParameterKinds.Contains(
+                    kind, StringComparer.Ordinal))
+                .All(actualSet.Contains)
+            && actualKinds.SequenceEqual(
+                known.ParameterKinds.Where(actualSet.Contains));
+        if (!compatibleArguments)
         {
             throw new ArgumentException(
-                $"Replay-v3 {context} resolved arguments must follow the embedded parameter schema.");
+                $"Replay-v3 {context} resolved action '{known.Id}' arguments "
+                + $"[{string.Join(',', actualKinds)}] "
+                + "must follow the embedded parameter schema "
+                + $"[{string.Join(',', known.ParameterKinds)}] with optional "
+                + $"[{string.Join(',', known.OptionalParameterKinds)}].");
         }
         foreach (ReplayV3.ActionArgument argument in action.Arguments)
         {
@@ -8303,7 +8326,7 @@ internal static class ReplayV3Serializer
         string Id,
         int Code,
         ImmutableArray<string> ParameterKinds,
-        bool AllowsOmittedArguments);
+        ImmutableArray<string> OptionalParameterKinds);
 
     private sealed record ContractAttackProfile(
         string Id,

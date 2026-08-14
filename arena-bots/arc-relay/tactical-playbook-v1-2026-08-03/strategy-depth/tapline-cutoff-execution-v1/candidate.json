@@ -1,0 +1,8 @@
+{
+  "schema": "arc-relay-tapline-depth-candidate-v1",
+  "strategy": "20 Cutoff Execution",
+  "profile": "tapline-depth-respawn-wave",
+  "orders": "orders.json",
+  "mapPlan": "map-plan.json",
+  "status": "experimental-exhibit-only"
+}

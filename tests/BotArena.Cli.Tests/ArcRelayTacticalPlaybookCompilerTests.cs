@@ -40,6 +40,27 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         }
     }
 
+    [Theory]
+    [InlineData("tapline-two-heists-v1")]
+    [InlineData("tapline-turncoat-intercept-v1")]
+    [InlineData("tapline-crowned-rail-v1")]
+    [InlineData("tapline-emergent-standard-v1")]
+    [InlineData("tapline-cutoff-execution-v1")]
+    [InlineData("tapline-pre-wave-evacuation-v1")]
+    [InlineData("tapline-double-mason-lockbox-v1")]
+    [InlineData("tapline-demolition-march-v1")]
+    public void TaplineDepthCandidatesCompileAsCompactDirectOrders(
+        string name)
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.Compile(DepthCandidate(name));
+
+        Assert.True(compilation.UsesOrderTree);
+        Assert.Equal(8, compilation.Composition.Length);
+        Assert.InRange(compilation.Composition.Distinct().Count(), 7, 8);
+        Assert.InRange(compilation.LinkedData.Length, 1, 8_192);
+    }
+
     [Fact]
     public void FileAndInMemoryCompilationUseTheSamePath()
     {
@@ -452,6 +473,11 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     private static string Playbook(string name) => Path.Combine(
         Root(), "arena-bots", "arc-relay",
         "tactical-playbook-v1-2026-08-03", "playbooks", $"{name}.json");
+
+    private static string DepthCandidate(string name) => Path.Combine(
+        Root(), "arena-bots", "arc-relay",
+        "tactical-playbook-v1-2026-08-03", "strategy-depth", name,
+        "orders.json");
 
     private static string Root()
     {
