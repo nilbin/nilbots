@@ -646,6 +646,87 @@ public sealed class OrdersMovementSceneTests
             + $"{longestStationaryReturn} ticks.");
     }
 
+    [Theory]
+    [InlineData(
+        "tapline-split-intercept-v1",
+        "tapline-shadow-scissors-v2",
+        9307)]
+    [InlineData(
+        "tapline-shadow-scissors-v2",
+        "tapline-distributed-wells-v1",
+        9306)]
+    public void HostileMoveContentionIsRememberedAcrossCarrierCadenceHold(
+        string westStrategy,
+        string eastStrategy,
+        int seed)
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation west = CompileStrategy(
+            root, westStrategy);
+        TacticalPlaybookCompilation east = CompileStrategy(
+            root, eastStrategy);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            west.Composition,
+            east.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline3);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, west), Participant(1, east)],
+            matchSeed: (ulong)seed,
+            recordChronology: false);
+
+        var stationary = new Dictionary<ArcRelayCoreId, CarrierStation>();
+        int longestStationaryCarrier = 0;
+        int deniedStepTraces = 0;
+        while (!session.IsCompleted)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericMindCommandResolution resolution in
+                     step.MindTurns.SelectMany(turn => turn.Commands))
+            {
+                if ((resolution.Command.DebugMessage ?? "").Contains(
+                        ":avoid-denied-", StringComparison.Ordinal))
+                    deniedStepTraces++;
+            }
+
+            var arc = Assert.IsType<
+                GenericActorRuntimeObservation.ModeObservationState.ArcRelay>(
+                    step.PostState.Mode);
+            var carried = new HashSet<ArcRelayCoreId>();
+            foreach (ArcRelayCoreState core in arc.VisibleCores.Where(core =>
+                         core.CarrierActorId is not null))
+            {
+                carried.Add(core.CoreId);
+                CarrierStation next = stationary.TryGetValue(
+                        core.CoreId, out CarrierStation? prior)
+                    && prior.Carrier == core.CarrierActorId
+                    && prior.Position == core.Position
+                        ? prior with { Ticks = prior.Ticks + 1 }
+                        : new CarrierStation(
+                            core.CarrierActorId!, core.Position, 1);
+                stationary[core.CoreId] = next;
+                longestStationaryCarrier = Math.Max(
+                    longestStationaryCarrier, next.Ticks);
+            }
+            foreach (ArcRelayCoreId stale in stationary.Keys
+                         .Where(core => !carried.Contains(core)).ToArray())
+                stationary.Remove(stale);
+        }
+
+        // These two scenes independently produced the same failure: opposing
+        // bodies repeatedly entered one visibly empty tile together. The
+        // carrier's mandatory relocation wait then erased the generic
+        // PreviousActionResolution memory, so it retried forever (59 and 32
+        // ticks respectively). The planner must carry that denial across the
+        // cadence hold and visibly select a different operation.
+        Assert.True(deniedStepTraces > 0,
+            "The scenes never exercised remembered denied-step routing.");
+        Assert.True(longestStationaryCarrier < 30,
+            $"A contested carrier stayed on one tile for "
+            + $"{longestStationaryCarrier} ticks.");
+    }
+
     private static Position? RecoveryGoal(string reason)
     {
         const string marker = "recover-health";
@@ -710,6 +791,10 @@ public sealed class OrdersMovementSceneTests
         Position Current,
         Position? Previous,
         int AlternatingSteps);
+    private sealed record CarrierStation(
+        ActorIdentity Carrier,
+        Position Position,
+        int Ticks);
 
     private static GenericActorParticipantConfiguration Participant(
         int participantId,
@@ -743,6 +828,18 @@ public sealed class OrdersMovementSceneTests
             "tactical-playbook-v1-2026-08-03",
             "playbooks",
             fileName));
+
+    private static TacticalPlaybookCompilation CompileStrategy(
+        string root,
+        string strategyId) => ArcRelayTacticalPlaybookCompiler.Compile(
+        Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03",
+            "strategy-depth",
+            strategyId,
+            "orders.json"));
 
     private static string FindRepoRoot()
     {

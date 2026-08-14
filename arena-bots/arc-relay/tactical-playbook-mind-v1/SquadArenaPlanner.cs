@@ -34,10 +34,12 @@ internal sealed class SquadArenaPlanner : IArenaStepper
 {
     internal const int OperationLength = 3;
     internal const int RevisitLimit = 10;
+    internal const int DeniedStepAvoidanceTicks = 4;
     private const long Impossible = 1_000_000_000;
 
     private readonly Dictionary<int, Decision> _decisions = [];
     private readonly Dictionary<int, PersistentState> _states = [];
+    private readonly Dictionary<int, DeniedStep> _deniedSteps = [];
     private GenericActorResolvedMatchContract? _contract;
     private MindContext? _mind;
     private bool _mirrored;
@@ -54,6 +56,10 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         foreach (int stale in _states.Keys.Where(unit => !live.Contains(unit))
                      .ToArray())
             _states.Remove(stale);
+        foreach (int stale in _deniedSteps.Keys
+                     .Where(unit => !live.Contains(unit)).ToArray())
+            _deniedSteps.Remove(stale);
+        RememberDeniedSteps(mind);
     }
 
     public void PlanTeam(
@@ -147,6 +153,11 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 + (tile is Position next
                     ? $":next-{next.X}-{next.Y}"
                     : $":{intent.Trace}");
+            if (ActiveDeniedStep(intent.Body) is DeniedStep denied)
+            {
+                reason += $":avoid-denied-{denied.Tile.X}-{denied.Tile.Y}"
+                    + $"@{denied.UntilTick}";
+            }
             // A facing-locked resting body may need to rotate before its
             // inherited operation vacates the tile. That preparation turn is
             // part of yielding too; suppressing it would invalidate the
@@ -338,6 +349,16 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // obstacle; reserved tiles en route remain blocked.
         durable.Remove(assignment);
         durable.Remove(intent.Body.Position);
+        // A simultaneous hostile move can reject a step even though the
+        // destination was visibly empty when this mind planned. The generic
+        // one-tick BlockedNow memory is insufficient for carried Cores because
+        // their mandatory relocation hold overwrites PreviousActionResolution
+        // before the next movable beat. Keep the denied tile as a short-lived
+        // obstacle so the next operation actually tries another way around.
+        // This is physical collision memory only: it does not change the
+        // authored goal, assignment, route commitment, or route direction.
+        if (ActiveDeniedStep(intent.Body) is DeniedStep denied)
+            durable.Add(denied.Tile);
         int[]? distanceField = null;
         if (IsCarrierReturn(intent))
         {
@@ -891,6 +912,44 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         string.Equals(
             intent.GroupKey, "move:to:reactor:own", StringComparison.Ordinal);
 
+    private void RememberDeniedSteps(MindContext mind)
+    {
+        foreach (MindBody body in mind.Bodies)
+        {
+            if (_deniedSteps.TryGetValue(body.UnitId, out DeniedStep? prior)
+                && (prior.Actor != body.ActorId
+                    || mind.Tick >= prior.UntilTick
+                    || body.MovedLastTick))
+            {
+                _deniedSteps.Remove(body.UnitId);
+            }
+
+            if (body.PreviousActionResolution is not
+                { Outcome: GenericActorActionResolution.ActionOutcome.Blocked }
+                    resolution
+                || resolution.AcceptedAction.Arguments
+                    .OfType<GenericActorActionArgument.ProjectileHeadingArgument>()
+                    .SingleOrDefault() is not { } heading)
+            {
+                continue;
+            }
+
+            (int dx, int dy) = heading.Value.Vector();
+            _deniedSteps[body.UnitId] = new DeniedStep(
+                body.ActorId,
+                body.Position.Offset(dx, dy),
+                mind.Tick + DeniedStepAvoidanceTicks);
+        }
+    }
+
+    private DeniedStep? ActiveDeniedStep(MindBody body) =>
+        _mind is { } mind
+        && _deniedSteps.TryGetValue(body.UnitId, out DeniedStep? denied)
+        && denied.Actor == body.ActorId
+        && mind.Tick < denied.UntilTick
+            ? denied
+            : null;
+
     /// <summary>
     /// A loaded return avoids every automatic-return tile owned by its team,
     /// not merely the subset reserved on this observation. A dead body's
@@ -1243,4 +1302,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         Position Assignment,
         Operation Operation,
         Position[] Course);
+    private sealed record DeniedStep(
+        ActorIdentity Actor,
+        Position Tile,
+        int UntilTick);
 }
