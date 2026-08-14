@@ -782,36 +782,30 @@ const candidates = [
     orders: sheet(
       "tapline-depth-relay-circuit-v1",
       [
-        role("depth-couriers", ["relay", "relay", "kestrel"], ["vitality", "damage", "reach", "vitality"], [
-          {
-            id: "score-depth-core",
-            when: "carrying-core",
-            until: "empty-handed",
-            timeout: 180,
-            cooldown: 2,
-            urgency: "urgent",
-            orders: [
-              use("pass-premium-depth-core", "arc-toss", "nearest-ally-toward-own-reactor", {
-                all: ["premium-cargo", "signature-ready"],
-              }),
-              { id: "return-depth-core", move: { to: "own-reactor" } },
-            ],
-          },
+        role("depth-raider", ["relay"], ["vitality", "damage", "reach", "vitality"], [
+          ref("score-premium-core"),
           ref("collect-loose-core"),
           ref("recover-health"),
-          use("dash-depth-recovery", "vector-dash", "nearest-enemy", {
+          ...standardTail(move("raid-depth-well", "enemy", "rear")),
+        ]),
+        role("depth-hauler", ["relay"], ["reach", "vitality", "vision", "damage"], [
+          ref("score-premium-core"),
+          ref("collect-loose-core"),
+          ref("recover-health"),
+          ...standardTail(move("work-depth-centre", "centre", "rear")),
+        ]),
+        role("depth-ace", ["kestrel"], ["damage", "damage", "vitality", "reach"], [
+          ...standardPrefix(),
+          use("dash-depth-contact", "vector-dash", "nearest-enemy", {
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
-          ...standardTail({
-            id: "seek-depth-value",
-            move: { to: "highest-bank-value-known-loose-core", posture: "rear" },
-          }),
+          ...standardTail(move("hunt-depth-well", "enemy", "front")),
         ]),
         role("depth-vanguard", ["towline", "hush", "lantern"], ["damage", "reach", "vision", "vitality"], [
           ...standardPrefix(),
           {
             id: "reset-before-depth-wave",
-            when: { all: ["empty-handed", "wave-close"] },
+            when: { all: ["empty-handed", "friendly-wave-due", "wave-close"] },
             timeout: 8,
             cooldown: 12,
             urgency: "urgent",
@@ -830,11 +824,12 @@ const candidates = [
         ]),
         role("depth-medic", ["patchbay"], ["reach", "vitality", "vitality", "damage"], [
           ...standardPrefix(),
-          use("repair-depth-veteran", "repair-beam", { selector: "most-experienced-ally" }),
+          use("repair-depth-ace", "repair-beam", { role: "depth-ace" }),
           ref("fight-visible-enemy"),
           {
-            id: "trail-depth-veteran",
-            move: { follow: { selector: "most-experienced-ally" }, posture: "rear" },
+            id: "trail-depth-ace",
+            when: "depth-ace-online",
+            move: { follow: "depth-ace", posture: "rear" },
           },
           move("hold-depth-centre-rear", "centre", "rear"),
         ]),
@@ -856,10 +851,32 @@ const candidates = [
       commonOrders({
         looseTarget: "highest-bank-value-known-loose-core",
         fightTargets: ["veteran", "carrier", "deployment", "weakest", "nearest"],
+        extra: {
+          "score-premium-core": {
+            when: "carrying-core",
+            until: "empty-handed",
+            timeout: 180,
+            cooldown: 2,
+            urgency: "urgent",
+            orders: [
+              use("pass-premium-depth-core", "arc-toss", "nearest-ally-toward-own-reactor", {
+                all: ["premium-cargo", "signature-ready"],
+              }),
+              { id: "return-premium-core", move: { to: "own-reactor" } },
+            ],
+          },
+        },
       }),
       commonConditions({
         "wave-close": { fact: "ticks-until-respawn-wave", operator: "at-most", value: 8 },
+        "friendly-wave-due": { fact: "friendly-respawns-next-wave", operator: "at-least", value: 1 },
         "premium-cargo": { fact: "self-carried-core-bank-value", operator: "at-least", value: 4 },
+        "depth-ace-online": {
+          fact: "role-highest-level",
+          role: "depth-ace",
+          operator: "at-least",
+          value: 2,
+        },
         "cover-missing": { fact: "deployment-active", operator: "equals", value: 0 },
         "cover-worn": { fact: "deployment-durability-percent", operator: "at-most", value: 35 },
       }),
