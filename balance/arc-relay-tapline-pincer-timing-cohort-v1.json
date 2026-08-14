@@ -1,0 +1,63 @@
+{
+  "schema": "arc-relay-opening-cohort-v1",
+  "cohortId": "arc-relay-tapline-pincer-timing-cohort-v1",
+  "preparedBeforeOutcomes": true,
+  "purpose": "Paired one-factor test of whether flank Wells maturing before a full-perimeter pincer establishes control causes its observed pickup-to-bank conversion failure.",
+  "baselineEvidence": "arc-relay-tapline-opening-matrix-v8: the pincer reached the opponent half with all eight bodies but was cross-matchup dominated, with median first pickup 69, median first bank 156.5, and 1.96 mean banks.",
+  "geometryRejection": "The frozen pincer explicitly authors the complete outer perimeter, so a wall opening cannot shorten ingress without rewriting the candidate. Exhaustive rotationally symmetric wall-pair removal reduced the terrain-only enemy-Well-to-reactor shortest path by at most one tile. Geometry therefore cannot isolate the measured conversion delay.",
+  "factor": {
+    "baseline": "tapline-3: centre first birth 25; north/south first birth 50",
+    "probe": "tapline-flank-delay-25: centre unchanged at 25; north/south first birth 75",
+    "heldConstant": "map, objectives, cadence, scheduled rounds, classes, signatures, combat, collision policy, candidates, composition, seeds, and side assignments"
+  },
+  "eligibilityBars": "arc-relay-felt-degeneracy-bars-v4.json",
+  "controlledComposition": [
+    "kestrel", "kestrel", "veil", "hush",
+    "towline", "sunder", "patchbay", "relay"
+  ],
+  "entrants": [
+    {
+      "entrantId": "direct-mid",
+      "label": "Direct Mid",
+      "intent": "Stay together, win the shortest centre Core race, then maintain moving pressure around whichever known Core can be converted through the shortest path.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-mid-rush-control-v3/orders.json",
+      "sheetSha256": "e4519d308059456815075b4b46386be65733be5ec0971bc09bfd5943eaa6135b"
+    },
+    {
+      "entrantId": "distributed-wells",
+      "label": "Distributed Wells",
+      "intent": "Field a continuous 3-3-2 economy across all Wells and release at most one local worker per remembered loose Core.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-distributed-wells-v4/orders.json",
+      "sheetSha256": "118979b24f93b0c1cae046bcb55ddff8b1255ad1f0bf4f1d48db44c55a226fd5"
+    },
+    {
+      "entrantId": "shadow-pincer",
+      "label": "Four-plus-four Pincer",
+      "intent": "Send two self-sufficient four-body wings through the full outer corridors, contest the enemy Well from both sides, and convert any Core either wing wins.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-shadow-scissors-v3/orders.json",
+      "sheetSha256": "3fc29eba6015411a313efd342633cfc8d0cab0b9ce673d5e3433355160128d18"
+    },
+    {
+      "entrantId": "split-intercept",
+      "label": "Split Interception",
+      "intent": "Watch both outer corridors with paired interceptors, screen centre, and keep a home logistics pair active around the own Well.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "e400e46b8fec4bd19e488702ba7b7a41beaf0750719c514e360a8dbe09df15fb",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-split-intercept-v2/orders.json",
+      "sheetSha256": "ff042a51e3d699b8b0751b44237233203fb6e2196264464d5bca8f843ecb2df0"
+    }
+  ],
+  "evaluation": {
+    "design": "six fresh seed blocks, pincer against each opponent, both side assignments, same cells under baseline and probe",
+    "outcomesAre": "a paired causal probe, not a balance verdict",
+    "allCellsMustPassFeltEligibility": true,
+    "mechanismSupport": "probe raises pincer mean banks by at least 1.0 and aggregate point rate by at least 0.10 without increasing horizon share or reducing minimum value bodies",
+    "decision": "keep the profile only if the registered mechanism support is met; otherwise reject the lever and retain Tapline-3 unchanged"
+  }
+}

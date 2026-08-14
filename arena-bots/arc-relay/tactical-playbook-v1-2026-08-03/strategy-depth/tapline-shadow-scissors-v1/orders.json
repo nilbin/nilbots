@@ -1,0 +1,124 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-shadow-scissors-v1",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "north-wing",
+      "classes": ["kestrel", "kestrel", "veil", "hush"],
+      "upgradePath": ["damage", "reach", "vision"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "drop-core-under-contact" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "north-opening",
+          "timeout": 110,
+          "cooldown": 1200,
+          "orders": [
+            {
+              "id": "north-breach",
+              "when": { "all": ["north-wing-ready", "south-wing-ready"] },
+              "until": "breach-window-spent",
+              "timeout": 90,
+              "cooldown": 1200,
+              "orders": [
+                { "id": "dash-rear-contact", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "vector-dash", "target": "nearest-enemy" } },
+                { "id": "smoke-rear-contact", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "smoke-canister", "target": "self" } },
+                { "id": "silence-rear-contact", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "null-field", "target": "self" } },
+                { "id": "north-rear-fight", "when": "enemy-nearby", "fight": { "targets": ["carrier", "medic", "weakest", "nearest"], "style": "advance", "chaseLimit": 7 } },
+                { "id": "north-collapse-enemy-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+              ]
+            },
+            { "id": "north-contact", "when": "enemy-nearby", "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } },
+            { "id": "stage-north-rear", "move": { "to": { "zone": "north-rear-rally" }, "via": "north-shadow-ingress", "posture": "front" } }
+          ]
+        },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "pressure-enemy-well-north", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    },
+    {
+      "id": "south-wing",
+      "classes": ["towline", "sunder", "patchbay", "relay"],
+      "upgradePath": ["damage", "vitality", "vision"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "drop-core-under-contact" },
+        { "shared": "score-a-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "south-opening",
+          "timeout": 110,
+          "cooldown": 1200,
+          "orders": [
+            {
+              "id": "south-breach",
+              "when": { "all": ["north-wing-ready", "south-wing-ready"] },
+              "until": "breach-window-spent",
+              "timeout": 90,
+              "cooldown": 1200,
+              "orders": [
+                { "id": "hook-rear-carrier", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+                { "id": "paint-rear-carrier", "when": { "all": ["enemy-nearby", "signature-ready"] }, "use": { "skill": "target-paint", "target": "enemy-carrier" } },
+                { "id": "repair-south-wing", "when": "signature-ready", "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+                { "id": "south-rear-fight", "when": "enemy-nearby", "fight": { "targets": ["carrier", "marked", "medic", "weakest", "nearest"], "style": "advance", "chaseLimit": 7 } },
+                { "id": "south-collapse-enemy-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+              ]
+            },
+            { "id": "south-contact", "when": "enemy-nearby", "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } },
+            { "id": "stage-south-rear", "move": { "to": { "zone": "south-rear-rally" }, "via": "south-shadow-ingress", "posture": "front" } }
+          ]
+        },
+        { "shared": "collect-loose-core" },
+        { "shared": "fight-visible-enemy" },
+        { "id": "pressure-enemy-well-south", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "handoff-core-forward": { "when": "carrying-core", "handoff": { "target": "nearest-ally-toward-own-reactor" } },
+    "drop-core-under-contact": { "when": { "all": ["carrying-core", "enemy-contact"] }, "drop": true },
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [{ "id": "return-to-reactor", "move": { "to": "own-reactor" } }]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [{ "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }]
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-nearby"] },
+      "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 }
+    }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 30 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 70 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "enemy-contact": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 1 },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 },
+    "breach-window-spent": { "fact": "self-order-ticks", "operator": "at-least", "value": 80 },
+    "north-wing-ready": { "fact": "role-in-zone-count", "operator": "at-least", "value": 3, "role": "north-wing", "zone": "north-rear-rally" },
+    "south-wing-ready": { "fact": "role-in-zone-count", "operator": "at-least", "value": 3, "role": "south-wing", "zone": "south-rear-rally" }
+  }
+}

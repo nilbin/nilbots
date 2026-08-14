@@ -39,6 +39,30 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def project_source_sha256(path: Path) -> str:
+    """Hash authored project inputs while excluding generated build output."""
+    ignored_directories = {"bin", "obj", "out", ".git"}
+    ignored_files = {"bot.wasm", "bot.build-receipt.json"}
+    files = sorted(
+        candidate
+        for candidate in path.rglob("*")
+        if candidate.is_file()
+        and not any(part in ignored_directories for part in candidate.parts)
+        and candidate.name not in ignored_files
+    )
+    if not files:
+        raise ValueError(f"{path}: in-process project has no authored inputs")
+    digest = hashlib.sha256()
+    for candidate in files:
+        relative = candidate.relative_to(path).as_posix().encode("utf-8")
+        content = candidate.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
 def sha256_values(values: list[tuple[str, str]]) -> str:
     encoded = json.dumps(
         values,
@@ -117,17 +141,39 @@ def validate_manifest(path: Path) -> dict[str, Any]:
     for entrant_id, entrant in entrants.items():
         artifact = resolve_repo_path(entrant["artifact"])
         sheet = resolve_repo_path(entrant["sheet"])
-        if not artifact.is_file() or not sheet.is_file():
+        if not artifact.exists() or not sheet.is_file():
             raise FileNotFoundError(f"{entrant_id}: missing artifact or sheet")
-        for file_path, field in (
-            (artifact, "artifactSha256"),
-            (sheet, "sheetSha256"),
-        ):
-            actual = sha256(file_path)
-            if actual != entrant[field]:
+        if artifact.is_file():
+            actual_artifact = sha256(artifact)
+            if actual_artifact != entrant.get("artifactSha256"):
                 raise ValueError(
-                    f"{entrant_id} {field}: declared {entrant[field]}, actual {actual}"
-                )
+                    f"{entrant_id} artifactSha256: declared "
+                    f"{entrant.get('artifactSha256')}, actual {actual_artifact}")
+        elif manifest.get("runtime") == "in-process":
+            actual_source = project_source_sha256(artifact)
+            if actual_source != entrant.get("sourceSha256"):
+                raise ValueError(
+                    f"{entrant_id} sourceSha256: declared "
+                    f"{entrant.get('sourceSha256')}, actual {actual_source}")
+            runtime_hash = entrant.get("runtimeArtifactSha256")
+            capture = entrant.get("runtimeArtifactPolicy")
+            if runtime_hash is not None and (
+                not isinstance(runtime_hash, str) or len(runtime_hash) != 64
+            ):
+                raise ValueError(
+                    f"{entrant_id}: invalid runtimeArtifactSha256")
+            if runtime_hash is None and capture != "capture-consistent-at-run":
+                raise ValueError(
+                    f"{entrant_id}: in-process project needs a frozen hash "
+                    "or capture-consistent-at-run policy")
+        else:
+            raise ValueError(
+                f"{entrant_id}: project directories require in-process runtime")
+        actual_sheet = sha256(sheet)
+        if actual_sheet != entrant["sheetSha256"]:
+            raise ValueError(
+                f"{entrant_id} sheetSha256: declared "
+                f"{entrant['sheetSha256']}, actual {actual_sheet}")
     ids: set[str] = set()
     for cell in cells:
         cell_id = cell.get("cellId")
@@ -383,7 +429,12 @@ def validate_record(
         entrant = entrants[entrant_id]
         if participant["entrantId"] != entrant_id:
             raise ValueError(f"{cell['cellId']}: participant order changed")
-        if participant["artifactHash"] != entrant["artifactSha256"]:
+        expected_artifact_hash = entrant.get(
+            "runtimeArtifactSha256", entrant.get("artifactSha256"))
+        capture_at_run = entrant.get("runtimeArtifactPolicy") \
+            == "capture-consistent-at-run"
+        if (not capture_at_run
+                and participant["artifactHash"] != expected_artifact_hash):
             raise ValueError(f"{cell['cellId']}: algorithm/artifact hash changed")
         if participant["sheetHash"] != entrant["sheetSha256"]:
             raise ValueError(f"{cell['cellId']}: sheet hash changed")
@@ -484,6 +535,10 @@ def execute_cell(
         "cohortEligibilityByTeam": team_eligibility,
         "matchEligibleForCohortRead": eligibility[
             "matchEligibleForCohortRead"],
+        "runtimeArtifactSha256ByEntrant": {
+            participant["entrantId"]: participant["artifactHash"]
+            for participant in record["participants"]
+        },
         "elapsedSeconds": round(time.perf_counter() - started, 6),
     }
     write_json(attempt / "cell-result.json", result)
@@ -542,6 +597,32 @@ def execute_sweep(
         write_json(attempt / "FAILED.json", failed)
         raise RuntimeError("; ".join(failures))
 
+    runtime_hashes: dict[str, set[str]] = {}
+    for row in rows:
+        for entrant_id, artifact_hash in row["result"][
+            "runtimeArtifactSha256ByEntrant"
+        ].items():
+            runtime_hashes.setdefault(entrant_id, set()).add(artifact_hash)
+    unstable_runtime = {
+        entrant_id: sorted(hashes)
+        for entrant_id, hashes in runtime_hashes.items()
+        if len(hashes) != 1
+    }
+    if unstable_runtime:
+        failed = {
+            "schema": "arc-relay-sweep-failure-v1",
+            "runtime": manifest.get("runtime", "wasm"),
+            "verifiedCellsBeforeFailure": len(rows),
+            "failures": [
+                "in-process runtime artifact moved within one attempt"
+            ],
+            "runtimeArtifactHashesByEntrant": unstable_runtime,
+            "elapsedSeconds": round(time.perf_counter() - started, 6),
+        }
+        write_json(attempt / "FAILED.json", failed)
+        raise RuntimeError(
+            "in-process runtime artifact moved within one sweep attempt")
+
     canonical_count = sum(
         int((row["attempt"] / "replay.json.gz").is_file()) for row in rows
     )
@@ -583,6 +664,11 @@ def execute_sweep(
             for row in rows
             if row["result"]["expectedCanonicalReplaySha256"] is not None
         ),
+        "runtimeArtifactSha256ByEntrant": {
+            entrant_id: next(iter(hashes))
+            for entrant_id, hashes in sorted(runtime_hashes.items())
+        },
+        "allRuntimeArtifactsStable": True,
         "elapsedSeconds": round(time.perf_counter() - started, 6),
         "jobs": jobs,
         "cells": [

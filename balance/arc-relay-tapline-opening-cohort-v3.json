@@ -1,0 +1,89 @@
+{
+  "schema": "arc-relay-opening-cohort-v1",
+  "cohortId": "arc-relay-tapline-opening-cohort-v3",
+  "preparedBeforeOutcomes": true,
+  "supersedesFailedPlan": "arc-relay-tapline-opening-matrix-v2 (attempt 01 proved that commit-derived .NET provenance cannot be pinned before committing the plan; runtime bytes are captured once and required to stay consistent across the whole new attempt)",
+  "purpose": "Compare four comprehensible Tapline opening plans while holding rules, map, mind, classes, seeds, and side assignments fixed.",
+  "eligibilityBars": "arc-relay-felt-degeneracy-bars-v4.json",
+  "controlledComposition": [
+    "kestrel",
+    "kestrel",
+    "veil",
+    "hush",
+    "towline",
+    "sunder",
+    "patchbay",
+    "relay"
+  ],
+  "entrants": [
+    {
+      "entrantId": "direct-mid",
+      "label": "Direct Mid",
+      "intent": "Take the shortest route as one pack, control centre, then press the enemy Well while converting loose Cores.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "c613d0d6f77d20390dec9c056bb01bbaedb5fb2f6d65e71705e80d54559275ed",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-mid-rush-control-v1/orders.json",
+      "sheetSha256": "2375c7eb7a1970c63e098d2451b01729e766ee0e1aceca2b892baa79ab25e1bb"
+    },
+    {
+      "entrantId": "shadow-pincer",
+      "label": "Shadow Pincer",
+      "intent": "Send two four-body wings around the long corridors, breach together, and screen the enemy home-to-Well exits for two runners.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "c613d0d6f77d20390dec9c056bb01bbaedb5fb2f6d65e71705e80d54559275ed",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-shadow-scissors-v2/orders.json",
+      "sheetSha256": "36ef6524e891819a760f9c50cee68e6789f1feb6f3446c40e134f238f810bab7"
+    },
+    {
+      "entrantId": "split-intercept",
+      "label": "Split Interception",
+      "intent": "Watch both outer corridors with paired interceptors, screen centre, and retain a home logistics pair for loose-Core recovery.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "c613d0d6f77d20390dec9c056bb01bbaedb5fb2f6d65e71705e80d54559275ed",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-split-intercept-v1/orders.json",
+      "sheetSha256": "049b31aa40f92d22e84925aa041f58f92f7a351710bcdeb8c9e24b7f2fc01308"
+    },
+    {
+      "entrantId": "distributed-wells",
+      "label": "Distributed Wells",
+      "intent": "Field a 3-3-2 economy across enemy, centre, and home Wells so all three Core streams have workers and local support.",
+      "artifact": "../arena-bots/arc-relay/tactical-playbook-mind-v1",
+      "sourceSha256": "c613d0d6f77d20390dec9c056bb01bbaedb5fb2f6d65e71705e80d54559275ed",
+      "sheet": "../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/strategy-depth/tapline-distributed-wells-v1/orders.json",
+      "sheetSha256": "61487deea0e3272d8aeae5c313ebd4f752df4b5e804eabb4d8eff885f3a3a879"
+    }
+  ],
+  "evaluation": {
+    "design": "twelve fresh seed blocks, every unordered pair, both side assignments",
+    "outcomesAre": "a deterministic design screen over these registered seeds, not a human-fun or population claim",
+    "allCellsMustPassFeltEligibility": true,
+    "dominanceAlarm": {
+      "pairPointRateAtLeastAgainstEveryOpponent": 0.7
+    },
+    "dominatedAlarm": {
+      "pairPointRateAtMostAgainstEveryOpponent": 0.3
+    },
+    "horizonAlert": {
+      "shareAtLeast": 0.25
+    },
+    "sideAlert": {
+      "absolutePointRateGapAtLeast": 0.15
+    },
+    "leverPolicy": "Only a cross-matchup dominance alarm authorizes one minimal one-factor rules or geometry probe; otherwise preserve the game and improve candidate intent instead."
+  },
+  "portability": {
+    "candidateSourceSurvives": [
+      "numeric rules tuning",
+      "class stat or cooldown tuning",
+      "cadence and timing tuning",
+      "executor and pathing improvements",
+      "small geometry edits that preserve named objectives and authored route validity"
+    ],
+    "requiresReviewOrMigration": [
+      "sheet grammar changes",
+      "adding or removing a Well or other objective",
+      "changing objective semantics",
+      "material topology changes that invalidate authored routes, zones, or anchors"
+    ]
+  }
+}

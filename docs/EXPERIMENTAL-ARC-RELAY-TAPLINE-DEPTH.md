@@ -113,6 +113,14 @@ while centre control and deep raids exchange safety for speed.
 - Post-bank reactor state always has charge `0..2`; Pulse count remains public.
 - Add an Orders fact for the team's own scored Pulse count (for example
   `reactor-pulses`); `reactor-charge` retains its existing remainder meaning.
+- Add body fact `self-carried-core-bank-value`, returning `0` while empty-handed
+  and otherwise the carried Core's `1`, `2`, or `4` value to this team.
+- Add team fact `enemy-reactor-charge` for the enemy's public `0..2` remainder;
+  existing `reactor-integrity` already reveals how many Pulses the enemy has
+  scored.
+- Add move target `highest-bank-value-known-loose-core`. Resolve the highest
+  value to this team, then terrain distance, then stable Core ID, using only
+  the existing team objective ledger. An unknown Core is never a candidate.
 - Player-oriented views label Wells `1`, `2`, and `4`. A neutral spectator view
   labels the outer Wells `Blue 1 / Red 4` and `Blue 4 / Red 1`, with `2 / 2`
   at centre.
@@ -170,6 +178,11 @@ lifecycle, and `follow` behavior. Add only these general-purpose primitives:
    1, otherwise selects highest level, then terrain distance, then stable unit
    ID. Levels change only at explicit kill events, preventing tick-to-tick
    target noise.
+4. Hostile target `veteran` for `fight` and compatible enemy-targeted `use`
+   actions. It is unresolved unless a visible enemy is above level 1; otherwise
+   select highest level, then reachable terrain distance, then stable unit ID.
+   An unavailable veteran preference falls through to the next authored target
+   exactly like `carrier` or `marked`.
 
 Existing syntax remains valid and byte-identical. Do not add `plays`,
 formations, calls, phases, operation records, XP transfer, kill reservation,
@@ -222,9 +235,14 @@ This yields 15..44 complete dead ticks (mean 29.5), nearly preserving the
 current average while grouping reinforcements. Both teams use the same phase;
 no seed, side, or first-death offset changes it.
 
-Expose the next wave tick/countdown in the public state and viewer. A body that
-misses the eligibility cutoff by one tick visibly waits for the following wave.
-Veterancy resets at destruction as today, not at the later wave.
+Expose the next wave tick/countdown in the public state and viewer. Also add
+the general-purpose Orders team facts `ticks-until-respawn-wave`,
+`live-enemies`, `friendly-respawns-next-wave`, and
+`enemy-respawns-next-wave`. The two respawn counts include dead stable slots
+eligible at the next global wave; every value is derived from public lifecycle
+state. A body that misses the eligibility cutoff by one tick visibly waits for
+the following wave. Veterancy resets at destruction as today, not at the later
+wave.
 
 ### Why this should be deeper and more fun
 
@@ -341,6 +359,14 @@ Add body fact `deployment-active`, integer `0 | 1`, for the durable construct
 family already governed by replacement semantics: Prism Wall, Trip Node,
 Hardlight Block, and Sentinel Seed.
 
+Add `deployment-lifetime-percent` and `deployment-durability-percent` beside
+it. Both are scoped to the stable slot's one extant deployment, normalized to
+`0..100`, and return 0 when none exists. Lifetime is remaining scheduled
+duration; a non-expiring active Trip Node returns 100. Durability is remaining
+hull for Trip Node, Hardlight Block, and Sentinel Seed, and remaining
+projectile-contact capacity for Prism Wall. Suppression leaves all three facts
+extant and does not pause the lifetime clock.
+
 For this fact, active means an extant deployment owned by the body's stable
 team/unit slot, including an extant temporarily suppressed deployment. It
 becomes 0 on destruction, trigger/removal, expiry, or permanent cancellation.
@@ -405,6 +431,10 @@ choice without a new play framework.
 5. Candidate-native sheets that deliberately exercise each mechanic. Historical
    sheets are compatibility sentinels, not product-quality voters for the new
    objective and roster rules.
+   Use the first tranche in
+   [`ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md`](ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md)
+   as the initial breadth target rather than inventing near-duplicate sheets
+   during implementation.
 6. Trace-first, six-cell phone exhibits for replay-visible behavior changes.
    Do not run or claim a balance sweep merely because implementation is done;
    use the repository's balance workflow only when the owner requests that

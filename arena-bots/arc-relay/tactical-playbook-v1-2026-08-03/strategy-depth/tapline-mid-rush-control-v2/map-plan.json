@@ -1,0 +1,12 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-mid-rush-control-v2",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {
+    "centre-control-loop": {
+      "waypoints": [[15, 13], [16, 12], [17, 13], [16, 14], [15, 13], [14, 14], [13, 13], [14, 12], [15, 13]]
+    }
+  },
+  "anchors": {}
+}

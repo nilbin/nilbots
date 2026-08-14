@@ -1,0 +1,13 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-split-intercept-v2",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {
+    "upper-interception-loop": { "waypoints": [[3, 1], [15, 1], [27, 1], [27, 3], [24, 7], [20, 9], [15, 7], [8, 3], [3, 1]] },
+    "lower-interception-loop": { "waypoints": [[3, 25], [15, 25], [27, 25], [27, 23], [24, 19], [20, 17], [15, 19], [8, 23], [3, 25]] },
+    "centre-screen-loop": { "waypoints": [[15, 13], [16, 12], [17, 13], [16, 14], [15, 13], [14, 14], [13, 13], [14, 12], [15, 13]] },
+    "home-logistics-loop": { "waypoints": [[11, 6], [12, 6], [12, 7], [11, 7], [10, 7], [10, 6], [10, 5], [11, 5], [11, 6]] }
+  },
+  "anchors": {}
+}

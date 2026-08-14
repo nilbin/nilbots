@@ -1,0 +1,41 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-split-intercept-v2",
+  "status": "immutable-reference",
+  "source": "tapline-three-split-corridor-interception",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "ff042a51e3d699b8b0751b44237233203fb6e2196264464d5bca8f843ecb2df0"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "554907669aed83f069b962a972406bc17ff9b4a6aedd82bd56d9ddd037ac2d66"
+    },
+    "atl2": {
+      "sha256": "0d4747bfe03296becad41c4b510486096a6edb0f7ec17f6d527348cf7ecf7bdf",
+      "bytes": 4678,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Split the identical eight-class composition into upper and lower interceptor pairs, a centre screen, and home logistics; each role patrols a distinct lane while sharing explicit scoring, collection, recovery, and combat priorities.",
+  "portabilityBoundary": "The orders carry the semantic opening. Tapline coordinates live only in map-plan.json, so ordinary numeric rules tuning and small geometry edits that preserve named objects do not rewrite the strategy.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-mid-rush-control-v2",
+      "cells": [
+        "w-9001",
+        "w-9002",
+        "e-9005",
+        "e-9009",
+        "w-9012",
+        "e-9004"
+      ],
+      "record": "0-6 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "corridor interception and four-role participation reference, not a balance verdict",
+      "eligibility": "all six cells passed frozen felt-degeneracy bars v4"
+    }
+  ]
+}

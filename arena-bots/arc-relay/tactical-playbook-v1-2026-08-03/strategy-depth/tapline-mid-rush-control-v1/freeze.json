@@ -1,0 +1,32 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-mid-rush-control-v1",
+  "status": "immutable-reference",
+  "source": "current-map-shortest-path-control",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "2375c7eb7a1970c63e098d2451b01729e766ee0e1aceca2b892baa79ab25e1bb"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "b9232de776338b22509ca923181b45c4f196c436facd370fc86751d16341d4c7"
+    },
+    "atl2": {
+      "sha256": "f78997f8d63312726449cce746d8417eed6069a549dbe565e362c3abdef4313c",
+      "bytes": 2897,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Use the identical eight-class composition as one direct pack: take centre first, collapse on the enemy-side Well while its Core is outstanding, and convert known loose Cores through the shortest available routes.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-shadow-scissors-v1",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "6-0 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "shortest-path control for the geometry exhibit, not a balance claim"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-shadow-scissors-v2",
+  "status": "immutable-reference",
+  "source": "current-map-runner-and-escort-screen-experiment",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "36ef6524e891819a760f9c50cee68e6789f1feb6f3446c40e134f238f810bab7"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "610121a589cc42ab63e43e78a9d952b8459230b198674c0fc13c04c33ec1627c"
+    },
+    "atl2": {
+      "sha256": "001923e9ebb876170e50905d254b04685055c1482034132ac2083635394057d4",
+      "bytes": 7251,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Send one runner and three screen bodies around each full outer corridor. Both wings latch a joint breach; each screen follows its runner during the breach, then holds the enemy home-to-Well exit while only the two runners deliberately collect loose Cores.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-mid-rush-control-v1",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "1-5 in these six exhibition cells; five reactor-destroyed and one max-ticks finish",
+      "purpose": "runner/screen labor and flank-conversion reference, not a balance claim"
+    }
+  ]
+}

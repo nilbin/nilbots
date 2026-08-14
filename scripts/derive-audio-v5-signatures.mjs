@@ -77,7 +77,7 @@ const sources = {
   mason: {
     cueId: "signature-v2-source-mason",
     outputSha256:
-      "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
+      "2a3d46e6827883c6ea77325956cdb0ce17d05797f6826b0bac64dcf75a1f3702",
     generation: addendum,
     directory: addendumSourceDirectory,
   },
@@ -263,15 +263,16 @@ const deliveries = [
     id: "signature-mason",
     source: "mason",
     channelTransform: "mid-to-dual-mono",
-    sourceStartSeconds: 0.48,
-    playbackRate: 0.9,
-    durationSeconds: 0.44,
-    lowPassHz: 700,
-    fadeInSeconds: 0.02,
-    fadeOutSeconds: 0.11,
-    targetSamplePeak: 0.18,
+    sourceStartSeconds: 0.04,
+    playbackRate: 0.82,
+    durationSeconds: 0.56,
+    lowPassHz: 600,
+    lowPassPasses: 2,
+    fadeInSeconds: 0.1,
+    fadeOutSeconds: 0.15,
+    targetSamplePeak: 0.17,
     description:
-      "The replacement mineral condensation and cushioned ceramic seat, retaining audible low-mid texture distinct from Palisade's energy-panel lock.",
+      "The framed pane rise and cushioned hardlight field lock, shaped as a soft low-mid projection distinct from Palisade's panel materialization.",
   },
   {
     id: "signature-repair",
@@ -414,12 +415,12 @@ const addendumProviderJobs = addendum.cues.reduce(
   0,
 );
 assert(
-  addendum.batch?.maximumProviderJobs === 10 &&
+  addendum.batch?.maximumProviderJobs === 11 &&
     addendum.batch?.automaticRerolls === false &&
     addendum.batch?.ambience === false &&
     addendum.cues?.length === 8 &&
-    addendumProviderJobs === 10,
-  "Signature addendum differs from the approved ten-job batch.",
+    addendumProviderJobs === 11,
+  "Signature addendum differs from the approved eleven-job batch.",
 );
 
 const decodedSources = new Map();
@@ -514,6 +515,9 @@ for (const delivery of deliveries) {
       lowPass: {
         type: "zero-phase-one-pole",
         cutoffHz: delivery.lowPassHz,
+        ...(delivery.lowPassPasses === undefined
+          ? {}
+          : { passes: delivery.lowPassPasses }),
       },
       fadeInSeconds: delivery.fadeInSeconds,
       fadeOutSeconds: delivery.fadeOutSeconds,
@@ -623,12 +627,19 @@ function shapeDelivery(source, wav, processing) {
     output[frame * 2 + 1] = mono;
   }
   removeDc(output, wav.channels);
-  lowPassZeroPhase(
-    output,
-    wav.channels,
-    wav.sampleRate,
-    processing.lowPassHz,
+  const lowPassPasses = processing.lowPassPasses ?? 1;
+  assert(
+    Number.isInteger(lowPassPasses) && lowPassPasses >= 1 && lowPassPasses <= 3,
+    `${processing.id}: low-pass passes must be an integer from 1 through 3.`,
   );
+  for (let pass = 0; pass < lowPassPasses; pass += 1) {
+    lowPassZeroPhase(
+      output,
+      wav.channels,
+      wav.sampleRate,
+      processing.lowPassHz,
+    );
+  }
   applyEndpointFades(
     output,
     wav.channels,

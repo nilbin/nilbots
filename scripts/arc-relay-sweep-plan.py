@@ -34,9 +34,49 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def project_source_sha256(path: Path) -> str:
+    """Hash the authored inputs to an in-process mind, not its build output."""
+    ignored_directories = {"bin", "obj", "out", ".git"}
+    ignored_files = {"bot.wasm", "bot.build-receipt.json"}
+    files = sorted(
+        candidate
+        for candidate in path.rglob("*")
+        if candidate.is_file()
+        and not any(part in ignored_directories for part in candidate.parts)
+        and candidate.name not in ignored_files
+    )
+    if not files:
+        raise ValueError(f"{path}: in-process project has no authored inputs")
+    digest = hashlib.sha256()
+    for candidate in files:
+        relative = candidate.relative_to(path).as_posix().encode("utf-8")
+        content = candidate.read_bytes()
+        digest.update(len(relative).to_bytes(8, "big"))
+        digest.update(relative)
+        digest.update(len(content).to_bytes(8, "big"))
+        digest.update(content)
+    return digest.hexdigest()
+
+
 def resolve(base: Path, value: str) -> Path:
     path = Path(value)
     return path.resolve() if path.is_absolute() else (base / path).resolve()
+
+
+def sheet_classes(sheet: Path) -> list[str]:
+    value = read_json(sheet)
+    roles = value.get("roles")
+    if not isinstance(roles, list):
+        raise ValueError(f"{sheet}: sheet roles must be a list")
+    classes: list[str] = []
+    for role in roles:
+        role_classes = role.get("classes") if isinstance(role, dict) else None
+        if not isinstance(role_classes, list) or not all(
+            isinstance(class_id, str) for class_id in role_classes
+        ):
+            raise ValueError(f"{sheet}: every role needs string classes")
+        classes.extend(role_classes)
+    return classes
 
 
 def contract(
@@ -178,26 +218,67 @@ def main() -> int:
     include = set(args.include)
     entrants: dict[str, dict[str, Any]] = {}
     resolved: dict[str, dict[str, Path]] = {}
+    controlled_composition = cohort.get("controlledComposition")
+    if controlled_composition is not None and (
+        not isinstance(controlled_composition, list)
+        or not all(isinstance(value, str) for value in controlled_composition)
+    ):
+        raise ValueError("controlledComposition must be a list of class ids")
     for item in raw_entrants:
         entrant_id = item["entrantId"]
         if include and entrant_id not in include:
             continue
         artifact = resolve(cohort_path.parent, item["artifact"])
         sheet = resolve(cohort_path.parent, item["sheet"])
-        if not artifact.is_file() or not sheet.is_file():
+        if not artifact.exists() or not sheet.is_file():
             raise FileNotFoundError(f"{entrant_id}: missing artifact or sheet")
-        artifact_hash = sha256(artifact)
         sheet_hash = sha256(sheet)
-        if item.get("artifactSha256") not in (None, artifact_hash):
-            raise ValueError(f"{entrant_id}: artifact hash declaration moved")
+        classes = sheet_classes(sheet)
+        if controlled_composition is not None and classes != controlled_composition:
+            raise ValueError(
+                f"{entrant_id}: composition {classes} differs from the "
+                f"controlled composition {controlled_composition}")
         if item.get("sheetSha256") not in (None, sheet_hash):
             raise ValueError(f"{entrant_id}: sheet hash declaration moved")
-        entrants[entrant_id] = {
+        entrant = {
             "artifact": os.path.relpath(artifact, REPO),
-            "artifactSha256": artifact_hash,
             "sheet": os.path.relpath(sheet, REPO),
             "sheetSha256": sheet_hash,
+            "classes": classes,
         }
+        for descriptive_field in ("label", "intent"):
+            if descriptive_field in item:
+                entrant[descriptive_field] = item[descriptive_field]
+        if artifact.is_file():
+            artifact_hash = sha256(artifact)
+            if item.get("artifactSha256") not in (None, artifact_hash):
+                raise ValueError(
+                    f"{entrant_id}: artifact hash declaration moved")
+            entrant["artifactSha256"] = artifact_hash
+        elif args.runtime == "in-process":
+            source_hash = project_source_sha256(artifact)
+            if item.get("sourceSha256") not in (None, source_hash):
+                raise ValueError(
+                    f"{entrant_id}: source hash declaration moved")
+            entrant["sourceSha256"] = source_hash
+            runtime_hash = item.get("runtimeArtifactSha256")
+            if runtime_hash is None:
+                # The ordinary .NET build embeds repository provenance, so
+                # committing this very plan can move the assembly hash while
+                # leaving every authored input unchanged. Capture the first
+                # run's hash and require one consistent value across the whole
+                # attempt instead of creating a pre-registration catch-22.
+                entrant["runtimeArtifactPolicy"] = "capture-consistent-at-run"
+            elif isinstance(runtime_hash, str) and len(runtime_hash) == 64:
+                entrant["runtimeArtifactSha256"] = runtime_hash
+            else:
+                raise ValueError(
+                    f"{entrant_id}: runtimeArtifactSha256 must be a SHA-256")
+        else:
+            raise ValueError(
+                f"{entrant_id}: project directories are diagnostic-only and "
+                "require --runtime in-process")
+        entrants[entrant_id] = entrant
         resolved[entrant_id] = {"artifact": artifact, "sheet": sheet}
     if len(entrants) < 2:
         raise ValueError("selected sweep population needs at least two entrants")
@@ -270,6 +351,8 @@ def main() -> int:
         "entrants": entrants,
         "cells": cells,
     }
+    if "evaluation" in cohort:
+        plan["evaluation"] = cohort["evaluation"]
     if args.blind_review_order_seed is not None:
         review_cells = [cell["cellId"] for cell in cells]
         random.Random(args.blind_review_order_seed).shuffle(review_cells)

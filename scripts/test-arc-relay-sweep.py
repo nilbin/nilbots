@@ -76,5 +76,17 @@ class AttemptSelectionTests(unittest.TestCase):
                     output, identity(), resume=True, relaunch=False)
 
 
+class ProjectSourceHashTests(unittest.TestCase):
+    def test_hash_matches_plan_generator_and_ignores_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            project = Path(temporary)
+            (project / "Mind.cs").write_text("source", encoding="utf-8")
+            expected = SWEEP.project_source_sha256(project)
+            (project / "obj").mkdir()
+            (project / "obj" / "cache.json").write_text(
+                "generated", encoding="utf-8")
+            self.assertEqual(expected, SWEEP.project_source_sha256(project))
+
+
 if __name__ == "__main__":
     unittest.main()

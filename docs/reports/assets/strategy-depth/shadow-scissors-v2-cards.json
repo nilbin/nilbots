@@ -1,0 +1,60 @@
+{
+  "title": "Shadow Scissors v2 — runners with escort screens",
+  "intro": "Outcome-labelled six-cell exhibition of the same Tapline outer-route question. Each four-body wing now has one Core runner and three screen bodies: the screen trails its runner during the latched breach, then denies the enemy home-to-Well exit. A corrected allocator enforces the authored two-bodies-per-Core cap across target fallbacks. This is an exhibit, not a balance measurement.",
+  "cards": [
+    {
+      "id": "sample-01",
+      "opponent": "tapline-mid-rush-control-v1 — all eight bodies take the shorter middle pressure line",
+      "trigger": "One runner and at least two screen bodies from each wing reach their rear rally zones.",
+      "tactic": "Both outer wings latch the breach; each screen trails its runner through contact while the runner claims the enemy-side Core and returns directly.",
+      "counterplay": "The direct pack banks the centre Core first, contests the return corridor, and can kill a runner before its trailing screen establishes fire.",
+      "fallback": "After 80 breach ticks, runners alone collect known loose Cores while all six screens fight and hold the enemy home-to-Well exit.",
+      "watch": "Watch t0–160: full perimeter travel, joint breach, runner pickup, trailing screen, and whether the first captured Core reaches home. Around t150, verify no Core attracts more than two explicit collectors."
+    },
+    {
+      "id": "sample-02",
+      "opponent": "tapline-mid-rush-control-v1 — all eight bodies take the shorter middle pressure line",
+      "trigger": "One runner and at least two screen bodies from each wing reach their rear rally zones.",
+      "tactic": "Both outer wings latch the breach; each screen trails its runner through contact while the runner claims the enemy-side Core and returns directly.",
+      "counterplay": "The direct pack banks the centre Core first, contests the return corridor, and can kill a runner before its trailing screen establishes fire.",
+      "fallback": "After 80 breach ticks, runners alone collect known loose Cores while all six screens fight and hold the enemy home-to-Well exit.",
+      "watch": "Watch t0–160: full perimeter travel, joint breach, runner pickup, trailing screen, and whether the first captured Core reaches home."
+    },
+    {
+      "id": "sample-03",
+      "opponent": "tapline-mid-rush-control-v1 — all eight bodies take the shorter middle pressure line",
+      "trigger": "One runner and at least two screen bodies from each wing reach their rear rally zones.",
+      "tactic": "Both outer wings latch the breach; each screen trails its runner through contact while the runner claims the enemy-side Core and returns directly.",
+      "counterplay": "The direct pack banks the centre Core first, contests the return corridor, and can kill a runner before its trailing screen establishes fire.",
+      "fallback": "After 80 breach ticks, runners alone collect known loose Cores while all six screens fight and hold the enemy home-to-Well exit.",
+      "watch": "Watch t0–160: full perimeter travel, joint breach, runner pickup, trailing screen, and whether the first captured Core reaches home."
+    },
+    {
+      "id": "sample-04",
+      "opponent": "tapline-mid-rush-control-v1 — all eight bodies take the shorter middle pressure line",
+      "trigger": "One runner and at least two screen bodies from each wing reach their rear rally zones.",
+      "tactic": "Both outer wings latch the breach; each screen trails its runner through contact while the runner claims the enemy-side Core and returns directly.",
+      "counterplay": "The direct pack banks the centre Core first, contests the return corridor, and can kill a runner before its trailing screen establishes fire.",
+      "fallback": "After 80 breach ticks, runners alone collect known loose Cores while all six screens fight and hold the enemy home-to-Well exit.",
+      "watch": "Watch t0–160: full perimeter travel, joint breach, runner pickup, trailing screen, and whether the first captured Core reaches home."
+    },
+    {
+      "id": "sample-05",
+      "opponent": "tapline-mid-rush-control-v1 — all eight bodies take the shorter middle pressure line",
+      "trigger": "One runner and at least two screen bodies from each wing reach their rear rally zones.",
+      "tactic": "Both outer wings latch the breach; each screen trails its runner through contact while the runner claims the enemy-side Core and returns directly.",
+      "counterplay": "The direct pack banks the centre Core first, contests the return corridor, and can kill a runner before its trailing screen establishes fire.",
+      "fallback": "After 80 breach ticks, runners alone collect known loose Cores while all six screens fight and hold the enemy home-to-Well exit.",
+      "watch": "Watch t0–160: full perimeter travel, joint breach, runner pickup, trailing screen, and whether the first captured Core reaches home."
+    },
+    {
+      "id": "sample-06",
+      "opponent": "tapline-mid-rush-control-v1 — all eight bodies take the shorter middle pressure line",
+      "trigger": "One runner and at least two screen bodies from each wing reach their rear rally zones.",
+      "tactic": "Both outer wings latch the breach; each screen trails its runner through contact while the runner claims the enemy-side Core and returns directly.",
+      "counterplay": "The direct pack banks the centre Core first, contests the return corridor, and can kill a runner before its trailing screen establishes fire.",
+      "fallback": "After 80 breach ticks, runners alone collect known loose Cores while all six screens fight and hold the enemy home-to-Well exit.",
+      "watch": "Watch t0–160: full perimeter travel, joint breach, runner pickup, trailing screen, and whether the first captured Core reaches home."
+    }
+  ]
+}

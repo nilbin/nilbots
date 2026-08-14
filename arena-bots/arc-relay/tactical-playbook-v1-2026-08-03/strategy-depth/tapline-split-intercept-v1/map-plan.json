@@ -1,0 +1,15 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-split-intercept-v1",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {
+    "upper-shadow-watch": {
+      "waypoints": [[3, 1], [6, 1], [3, 3], [3, 1]]
+    },
+    "lower-shadow-watch": {
+      "waypoints": [[3, 25], [6, 25], [3, 23], [3, 25]]
+    }
+  },
+  "anchors": {}
+}

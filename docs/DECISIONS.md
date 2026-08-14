@@ -8381,3 +8381,52 @@ prototype cell before any combined pack or product claim. “Hardlight” remain
 the stable prototype identity and means a projected solid-energy barrier;
 player-facing copy must explain that meaning, while a display-name change
 remains a later owner choice.
+
+## 313. Hardlight audio follows the framed projected-energy visual
+
+Owner audio correction (2026-08-14). Mason's current mineral-condensation and
+ceramic-seat cue no longer matches Hardlight Block after its 3D treatment became
+a closed, grid-aligned block of framed energy panes. Spend exactly one further
+private SFX Engine request for Mason, with no automatic reroll and no ambience.
+Archive the displaced Mason result in the existing V2 generation record. This
+raises the addendum from ten to eleven provider jobs—eight current sources and
+three rejected attempts—and the complete signature source count from sixteen
+to seventeen without changing the same nineteen deliveries.
+
+The replacement source describes four pane frames rising from projector rails
+into one cushioned field lock. Its raw broadband fizz is not acceptable at
+runtime, so deterministic delivery processing folds it to dual mono, uses a
+100 ms onset and 150 ms release, and applies two documented zero-phase 600 Hz
+low-pass passes. The decoded delivery is 560 ms, has a 138 Hz centroid, 0%
+energy above 4 kHz, -31.33 dBFS effective peak, and -47.29 dBFS effective RMS.
+The complete 33-cue runtime package is 498,690 bytes; the 513-variant dry crowd
+proof remains -8.13 dBTP against its -6 dBTP ceiling.
+
+This is a renderer-audio asset replacement only. Hardlight's authoritative
+start fact, 0.28-tick cue offset, priority, voice limit, obstacle timing, hull,
+collision, cooldown, replay facts, and gameplay fingerprint do not change.
+Music and ambience remain unchanged, with no ambient loop shipped or played.
+
+## 314. Tapline depth receives a 36-archetype sheet-space gate
+
+Owner strategy-space direction (2026-08-14). A candidate rules pack that
+cannot readily support at least 30 materially distinct sheets is not deep
+enough to justify balance tuning; the long-run ambition is hundreds or
+thousands of viable authored strategies. The initial concept catalog is
+[`ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md`](ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md)
+and records 36 candidate briefs under the five candidates from Decision #312.
+
+“Distinct” does not mean a new name, roster permutation, route color, or
+threshold. A counted sheet must change a scoring commitment, developed asset,
+concession, timing policy, or intended counter and thereby invite a different
+best reply. The catalog's combinatorial count is evidence of available design
+surface only; authored execution, replay legibility, sacrifice, and counter-web
+behavior remain required before any fun, balance, or population-scale claim.
+
+The catalog audit adds only narrow Orders facts and selectors needed to expose
+the five mechanics: carried/banked Core value, enemy charge remainder,
+highest-value known loose-Core selection, visible-veteran targeting, public
+wave/lifecycle counts, and remaining deployment tenure/durability. These are
+not a sixth gameplay mechanic or a return to named plays. The first eight
+representatives are an authorability tranche, not authorization for a balance
+sweep or promotion of Tapline-3.

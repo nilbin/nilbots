@@ -151,6 +151,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
             playbackRateEnd?: number;
             durationSeconds: number;
             lowPassHz: number;
+            lowPassPasses?: number;
             fadeInSeconds: number;
             fadeOutSeconds: number;
             targetSamplePeak: number;
@@ -169,6 +170,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
             playbackRate: number;
             durationSeconds: number;
             lowPassHz: number;
+            lowPassPasses?: number;
             fadeInSeconds: number;
             fadeOutSeconds: number;
             targetSamplePeak: number;
@@ -455,7 +457,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   const signatureAddendumProvenance = JSON.parse(
     signatureGenerationAddendum.toString('utf8'),
   ) as typeof signatureProvenance & { batch: typeof signatureProvenance.batch & { ambience: boolean } };
-  assert.equal(signatureAddendumProvenance.batch.maximumProviderJobs, 10);
+  assert.equal(signatureAddendumProvenance.batch.maximumProviderJobs, 11);
   assert.equal(signatureAddendumProvenance.batch.automaticRerolls, false);
   assert.equal(signatureAddendumProvenance.batch.ambience, false);
   assert.equal(signatureAddendumProvenance.cues.length, 8);
@@ -464,14 +466,14 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       (total, cue) => total + 1 + (cue.attempts?.length ?? 0),
       0,
     ),
-    10,
+    11,
   );
   assert.deepEqual(
     signatureAddendumProvenance.cues
       .filter((cue) => (cue.attempts?.length ?? 0) > 0)
       .map((cue) => [cue.id, cue.attempts?.length]),
     [
-      ['signature-v2-source-mason', 1],
+      ['signature-v2-source-mason', 2],
       ['signature-v2-source-trip-node', 1],
     ],
   );
@@ -724,6 +726,10 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     );
     assert.ok(processing.durationSeconds <= 0.7);
     assert.ok(processing.lowPassHz <= 1_000);
+    assert.ok(
+      (processing.lowPassPasses ?? 1) >= 1 &&
+        (processing.lowPassPasses ?? 1) <= 3,
+    );
     assert.ok(processing.targetSamplePeak <= 0.22);
     assert.ok(metrics.durationSeconds <= 0.7);
     assert.ok(metrics.spectralCentroidHz <= 1_000);
