@@ -51,6 +51,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [InlineData("tapline-demolition-march-v1")]
     [InlineData("tapline-tempered-standard-v1")]
     [InlineData("tapline-iron-interval-v1")]
+    [InlineData("tapline-twin-relay-circuit-v1")]
+    [InlineData("tapline-depth-relay-circuit-v1")]
     public void TaplineDepthCandidatesCompileAsCompactDirectOrders(
         string name)
     {

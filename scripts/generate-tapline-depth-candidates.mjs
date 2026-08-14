@@ -723,9 +723,155 @@ const candidates = [
     map: mapPlan("tapline-demolition-march-v1"),
   },
   {
+    id: "tapline-twin-relay-circuit-v1",
+    profile: "tapline-depth-roster-wildcard",
+    title: "Roster proof — Twin Relay Circuit",
+    orders: sheet(
+      "tapline-twin-relay-circuit-v1",
+      [
+        role("north-courier", ["relay"], ["vitality", "reach", "vision", "damage"], [
+          ...standardPrefix(),
+          use("pass-north-cargo", "arc-toss", "nearest-ally-toward-own-reactor", {
+            all: ["carrying-core", "signature-ready"],
+          }),
+          ...standardTail(move("work-north-supply", "own", "rear")),
+        ]),
+        role("south-courier", ["relay"], ["reach", "vitality", "vision", "damage"], [
+          ...standardPrefix(),
+          use("pass-south-cargo", "arc-toss", "nearest-ally-toward-own-reactor", {
+            all: ["carrying-core", "signature-ready"],
+          }),
+          ...standardTail(move("work-centre-supply", "centre", "rear")),
+        ]),
+        role("relay-screen", ["kestrel", "patchbay", "mason"], ["vitality", "reach", "damage", "vision"], [
+          ...standardPrefix(),
+          use("dash-relay-gap", "vector-dash", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("repair-relay-line", "repair-beam", "weakest-ally"),
+          use("raise-relay-cover", "hardlight-block", "nearest-ally", "signature-ready", {
+            at: "relay-cover",
+          }),
+          ...standardTail(move("screen-relay-route", "centre", "front")),
+        ]),
+        role("relay-watch", ["hush", "lantern", "towline"], ["vision", "reach", "damage", "vitality"], [
+          ...standardPrefix(),
+          use("silence-relay-pursuit", "null-field", "self", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("reveal-relay-pursuit", "survey-flare", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("hook-relay-pursuit", "tractor-hook", "enemy-carrier", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("watch-relay-route", "centre", "line")),
+        ]),
+      ],
+      commonOrders(),
+      commonConditions(),
+    ),
+    map: mapPlan("tapline-twin-relay-circuit-v1", {
+      anchors: { "relay-cover": [13, 12] },
+    }),
+  },
+  {
+    id: "tapline-depth-relay-circuit-v1",
+    profile: "tapline-depth-pack",
+    title: "Combined proof — Depth Relay Circuit",
+    orders: sheet(
+      "tapline-depth-relay-circuit-v1",
+      [
+        role("depth-couriers", ["relay", "relay", "kestrel"], ["vitality", "damage", "reach", "vitality"], [
+          {
+            id: "score-depth-core",
+            when: "carrying-core",
+            until: "empty-handed",
+            timeout: 180,
+            cooldown: 2,
+            urgency: "urgent",
+            orders: [
+              use("pass-premium-depth-core", "arc-toss", "nearest-ally-toward-own-reactor", {
+                all: ["premium-cargo", "signature-ready"],
+              }),
+              { id: "return-depth-core", move: { to: "own-reactor" } },
+            ],
+          },
+          ref("collect-loose-core"),
+          ref("recover-health"),
+          use("dash-depth-recovery", "vector-dash", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail({
+            id: "seek-depth-value",
+            move: { to: "highest-bank-value-known-loose-core", posture: "rear" },
+          }),
+        ]),
+        role("depth-vanguard", ["towline", "hush", "lantern"], ["damage", "reach", "vision", "vitality"], [
+          ...standardPrefix(),
+          {
+            id: "reset-before-depth-wave",
+            when: { all: ["empty-handed", "wave-close"] },
+            timeout: 8,
+            cooldown: 12,
+            urgency: "urgent",
+            orders: [move("yield-before-wave", "own", "rear")],
+          },
+          use("hook-depth-carrier", "tractor-hook", "enemy-carrier", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("silence-depth-pack", "null-field", "self", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("reveal-depth-pack", "survey-flare", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("pressure-depth-centre", "centre", "front")),
+        ]),
+        role("depth-medic", ["patchbay"], ["reach", "vitality", "vitality", "damage"], [
+          ...standardPrefix(),
+          use("repair-depth-veteran", "repair-beam", { selector: "most-experienced-ally" }),
+          ref("fight-visible-enemy"),
+          {
+            id: "trail-depth-veteran",
+            move: { follow: { selector: "most-experienced-ally" }, posture: "rear" },
+          },
+          move("hold-depth-centre-rear", "centre", "rear"),
+        ]),
+        role("depth-builder", ["mason"], ["vitality", "vitality", "damage", "vision"], [
+          ...standardPrefix(),
+          use("place-depth-cover", "hardlight-block", "nearest-ally", {
+            all: ["signature-ready", "cover-missing"],
+          }, {
+            at: "depth-cover",
+          }),
+          use("refresh-depth-cover", "hardlight-block", "nearest-ally", {
+            all: ["signature-ready", "cover-worn"],
+          }, {
+            at: "depth-cover",
+          }),
+          ...standardTail(move("hold-depth-cover", "centre", "front")),
+        ]),
+      ],
+      commonOrders({
+        looseTarget: "highest-bank-value-known-loose-core",
+        fightTargets: ["veteran", "carrier", "deployment", "weakest", "nearest"],
+      }),
+      commonConditions({
+        "wave-close": { fact: "ticks-until-respawn-wave", operator: "at-most", value: 8 },
+        "premium-cargo": { fact: "self-carried-core-bank-value", operator: "at-least", value: 4 },
+        "cover-missing": { fact: "deployment-active", operator: "equals", value: 0 },
+        "cover-worn": { fact: "deployment-durability-percent", operator: "at-most", value: 35 },
+      }),
+    ),
+    map: mapPlan("tapline-depth-relay-circuit-v1", {
+      anchors: { "depth-cover": [13, 12] },
+    }),
+  },
+  {
     id: "tapline-tempered-standard-v1",
     profile: "tapline-depth-combat-scale-10",
-    title: "33 Tempered Standard",
+    title: "Scale proof — Tempered Standard",
     orders: sheet(
       "tapline-tempered-standard-v1",
       [
@@ -793,7 +939,7 @@ const candidates = [
   {
     id: "tapline-iron-interval-v1",
     profile: "tapline-depth-durability-plus-10",
-    title: "34 Iron Interval",
+    title: "Durability proof — Iron Interval",
     orders: sheet(
       "tapline-iron-interval-v1",
       [
