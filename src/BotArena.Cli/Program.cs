@@ -299,12 +299,11 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-3`: the accepted Tapline geometry,
-            directional combat, declared strikes, veterancy, complete
-            signature grammar 3, and atomic acyclic convoy movement. The
-            hosted v21 ladder pins `tapline-3`, Orders v2, and the same
-            coordinated movement contract; v7 through v20 remain exact
-            history, and all
+            The default is `tapline-4`: the accepted Tapline geometry and
+            coordinated movement plus the 1/2/4 Core economy, veteran command,
+            public respawn waves, seven-class roster floor, durable
+            deployments, and tenfold combat scale. The prior hosted v21 ladder
+            pins `tapline-3`; v7 through v21 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

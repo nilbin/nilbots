@@ -1041,11 +1041,45 @@ public sealed record ArcRelayLoopProfile
         combatMagnitudeScale: 10);
 
     /// <summary>
+    /// The owner-promoted Tapline depth game. Tapline-4 carries the combined
+    /// 1/2/4 Core economy, veteran command, public respawn waves, seven-class
+    /// roster floor, durable deployments, and tenfold combat scale under a
+    /// product identity rather than an experiment label.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline4 { get; } = new(
+        "tapline-4",
+        "arc-relay-tapline-04",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30, 65, 25, 9,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline3;
+    public static ArcRelayLoopProfile Current => Tapline4;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1119,6 +1153,7 @@ public sealed record ArcRelayLoopProfile
         Tapline1,
         Tapline2,
         Tapline3,
+        Tapline4,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

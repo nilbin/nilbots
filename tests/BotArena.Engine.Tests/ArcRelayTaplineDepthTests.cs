@@ -55,6 +55,43 @@ public sealed class ArcRelayTaplineDepthTests
     }
 
     [Fact]
+    public void Tapline4PromotesTheCombinedMechanicsUnderAProductIdentity()
+    {
+        ActorResolvedMatchDefinition candidate = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.TaplineDepthPack);
+        ActorResolvedMatchDefinition product = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline4);
+
+        Assert.Equal("tapline-4", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-04", product.Rules.RulesetId);
+        Assert.Equal(candidate.Map.Id, product.Map.Id);
+        Assert.True(candidate.Map.TileRows.SequenceEqual(product.Map.TileRows));
+
+        Assert.Equal(
+            profileShape(ArcRelayLoopProfile.TaplineDepthPack),
+            profileShape(ArcRelayLoopProfile.Tapline4));
+
+        static (int Respawn, int Cadence, int FirstBeat, int Births,
+            bool RelativeCharge, bool VeteranCommand, int WavePeriod,
+            int WaveMinimumDead, int DistinctClasses, bool Deployments,
+            int CombatScale) profileShape(ArcRelayLoopProfile value)
+        {
+            return (
+                value.RespawnDelayTicks,
+                value.WellCadenceTicks,
+                value.FirstGlobalBeatTicks,
+                value.ScheduledBirthRounds,
+                value.TeamRelativeCoreCharge,
+                value.VeteranCommand,
+                value.RespawnWavePeriodTicks,
+                value.RespawnMinimumDeadTicks,
+                value.MinimumDistinctClasses,
+                value.DurableDeployments,
+                value.CombatMagnitudeScale);
+        }
+    }
+
+    [Fact]
     public void CombatScalePublishesEveryResolvedMagnitudeAndRoundTrips()
     {
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(

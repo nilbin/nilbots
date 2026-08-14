@@ -98,12 +98,13 @@ and atomically swaps it into `SITE_DIR`. Reuse that directory to update a live
 gallery without changing its URL. Expect roughly one minute for six cells on
 the reference machine.
 
-When reviewing the current Tapline product line, set
-`EXHIBIT_LOOP_PROFILE=tapline-3` and use the current Tapline-native sheet pair
-(`hunter-tapline-v2.json` / `wellwright-tapline-v2.json`). Tapline-3 is the
-versioned collision contract that permits an acyclic convoy to enter tiles
-vacated in the same tick. Do not silently review that engine behavior on the
-historical Tapline-1/2 contracts.
+The exhibit harness defaults to the current `tapline-4` product line. It uses
+the accepted Tapline geometry and coordinated movement plus the promoted
+1/2/4 Core economy, veteran command, public respawn waves, seven-class roster
+floor, durable deployments, and tenfold combat scale. Pin
+`EXHIBIT_LOOP_PROFILE=tapline-3` only for an explicitly labelled historical
+control. Do not use the now-inadmissible Hunter/Wellwright sheets as current
+controls; choose a current seven-class sheet and name it on every card.
 
 Coordinated pathing is the product and exhibit default. Use
 `EXHIBIT_MATCH_ARGS="--mind-stepper greedy"` only for an explicitly labelled
