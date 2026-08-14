@@ -8381,3 +8381,28 @@ prototype cell before any combined pack or product claim. “Hardlight” remain
 the stable prototype identity and means a projected solid-energy barrier;
 player-facing copy must explain that meaning, while a display-name change
 remains a later owner choice.
+
+## 313. Hardlight audio follows the framed projected-energy visual
+
+Owner audio correction (2026-08-14). Mason's current mineral-condensation and
+ceramic-seat cue no longer matches Hardlight Block after its 3D treatment became
+a closed, grid-aligned block of framed energy panes. Spend exactly one further
+private SFX Engine request for Mason, with no automatic reroll and no ambience.
+Archive the displaced Mason result in the existing V2 generation record. This
+raises the addendum from ten to eleven provider jobs—eight current sources and
+three rejected attempts—and the complete signature source count from sixteen
+to seventeen without changing the same nineteen deliveries.
+
+The replacement source describes four pane frames rising from projector rails
+into one cushioned field lock. Its raw broadband fizz is not acceptable at
+runtime, so deterministic delivery processing folds it to dual mono, uses a
+100 ms onset and 150 ms release, and applies two documented zero-phase 600 Hz
+low-pass passes. The decoded delivery is 560 ms, has a 138 Hz centroid, 0%
+energy above 4 kHz, -31.33 dBFS effective peak, and -47.29 dBFS effective RMS.
+The complete 33-cue runtime package is 498,690 bytes; the 513-variant dry crowd
+proof remains -8.13 dBTP against its -6 dBTP ceiling.
+
+This is a renderer-audio asset replacement only. Hardlight's authoritative
+start fact, 0.28-tick cue offset, priority, voice limit, obstacle timing, hull,
+collision, cooldown, replay facts, and gameplay fingerprint do not change.
+Music and ambience remain unchanged, with no ambient loop shipped or played.

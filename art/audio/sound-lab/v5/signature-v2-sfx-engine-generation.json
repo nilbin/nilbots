@@ -5,14 +5,14 @@
   "apiBase": "https://api.sfxengine.com/v1",
   "apiSpec": ".claude/skills/sfx-engine/references/openapi.yaml",
   "apiSpecSha256": "c09974c0f70344251844c00e029bcdc5e543106c8cdc315afa8bc6ef5722f116",
-  "authorization": "Owner rejected the first Mason and Trip Node deliveries and approved exactly three targeted private replacement jobs: Mason, Trip deploy, and Trip trigger. The addendum now permits ten total source jobs and no automatic rerolls.",
+  "authorization": "Owner rejected the first Mason and Trip Node deliveries and approved exactly three targeted private replacement jobs: Mason, Trip deploy, and Trip trigger. After the Hardlight Block visual became framed projected energy, the owner approved exactly one additional private Mason replacement on 2026-08-14. The addendum now permits eleven total source jobs and no automatic rerolls.",
   "keychainService": "com.nilbots.sfxengine.api-key",
   "privacy": "Every request sets isPublic to false.",
   "batch": {
     "id": "arc-relay-signatures-v2-audio-addendum",
-    "label": "Astral Relay distinct signature identities with Mason and Trip replacements",
+    "label": "Astral Relay distinct signature identities with Hardlight and Trip replacements",
     "direction": "Restrained orbital machinery: short, spacey, low-mid, soft-edged, sparse, materially distinct, and safe under crowded Tapline playback.",
-    "maximumProviderJobs": 10,
+    "maximumProviderJobs": 11,
     "automaticRerolls": false,
     "ambience": false
   },
@@ -24,24 +24,24 @@
       "file": "mason.wav",
       "requestLengthSeconds": 2,
       "targetPeak": 0.78,
-      "prompt": "Tapline Mason Hardlight Block: warm mineral grains condense upward into one broad ceramic slab and settle with a cushioned low-mid lock, tangible sci-fi masonry, no sub boom, scrape, crack, click, chime, alarm, speech or music, 2 seconds.",
-      "revisionReason": "Owner rejected the first Mason delivery; replace its sub-heavy thud with audible warm mineral construction and a cushioned seating gesture.",
+      "prompt": "Tapline Mason Hardlight Block: four framed energy panes rise from projector rails, a soft low-mid spatial swell resolving into one cushioned field lock, clean compact hardlight, no hiss, high pitch, glass chime, zap, crack, boom, alarm, speech or music.",
+      "revisionReason": "Owner approved one new Mason take after the Hardlight Block visual changed from mineral masonry to framed projected energy; align the cue with the pane rise and field lock.",
       "result": {
-        "apiSoundEffectId": "se_cccslkvkz7hwagtp",
+        "apiSoundEffectId": "se_x7wepm32zuf326qr",
         "status": "generated",
-        "providerCreatedAt": "2026-08-14 07:50:30.572",
+        "providerCreatedAt": "2026-08-14 14:51:42.351",
         "providerLengthSeconds": 2,
         "providerFileSize": 352844,
-        "recordedAt": "2026-08-14T07:51:14.025Z",
+        "recordedAt": "2026-08-14T14:52:29.932Z",
         "request": {
-          "prompt": "Tapline Mason Hardlight Block: warm mineral grains condense upward into one broad ceramic slab and settle with a cushioned low-mid lock, tangible sci-fi masonry, no sub boom, scrape, crack, click, chime, alarm, speech or music, 2 seconds.",
+          "prompt": "Tapline Mason Hardlight Block: four framed energy panes rise from projector rails, a soft low-mid spatial swell resolving into one cushioned field lock, clean compact hardlight, no hiss, high pitch, glass chime, zap, crack, boom, alarm, speech or music.",
           "requestLengthSeconds": 2,
           "secondsToStart": 0,
           "targetPeak": 0.78
         },
         "downloadedContentType": "audio/wav",
-        "sourceSha256": "e1987bd40857d889ce713ea938f6bd1b20f5dcbf16e0703ea5016a940851ff64",
-        "outputSha256": "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
+        "sourceSha256": "33fc4c7158cea19dbd83c54f5492e741e891111a85e67e5c64531309b178b7a5",
+        "outputSha256": "2a3d46e6827883c6ea77325956cdb0ce17d05797f6826b0bac64dcf75a1f3702",
         "outputBytes": 384044,
         "processing": {
           "endpointTreatment": "short-fades",
@@ -54,8 +54,8 @@
           "channels": 2,
           "bitsPerSample": 16,
           "peak": 0.78,
-          "rms": 0.1081,
-          "stereoDifferenceRms": 0.0164,
+          "rms": 0.2043,
+          "stereoDifferenceRms": 0.0045,
           "dcOffset": 0,
           "clippedSamples": 0
         }
@@ -102,6 +102,48 @@
           },
           "supersededAt": "2026-08-14T07:50:30.969Z",
           "reason": "Owner rejected the first Mason delivery; replace its sub-heavy thud with audible warm mineral construction and a cushioned seating gesture."
+        },
+        {
+          "prompt": "Tapline Mason Hardlight Block: warm mineral grains condense upward into one broad ceramic slab and settle with a cushioned low-mid lock, tangible sci-fi masonry, no sub boom, scrape, crack, click, chime, alarm, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78,
+          "result": {
+            "apiSoundEffectId": "se_cccslkvkz7hwagtp",
+            "status": "generated",
+            "providerCreatedAt": "2026-08-14 07:50:30.572",
+            "providerLengthSeconds": 2,
+            "providerFileSize": 352844,
+            "recordedAt": "2026-08-14T07:51:14.025Z",
+            "request": {
+              "prompt": "Tapline Mason Hardlight Block: warm mineral grains condense upward into one broad ceramic slab and settle with a cushioned low-mid lock, tangible sci-fi masonry, no sub boom, scrape, crack, click, chime, alarm, speech or music, 2 seconds.",
+              "requestLengthSeconds": 2,
+              "secondsToStart": 0,
+              "targetPeak": 0.78
+            },
+            "downloadedContentType": "audio/wav",
+            "sourceSha256": "e1987bd40857d889ce713ea938f6bd1b20f5dcbf16e0703ea5016a940851ff64",
+            "outputSha256": "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
+            "outputBytes": 384044,
+            "processing": {
+              "endpointTreatment": "short-fades",
+              "fadeInSeconds": 0.005,
+              "fadeOutSeconds": 0.04
+            },
+            "metrics": {
+              "durationSeconds": 2,
+              "sampleRate": 48000,
+              "channels": 2,
+              "bitsPerSample": 16,
+              "peak": 0.78,
+              "rms": 0.1081,
+              "stereoDifferenceRms": 0.0164,
+              "dcOffset": 0,
+              "clippedSamples": 0
+            }
+          },
+          "supersededAt": "2026-08-14T14:51:42.709Z",
+          "reason": "Owner approved one new Mason take after the Hardlight Block visual changed from mineral masonry to framed projected energy; align the cue with the pane rise and field lock."
         }
       ]
     },
@@ -461,26 +503,27 @@
       "id": "signature-mason",
       "file": "signature-mason.wav",
       "status": "derived",
-      "description": "The replacement mineral condensation and cushioned ceramic seat, retaining audible low-mid texture distinct from Palisade's energy-panel lock.",
+      "description": "The framed pane rise and cushioned hardlight field lock, shaped as a soft low-mid projection distinct from Palisade's panel materialization.",
       "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
       "sourceCueId": "signature-v2-source-mason",
-      "sourceOutputSha256": "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
-      "outputSha256": "9760ed35075efa7408aebfc9dcaa2601aee1971b1f07fc71a72b26f539c8d8b6",
-      "outputBytes": 84524,
-      "recordedAt": "2026-08-14T08:02:39.237Z",
+      "sourceOutputSha256": "2a3d46e6827883c6ea77325956cdb0ce17d05797f6826b0bac64dcf75a1f3702",
+      "outputSha256": "b82dc99d4f21c55798d1d5b9a4b196fe4f8b929ea87b4d58ee9627d1ed2e8d27",
+      "outputBytes": 107564,
+      "recordedAt": "2026-08-14T14:54:44.057Z",
       "operations": {
         "channelTransform": "mid-to-dual-mono",
-        "sourceStartSeconds": 0.48,
-        "playbackRate": 0.9,
-        "durationSeconds": 0.44,
+        "sourceStartSeconds": 0.04,
+        "playbackRate": 0.82,
+        "durationSeconds": 0.56,
         "lowPass": {
           "type": "zero-phase-one-pole",
-          "cutoffHz": 700
+          "cutoffHz": 600,
+          "passes": 2
         },
-        "fadeInSeconds": 0.02,
-        "fadeOutSeconds": 0.11,
-        "targetSamplePeak": 0.18,
-        "sourceInterchannelCorrelation": 0.9888
+        "fadeInSeconds": 0.1,
+        "fadeOutSeconds": 0.15,
+        "targetSamplePeak": 0.17,
+        "sourceInterchannelCorrelation": 0.9998
       },
       "intendedRuntimeMix": {
         "gain": 0.16,
@@ -488,28 +531,28 @@
         "roomSend": false
       },
       "metrics": {
-        "durationSeconds": 0.44,
+        "durationSeconds": 0.56,
         "sampleRate": 48000,
         "channels": 2,
         "bitsPerSample": 16,
-        "samplePeakDbfs": -14.89,
-        "rmsDbfs": -25.37,
+        "samplePeakDbfs": -15.39,
+        "rmsDbfs": -31.34,
         "dcOffset": 0,
         "clippedSamples": 0,
         "endpointDiscontinuity": 0,
-        "dominantFrequencyHz": 188,
+        "dominantFrequencyHz": 146,
         "interchannelCorrelation": 1,
-        "spectralCentroidHz": 175,
-        "energyAbove4kPercent": 0.057,
-        "energyAbove8kPercent": 0.001,
+        "spectralCentroidHz": 138,
+        "energyAbove4kPercent": 0.001,
+        "energyAbove8kPercent": 0,
         "energyAbove12kPercent": 0,
-        "maximumWindowAbove4kPercent": 0.122,
-        "maximumWindowAbove4kAtSeconds": 0.213,
-        "maximumWindowAbove4kRmsDbfs": -23.77,
-        "maximumHighBandWindowRmsDbfs": -52.91,
-        "effectiveSamplePeakDbfs": -30.81,
-        "effectiveRmsDbfs": -41.29,
-        "effectiveMaximumHighBandWindowRmsDbfs": -68.83
+        "maximumWindowAbove4kPercent": 0.009,
+        "maximumWindowAbove4kAtSeconds": 0.469,
+        "maximumWindowAbove4kRmsDbfs": -37,
+        "maximumHighBandWindowRmsDbfs": -77.45,
+        "effectiveSamplePeakDbfs": -31.31,
+        "effectiveRmsDbfs": -47.26,
+        "effectiveMaximumHighBandWindowRmsDbfs": -93.37
       }
     },
     {

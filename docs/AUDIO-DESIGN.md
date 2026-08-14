@@ -224,16 +224,18 @@ deterministically derive nine short deliveries: `signature-motion`,
 `signature-smoke`, `signature-exchange`, `signature-target`, and
 `signature-kinetic`.
 
-The V2 audio addendum first made seven private source requests, then made three
-explicit owner-authorized replacements after the first Mason and combined Trip
-Node deliveries failed the listening gate. It now records ten provider jobs
-with no automatic rerolls or ambience: eight current sources plus both rejected
-attempts. Mason uses a warmer mineral-condensation source, while Trip deployment
-and trigger use separate levitation and gravity-pressure sources. Those sources derive ten
+The V2 audio addendum first made seven private source requests, then made four
+explicit owner-authorized replacements: three after the first Mason and
+combined Trip Node deliveries failed the listening gate, and one after Mason's
+visual changed from masonry to framed projected energy. It now records eleven
+provider jobs with no automatic rerolls or ambience: eight current sources plus
+three rejected attempts. Mason uses a framed pane-rise and cushioned field-lock
+source, while Trip deployment and trigger use separate levitation and
+gravity-pressure sources. Those sources derive ten
 deliveries: `signature-mason`, `signature-repair`,
 `signature-falling-star`, `signature-trip-deploy`, `signature-trip-trigger`,
 `signature-arc-toss`, `signature-rail-charge`, `signature-rail-release`,
-`signature-sentinel-deploy`, and `signature-sentinel-fire`. Together, sixteen
+`signature-sentinel-deploy`, and `signature-sentinel-fire`. Together, seventeen
 provider jobs supply nineteen runtime signature deliveries. Every delivery is
 dual-mono, at most 700 ms, played at 0.16 gain, dry, and limited to one voice;
 the signature category permits at most two distinct voices per tick.
@@ -251,11 +253,12 @@ most 0.05% above 8 kHz, at most 0.01% above 12 kHz, effective RMS at most
 -34 dBFS, and effective peak at most -22 dBFS.
 
 The owner-reviewed Mason/Trip correction moves away from both extremes that
-failed the first listen. Mason's decoded centroid rises from a sub-dominant
-35 Hz to an audible 175 Hz mineral body. Trip deployment and trigger fall from
-890/541 Hz to rounded 258/267 Hz identities. Their decoded energy above 4 kHz
-is 0.06%, 0.01%, and 0.00% respectively, and all three remain below the same
-runtime peak, RMS, crowd, and duration gates.
+failed the first listen. Trip deployment and trigger fall from 890/541 Hz to
+rounded 258/267 Hz identities. Mason's later visual-alignment take is shaped
+into a 560 ms rise and lock with a 100 ms onset, two 600 Hz zero-phase low-pass
+passes, and a decoded 138 Hz centroid. It carries 0% decoded energy above
+4 kHz, reaches -31.33 dBFS effective peak / -47.29 dBFS effective RMS, and
+stays below the same crowd and duration gates.
 
 The later owner listen found Trip Node understated and somewhat lofi, but also
 left open that the restraint may work once mines compete with a full fight.
@@ -284,7 +287,7 @@ ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 | Relay | Arc Toss | `launched`, then Core landing | `signature-arc-toss` replaces the departure drop; landing keeps shared `arc-drop` |
 | Switchback | Exchange | `completed` | `signature-exchange`, only after the paired relocation succeeds |
 | Longshot | Rail Line | `started`, `completed`, optional `signature-damage` | `signature-rail-charge` and `signature-rail-release` replace generic attack layers; a real hit adds shared `impact` |
-| Mason | Hardlight Block | `started` | `signature-mason`, warm mineral condensation and a cushioned ceramic seat distinct from Prism Wall |
+| Mason | Hardlight Block | `started` | `signature-mason`, a soft framed-pane projection rise and cushioned field lock distinct from Prism Wall |
 | Sunder | Target Paint | `acquired` | `signature-target`, the confirmed acquisition lock |
 | Repulsor | Kinetic Burst | `completed` | `signature-kinetic`, the compact pressure resolve |
 | Veil | Smoke Canister | `landed` | `signature-smoke`, the field bloom rather than the flight |
@@ -330,7 +333,7 @@ node scripts/export-runtime-sound-effects.mjs
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
 `web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: 33 mapped
-one-shots at 192 kbps, 499,098 bytes together. The unique fizzle,
+one-shots at 192 kbps, 498,690 bytes together. The unique fizzle,
 cancel, and historical special-steal takes remain lossless review references;
 runtime fizzle aliases the projectile release instead of shipping another
 voice. The production manifest records the SFX Engine and local derivation

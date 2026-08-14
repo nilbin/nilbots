@@ -20,7 +20,7 @@
     "signatureGenerationRecord": "art/audio/sound-lab/v5/signature-sfx-engine-generation.json",
     "signatureGenerationRecordSha256": "62bf60c1973754db2d4835edaa022a95a24e56437d9af46efa404214f636e3a6",
     "signatureGenerationAddendum": "art/audio/sound-lab/v5/signature-v2-sfx-engine-generation.json",
-    "signatureGenerationAddendumSha256": "78d0bdc7b8a25fc406b458e43de13acfaf2a765450617c37d435669beab0e69d",
+    "signatureGenerationAddendumSha256": "2886b101af52658d0590de4e5f85c8dc218fa56fbdfc45a56ca7b203023cf946",
     "deliveryEncoding": {
       "encoder": "macos-afconvert",
       "canonicalization": "zero-iso-bmff-creation-and-modification-times"
@@ -142,6 +142,7 @@
           "playbackRate": 0.75,
           "durationSeconds": 0.58,
           "lowPassHz": 850,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.012,
           "fadeOutSeconds": 0.12,
           "targetSamplePeak": 0.22
@@ -154,6 +155,7 @@
           "playbackRate": 0.95,
           "durationSeconds": 0.58,
           "lowPassHz": 850,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.01,
           "fadeOutSeconds": 0.14,
           "targetSamplePeak": 0.22
@@ -166,6 +168,7 @@
           "playbackRate": 0.55,
           "durationSeconds": 0.62,
           "lowPassHz": 800,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.025,
           "fadeOutSeconds": 0.16,
           "targetSamplePeak": 0.22
@@ -178,6 +181,7 @@
           "playbackRate": 0.65,
           "durationSeconds": 0.62,
           "lowPassHz": 650,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.04,
           "fadeOutSeconds": 0.18,
           "targetSamplePeak": 0.22
@@ -190,6 +194,7 @@
           "playbackRate": 0.7,
           "durationSeconds": 0.68,
           "lowPassHz": 700,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.035,
           "fadeOutSeconds": 0.2,
           "targetSamplePeak": 0.22
@@ -202,6 +207,7 @@
           "playbackRate": 0.9,
           "durationSeconds": 0.42,
           "lowPassHz": 750,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.02,
           "fadeOutSeconds": 0.13,
           "targetSamplePeak": 0.22
@@ -214,6 +220,7 @@
           "playbackRate": 0.7,
           "durationSeconds": 0.66,
           "lowPassHz": 750,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.025,
           "fadeOutSeconds": 0.18,
           "targetSamplePeak": 0.22
@@ -226,6 +233,7 @@
           "playbackRate": 0.65,
           "durationSeconds": 0.45,
           "lowPassHz": 750,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.015,
           "fadeOutSeconds": 0.14,
           "targetSamplePeak": 0.22
@@ -238,21 +246,23 @@
           "playbackRate": 0.45,
           "durationSeconds": 0.28,
           "lowPassHz": 700,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.008,
           "fadeOutSeconds": 0.11,
           "targetSamplePeak": 0.22
         },
         "signature-mason": {
           "sourceCueId": "signature-v2-source-mason",
-          "sourceOutputSha256": "ab091f55d2bff43a3b8674f9175175964edb21feb8793473fd8824293103ceff",
+          "sourceOutputSha256": "2a3d46e6827883c6ea77325956cdb0ce17d05797f6826b0bac64dcf75a1f3702",
           "channelTransform": "mid-to-dual-mono",
-          "sourceStartSeconds": 0.48,
-          "playbackRate": 0.9,
-          "durationSeconds": 0.44,
-          "lowPassHz": 700,
-          "fadeInSeconds": 0.02,
-          "fadeOutSeconds": 0.11,
-          "targetSamplePeak": 0.18
+          "sourceStartSeconds": 0.04,
+          "playbackRate": 0.82,
+          "durationSeconds": 0.56,
+          "lowPassHz": 600,
+          "lowPassPasses": 2,
+          "fadeInSeconds": 0.1,
+          "fadeOutSeconds": 0.15,
+          "targetSamplePeak": 0.17
         },
         "signature-repair": {
           "sourceCueId": "signature-v2-source-repair",
@@ -262,6 +272,7 @@
           "playbackRate": 0.62,
           "durationSeconds": 0.66,
           "lowPassHz": 650,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.04,
           "fadeOutSeconds": 0.18,
           "targetSamplePeak": 0.18
@@ -274,6 +285,7 @@
           "playbackRate": 0.78,
           "durationSeconds": 0.68,
           "lowPassHz": 700,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.025,
           "fadeOutSeconds": 0.2,
           "targetSamplePeak": 0.19
@@ -286,6 +298,7 @@
           "playbackRate": 0.9,
           "durationSeconds": 0.38,
           "lowPassHz": 650,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.02,
           "fadeOutSeconds": 0.12,
           "targetSamplePeak": 0.17
@@ -298,6 +311,7 @@
           "playbackRate": 0.9,
           "durationSeconds": 0.32,
           "lowPassHz": 600,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.01,
           "fadeOutSeconds": 0.11,
           "targetSamplePeak": 0.18
@@ -310,6 +324,7 @@
           "playbackRate": 0.7,
           "durationSeconds": 0.64,
           "lowPassHz": 700,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.035,
           "fadeOutSeconds": 0.18,
           "targetSamplePeak": 0.18
@@ -322,6 +337,7 @@
           "playbackRate": 0.58,
           "durationSeconds": 0.38,
           "lowPassHz": 600,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.05,
           "fadeOutSeconds": 0.12,
           "targetSamplePeak": 0.16
@@ -334,6 +350,7 @@
           "playbackRate": 0.58,
           "durationSeconds": 0.62,
           "lowPassHz": 500,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.018,
           "fadeOutSeconds": 0.18,
           "targetSamplePeak": 0.18
@@ -346,6 +363,7 @@
           "playbackRate": 0.38,
           "durationSeconds": 0.64,
           "lowPassHz": 400,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.025,
           "fadeOutSeconds": 0.18,
           "targetSamplePeak": 0.18
@@ -358,6 +376,7 @@
           "playbackRate": 0.38,
           "durationSeconds": 0.24,
           "lowPassHz": 400,
+          "lowPassPasses": 1,
           "fadeInSeconds": 0.01,
           "fadeOutSeconds": 0.1,
           "targetSamplePeak": 0.15
@@ -1272,28 +1291,28 @@
       }
     },
     "signature-mason": {
-      "sourceSha256": "9760ed35075efa7408aebfc9dcaa2601aee1971b1f07fc71a72b26f539c8d8b6",
-      "outputSha256": "82780a5b746ea5452fead55f658ba9a401153a48a703a5f8e82a886af7180031",
-      "bytes": 9333,
+      "sourceSha256": "b82dc99d4f21c55798d1d5b9a4b196fe4f8b929ea87b4d58ee9627d1ed2e8d27",
+      "outputSha256": "e5dac4a027ac50b5309970bafe9393ecdc4a82a4d569bf39c22afa181a87cda8",
+      "bytes": 8925,
       "bitrate": 192000,
       "deliveryMetrics": {
-        "durationSeconds": 0.44,
-        "samplePeakDbfs": -14.94,
-        "rmsDbfs": -25.37,
-        "dominantFrequencyHz": 188,
+        "durationSeconds": 0.56,
+        "samplePeakDbfs": -15.41,
+        "rmsDbfs": -31.37,
+        "dominantFrequencyHz": 146,
         "interchannelCorrelation": 1,
-        "spectralCentroidHz": 175,
-        "energyAbove4kPercent": 0.06,
+        "spectralCentroidHz": 138,
+        "energyAbove4kPercent": 0,
         "energyAbove8kPercent": 0,
         "energyAbove12kPercent": 0,
-        "maximumWindowAbove4kPercent": 0.12,
-        "maximumWindowAbove4kAtSeconds": 0.213,
-        "maximumWindowAbove4kRmsDbfs": -23.75,
-        "maximumHighBandWindowRmsDbfs": -52.89,
-        "effectiveSamplePeakDbfs": -30.86,
-        "effectiveRmsDbfs": -41.29,
-        "effectiveMaximumWindowAbove4kRmsDbfs": -39.67,
-        "effectiveMaximumHighBandWindowRmsDbfs": -68.81
+        "maximumWindowAbove4kPercent": 0.01,
+        "maximumWindowAbove4kAtSeconds": 0.469,
+        "maximumWindowAbove4kRmsDbfs": -36.95,
+        "maximumHighBandWindowRmsDbfs": -77.5,
+        "effectiveSamplePeakDbfs": -31.33,
+        "effectiveRmsDbfs": -47.29,
+        "effectiveMaximumWindowAbove4kRmsDbfs": -52.87,
+        "effectiveMaximumHighBandWindowRmsDbfs": -93.42
       }
     },
     "signature-repair": {

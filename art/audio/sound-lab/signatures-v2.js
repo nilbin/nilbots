@@ -106,7 +106,7 @@
       signatureName: 'Hardlight Block',
       signatureId: 'hardlight-block',
       primaryCue: 'signature-mason',
-      summary: 'Warm mineral grains condense into a ceramic slab and finish with a cushioned seat.',
+      summary: 'Framed hardlight panes rise from their rails and settle into one cushioned field lock.',
       events: [event('Build', 'signature-mason', 'primary')],
     },
     {
@@ -151,7 +151,7 @@
     {
       label: 'CONSTRUCT SPLIT',
       title: 'Palisade → Mason',
-      description: 'Energy panels first, warm mineral condensation and a cushioned ceramic seat second.',
+      description: 'Palisade materializes open panels first; Mason projects a closed framed block with a softer field lock second.',
       steps: [[0, 'signature-construct'], [950, 'signature-mason']],
     },
     {

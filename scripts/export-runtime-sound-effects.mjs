@@ -1300,11 +1300,11 @@ const signatureAddendumProviderJobs =
   );
 if (
   signatureGenerationAddendum.provider !== "sfx-engine" ||
-  signatureGenerationAddendum.batch?.maximumProviderJobs !== 10 ||
+  signatureGenerationAddendum.batch?.maximumProviderJobs !== 11 ||
   signatureGenerationAddendum.batch?.automaticRerolls !== false ||
   signatureGenerationAddendum.batch?.ambience !== false ||
   signatureGenerationAddendum.cues?.length !== 8 ||
-  signatureAddendumProviderJobs !== 10 ||
+  signatureAddendumProviderJobs !== 11 ||
   signatureGenerationAddendum.deliveries?.length !==
     addendumSignatureCueIds.length ||
   signatureGenerationAddendum.derivation?.script !==
@@ -1321,6 +1321,7 @@ const signatureDeliveries = [
 const signatureDeliveryProcessing = Object.fromEntries(
   signatureDeliveries.map((delivery) => {
     const lowPassHz = delivery.operations?.lowPass?.cutoffHz;
+    const lowPassPasses = delivery.operations?.lowPass?.passes ?? 1;
     const processing = {
       sourceCueId: delivery.sourceCueId,
       sourceOutputSha256: delivery.sourceOutputSha256,
@@ -1329,6 +1330,7 @@ const signatureDeliveryProcessing = Object.fromEntries(
       playbackRate: delivery.operations?.playbackRate,
       durationSeconds: delivery.operations?.durationSeconds,
       lowPassHz,
+      lowPassPasses,
       fadeInSeconds: delivery.operations?.fadeInSeconds,
       fadeOutSeconds: delivery.operations?.fadeOutSeconds,
       targetSamplePeak: delivery.operations?.targetSamplePeak,
@@ -1345,6 +1347,9 @@ const signatureDeliveryProcessing = Object.fromEntries(
       ) ||
       processing.durationSeconds > 0.7 ||
       lowPassHz > 1_000 ||
+      !Number.isInteger(lowPassPasses) ||
+      lowPassPasses < 1 ||
+      lowPassPasses > 3 ||
       processing.targetSamplePeak > 0.22
     ) {
       throw new Error(`${delivery.id}: invalid signature delivery provenance.`);
