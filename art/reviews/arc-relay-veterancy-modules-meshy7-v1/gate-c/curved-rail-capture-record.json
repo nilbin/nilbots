@@ -1,0 +1,52 @@
+{
+  "moduleId": "veterancy-curved-rail",
+  "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025",
+  "model": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025/model-normalized-rich-review.glb",
+  "sheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/veterancy-curved-rail-six-view.png",
+  "bytes": 485258,
+  "sha256": "460e4b424a1e24cb5c1255539f078572bf59a9ec7908540d936628f05040b196",
+  "captures": [
+    {
+      "view": "front-three-quarter",
+      "label": "GAMEPLAY 3/4",
+      "bytes": 38908,
+      "sha256": "0958deaa6ece4932948d9f65c51b77c05073f51891b363aba568d21a6e2d694f",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/captures/front-three-quarter.png"
+    },
+    {
+      "view": "positive-x",
+      "label": "+X CAMERA",
+      "bytes": 103391,
+      "sha256": "26796f92c20b0e3c385cd839ad2f2eb51fec2d3c7f96687120f418d08bb05aa6",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/captures/positive-x.png"
+    },
+    {
+      "view": "negative-x",
+      "label": "-X CAMERA",
+      "bytes": 102741,
+      "sha256": "88c894167888563c221871d12ffe92b7220ad4f063188e5c5c2123d91de62c35",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/captures/negative-x.png"
+    },
+    {
+      "view": "positive-z",
+      "label": "+Z CAMERA",
+      "bytes": 27644,
+      "sha256": "4e98bd86f5fe72bdb28f48bb33983582f6e9bfeb47fe9c385940f4f4c2e584da",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/captures/positive-z.png"
+    },
+    {
+      "view": "negative-z",
+      "label": "-Z CAMERA",
+      "bytes": 26541,
+      "sha256": "90797034ec6b2a912923fe97389616c7bf464d6d4ee0af40081a8e029e0d1bcf",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/captures/negative-z.png"
+    },
+    {
+      "view": "top-down",
+      "label": "STRICT TOP",
+      "bytes": 52566,
+      "sha256": "f7555e1c8ca590f4c2160dec618442b0bf941b3f771045f695cf63e6a2f9fb6a",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/captures/top-down.png"
+    }
+  ]
+}

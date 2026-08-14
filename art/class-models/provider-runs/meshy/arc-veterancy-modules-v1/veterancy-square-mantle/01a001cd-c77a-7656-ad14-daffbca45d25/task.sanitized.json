@@ -1,0 +1,36 @@
+{
+  "id": "01a001cd-c77a-7656-ad14-daffbca45d25",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Standalone Nilbots veterancy square-mantle armor attachment: one compact stepped shoulder frame with deliberate negative space at its inner root. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the squared notched C-like plan, thick readable planes, chamfered ends, flat underside, clean mirrorability, and one connected rigid object. No bot, chassis, base, floor, solid crate, wall block, building, turret, weapon, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, rank symbols, eyes, baked lighting, or cast shadows.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786736661688,
+  "progress": 100,
+  "started_at": 1786736661692,
+  "finished_at": 1786736847009,
+  "expires_at": 1786996047009,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001cd-c77a-7656-ad14-daffbca45d25/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

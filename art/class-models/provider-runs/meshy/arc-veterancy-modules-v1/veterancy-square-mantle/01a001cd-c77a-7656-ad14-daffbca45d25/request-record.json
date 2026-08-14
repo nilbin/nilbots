@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-square-mantle",
+  "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25",
+  "submittedAt": "2026-08-14T19:44:17.410Z",
+  "balanceBefore": 920,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/03-front-three-quarter.png",
+      "bytes": 1219712,
+      "sha256": "a42c93708add2eae91761fd8d1d08d25aa0e851e46a70654e1c2510aaa3ef3db",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/02-side.png",
+      "bytes": 710954,
+      "sha256": "7a87ecf6ce83c17f1b1ce97d1eb89c12332414afdc00c5d9599a8d76cec9b504",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/04-rear-three-quarter.png",
+      "bytes": 1035440,
+      "sha256": "2712c112d244c791b418f342ca9b7c97e2c0fb7e3dc57d4c0e5321afc432a576",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/01-top.png",
+      "bytes": 1487373,
+      "sha256": "adb1aad71437c2a8bb66fbfbf75764376049a0e0ae6ebcbe0e4863cf209fd413",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy square-mantle armor attachment: one compact stepped shoulder frame with deliberate negative space at its inner root. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the squared notched C-like plan, thick readable planes, chamfered ends, flat underside, clean mirrorability, and one connected rigid object. No bot, chassis, base, floor, solid crate, wall block, building, turret, weapon, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, rank symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

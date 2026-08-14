@@ -1,0 +1,34 @@
+{
+  "input": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-crown-spine/01a001c4-aa9c-7b46-bf18-db6473395f8b/raw-model.glb",
+  "output": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-crown-spine/01a001c4-aa9c-7b46-bf18-db6473395f8b/model-normalized-rich-review.glb",
+  "bytes": 65519056,
+  "sourceBounds": {
+    "min": [
+      -0.9513499736785889,
+      -0.351502001285553,
+      -0.31103599071502686
+    ],
+    "max": [
+      0.950190007686615,
+      0.34808000922203064,
+      0.3103429973125458
+    ]
+  },
+  "orientation": "identity",
+  "scale": 0.11569570040912408,
+  "heightScale": 1,
+  "targetPlanformSpan": 0.22,
+  "strippedTangentAttributes": 0,
+  "normalizedBounds": {
+    "min": [
+      -0.11,
+      0,
+      -0.03594543861968137
+    ],
+    "max": [
+      0.11,
+      0.08093863069929809,
+      0.03594543861968137
+    ]
+  }
+}

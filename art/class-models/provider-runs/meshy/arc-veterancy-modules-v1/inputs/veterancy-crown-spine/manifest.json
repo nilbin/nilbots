@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-crown-spine-meshy7-gate-c-v1",
+  "classId": "veterancy-crown-spine",
+  "label": "Veterancy Crown Spine",
+  "status": "rejected-static-review",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner rejected the blade-only level-five study and explicitly asked 'What about the crown and feathers etc?!' on 2026-08-14; treated as Gate C approval for the remaining real module families.",
+  "canonicalIdentity": {
+    "sourceSheet": "source-sheet.png",
+    "gateAReview": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
+    "inputMetrics": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "03-front-three-quarter.png",
+      "sha256": "f6cc19da655b4b4c58c4499acc16f0f2d2fef30ecdbf25ed43e4b3548987452e",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "02-side.png",
+      "sha256": "9e0604e8e7739086a8a233f6f50a64c1903dfee0f2e67b5d8082ef7ea1cabd17",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "04-rear-three-quarter.png",
+      "sha256": "532b4ff95e680415f6661ec877d27890205d7f5ceb5ded5e9916785f774908c0",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "01-top.png",
+      "sha256": "467f2cd65d504d938bbac8c8daeabfc78761ae83983b3953cce523939bb316d2",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "inputGate": {
+    "status": "passed",
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1254,
+    "rootIntent": "Centered dorsal part on Z=0; split flat underside pads mount to the chassis, with the stronger crest rhythm aligned along +X/front.",
+    "family": "matte aged brass shell, graphite recesses, restrained amber inlay"
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "Gate C owner approval on 2026-08-14; run first and inspect before any later module.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy crown-spine armor attachment, a compact low angular command crest rather than a literal royal crown. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the bridged crest, split mounting pads, readable faceted planes, low profile, centered symmetry, and one connected rigid object. No bot, chassis, base, floor, jewels, points, fantasy crown, tiara, horns, antenna, weapon, barrel, rank symbols, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "balanceBeforePreparation": 980
+  },
+  "nextGate": "superseded by the corrective veterancy-crown-spine-v2 task; retain for provenance only",
+  "providerRun": {
+    "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+    "directory": "../../veterancy-crown-spine/01a001c4-aa9c-7b46-bf18-db6473395f8b",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 980,
+    "balanceAfter": 950,
+    "rawModelSha256": "ea243e655df5147a377b9082860693b6553b7ebe7200c76e30591ffc13e252e0"
+  },
+  "reviewGate": {
+    "status": "failed-silhouette",
+    "runtimePromoted": false,
+    "reason": "The result is a low bridge-like plate and does not retain the petaled command-crown silhouette from the approved roster concept.",
+    "supersededBy": "../veterancy-crown-spine-v2/manifest.json",
+    "providerPreview": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/rejected-bridge-crown-provider-preview.png"
+  }
+}

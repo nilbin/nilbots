@@ -1,0 +1,34 @@
+{
+  "input": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025/raw-model.glb",
+  "output": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025/model-normalized-rich-review.glb",
+  "bytes": 52413820,
+  "sourceBounds": {
+    "min": [
+      -0.951774001121521,
+      -0.10593099892139435,
+      -0.37242698669433594
+    ],
+    "max": [
+      0.9507449865341187,
+      0.09100800007581711,
+      0.3754029870033264
+    ]
+  },
+  "orientation": "identity",
+  "scale": 0.17871043716570822,
+  "heightScale": 1,
+  "targetPlanformSpan": 0.34,
+  "strippedTangentAttributes": 0,
+  "normalizedBounds": {
+    "min": [
+      -0.17,
+      0,
+      -0.06682251076256467
+    ],
+    "max": [
+      0.17,
+      0.03519505460576863,
+      0.06682251076256467
+    ]
+  }
+}

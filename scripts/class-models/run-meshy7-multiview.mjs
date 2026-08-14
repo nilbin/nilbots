@@ -338,6 +338,11 @@ function validateManifest(value, requestPlan, { requireAuthorization }) {
     throw new Error('The authorized clean-input generation disables remesh and image enhancement.');
   if (requestPlan.pilotCreditCap !== 30)
     throw new Error('The authorized per-task credit cap must be exactly 30.');
+  if (
+    typeof requestPlan.texture_prompt !== 'string' ||
+    requestPlan.texture_prompt.length > 800
+  )
+    throw new Error('The Meshy texture prompt must be a string of at most 800 characters.');
   if (requestPlan.autoRigging !== false)
     throw new Error('Auto-rigging must be explicitly disabled.');
   if (

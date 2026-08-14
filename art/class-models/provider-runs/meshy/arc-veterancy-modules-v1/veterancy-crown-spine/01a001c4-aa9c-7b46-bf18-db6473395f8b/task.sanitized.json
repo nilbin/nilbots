@@ -1,0 +1,36 @@
+{
+  "id": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Standalone Nilbots veterancy crown-spine armor attachment, a compact low angular command crest rather than a literal royal crown. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the bridged crest, split mounting pads, readable faceted planes, low profile, centered symmetry, and one connected rigid object. No bot, chassis, base, floor, jewels, points, fantasy crown, tiara, horns, antenna, weapon, barrel, rank symbols, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, eyes, baked lighting, or cast shadows.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786736063819,
+  "progress": 100,
+  "started_at": 1786736063825,
+  "finished_at": 1786736243712,
+  "expires_at": 1786995443712,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c4-aa9c-7b46-bf18-db6473395f8b/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

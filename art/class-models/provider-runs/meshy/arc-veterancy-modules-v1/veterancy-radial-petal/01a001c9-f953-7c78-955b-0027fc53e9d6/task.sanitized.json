@@ -1,0 +1,36 @@
+{
+  "id": "01a001c9-f953-7c78-955b-0027fc53e9d6",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Standalone Nilbots veterancy radial-petal armor attachment: one low thick armored feather-like wedge, not a biological feather or wing. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the narrow inner mounting root, broad clipped outer cap, shallow layered feather facets, large readable planes, flat underside, clean mirrorability, and one connected rigid object. No bot, chassis, base, floor, full ring, halo, flower, organic feather barbs, fantasy wing, sword, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, symbols, eyes, baked lighting, or cast shadows.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786736411680,
+  "progress": 100,
+  "started_at": 1786736411684,
+  "finished_at": 1786736599635,
+  "expires_at": 1786995799635,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a001c9-f953-7c78-955b-0027fc53e9d6/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

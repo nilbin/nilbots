@@ -1,73 +1,90 @@
-# Meshy 7 veterancy pilot assessment
+# Meshy 7 veterancy kit assessment
 
 ## Verdict
 
-**The approach flies.** The one authorized `veterancy-swept-blade` pilot passes
-Gate B as an art-side rich candidate. Meshy reconstructed one coherent hard
-surface part, kept the recessed inner seams and restrained amber inlay, retained
-a usable underside, and produced a pair that mirrors cleanly. The corrected
-static fits read as added veteran armor on both Kestrel and Longshot without
-covering either chassis center or its forward beam path.
+**The five-family modeling direction works, and the crown/feather omission is
+now corrected.** The accepted kit contains a visibly petaled crown, a swept
+blade, a radial armored feather/petal, a square mantle, and a broken curved
+rail. Every accepted model is a standalone connected attachment. The current
+level-five and rank-strip evidence uses the real normalized GLBs rather than a
+procedural crown proxy.
 
-No runtime asset was promoted, no replay or gameplay-capture code was touched,
-and no Meshy call was made for the remaining four modules.
+This is a static art-side checkpoint, not final Gate D approval. No runtime
+asset was promoted, no game renderer or replay data was changed, and no replay
+harness was run.
 
-## What the pilot caught
+## Corrective crown decision
 
-The provider result arrived with the broad luminous capped end facing `+X`.
-That made a paired fit read like two forward muzzles. The accepted normalized
-candidate applies a recorded 180-degree world-Y correction: the narrow clipped
-armor end now points `+X`/front and the luminous cap points rearward. The raw
-provider-facing normalization remains preserved beside it.
+The first crown task (`01a001c4-aa9c-7b46-bf18-db6473395f8b`) succeeded
+technically but failed the approved silhouette: it was a low bridge and read as
+another chassis plate. It is rejected but preserved for provenance.
 
-## Passed checks
+The corrective V2 task (`01a001e6-49a2-7e18-b5d8-c6b7240d5d60`) preserves one
+dominant center petal and two progressively lower swept pairs on one graphite
+base. Its raw mesh has one spatial connected component. Normalized dimensions
+are `0.220 X × 0.120 Y × 0.038 Z` tile units. It remains legible from the real
+gameplay three-quarter direction while presenting only a thin footprint in a
+strict overhead diagnostic, which is expected for an upright crest.
 
-- one spatially connected object; no invented chassis, base, floor, or floating
-  component;
-- readable top silhouette and large hard-surface planes;
-- matte brass/graphite material separation with restrained top-side amber;
-- clean negative-scale mirrored pair with no visible normal failure;
-- Kestrel and Longshot static fits retain their class silhouettes and central
-  beam lanes;
-- recognizable in unsharpened 96-pixel review samples;
-- raw, normalized, task, setting, balance, timing, texture, hash, and structural
-  evidence preserved.
+Meshy's documented API has no retry endpoint. The signed-in web workspace did
+not expose the API-created task for a no-charge gallery retry, so the owner
+correction was recorded as one separate 30-credit corrective cap. Balance moved
+from 860 to 830.
 
-## Known caveats before Gate C
+## Accepted module checks
 
-- The rich provider model is intentionally unoptimized: 65,381,064 bytes,
-  1,032,029 vertices, and 1,999,010 triangles. It is review evidence, not a
-  shippable mobile asset. Gate E owns the later lean derivative.
-- At `0.36` tile X span the result is `0.2084` tile wide, about `1.89x` the
-  handoff's `0.11` starting Z envelope. The envelope was explicitly non-binding,
-  and the two required fits remain legible, but maximum-rank five-piece layouts
-  should keep the swept-blade pair conservatively scaled.
-- The rear cap is more luminous than the top inlays. Correct facing keeps it
-  from reading as a forward weapon; a later material-only correction is optional
-  rather than required for this geometry pilot.
-- `veterancy-crown-spine` remains the least certain of the four ungenerated
-  concepts. Its two rejected aircraft-like/too-flat drafts are preserved, and
-  its accepted Gate A sheet should receive extra scrutiny before Gate C spend.
+- `veterancy-crown-spine-v2`: five fused mechanical petals, readable amber
+  separations, shared mount base, no jewelry or weapon language;
+- `veterancy-swept-blade`: broad low armored fin, corrected to +X front and
+  recommended at `0.70×` lateral renderer scale;
+- `veterancy-radial-petal`: narrow inner stem, broad clipped armored feather
+  cap, low profile, clean radial rotation;
+- `veterancy-square-mantle`: open C-like heavy shoulder with preserved negative
+  space; provider result requires the recorded `lay-flat-x` orientation;
+- `veterancy-curved-rail`: one open capped arc, never a complete halo or
+  selection ring.
 
-## Level-five layout study
+All five accepted raw models are single Meshy mesh/primitive outputs and each
+passes the spatial connected-component audit. Materials remain in the approved
+aged-brass/graphite/restrained-amber family.
 
-Longshot is the one chassis that can preview the maximum-rank arrangement
-honestly from this pilot because its profile reuses `veterancy-swept-blade` for
-both the inner and outer pair. The committed static study therefore uses four
-instances of the real Meshy result plus a clearly documented procedural crown
-proxy; it does not pretend that the crown-spine model already exists.
+## Level-five evidence
 
-The current-width and `0.70x`-width compositions both fit. The `0.70x` lateral
-candidate is stronger: it changes the blade from `0.2084` to `0.1459` tile wide,
-keeps the chunky top silhouette, leaves more machinery and beam lane visible,
-and still separates into four readable pieces at an unsharpened 112-pixel
-sample. This is now the recommended renderer/profile scale for the swept blade,
-not a destructive mesh rewrite.
+The Kestrel module-mix proof deliberately combines the corrected crown, swept
+inner pair, and radial outer pair so the owner's missing crown and feather
+language can be judged together on a familiar flat chassis. It is a layout
+study, not a silent rewrite of the handoff's class map. Sunder, Repulsor, and
+Longshot evidence shows additional planned combinations.
+
+The rank strip is monotonic:
+
+1. corrected crown only;
+2. crown plus inner pair;
+3. inner pair spreads and cants;
+4. outer feather/petal pair appears;
+5. crown and both pairs take their strongest size, spread, cant, and restrained
+   energy pose.
+
+The unsharpened 104-pixel sheet retains the compact crown and separates the
+outer pieces from the chassis, although per-class fit work is still required.
+
+## Remaining caveats and next gate
+
+- The accepted models are rich proofs, not mobile candidates: each is roughly
+  52–66 MB and 1.52–1.99 million triangles.
+- A generic mount profile is not sufficient. Tall Sunder and the radial
+  Repulsor already prove that each chassis needs its own height, radial angle,
+  lateral spread, and signature-clearance settings.
+- The full all-sixteen static fit sheet and the eight required rank strips are
+  not yet complete.
+- Gate E lean work should begin only after the owner approves this corrected
+  crown and the crown/blade/feather level-five read.
+- Runtime promotion, rank animation, glow ownership, replay evidence, and the
+  rejected numeric plate replacement remain separate renderer work.
 
 ## Recommendation
 
-Proceed to the remaining four Meshy 7 models only after owner review of the
-Gate A sheet and this pilot. Keep the same four-view method and material prompt,
-record each call independently, stop at the first failed silhouette, and retain
-the 180-degree-facing lesson as an explicit normalization check rather than an
-assumption about provider coordinates.
+Review the corrected crown six-view, the five-module sheet, the level-five
+composition board, and the Kestrel rank strip together. If the crown and feather
+read is approved, proceed to all-sixteen static fitting before any destructive
+optimization or runtime integration.

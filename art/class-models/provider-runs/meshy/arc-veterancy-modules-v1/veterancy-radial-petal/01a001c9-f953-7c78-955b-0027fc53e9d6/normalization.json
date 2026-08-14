@@ -1,0 +1,34 @@
+{
+  "input": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-radial-petal/01a001c9-f953-7c78-955b-0027fc53e9d6/raw-model.glb",
+  "output": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-radial-petal/01a001c9-f953-7c78-955b-0027fc53e9d6/model-normalized-rich-review.glb",
+  "bytes": 65129748,
+  "sourceBounds": {
+    "min": [
+      -0.95135498046875,
+      -0.17759400606155396,
+      -0.5314139723777771
+    ],
+    "max": [
+      0.950410008430481,
+      0.17467699944972992,
+      0.5269839763641357
+    ]
+  },
+  "orientation": "identity",
+  "scale": 0.1261985583922835,
+  "heightScale": 1,
+  "targetPlanformSpan": 0.24,
+  "strippedTangentAttributes": 0,
+  "normalizedBounds": {
+    "min": [
+      -0.12,
+      0,
+      -0.06678414766828969
+    ],
+    "max": [
+      0.12,
+      0.04445609305892418,
+      0.06678414766828969
+    ]
+  }
+}

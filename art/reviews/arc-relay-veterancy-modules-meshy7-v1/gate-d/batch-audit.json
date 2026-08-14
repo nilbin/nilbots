@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "status": "five-family-rich-static-checkpoint",
+  "capturedAt": "2026-08-14",
+  "provider": "Meshy",
+  "providerModel": "meshy-7",
+  "acceptedModuleCount": 5,
+  "rejectedProviderResultCount": 1,
+  "credits": {
+    "consumedTotal": 180,
+    "acceptedModuleTasks": 150,
+    "rejectedBridgeCrownTask": 30,
+    "balanceAfter": 830
+  },
+  "acceptedRichTotals": {
+    "rawBytes": 315262688,
+    "vertices": 4935085,
+    "triangles": 9494108,
+    "materials": 5,
+    "spatialConnectedComponents": 5
+  },
+  "modules": [
+    {
+      "id": "veterancy-crown-spine-v2",
+      "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
+      "raw": {
+        "bytes": 66067736,
+        "sha256": "e8ce74b4dcf49f904ba238ccd51b829a69be91b19978c7384e3809199111463f",
+        "vertices": 1039849,
+        "triangles": 1991184,
+        "materials": 1,
+        "spatialConnectedComponents": 1
+      },
+      "normalizedRich": {
+        "bytes": 66068292,
+        "sha256": "a098822b6e5a076a578aef34f766549031dd49acf4d85012860a61b6625a3f9f",
+        "orientation": "identity",
+        "dimensions": { "x": 0.22, "y": 0.11991886005613431, "z": 0.037808471102170234 }
+      }
+    },
+    {
+      "id": "veterancy-swept-blade",
+      "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
+      "raw": {
+        "bytes": 65381064,
+        "sha256": "1ce6fb55539843f2fa105dd28f57db8e1cf40f226fa78f66688cf1ac55f3f136",
+        "vertices": 1032029,
+        "triangles": 1999010,
+        "materials": 1,
+        "spatialConnectedComponents": 1
+      },
+      "normalizedRich": {
+        "bytes": 65381704,
+        "sha256": "dd11a11b98bd88935fbb1b213671cefa56879dc623943473744fc44a557c4825",
+        "orientation": "identity with recorded 180-degree Y facing correction",
+        "dimensions": { "x": 0.36, "y": 0.09259162302188197, "z": 0.20841874097308392 },
+        "recommendedRendererLateralScale": 0.7,
+        "recommendedResultingZ": 0.14589311868115873
+      }
+    },
+    {
+      "id": "veterancy-radial-petal",
+      "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6",
+      "raw": {
+        "bytes": 65129196,
+        "sha256": "05cca987d00f6a17a41140231b5483d74ef9d13b4108651e1f3d1508b363c905",
+        "vertices": 1032007,
+        "triangles": 1992552,
+        "materials": 1,
+        "spatialConnectedComponents": 1
+      },
+      "normalizedRich": {
+        "bytes": 65129748,
+        "sha256": "7537f3a95e48125a371f83d3e510bb2fce370d30e11ed2041689733f0fbedbe9",
+        "orientation": "identity",
+        "dimensions": { "x": 0.24, "y": 0.04445609305892418, "z": 0.13356829533657938 }
+      }
+    },
+    {
+      "id": "veterancy-square-mantle",
+      "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25",
+      "raw": {
+        "bytes": 66271432,
+        "sha256": "93b2c811120cf7ef816a4147feec1cebc38fc3f5ea419c3237a5963e96ea2eea",
+        "vertices": 1041129,
+        "triangles": 1992758,
+        "materials": 1,
+        "spatialConnectedComponents": 1
+      },
+      "normalizedRich": {
+        "bytes": 66272040,
+        "sha256": "f0bd69849cf67a7d953f386de6886c409a9dcaed32ead09b1f45e8b3996ce896",
+        "orientation": "lay-flat-x",
+        "dimensions": { "x": 0.26, "y": 0.07561286977427129, "z": 0.2559420557230166 }
+      }
+    },
+    {
+      "id": "veterancy-curved-rail",
+      "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025",
+      "raw": {
+        "bytes": 52413260,
+        "sha256": "d92d84ef012f50ee7253de3f973bfc3e5e27ebce500bef2ee36a2da748d00b08",
+        "vertices": 790071,
+        "triangles": 1518604,
+        "materials": 1,
+        "spatialConnectedComponents": 1
+      },
+      "normalizedRich": {
+        "bytes": 52413820,
+        "sha256": "8fa68fc90cb737d9bfa3717277b92ee566552c19520a6ad2b97992e18c915e15",
+        "orientation": "identity",
+        "dimensions": { "x": 0.34, "y": 0.03519505460576863, "z": 0.13364502152512934 }
+      }
+    }
+  ],
+  "evidence": {
+    "gallery": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/index.html",
+    "fiveModuleSheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/five-real-modules.png",
+    "levelFiveSheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-crown-and-feathers-level5.png",
+    "rankStrip": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/kestrel-real-rank-1-5-strip.png",
+    "gameplayScale": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-level5-gameplay-scale.png"
+  },
+  "contract": {
+    "runtimePromoted": false,
+    "leanDerivativesBuilt": false,
+    "allSixteenFitComplete": false,
+    "replayHarnessRun": false,
+    "nextGate": "owner silhouette review"
+  }
+}

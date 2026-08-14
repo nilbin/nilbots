@@ -1,70 +1,90 @@
 {
   "schemaVersion": 1,
   "id": "arc-veterancy-modules-v1",
-  "status": "pilot-ready-for-owner-review",
+  "status": "five-family-static-checkpoint-awaiting-owner-review",
   "handoff": "../../../../reviews/veterancy-power-concepts-v1/MESHY-7-HANDOFF-PLAN.md",
-  "ownerAuthorization": "Owner asked to try the Meshy 7 veterancy-model handoff and see whether it flies while AFK on 2026-08-14.",
+  "ownerAuthorization": [
+    "Owner asked to try the Meshy 7 veterancy handoff while AFK on 2026-08-14.",
+    "Owner rejected the blade-only/bridge-like study by asking 'What about the crown and feathers etc?!'; this authorized Gate C and one bounded corrective petaled-crown task."
+  ],
   "runtimePromotionAuthorized": false,
   "inputBriefs": "INPUT-BRIEFS.md",
   "provider": "Meshy",
   "providerModel": "meshy-7",
-  "moduleCount": 5,
-  "modules": [
-    "veterancy-crown-spine",
+  "acceptedModuleCount": 5,
+  "acceptedModules": [
+    "veterancy-crown-spine-v2",
     "veterancy-swept-blade",
     "veterancy-square-mantle",
     "veterancy-radial-petal",
     "veterancy-curved-rail"
   ],
-  "gateA": {
-    "status": "passed-by-task-agent-under-owner-try-it-authorization",
-    "reviewSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
-    "metrics": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json",
-    "checks": {
-      "fourSeparateInputsPerModule": true,
-      "oneConsistentObjectPerSet": true,
-      "axesAndRootIntentRecorded": true,
-      "coherentFivePartFamily": true,
-      "matteBrassGraphiteAmber": true,
-      "forbiddenRankSymbolsAbsent": true,
-      "chassisGeometryAbsent": true
-    },
-    "notes": [
-      "The rejected crown-spine drafts are retained under inputs/veterancy-crown-spine/drafts.",
-      "The accepted crown-spine is deliberately compact and bridged at its root; it remains a later Gate C candidate, not part of this paid pilot.",
-      "The combined review sheet is presentation evidence only. Meshy receives four separate PNG files for the pilot."
-    ]
-  },
-  "gateB": {
-    "status": "passed-static-review-with-recorded-facing-correction",
-    "pilot": "veterancy-swept-blade",
-    "authorizedTaskCount": 1,
-    "creditCap": 30,
+  "rejectedModels": [
+    {
+      "module": "veterancy-crown-spine",
+      "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+      "reason": "Low bridge-like silhouette did not retain the petaled command crown from the approved roster concept."
+    }
+  ],
+  "providerTasks": [
+    { "module": "veterancy-swept-blade", "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979", "credits": 30, "accepted": true },
+    { "module": "veterancy-crown-spine", "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b", "credits": 30, "accepted": false },
+    { "module": "veterancy-radial-petal", "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6", "credits": 30, "accepted": true },
+    { "module": "veterancy-square-mantle", "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25", "credits": 30, "accepted": true },
+    { "module": "veterancy-curved-rail", "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025", "credits": 30, "accepted": true },
+    { "module": "veterancy-crown-spine-v2", "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60", "credits": 30, "accepted": true }
+  ],
+  "accounting": {
+    "creditsConsumed": 180,
+    "balanceBeforeFirstTask": 1010,
+    "balanceAfterFinalTask": 830,
     "textureResolution": "2k",
     "autoRigging": false,
-    "stopBeforeRemainingModules": true,
-    "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
-    "creditsConsumed": 30,
-    "balanceBefore": 1010,
-    "balanceAfter": 980,
-    "assessment": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/ASSESSMENT.md",
-    "reviewGallery": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/index.html",
-    "levelFiveStudy": {
-      "chassis": "longshot",
-      "realModuleInstances": 4,
-      "crown": "procedural review proxy; ungenerated",
-      "recommendedSweptBladeLateralScale": 0.7,
-      "comparison": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-level5-width-comparison.png",
-      "rankStrip": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-rank-1-5-strip.png",
-      "runtimeImplemented": false
+    "apiFreeRetryAvailable": false,
+    "retryPolicySource": "https://help.meshy.ai/en/articles/9992034-does-the-meshy-api-support-retry-for-generations"
+  },
+  "gates": {
+    "gateA": {
+      "status": "historical-input-review-complete",
+      "reviewSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
+      "metrics": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json",
+      "note": "The original crown input passed consistency checks but failed to preserve the approved crown language in 3D; the corrective V2 input is separately versioned."
+    },
+    "gateB": {
+      "status": "passed",
+      "pilot": "veterancy-swept-blade",
+      "recommendedLateralScale": 0.7,
+      "facingYawDegrees": 180
+    },
+    "gateC": {
+      "status": "complete-with-one-corrective-replacement",
+      "acceptedFamilies": 5,
+      "rejectedProviderResults": 1
+    },
+    "gateD": {
+      "status": "partial-static-checkpoint-awaiting-owner-review",
+      "gallery": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/index.html",
+      "fiveModelSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/five-real-modules.png",
+      "levelFiveSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-crown-and-feathers-level5.png",
+      "rankStrip": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/kestrel-real-rank-1-5-strip.png",
+      "gameplayScale": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-level5-gameplay-scale.png",
+      "complete": false,
+      "remaining": [
+        "per-class fit profiles and all-sixteen static sheet",
+        "the remaining required class rank strips",
+        "owner silhouette approval"
+      ]
+    },
+    "gateE": {
+      "status": "not-started",
+      "reason": "Lean derivatives remain behind owner silhouette approval."
     }
   },
   "sourceAndPricing": {
     "multiImageParameters": "https://docs.meshy.ai/en/api/multi-image-to-3d",
     "pricing": "https://docs.meshy.ai/en/api/pricing",
     "verifiedAt": "2026-08-14",
-    "expectedCredits": 30,
-    "retentionNote": "Provider artifacts are downloaded immediately because non-Enterprise API assets may be retained for no more than three days."
+    "retentionNote": "Provider artifacts were downloaded immediately because non-Enterprise API assets may be retained for no more than three days."
   },
-  "nextGate": "Owner review of Gate A plus the swept-blade pilot; do not generate the remaining four modules or promote runtime assets before that decision."
+  "nextGate": "Owner review of the corrected crown, real five-module sheet, level-five crown-and-feathers board, and Kestrel rank strip; no runtime promotion or lean optimization before that decision."
 }
