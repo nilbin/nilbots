@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "status": "gate-b-static-review",
-  "capturedAt": "2026-08-14T19:09:56.370Z",
+  "capturedAt": "2026-08-14T19:26:57.305Z",
   "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
   "provider": "Meshy",
   "providerModel": "meshy-7",
@@ -136,6 +136,21 @@
       "bytes": 40028,
       "sha256": "0f61be14a973877cc6266aff1fc77412546d9bafabb3e9765d94a11e95c1d347"
     },
+    "levelFiveSheet": {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-level5-width-comparison.png",
+      "bytes": 803761,
+      "sha256": "b903db01777c7002866d2f488c02b1bb524a5d5e08de0f66a7983c65f3719bc8"
+    },
+    "rankStrip": {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-rank-1-5-strip.png",
+      "bytes": 479038,
+      "sha256": "d94f601216d762db99d50d507b44f650c970c36a4c41de2b83026186392adaa6"
+    },
+    "levelFiveGameplayScale": {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-level5-gameplay-scale.png",
+      "bytes": 21431,
+      "sha256": "a81f1491e8310cf0dc8ba0fdf9364fc12664b80cf0046b1fed1bd620e5fb1500"
+    },
     "isolatedCaptures": [
       {
         "view": "front-three-quarter",
@@ -193,7 +208,77 @@
         "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-fit.png",
         "sha256": "26e8cac97bac54d94c4513fcbe58214ae01beb18454f66a7b8db959d4ee2f765"
       }
+    ],
+    "levelFiveCaptures": [
+      {
+        "view": "longshot-level5-current-width",
+        "label": "CURRENT WIDTH · GAMEPLAY",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-level5-current-width.png",
+        "sha256": "fea2ff53375325f71bef370e30282fd8cd73f0f6acbaf615792db8e92492bc46"
+      },
+      {
+        "view": "longshot-level5-current-width-top",
+        "label": "CURRENT WIDTH · STRICT TOP",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-level5-current-width-top.png",
+        "sha256": "3516fe1672794cc0279dd5ac19d97c9165de853d001b05c8a17b5a1d9ffb871f"
+      },
+      {
+        "view": "longshot-level5-narrow-width",
+        "label": "0.70× WIDTH · GAMEPLAY",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-level5-narrow-width.png",
+        "sha256": "549e2094de271b3e412e4b9c6ca546abbdb32540982edd5bd3be8ae40b9ed84f"
+      },
+      {
+        "view": "longshot-level5-narrow-width-top",
+        "label": "0.70× WIDTH · STRICT TOP",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-level5-narrow-width-top.png",
+        "sha256": "eb2adafcb9eef9df356d70318e25002900c47961755c897db4d69b6d7999263b"
+      }
+    ],
+    "rankCaptures": [
+      {
+        "view": "longshot-rank-1",
+        "label": "RANK 1",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-rank-1.png",
+        "sha256": "b52804706cddd0f67c28a9946259739921ed17d93e64405c26a71cbc32ae3e51"
+      },
+      {
+        "view": "longshot-rank-2",
+        "label": "RANK 2",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-rank-2.png",
+        "sha256": "ed99dae559bfd63b70989da369e806150a9ba596735b6ed2145cc718222efaf0"
+      },
+      {
+        "view": "longshot-rank-3",
+        "label": "RANK 3",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-rank-3.png",
+        "sha256": "37babcbd6d89e1b9f14e1aea980a440f4dcd41b4069e1955de69211bfa5e84b6"
+      },
+      {
+        "view": "longshot-rank-4",
+        "label": "RANK 4",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-rank-4.png",
+        "sha256": "0e3a6d7ae60d23da2294b8b3a54bac74a349b75a1a9844548502046d9fb937ff"
+      },
+      {
+        "view": "longshot-rank-5",
+        "label": "RANK 5",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-rank-5.png",
+        "sha256": "549e2094de271b3e412e4b9c6ca546abbdb32540982edd5bd3be8ae40b9ed84f"
+      }
     ]
+  },
+  "levelFivePreview": {
+    "chassis": "longshot",
+    "rationale": "Longshot truthfully reuses the swept-blade GLB for both its inner and outer pairs.",
+    "crown": "Procedural proportion/material proxy; the crown-spine Meshy model has not been generated.",
+    "recommendedBladeLateralScale": 0.7,
+    "resultingBladeDimensions": {
+      "x": 0.36,
+      "y": 0.09259162302188197,
+      "z": 0.14589311868115873
+    },
+    "runtimeImplemented": false
   },
   "contract": {
     "purpose": "Static art-side Gate B evidence only; no runtime promotion",

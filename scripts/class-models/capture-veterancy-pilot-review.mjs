@@ -44,6 +44,8 @@ mkdirSync(captureDirectory, { recursive: true });
 const browser = await chromium.launch({ headless: true });
 const isolatedCaptures = [];
 let fitCaptures;
+let levelFiveCaptures;
+const rankCaptures = [];
 try {
   for (const [view, label] of views)
     isolatedCaptures.push(await captureIsolated(view, label));
@@ -60,6 +62,48 @@ try {
       chassis: longshot,
     }),
   ];
+  levelFiveCaptures = [
+    await captureFit('longshot-level5-current-width', 'CURRENT WIDTH · GAMEPLAY', {
+      mode: 'level',
+      profile: 'longshot',
+      chassis: longshot,
+      rank: 5,
+      widthScale: 1,
+    }),
+    await captureFit('longshot-level5-current-width-top', 'CURRENT WIDTH · STRICT TOP', {
+      mode: 'level',
+      profile: 'longshot',
+      chassis: longshot,
+      rank: 5,
+      widthScale: 1,
+      view: 'top-down',
+    }),
+    await captureFit('longshot-level5-narrow-width', '0.70× WIDTH · GAMEPLAY', {
+      mode: 'level',
+      profile: 'longshot',
+      chassis: longshot,
+      rank: 5,
+      widthScale: 0.7,
+    }),
+    await captureFit('longshot-level5-narrow-width-top', '0.70× WIDTH · STRICT TOP', {
+      mode: 'level',
+      profile: 'longshot',
+      chassis: longshot,
+      rank: 5,
+      widthScale: 0.7,
+      view: 'top-down',
+    }),
+  ];
+  for (let rank = 1; rank <= 5; rank += 1)
+    rankCaptures.push(
+      await captureFit(`longshot-rank-${rank}`, `RANK ${rank}`, {
+        mode: 'level',
+        profile: 'longshot',
+        chassis: longshot,
+        rank,
+        widthScale: 0.7,
+      }),
+    );
 } finally {
   await browser.close();
 }
@@ -79,6 +123,21 @@ const fitSheet = await contactSheet({
   columns: 3,
 });
 const gameplayScaleSheet = await smallScaleSheet(fitCaptures);
+const levelFiveSheet = await contactSheet({
+  file: 'longshot-level5-width-comparison.png',
+  title: 'LONGSHOT · LEVEL 5 FIVE-ELEMENT SILHOUETTE',
+  subtitle: 'real swept-blade Meshy geometry · procedural crown proxy · static layout study only',
+  captures: levelFiveCaptures,
+  columns: 2,
+});
+const rankStrip = await contactSheet({
+  file: 'longshot-rank-1-5-strip.png',
+  title: 'LONGSHOT · VETERANCY 1–5 PROGRESSION',
+  subtitle: '0.70× lateral blade width · real blade geometry · crown remains a labeled proxy',
+  captures: rankCaptures,
+  columns: 3,
+});
+const levelFiveGameplayScale = await singleSmallScaleSheet(rankCaptures.at(-1));
 
 const rawBytes = readFileSync(path.join(repository, rawModel));
 const normalizedBytes = readFileSync(path.join(repository, model));
@@ -168,8 +227,25 @@ const audit = {
     sixViewSheet,
     fitSheet,
     gameplayScaleSheet,
+    levelFiveSheet,
+    rankStrip,
+    levelFiveGameplayScale,
     isolatedCaptures,
     fitCaptures,
+    levelFiveCaptures,
+    rankCaptures,
+  },
+  levelFivePreview: {
+    chassis: 'longshot',
+    rationale: 'Longshot truthfully reuses the swept-blade GLB for both its inner and outer pairs.',
+    crown: 'Procedural proportion/material proxy; the crown-spine Meshy model has not been generated.',
+    recommendedBladeLateralScale: 0.7,
+    resultingBladeDimensions: {
+      x: dimensions[0],
+      y: dimensions[1],
+      z: dimensions[2] * 0.7,
+    },
+    runtimeImplemented: false,
   },
   contract: {
     purpose: 'Static art-side Gate B evidence only; no runtime promotion',
@@ -194,9 +270,11 @@ async function captureFit(view, label, options) {
   const url = new URL(fitViewerUrl);
   url.searchParams.set('module', `/${model}`);
   url.searchParams.set('mode', options.mode);
-  url.searchParams.set('view', 'gameplay');
+  url.searchParams.set('view', options.view ?? 'gameplay');
   if (options.profile) url.searchParams.set('profile', options.profile);
   if (options.chassis) url.searchParams.set('chassis', `/${options.chassis}`);
+  if (options.rank) url.searchParams.set('rank', options.rank);
+  if (options.widthScale) url.searchParams.set('widthScale', options.widthScale);
   return captureCanvas({ url, ready: '__veterancyFitReady', file: `${view}.png`, view, label });
 }
 
@@ -325,6 +403,37 @@ async function smallScaleSheet(captures) {
   const output = path.join(outputDirectory, 'swept-blade-gameplay-scale.png');
   await sharp({ create: { width, height, channels: 4, background: '#080d12' } })
     .composite(composites)
+    .png({ compressionLevel: 9 })
+    .toFile(output);
+  const bytes = readFileSync(output);
+  return { file: path.relative(repository, output), bytes: bytes.length, sha256: sha256(bytes) };
+}
+
+async function singleSmallScaleSheet(capture) {
+  const width = 420;
+  const height = 230;
+  const imageSize = 112;
+  const thumbnail = await sharp(path.join(repository, capture.file))
+    .resize(imageSize, imageSize, { fit: 'cover', kernel: sharp.kernel.lanczos3 })
+    .png()
+    .toBuffer();
+  const output = path.join(outputDirectory, 'longshot-level5-gameplay-scale.png');
+  await sharp({ create: { width, height, channels: 4, background: '#080d12' } })
+    .composite([
+      {
+        input: Buffer.from(
+          `<svg width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg">` +
+            '<rect width="100%" height="100%" fill="#080d12"/>' +
+            '<text x="14" y="28" fill="#e8eef2" font-size="18" font-family="monospace" font-weight="700">LEVEL 5 READABILITY</text>' +
+            '<text x="14" y="50" fill="#9fb0bb" font-size="12" font-family="monospace">112px sample · no sharpening · crown proxy</text>' +
+            '<text x="14" y="213" fill="#dbe7ef" font-size="12" font-family="monospace" font-weight="700">LONGSHOT · 0.70× BLADE WIDTH</text>' +
+            '</svg>',
+        ),
+        left: 0,
+        top: 0,
+      },
+      { input: thumbnail, left: 154, top: 78 },
+    ])
     .png({ compressionLevel: 9 })
     .toFile(output);
   const bytes = readFileSync(output);

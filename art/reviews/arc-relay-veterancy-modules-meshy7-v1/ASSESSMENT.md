@@ -49,6 +49,21 @@ provider-facing normalization remains preserved beside it.
   concepts. Its two rejected aircraft-like/too-flat drafts are preserved, and
   its accepted Gate A sheet should receive extra scrutiny before Gate C spend.
 
+## Level-five layout study
+
+Longshot is the one chassis that can preview the maximum-rank arrangement
+honestly from this pilot because its profile reuses `veterancy-swept-blade` for
+both the inner and outer pair. The committed static study therefore uses four
+instances of the real Meshy result plus a clearly documented procedural crown
+proxy; it does not pretend that the crown-spine model already exists.
+
+The current-width and `0.70x`-width compositions both fit. The `0.70x` lateral
+candidate is stronger: it changes the blade from `0.2084` to `0.1459` tile wide,
+keeps the chunky top silhouette, leaves more machinery and beam lane visible,
+and still separates into four readable pieces at an unsharpened 112-pixel
+sample. This is now the recommended renderer/profile scale for the swept blade,
+not a destructive mesh rewrite.
+
 ## Recommendation
 
 Proceed to the remaining four Meshy 7 models only after owner review of the

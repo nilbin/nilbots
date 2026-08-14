@@ -110,6 +110,9 @@
     "sixView": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-six-view.png",
     "fitBoard": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-fit-board.png",
     "gameplayScale": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-gameplay-scale.png",
+    "levelFiveComparison": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-level5-width-comparison.png",
+    "rankStrip": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-rank-1-5-strip.png",
+    "recommendedLateralScale": 0.7,
     "richMetrics": {
       "bytes": 65381704,
       "vertices": 1032029,

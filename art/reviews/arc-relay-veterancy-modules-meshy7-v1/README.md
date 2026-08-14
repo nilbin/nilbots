@@ -14,6 +14,10 @@ The current scope is Gate A plus one Gate B provider pilot:
 - `ASSESSMENT.md` records the Gate B verdict, facing correction, passes, and
   caveats.
 - `index.html` is the phone-friendly static review gallery.
+- `pilot/longshot-level5-width-comparison.png` and
+  `pilot/longshot-rank-1-5-strip.png` preview the real swept blade in a complete
+  five-element Longshot layout; the centered crown is explicitly a procedural
+  placeholder until Gate C.
 
 The 2x2 source sheets are review/provenance artifacts only. Meshy receives four
 separate PNG files for the selected module. No model in this directory is a

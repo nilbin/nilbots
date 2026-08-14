@@ -28,9 +28,13 @@
       const profileName = search.get('profile') ?? 'kestrel';
       const chassisUrl = search.get('chassis');
       const view = search.get('view') ?? 'gameplay';
+      const rank = Number(search.get('rank') ?? 5);
+      const widthScale = Number(search.get('widthScale') ?? 1);
       if (!moduleUrl) throw new Error('Missing ?module URL.');
-      if (!['pair', 'fit'].includes(mode)) throw new Error(`Unknown mode ${mode}.`);
-      if (mode === 'fit' && !chassisUrl) throw new Error('Fit mode requires ?chassis URL.');
+      if (!['pair', 'fit', 'level'].includes(mode)) throw new Error(`Unknown mode ${mode}.`);
+      if (mode !== 'pair' && !chassisUrl) throw new Error(`${mode} mode requires ?chassis URL.`);
+      if (!Number.isInteger(rank) || rank < 1 || rank > 5) throw new Error('Rank must be 1–5.');
+      if (!Number.isFinite(widthScale) || widthScale <= 0) throw new Error('Invalid widthScale.');
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(1);
@@ -75,19 +79,26 @@
         content.add(chassis);
         const bounds = new THREE.Box3().setFromObject(chassis);
         const size = bounds.getSize(new THREE.Vector3());
-        const profiles = {
-          kestrel: { scale: 0.92, x: -0.10, z: 0.29, y: 0.56, yawDegrees: 5 },
-          longshot: { scale: 1.08, x: -0.06, z: 0.31, y: 0.58, yawDegrees: 3 },
-        };
-        const profile = profiles[profileName];
-        if (!profile) throw new Error(`Unknown fit profile ${profileName}.`);
-        addMirroredPair(content, moduleTemplate, {
-          scale: profile.scale,
-          x: bounds.getCenter(new THREE.Vector3()).x + size.x * profile.x,
-          y: bounds.min.y + size.y * profile.y,
-          z: size.z * profile.z,
-          yawDegrees: profile.yawDegrees,
-        });
+        if (mode === 'fit') {
+          const profiles = {
+            kestrel: { scale: 0.92, x: -0.10, z: 0.29, y: 0.56, yawDegrees: 5 },
+            longshot: { scale: 1.08, x: -0.06, z: 0.31, y: 0.58, yawDegrees: 3 },
+          };
+          const profile = profiles[profileName];
+          if (!profile) throw new Error(`Unknown fit profile ${profileName}.`);
+          addMirroredPair(content, moduleTemplate, {
+            scale: profile.scale,
+            widthScale,
+            x: bounds.getCenter(new THREE.Vector3()).x + size.x * profile.x,
+            y: bounds.min.y + size.y * profile.y,
+            z: size.z * profile.z,
+            yawDegrees: profile.yawDegrees,
+          });
+        } else {
+          if (profileName !== 'longshot')
+            throw new Error('The pilot level preview is truthful only for Longshot.');
+          addLongshotRank(content, moduleTemplate, bounds, size, { rank, widthScale });
+        }
       }
 
       const visualBounds = new THREE.Box3().setFromObject(content);
@@ -149,11 +160,108 @@
       function addMirroredPair(parent, template, placement) {
         for (const side of [-1, 1]) {
           const instance = template.clone(true);
-          instance.scale.set(placement.scale, placement.scale, placement.scale * side);
+          instance.scale.set(
+            placement.scale,
+            placement.scale,
+            placement.scale * (placement.widthScale ?? 1) * side,
+          );
           instance.rotation.y = THREE.MathUtils.degToRad(placement.yawDegrees * side);
           instance.position.set(placement.x, placement.y, placement.z * side);
+          if (placement.emissiveBoost && placement.emissiveBoost !== 1)
+            instance.traverse((object) => {
+              if (!object.isMesh) return;
+              object.material = object.material.clone();
+              object.material.emissiveIntensity =
+                (object.material.emissiveIntensity ?? 1) * placement.emissiveBoost;
+            });
           parent.add(instance);
         }
+      }
+
+      function addLongshotRank(parent, template, bounds, size, options) {
+        const centre = bounds.getCenter(new THREE.Vector3());
+        const strongest = options.rank === 5;
+        const energized = options.rank >= 3;
+        const crown = createCrownProxy(strongest ? 1.15 : energized ? 1.06 : 0.92);
+        crown.scale.setScalar(strongest ? 0.66 : 0.6);
+        crown.position.set(
+          centre.x - size.x * 0.3,
+          bounds.min.y + size.y * (strongest ? 0.8 : 0.76),
+          centre.z,
+        );
+        parent.add(crown);
+        if (options.rank < 2) return;
+
+        addMirroredPair(parent, template, {
+          scale: strongest ? 0.78 : 0.74,
+          widthScale: options.widthScale,
+          x: centre.x + size.x * (strongest ? 0.09 : 0.04),
+          y: bounds.min.y + size.y * (strongest ? 0.61 : 0.58),
+          z: size.z * (options.rank === 2 ? 0.2 : strongest ? 0.29 : 0.25),
+          yawDegrees: options.rank === 2 ? 1 : strongest ? 9 : 5,
+          emissiveBoost: strongest ? 1.3 : energized ? 1.12 : 1,
+        });
+        if (options.rank < 4) return;
+
+        addMirroredPair(parent, template, {
+          scale: strongest ? 0.88 : 0.82,
+          widthScale: options.widthScale,
+          x: centre.x - size.x * (strongest ? 0.12 : 0.09),
+          y: bounds.min.y + size.y * (strongest ? 0.53 : 0.5),
+          z: size.z * (strongest ? 0.42 : 0.37),
+          yawDegrees: strongest ? 15 : 10,
+          emissiveBoost: strongest ? 1.3 : 1.12,
+        });
+      }
+
+      function createCrownProxy(emissiveIntensity) {
+        const group = new THREE.Group();
+        const shape = new THREE.Shape();
+        shape.moveTo(-0.105, 0);
+        shape.lineTo(-0.075, 0.045);
+        shape.lineTo(-0.02, 0.132);
+        shape.lineTo(0.035, 0.112);
+        shape.lineTo(0.105, 0.028);
+        shape.lineTo(0.105, 0);
+        shape.closePath();
+        const crestGeometry = new THREE.ExtrudeGeometry(shape, {
+          depth: 0.082,
+          bevelEnabled: true,
+          bevelSegments: 1,
+          bevelSize: 0.006,
+          bevelThickness: 0.006,
+        });
+        crestGeometry.translate(0, 0, -0.041);
+        const crest = new THREE.Mesh(
+          crestGeometry,
+          new THREE.MeshStandardMaterial({ color: '#756446', metalness: 0.38, roughness: 0.88 }),
+        );
+        group.add(crest);
+        const padMaterial = new THREE.MeshStandardMaterial({
+          color: '#24282a',
+          metalness: 0.42,
+          roughness: 0.82,
+        });
+        for (const x of [-0.064, 0.064]) {
+          const pad = new THREE.Mesh(new THREE.BoxGeometry(0.052, 0.018, 0.09), padMaterial);
+          pad.position.set(x, 0.002, 0);
+          group.add(pad);
+        }
+        const inlay = new THREE.Mesh(
+          new THREE.BoxGeometry(0.064, 0.007, 0.018),
+          new THREE.MeshStandardMaterial({
+            color: '#8f6325',
+            emissive: '#a96618',
+            emissiveIntensity: emissiveIntensity * 0.35,
+            metalness: 0.12,
+            roughness: 0.55,
+          }),
+        );
+        inlay.position.set(-0.005, 0.114, 0);
+        inlay.rotation.z = -0.16;
+        group.add(inlay);
+        group.userData.reviewOnly = 'procedural crown-spine proxy; not a Meshy or runtime asset';
+        return group;
       }
 
       function centreAndGround(object) {

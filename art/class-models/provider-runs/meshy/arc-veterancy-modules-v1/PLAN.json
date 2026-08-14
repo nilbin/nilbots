@@ -48,7 +48,16 @@
     "balanceBefore": 1010,
     "balanceAfter": 980,
     "assessment": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/ASSESSMENT.md",
-    "reviewGallery": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/index.html"
+    "reviewGallery": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/index.html",
+    "levelFiveStudy": {
+      "chassis": "longshot",
+      "realModuleInstances": 4,
+      "crown": "procedural review proxy; ungenerated",
+      "recommendedSweptBladeLateralScale": 0.7,
+      "comparison": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-level5-width-comparison.png",
+      "rankStrip": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/longshot-rank-1-5-strip.png",
+      "runtimeImplemented": false
+    }
   },
   "sourceAndPricing": {
     "multiImageParameters": "https://docs.meshy.ai/en/api/multi-image-to-3d",
