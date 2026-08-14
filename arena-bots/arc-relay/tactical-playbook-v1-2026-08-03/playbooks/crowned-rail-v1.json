@@ -1,0 +1,481 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "crowned-rail-v1",
+  "mapPlan": "../map-plans/crowned-rail-v1.json",
+  "roles": [
+    {
+      "id": "ace",
+      "classes": [
+        "longshot"
+      ],
+      "upgradePath": [
+        "damage",
+        "reach",
+        "vitality",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "rail-for-the-crown",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "rail-line",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "cash-out-the-crown",
+          "when": "ace-awakened",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "earn-the-crown-on-patrol",
+          "move": {
+            "patrol": "centre-rail-loop",
+            "via": "north-rail-ingress",
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ace-medic",
+      "classes": [
+        "patchbay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "repair-the-ace",
+          "when": {
+            "all": [
+              "ace-hurt",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "repair-beam",
+            "target": {
+              "role": "ace"
+            }
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "trail-the-ace",
+          "move": {
+            "follow": "ace",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "designator",
+      "classes": [
+        "sunder"
+      ],
+      "upgradePath": [
+        "reach",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "paint-the-ace-target",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "target-paint",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "patrol-the-designator-line",
+          "move": {
+            "patrol": "north-rail-loop",
+            "via": "north-rail-ingress",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "firing-line",
+      "classes": [
+        "mason",
+        "palisade"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "raise-rail-cover",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "hardlight-block",
+            "target": "nearest-ally"
+          }
+        },
+        {
+          "id": "project-rail-screen",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "prism-wall",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "patrol-the-rail-line",
+          "move": {
+            "patrol": "south-rail-loop",
+            "via": "south-rail-ingress",
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "spotter",
+      "classes": [
+        "lantern"
+      ],
+      "upgradePath": [
+        "vision",
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "light-the-ace-target",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "survey-flare",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "spot-the-centre-rail",
+          "move": {
+            "patrol": "north-rail-loop",
+            "via": "north-rail-ingress",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rail-guard",
+      "classes": [
+        "repulsor"
+      ],
+      "upgradePath": [
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "clear-the-rail",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "kinetic-burst",
+            "target": "self"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "guard-the-far-rail",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "quartermaster",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "reach"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "pass-the-ace-a-core",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": {
+              "role": "ace"
+            }
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "work-home-supply",
+          "move": {
+            "to": {
+              "well": "own"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "carrier",
+          "veteran",
+          "marked",
+          "weakest",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
+    "ace-awakened": {
+      "fact": "role-highest-level",
+      "operator": "at-least",
+      "value": 2,
+      "role": "ace"
+    },
+    "ace-hurt": {
+      "fact": "role-lowest-health-percent",
+      "operator": "at-most",
+      "value": 80,
+      "role": "ace"
+    }
+  }
+}

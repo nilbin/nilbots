@@ -1,0 +1,409 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "lockbox-v1",
+  "mapPlan": "../map-plans/lockbox-v1.json",
+  "roles": [
+    {
+      "id": "own-well-mason",
+      "classes": [
+        "mason"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "maintain-own-well-lock",
+          "when": {
+            "any": [
+              "deployment-missing",
+              "deployment-expiring",
+              "deployment-damaged"
+            ]
+          },
+          "orders": [
+            {
+              "id": "place-own-well-lock",
+              "when": "signature-ready",
+              "use": {
+                "skill": "hardlight-block",
+                "target": "nearest-ally",
+                "at": "own-well-lock"
+              }
+            },
+            {
+              "id": "stage-own-well-lock",
+              "urgency": "routine",
+              "move": {
+                "to": {
+                  "adjacentTo": "own-well-lock"
+                },
+                "posture": "rear"
+              }
+            }
+          ]
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "hold-own-well",
+          "move": {
+            "to": {
+              "well": "own"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "centre-mason",
+      "classes": [
+        "mason"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "maintain-centre-return-lock",
+          "when": {
+            "any": [
+              "deployment-missing",
+              "deployment-expiring",
+              "deployment-damaged"
+            ]
+          },
+          "orders": [
+            {
+              "id": "place-centre-return-lock",
+              "when": "signature-ready",
+              "use": {
+                "skill": "hardlight-block",
+                "target": "nearest-ally",
+                "at": "centre-return-lock"
+              }
+            },
+            {
+              "id": "stage-centre-return-lock",
+              "urgency": "routine",
+              "move": {
+                "to": {
+                  "adjacentTo": "centre-return-lock"
+                },
+                "posture": "front"
+              }
+            }
+          ]
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "hold-centre-well",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "deployment-net",
+      "classes": [
+        "nest",
+        "minesmith"
+      ],
+      "upgradePath": [
+        "vision",
+        "damage",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "maintain-support-deployment",
+          "when": "deployment-missing",
+          "orders": [
+            {
+              "id": "seed-own-sentry",
+              "when": "signature-ready",
+              "use": {
+                "skill": "sentinel-seed",
+                "target": "nearest-ally",
+                "at": "own-sentry"
+              }
+            },
+            {
+              "id": "seed-centre-trip",
+              "when": "signature-ready",
+              "use": {
+                "skill": "trip-node",
+                "target": "nearest-ally",
+                "at": "centre-trip"
+              }
+            },
+            {
+              "id": "stage-support-deployment",
+              "move": {
+                "to": {
+                  "adjacentTo": "centre-trip"
+                },
+                "posture": "line"
+              }
+            }
+          ]
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "watch-centre-lock",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "lockbox-support",
+      "classes": [
+        "hush",
+        "relay",
+        "patchbay",
+        "lantern"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "reach",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "silence-lockbox",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "null-field",
+            "target": "self"
+          }
+        },
+        {
+          "id": "pass-lockbox-core",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "repair-lockbox",
+          "when": "signature-ready",
+          "use": {
+            "skill": "repair-beam",
+            "target": "weakest-ally"
+          }
+        },
+        {
+          "id": "reveal-demolition",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "survey-flare",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "work-own-well-lockbox",
+          "move": {
+            "to": {
+              "well": "own"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "carrier",
+          "weakest",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
+    "deployment-missing": {
+      "fact": "deployment-active",
+      "operator": "equals",
+      "value": 0
+    },
+    "deployment-expiring": {
+      "fact": "deployment-lifetime-percent",
+      "operator": "at-most",
+      "value": 20
+    },
+    "deployment-damaged": {
+      "fact": "deployment-durability-percent",
+      "operator": "at-most",
+      "value": 34
+    }
+  }
+}

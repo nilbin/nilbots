@@ -1,0 +1,353 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "demolition-march-v1",
+  "mapPlan": "../map-plans/demolition-march-v1.json",
+  "roles": [
+    {
+      "id": "demolition-line",
+      "classes": [
+        "longshot",
+        "mortar",
+        "hush"
+      ],
+      "upgradePath": [
+        "damage",
+        "reach",
+        "vision",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "rail-through-deployment",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "rail-line",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "id": "lob-over-deployment",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "falling-star",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "suppress-deployment",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "null-field",
+            "target": "self"
+          }
+        },
+        {
+          "id": "clear-the-lock",
+          "when": "empty-handed",
+          "fight": {
+            "targets": [
+              "deployment",
+              "carrier",
+              "veteran",
+              "weakest",
+              "nearest"
+            ],
+            "style": "advance",
+            "chaseLimit": 7
+          }
+        },
+        {
+          "id": "march-to-defended-well",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "demolition-overwatch",
+      "classes": [
+        "longshot",
+        "lantern",
+        "sunder"
+      ],
+      "upgradePath": [
+        "damage",
+        "vision",
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "rail-from-overwatch",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "rail-line",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "id": "reveal-deployment-line",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "survey-flare",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "paint-builder-screen",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "target-paint",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "id": "clear-the-lock-from-overwatch",
+          "when": "empty-handed",
+          "fight": {
+            "targets": [
+              "deployment",
+              "carrier",
+              "veteran",
+              "weakest",
+              "nearest"
+            ],
+            "style": "advance",
+            "chaseLimit": 6
+          }
+        },
+        {
+          "id": "hold-demolition-overwatch",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "raid-conversion",
+      "classes": [
+        "relay",
+        "kestrel"
+      ],
+      "upgradePath": [
+        "vitality",
+        "reach",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "pass-through-cleared-lane",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "dash-through-cleared-lane",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "vector-dash",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "fight-through-cleared-lane",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby"
+            ]
+          },
+          "fight": {
+            "targets": [
+              "deployment",
+              "carrier",
+              "weakest",
+              "nearest"
+            ],
+            "style": "advance",
+            "chaseLimit": 5
+          }
+        },
+        {
+          "id": "convert-demolition-to-raid",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    }
+  }
+}

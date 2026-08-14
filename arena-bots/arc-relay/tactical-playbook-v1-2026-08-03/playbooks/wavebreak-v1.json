@@ -1,0 +1,307 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "wavebreak-v1",
+  "mapPlan": "../map-plans/wavebreak-v1.json",
+  "roles": [
+    {
+      "id": "exchange-guard",
+      "classes": [
+        "switchback",
+        "switchback",
+        "patchbay",
+        "veil"
+      ],
+      "upgradePath": [
+        "vitality",
+        "reach",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "exchange-weak-before-wave",
+          "when": {
+            "all": [
+              "enemy-wave-arriving",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "exchange",
+            "target": "weakest-ally"
+          }
+        },
+        {
+          "id": "repair-evacuation",
+          "when": "signature-ready",
+          "use": {
+            "skill": "repair-beam",
+            "target": "weakest-ally"
+          }
+        },
+        {
+          "id": "smoke-evacuation",
+          "when": {
+            "all": [
+              "enemy-wave-arriving",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "smoke-canister",
+            "target": "self"
+          }
+        },
+        {
+          "shared": "evacuate-before-wave"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "contest-centre-between-waves",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "survivor-couriers",
+      "classes": [
+        "kestrel",
+        "relay",
+        "palisade",
+        "lantern"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vision",
+        "reach",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "dash-covering-action",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "vector-dash",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "pass-carrier-home",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "screen-the-withdrawal",
+          "when": {
+            "all": [
+              "enemy-wave-arriving",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "prism-wall",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "reveal-pursuit",
+          "when": {
+            "all": [
+              "enemy-wave-arriving",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "survey-flare",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "evacuate-before-wave"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "work-enemy-well-between-waves",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "carrier",
+          "weakest",
+          "nearest"
+        ],
+        "style": "kite",
+        "chaseLimit": 3
+      }
+    },
+    "evacuate-before-wave": {
+      "when": {
+        "all": [
+          "two-enemies-returning",
+          "enemy-wave-arriving"
+        ]
+      },
+      "timeout": 8,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "withdraw-home",
+          "move": {
+            "to": "own-reactor",
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
+    "two-enemies-returning": {
+      "fact": "enemy-respawns-next-wave",
+      "operator": "at-least",
+      "value": 2
+    },
+    "enemy-wave-arriving": {
+      "fact": "ticks-until-respawn-wave",
+      "operator": "at-most",
+      "value": 6
+    }
+  }
+}

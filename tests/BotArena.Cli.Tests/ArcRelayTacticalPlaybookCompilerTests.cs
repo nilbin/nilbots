@@ -8,9 +8,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 {
     private static readonly string[] CurrentSheets =
     [
-        "hunter-tapline-v2",
-        "wellwright-tapline-v2",
         "starter-tapline-v2",
+        "tempered-standard-v1",
+        "relay-circuit-v1",
+        "crowned-rail-v1",
+        "lockbox-v1",
+        "demolition-march-v1",
+        "rising-standard-v1",
+        "wavebreak-v1",
     ];
 
     [Fact]
