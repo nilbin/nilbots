@@ -1,0 +1,41 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-distributed-wells-v2",
+  "status": "immutable-reference",
+  "source": "tapline-three-distributed-well-economy",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "d0e2ecdd8d4e7b4cb031d3397093525959da9279d4beccce5d1348b426316fbf"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "c1006a22e5e290e3c1564c1b8356ee1cf20869f209f68d2cec34b20f0ddf409d"
+    },
+    "atl2": {
+      "sha256": "3f6c53be391143603a9e98613078bad2d9487100cdd37462a30947248ffc6a3a",
+      "bytes": 4829,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Divide the identical eight-class composition 3-3-2 across the enemy, centre, and home Wells; each group owns its local Core race while retaining explicit combat, recovery, collection, and scoring behavior.",
+  "portabilityBoundary": "The orders carry the semantic opening. Tapline coordinates live only in map-plan.json, so ordinary numeric rules tuning and small geometry edits that preserve named objects do not rewrite the strategy.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-mid-rush-control-v2",
+      "cells": [
+        "w-9001",
+        "w-9002",
+        "e-9005",
+        "e-9009",
+        "w-9012",
+        "e-9004"
+      ],
+      "record": "3-3 in these six exhibition cells; five reactor-destroyed and one horizon-ranked finish",
+      "purpose": "distributed participation and three-Well economy reference, not a balance verdict",
+      "eligibility": "all six cells passed frozen felt-degeneracy bars v4"
+    }
+  ]
+}

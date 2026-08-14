@@ -1,0 +1,41 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-shadow-scissors-v3",
+  "status": "immutable-reference",
+  "source": "tapline-three-four-plus-four-outer-pincer",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "3fc29eba6015411a313efd342633cfc8d0cab0b9ce673d5e3433355160128d18"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "16ac36abfce9aa91e729c16d47466e507366499003badc4f31a29d46b2244591"
+    },
+    "atl2": {
+      "sha256": "f8e1568a014029691ab6c2dc8f8370191044152a75e7a4e8e49fd46354e3e597",
+      "bytes": 3919,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Send the identical eight-class composition as two self-sufficient wings of four through the complete north and south outer corridors; both wings fight, recover, collect, and score rather than delegating conversion to lone runners.",
+  "portabilityBoundary": "The orders carry the semantic opening. Tapline coordinates live only in map-plan.json, so ordinary numeric rules tuning and small geometry edits that preserve named objects do not rewrite the strategy.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-mid-rush-control-v2",
+      "cells": [
+        "w-9001",
+        "w-9002",
+        "e-9005",
+        "e-9009",
+        "w-9012",
+        "e-9004"
+      ],
+      "record": "0-6 in these six exhibition cells; five reactor-destroyed and one horizon-ranked finish",
+      "purpose": "four-plus-four flank travel and enemy-territory conversion reference, not a balance verdict",
+      "eligibility": "all six cells passed frozen felt-degeneracy bars v4"
+    }
+  ]
+}

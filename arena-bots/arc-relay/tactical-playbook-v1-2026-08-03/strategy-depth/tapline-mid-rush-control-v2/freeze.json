@@ -1,0 +1,44 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-mid-rush-control-v2",
+  "status": "immutable-reference",
+  "source": "tapline-three-shortest-path-control",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "004f8da22223af669e44924fd1f6ddcafbb127137436055d0c6ceca3a7f77669"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "14cba655d6d5eaa146c0d21b2ba2ec3e55cd771f145d8c935d6cafd46e5dbade"
+    },
+    "atl2": {
+      "sha256": "3aeb4a999805b2bf2367e1deb861c6670bb43b020ad16ffc489cc2479af4f966",
+      "bytes": 3389,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Keep the identical eight-class composition together, collect and bank known Cores through the shortest paths, contest the centre circuit between births, and press the enemy Well whenever its Core is outstanding.",
+  "portabilityBoundary": "The orders carry the semantic opening. Tapline coordinates live only in map-plan.json, so ordinary numeric rules tuning and small geometry edits that preserve named objects do not rewrite the strategy.",
+  "referenceExhibits": [
+    {
+      "opponents": [
+        "tapline-shadow-scissors-v3",
+        "tapline-distributed-wells-v2",
+        "tapline-split-intercept-v2"
+      ],
+      "cells": [
+        "w-9001",
+        "w-9002",
+        "e-9005",
+        "e-9009",
+        "w-9012",
+        "e-9004"
+      ],
+      "purpose": "direct-opening behavior control; outcomes are exhibition records, not a balance verdict",
+      "eligibility": "all 18 opponent-cell reads passed frozen felt-degeneracy bars v4"
+    }
+  ]
+}
