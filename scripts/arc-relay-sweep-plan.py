@@ -260,13 +260,20 @@ def main() -> int:
             if item.get("sourceSha256") not in (None, source_hash):
                 raise ValueError(
                     f"{entrant_id}: source hash declaration moved")
-            runtime_hash = item.get("runtimeArtifactSha256")
-            if not isinstance(runtime_hash, str) or len(runtime_hash) != 64:
-                raise ValueError(
-                    f"{entrant_id}: in-process project needs "
-                    "runtimeArtifactSha256 from a probe run")
             entrant["sourceSha256"] = source_hash
-            entrant["runtimeArtifactSha256"] = runtime_hash
+            runtime_hash = item.get("runtimeArtifactSha256")
+            if runtime_hash is None:
+                # The ordinary .NET build embeds repository provenance, so
+                # committing this very plan can move the assembly hash while
+                # leaving every authored input unchanged. Capture the first
+                # run's hash and require one consistent value across the whole
+                # attempt instead of creating a pre-registration catch-22.
+                entrant["runtimeArtifactPolicy"] = "capture-consistent-at-run"
+            elif isinstance(runtime_hash, str) and len(runtime_hash) == 64:
+                entrant["runtimeArtifactSha256"] = runtime_hash
+            else:
+                raise ValueError(
+                    f"{entrant_id}: runtimeArtifactSha256 must be a SHA-256")
         else:
             raise ValueError(
                 f"{entrant_id}: project directories are diagnostic-only and "
