@@ -97,19 +97,18 @@ the outcome.
 
 ## Level-up beat
 
-The compact brass rank stack is the persistent truth. WebGL shows level 1 as
-one thin chevron, levels 2 and 3 as two and three thin chevrons, level 4 as one
-thick three-rank chevron plus one thin chevron, and level 5 as one thick plus
-two thin chevrons. The facets use a restrained dark keyline rather than a badge
-plate, and the thick facet is deliberately wider as well as heavier so the
-compressed read survives normal gameplay scale. It has a little more clearance
-to the thin facet above than the ordinary thin-to-thin rhythm. At an
-authoritative `leveled-up` fact:
+The compact rank plate is the persistent truth. WebGL shows levels 1 through 5
+as one fixed matte-dark octagonal plate with a brass rim and block-readable
+brass numeral. The plate is incorporated into the left side of the health row,
+and the complete plate-gap-pip row remains centred over the body. Rank changes
+replace only the numeral: the footprint never grows into a tower and spectators
+do not need to learn a thick-mark compression code. At an authoritative
+`leveled-up` fact:
 
 1. A thin brass floor ring expands for 0.18 visual ticks.
 2. Three short matte facets rise around the body over 0.36 ticks.
-3. The facets converge toward the UI row and the updated rank stack appears.
-4. All temporary geometry is gone by 1.8 presentation ticks; the rank stack remains.
+3. The facets converge toward the UI row and the updated rank plate appears.
+4. All temporary geometry is gone by 1.8 presentation ticks; the rank plate remains.
 
 There is no white flash, full-height column, camera shake, or mesh deformation.
 The accepted `level-up` SFX remains unchanged.

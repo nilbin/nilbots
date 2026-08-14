@@ -8431,18 +8431,20 @@ not a sixth gameplay mechanic or a return to named plays. The first eight
 representatives are an authorability tranche, not authorization for a balance
 sweep or promotion of Tapline-3.
 
-## 315. WebGL veterancy starts at one and compresses after three
+## 315. WebGL veterancy starts at one and uses one fixed rank plate
 
-Owner 3D presentation ruling (2026-08-14). An Arc body at authoritative level
-1 visibly carries one thin brass chevron. Levels 2 and 3 carry two and three
-thin chevrons. Level 4 replaces the first three thin marks with one visibly
-thicker three-rank chevron and retains one thin chevron above it; level 5 adds
-a second thin chevron. Future ranks extend the same three-rank compression
-instead of returning to an unbounded tower. Modes without declared veterancy
-or a recorded `leveled-up` fact show no rank marker.
+Owner 3D presentation ruling (2026-08-14), revised after reviewing the initial
+chevron treatments. An Arc body at authoritative level 1 visibly carries one
+compact matte-dark octagonal plate with a restrained brass rim and numeric
+rank. Levels 1 through 5 replace only that numeral. The plate sits at the left
+edge of the health pips and the complete plate-gap-pip row remains centred over
+the body, giving every rank the same footprint. This replaces both the rejected
+unbounded chevron tower and the thick-three-plus-remainder compression, which
+still required a learned code and awkward spacing. Modes without declared
+veterancy or a recorded `leveled-up` fact show no rank plate.
 
 This is a WebGL presentation grammar only. It does not change initial level,
 XP thresholds, promotion chronology, maximum level, per-life reset, replay
-facts, bot selection, health/status layout ownership, game rules, or the
-Canvas compatibility renderer. The level-up ring and converging-facet beat
-remain unchanged and resolve into the updated persistent stack.
+facts, bot selection, game rules, or the Canvas compatibility renderer. The
+level-up ring and converging-facet beat remain unchanged and resolve into the
+updated persistent plate.

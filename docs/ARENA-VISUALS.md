@@ -506,18 +506,14 @@ its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
-rules-owned rank stack. In WebGL that stack starts visibly at authoritative
-level 1: levels 1, 2, and 3 use one, two, and three thin brass chevrons. Level 4
-compresses to one thick chevron worth three ranks plus one thin chevron; level
-5 adds a second thin chevron. The thick mark stays at the bottom of the stack,
-and is materially wider and heavier than a thin mark rather than relying on a
-one-pixel weight change. Every brass facet uses a tight dark keyline instead of
-a backing plate, so the compact stack survives both bright floor panels and
-dark map voids without adding another HUD box. A slightly larger break follows
-each thick three-rank facet, keeping its broader crown clear of the thin rank
-above while ordinary thin-to-thin spacing remains compact. Higher ranks remain
-a compact vertical read clear of the health bib. Modes
-without a veterancy rule or facts receive no rank mark. Temporary level-up
+rules-owned rank plate. In WebGL that plate starts visibly at authoritative
+level 1 and occupies one fixed footprint through level 5: a matte dark octagon
+with a restrained brass rim and a block-readable brass numeral. It is attached
+to the left edge of the health pips, and the complete plate-gap-pip row is
+centred over the body. Changing rank swaps only the numeral, so higher ranks do
+not build a vertical tower, collide with the engaged mark, or require a learned
+compressed-chevron code. Modes without a veterancy rule or facts receive no
+rank plate. Temporary level-up
 geometry is gone by 1.8 presentation ticks; the effect has no white flash,
 full-height column, camera shake, or mesh mutation.
 

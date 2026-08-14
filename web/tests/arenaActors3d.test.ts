@@ -15,7 +15,6 @@ import {
   boltsAt,
   buildActors,
   buildOverlays,
-  orientStatusBib,
   strikeSlashesAt,
 } from './.harness/harness.entry.js';
 
@@ -114,48 +113,26 @@ function healthPipsOf(
   return found;
 }
 
-function veterancyChevronsOf(
+function veterancyRankPlateOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
-): THREE.Object3D[] {
+): THREE.Object3D | null {
   const pips = healthPipsOf(group, unitKey);
-  const chevrons: THREE.Object3D[] = [];
+  let found: THREE.Object3D | null = null;
   pips.traverse((child) => {
-    if (child.userData.cue === 'veterancy-chevron') chevrons.push(child);
+    if (child.userData.cue === 'veterancy-rank-plate') found = child;
   });
-  return chevrons;
+  return found;
 }
 
-function veterancyChevronOutlinesOf(
-  group: THREE.Object3D,
-  unitKey: ReplayStableUnitKey,
+function veterancyDigitsOf(
+  plate: THREE.Object3D,
 ): THREE.Object3D[] {
-  const pips = healthPipsOf(group, unitKey);
-  const outlines: THREE.Object3D[] = [];
-  pips.traverse((child) => {
-    if (child.userData.cue === 'veterancy-chevron-outline')
-      outlines.push(child);
+  const digits: THREE.Object3D[] = [];
+  plate.traverse((child) => {
+    if (child.userData.cue === 'veterancy-rank-digit') digits.push(child);
   });
-  return outlines;
-}
-
-function planarGeometryArea(geometry: THREE.BufferGeometry): number {
-  const positions = geometry.getAttribute('position');
-  const indices = geometry.getIndex();
-  const a = new THREE.Vector3();
-  const b = new THREE.Vector3();
-  const c = new THREE.Vector3();
-  const triangle = new THREE.Triangle();
-  let area = 0;
-  const vertexIndex = (offset: number) => indices?.getX(offset) ?? offset;
-  const triangleVertexCount = indices?.count ?? positions.count;
-  for (let offset = 0; offset < triangleVertexCount; offset += 3) {
-    a.fromBufferAttribute(positions, vertexIndex(offset));
-    b.fromBufferAttribute(positions, vertexIndex(offset + 1));
-    c.fromBufferAttribute(positions, vertexIndex(offset + 2));
-    area += triangle.set(a, b, c).getArea();
-  }
-  return area;
+  return digits;
 }
 
 function statusCueOf(
@@ -497,7 +474,7 @@ test('3D health pips follow the effective form maximum and remain centred', () =
   actors.dispose();
 });
 
-test('Arc veterancy chevrons stack above health instead of spreading beside it', () => {
+test('Arc veterancy uses one fixed numeric plate incorporated into the health row', () => {
   const leveled = structuredClone(replay);
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;
   const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
@@ -515,95 +492,60 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
     });
   }
   const actors = buildActors(leveled);
-  const chevrons = veterancyChevronsOf(actors.group, actor.unitKey);
-  const outlines = veterancyChevronOutlinesOf(actors.group, actor.unitKey);
-  const visibleAt = (time: number) => {
+  const plate = veterancyRankPlateOf(actors.group, actor.unitKey);
+  assert.ok(plate);
+  const digits = veterancyDigitsOf(plate);
+  const rankAt = (time: number) => {
     actors.update(time, null, false);
-    return chevrons.filter((chevron) => chevron.visible);
+    const visible = digits.filter((digit) => digit.visible);
+    assert.equal(plate.visible, true);
+    assert.equal(visible.length, 1, 'exactly one rank numeral is visible');
+    assert.equal(
+      visible[0]!.renderOrder,
+      plate.renderOrder,
+      'the nested numeral stays in the plate transparent-sort layer',
+    );
+    assert.ok(
+      visible[0]!.children.some(
+        (child) => child.userData.cue === 'veterancy-rank-segment',
+      ),
+      'the numeral owns font-independent display geometry',
+    );
+    return visible[0]!.userData.rankValue;
   };
-  const weightsAt = (time: number) =>
-    visibleAt(time).map((chevron) => chevron.userData.weight);
-
-  assert.deepEqual(weightsAt(0.25), ['thin']);
-  assert.deepEqual(weightsAt(1.25), ['thin', 'thin']);
-  assert.deepEqual(weightsAt(2.25), ['thin', 'thin', 'thin']);
-  assert.deepEqual(weightsAt(3.25), ['thick', 'thin']);
-  assert.deepEqual(weightsAt(4.25), ['thick', 'thin', 'thin']);
-
-  const visible = visibleAt(4.25);
   assert.deepEqual(
-    visible.map((chevron) => chevron.userData.rankValue),
-    [3, 1, 1],
+    [0.25, 1.25, 2.25, 3.25, 4.25].map(rankAt),
+    [1, 2, 3, 4, 5],
   );
-  const thick = visible[0] as THREE.Mesh<THREE.BufferGeometry>;
-  const thin = visible[1] as THREE.Mesh<THREE.BufferGeometry>;
-  assert.notEqual(thick.geometry, thin.geometry);
-  assert.ok(
-    planarGeometryArea(thick.geometry) > planarGeometryArea(thin.geometry) * 1.8,
-    'the compressed three-rank chevron is visibly thicker than a thin rank',
-  );
-  const visibleOutlines = outlines.filter((outline) => outline.visible);
-  assert.equal(visibleOutlines.length, visible.length);
-  assert.ok(
-    visibleOutlines.every((outline, index) =>
-      (outline as THREE.Mesh).geometry ===
-        (visible[index] as THREE.Mesh).geometry &&
-      outline.scale.x >= 1.18 &&
-      outline.scale.y >= 1.08
-    ),
-    'each brass rank has a larger matching dark keyline',
-  );
-  assert.ok(visible.every((chevron) => chevron.position.x === 0));
-  const stack = visible[0]!.parent;
-  assert.equal(stack?.userData.cue, 'veterancy-stack');
-  assert.ok(visible.every((chevron) => chevron.parent === stack));
-  // The lowest vertex is still clear of the pip circle, before camera projection.
-  assert.ok(
-    stack!.position.y + visible[0]!.position.y - 0.025 > 0.06 + 0.1,
-    `first chevron clears health (${stack!.position.y})`,
-  );
-  assert.equal(stack!.position.y, 0.29);
-  assert.equal(visible[0]!.position.y, 0);
-  assert.ok(visible[1]!.position.y > visible[0]!.position.y);
-  assert.ok(
-    visible[1]!.position.y - visible[0]!.position.y >
-      visible[2]!.position.y - visible[1]!.position.y + 0.03,
-    'the first thin rank has extra clearance above the thick three-rank mark',
-  );
+  assert.equal(plate.userData.rankValue, 5);
+  assert.equal(plate.position.y, 0, 'rank plate stays in the health row');
 
-  // Tapline's theme has both pitch and yaw bias. Project the actual stack through that
-  // camera: sharing a billboard plane must keep every earned facet on one exact column.
-  const yaw = (12 * Math.PI) / 180;
-  const pitch = (52 * Math.PI) / 180;
+  // The complete plate + gap + pip row, not merely the pips alone, is centred over the
+  // body. A rank change swaps the numeral without moving either edge of that row.
   const pips = healthPipsOf(actors.group, actor.unitKey);
-  orientStatusBib(pips, yaw, pitch);
-  pips.updateMatrixWorld(true);
-  const looking = new THREE.Vector3(pips.position.x, 0, pips.position.z);
-  const distance = 24;
-  const horizontal = Math.cos(pitch) * distance;
-  const camera = new THREE.PerspectiveCamera(28, 16 / 9, 0.1, 300);
-  camera.position.set(
-    looking.x + Math.sin(yaw) * horizontal,
-    Math.sin(pitch) * distance,
-    looking.z + Math.cos(yaw) * horizontal,
+  const visiblePips = pips.children.filter(
+    (child) => child.visible && child.userData.cue === 'health-pip',
   );
-  camera.lookAt(looking);
-  camera.updateProjectionMatrix();
-  camera.updateMatrixWorld(true);
-  const screenXs = visible.map((chevron) => {
-    const centre = new THREE.Vector3();
-    chevron.getWorldPosition(centre);
-    return centre.project(camera).x;
-  });
+  const badgeWidth = plate.userData.width as number;
+  const badgeHeight = plate.userData.height as number;
+  const badgeLeft = plate.position.x - badgeWidth / 2;
+  const badgeRight = plate.position.x + badgeWidth / 2;
+  const pipsLeft = visiblePips[0]!.position.x - 0.06;
+  const pipsRight = visiblePips.at(-1)!.position.x + 0.06;
   assert.ok(
-    screenXs.slice(1).every((screenX) => Math.abs(screenXs[0]! - screenX) < 1e-9),
-    `veterancy facets share one screen column (${screenXs.join(', ')})`,
+    Math.abs(badgeLeft + pipsRight) < 1e-9,
+    `composite rank and health row is not centred (${badgeLeft} to ${pipsRight})`,
+  );
+  assert.ok(pipsLeft - badgeRight >= 0.045 - 1e-9);
+  assert.equal(
+    pips.children.some((child) => child.userData.cue === 'veterancy-stack'),
+    false,
+    'the rejected vertical chevron tower is gone',
   );
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
   assert.ok(
-    engaged.position.y >
-      stack!.position.y + visible.at(-1)!.position.y + 0.1,
-    'combat state moves above the veteran stack instead of overlapping it',
+    engaged.position.y > badgeHeight / 2 + 0.1,
+    'combat state remains clear above the shared rank and health row',
   );
   actors.dispose();
 });
@@ -613,8 +555,8 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
   try {
     plainActors.update(0.25, null, false);
     assert.equal(
-      veterancyChevronsOf(plainActors.group, 'duel:0:unit:0').length,
-      0,
+      veterancyRankPlateOf(plainActors.group, 'duel:0:unit:0'),
+      null,
     );
   } finally {
     plainActors.dispose();
@@ -633,11 +575,12 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
   try {
     const unitKey = unpromotedArc.ticks[0]!.after.actors[0]!.unitKey;
     arcActors.update(0.25, null, false);
-    const chevrons = veterancyChevronsOf(arcActors.group, unitKey);
-    assert.equal(chevrons.length, 3, 'level-five rules reserve a compact three-mark stack');
-    const visible = chevrons.filter((chevron) => chevron.visible);
+    const plate = veterancyRankPlateOf(arcActors.group, unitKey);
+    assert.ok(plate);
+    assert.equal(plate.visible, true);
+    assert.equal(plate.userData.rankValue, 1);
+    const visible = veterancyDigitsOf(plate).filter((digit) => digit.visible);
     assert.equal(visible.length, 1);
-    assert.equal(visible[0]!.userData.weight, 'thin');
     assert.equal(visible[0]!.userData.rankValue, 1);
   } finally {
     arcActors.dispose();

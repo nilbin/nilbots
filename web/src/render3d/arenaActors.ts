@@ -59,6 +59,8 @@ import {
   createStatusPipMaterial,
   faceStatusElement,
   placeStatusBib,
+  STATUS_PIP_RADIUS,
+  STATUS_PIP_SPACING,
 } from './statusBib';
 import {
   teamVisionAt,
@@ -220,41 +222,33 @@ const ENGAGED_MARK_REACH = 0.085;
 const ENGAGED_MARK_GAUGE = 0.028;
 const ENGAGED_MARK_COLOR = '#f87171';
 
-/** Compact status-stack layout: recharge below health, veterancy safely above it. */
+/** Compact status layout: veterancy shares the health row; recharge sits below it. */
 const ATTACK_COOLDOWN_LIFT = -0.13;
 const SIGNATURE_COOLDOWN_LIFT = -0.205;
 const COOLDOWN_TRACK_WIDTH = 0.52;
 const COOLDOWN_TRACK_HEIGHT = 0.026;
-const VETERANCY_LIFT = 0.29;
-const VETERANCY_SPACING = 0.102;
-const VETERANCY_AFTER_THICK_GAP = 0.035;
-const VETERANCY_OUTLINE_X_SCALE = 1.18;
-const VETERANCY_OUTLINE_Y_SCALE = 1.08;
-const VETERANCY_OUTLINE_Y_OFFSET = -0.003;
-const ENGAGED_ABOVE_VETERANCY_GAP = 0.19;
+const VETERANCY_BADGE_WIDTH = 0.23;
+const VETERANCY_BADGE_HEIGHT = 0.2;
+const VETERANCY_BADGE_GAP = 0.045;
 const ATTACK_COOLDOWN_COLOR = '#f87171';
 const SIGNATURE_COOLDOWN_COLOR = '#78aeb3';
 
-type VeterancyChevronWeight = 'thin' | 'thick';
+type VeterancyDigitSegment = 'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g';
 
-/**
- * The visible rank grammar starts at one, then compresses once a row would become noisy.
- * A thick chevron carries the first three ranks; any remainder stays as thin chevrons above
- * it. Level three deliberately remains three thin marks so the first three ranks read
- * as a simple count before level four introduces the compressed form.
- */
-function veterancyChevronCount(level: number): number {
-  const rank = Math.max(1, Math.floor(level));
-  return rank <= 3 ? rank : Math.floor(rank / 3) + (rank % 3);
-}
-
-function veterancyChevronWeightAt(
-  level: number,
-  index: number,
-): VeterancyChevronWeight {
-  const rank = Math.max(1, Math.floor(level));
-  return rank > 3 && index < Math.floor(rank / 3) ? 'thick' : 'thin';
-}
+/** A compact, font-independent display alphabet for the fixed veterancy plate. */
+const VETERANCY_DIGIT_SEGMENTS: Readonly<
+  Record<number, readonly VeterancyDigitSegment[]>
+> = {
+  1: ['b', 'c'],
+  2: ['a', 'b', 'g', 'e', 'd'],
+  3: ['a', 'b', 'g', 'c', 'd'],
+  4: ['f', 'g', 'b', 'c'],
+  5: ['a', 'f', 'g', 'c', 'd'],
+  6: ['a', 'f', 'g', 'e', 'c', 'd'],
+  7: ['a', 'b', 'c'],
+  8: ['a', 'b', 'c', 'd', 'e', 'f', 'g'],
+  9: ['a', 'b', 'c', 'd', 'f', 'g'],
+};
 
 /**
  * How far in FRONT of a body its role caption sits, in tiles.
@@ -1200,90 +1194,114 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       signatureCooldownMaterial,
     );
 
-    // Veterancy is the compact brass stack from the approved board. It sits ABOVE the
-    // health row, never beside or through it. The authoritative starting level is visible
-    // as one open-V facet; levels two and three add another thin facet, then level four
-    // compresses the first three into one thick facet so the level-five read stays compact.
-    // A row of solid triangle circles looked like unrelated warning markers and grew
-    // sideways into the health bibs.
-    const thinChevronShape = new THREE.Shape();
-    thinChevronShape.moveTo(-0.08, -0.025);
-    thinChevronShape.lineTo(0, 0.05);
-    thinChevronShape.lineTo(0.08, -0.025);
-    thinChevronShape.lineTo(0.08, 0.018);
-    thinChevronShape.lineTo(0, 0.093);
-    thinChevronShape.lineTo(-0.08, 0.018);
-    thinChevronShape.closePath();
-    const thinChevronGeometry = new THREE.ShapeGeometry(thinChevronShape);
-    const thickChevronShape = new THREE.Shape();
-    thickChevronShape.moveTo(-0.098, -0.03);
-    thickChevronShape.lineTo(0, 0.024);
-    thickChevronShape.lineTo(0.098, -0.03);
-    thickChevronShape.lineTo(0.098, 0.036);
-    thickChevronShape.lineTo(0, 0.094);
-    thickChevronShape.lineTo(-0.098, 0.036);
-    thickChevronShape.closePath();
-    const thickChevronGeometry = new THREE.ShapeGeometry(thickChevronShape);
-    const chevronMaterial = new THREE.MeshBasicMaterial({
+    // Veterancy is one fixed plate incorporated into the health row. A repeated mark is
+    // elegant for three ranks and turns into a tower at five; compressing three marks into
+    // one thick mark merely makes the spectator learn another code. One numeral keeps the
+    // footprint and reading cost constant from the authoritative starting level onward.
+    const badgeShape = new THREE.Shape();
+    badgeShape.moveTo(-0.06, VETERANCY_BADGE_HEIGHT / 2);
+    badgeShape.lineTo(0.06, VETERANCY_BADGE_HEIGHT / 2);
+    badgeShape.lineTo(VETERANCY_BADGE_WIDTH / 2, 0.045);
+    badgeShape.lineTo(VETERANCY_BADGE_WIDTH / 2, -0.045);
+    badgeShape.lineTo(0.06, -VETERANCY_BADGE_HEIGHT / 2);
+    badgeShape.lineTo(-0.06, -VETERANCY_BADGE_HEIGHT / 2);
+    badgeShape.lineTo(-VETERANCY_BADGE_WIDTH / 2, -0.045);
+    badgeShape.lineTo(-VETERANCY_BADGE_WIDTH / 2, 0.045);
+    badgeShape.closePath();
+    const veterancyBadgeGeometry = new THREE.ShapeGeometry(badgeShape);
+    const veterancyBrassMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color('#e1ad45'),
       transparent: true,
       depthWrite: false,
       depthTest: false,
     });
-    const chevronOutlineMaterial = new THREE.MeshBasicMaterial({
+    const veterancyPlateMaterial = new THREE.MeshBasicMaterial({
       color: new THREE.Color('#071017'),
       transparent: true,
-      opacity: 0.86,
+      opacity: 0.94,
       depthWrite: false,
       depthTest: false,
     });
-    // Stack the facets INSIDE one camera-facing plane. Rotating every facet on its own
-    // squares its face but leaves the centres stacked along world Y; Tapline's yaw then
-    // projects that world-space line diagonally. One shared billboard keeps every centre
-    // on the same exact screen-space X coordinate.
-    const veterancyStack = new THREE.Group();
-    veterancyStack.userData.cue = 'veterancy-stack';
-    veterancyStack.userData.forUnitKey = unit.unitKey;
-    veterancyStack.position.y = VETERANCY_LIFT;
-    faceStatusElement(veterancyStack);
-    pips.add(veterancyStack);
-    const levelPips: THREE.Mesh[] = [];
-    const levelPipOutlines: THREE.Mesh[] = [];
-    const veterancyCapacity = veterancyEnabled
-      ? veterancyChevronCount(veterancyLevelCeiling)
-      : 0;
-    for (let index = 0; index < veterancyCapacity; index++) {
-      // The slightly oversized dark duplicate is a keyline, not a plate. It keeps the
-      // brass readable over Ember Forge's bright concrete without adding another HUD box,
-      // while disappearing naturally into the map's dark floor.
-      const outline = new THREE.Mesh(
-        thinChevronGeometry,
-        chevronOutlineMaterial,
-      );
-      outline.userData.cue = 'veterancy-chevron-outline';
-      outline.userData.weight = 'thin';
-      outline.scale.set(
-        VETERANCY_OUTLINE_X_SCALE,
-        VETERANCY_OUTLINE_Y_SCALE,
-        1,
-      );
-      outline.renderOrder = 10;
-      outline.visible = false;
-      const chevron = new THREE.Mesh(thinChevronGeometry, chevronMaterial);
-      chevron.userData.cue = 'veterancy-chevron';
-      chevron.userData.weight = 'thin';
-      chevron.userData.rankValue = 1;
-      chevron.renderOrder = 11;
-      chevron.visible = false;
-      veterancyStack.add(outline, chevron);
-      levelPipOutlines.push(outline);
-      levelPips.push(chevron);
+    const veterancyDigitMaterial = new THREE.MeshBasicMaterial({
+      color: new THREE.Color('#ffe3a3'),
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+    });
+    const horizontalSegmentGeometry = new THREE.PlaneGeometry(0.098, 0.032);
+    const verticalSegmentGeometry = new THREE.PlaneGeometry(0.032, 0.058);
+    const segmentPosition: Readonly<Record<
+      VeterancyDigitSegment,
+      readonly [number, number, 'horizontal' | 'vertical']
+    >> = {
+      a: [0, 0.066, 'horizontal'],
+      b: [0.041, 0.033, 'vertical'],
+      c: [0.041, -0.033, 'vertical'],
+      d: [0, -0.066, 'horizontal'],
+      e: [-0.041, -0.033, 'vertical'],
+      f: [-0.041, 0.033, 'vertical'],
+      g: [0, 0, 'horizontal'],
+    };
+    const veterancyBadge = new THREE.Group();
+    veterancyBadge.userData.cue = 'veterancy-rank-plate';
+    veterancyBadge.userData.forUnitKey = unit.unitKey;
+    veterancyBadge.userData.width = VETERANCY_BADGE_WIDTH;
+    veterancyBadge.userData.height = VETERANCY_BADGE_HEIGHT;
+    faceStatusElement(veterancyBadge);
+    veterancyBadge.visible = false;
+    const badgeRim = new THREE.Mesh(
+      veterancyBadgeGeometry,
+      veterancyBrassMaterial,
+    );
+    badgeRim.userData.cue = 'veterancy-rank-rim';
+    badgeRim.renderOrder = 10;
+    const badgePlate = new THREE.Mesh(
+      veterancyBadgeGeometry,
+      veterancyPlateMaterial,
+    );
+    badgePlate.userData.cue = 'veterancy-rank-face';
+    badgePlate.scale.setScalar(0.82);
+    badgePlate.position.z = 0.003;
+    badgePlate.renderOrder = 11;
+    veterancyBadge.add(badgeRim, badgePlate);
+    const veterancyDigits: THREE.Group[] = [];
+    const highestBadgeRank = Math.min(9, Math.max(1, veterancyLevelCeiling));
+    for (let rank = 1; rank <= highestBadgeRank; rank++) {
+      const digit = new THREE.Group();
+      digit.userData.cue = 'veterancy-rank-digit';
+      digit.userData.rankValue = rank;
+      // THREE resets the transparent-sort group order at every nested Group. Keep the
+      // numeral in the plate's status layer so its higher-render-order bars draw after,
+      // rather than disappearing underneath, the depth-test-free dark face.
+      digit.renderOrder = veterancyBadge.renderOrder;
+      // A seven-segment one naturally occupies the right column; recenter its two bars so
+      // the first rank does not look like a badge whose artwork slipped sideways.
+      if (rank === 1) digit.position.x = -0.041;
+      digit.visible = false;
+      for (const segment of VETERANCY_DIGIT_SEGMENTS[rank] ?? []) {
+        const [x, y, orientation] = segmentPosition[segment];
+        const bar = new THREE.Mesh(
+          orientation === 'horizontal'
+            ? horizontalSegmentGeometry
+            : verticalSegmentGeometry,
+          veterancyDigitMaterial,
+        );
+        bar.userData.cue = 'veterancy-rank-segment';
+        bar.position.set(x, y, 0.006);
+        bar.renderOrder = 12;
+        digit.add(bar);
+      }
+      veterancyBadge.add(digit);
+      veterancyDigits.push(digit);
     }
+    if (veterancyEnabled) pips.add(veterancyBadge);
     disposables.push(
-      thinChevronGeometry,
-      thickChevronGeometry,
-      chevronMaterial,
-      chevronOutlineMaterial,
+      veterancyBadgeGeometry,
+      horizontalSegmentGeometry,
+      verticalSegmentGeometry,
+      veterancyBrassMaterial,
+      veterancyPlateMaterial,
+      veterancyDigitMaterial,
     );
 
     // Crossed blades over the health row — see ENGAGED_MARK_*. Two quads in one
@@ -1561,8 +1579,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       { material: cooldownTrackMaterial, base: 0.62, alwaysTransparent: true },
       { material: attackCooldownMaterial, base: 0.88, alwaysTransparent: true },
       { material: signatureCooldownMaterial, base: 0.9, alwaysTransparent: true },
-      { material: chevronOutlineMaterial, base: 0.86, alwaysTransparent: true },
-      { material: chevronMaterial, base: 1, alwaysTransparent: true },
+      { material: veterancyPlateMaterial, base: 0.94, alwaysTransparent: true },
+      { material: veterancyBrassMaterial, base: 1, alwaysTransparent: true },
+      { material: veterancyDigitMaterial, base: 1, alwaysTransparent: true },
       { material: bladeMaterial, base: 1, alwaysTransparent: true },
     );
     /**
@@ -1642,10 +1661,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       engagedMark,
       litPip,
       lostPip,
-      levelPips,
-      levelPipOutlines,
-      thinChevronGeometry,
-      thickChevronGeometry,
+      veterancyBadge,
+      veterancyDigits,
       channelRing,
       channelMaterial,
       screenRing,
@@ -2227,49 +2244,34 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       }
       if (screening) bot.screenMaterial.opacity = 0.24;
 
-      // Veterancy chevrons: one compact vertical stack above health. Level is a per-life
-      // fold, so a respawned body returns to the visible level-one mark without reset logic.
+      // Veterancy plate: one fixed-size numeral incorporated into the health row. Level is
+      // a per-life fold, so a respawned body returns to the visible one without reset logic.
       const level = veterancy.levelAt(
         time,
         pose.teamId,
         pose.unitId,
         pose.lifeId,
       );
-      const visibleVeterancy = veterancyEnabled
-        ? veterancyChevronCount(level)
-        : 0;
-      let veterancyOffset = 0;
-      let visibleVeterancyTop = 0;
-      for (const [index, chevron] of bot.levelPips.entries()) {
-        const visible = bot.pips.visible && index < visibleVeterancy;
-        const outline = bot.levelPipOutlines[index]!;
-        chevron.visible = visible;
-        outline.visible = visible;
-        const weight = veterancyChevronWeightAt(level, index);
-        const geometry = weight === 'thick'
-          ? bot.thickChevronGeometry
-          : bot.thinChevronGeometry;
-        chevron.geometry = geometry;
-        outline.geometry = geometry;
-        chevron.userData.weight = weight;
-        chevron.userData.rankValue = weight === 'thick' ? 3 : 1;
-        outline.userData.weight = weight;
-        outline.position.set(
-          0,
-          veterancyOffset + VETERANCY_OUTLINE_Y_OFFSET,
-          0,
-        );
-        chevron.position.set(0, veterancyOffset, 0.003);
-        if (index < visibleVeterancy) visibleVeterancyTop = veterancyOffset;
-        veterancyOffset += VETERANCY_SPACING;
-        if (weight === 'thick')
-          veterancyOffset += VETERANCY_AFTER_THICK_GAP;
+      const rank = Math.max(1, Math.floor(level));
+      const badgeVisible = veterancyEnabled && bot.pips.visible;
+      bot.veterancyBadge.visible = badgeVisible;
+      bot.veterancyBadge.userData.rankValue = rank;
+      for (const digit of bot.veterancyDigits) {
+        digit.visible = badgeVisible && digit.userData.rankValue === rank;
       }
-      bot.engagedMark.position.y = visibleVeterancy > 0
-        ? VETERANCY_LIFT
-          + visibleVeterancyTop
-          + ENGAGED_ABOVE_VETERANCY_GAP
-        : ENGAGED_MARK_LIFT;
+      if (badgeVisible) {
+        // Centre the complete badge + gap + pip row over the body. The pips remain centred
+        // among themselves; they simply move right by half the plate-and-gap width.
+        const pipWidth = STATUS_PIP_RADIUS * 2
+          + Math.max(0, effectiveMaxHealth - 1) * STATUS_PIP_SPACING;
+        const pipShift = (VETERANCY_BADGE_WIDTH + VETERANCY_BADGE_GAP) / 2;
+        for (const pip of bot.pipMeshes) {
+          if (pip.visible) pip.position.x += pipShift;
+        }
+        bot.veterancyBadge.position.x =
+          -(pipWidth + VETERANCY_BADGE_GAP) / 2;
+      }
+      bot.engagedMark.position.y = ENGAGED_MARK_LIFT;
 
       const declaredAttackCooldown =
         replay.forms.find((form) => form.formId === pose.formId)
