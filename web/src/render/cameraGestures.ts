@@ -22,6 +22,10 @@ export interface CameraGestureHost {
   framing: () => ArenaFraming;
   /** Pixels per tile at this instant, so a drag moves the ground under the finger. */
   scale: () => number;
+  /** Optional renderer-owned compensation for a perspective view. */
+  dragGain?: number;
+  /** Track a drag directly instead of letting the spectator spring trail the pointer. */
+  directDrag?: boolean;
   /** Called the first time a gesture takes the camera, so the chrome can say so. */
   onOverride: () => void;
 }
@@ -52,6 +56,13 @@ export function attachCameraGestures(host: CameraGestureHost): CameraGestures {
     if (camera.auto || camera.followingSelection) host.onOverride();
   };
 
+  const pan = (dx: number, dy: number) => {
+    const gain = host.dragGain ?? 1;
+    if (host.directDrag)
+      camera.drag(dx * gain, dy * gain, host.framing());
+    else camera.pan(dx * gain, dy * gain, host.framing());
+  };
+
   const onWheel = (event: WheelEvent) => {
     event.preventDefault();
     took();
@@ -77,12 +88,16 @@ export function attachCameraGestures(host: CameraGestureHost): CameraGestures {
         event.preventDefault();
         took();
         const tile = host.scale();
-        camera.zoom(now.distance / pinch.distance, host.framing());
-        camera.pan(
-          -(now.x - pinch.x) / tile,
-          -(now.y - pinch.y) / tile,
-          host.framing(),
-        );
+        // A direct drag has to take the camera before zoom changes its target. This cancels
+        // an unfinished director move on the first pinch sample, then preserves the pinch's
+        // own pending zoom on every subsequent sample.
+        if (host.directDrag) {
+          pan(-(now.x - pinch.x) / tile, -(now.y - pinch.y) / tile);
+          camera.zoom(now.distance / pinch.distance, host.framing());
+        } else {
+          camera.zoom(now.distance / pinch.distance, host.framing());
+          pan(-(now.x - pinch.x) / tile, -(now.y - pinch.y) / tile);
+        }
         dragged = true;
       }
       pinch = now;
@@ -97,7 +112,7 @@ export function attachCameraGestures(host: CameraGestureHost): CameraGestures {
     event.preventDefault();
     took();
     const tile = host.scale();
-    camera.pan(-dx / tile, -dy / tile, host.framing());
+    pan(-dx / tile, -dy / tile);
     dragged = true;
   };
 
