@@ -22,15 +22,15 @@ export default defineArcSignature({
     decorativeDrift: false,
   },
   budget: {
-    segments: 4,
-    panels: 4,
+    segments: 11,
+    panels: 5,
     particles: 0,
     markers: 4,
-    transparentLayers: 1,
+    transparentLayers: 2,
     persistentProps: 0,
   },
   fidelity: {
     reference: '01-high-impact-signatures.png#hardlight-block',
-    dominantSilhouette: 'full tile frame and four chunky matte slabs',
+    dominantSilhouette: 'one grid-aligned block of five framed hardlight panes',
   },
 });
