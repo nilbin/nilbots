@@ -722,6 +722,125 @@ const candidates = [
     ),
     map: mapPlan("tapline-demolition-march-v1"),
   },
+  {
+    id: "tapline-tempered-standard-v1",
+    profile: "tapline-depth-combat-scale-10",
+    title: "33 Tempered Standard",
+    orders: sheet(
+      "tapline-tempered-standard-v1",
+      [
+        role("tempered-gun", ["longshot", "mortar"], ["damage", "damage", "vitality", "vitality"], [
+          ...standardPrefix(),
+          use("fire-tempered-rail", "rail-line", "weakest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("drop-tempered-star", "falling-star", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail({
+            id: "cycle-tempered-firing-line",
+            move: {
+              patrol: "tempered-firing-loop",
+              via: "north-tempered-ingress",
+              posture: "rear",
+            },
+          }),
+        ]),
+        role("tempered-support", ["patchbay", "sunder"], ["reach", "vitality", "damage", "vitality"], [
+          ...standardPrefix(),
+          use("restore-ten-hull", "repair-beam", "weakest-ally"),
+          use("paint-ten-more", "target-paint", "weakest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("support-tempered-line", "centre", "line")),
+        ]),
+        role("tempered-screen", ["mason", "palisade"], ["vitality", "vitality", "damage", "vision"], [
+          ...standardPrefix(),
+          use("raise-thirty-hull-cover", "hardlight-block", "nearest-ally", "signature-ready", {
+            at: "tempered-cover",
+          }),
+          use("screen-tempered-line", "prism-wall", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("hold-tempered-centre", "centre", "front")),
+        ]),
+        role("tempered-courier", ["relay", "kestrel"], ["vitality", "reach", "vision", "damage"], [
+          ...standardPrefix(),
+          use("pass-tempered-core", "arc-toss", "nearest-ally-toward-own-reactor", {
+            all: ["carrying-core", "signature-ready"],
+          }),
+          use("dash-tempered-gap", "vector-dash", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("work-tempered-home", "own", "rear")),
+        ]),
+      ],
+      commonOrders({ fightTargets: ["marked", "weakest", "carrier", "nearest"] }),
+      commonConditions(),
+    ),
+    map: mapPlan("tapline-tempered-standard-v1", {
+      routes: {
+        "north-tempered-ingress": {
+          waypoints: [[3, 3], [8, 3], [12, 11]],
+        },
+        "tempered-firing-loop": {
+          waypoints: [[12, 11], [15, 11], [18, 11], [18, 12], [15, 12], [12, 12], [12, 11]],
+        },
+      },
+      anchors: { "tempered-cover": [13, 12] },
+    }),
+  },
+  {
+    id: "tapline-iron-interval-v1",
+    profile: "tapline-depth-durability-plus-10",
+    title: "34 Iron Interval",
+    orders: sheet(
+      "tapline-iron-interval-v1",
+      [
+        role("iron-centre", ["palisade", "mason", "repulsor"], ["vitality"], [
+          ...standardPrefix(),
+          use("project-iron-wall", "prism-wall", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("raise-iron-cover", "hardlight-block", "nearest-ally", "signature-ready", {
+            at: "iron-cover",
+          }),
+          use("clear-iron-ring", "kinetic-burst", "self", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("anchor-iron-centre", "centre", "front")),
+        ]),
+        role("repair-rotation", ["patchbay", "patchbay"], ["reach", "vitality", "vitality", "vision"], [
+          ...standardPrefix(),
+          use("rotate-twenty-repair", "repair-beam", "weakest-ally"),
+          ref("fight-visible-enemy"),
+          { id: "trail-iron-centre", move: { follow: "iron-centre", posture: "rear" } },
+        ]),
+        role("iron-interdiction", ["towline", "sunder"], ["damage", "reach", "vitality", "vision"], [
+          ...standardPrefix(),
+          use("hook-iron-target", "tractor-hook", "enemy-carrier", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("paint-iron-target", "target-paint", "weakest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("interdict-iron-centre", "centre", "line")),
+        ]),
+        role("iron-courier", ["relay"], ["vitality", "reach", "vision", "damage"], [
+          ...standardPrefix(),
+          use("pass-through-iron-line", "arc-toss", "nearest-ally-toward-own-reactor", {
+            all: ["carrying-core", "signature-ready"],
+          }),
+          ...standardTail(move("work-iron-home", "own", "rear")),
+        ]),
+      ],
+      commonOrders({ fightStyle: "hold", chaseLimit: 3 }),
+      commonConditions(),
+    ),
+    map: mapPlan("tapline-iron-interval-v1", {
+      anchors: { "iron-cover": [13, 12] },
+    }),
+  },
 ];
 
 for (const candidate of candidates) {

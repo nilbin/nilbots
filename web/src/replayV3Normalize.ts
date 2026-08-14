@@ -478,6 +478,15 @@ function validateContract(
               ...(own(mode, 'healZoneTicksPerHp')
                 ? ['healZoneTicksPerHp']
                 : []),
+              ...(own(mode, 'veterancyDamagePerPoint')
+                ? [
+                    'veterancyDamagePerPoint',
+                    'veterancyDamageBonusCap',
+                    'veterancyBonusAfterRearArc',
+                    'vitalityHealthPerPoint',
+                    'healZoneHealthPerActivation',
+                  ]
+                : []),
               ...(own(mode, 'teamRelativeCoreCharge')
                 ? ['teamRelativeCoreCharge']
                 : []),
@@ -1219,6 +1228,10 @@ function validateContract(
       'veterancyXpPerLevel',
       'veterancyMaxLevel',
       'healZoneTicksPerHp',
+      'veterancyDamagePerPoint',
+      'veterancyDamageBonusCap',
+      'vitalityHealthPerPoint',
+      'healZoneHealthPerActivation',
       'respawnWavePeriodTicks',
       'respawnMinimumDeadTicks',
       'minimumDistinctClasses',
@@ -1238,6 +1251,22 @@ function validateContract(
       boolean(mode[key], `${modePath}.${key}`, fail);
       if (mode[key] !== true)
         fail(`${modePath}.${key}`, 'must be omitted instead of emitted inert');
+    }
+    if (own(mode, 'veterancyDamagePerPoint')) {
+      boolean(
+        mode.veterancyBonusAfterRearArc,
+        `${modePath}.veterancyBonusAfterRearArc`,
+        fail,
+      );
+      for (const key of [
+        'veterancyDamagePerPoint',
+        'veterancyDamageBonusCap',
+        'vitalityHealthPerPoint',
+        'healZoneHealthPerActivation',
+      ]) {
+        if ((mode[key] as number) <= 0)
+          fail(`${modePath}.${key}`, 'must be positive');
+      }
     }
     if (
       own(mode, 'signatureGrammarVersion') &&
@@ -7642,6 +7671,20 @@ function contractFromV3(
         ...(contract.rules.gameMode.durableDeployments === undefined
           ? {}
           : { durableDeployments: true }),
+        ...(contract.rules.gameMode.veterancyDamagePerPoint === undefined
+          ? {}
+          : {
+              veterancyDamagePerPoint:
+                contract.rules.gameMode.veterancyDamagePerPoint,
+              veterancyDamageBonusCap:
+                contract.rules.gameMode.veterancyDamageBonusCap,
+              veterancyBonusAfterRearArc:
+                contract.rules.gameMode.veterancyBonusAfterRearArc,
+              vitalityHealthPerPoint:
+                contract.rules.gameMode.vitalityHealthPerPoint,
+              healZoneHealthPerActivation:
+                contract.rules.gameMode.healZoneHealthPerActivation,
+            }),
       };
     }
     if (contract.modeMapBinding.kind !== 'frontline') {
@@ -8426,6 +8469,7 @@ function payloadFromArguments(
     launchHeading: null,
     unitKey: null,
     formTargetId: null,
+    upgradeTrackId: null,
     positionTarget: null,
   };
   for (const argument of argumentsValue) {
@@ -8451,6 +8495,9 @@ function payloadFromArguments(
       case 'position-target':
         payload.positionTarget = copyPosition(argument.value);
         break;
+      case 'upgrade-track':
+        payload.upgradeTrackId = argument.trackId;
+        break;
     }
   }
   return payload;
@@ -8466,6 +8513,7 @@ function rawPayload(
     launchHeading: null,
     unitKey: null,
     formTargetId: null,
+    upgradeTrackId: null,
     positionTarget: null,
   };
   for (const argument of argumentsValue) {
@@ -8485,6 +8533,9 @@ function rawPayload(
         break;
       case 'position-target':
         payload.positionTarget = copyPosition(argument.value);
+        break;
+      case 'upgrade-track':
+        payload.upgradeTrackId = argument.trackId;
         break;
       // Raw numeric enum arguments deliberately remain only on the retained
       // wire document until they have been accepted into a named value.

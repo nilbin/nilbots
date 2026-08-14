@@ -42,8 +42,16 @@ public sealed record ArcRelayLoopProfile
         int respawnWavePeriodTicks = 0,
         int respawnMinimumDeadTicks = 0,
         int minimumDistinctClasses = 0,
-        bool durableDeployments = false)
+        bool durableDeployments = false,
+        int combatMagnitudeScale = 1,
+        int bodyHullBonus = 0)
     {
+        if (combatMagnitudeScale <= 0)
+            throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
+        if (bodyHullBonus < 0)
+            throw new ArgumentOutOfRangeException(nameof(bodyHullBonus));
+        CombatMagnitudeScale = combatMagnitudeScale;
+        BodyHullBonus = bodyHullBonus;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -131,6 +139,8 @@ public sealed record ArcRelayLoopProfile
     internal int RespawnMinimumDeadTicks { get; }
     internal int MinimumDistinctClasses { get; }
     internal bool DurableDeployments { get; }
+    internal int CombatMagnitudeScale { get; }
+    internal int BodyHullBonus { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -949,9 +959,62 @@ public sealed record ArcRelayLoopProfile
         followingVacatedActorAllowed: true,
         durableDeployments: true);
 
+    /// <summary>
+    /// Experimental unit conversion: health, damage, and repair magnitudes
+    /// use tenfold integers while level-1 hits-to-kill stay unchanged.
+    /// </summary>
+    public static ArcRelayLoopProfile TaplineDepthCombatScale10 { get; } = new(
+        "tapline-depth-combat-scale-10",
+        "arc-relay-tapline-depth-combat-scale-10-01",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30, 75, 25, 7,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        combatMagnitudeScale: 10);
+
+    /// <summary>
+    /// Isolated durability question on the tenfold scale: every chassis
+    /// takes exactly one additional level-1 gun hit to destroy.
+    /// </summary>
+    public static ArcRelayLoopProfile TaplineDepthDurabilityPlus10 { get; } = new(
+        "tapline-depth-durability-plus-10",
+        "arc-relay-tapline-depth-durability-plus-10-01",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30, 75, 25, 7,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        combatMagnitudeScale: 10,
+        bodyHullBonus: 10);
+
     public static ArcRelayLoopProfile TaplineDepthPack { get; } = new(
         "tapline-depth-pack",
-        "arc-relay-tapline-depth-pack-01",
+        "arc-relay-tapline-depth-pack-02",
         "arc-relay-tapline-01",
         ArcRelayMapGeometry.TaplineWellLine,
         30, 65, 25, 9,
@@ -974,7 +1037,8 @@ public sealed record ArcRelayLoopProfile
         respawnWavePeriodTicks: 30,
         respawnMinimumDeadTicks: 15,
         minimumDistinctClasses: 7,
-        durableDeployments: true);
+        durableDeployments: true,
+        combatMagnitudeScale: 10);
 
     /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
@@ -1060,6 +1124,8 @@ public sealed record ArcRelayLoopProfile
         TaplineDepthRespawnWave,
         TaplineDepthRosterWildcard,
         TaplineDepthDurableDeployments,
+        TaplineDepthCombatScale10,
+        TaplineDepthDurabilityPlus10,
         TaplineDepthPack,
         Return16,
         Return24,

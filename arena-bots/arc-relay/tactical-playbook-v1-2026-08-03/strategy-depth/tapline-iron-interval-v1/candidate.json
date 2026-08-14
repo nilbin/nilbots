@@ -1,0 +1,8 @@
+{
+  "schema": "arc-relay-tapline-depth-candidate-v1",
+  "strategy": "34 Iron Interval",
+  "profile": "tapline-depth-durability-plus-10",
+  "orders": "orders.json",
+  "mapPlan": "map-plan.json",
+  "status": "experimental-exhibit-only"
+}

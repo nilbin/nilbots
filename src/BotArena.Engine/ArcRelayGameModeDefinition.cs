@@ -41,9 +41,31 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int respawnWavePeriodTicks = 0,
         int respawnMinimumDeadTicks = 0,
         int minimumDistinctClasses = 0,
-        bool durableDeployments = false)
+        bool durableDeployments = false,
+        int veterancyDamagePerPoint = 1,
+        int veterancyDamageBonusCap = 2,
+        bool veterancyBonusAfterRearArc = false,
+        int vitalityHealthPerPoint = 1,
+        int healZoneHealthPerActivation = 1)
         : base(modeId, victory, scoreCatalog)
     {
+        RequirePositive(
+            veterancyDamagePerPoint,
+            nameof(veterancyDamagePerPoint));
+        RequirePositive(
+            veterancyDamageBonusCap,
+            nameof(veterancyDamageBonusCap));
+        RequirePositive(
+            vitalityHealthPerPoint,
+            nameof(vitalityHealthPerPoint));
+        RequirePositive(
+            healZoneHealthPerActivation,
+            nameof(healZoneHealthPerActivation));
+        VeterancyDamagePerPoint = veterancyDamagePerPoint;
+        VeterancyDamageBonusCap = veterancyDamageBonusCap;
+        VeterancyBonusAfterRearArc = veterancyBonusAfterRearArc;
+        VitalityHealthPerPoint = vitalityHealthPerPoint;
+        HealZoneHealthPerActivation = healZoneHealthPerActivation;
         if (ownWellCoreCharge < 1
             || centreWellCoreCharge < 1
             || enemyWellCoreCharge < 1)
@@ -250,6 +272,17 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public bool DurableDeployments { get; }
 
     /// <summary>
+    /// Resolved veterancy and recovery magnitudes. Historical contracts omit
+    /// these fields and retain 1 damage per point (capped at +2), vitality +1,
+    /// heal +1, with veterancy applied before rear-arc multiplication.
+    /// </summary>
+    public int VeterancyDamagePerPoint { get; }
+    public int VeterancyDamageBonusCap { get; }
+    public bool VeterancyBonusAfterRearArc { get; }
+    public int VitalityHealthPerPoint { get; }
+    public int HealZoneHealthPerActivation { get; }
+
+    /// <summary>
     /// 1 is the historical launch grammar. 2 (owner ruling 2026-08-05) makes
     /// every enemy-affecting signature dodgeable — sentinel and hook fire
     /// real bolts, null-field telegraphs — and projects designed-role
@@ -321,10 +354,11 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
 
     /// <summary>
     /// Heal zones (owner direction 2026-08-05): a body that Waits on a tile
-    /// of a map region whose id starts with <c>heal-</c> recovers 1 health
-    /// per this many consecutive waiting ticks, up to its effective maximum
-    /// (which the vitality track can raise). 0 disables; canonically
-    /// written only when active.
+    /// of a map region whose id starts with <c>heal-</c> recovers
+    /// <see cref="HealZoneHealthPerActivation"/> health per this many
+    /// consecutive waiting ticks, up to its effective maximum (which the
+    /// vitality track can raise). 0 disables; canonically written only when
+    /// active.
     /// </summary>
     public int HealZoneTicksPerHp { get; }
 

@@ -144,3 +144,7 @@ export {
   buildArcVeterancy,
   LEVEL_UP_BEAT_TICKS,
 } from '../../src/replayArcVeterancy';
+export {
+  healthSegments,
+  MAX_HEALTH_SEGMENTS,
+} from '../../src/presentation/healthSegments';

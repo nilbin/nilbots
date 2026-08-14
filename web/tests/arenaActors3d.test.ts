@@ -474,6 +474,31 @@ test('3D health pips follow the effective form maximum and remain centred', () =
   actors.dispose();
 });
 
+test('3D health presentation never allocates one mesh per scaled hull point', () => {
+  const scaled = structuredClone(replay);
+  const actor = scaled.ticks[0]!.after.actors[0]!;
+  const form = scaled.forms.find((candidate) => candidate.formId === actor.formId);
+  assert.ok(form);
+  form.maxHealth = 100;
+  actor.health = 50;
+  scaled.ticks[0]!.before.actors[0]!.health = 50;
+
+  const actors = buildActors(scaled);
+  try {
+    actors.update(0.25, null, false);
+    const pips = healthPipsOf(actors.group, actor.unitKey);
+    assert.equal(
+      pips.children.filter((child) => child.userData.cue === 'health-pip').length,
+      10,
+    );
+    assert.equal(pips.userData.currentHealth, 50);
+    assert.equal(pips.userData.maximumHealth, 100);
+    assertCenteredPips(pips, 10);
+  } finally {
+    actors.dispose();
+  }
+});
+
 test('Arc veterancy uses one fixed numeric plate incorporated into the health row', () => {
   const leveled = structuredClone(replay);
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;

@@ -755,6 +755,8 @@ public static class ActorCanonicalContractReader
             "chiralWellBirths", out _);
         bool hasHealZones = element.TryGetProperty(
             "healZoneTicksPerHp", out _);
+        bool hasCombatMagnitudes = element.TryGetProperty(
+            "veterancyDamagePerPoint", out _);
         bool hasTeamRelativeCharge = element.TryGetProperty(
             "teamRelativeCoreCharge", out _);
         bool hasVeteranCommand = element.TryGetProperty(
@@ -810,6 +812,16 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasHealZones
                 ? new[] { "healZoneTicksPerHp" }
+                : System.Array.Empty<string>(),
+            .. hasCombatMagnitudes
+                ? new[]
+                {
+                    "veterancyDamagePerPoint",
+                    "veterancyDamageBonusCap",
+                    "veterancyBonusAfterRearArc",
+                    "vitalityHealthPerPoint",
+                    "healZoneHealthPerActivation",
+                }
                 : System.Array.Empty<string>(),
             .. hasTeamRelativeCharge
                 ? new[] { "teamRelativeCoreCharge" }
@@ -892,6 +904,20 @@ public static class ActorCanonicalContractReader
             HealZoneTicksPerHp = hasHealZones
                 ? Int(element, "healZoneTicksPerHp")
                 : 0,
+            VeterancyDamagePerPoint = hasCombatMagnitudes
+                ? Int(element, "veterancyDamagePerPoint")
+                : 1,
+            VeterancyDamageBonusCap = hasCombatMagnitudes
+                ? Int(element, "veterancyDamageBonusCap")
+                : 2,
+            VeterancyBonusAfterRearArc = hasCombatMagnitudes
+                && Bool(element, "veterancyBonusAfterRearArc"),
+            VitalityHealthPerPoint = hasCombatMagnitudes
+                ? Int(element, "vitalityHealthPerPoint")
+                : 1,
+            HealZoneHealthPerActivation = hasCombatMagnitudes
+                ? Int(element, "healZoneHealthPerActivation")
+                : 1,
             SeedPhasedResolutionOrder = hasSeedPhase
                 && Bool(element, "seedPhasedResolutionOrder"),
             SeedPhasedWellLead = hasWellLead

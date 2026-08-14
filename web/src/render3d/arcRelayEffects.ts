@@ -42,6 +42,7 @@ import {
   placeStatusBib,
 } from './statusBib';
 import { configurePersistentConstructRendering } from './occlusionLayers';
+import { healthSegments } from '../presentation/healthSegments';
 
 export {
   configurePersistentConstructRendering,
@@ -255,14 +256,15 @@ export function buildArcRelayEffects(
     const litPip = createStatusPipMaterial('#f8fafc');
     const lostPip = createStatusPipMaterial('#64748b', true);
     const maxHull = constructHull.get(signature.signatureId) ?? 1;
-    const pips = Array.from({ length: maxHull }, () => {
+    const pipCount = healthSegments(maxHull, maxHull).count;
+    const pips = Array.from({ length: pipCount }, () => {
       const pip = new THREE.Mesh(pipGeometry, litPip);
       pip.userData.cue = 'health-pip';
       faceStatusElement(pip);
       pipGroup.add(pip);
       return pip;
     });
-    centreStatusPips(pips, maxHull);
+    centreStatusPips(pips, pipCount);
     const slot: SignaturePropSlot = {
       group: propGroup,
       model: null,
@@ -875,10 +877,16 @@ export function buildArcRelayEffects(
           : '#f8fafc';
         slot.litPip.color.set(pipAccent);
         const maximumCapacity = signature.maximumCapacity ?? slot.pips.length;
-        centreStatusPips(slot.pips, Math.min(slot.pips.length, maximumCapacity));
+        const capacity = healthSegments(
+          signature.remainingCapacity,
+          maximumCapacity,
+        );
+        slot.pipGroup.userData.currentHealth = signature.remainingCapacity;
+        slot.pipGroup.userData.maximumHealth = maximumCapacity;
+        centreStatusPips(slot.pips, capacity.count);
         for (const [pipIndex, pip] of slot.pips.entries()) {
-          pip.visible = pipIndex < maximumCapacity;
-          pip.material = pipIndex < signature.remainingCapacity
+          pip.visible = pipIndex < capacity.count;
+          pip.material = pipIndex < capacity.filled
             ? slot.litPip
             : slot.lostPip;
         }
@@ -915,11 +923,15 @@ export function buildArcRelayEffects(
         );
       else paintGenericSignature(rig, points, owner, target, phase);
       if (signature.maximumCapacity !== undefined && points[0]) {
-        const maximum = Math.min(5, signature.maximumCapacity);
+        const capacity = healthSegments(
+          signature.remainingCapacity,
+          signature.maximumCapacity,
+        );
+        const maximum = Math.min(rig.markers.length, capacity.count);
         for (let index = 0; index < maximum; index += 1) {
           const pip = rig.markers[rig.markers.length - 1 - index]!;
           pip.visible = true;
-          pip.material = index < signature.remainingCapacity
+          pip.material = index < capacity.filled
             ? rig.main
             : rig.fill;
           pip.position.set(

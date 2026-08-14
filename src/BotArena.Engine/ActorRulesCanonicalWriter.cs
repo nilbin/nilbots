@@ -321,6 +321,28 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteNumber(
                 "healZoneTicksPerHp", mode.HealZoneTicksPerHp);
         }
+        if (mode.VeterancyDamagePerPoint != 1
+            || mode.VeterancyDamageBonusCap != 2
+            || mode.VeterancyBonusAfterRearArc
+            || mode.VitalityHealthPerPoint != 1
+            || mode.HealZoneHealthPerActivation != 1)
+        {
+            writer.WriteNumber(
+                "veterancyDamagePerPoint",
+                mode.VeterancyDamagePerPoint);
+            writer.WriteNumber(
+                "veterancyDamageBonusCap",
+                mode.VeterancyDamageBonusCap);
+            writer.WriteBoolean(
+                "veterancyBonusAfterRearArc",
+                mode.VeterancyBonusAfterRearArc);
+            writer.WriteNumber(
+                "vitalityHealthPerPoint",
+                mode.VitalityHealthPerPoint);
+            writer.WriteNumber(
+                "healZoneHealthPerActivation",
+                mode.HealZoneHealthPerActivation);
+        }
         if (mode.OwnWellCoreCharge != 1
             || mode.CentreWellCoreCharge != 1
             || mode.EnemyWellCoreCharge != 1)

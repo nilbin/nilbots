@@ -188,7 +188,21 @@ public static class ArcRelayCoreStageCommand
             mode.HealZoneTicksPerHp,
             mode.SeedPhasedResolutionOrder,
             mode.SeedPhasedWellLead,
-            chiralWellBirths: false);
+            chiralWellBirths: false,
+            ownWellCoreCharge: mode.OwnWellCoreCharge,
+            centreWellCoreCharge: mode.CentreWellCoreCharge,
+            enemyWellCoreCharge: mode.EnemyWellCoreCharge,
+            veteranCommand: mode.VeteranCommand,
+            respawnWavePeriodTicks: mode.RespawnWavePeriodTicks,
+            respawnMinimumDeadTicks: mode.RespawnMinimumDeadTicks,
+            minimumDistinctClasses: mode.MinimumDistinctClasses,
+            durableDeployments: mode.DurableDeployments,
+            veterancyDamagePerPoint: mode.VeterancyDamagePerPoint,
+            veterancyDamageBonusCap: mode.VeterancyDamageBonusCap,
+            veterancyBonusAfterRearArc: mode.VeterancyBonusAfterRearArc,
+            vitalityHealthPerPoint: mode.VitalityHealthPerPoint,
+            healZoneHealthPerActivation:
+                mode.HealZoneHealthPerActivation);
         var stagedRules = new ActorRulesDefinition(
             $"arc-relay-core-stage-t{maxTicks}-01",
             new ActorRulesLimits(maxTicks, rules.Limits.RuntimeFaults),

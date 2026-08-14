@@ -1840,7 +1840,7 @@ public sealed class GenericActorMatchSession : IDisposable
 
     /// <summary>
     /// Heal zones (owner direction 2026-08-05): a body that successfully
-    /// Waits on a heal-region tile channels 1 health per
+    /// Waits on a heal-region tile channels the mode's declared health amount per
     /// <c>HealZoneTicksPerHp</c> consecutive waiting ticks, up to its
     /// effective maximum — which the veterancy vitality track can raise, so
     /// bought health becomes recoverable rather than spawn-only. Any other
@@ -1883,16 +1883,18 @@ public sealed class GenericActorMatchSession : IDisposable
                 progress = 0;
                 int maximum = EffectiveMaxHealth(
                     life.FormId,
-                    life.ActorId.TeamId,
-                    life.ActorId.UnitId);
-                if (life.Health < maximum)
+                    life.ActorId);
+                int amount = Math.Min(
+                    arcRelay.GameMode.HealZoneHealthPerActivation,
+                    maximum - life.Health);
+                if (amount > 0)
                 {
-                    life.Health++;
+                    life.Health += amount;
                     EmitModeEvent(new GenericActorModeEvent(
                         new GenericActorRuntimeObservation.EventPayload
                             .ArcRelay(new ArcRelayEvent.ZoneHealed(
                                 life.ActorId,
-                                1,
+                                amount,
                                 life.Health,
                                 life.Position)),
                         life.Position), events);
@@ -2517,8 +2519,7 @@ public sealed class GenericActorMatchSession : IDisposable
             return;
         int maximum = EffectiveMaxHealth(
             target.FormId,
-            target.ActorId.TeamId,
-            target.ActorId.UnitId);
+            target.ActorId);
         int amount = Math.Min(effect.Amount, maximum - target.Health);
         if (amount <= 0)
             return;
@@ -3710,38 +3711,32 @@ public sealed class GenericActorMatchSession : IDisposable
         LifeState target,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
-        int damage = projectile.Profile.Projectile.DamagePerHit;
+        int baseDamage = projectile.Profile.Projectile.DamagePerHit;
         if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
-            return damage;
-        // Veterancy damage points add before the rear multiplier, capped so
-        // the leveled base never exceeds 3 (owner rule against front-arc
-        // one-shots at max health 5).
+            return baseDamage;
         int damagePoints = arcRelay.VeterancyDamagePoints(
             projectile.OwnerActorId);
-        if (damagePoints > 0)
-            damage += Math.Min(damagePoints, Math.Max(0, 3 - damage));
-        int rearMultiplier = arcRelay.GameMode.RearArcDamageMultiplier;
-        if (rearMultiplier > 1)
-        {
-            // A shot travelling in the victim's own facing quadrant was
-            // fired from its blind rear arc: the backstab bonus applies
-            // before any painted-target bonus.
-            (int headingDx, int headingDy) = projectile.Heading.Vector();
-            if (Visibility.InQuadrant(headingDx, headingDy, target.Facing))
-                damage = checked(damage * rearMultiplier);
-        }
+        (int headingDx, int headingDy) = projectile.Heading.Vector();
+        bool rearArc = arcRelay.GameMode.RearArcDamageMultiplier > 1
+            && Visibility.InQuadrant(headingDx, headingDy, target.Facing);
         int bonus = arcRelay.Signatures.TargetPaintBonus(
             projectile.OwnerActorId,
             target.ActorId,
             Tick,
             out string? operationId);
-        if (bonus == 0 || operationId is null)
-            return damage;
-        GenericActorModeEvent? modeEvent =
-            arcRelay.Signatures.ConsumeTargetPaint(operationId);
-        if (modeEvent is not null)
-            EmitModeEvent(modeEvent, events);
-        return checked(damage + bonus);
+        if (bonus != 0 && operationId is not null)
+        {
+            GenericActorModeEvent? modeEvent =
+                arcRelay.Signatures.ConsumeTargetPaint(operationId);
+            if (modeEvent is not null)
+                EmitModeEvent(modeEvent, events);
+        }
+        return ArcRelayCombatMagnitude.ProjectileDamage(
+            arcRelay.GameMode,
+            baseDamage,
+            damagePoints,
+            rearArc,
+            bonus);
     }
 
     /// <summary>
@@ -3756,8 +3751,10 @@ public sealed class GenericActorMatchSession : IDisposable
             return damage;
         int damagePoints = arcRelay.VeterancyDamagePoints(
             projectile.OwnerActorId);
-        return checked(
-            damage + Math.Min(damagePoints, Math.Max(0, 3 - damage)));
+        return ArcRelayCombatMagnitude.ConstructDamage(
+            arcRelay.GameMode,
+            damage,
+            damagePoints);
     }
 
     private ImmutableArray<GenericActorModeDamageContact> ApplyDamage(
@@ -5382,8 +5379,7 @@ public sealed class GenericActorMatchSession : IDisposable
                 value.Health,
                 EffectiveMaxHealth(
                     value.FormId,
-                    value.ActorId.TeamId,
-                    value.ActorId.UnitId)))
+                    value.ActorId)))
             .ToImmutableArray();
 
     private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
@@ -5990,6 +5986,13 @@ public sealed class GenericActorMatchSession : IDisposable
             + _mode.StatModifiersFor(
                     ActorIdentity.FromTeamUnitLife(teamId, unitId, 0))
                 .MaxHealthDelta);
+
+    private int EffectiveMaxHealth(
+        string formId,
+        ActorIdentity actorId) =>
+        checked(
+            _forms[formId].MaxHealth
+            + _mode.StatModifiersFor(actorId).MaxHealthDelta);
 
     private ActorMovementProfileDefinition MovementFor(LifeState life) =>
         _movementProfiles[_forms[life.FormId].MovementProfileId];

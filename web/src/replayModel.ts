@@ -598,6 +598,11 @@ export type ReplayGenericModeDefinition =
       respawnMinimumDeadTicks?: number;
       minimumDistinctClasses?: number;
       durableDeployments?: boolean;
+      veterancyDamagePerPoint?: number;
+      veterancyDamageBonusCap?: number;
+      veterancyBonusAfterRearArc?: boolean;
+      vitalityHealthPerPoint?: number;
+      healZoneHealthPerActivation?: number;
     };
 
 export interface ReplayGenericMatchContract
@@ -1317,6 +1322,8 @@ export interface ReplayActionPayload {
   launchHeading: ReplayProjectileHeading | null;
   unitKey: ReplayStableUnitKey | null;
   formTargetId: string | null;
+  /** Exact mode-investment track for replay-v3 invest actions. */
+  upgradeTrackId?: string | null;
   /** Exact targeted map tile for position-parameter actions in replay v3. */
   positionTarget?: ReplayPosition | null;
 }

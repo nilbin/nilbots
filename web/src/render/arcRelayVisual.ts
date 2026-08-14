@@ -21,6 +21,7 @@ import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
 } from './arcSignaturePresentation';
+import { healthSegments } from '../presentation/healthSegments';
 
 export interface ArcRelayVisualContext {
   ctx: CanvasRenderingContext2D;
@@ -957,9 +958,12 @@ function drawSentinelTurret(
   );
   ctx.fill();
 
-  const durability = signature.maximumCapacity ?? signature.remainingCapacity;
-  for (let pip = 0; pip < durability; pip += 1) {
-    ctx.fillStyle = pip < signature.remainingCapacity
+  const durability = healthSegments(
+    signature.remainingCapacity,
+    signature.maximumCapacity ?? signature.remainingCapacity,
+  );
+  for (let pip = 0; pip < durability.count; pip += 1) {
+    ctx.fillStyle = pip < durability.filled
       ? withAlpha(accent, 0.95)
       : 'rgba(100, 116, 139, 0.38)';
     ctx.beginPath();
@@ -983,10 +987,14 @@ function drawConstructDurability(
 ): void {
   if (signature.maximumCapacity === undefined) return;
   ctx.setLineDash([]);
-  const maximum = Math.min(5, signature.maximumCapacity);
+  const durability = healthSegments(
+    signature.remainingCapacity,
+    signature.maximumCapacity,
+  );
+  const maximum = durability.count;
   for (let index = 0; index < maximum; index += 1) {
     const x = point.x + (index - (maximum - 1) / 2) * tile * 0.18;
-    ctx.fillStyle = index < signature.remainingCapacity
+    ctx.fillStyle = index < durability.filled
       ? withAlpha(accent, 0.95)
       : 'rgba(100, 116, 139, 0.4)';
     ctx.fillRect(x - tile * 0.055, point.y + tile * 0.48, tile * 0.11, tile * 0.13);

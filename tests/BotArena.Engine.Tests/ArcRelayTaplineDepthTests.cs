@@ -4,7 +4,8 @@ using BotArena.Sdk;
 namespace BotArena.Engine.Tests;
 
 /// <summary>
-/// Narrow mechanical pins for the five owner-approved Tapline depth arms.
+/// Narrow mechanical pins for the six owner-approved Tapline depth mechanics
+/// and the separately isolated durability question.
 /// These are experiment-identity and boundary tests, not balance evidence.
 /// </summary>
 public sealed class ArcRelayTaplineDepthTests
@@ -25,6 +26,8 @@ public sealed class ArcRelayTaplineDepthTests
             ArcRelayLoopProfile.TaplineDepthRespawnWave,
             ArcRelayLoopProfile.TaplineDepthRosterWildcard,
             ArcRelayLoopProfile.TaplineDepthDurableDeployments,
+            ArcRelayLoopProfile.TaplineDepthCombatScale10,
+            ArcRelayLoopProfile.TaplineDepthDurabilityPlus10,
             ArcRelayLoopProfile.TaplineDepthPack,
         ];
 
@@ -49,6 +52,196 @@ public sealed class ArcRelayTaplineDepthTests
                         ArcRelayH0Definition.CreateRules(candidate)))
                 .Distinct(StringComparer.Ordinal)
                 .Count());
+    }
+
+    [Fact]
+    public void CombatScalePublishesEveryResolvedMagnitudeAndRoundTrips()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.TaplineDepthCombatScale10);
+        var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+            definition.Rules.GameMode);
+
+        Assert.Equal(5, mode.VeterancyDamagePerPoint);
+        Assert.Equal(10, mode.VeterancyDamageBonusCap);
+        Assert.True(mode.VeterancyBonusAfterRearArc);
+        Assert.Equal(10, mode.VitalityHealthPerPoint);
+        Assert.Equal(10, mode.HealZoneHealthPerActivation);
+        Assert.All(
+            definition.Rules.AttackProfiles.Where(profile =>
+                profile.Id is "short-fast" or "medium-steady"
+                    or "long-slow"),
+            profile => Assert.Equal(10, profile.Projectile.DamagePerHit));
+        Assert.Equal(
+            10,
+            definition.Rules.AttackProfiles.Single(profile =>
+                profile.Id == "sentinel-bolt").Projectile.DamagePerHit);
+
+        AssertHull(definition, 30,
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Mortar,
+            ArcRelayLaunchClassIds.Switchback,
+            ArcRelayLaunchClassIds.Longshot,
+            ArcRelayLaunchClassIds.Veil);
+        AssertHull(definition, 40,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Minesmith,
+            ArcRelayLaunchClassIds.Hush,
+            ArcRelayLaunchClassIds.Relay,
+            ArcRelayLaunchClassIds.Sunder,
+            ArcRelayLaunchClassIds.Nest);
+        AssertHull(definition, 50,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Mason,
+            ArcRelayLaunchClassIds.Repulsor);
+
+        Assert.Equal(10, mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.FallingStar>()
+            .Single().Damage);
+        ArcRelaySignatureDefinition.TripNode node = mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.TripNode>().Single();
+        Assert.Equal((10, 20), (node.Hull, node.TriggerDamage));
+        Assert.Equal(20, mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.RailLine>()
+            .Single().Damage);
+        ArcRelaySignatureDefinition.SentinelSeed2 sentinel = mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.SentinelSeed2>().Single();
+        Assert.Equal((20, 10), (sentinel.Hull, sentinel.Damage));
+        ArcRelaySignatureDefinition.RepairBeam repair = mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.RepairBeam>().Single();
+        Assert.Equal(
+            (10, 20),
+            (repair.HullPerRepair, repair.MaxHullPerActivation));
+        Assert.Equal(10, mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.TargetPaint2>()
+            .Single().BonusDamage);
+        Assert.Equal(30, mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.HardlightBlock>()
+            .Single().Hull);
+        Assert.Equal(3, mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.PrismWall>()
+            .Single().ContactCapacity);
+
+        string canonical = ActorContractManifestSerializer.ToCanonicalJson(
+            definition);
+        Assert.Contains("\"veterancyDamagePerPoint\":5", canonical);
+        Assert.Contains("\"veterancyDamageBonusCap\":10", canonical);
+        Assert.Contains("\"veterancyBonusAfterRearArc\":true", canonical);
+        Assert.Contains("\"vitalityHealthPerPoint\":10", canonical);
+        Assert.Contains("\"healZoneHealthPerActivation\":10", canonical);
+        var parsed = Assert.IsType<GenericActorRulesContract.ArcRelayGameMode>(
+            ActorCanonicalContractReader.Parse(canonical).Rules.GameMode);
+        Assert.Equal(5, parsed.VeterancyDamagePerPoint);
+        Assert.Equal(10, parsed.VeterancyDamageBonusCap);
+        Assert.True(parsed.VeterancyBonusAfterRearArc);
+        Assert.Equal(10, parsed.VitalityHealthPerPoint);
+        Assert.Equal(10, parsed.HealZoneHealthPerActivation);
+
+        string control = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Tapline3));
+        Assert.DoesNotContain("veterancyDamagePerPoint", control);
+        Assert.DoesNotContain("healZoneHealthPerActivation", control);
+    }
+
+    [Fact]
+    public void DurabilityPlusAddsOneBaselineHitWithoutEnteringThePack()
+    {
+        ActorResolvedMatchDefinition scale = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.TaplineDepthCombatScale10);
+        ActorResolvedMatchDefinition durable = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.TaplineDepthDurabilityPlus10);
+        ActorResolvedMatchDefinition pack = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.TaplineDepthPack);
+
+        AssertHull(durable, 40, ArcRelayLaunchClassIds.Kestrel);
+        AssertHull(durable, 50, ArcRelayLaunchClassIds.Towline);
+        AssertHull(durable, 60, ArcRelayLaunchClassIds.Mason);
+        AssertHull(pack, 30, ArcRelayLaunchClassIds.Kestrel);
+        AssertHull(pack, 40, ArcRelayLaunchClassIds.Towline);
+        AssertHull(pack, 50, ArcRelayLaunchClassIds.Mason);
+
+        foreach ((string classId, int baselineHits, int durableHits) in new[]
+                 {
+                     (ArcRelayLaunchClassIds.Kestrel, 3, 4),
+                     (ArcRelayLaunchClassIds.Towline, 4, 5),
+                     (ArcRelayLaunchClassIds.Mason, 5, 6),
+                 })
+        {
+            Assert.Equal(baselineHits, HitsToKill(Hull(scale, classId), 10));
+            Assert.Equal(durableHits, HitsToKill(Hull(durable, classId), 10));
+        }
+    }
+
+    [Theory]
+    [InlineData(0, false, 0, 10)]
+    [InlineData(1, false, 0, 15)]
+    [InlineData(2, false, 0, 20)]
+    [InlineData(3, false, 0, 20)]
+    [InlineData(4, false, 0, 20)]
+    [InlineData(0, true, 0, 20)]
+    [InlineData(1, true, 0, 25)]
+    [InlineData(2, true, 0, 30)]
+    [InlineData(4, true, 0, 30)]
+    [InlineData(1, true, 10, 35)]
+    public void CombatScaleOrdersRearThenCappedVeteranThenPaint(
+        int damagePoints,
+        bool rearArc,
+        int paint,
+        int expected)
+    {
+        var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+            ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.TaplineDepthCombatScale10).GameMode);
+
+        Assert.Equal(
+            expected,
+            ArcRelayCombatMagnitude.ProjectileDamage(
+                mode,
+                baseDamage: 10,
+                damagePoints,
+                rearArc,
+                targetPaintBonus: paint));
+    }
+
+    [Fact]
+    public void RepeatedVitalityAddsCurrentLifeHeadroomWithoutRescue()
+    {
+        ArcRelayActorMatchModeDriver driver = Driver(
+            ArcRelayLoopProfile.TaplineDepthCombatScale10);
+        ActorIdentity veteran = ActorIdentity.FromTeamUnitLife(0, 0, 0);
+
+        for (int ordinal = 0; ordinal < 8; ordinal++)
+        {
+            driver.HandleDestructions(10 + ordinal,
+            [
+                new FrontlineScrapDestruction(
+                    ActorIdentity.FromTeamUnitLife(1, ordinal, 0),
+                    new Position(10, 10),
+                    veteran),
+            ]);
+            if (ordinal % 2 == 1)
+                Assert.True(driver.TryInvest(30 + ordinal, veteran, "vitality"));
+        }
+
+        Assert.Equal(40, driver.StatModifiersFor(veteran).MaxHealthDelta);
+        Assert.Equal(
+            40,
+            FrontlineScrapEconomyDefinition.HeadroomOn(
+                driver.GameMode,
+                FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                    .SpawnMaxHealthDelta));
+        Assert.Equal(
+            4,
+            FrontlineScrapEconomyDefinition.HeadroomOn(
+                driver.GameMode,
+                FrontlineScrapEconomyDefinition.UpgradeEffectKind
+                    .MobileAttackTravelTilesDelta));
+        // The driver publishes only a maximum-health modifier. It owns no
+        // reference to standing health, so investing cannot rescue that life.
+        Assert.Equal(90, 50 + driver.StatModifiersFor(veteran).MaxHealthDelta);
     }
 
     [Fact]
@@ -440,6 +633,24 @@ public sealed class ArcRelayTaplineDepthTests
             .OfType<ArcRelayEvent.CoreBanked>()
             .Single();
     }
+
+    private static void AssertHull(
+        ActorResolvedMatchDefinition definition,
+        int expected,
+        params string[] classIds) =>
+        Assert.All(classIds, classId => Assert.Equal(
+            expected,
+            Hull(definition, classId)));
+
+    private static int Hull(
+        ActorResolvedMatchDefinition definition,
+        string classId) =>
+        definition.Rules.Forms.Single(form =>
+            form.Id == ArcRelayH0Definition.FormPrefix + classId)
+            .MaxHealth;
+
+    private static int HitsToKill(int health, int damage) =>
+        (health + damage - 1) / damage;
 
     private static int PickUp(
         ArcRelayActorMatchModeDriver driver,

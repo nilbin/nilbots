@@ -33,6 +33,7 @@ import {
 } from './adaptiveAccent';
 import { maxHealthForActor } from '../replayMetadata';
 import { arcVeterancyFor } from '../replayArcVeterancy';
+import { healthSegments } from '../presentation/healthSegments';
 import {
   participantForUnit,
   visualIndexForUnit,
@@ -2280,12 +2281,15 @@ export function drawArena(
     ctx.restore();
 
     if (!destroyed && !ghosted) {
+      const presentedUnit = tickPresentation?.units.find(
+        (candidate) => candidate.unitKey === pose.unitKey,
+      );
       drawHealthPips(
         pose,
         cx,
         cy - radius - tile * 0.22,
         accent,
-        maxHealthForActor(replay, {
+        presentedUnit?.maxHealth ?? maxHealthForActor(replay, {
           formId: pose.formId,
           health: pose.health,
         }),
@@ -2579,21 +2583,22 @@ export function drawArena(
     accent: string,
     actorMaxHealth: number,
   ): void {
+    const segments = healthSegments(pose.health, actorMaxHealth);
     const basePip = Math.max(3, tile * 0.10);
     const pip = Math.max(
       2,
       Math.min(
         basePip,
         (tile * 0.85) /
-          Math.max(1, 1 + (actorMaxHealth - 1) * 1.6),
+          Math.max(1, 1 + (segments.count - 1) * 1.6),
       ),
     );
     const gap = pip * 1.6;
-    const startX = cx - ((actorMaxHealth - 1) * gap) / 2;
+    const startX = cx - ((segments.count - 1) * gap) / 2;
     const readableAccent = accentAt(accent, cx, cy);
-    for (let i = 0; i < actorMaxHealth; i++) {
+    for (let i = 0; i < segments.count; i++) {
       ctx.fillStyle =
-        i < pose.health ? readableAccent : 'rgba(100,116,139,0.35)';
+        i < segments.filled ? readableAccent : 'rgba(100,116,139,0.35)';
       ctx.beginPath();
       ctx.arc(startX + i * gap, cy, pip / 2, 0, Math.PI * 2);
       ctx.fill();

@@ -827,7 +827,9 @@ internal sealed class ArcRelayActorMatchModeDriver
             ? new GenericActorModeStatModifiers(
                 state.ReachPoints,
                 state.VisionPoints,
-                state.VitalityPoints)
+                checked(
+                    state.VitalityPoints
+                    * _gameMode.VitalityHealthPerPoint))
             : GenericActorModeStatModifiers.None;
 
     /// <summary>Skill points this life has put into damage.</summary>

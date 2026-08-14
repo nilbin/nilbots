@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+import { healthSegments } from '../presentation/healthSegments';
 import IdentityChip from './IdentityChip';
 import ClassIcon from './ClassIcon';
 import { visualIndexForUnit } from '../replayParticipants';
@@ -425,6 +426,7 @@ export default function BotPanel({
             ? unit.actionResult
             : null;
         const visibleAccent = playerAccent(unit.accent, 'panel');
+        const health = healthSegments(unit.health, unit.maxHealth);
         // The card wears the effective form's chassis, so anchoring, mobilizing and
         // entering a stance show up in the panel at the same tick they show up in the
         // arena.
@@ -531,22 +533,25 @@ export default function BotPanel({
                   className="flex shrink-0 gap-[2px]"
                   aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
                 >
-                  {Array.from({ length: unit.maxHealth }, (_, index) => (
-                    <i
-                      key={index}
-                      className={clsx(
-                        'h-[4px] w-[9px] rounded-[1px] border',
-                        index < unit.health
-                          ? 'player-accent-border player-accent-fill'
-                          : 'border-arena-edge',
-                      )}
-                      style={
-                        index < unit.health
-                          ? styleVariables({ '--player-accent': visibleAccent })
-                          : undefined
-                      }
-                    />
-                  ))}
+                  {Array.from(
+                    { length: health.count },
+                    (_, index) => (
+                      <i
+                        key={index}
+                        className={clsx(
+                          'h-[4px] w-[9px] rounded-[1px] border',
+                          index < health.filled
+                            ? 'player-accent-border player-accent-fill'
+                            : 'border-arena-edge',
+                        )}
+                        style={
+                          index < health.filled
+                            ? styleVariables({ '--player-accent': visibleAccent })
+                            : undefined
+                        }
+                      />
+                    ),
+                  )}
                 </span>
                 {/* The order outranks the action here. Sixteen compact cards
                     reading `Move eight way north…` say nothing a spectator
@@ -572,25 +577,28 @@ export default function BotPanel({
                 className="flex gap-[3px]"
                 aria-label={`Health ${unit.health} of ${unit.maxHealth}`}
               >
-                {Array.from({ length: unit.maxHealth }, (_, index) => (
-                  <span
-                    key={index}
-                    className={clsx(
-                      'h-[9px] flex-1 rounded-[2px] border',
-                      index >= unit.health && 'border-arena-edge',
-                      index >= unit.health && out && 'border-dashed',
-                      index < unit.health &&
-                        'player-accent-border player-accent-fill',
-                    )}
-                    style={
-                      index < unit.health
-                        ? styleVariables({
-                            '--player-accent': visibleAccent,
-                          })
-                        : undefined
-                    }
-                  />
-                ))}
+                {Array.from(
+                  { length: health.count },
+                  (_, index) => (
+                    <span
+                      key={index}
+                      className={clsx(
+                        'h-[9px] flex-1 rounded-[2px] border',
+                        index >= health.filled && 'border-arena-edge',
+                        index >= health.filled && out && 'border-dashed',
+                        index < health.filled &&
+                          'player-accent-border player-accent-fill',
+                      )}
+                      style={
+                        index < health.filled
+                          ? styleVariables({
+                              '--player-accent': visibleAccent,
+                            })
+                          : undefined
+                      }
+                    />
+                  ),
+                )}
               </dd>
               <dd className="val">
                 {unit.health}/{unit.maxHealth}

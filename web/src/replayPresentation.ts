@@ -20,6 +20,7 @@ import {
 import { headingStep } from './render/interpolate';
 import { unitAccent, unitLook } from './render/unitPresentation';
 import { replayMaxHealth } from './replayMetadata';
+import { arcVeterancyFor } from './replayArcVeterancy';
 import {
   legacySlotForUnit,
   participantForUnit,
@@ -619,6 +620,19 @@ function presentUnit(
   const form = replay.forms.find(
     (candidate) => candidate.formId === formId,
   );
+  const vitalityMagnitude =
+    replay.contract.kind === 'v3-generic' &&
+    replay.contract.mode.kind === 'arc-relay'
+      ? (replay.contract.mode.vitalityHealthPerPoint ?? 1)
+      : 0;
+  const vitalityPoints = actor && vitalityMagnitude > 0
+    ? arcVeterancyFor(replay).vitalityPointsAt(
+        tickIndex,
+        actor.identity.teamId,
+        actor.identity.unitId,
+        actor.identity.lifeId,
+      )
+    : 0;
   const participant = participantForUnit(replay, unitKey);
   // Resolved through the same place the arena resolves it, for the effective form: a card
   // showing a different chassis or a different colour from the bot it names is worse than
@@ -707,7 +721,9 @@ function presentUnit(
       ? { ...activeActor.pendingFormTransition }
       : null,
     health: activeActor?.health ?? (status === 'active' ? (actor?.health ?? 0) : 0),
-    maxHealth: form?.maxHealth ?? Math.max(1, actor?.health ?? maxHealthFallback(replay)),
+    maxHealth:
+      (form?.maxHealth ?? Math.max(1, actor?.health ?? maxHealthFallback(replay))) +
+      vitalityPoints * vitalityMagnitude,
     cooldown: activeActor?.cooldown ?? 0,
     energy: activeActor?.energy ?? null,
     zoneTicks,

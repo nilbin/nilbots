@@ -374,8 +374,13 @@ public sealed record FrontlineScrapEconomyDefinition
             // (hunter-v1): the snapshot validator then rejected every shot
             // a reach-invested body fired.
             ArcRelayGameModeDefinition { VeterancyXpPerLevel: > 0 } veterancy
-                when effect is UpgradeEffectKind.SpawnMaxHealthDelta
-                    or UpgradeEffectKind.MobileAttackTravelTilesDelta =>
+                when effect is UpgradeEffectKind.SpawnMaxHealthDelta =>
+                checked(
+                    (veterancy.VeterancyMaxLevel - 1)
+                    * veterancy.VitalityHealthPerPoint),
+            ArcRelayGameModeDefinition { VeterancyXpPerLevel: > 0 } veterancy
+                when effect is
+                    UpgradeEffectKind.MobileAttackTravelTilesDelta =>
                 veterancy.VeterancyMaxLevel - 1,
             _ => 0,
         };

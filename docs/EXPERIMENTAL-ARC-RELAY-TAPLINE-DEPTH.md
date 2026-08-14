@@ -498,9 +498,11 @@ entries in an Orders upgrade path require explicit tests so a capped track
 cannot create a hidden difference between displayed state, action legality,
 and applied damage.
 
-One vitality investment adds 10 maximum health to the stable slot's next life.
-It retains the existing no-rescue rule: buying vitality never heals the body
-that is already standing. Repeated vitality investments remain additive.
+One vitality investment adds 10 maximum health to the investing body's current
+life. It retains the existing no-rescue rule: buying vitality raises the
+ceiling but never heals the body that is already standing; repair or a heal
+zone must fill the new headroom. Death still resets every veterancy track.
+Repeated vitality investments remain additive.
 
 ### Positional damage ordering
 
@@ -623,7 +625,7 @@ longer fights. Their separation keeps a fun result attributable.
    repair, deployment preservation, explicit relocation, and capped/repeated
    upgrade paths.
 4. Exact combat breakpoint tests for all three hull tiers, every veteran damage
-   rank, front/rear ordering, Target Paint, vitality-on-next-spawn, every
+   rank, front/rear ordering, Target Paint, vitality headroom/no-rescue, every
    rescaled signature/deployment quantity, and simultaneous focus damage.
 5. Deterministic replay round-trip tests for multi-Pulse banks, wave births,
    construct damage/replacement, combat-scale values, and new public

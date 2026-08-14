@@ -35,10 +35,11 @@ import {
 } from '../render/interpolate';
 import { volleyLanes } from '../render/volley';
 import { buildVolleyArrows } from './volleyArrows';
+import { maxHealthForActor } from '../replayMetadata';
 import {
-  maxHealthForActor,
-  replayMaxHealth,
-} from '../replayMetadata';
+  healthSegments,
+  MAX_HEALTH_SEGMENTS,
+} from '../presentation/healthSegments';
 import { createPresenter } from '../replayPresentation';
 import { settledStateTick } from '../render/tickClock';
 import { arcVeterancyFor } from '../replayArcVeterancy';
@@ -459,9 +460,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
   const veterancyLevelCeiling = rawGameMode?.kind === 'arc-relay'
     ? Math.max(veterancy.maxLevel, rawGameMode.veterancyMaxLevel ?? 1)
     : veterancy.maxLevel;
-  // Rules-owned and form-extensible: this is only the allocation ceiling. Per-frame
-  // visibility still uses the effective form's own maximum.
-  const maxHealth = replayMaxHealth(replay);
+  // Ten pooled segments cover historical one-point pips and every larger
+  // combat-scale/vitality life without creating 100 meshes per body.
+  const maxHealthSegments = MAX_HEALTH_SEGMENTS;
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
@@ -1111,14 +1112,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const litPip = createStatusPipMaterial(accent);
     const lostPip = createStatusPipMaterial('#64748b', true);
     const pipMeshes: THREE.Mesh[] = [];
-    for (let index = 0; index < maxHealth; index++) {
+    for (let index = 0; index < maxHealthSegments; index++) {
       const pip = new THREE.Mesh(pipGeometry, litPip);
       pip.userData.cue = 'health-pip';
       faceStatusElement(pip);
       pips.add(pip);
       pipMeshes.push(pip);
     }
-    centreStatusPips(pipMeshes, maxHealth);
+    centreStatusPips(pipMeshes, maxHealthSegments);
     group.add(pips);
     disposables.push(pipGeometry, litPip, lostPip);
 
@@ -2209,21 +2210,27 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       // child must not look wounded merely because its future turret form has more HP.
       bot.pips.visible = bot.chassis.visible;
       placeStatusBib(bot.pips, glide.x + 0.5, glide.y + 0.5);
-      const effectiveMaxHealth = maxHealthForActor(replay, {
-        formId: pose.formId,
-        health: pose.health,
-      });
+      const mechanics = settledUnits.find(
+        (candidate) => candidate.unitKey === pose.unitKey,
+      );
+      const effectiveMaxHealth = mechanics?.maxHealth ?? maxHealthForActor(
+        replay,
+        {
+          formId: pose.formId,
+          health: pose.health,
+        },
+      );
+      const health = healthSegments(pose.health, effectiveMaxHealth);
+      bot.pips.userData.currentHealth = pose.health;
+      bot.pips.userData.maximumHealth = effectiveMaxHealth;
       for (const [index, pip] of bot.pipMeshes.entries()) {
-        pip.material = index < pose.health ? bot.litPip : bot.lostPip;
+        pip.material = index < health.filled ? bot.litPip : bot.lostPip;
       }
-      centreStatusPips(bot.pipMeshes, effectiveMaxHealth);
+      centreStatusPips(bot.pipMeshes, health.count);
 
       // What this body is doing about the two mechanics the arena now carries:
       // holding the point (or guarding whoever is), and whether it is worth
       // chasing across the map.
-      const mechanics = settledUnits.find(
-        (candidate) => candidate.unitKey === pose.unitKey,
-      );
       const channelling =
         bot.chassis.visible && mechanics?.channelRole === 'channeling';
       const screening =

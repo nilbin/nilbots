@@ -21,6 +21,7 @@ import {
   surveyFlareFlightEndpoints,
   buildArcVeterancy,
   buildOverlays,
+  createPresenter,
   LEVEL_UP_BEAT_TICKS,
   unitAccent,
 } from './.harness/harness.entry.js';
@@ -1087,5 +1088,65 @@ test('the level-up transient starts on its exact fact and is gone after 1.8 tick
   assert.equal(
     veterancy.levelUpAt(2.2, actor.teamId, actor.unitId, actor.lifeId + 1),
     null,
+  );
+});
+
+test('a scaled vitality investment raises the inspected maximum without inventing health', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  assert.equal(replay.contract.kind, 'v3-generic');
+  assert.equal(replay.contract.mode.kind, 'arc-relay');
+  replay.contract.mode.vitalityHealthPerPoint = 10;
+  const tickIndex = replay.ticks.findIndex((tick) => tick.actorTurns.length > 0);
+  assert.ok(tickIndex >= 0);
+  const turn = replay.ticks[tickIndex]!.actorTurns[0]!;
+  turn.actionResolution.validatedActionId = 'invest';
+  turn.actionResolution.result = 'success';
+  turn.actionResolution.validatedPayload = {
+    shotProgram: null,
+    direction: null,
+    launchHeading: null,
+    unitKey: null,
+    formTargetId: null,
+    positionTarget: null,
+    upgradeTrackId: 'vitality',
+  };
+
+  const actor = turn.actor;
+  const veterancy = buildArcVeterancy(replay);
+  assert.equal(
+    veterancy.vitalityPointsAt(
+      tickIndex - 1,
+      actor.teamId,
+      actor.unitId,
+      actor.lifeId,
+    ),
+    0,
+  );
+  assert.equal(
+    veterancy.vitalityPointsAt(
+      tickIndex,
+      actor.teamId,
+      actor.unitId,
+      actor.lifeId,
+    ),
+    1,
+  );
+  const presented = createPresenter(replay).at(tickIndex).units.find(
+    (unit) => unit.unitKey === actor.unitKey,
+  );
+  assert.ok(presented);
+  const baseMaximum = replay.forms.find(
+    (form) => form.formId === presented.formId,
+  )?.maxHealth;
+  assert.ok(baseMaximum);
+  assert.equal(presented.maxHealth, baseMaximum + 10);
+  assert.ok(
+    presented.health <= baseMaximum,
+    'investing does not heal the standing body',
   );
 });

@@ -49,6 +49,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     [InlineData("tapline-pre-wave-evacuation-v1")]
     [InlineData("tapline-double-mason-lockbox-v1")]
     [InlineData("tapline-demolition-march-v1")]
+    [InlineData("tapline-tempered-standard-v1")]
+    [InlineData("tapline-iron-interval-v1")]
     public void TaplineDepthCandidatesCompileAsCompactDirectOrders(
         string name)
     {

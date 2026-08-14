@@ -302,6 +302,11 @@ export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
   seedPhasedWellLead?: true;
   chiralWellBirths?: true;
   healZoneTicksPerHp?: number;
+  veterancyDamagePerPoint?: number;
+  veterancyDamageBonusCap?: number;
+  veterancyBonusAfterRearArc?: boolean;
+  vitalityHealthPerPoint?: number;
+  healZoneHealthPerActivation?: number;
   teamRelativeCoreCharge?: {
     ownWell: number;
     centreWell: number;
