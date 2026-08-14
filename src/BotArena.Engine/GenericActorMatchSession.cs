@@ -4727,6 +4727,8 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             return mode;
         }
+        arcRelay = (GenericActorRuntimeObservation.ModeObservationState.ArcRelay)
+            WithPendingStrikes(arcRelay);
         int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
                 _definition.Rules.GameMode).Signatures
             .OfType<ArcRelaySignatureDefinition.TripNode>()
@@ -4775,6 +4777,11 @@ public sealed class GenericActorMatchSession : IDisposable
                             strike.Shooter, out LifeState? striker)
                             ? striker.Position
                             : strike.Origin))],
+            // Respawn waves are public match state. Preserve them when the
+            // authoritative Arc Relay projection is narrowed to one team;
+            // otherwise wave-aware sheet facts silently read as absent.
+            NextRespawnWaveTick = arcRelay.NextRespawnWaveTick,
+            RespawnWaveTeams = arcRelay.RespawnWaveTeams,
         };
     }
 

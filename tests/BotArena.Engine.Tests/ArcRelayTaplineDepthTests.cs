@@ -552,6 +552,17 @@ public sealed class ArcRelayTaplineDepthTests
                 team.TeamId,
                 team.LiveBodies,
                 team.RespawnsNextWave)));
+
+        var observed = Assert.IsType<
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay>(
+                factories[0].Observations[0].Mode);
+        Assert.Equal(30, observed.NextRespawnWaveTick);
+        Assert.Equal(
+            [(0, 8, 0), (1, 8, 0)],
+            observed.RespawnWaveTeams.Select(team => (
+                team.TeamId,
+                team.LiveBodies,
+                team.RespawnsNextWave)));
     }
 
     [Fact]
