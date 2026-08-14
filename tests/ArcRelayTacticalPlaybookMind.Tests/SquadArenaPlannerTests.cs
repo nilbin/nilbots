@@ -84,6 +84,29 @@ public sealed class SquadArenaPlannerTests
             [first, second, vacancy]));
         Assert.False(SquadArenaPlanner.OperationsHaveAcyclicMovement(
             [first, second, closesCycle]));
+        Assert.True(SquadArenaPlanner.FirstStepIsExecutable(
+            [first, second, vacancy]));
+        Assert.False(SquadArenaPlanner.FirstStepIsExecutable(
+            [first, second, closesCycle]));
+    }
+
+    [Fact]
+    public void JointFirstStepRejectsSharedDestination()
+    {
+        SquadArenaPlanner.Operation west = Operation(
+            new Position(1, 1), Direction.East,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(2, 1), ProjectileHeading.East),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+        SquadArenaPlanner.Operation east = Operation(
+            new Position(3, 1), Direction.West,
+            SquadArenaPlanner.MicroAction.Move(
+                new Position(2, 1), ProjectileHeading.West),
+            SquadArenaPlanner.MicroAction.Wait,
+            SquadArenaPlanner.MicroAction.Wait);
+
+        Assert.False(SquadArenaPlanner.FirstStepIsExecutable([west, east]));
     }
 
     [Fact]
