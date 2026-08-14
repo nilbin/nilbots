@@ -8,15 +8,18 @@ immutable until a later owner review explicitly promotes a result.
 
 Create more durable, visible strategic identities without bringing back a
 second top-level play/state-machine grammar. The candidate pack contains exactly
-five ideas:
+six ideas:
 
 1. team-relative `1 / 2 / 4` Core charge for own / centre / enemy Wells;
 2. veteran-centred "ace and escort" strategies through narrow Orders v2
    additions;
 3. synchronized public respawn waves;
 4. one duplicate-class wildcard in each eight-body roster;
-5. persistent deployment control, led by a targetable three-health,
-   long-duration Mason barrier that is replaced when its owner deploys another.
+5. persistent deployment control, led by a targetable three-baseline-hit,
+   long-duration Mason barrier that is replaced when its owner deploys another;
+6. a tenfold integer combat scale with proportionately larger hull, damage,
+   repair, and vitality values so ordinary upgrades and future weak effects
+   have useful tuning room.
 
 These are **candidate changes, not one pre-approved bundle**. Implement each
 behind independently selectable, canonically serialized rules/grammar fields.
@@ -36,7 +39,9 @@ At minimum, retain these distinguishable study cells:
 | respawn-wave | synchronized respawns only |
 | roster-wildcard | roster diversity rule only |
 | durable-deployments | deployment fact and Mason barrier changes only |
-| depth-pack | all five, after the isolated cells execute correctly |
+| combat-scale-10 | 30 / 40 / 50 hulls, damage 10, revised veteran damage ordering, and proportionately rescaled secondary quantities |
+| durability-plus-10 | `combat-scale-10` plus 40 / 50 / 60 hulls; no other difference |
+| depth-pack | all six using `combat-scale-10`, after the isolated cells execute correctly |
 
 Exact registered IDs should follow the existing immutable loop-profile and
 ruleset naming conventions. Every replay and receipt must identify the exact
@@ -156,6 +161,10 @@ Do not buff veterancy numbers in the first arm. Keep:
 - damage, vision, reach, and vitality upgrade paths;
 - a quiet action tick to invest;
 - complete reset on death.
+
+Those values are retained specifically in the isolated `veteran-command` arm.
+Section 6 versions damage and vitality only in `combat-scale-10`; do not
+smuggle that numerical change into the veteran Orders-affordance experiment.
 
 The reset and bounty are the built-in counterweight to an ace: protecting a
 veteran has value, while killing that veteran both removes the investment and
@@ -314,6 +323,10 @@ Mason in this prototype, but player-facing copy should explain it plainly:
 > Projects a solid 3-health barrier. It blocks movement and shots until
 > destroyed, expired, or replaced by Mason's next barrier.
 
+That copy is exact for the isolated `durable-deployments` cell. When combined
+with Section 6's ten-damage combat scale, display 30 health so the barrier
+keeps the same three-baseline-hit meaning.
+
 A later owner decision may rename the display label to “Projected Barrier” or
 “Barrier Block”; this brief does not require an identity migration.
 
@@ -326,7 +339,8 @@ mistake that hidden implementation for a completed player-facing mechanic.
 
 ### Candidate Mason rule
 
-- maximum health: 3;
+- maximum health: 3 in `durable-deployments`, or 30 when
+  `combat-scale-10` is also active;
 - duration: 30 ticks;
 - cooldown: 14 ticks (unchanged);
 - blocks ground movement and consumes the shot that destroys it;
@@ -383,26 +397,207 @@ one-per-slot replacement invariant.
 
 Public observation, replay, viewer, and explain/debug output must expose owner,
 kind, tile(s), current/max health where applicable, expiry, suppression, and
-replacement/destruction reason. A health bar or equally legible three-step
-damage read is required for the Mason barrier.
+replacement/destruction reason. A health bar or equally legible
+three-baseline-hit damage read is required for the Mason barrier.
 
 ### Why this should be deeper and more fun
 
 A long-lived barrier makes lane ownership and planned fortification persist
-long enough for both teams to react. Three health creates real dismantling
-counterplay, while replacement on recast prevents accumulation and makes
-relocation a meaningful choice. `deployment-active` lets sheets express that
-choice without a new play framework.
+long enough for both teams to react. Requiring three baseline hits creates real
+dismantling counterplay, while replacement on recast prevents accumulation and
+makes relocation a meaningful choice. `deployment-active` lets sheets express
+that choice without a new play framework.
 
 ### Main risks
 
 - A 30-tick barrier may seal a narrow route too cheaply.
 - A sheet that recasts every cooldown receives little benefit from the longer
   duration and may churn visual state.
-- Veteran damage may make three health trivial; no intentional target may make
-  it oppressive. Both cases need replay inspection.
+- Veteran damage may make three baseline hits trivial; no intentional target
+  may make the barrier oppressive. Both cases need replay inspection.
 - Stable-slot persistence through death can create confusing ownership unless
   the viewer keeps the team/Mason relationship visible.
+
+## 6. Tenfold combat scale and durability resolution
+
+### Why tenfold rather than twofold
+
+The owner proposal solves a real integer-resolution problem. At current damage
+1, the smallest possible `+1` upgrade is a 100% increase. A twofold scale would
+make ordinary damage 2 and `+1` a healthier 50% increase, but it would still
+leave only one non-zero damage value below a normal hit. A tenfold integer
+scale leaves values 1 through 9 for future chip damage, weak deployables,
+damage-over-time, armor leakage, and partial repair without introducing
+fractions or another later rescale.
+
+Tenfold is a unit conversion, not permission to multiply every game number.
+Scale only health-like, damage-like, and repair-like magnitudes. Ranges,
+durations, cooldowns, movement, contact counts, Core charge, XP, levels, and
+respawn timing keep their current units.
+
+Doubling or multiplying both hull and ordinary attack damage does **not** by
+itself make baseline combat longer. Treat these as two named questions:
+
+1. `combat-scale-10` asks whether larger integers make veteran damage and
+   vitality fairer while preserving ordinary Tapline tempo.
+2. `durability-plus-10` asks whether every chassis should then require one more
+   baseline hit.
+
+Never use `durability-plus-10` as evidence for `combat-scale-10`, and do not
+place the extra durability into the first combined `depth-pack` arm without a
+later owner selection.
+
+### Breakpoint math
+
+The governing breakpoint is:
+
+```text
+hitsToKill = ceil(maxHealth / damagePerHit)
+```
+
+Tapline currently has 3 / 4 / 5 hull, ordinary damage 1, an effective veteran
+front-damage progression of 1 -> 2 -> 3, and short / medium / long firing
+intervals of 2 / 3 / 5 ticks. The tenfold candidate uses 30 / 40 / 50 hull,
+ordinary damage 10, and veteran front damage 10 -> 15 -> 20:
+
+| Hull tier | Current hits at damage 1 / 2 / 3 | `combat-scale-10` hits at damage 10 / 15 / 20 |
+| --- | ---: | ---: |
+| squishy: 3 -> 30 | 3 / 2 / 1 | 3 / 2 / 2 |
+| medium: 4 -> 40 | 4 / 2 / 2 | 4 / 3 / 2 |
+| heavy: 5 -> 50 | 5 / 3 / 2 | 5 / 4 / 3 |
+
+Baseline hits therefore stay exactly 3 / 4 / 5. The first damage point still
+changes a squishy from three hits to two, but it no longer removes two whole
+hits from medium and heavy bodies. Each extra required hit buys roughly another
+2 / 3 / 5 ticks of uninterrupted exposure against the corresponding gun.
+
+Do not keep the upgrade at `+1` merely because the new scale permits it. That
+would turn a formerly decisive investment into a 10% increase that rarely
+crosses a breakpoint. The initial candidate prices the intended half-hit step
+explicitly at `+5`; values 1..4 remain available for genuinely weaker future
+effects.
+
+### Candidate chassis, gun, and upgrade values
+
+`combat-scale-10` authors these resolved form values:
+
+| Tier | Classes | Maximum health |
+| --- | --- | ---: |
+| squishy | Kestrel, Lantern, Mortar, Switchback, Longshot, Veil | 30 |
+| medium | Towline, Patchbay, Minesmith, Hush, Relay, Sunder, Nest | 40 |
+| heavy | Palisade, Mason, Repulsor | 50 |
+
+Every ordinary class gun starts at damage 10. Keep its range, 1-tick strike
+windup, 2 / 3 / 5 firing interval, aim rules, and every movement value
+unchanged.
+
+One damage investment adds exactly 5 ordinary damage, with an effective bonus
+cap of +10: front damage progresses 10 -> 15 -> 20. Further points must not
+make the displayed or applied damage exceed 20. Repeated terminal `damage`
+entries in an Orders upgrade path require explicit tests so a capped track
+cannot create a hidden difference between displayed state, action legality,
+and applied damage.
+
+One vitality investment adds 10 maximum health to the stable slot's next life.
+It retains the existing no-rescue rule: buying vitality never heals the body
+that is already standing. Repeated vitality investments remain additive.
+
+### Positional damage ordering
+
+The legacy calculation adds veteran damage before the rear-arc multiplier. On
+the proposed scale, the first damage point would therefore turn a rear hit from
+20 into 30 and immediately one-shot a 30-health squishy. That preserves the
+most explosive part of the current upgrade and defeats the purpose of the
+scale.
+
+In `combat-scale-10`, calculate ordinary projectile damage in this order:
+
+```text
+positionalDamage = baseDamage * (rearArc ? 2 : 1)
+veteranBonus = min(damagePoints * 5, 10)
+finalDamage = positionalDamage + veteranBonus + targetPaintBonus
+```
+
+The veteran bonus is consequently literal +5 even from behind. Rear damage
+progresses 20 -> 25 -> 30 rather than 20 -> 30 -> 40. A first-rank rear hit
+leaves a fresh 30-health squishy on 5 health; the second damage rank earns the
+one-shot. Target Paint remains after rear and veteran calculation.
+
+### Rescale every health-like and damage-like quantity
+
+Do not enlarge bodies and guns while quietly shrinking the relative value of
+signatures, repairs, or deployments. `combat-scale-10` carries this complete
+magnitude table:
+
+| Quantity | Tapline-3 | `combat-scale-10` |
+| --- | ---: | ---: |
+| ordinary gun damage | 1 | 10 |
+| Falling Star damage | 1 | 10 |
+| Trip Node hull / trigger damage | 1 / 2 | 10 / 20 |
+| Rail Line damage | 2 | 20 |
+| Sentinel hull / bolt damage | 2 / 1 | 20 / 10 |
+| Repair Beam hull per repair / activation cap | 1 / 2 | 10 / 20 |
+| heal-zone recovery per 3 waited ticks | 1 | 10 |
+| Target Paint bonus damage | 1 | 10 |
+| Hardlight Block hull | 3 | 30 |
+| vitality health per point | 1 | 10 |
+
+Prism Wall's projectile-contact capacity is counted in contacts rather than
+health, so it stays 3. Do not scale ranges, durations, cooldowns, movement,
+Core values, XP thresholds, level thresholds, respawn time, or number of
+enhanced Target Paint hits. A value intentionally left unscaled later is a
+separate balance arm, not an omission in this one.
+
+Author the resolved values in the immutable rules contract. Do not implement a
+viewer-only or implicit global multiplier. Version any newly variable mode
+semantics needed for vitality-per-point, maximum veteran damage bonus,
+post-positional veteran ordering, and heal amount; legacy defaults must retain
+Tapline-3's exact bytes and behavior.
+
+### Optional actual-durability arm
+
+`durability-plus-10` changes only the three `combat-scale-10` body hulls from
+30 / 40 / 50 to 40 / 50 / 60. Damage and all other scaled quantities stay the
+same. Against baseline damage 10 this produces 4 / 5 / 6 hits to kill: exactly
+one more ordinary hit than current Tapline for every chassis tier.
+
+Use 40 / 50 / 60 rather than the lower ends of those same hit-count bands. The
+higher values produce smoother upgraded-damage breakpoints: damage 15 requires
+3 / 4 / 4 hits respectively. They also make two first-rank damage attackers
+deal 30 and leave a fresh durability-arm squishy alive on 10, whereas they
+exactly kill a 30-health squishy in the pure scale arm.
+
+### Why this should be deeper and more fun
+
+Larger base numbers make damage 1..4 available for subtle new class effects
+while keeping the ordinary `+5` veteran investment meaningful rather than
+binary. Medium and heavy bodies receive time to turn, retreat, hand off a Core,
+receive repair, or let escorts intervene after a veteran begins firing. +10
+vitality remains proportionate and can visibly support an ace build without
+making ordinary level-1 combat slower in the pure scale arm.
+
+The two cells also answer the owner question honestly: `combat-scale-10` tests
+upgrade fairness and future tuning resolution; `durability-plus-10` tests
+longer fights. Their separation keeps a fun result attributable.
+
+### Main risks
+
+- Pure `combat-scale-10` does not make level-1 duels longer, and two first-rank
+  attackers can still synchronously delete its 30-health squishy.
+- `durability-plus-10` may reduce kills, veteran activation, Core drops, and
+  respawn-wave opportunities while increasing MaxTicks finishes.
+- Repair plus repeated vitality can make a protected ace or centre deathball
+  too difficult to finish; do not pre-nerf it, but measure it explicitly.
+- One extra required Longshot hit costs five firing ticks, so added hull does
+  not affect all gun cadences equally.
+- A single forgotten fixed-damage, repair, or deployment value silently
+  changes a class's role.
+- Larger raw numbers can create false complexity. Player views should lead with
+  a readable proportional health bar and show exact current/maximum numbers on
+  inspection.
+- Repeated vitality can raise candidate lives as high as 90 health in
+  `combat-scale-10` or 100 in `durability-plus-10`; replace tiny per-health pips
+  with legible segments before judging the mechanic visually.
 
 ## Implementation boundaries
 
@@ -425,17 +620,23 @@ choice without a new play framework.
    team/rotation symmetries.
 2. Golden tests proving historical rules, fingerprints, and replays unchanged.
 3. Orders compiler/runtime tests for fixed ace, emergent ace, role-targeted
-   repair, deployment preservation, and explicit relocation.
-4. Deterministic replay round-trip tests for multi-Pulse banks, wave births,
-   construct damage/replacement, and new public observations.
-5. Candidate-native sheets that deliberately exercise each mechanic. Historical
+   repair, deployment preservation, explicit relocation, and capped/repeated
+   upgrade paths.
+4. Exact combat breakpoint tests for all three hull tiers, every veteran damage
+   rank, front/rear ordering, Target Paint, vitality-on-next-spawn, every
+   rescaled signature/deployment quantity, and simultaneous focus damage.
+5. Deterministic replay round-trip tests for multi-Pulse banks, wave births,
+   construct damage/replacement, combat-scale values, and new public
+   observations.
+6. Candidate-native sheets that deliberately exercise each mechanic. Historical
    sheets are compatibility sentinels, not product-quality voters for the new
    objective and roster rules.
    Use the first tranche in
    [`ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md`](ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md)
    as the initial breadth target rather than inventing near-duplicate sheets
    during implementation.
-6. Trace-first, six-cell phone exhibits for replay-visible behavior changes.
+7. Trace-first, six-cell phone exhibits for replay-visible behavior changes,
+   including legible 30..100 health presentation.
    Do not run or claim a balance sweep merely because implementation is done;
    use the repository's balance workflow only when the owner requests that
    measurement gate.
