@@ -513,8 +513,10 @@ compresses to one thick chevron worth three ranks plus one thin chevron; level
 and is materially wider and heavier than a thin mark rather than relying on a
 one-pixel weight change. Every brass facet uses a tight dark keyline instead of
 a backing plate, so the compact stack survives both bright floor panels and
-dark map voids without adding another HUD box. Higher ranks remain a compact
-vertical read clear of the health bib. Modes
+dark map voids without adding another HUD box. A slightly larger break follows
+each thick three-rank facet, keeping its broader crown clear of the thin rank
+above while ordinary thin-to-thin spacing remains compact. Higher ranks remain
+a compact vertical read clear of the health bib. Modes
 without a veterancy rule or facts receive no rank mark. Temporary level-up
 geometry is gone by 1.8 presentation ticks; the effect has no white flash,
 full-height column, camera shake, or mesh mutation.

@@ -227,6 +227,7 @@ const COOLDOWN_TRACK_WIDTH = 0.52;
 const COOLDOWN_TRACK_HEIGHT = 0.026;
 const VETERANCY_LIFT = 0.29;
 const VETERANCY_SPACING = 0.102;
+const VETERANCY_AFTER_THICK_GAP = 0.035;
 const VETERANCY_OUTLINE_X_SCALE = 1.18;
 const VETERANCY_OUTLINE_Y_SCALE = 1.08;
 const VETERANCY_OUTLINE_Y_OFFSET = -0.003;
@@ -2237,6 +2238,8 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       const visibleVeterancy = veterancyEnabled
         ? veterancyChevronCount(level)
         : 0;
+      let veterancyOffset = 0;
+      let visibleVeterancyTop = 0;
       for (const [index, chevron] of bot.levelPips.entries()) {
         const visible = bot.pips.visible && index < visibleVeterancy;
         const outline = bot.levelPipOutlines[index]!;
@@ -2253,14 +2256,18 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         outline.userData.weight = weight;
         outline.position.set(
           0,
-          index * VETERANCY_SPACING + VETERANCY_OUTLINE_Y_OFFSET,
+          veterancyOffset + VETERANCY_OUTLINE_Y_OFFSET,
           0,
         );
-        chevron.position.set(0, index * VETERANCY_SPACING, 0.003);
+        chevron.position.set(0, veterancyOffset, 0.003);
+        if (index < visibleVeterancy) visibleVeterancyTop = veterancyOffset;
+        veterancyOffset += VETERANCY_SPACING;
+        if (weight === 'thick')
+          veterancyOffset += VETERANCY_AFTER_THICK_GAP;
       }
       bot.engagedMark.position.y = visibleVeterancy > 0
         ? VETERANCY_LIFT
-          + (visibleVeterancy - 1) * VETERANCY_SPACING
+          + visibleVeterancyTop
           + ENGAGED_ABOVE_VETERANCY_GAP
         : ENGAGED_MARK_LIFT;
 

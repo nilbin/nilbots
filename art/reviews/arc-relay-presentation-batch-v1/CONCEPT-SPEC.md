@@ -102,8 +102,9 @@ one thin chevron, levels 2 and 3 as two and three thin chevrons, level 4 as one
 thick three-rank chevron plus one thin chevron, and level 5 as one thick plus
 two thin chevrons. The facets use a restrained dark keyline rather than a badge
 plate, and the thick facet is deliberately wider as well as heavier so the
-compressed read survives normal gameplay scale. At an authoritative
-`leveled-up` fact:
+compressed read survives normal gameplay scale. It has a little more clearance
+to the thin facet above than the ordinary thin-to-thin rhythm. At an
+authoritative `leveled-up` fact:
 
 1. A thin brass floor ring expands for 0.18 visual ticks.
 2. Three short matte facets rise around the body over 0.36 ticks.

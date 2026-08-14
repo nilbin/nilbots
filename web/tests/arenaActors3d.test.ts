@@ -565,6 +565,11 @@ test('Arc veterancy chevrons stack above health instead of spreading beside it',
   assert.equal(stack!.position.y, 0.29);
   assert.equal(visible[0]!.position.y, 0);
   assert.ok(visible[1]!.position.y > visible[0]!.position.y);
+  assert.ok(
+    visible[1]!.position.y - visible[0]!.position.y >
+      visible[2]!.position.y - visible[1]!.position.y + 0.03,
+    'the first thin rank has extra clearance above the thick three-rank mark',
+  );
 
   // Tapline's theme has both pitch and yaw bias. Project the actual stack through that
   // camera: sharing a billboard plane must keep every earned facet on one exact column.
