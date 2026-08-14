@@ -8,7 +8,7 @@ immutable until a later owner review explicitly promotes a result.
 
 Create more durable, visible strategic identities without bringing back a
 second top-level play/state-machine grammar. The candidate pack contains exactly
-six ideas:
+eight ideas:
 
 1. team-relative `1 / 2 / 4` Core charge for own / centre / enemy Wells;
 2. veteran-centred "ace and escort" strategies through narrow Orders v2
@@ -19,7 +19,16 @@ six ideas:
    long-duration Mason barrier that is replaced when its owner deploys another;
 6. a tenfold integer combat scale with proportionately larger hull, damage,
    repair, and vitality values so ordinary upgrades and future weak effects
-   have useful tuning room.
+   have useful tuning room;
+7. destination-only facing toward an authored anchor after a `move.to` reaches
+   an authored zone or anchor; and
+8. finite, read-only historical evidence facts so Orders can react to prior
+   team observations without writable variables or another state machine.
+
+Sections 7 and 8 close the current Orders-expansion scope. Do not add a runtime
+Plays system, shared mutable flags, authored counters, phases, calls, or a
+second command grammar. Reusable authoring convenience may later compile to
+ordinary Orders, but it must not acquire independent runtime semantics.
 
 These are **candidate changes, not one pre-approved bundle**. Implement each
 behind independently selectable, canonically serialized rules/grammar fields.
@@ -41,7 +50,9 @@ At minimum, retain these distinguishable study cells:
 | durable-deployments | deployment fact and Mason barrier changes only |
 | combat-scale-10 | 30 / 40 / 50 hulls, damage 10, revised veteran damage ordering, and proportionately rescaled secondary quantities |
 | durability-plus-10 | `combat-scale-10` plus 40 / 50 / 60 hulls; no other difference |
-| depth-pack | all six using `combat-scale-10`, after the isolated cells execute correctly |
+| destination-facing | destination-only `face` on authored zone/anchor `move.to` orders only |
+| historical-evidence | finite team-observation history facts only; no writable sheet memory |
+| depth-pack | all eight using `combat-scale-10`, after the isolated cells execute correctly |
 
 Exact registered IDs should follow the existing immutable loop-profile and
 ruleset naming conventions. Every replay and receipt must identify the exact
@@ -601,6 +612,202 @@ longer fights. Their separation keeps a fun result attributable.
   `combat-scale-10` or 100 in `durability-plus-10`; replace tiny per-health pips
   with legible segments before judging the mechanic visually.
 
+## 7. Destination-only facing toward an anchor
+
+### Candidate grammar
+
+Add one optional `face` member to the existing `move` leaf:
+
+```json
+{
+  "move": {
+    "to": { "anchor": "west-ambush-post" },
+    "face": { "anchor": "open-lane-mouth" }
+  }
+}
+```
+
+`face` names exactly one existing authored anchor. It is legal only when the
+same move uses `to` with an authored `{ "anchor": id }` or
+`{ "zone": id }` destination. Reject it on `patrol`, `follow`, Wells,
+reactors, loose-Core selectors, and every other dynamic destination. A `via`
+route may still lead to a legal zone/anchor destination, but facing has no
+effect anywhere on that route.
+
+This is an end-of-move instruction, not a movement stance:
+
+1. Until the body reaches its resolved destination tile, path choice, facing
+   coupling, posture, traffic priority, and movement are byte-for-byte the same
+   as the equivalent move without `face`.
+2. At the destination, preserve the current facing when the face anchor is
+   already inside the body's bare 90-degree facing quadrant. Otherwise submit
+   one legal left/right rotation toward the nearest cardinal facing whose
+   quadrant contains the anchor. Exact diagonal edges are valid for either
+   adjacent quadrant; preserving an already-valid facing wins, otherwise the
+   shorter rotation wins.
+3. If the body and face anchor occupy the same tile, preserve facing and hold;
+   never rotate indefinitely or make the move unavailable.
+4. Rotation consumes the body's ordinary action tick. Once correctly faced,
+   the ongoing `move.to` holds at destination exactly as it does today.
+5. Displacement makes returning to the destination take precedence over
+   re-facing. A higher-priority fight, use, handoff, drop, or survival order
+   may pre-empt the move normally. When the move resumes at its destination,
+   it re-establishes the authored facing.
+6. Walls and smoke do not invalidate the directional intent. `face` points the
+   body toward the anchor; it does not promise that the anchor is currently
+   visible or that a shot has line of sight.
+
+Emit an explicit reason such as `at-target:face-anchor:<id>` for a submitted
+rotation and `at-target:facing-anchor:<id>` for the resulting hold. Replay and
+viewer intent must show both the destination and the face anchor so an author
+can distinguish pathing failure, rotation, occlusion, and successful overwatch.
+
+Do not maintain facing while travelling, add strafing policy, infer facing from
+the next order, or extend this first arm to patrol/follow. Those are different
+planner problems and are deliberately deferred.
+
+### Why this should be deeper and more fun
+
+Authored facing makes overwatch, crossfires, rear guards, deliberate team-vision
+coverage, and readable ambush posts possible. A Mason can block one route while
+allies at fixed posts watch the remaining lane, yet the composition remains an
+ordinary priority tree of move, fight, and use orders. Opponents can answer by
+destroying the barrier, approaching from a blind side, using smoke, baiting the
+trigger, or forcing the watchers off their destinations.
+
+### Main risks
+
+- Facing may twitch on diagonal boundaries unless the preserve-current rule is
+  exact and tested under rotation symmetry.
+- Re-facing after every harmless displacement may cost too many action ticks.
+- Authors may mistake pointing toward an occluded anchor for guaranteed vision.
+- Too many perfectly tiled watchers may reduce uncertainty; vision coverage
+  and counterplay must remain legible in exhibits.
+
+## 8. Match-local historical evidence facts
+
+### Evidence, not writable sheet memory
+
+Orders need a bounded way to ask what this team previously observed, not a way
+for sheets to mutate arbitrary state. Add a finite engine-owned evidence ledger
+and expose it only through ordinary atomic conditions. The ledger is:
+
+- team-shared and match-local;
+- retained across body death, respawn, and role-capacity reassignment;
+- reset completely at the start of every match;
+- derived only from information or events legitimately exposed to that team at
+  the time, with no omniscient or retrospective backfill; and
+- deterministic and replayable from the canonical observation/event record.
+
+A sheet may name a condition over this evidence, but it may not declare a
+memory cell, set or clear a flag, increment a counter, emit an event, or choose
+a reset transition. Existing branch lifecycle remains the only latch:
+`when` adopts a response, `until` abandons it, and `timeout`/`cooldown` bound it.
+
+### Initial finite fact catalog
+
+Add these integer facts rather than a generic event-query language:
+
+| Fact | Exact evidence returned |
+| --- | --- |
+| `observed-enemy-entries-in-zone` | Confirmed outside-to-inside transitions for an enemy life whose preceding and resulting positions were both in this team's observation |
+| `distinct-enemy-lives-observed-in-zone` | Distinct enemy life IDs actually observed in the zone during the selected interval |
+| `confirmed-enemy-destructions-in-zone` | Enemy destruction events in the zone that the existing public/team event rules disclosed to this team |
+| `zone-fully-observed-throughout-interval` | `1` only when every occupiable tile in the authored zone belonged to this team's immediate visible-tile union on every completed tick in the selected interval; otherwise `0` |
+
+Every fact requires `zone` and exactly one interval qualifier:
+
+- `windowTicks: 1..1200` reads the immediately preceding completed ticks;
+- `since: "match-start"` reads the completed portion of this match; or
+- `since: "node-entry"` reads from the current branch/leaf entry tick and is
+  legal only in that active node's `until` expression.
+
+At decision tick `T`, evidence stops before that tick's actions: a rolling
+window of `N` reads event/observation ticks `[max(0, T-N), T)`. Node-entry
+evidence begins at the tick on which that node entered and likewise ends at
+`T`. Counts never include hidden movement merely because a later sighting makes
+it plausible. A respawn is a new life for the distinct-life fact.
+
+Example rolling evidence:
+
+```json
+"north-traffic": {
+  "fact": "observed-enemy-entries-in-zone",
+  "zone": "north-corridor-gate",
+  "windowTicks": 240,
+  "operator": "at-least",
+  "value": 3
+}
+```
+
+Example episode evidence used by an active ambush branch's `until`:
+
+```json
+"ambush-earned-three-kills": {
+  "fact": "confirmed-enemy-destructions-in-zone",
+  "zone": "north-killbox",
+  "since": "node-entry",
+  "operator": "at-least",
+  "value": 3
+}
+```
+
+“No enemy entered” is not a valid inference from zero sightings alone. To end
+an unused ambush after 100 ticks, the author must combine all three statements:
+
+- this node has been active for at least 100 ticks;
+- `observed-enemy-entries-in-zone == 0` since node entry; and
+- `zone-fully-observed-throughout-interval == 1` since node entry.
+
+If smoke, occlusion, displacement, or poor facing interrupts coverage, the
+sheet may truthfully say “no observed entry,” but not “the watched lane stayed
+empty.” Small authored gate zones make continuous coverage attainable without
+pretending an entire corridor was watched.
+
+The explain trace must show the interval, count, and contributing evidence—for
+example, `north-traffic=true: 4 entries by 3 lives in ticks 310..549`. An
+absence condition must also show whether coverage was continuous and the first
+coverage gap when it was not. The replay/viewer need not surface the full ledger
+by default, but inspection must make every condition result reproducible.
+
+### Required strategy demonstrations
+
+- **Ambush payoff:** an active killbox exits after three disclosed enemy
+  destructions in its zone, without a custom flag or play phase.
+- **Unused trap:** a fully watched ambush abandons after 100 ticks with no
+  confirmed entry; the same sheet does not make that claim when coverage was
+  interrupted.
+- **Corridor adaptation:** repeated observed northern entries activate a
+  north-focused branch; a separately authored quiet-window `until` eventually
+  returns the team to its baseline rather than preserving stale certainty.
+- **Death continuity:** the team retains evidence when a watcher dies and a
+  role capacity assigns its job to another eligible body, while a new match
+  starts empty.
+
+### Why this should be deeper and more fun
+
+Sheets can probe, learn, adapt, and be counter-adapted within one match. Scouts
+and deliberate facing create useful information, an unsuccessful ambush can be
+abandoned, and repeated route usage can be punished without granting hidden
+knowledge. Sliding evidence plus the existing lifecycle supports hysteresis:
+authors can demand strong evidence before changing plan and different evidence
+before changing back.
+
+### Main risks
+
+- Historical counts may look omniscient unless observation provenance is
+  exact and visible.
+- One enemy oscillating across a boundary can inflate an entry count; authors
+  can combine entries with distinct-life evidence, and exhibits must test the
+  behavior.
+- Long match-start windows can preserve a conclusion after the opponent adapts;
+  rolling windows should be the ordinary choice.
+- Too many facts or interval forms would turn conditions into a query language.
+  The initial catalog and three interval scopes are closed for this arm.
+- Independently entered nodes have independent `node-entry` boundaries. Common
+  team evidence can coordinate reactions, but it does not create shared mutable
+  lifecycle state.
+
 ## Implementation boundaries
 
 - Version all gameplay-affecting fields in the immutable Engine contract and
@@ -610,6 +817,9 @@ longer fights. Their separation keeps a fun result attributable.
   those boundaries.
 - The shared Orders compiler remains the only compiler. New syntax is additive,
   strictly validated, represented in explain output, and inert for old sheets.
+- Destination facing remains a local `move.to` parameter. Historical evidence
+  remains a read-only condition source. Neither may introduce Plays, authored
+  variables, shared flags, operation phases, or another executor state machine.
 - Do not mutate a frozen sheet, profile, playlist, artifact, map, or golden
   replay. Do not promote the experiment to `Current` or hosted admission.
 - Do not refresh the tracked tactical WASM mirror merely for local iteration;
@@ -624,21 +834,31 @@ longer fights. Their separation keeps a fun result attributable.
 3. Orders compiler/runtime tests for fixed ace, emergent ace, role-targeted
    repair, deployment preservation, explicit relocation, and capped/repeated
    upgrade paths.
-4. Exact combat breakpoint tests for all three hull tiers, every veteran damage
+4. Destination-facing compiler/runtime tests for legal zone/anchor targets;
+   rejection on patrol, follow, and dynamic destinations; travel equivalence;
+   cardinal/diagonal/overlap facing; displacement; priority pre-emption; and
+   team/rotation symmetry.
+5. Historical-evidence tests for rolling, match-start, and node-entry
+   boundaries; current-tick exclusion; visible versus hidden crossings;
+   continuous-coverage interruption; death/respawn continuity; new-match
+   reset; distinct life IDs; deterministic explain evidence; and independently
+   entered node epochs.
+6. Exact combat breakpoint tests for all three hull tiers, every veteran damage
    rank, front/rear ordering, Target Paint, vitality headroom/no-rescue, every
    rescaled signature/deployment quantity, and simultaneous focus damage.
-5. Deterministic replay round-trip tests for multi-Pulse banks, wave births,
-   construct damage/replacement, combat-scale values, and new public
-   observations.
-6. Candidate-native sheets that deliberately exercise each mechanic. Historical
+7. Deterministic replay round-trip tests for multi-Pulse banks, wave births,
+   construct damage/replacement, combat-scale values, destination-facing
+   intent, evidence provenance, and new public observations.
+8. Candidate-native sheets that deliberately exercise each mechanic. Historical
    sheets are compatibility sentinels, not product-quality voters for the new
    objective and roster rules.
    Use the first tranche in
    [`ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md`](ARC-RELAY-TAPLINE-SHEET-STRATEGY-CATALOG.md)
    as the initial breadth target rather than inventing near-duplicate sheets
    during implementation.
-7. Trace-first, six-cell phone exhibits for replay-visible behavior changes,
-   including legible 30..100 health presentation.
+9. Trace-first, six-cell phone exhibits for replay-visible behavior changes,
+   including destination-facing intent, evidence-driven branch changes, and
+   legible 30..100 health presentation.
    Do not run or claim a balance sweep merely because implementation is done;
    use the repository's balance workflow only when the owner requests that
    measurement gate.
