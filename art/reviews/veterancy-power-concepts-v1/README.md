@@ -5,6 +5,24 @@ renderer implementation.
 
 ![Three veterancy power directions](./veterancy-power-directions.png)
 
+## Full-roster stress test
+
+![Crowned Mantle applied across all sixteen Arc chassis](./veterancy-crowned-mantle-full-roster.png)
+
+The second board applies a maximum-veterancy hybrid of Crowned Core and Veteran
+Mantle to the whole roster. It validates an **adaptive** grammar rather than one
+shared attachment:
+
+- long hulls carry low rear-swept crown blades;
+- wide hulls receive squared flank framing around their existing mass;
+- radial hulls use low crown petals and strengthened outer segments;
+- open and crescent hulls preserve their negative space;
+- every family shares rough brass, controlled amber seams, and a five-part elite
+  rhythm.
+
+The full-roster generation prompt is preserved in
+[`FULL-ROSTER-PROMPT.md`](./FULL-ROSTER-PROMPT.md).
+
 ## How to read the board
 
 Every row uses the same representative matte Arc chassis. The columns are
