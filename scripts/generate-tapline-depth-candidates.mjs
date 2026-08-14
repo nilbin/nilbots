@@ -298,9 +298,9 @@ const candidates = [
           }),
           ref("fight-visible-enemy"),
           move("cash-out-the-crown", "enemy", "front", { when: "ace-awakened" }),
-          move("earn-the-crown-at-centre", "centre", "line"),
+          { id: "earn-the-crown-on-patrol", move: { patrol: "centre-rail-loop", posture: "line" } },
         ]),
-        role("ace-medics", ["patchbay", "patchbay"], ["reach", "vitality", "vision"], [
+        role("ace-medic", ["patchbay"], ["reach", "vitality", "vision"], [
           ...standardPrefix(),
           use("repair-the-ace", "repair-beam", { role: "ace" }, {
             all: ["ace-hurt", "signature-ready"],
@@ -314,7 +314,7 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          { id: "screen-the-ace", move: { follow: "ace", posture: "front" } },
+          { id: "patrol-the-designator-line", move: { patrol: "north-rail-loop", posture: "front" } },
         ]),
         role("firing-line", ["mason", "palisade"], ["vitality", "vision", "damage"], [
           ...standardPrefix(),
@@ -325,7 +325,7 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          move("hold-the-rail-line", "centre", "line"),
+          { id: "patrol-the-rail-line", move: { patrol: "south-rail-loop", posture: "line" } },
         ]),
         role("spotter", ["lantern"], ["vision", "reach", "vitality"], [
           ...standardPrefix(),
@@ -333,14 +333,21 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           ref("fight-visible-enemy"),
-          { id: "spot-for-the-ace", move: { follow: "ace", posture: "rear" } },
+          { id: "spot-the-centre-rail", move: { patrol: "north-rail-loop", posture: "rear" } },
+        ]),
+        role("rail-guard", ["repulsor"], ["vitality", "damage", "vision"], [
+          ...standardPrefix(),
+          use("clear-the-rail", "kinetic-burst", "self", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          ...standardTail(move("guard-the-far-rail", "enemy", "front")),
         ]),
         role("quartermaster", ["relay"], ["vitality", "vision", "reach"], [
           ...standardPrefix(),
           use("pass-the-ace-a-core", "arc-toss", { role: "ace" }, {
             all: ["carrying-core", "signature-ready"],
           }),
-          ...standardTail(move("work-centre-supply", "centre", "line")),
+          ...standardTail(move("work-home-supply", "own", "rear")),
         ]),
       ],
       commonOrders({ fightTargets: ["carrier", "veteran", "marked", "weakest", "nearest"] }),
@@ -349,7 +356,19 @@ const candidates = [
         "ace-hurt": { fact: "role-lowest-health-percent", operator: "at-most", value: 80, role: "ace" },
       }),
     ),
-    map: mapPlan("tapline-crowned-rail-v1"),
+    map: mapPlan("tapline-crowned-rail-v1", {
+      routes: {
+        "centre-rail-loop": {
+          waypoints: [[15, 13], [16, 12], [17, 13], [16, 14], [15, 13], [14, 14], [13, 13], [14, 12], [15, 13]],
+        },
+        "north-rail-loop": {
+          waypoints: [[12, 11], [15, 11], [18, 11], [18, 12], [15, 12], [12, 12], [12, 11]],
+        },
+        "south-rail-loop": {
+          waypoints: [[12, 14], [15, 14], [18, 14], [18, 15], [15, 15], [12, 15], [12, 14]],
+        },
+      },
+    }),
   },
   {
     id: "tapline-emergent-standard-v1",

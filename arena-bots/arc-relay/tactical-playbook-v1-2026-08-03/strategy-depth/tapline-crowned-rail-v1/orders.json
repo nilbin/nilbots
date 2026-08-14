@@ -52,20 +52,17 @@
           }
         },
         {
-          "id": "earn-the-crown-at-centre",
+          "id": "earn-the-crown-on-patrol",
           "move": {
-            "to": {
-              "well": "centre"
-            },
+            "patrol": "centre-rail-loop",
             "posture": "line"
           }
         }
       ]
     },
     {
-      "id": "ace-medics",
+      "id": "ace-medic",
       "classes": [
-        "patchbay",
         "patchbay"
       ],
       "upgradePath": [
@@ -148,9 +145,9 @@
           "shared": "fight-visible-enemy"
         },
         {
-          "id": "screen-the-ace",
+          "id": "patrol-the-designator-line",
           "move": {
-            "follow": "ace",
+            "patrol": "north-rail-loop",
             "posture": "front"
           }
         }
@@ -209,11 +206,9 @@
           "shared": "fight-visible-enemy"
         },
         {
-          "id": "hold-the-rail-line",
+          "id": "patrol-the-rail-line",
           "move": {
-            "to": {
-              "well": "centre"
-            },
+            "patrol": "south-rail-loop",
             "posture": "line"
           }
         }
@@ -257,10 +252,58 @@
           "shared": "fight-visible-enemy"
         },
         {
-          "id": "spot-for-the-ace",
+          "id": "spot-the-centre-rail",
           "move": {
-            "follow": "ace",
+            "patrol": "north-rail-loop",
             "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "rail-guard",
+      "classes": [
+        "repulsor"
+      ],
+      "upgradePath": [
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "clear-the-rail",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "kinetic-burst",
+            "target": "self"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "guard-the-far-rail",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
           }
         }
       ]
@@ -304,12 +347,12 @@
           "shared": "fight-visible-enemy"
         },
         {
-          "id": "work-centre-supply",
+          "id": "work-home-supply",
           "move": {
             "to": {
-              "well": "centre"
+              "well": "own"
             },
-            "posture": "line"
+            "posture": "rear"
           }
         }
       ]
