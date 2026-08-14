@@ -8355,3 +8355,29 @@ documents the path and continues to forbid both retained screenshot/capture
 harnesses unless the owner separately requests them. Its receipt labels the
 artifact a presentation diagnostic with no balance, doctrine, pathing, or
 audit claim.
+
+## 312. Tapline depth work narrows to five independently testable candidates
+
+Owner gameplay-direction ruling (2026-08-14). The next implementation brief is
+[`EXPERIMENTAL-ARC-RELAY-TAPLINE-DEPTH.md`](EXPERIMENTAL-ARC-RELAY-TAPLINE-DEPTH.md).
+It retains exactly five candidates: team-relative own/centre/enemy Core charge
+of 1/2/4 while preserving three charge per Pulse and three Pulses to win;
+veteran-centred ace/support strategies expressed through narrow Orders v2
+facts and selectors; synchronized public respawn waves; an eight-body roster
+with at least seven distinct classes and therefore one possible duplicate
+pair; and explicit persistent-deployment control led by a targetable
+three-health, long-duration Mason Hardlight Block that is replaced on recast.
+
+Two earlier directions are rejected by this narrowing. A two-origin Pulse is
+not pursued because own plus centre would formalize Tapline's existing dominant
+route mix rather than create a new choice. A new named-play state machine is
+not pursued because roles, priority branches, shared orders, follow, capacities,
+and small general selectors can express the intended coordination without
+reviving operations/gambits above the Orders tree.
+
+These five candidates are not jointly promoted rules. Tapline-3 and hosted
+playlist v21 remain immutable; each mechanic receives a separately identified
+prototype cell before any combined pack or product claim. “Hardlight” remains
+the stable prototype identity and means a projected solid-energy barrier;
+player-facing copy must explain that meaning, while a display-name change
+remains a later owner choice.
