@@ -607,7 +607,7 @@ const candidates = [
     orders: sheet(
       "tapline-demolition-march-v1",
       [
-        role("demolition-line", ["longshot", "longshot", "mortar", "hush", "lantern", "sunder"], ["damage", "reach", "vision", "vitality"], [
+        role("demolition-line", ["longshot", "mortar", "hush"], ["damage", "reach", "vision", "vitality"], [
           ...standardPrefix(),
           use("rail-through-deployment", "rail-line", "weakest-enemy", {
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
@@ -616,12 +616,6 @@ const candidates = [
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           use("suppress-deployment", "null-field", "self", {
-            all: ["empty-handed", "enemy-nearby", "signature-ready"],
-          }),
-          use("reveal-deployment-line", "survey-flare", "nearest-enemy", {
-            all: ["empty-handed", "enemy-nearby", "signature-ready"],
-          }),
-          use("paint-builder-screen", "target-paint", "weakest-enemy", {
             all: ["empty-handed", "enemy-nearby", "signature-ready"],
           }),
           {
@@ -634,6 +628,28 @@ const candidates = [
             },
           },
           move("march-to-defended-well", "enemy", "front"),
+        ]),
+        role("demolition-overwatch", ["longshot", "lantern", "sunder"], ["damage", "vision", "reach", "vitality"], [
+          ...standardPrefix(),
+          use("rail-from-overwatch", "rail-line", "weakest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("reveal-deployment-line", "survey-flare", "nearest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          use("paint-builder-screen", "target-paint", "weakest-enemy", {
+            all: ["empty-handed", "enemy-nearby", "signature-ready"],
+          }),
+          {
+            id: "clear-the-lock-from-overwatch",
+            when: "empty-handed",
+            fight: {
+              targets: ["deployment", "carrier", "veteran", "weakest", "nearest"],
+              style: "advance",
+              chaseLimit: 6,
+            },
+          },
+          move("hold-demolition-overwatch", "centre", "line"),
         ]),
         role("raid-conversion", ["relay", "kestrel"], ["vitality", "reach", "damage", "vision"], [
           ...standardPrefix(),

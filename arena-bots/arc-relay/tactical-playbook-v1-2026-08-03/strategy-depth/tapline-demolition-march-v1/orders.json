@@ -7,11 +7,8 @@
       "id": "demolition-line",
       "classes": [
         "longshot",
-        "longshot",
         "mortar",
-        "hush",
-        "lantern",
-        "sunder"
+        "hush"
       ],
       "upgradePath": [
         "damage",
@@ -72,6 +69,69 @@
           }
         },
         {
+          "id": "clear-the-lock",
+          "when": "empty-handed",
+          "fight": {
+            "targets": [
+              "deployment",
+              "carrier",
+              "veteran",
+              "weakest",
+              "nearest"
+            ],
+            "style": "advance",
+            "chaseLimit": 7
+          }
+        },
+        {
+          "id": "march-to-defended-well",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "demolition-overwatch",
+      "classes": [
+        "longshot",
+        "lantern",
+        "sunder"
+      ],
+      "upgradePath": [
+        "damage",
+        "vision",
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "rail-from-overwatch",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "rail-line",
+            "target": "weakest-enemy"
+          }
+        },
+        {
           "id": "reveal-deployment-line",
           "when": {
             "all": [
@@ -100,7 +160,7 @@
           }
         },
         {
-          "id": "clear-the-lock",
+          "id": "clear-the-lock-from-overwatch",
           "when": "empty-handed",
           "fight": {
             "targets": [
@@ -111,16 +171,16 @@
               "nearest"
             ],
             "style": "advance",
-            "chaseLimit": 7
+            "chaseLimit": 6
           }
         },
         {
-          "id": "march-to-defended-well",
+          "id": "hold-demolition-overwatch",
           "move": {
             "to": {
-              "well": "enemy"
+              "well": "centre"
             },
-            "posture": "front"
+            "posture": "line"
           }
         }
       ]
