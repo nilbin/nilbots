@@ -1,12 +1,14 @@
 # Longshot redesign v2
 
 Status: **Railback owner-approved for a Meshy 7 review candidate** as of
-2026-08-14. A restrained color-only lift now separates its dusty slate-blue
-armor from the dark arena floor without changing saturation, geometry, scale,
-roughness, normals, or team colors. The generated model is not a runtime
-promotion. The live Longshot remains the approved Meshy 7 V3 model. Railback's
-updated provider and real-gameplay evidence is ready for review; promotion
-still requires separate owner approval.
+2026-08-14. The owner-requested Meshy 7 palette retexture gives the exact
+approved Railback geometry a matte, muted dusty periwinkle steel-blue hull that
+separates from the dark arena floor without using team teal/cyan or orange. The
+optimized review model is 1.77 MB with 78,418 triangles and a deterministic
+`0.72` roughness floor. This is not a runtime promotion: the live Longshot
+remains the approved Meshy 7 V3 model. Updated provider and real-gameplay
+evidence is ready for review; promotion still requires separate owner
+approval.
 
 ## Why this pass exists
 

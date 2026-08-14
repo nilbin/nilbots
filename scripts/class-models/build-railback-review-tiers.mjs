@@ -22,9 +22,12 @@ import {
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const check = process.argv.includes('--check');
+const mutedBlueV3 = process.argv.includes('--muted-blue-v3');
 const toolVersion = '4.4.2';
 const generationTaskId = '019fff75-43b1-72d8-a2c9-f9a8b8fa32f2';
-const retextureTaskId = '019fff7c-caa8-7434-a05b-4625d3d485c1';
+const retextureTaskId = mutedBlueV3
+  ? '01a0003c-d477-7f08-88da-88e79bbbf41a'
+  : '019fff7c-caa8-7434-a05b-4625d3d485c1';
 const generationSource = source(
   'art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/' +
     `longshot/${generationTaskId}/raw-model.glb`,
@@ -32,12 +35,19 @@ const generationSource = source(
   'a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329',
 );
 const retextureDonor = source(
-  'art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1-corrective-retexture/' +
-    `longshot/${retextureTaskId}/raw-model.glb`,
-  65_500_712,
-  'c47a8d65bf6a58b93fd72c86bf6dcf9bdca2eb1fa0b165ee4b86c62b74b7aaad',
+  mutedBlueV3
+    ? 'art/class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/' +
+        `longshot/${retextureTaskId}/raw-model.glb`
+    : 'art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1-corrective-retexture/' +
+        `longshot/${retextureTaskId}/raw-model.glb`,
+  mutedBlueV3 ? 81_065_456 : 65_500_712,
+  mutedBlueV3
+    ? 'ab7ce8cc358ebc9e1d476bc2dfca2e3d65fd5516fe2b7ec6ca443d4e342ba14f'
+    : 'c47a8d65bf6a58b93fd72c86bf6dcf9bdca2eb1fa0b165ee4b86c62b74b7aaad',
 );
-const tierId = 'meshy7-longshot-railback-review-v1';
+const tierId = mutedBlueV3
+  ? 'meshy7-longshot-railback-muted-blue-review-v3'
+  : 'meshy7-longshot-railback-review-v1';
 const tierDirectory = path.join(repository, 'art/class-models/runtime-tiers/arc-relay', tierId);
 const auditPath = path.join(tierDirectory, 'audit.json');
 const targetPlanformSpan = 0.99;
@@ -47,24 +57,35 @@ const correctedHeight = 0.27376423804696887;
 const facingYawDegrees = 180;
 const matteRoughnessFloor = 0.72;
 const runtimeLookScale = 1.1;
-const profiles = [
-  {
-    id: 'lean',
-    file: 'arc-longshot-railback-lean.glb',
-    simplifyRatio: 0.04,
-    simplifyError: 0.0025,
-    textureSize: 512,
-    budgets: { transferBytes: 2_200_000, triangles: 100_000 },
-  },
-  {
-    id: 'rich',
-    file: 'arc-longshot-railback-rich.glb',
-    simplifyRatio: 0.08,
-    simplifyError: 0.001,
-    textureSize: 1024,
-    budgets: { transferBytes: 5_000_000, triangles: 180_000 },
-  },
-];
+const profiles = mutedBlueV3
+  ? [
+      {
+        id: 'lean',
+        file: 'arc-longshot-railback-muted-blue-lean.glb',
+        simplifyRatio: 0.04,
+        simplifyError: 0.0025,
+        textureSize: 512,
+        budgets: { transferBytes: 2_200_000, triangles: 100_000 },
+      },
+    ]
+  : [
+      {
+        id: 'lean',
+        file: 'arc-longshot-railback-lean.glb',
+        simplifyRatio: 0.04,
+        simplifyError: 0.0025,
+        textureSize: 512,
+        budgets: { transferBytes: 2_200_000, triangles: 100_000 },
+      },
+      {
+        id: 'rich',
+        file: 'arc-longshot-railback-rich.glb',
+        simplifyRatio: 0.08,
+        simplifyError: 0.001,
+        textureSize: 1024,
+        budgets: { transferBytes: 5_000_000, triangles: 180_000 },
+      },
+    ];
 
 for (const entry of [generationSource, retextureDonor]) verifySource(entry);
 mkdirSync(tierDirectory, { recursive: true });
@@ -81,8 +102,24 @@ const audit = {
     textureDonor: portableSource(retextureDonor, retextureTaskId, 'retexture'),
     provider: 'Meshy',
     providerModel: 'meshy-7',
-    credits: { generation: 30, correctiveRetexture: 10, total: 40, balanceAfter: 1020 },
+    credits: mutedBlueV3
+      ? {
+          generation: 30,
+          earlierCorrectiveRetexture: 10,
+          paletteRetexture: 10,
+          artifactPipelineTotal: 40,
+          totalProjectSpend: 50,
+          balanceAfter: 1010,
+        }
+      : { generation: 30, correctiveRetexture: 10, total: 40, balanceAfter: 1020 },
     autoRigging: false,
+    ...(mutedBlueV3
+      ? {
+          palettePlan:
+            'art/class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/plan.json',
+          paletteCandidateId: 'railback-muted-blue-v3',
+        }
+      : {}),
   },
   toolchain: {
     gltfTransform: toolVersion,
@@ -121,11 +158,14 @@ const audit = {
     splitCoolingRear: true,
   },
   contract: {
-    purpose: 'Reversible in-renderer comparison only; does not replace the approved runtime Longshot.',
+    purpose: mutedBlueV3
+      ? 'Reversible muted-blue in-renderer comparison only; does not replace the approved runtime Longshot.'
+      : 'Reversible in-renderer comparison only; does not replace the approved runtime Longshot.',
     geometry:
       'Exact first-pass provider geometry and UVs; deterministic normalization, 180-degree facing correction, 1.12 vertical scale, and lossy review simplification.',
-    materials:
-      'Corrective multiview retexture maps on one fused authored material; team ownership remains renderer-owned.',
+    materials: mutedBlueV3
+      ? 'Meshy 7 text-prompt muted dusty-blue PBR maps on one fused authored material; team ownership remains renderer-owned.'
+      : 'Corrective multiview retexture maps on one fused authored material; team ownership remains renderer-owned.',
     matteFinish:
       `Metallic-roughness green channel is deterministically floored at ${matteRoughnessFloor}; base color, metallic, and normal are unchanged.`,
     tangentSpace:

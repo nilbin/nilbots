@@ -1,0 +1,35 @@
+{
+  "id": "01a0003c-d477-7f08-88da-88e79bbbf41a",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Railback Longshot, matte high-roughness. Medium-light muted dusty periwinkle steel-blue powder-coated armor, clearly blue but never teal/cyan, brighter than a dark graphite arena floor. Pale warm-gray ceramic on three capacitor ribs; dull nickel conductors; charcoal shutter/recesses; tiny burgundy insulators. Dry fine grain, crisp panel separation, restrained edge wear. Preserve geometry and UVs. No white nose, white, beige, yellow, orange, teal, cyan, royal/neon blue, saturated pink/purple, glow, glossy plastic, clearcoat, chrome, wet shine, baked lighting, text, logos, eyes, gun/barrel.",
+  "image_style_url": "[redacted-input]",
+  "status": "SUCCEEDED",
+  "created_at": 1786710383710,
+  "progress": 100,
+  "started_at": 1786710408025,
+  "finished_at": 1786710958334,
+  "expires_at": 1786970158334,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/preview.png",
+  "alpha_thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/preview_alpha.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0003c-d477-7f08-88da-88e79bbbf41a/output/texture_0_normal.png"
+    }
+  ],
+  "consumed_credits": 10
+}

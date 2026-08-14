@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "arc-relay-longshot-railback-palette-retexture-v3",
-  "status": "paid-retexture-authorized",
+  "status": "owner-review",
   "endpoint": "/openapi/v1/retexture",
   "ownerAuthorization": "Owner directed a Meshy retexture in a genuinely different color on 2026-08-14.",
   "runtimeAssetsPromoted": false,
@@ -37,9 +37,53 @@
         ]
       },
       "creditCap": 10,
-      "authorized": true,
-      "authorizationConsumed": false,
-      "autoRigging": false
+      "authorized": false,
+      "authorizationConsumed": true,
+      "autoRigging": false,
+      "completedTaskId": "01a0003c-d477-7f08-88da-88e79bbbf41a",
+      "submittedAt": "2026-08-14T12:26:21.595Z",
+      "status": "SUCCEEDED",
+      "consumedCredits": 10,
+      "finishedAt": "2026-08-14T12:35:58.582Z",
+      "artifacts": [
+        {
+          "file": "raw-model.glb",
+          "bytes": 81065456,
+          "sha256": "ab7ce8cc358ebc9e1d476bc2dfca2e3d65fd5516fe2b7ec6ca443d4e342ba14f"
+        },
+        {
+          "file": "provider-preview.png",
+          "bytes": 84969,
+          "sha256": "c75b4b7539de92f404b1bec21ff389a4d8015a1d09cd59b689815a34684b1e9b"
+        },
+        {
+          "file": "provider-preview-alpha.png",
+          "bytes": 84969,
+          "sha256": "c75b4b7539de92f404b1bec21ff389a4d8015a1d09cd59b689815a34684b1e9b"
+        },
+        {
+          "file": "texture-0-base_color.png",
+          "bytes": 5656050,
+          "sha256": "bfde70724fd3f59427d7294d9b5d669e8bc637965d77dc7ac064b825d681e953"
+        },
+        {
+          "file": "texture-0-metallic.png",
+          "bytes": 298477,
+          "sha256": "f47944d0b3263d69b9195a8ce1aec9eeb69adf4af3aa6f2a237a198b3ba04344"
+        },
+        {
+          "file": "texture-0-roughness.png",
+          "bytes": 1456248,
+          "sha256": "549edabf5d1d6b2a133d5582e5ff232d08dc21d912ecf925d10bb7aac1753f9c"
+        },
+        {
+          "file": "texture-0-normal.png",
+          "bytes": 4579216,
+          "sha256": "c588c030f48a33169d3770ae4a62ec982b2d7f343e92b19a8d0e5d373c08e53d"
+        }
+      ]
     }
-  ]
+  ],
+  "balanceAfter": 1010,
+  "totalConsumedCredits": 10
 }

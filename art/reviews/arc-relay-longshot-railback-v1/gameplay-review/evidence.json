@@ -7,8 +7,8 @@
   },
   "buildRecord": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/build-record.json",
   "expectedCandidateModel": {
-    "filename": "model-CDnh3d19.glb",
-    "sha256": "6eedb608f3004d9aa06b4dc51b36b387505568d202e2dae39248ffb640b6b2d5"
+    "filename": "model-BzVj0K3i.glb",
+    "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37"
   },
   "captures": [
     {
@@ -37,12 +37,12 @@
           "visibleMeshes": 4
         }
       ],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": null,
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-rail-line-windup.png",
-      "imageBytes": 1049926,
-      "imageSha256": "5fec2ec48d3d9d457b3ed5e568df5fcc33763f35f005d17c05a13ea85de75b45"
+      "imageBytes": 1047981,
+      "imageSha256": "be55984bad3ef51b4262ecf75e6193fc7697c8beed7fc9150abc770401312583"
     },
     {
       "id": "desktop-normal-match",
@@ -56,18 +56,18 @@
       "replaySeed": "9147",
       "tickCount": 459,
       "cameraFrame": {
-        "x": 10.220699960131116,
-        "y": 8.123353986455681,
-        "width": 14.023830659615282,
-        "height": 8.753535768096796
+        "x": 9.251072245096893,
+        "y": 7.697409491661947,
+        "width": 13.914832236622068,
+        "height": 8.685500035386129
       },
       "visibleSignatures": [],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": null,
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-normal-match.png",
-      "imageBytes": 540834,
-      "imageSha256": "0143f1cd15744fcfb6351493e23794dfbf1c66d48e5e9d35103d3c1e34880ac9"
+      "imageBytes": 539290,
+      "imageSha256": "91a2d7c762468ab7e64d483a3774ec81c4426854e75d2174f7c5a053b4be2666"
     },
     {
       "id": "desktop-teal-longshot",
@@ -84,18 +84,18 @@
       "replaySeed": "9147",
       "tickCount": 459,
       "cameraFrame": {
-        "x": 12.330394006241107,
-        "y": 10.56977203981056,
-        "width": 14.606500045593934,
-        "height": 9.117232209884767
+        "x": 15.445693620756252,
+        "y": 13.879818286354356,
+        "width": 14.761088431874315,
+        "height": 9.213724744733645
       },
       "visibleSignatures": [],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-teal-longshot.png",
-      "imageBytes": 470931,
-      "imageSha256": "1a0132c5df2557efc7c4d7586a9f90f34d6f870a0cd11849bcd6f546e550b3c6"
+      "imageBytes": 417449,
+      "imageSha256": "903b6c60ef46e0238b7740347f2e6e3daf37f8fe19db1e0e36886d1cfd0ba839"
     },
     {
       "id": "desktop-orange-longshot",
@@ -112,18 +112,18 @@
       "replaySeed": "9147",
       "tickCount": 459,
       "cameraFrame": {
-        "x": 10.423065623251471,
-        "y": 8.333792206299297,
-        "width": 14.72555366931927,
-        "height": 9.191544298991943
+        "x": 7.570901708349549,
+        "y": 4.878867423227963,
+        "width": 15.021093610148032,
+        "height": 9.376017393807304
       },
       "visibleSignatures": [],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-orange-longshot.png",
-      "imageBytes": 463098,
-      "imageSha256": "42b1edbf057b0e2c8659ca4505936cc196132534f0ee3b59194db34138658bec"
+      "imageBytes": 433542,
+      "imageSha256": "b7add8be9e0f0c45ec34cc13ee4feb0fbe1d4871ba3d927a7413765ebbec5969"
     },
     {
       "id": "phone-rail-line-windup",
@@ -151,12 +151,12 @@
           "visibleMeshes": 4
         }
       ],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": null,
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-rail-line-windup.png",
-      "imageBytes": 327300,
-      "imageSha256": "5459c015cfd4d065c90263d82ccc829d370f1a413fb4c05b0ff5877eb947836f"
+      "imageBytes": 327162,
+      "imageSha256": "9b7ca1342ae400026ccc7d2993372117125a0cdc701a22f532f0196c8390b4a6"
     },
     {
       "id": "phone-normal-match",
@@ -170,18 +170,18 @@
       "replaySeed": "9147",
       "tickCount": 459,
       "cameraFrame": {
-        "x": 9.02898878125743,
-        "y": 7.555874833697074,
-        "width": 18.28333677614782,
-        "height": 8.448461306513803
+        "x": 8.975545086955021,
+        "y": 7.532958810025968,
+        "width": 18.19721342248551,
+        "height": 8.408664970105864
       },
       "visibleSignatures": [],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": null,
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-normal-match.png",
-      "imageBytes": 315837,
-      "imageSha256": "38c93eecc18e0d72b0afcc05a462cc04c6395233379d9d26250ba10e2db60d15"
+      "imageBytes": 315549,
+      "imageSha256": "f0291b4e90667a44dc848712f6fb49961b4f1bd1381c4be69e6c37e5744f509d"
     },
     {
       "id": "phone-teal-longshot",
@@ -198,18 +198,18 @@
       "replaySeed": "9147",
       "tickCount": 459,
       "cameraFrame": {
-        "x": 19.162789059298714,
-        "y": 17.82923258537696,
-        "width": 15.679587470626913,
-        "height": 7.245307006569309
+        "x": 19.16278670249336,
+        "y": 17.829231574806713,
+        "width": 15.679583191819741,
+        "height": 7.245305029395379
       },
       "visibleSignatures": [],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-teal-longshot.png",
-      "imageBytes": 293560,
-      "imageSha256": "231ff2aa13af35efeb7a19acce529c2d677a8c9f9662237e7281514eacd3dcdd"
+      "imageBytes": 293512,
+      "imageSha256": "d96127ba48451e50a6f4555db76bb820badfc8d878de86821660c0d059bd43a9"
     },
     {
       "id": "phone-orange-longshot",
@@ -226,30 +226,30 @@
       "replaySeed": "9147",
       "tickCount": 459,
       "cameraFrame": {
-        "x": 7.570915543477996,
-        "y": 4.878882123078274,
-        "width": 15.224036367822418,
-        "height": 7.0348035348942455
+        "x": 7.570915543470167,
+        "y": 4.878882123074914,
+        "width": 15.224036367808072,
+        "height": 7.034803534887617
       },
       "visibleSignatures": [],
-      "candidateFilename": "model-CDnh3d19.glb",
+      "candidateFilename": "model-BzVj0K3i.glb",
       "candidateLoaded": true,
       "selectedUnitLabel": "Inspect Longshot for hunter-tapline-v2",
       "image": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-orange-longshot.png",
-      "imageBytes": 300578,
-      "imageSha256": "a03c41764afdca72d47c0709ef679c7a0a111031a312eb0879f0f86bf5a58ff8"
+      "imageBytes": 300191,
+      "imageSha256": "666d1a1497161dad2ade0903b0c7d00fbdda320e30480606bbfd459cdc3ef2d4"
     }
   ],
   "contactSheets": {
     "desktop": {
       "file": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/desktop-gameplay-review.webp",
-      "bytes": 179546,
-      "sha256": "28a30b6c2f8a89e6e12c0dd1eb9d95e3d7b4c202c2b41f6b64c869e994c1494f"
+      "bytes": 174100,
+      "sha256": "230fca211e33449e2cda198fde99a62e8742e1b81c85318a734de432fb4f6998"
     },
     "phone": {
       "file": "art/reviews/arc-relay-longshot-railback-v1/gameplay-review/phone-gameplay-review.webp",
-      "bytes": 126282,
-      "sha256": "d59c281dfdd1639b76e414dde5172cb2f2d82f8fc54e74f125761c9650e154e8"
+      "bytes": 125938,
+      "sha256": "47edc83e1067e7467b6d8d0ccbc342c1fe4e9699cfba9574b290d60f6b052e5f"
     }
   }
 }

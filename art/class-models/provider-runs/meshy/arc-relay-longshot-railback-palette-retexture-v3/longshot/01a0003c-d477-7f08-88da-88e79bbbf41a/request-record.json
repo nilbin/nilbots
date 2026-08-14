@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "provider": "Meshy",
+  "endpoint": "retexture",
+  "providerModel": "meshy-7",
+  "classId": "longshot",
+  "candidateId": "railback-muted-blue-v3",
+  "taskId": "01a0003c-d477-7f08-88da-88e79bbbf41a",
+  "submittedAt": "2026-08-14T12:26:21.595Z",
+  "balanceBefore": 1020,
+  "authorizedCreditCap": 10,
+  "sourcePlan": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/plan.json",
+  "sourceTaskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+  "sourceModel": {
+    "file": "art/class-models/provider-runs/meshy/arc-relay-longshot-railback-v1/longshot/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2/raw-model.glb",
+    "bytes": 64759580,
+    "sha256": "a91278f398e1fc9e2c903bb52c3f0cc60bb2a9e372a1c2f7d79e902dee851329"
+  },
+  "settings": {
+    "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/019fff75-43b1-72d8-a2c9-f9a8b8fa32f2/output/model.glb",
+    "ai_model": "meshy-7",
+    "text_style_prompt": "Railback Longshot, matte high-roughness. Medium-light muted dusty periwinkle steel-blue powder-coated armor, clearly blue but never teal/cyan, brighter than a dark graphite arena floor. Pale warm-gray ceramic on three capacitor ribs; dull nickel conductors; charcoal shutter/recesses; tiny burgundy insulators. Dry fine grain, crisp panel separation, restrained edge wear. Preserve geometry and UVs. No white nose, white, beige, yellow, orange, teal, cyan, royal/neon blue, saturated pink/purple, glow, glossy plastic, clearcoat, chrome, wet shine, baked lighting, text, logos, eyes, gun/barrel.",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "alpha_thumbnail": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "parameterSource": "https://docs.meshy.ai/en/api/retexture",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -6,7 +6,8 @@
   "status": "owner-review",
   "providerRunCollection": "arc-relay-longshot-railback-v1",
   "retextureRunCollection": "arc-relay-longshot-railback-v1-corrective-retexture",
-  "ownerApproval": "Owner selected Railback, approved the Meshy call, and separately authorized one corrective retexture if needed on 2026-08-14.",
+  "paletteRetextureRunCollection": "arc-relay-longshot-railback-palette-retexture-v3",
+  "ownerApproval": "Owner selected Railback, approved the Meshy call and corrective retexture, then requested a new blue Meshy retexture on 2026-08-14.",
   "fidelityBrief": "../FIDELITY.md",
   "canonicalIdentity": {
     "oblique": "../railback-oblique.png",
@@ -90,7 +91,8 @@
     "consumedCredits": 30
   },
   "correctiveRetextureAuthorization": {
-    "authorized": true,
+    "authorized": false,
+    "authorizationConsumed": true,
     "creditCap": 10,
     "condition": "Only if the generated geometry passes the fidelity and size gates but its material finish or palette does not."
   },
@@ -164,32 +166,51 @@
     "balanceAfter": 1020,
     "rawModelSha256": "c47a8d65bf6a58b93fd72c86bf6dcf9bdca2eb1fa0b165ee4b86c62b74b7aaad"
   },
+  "paletteRetexturePlan": {
+    "file": "../../../../class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/plan.json",
+    "authorizationConsumed": true,
+    "endpoint": "/openapi/v1/retexture",
+    "sourceTaskId": "019fff75-43b1-72d8-a2c9-f9a8b8fa32f2",
+    "candidateId": "railback-muted-blue-v3",
+    "ai_model": "meshy-7",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "creditCap": 10,
+    "autoRigging": false
+  },
+  "paletteRetextureRun": {
+    "taskId": "01a0003c-d477-7f08-88da-88e79bbbf41a",
+    "directory": "../../../../class-models/provider-runs/meshy/arc-relay-longshot-railback-palette-retexture-v3/longshot/01a0003c-d477-7f08-88da-88e79bbbf41a",
+    "status": "SUCCEEDED",
+    "consumedCredits": 10,
+    "balanceBefore": 1020,
+    "balanceAfter": 1010,
+    "rawModelSha256": "ab7ce8cc358ebc9e1d476bc2dfca2e3d65fd5516fe2b7ec6ca443d4e342ba14f"
+  },
   "reviewGate": {
     "status": "ready-for-owner-review",
     "runtimePromoted": false,
     "selectedProfile": "lean",
-    "baseArtifact": {
-      "file": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-review-v1/arc-longshot-railback-lean.glb",
-      "sha256": "620161701f4e6efd836b9b4e068ff16a6f8ec364c6a072f0ed0ce8f43dd475d1",
-      "bytes": 1828396
+    "priorReviewArtifact": {
+      "file": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/arc-longshot-railback-color-lift.glb",
+      "sha256": "6eedb608f3004d9aa06b4dc51b36b387505568d202e2dae39248ffb640b6b2d5",
+      "bytes": 1895412
     },
-    "artifact": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/arc-longshot-railback-color-lift.glb",
-    "artifactSha256": "6eedb608f3004d9aa06b4dc51b36b387505568d202e2dae39248ffb640b6b2d5",
-    "artifactBytes": 1895412,
+    "artifact": "../../../../class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
+    "artifactSha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
+    "artifactBytes": 1765100,
     "triangles": 78418,
-    "colorAdjustment": {
-      "scope": "embedded baseColorTexture RGB only",
-      "medianLuminanceBefore": 83.34,
-      "medianLuminanceAfter": 98.34,
-      "saturationChanged": false,
-      "roughnessChanged": false,
-      "normalChanged": false,
+    "paletteAdjustment": {
+      "scope": "Meshy 7 text-prompt PBR retexture on original UVs",
+      "authoredPalette": "medium-light muted dusty periwinkle steel-blue",
+      "matteRoughnessFloor": 0.72,
       "geometryChanged": false,
       "scaleChanged": false,
       "runtimeTeamColorsChanged": false,
-      "additionalMeshyCredits": 0
+      "additionalMeshyCredits": 10
     },
-    "providerReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-color-lift-six-view.png",
+    "providerReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-muted-blue-v3-six-view.png",
     "fidelityReview": "../../../../reviews/arc-relay-longshot-railback-v1/provider-review/railback-fidelity-board.png",
     "gameplayEvidence": "../../../../reviews/arc-relay-longshot-railback-v1/gameplay-review/evidence.json"
   }

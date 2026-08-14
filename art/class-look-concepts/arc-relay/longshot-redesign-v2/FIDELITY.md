@@ -1,8 +1,8 @@
 # Railback fidelity brief
 
-Status: owner-approved 2D identity; Meshy 7 multiview generation and the
-authorized corrective retexture are complete and ready for owner review. This
-is not approval to replace the live Longshot.
+Status: owner-approved 2D identity; Meshy 7 multiview generation, corrective
+retexture, and the owner-requested muted-blue palette retexture are complete
+and ready for owner review. This is not approval to replace the live Longshot.
 
 ## Canonical identity
 
@@ -47,6 +47,17 @@ is not approval to replace the live Longshot.
 - Runtime team teal/cyan and orange remain renderer-owned. They are forbidden
   in the authored texture, along with baked team glow or beam light.
 
+### Muted-blue review palette
+
+The current review variant uses a new Meshy 7 text-prompt retexture rather
+than the earlier renderer-side color lift. Its dominant hull is a
+medium-light, dusty periwinkle steel blue: visibly blue against the graphite
+arena, but deliberately desaturated, non-teal, and non-cyan. The exact
+approved Railback geometry, normalized scale, three-rib silhouette, and
+renderer-owned team treatment are unchanged. The optimized review asset has a
+deterministic `0.72` roughness floor and remains review-only until the owner
+separately approves runtime promotion.
+
 ## Geometry and gameplay-size gates
 
 - Provider source views: near-orthographic, consistent scale and lighting,
@@ -84,6 +95,6 @@ is not approval to replace the live Longshot.
 ## Approval boundary
 
 The approved 2D Railback authorized provider experimentation. The generated
-base mesh remains review-only. The corrective retexture was used only after
-geometry passed these independent gates. Runtime promotion requires a separate
-owner approval after the real-replay review.
+base mesh remains review-only. Retextures were used only after geometry passed
+these independent gates. Runtime promotion requires a separate owner approval
+after the muted-blue real-replay review.

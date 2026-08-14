@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url';
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const tierAuditPath = path.join(
   repository,
-  'art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/audit.json',
+  'art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/audit.json',
 );
 const replayRecordPath = path.join(
   repository,
@@ -75,7 +75,7 @@ const stagedManifest = {
     provider: tier.source.provider,
     model: tier.source.providerModel,
     endpoint: tier.source.textureDonor.endpoint,
-    modelType: 'original-uv-pbr-retexture-color-lift',
+    modelType: 'original-uv-pbr-text-retexture',
     taskId: tier.source.textureDonor.taskId,
     geometryTaskId: tier.source.geometry.taskId,
     retextureTaskId: tier.source.textureDonor.taskId,
@@ -101,7 +101,7 @@ const stagedManifest = {
     textureGpuBytesRgba8Fallback: lean.memory.textureGpuBytesRgba8Fallback,
     modelGpuBytesCompressedTarget: lean.memory.modelGpuBytesCompressedTarget,
     modelGpuBytesRgba8Fallback: lean.memory.modelGpuBytesRgba8Fallback,
-    textureTier: 'meshy7-longshot-railback-color-review-v2-512-webp',
+    textureTier: 'meshy7-longshot-railback-muted-blue-review-v3-512-webp',
   },
 };
 

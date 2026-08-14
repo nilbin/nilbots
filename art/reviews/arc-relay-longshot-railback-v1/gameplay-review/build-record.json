@@ -1,63 +1,29 @@
 {
   "schemaVersion": 1,
   "purpose": "Reversible current-build WebGL review of Railback Longshot at normal desktop and phone gameplay scale, on both teams and during Rail Line",
-  "sourceCommit": "08b66376426008c1fbd31c386c7c0ed46e096106",
+  "sourceCommit": "518fba22b4a28ce78b67ba2babb1338b3ca791a1",
   "runtimeAssetsPromoted": {
     "longshot": false
   },
-  "tierAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/audit.json",
+  "tierAudit": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/audit.json",
   "selectedProfile": "lean",
   "output": "sandbox/longshot-railback-v1/game-review/site",
   "replayRecord": "sandbox/longshot-railback-v1/game-review/replay-generation.json",
   "candidate": {
-    "file": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-color-review-v2/arc-longshot-railback-color-lift.glb",
-    "bytes": 1895412,
-    "sha256": "6eedb608f3004d9aa06b4dc51b36b387505568d202e2dae39248ffb640b6b2d5",
+    "file": "art/class-models/runtime-tiers/arc-relay/meshy7-longshot-railback-muted-blue-review-v3/arc-longshot-railback-muted-blue-lean.glb",
+    "bytes": 1765100,
+    "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37",
     "triangles": 78418,
     "textureSize": 512,
     "liveMaximumSpan": 1.089,
     "liveTransverseSpan": 0.8021247039484917,
     "liveHeight": 0.30114066185166577
   },
-  "colorAdjustment": {
-    "transform": {
-      "operation": "per-channel linear tonal lift on baseColorTexture RGB only",
-      "multiplier": 0.88,
-      "offset": 25,
-      "encoding": "WebP quality 90",
-      "rationale": "Separate the dusty slate-blue authored hull from the dark blue-gray arena floor without increasing saturation, gloss, or team color."
-    },
-    "sourceBaseColorSha256": "6cae9ce5355f072a083e6bc2d7f65ad16c95a0f0e76501010afba201596e00ec",
-    "outputBaseColorSha256": "8d45704860f1eb1db92fc4479414657b64393d418bb1f34bfb9e41e224f99161",
-    "roughnessPreservedSha256": "ec3f06d2f182ed81a26247de75c2ec1273dd7127c767af184ff5acb1deb47b07",
-    "normalPreservedSha256": "0f29c2cfdf72e03c321d7f49d4fe72bcabe50aaf2fad841a9fce2d96bab550b7",
-    "geometryPreservedSha256": "62d0cd134dfa2c41550eef8abdc5ced501077d52e2ed88f0107e612043c447f8",
-    "valueMetrics": {
-      "before": {
-        "pixels": 262144,
-        "lowerQuartileLuminance": 73.14,
-        "medianLuminance": 83.34,
-        "upperQuartileLuminance": 103.83,
-        "meanLuminance": 93.08
-      },
-      "after": {
-        "pixels": 262144,
-        "lowerQuartileLuminance": 89.46,
-        "medianLuminance": 98.34,
-        "upperQuartileLuminance": 116.47,
-        "meanLuminance": 107.01
-      }
-    },
-    "saturationIncrease": false,
-    "roughnessChanged": false,
-    "normalChanged": false,
-    "geometryChanged": false,
-    "runtimeTeamColorsChanged": false
-  },
+  "colorAdjustment": null,
   "emittedCandidate": {
-    "file": "assets/model-CDnh3d19.glb",
-    "bytes": 1895412,
-    "sha256": "6eedb608f3004d9aa06b4dc51b36b387505568d202e2dae39248ffb640b6b2d5"
+    "file": "assets/model-BzVj0K3i.glb",
+    "bytes": 1765100,
+    "sha256": "62dc3803ce7d7634196a84cb57362b633c84657af507cf82ea5ea6e1069ffa37"
   },
   "runtimeSha256Before": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
   "runtimeSha256After": "9ea835fa2363843eeaacc02c69687eee1471ac44c4e1a703d05783c14e8cbe4a",
