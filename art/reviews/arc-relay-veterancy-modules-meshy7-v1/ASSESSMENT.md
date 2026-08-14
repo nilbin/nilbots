@@ -64,6 +64,13 @@ anchor, its prongs fan around the reserved volume, and the current detached
 objective sphere remains visually dominant at match zoom. Exact clearance and
 health-pip placement still require a runtime proof.
 
+The owner then identified the complete pickup/drop/toss path as the harder
+constraint. V5 therefore removes the center prong and bridge entirely. Two
+rear-quarter halves grow symmetrically from arcs to three feathers per side,
+leaving a full-height empty center notch. Its diagnostic sheet records the
+ornament's required no-geometry volume; the clean sheet is the proposed visual.
+Core animation authoring remains separate and may route within that corridor.
+
 ## Remaining caveats and next gate
 
 - The provider models are rich proofs, not mobile candidates: each is roughly
@@ -80,9 +87,9 @@ health-pip placement still require a runtime proof.
 
 ## Recommendation
 
-Review `correction-v3/floating-diadem-rank-1-5-concept-v2.png` together with
-`correction-v4/core-carry-clearance-concept-v2.png`. Do not make another paid
-call until the universal direction, air gap, maximum crown width, and Core
-aperture are approved. Then build one shared ornament proof and test it at real
-gameplay scale across several differently shaped chassis before any broader
-work.
+Review `correction-v5/motion-safe-split-diadem-rank-1-5-clean.png` together with
+its `motion-safe-split-diadem-rank-1-5-clearance.png` diagnostic. Do not make
+another paid call until the bilateral direction, center corridor, and maximum
+crown width are approved. Then build one shared ornament proof and test it at
+real gameplay scale across several differently shaped chassis before any
+broader work.

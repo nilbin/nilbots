@@ -35,6 +35,12 @@ no-geometry pocket: the rear-facing diadem frames, but never intersects or
 replaces, the detached objective sphere. It is conceptual art only and consumed
 no Meshy credits.
 
+`correction-v5/` supersedes the center-prong geometry as the primary proposal.
+It uses separate left and right rear-quarter ornament halves, growing to three
+feathers per side while leaving a full-height center corridor empty. A clean
+beauty sheet and a translucent clearance diagnostic record the same rank 1–5
+design. Core animation work remains separate. No Meshy credits were consumed.
+
 ## Review evidence
 
 - `gate-c/veterancy-*/` contains deterministic isolated six-view captures.
@@ -60,8 +66,8 @@ generation only and consumed no Meshy credits.
 
 The provider results remain intentionally rich (roughly 52–66 MB and
 1.52–1.99 million triangles each), but optimization is irrelevant until the
-silhouette passes. The next gate is owner approval of the universal floating
-diadem concept, including its air gap, maximum width, carried-Core aperture,
-and health-pip clearance. Only then should one shared ornament proof be built
+silhouette passes. The next gate is owner approval of the universal motion-safe
+split-diadem concept, including its center corridor, maximum width, and
+gameplay-scale crown read. Only then should one shared ornament proof be built
 and checked at gameplay scale across representative chassis. Lean derivatives,
 runtime integration, veterancy animation, and replay capture remain closed.
