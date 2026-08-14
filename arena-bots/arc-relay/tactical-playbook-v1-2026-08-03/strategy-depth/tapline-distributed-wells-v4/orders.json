@@ -1,0 +1,66 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-distributed-wells-v4",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "far-runners",
+      "classes": ["kestrel", "kestrel", "veil"],
+      "upgradePath": ["reach", "vision", "vitality"],
+      "orders": [
+        { "shared": "drop-core-under-contact" }, { "shared": "score-a-core" }, { "shared": "collect-loose-core" }, { "shared": "recover-health" },
+        { "id": "dash-far-contact", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "vector-dash", "target": "nearest-enemy" } },
+        { "id": "smoke-far-contact", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "smoke-canister", "target": "self" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-enemy-well", "move": { "patrol": "enemy-well-loop", "posture": "front" } }
+      ]
+    },
+    {
+      "id": "centre-workers",
+      "classes": ["hush", "towline", "sunder"],
+      "upgradePath": ["vision", "damage", "vitality"],
+      "orders": [
+        { "shared": "drop-core-under-contact" }, { "shared": "score-a-core" }, { "shared": "collect-loose-core" }, { "shared": "recover-health" },
+        { "id": "silence-centre-contact", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "null-field", "target": "self" } },
+        { "id": "hook-centre-carrier", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+        { "id": "paint-centre-carrier", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "target-paint", "target": "enemy-carrier" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-centre-well", "move": { "patrol": "centre-well-loop", "posture": "line" } }
+      ]
+    },
+    {
+      "id": "home-workers",
+      "classes": ["patchbay", "relay"],
+      "upgradePath": ["vitality", "vision", "damage"],
+      "orders": [
+        { "shared": "drop-core-under-contact" }, { "shared": "score-a-core" }, { "shared": "collect-loose-core" }, { "shared": "recover-health" },
+        { "id": "arc-pass-homeward", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
+        { "id": "repair-home-workers", "when": "signature-ready", "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-own-well", "move": { "patrol": "own-well-loop", "posture": "rear" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "drop-core-under-contact": { "when": { "all": ["carrying-core", "enemy-contact"] }, "drop": true },
+    "score-a-core": { "when": "carrying-core", "until": "empty-handed", "timeout": 180, "cooldown": 2, "urgency": "urgent", "orders": [
+      { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
+    ] },
+    "collect-loose-core": { "when": { "all": ["empty-handed", "loose-core-known"] }, "capacity": "one-per-core", "move": { "to": "nearest-known-loose-core" } },
+    "recover-health": { "when": "hurt", "until": "healthy", "timeout": 16, "cooldown": 18, "urgency": "urgent", "orders": [
+      { "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }
+    ] },
+    "fight-visible-enemy": { "when": { "all": ["empty-handed", "enemy-nearby"] }, "fight": { "targets": ["carrier", "marked", "weakest", "nearest"], "style": "advance", "chaseLimit": 4 } }
+  },
+  "capacities": { "one-per-core": 1 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "enemy-contact": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 1 },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
+  }
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-distributed-wells-v4",
+  "status": "immutable-reference",
+  "source": "tapline-three-continuous-distributed-well-economy",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "supersedes": "tapline-distributed-wells-v3 (well-has-outstanding-core remains true after a Core leaves its Well, so exact Well claims could freeze bodies around an empty origin)",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "118979b24f93b0c1cae046bcb55ddff8b1255ad1f0bf4f1d48db44c55a226fd5"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "5ed825c06d1ac588b593a40ec0ccda3019dd8c91c7cf91de7e8bbace185cf9e1"
+    },
+    "atl2": {
+      "sha256": "ceba6bd858b76dfa4d0e577af18af6c46808e5d545a7ca573b87d114e6fac397",
+      "bytes": 4194,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Divide the identical eight-class composition 3-3-2 across enemy, centre, and home Wells; each group continuously works its local patrol loop while at most one body per remembered loose Core may peel off to collect it.",
+  "portabilityBoundary": "The orders carry the semantic opening. Tapline coordinates live only in map-plan.json, so ordinary numeric rules tuning and small geometry edits that preserve named objects do not rewrite the strategy.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-mid-rush-control-v3",
+      "cells": [
+        "w-9001",
+        "w-9002",
+        "e-9005",
+        "e-9009",
+        "w-9012",
+        "e-9004"
+      ],
+      "record": "2-4 in these six exhibition cells; five reactor-destroyed and one horizon-ranked finish",
+      "purpose": "continuous distributed-Well participation reference, not a balance verdict",
+      "eligibility": "all six cells passed frozen felt-degeneracy bars v4; the exact v3 failure seed 9704 also passed after the revision"
+    }
+  ]
+}

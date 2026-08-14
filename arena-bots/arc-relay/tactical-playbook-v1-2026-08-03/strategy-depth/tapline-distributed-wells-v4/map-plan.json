@@ -1,0 +1,12 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-distributed-wells-v4",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {},
+  "routes": {
+    "own-well-loop": { "waypoints": [[11, 6], [12, 6], [12, 7], [11, 7], [10, 7], [10, 6], [10, 5], [11, 5], [11, 6]] },
+    "centre-well-loop": { "waypoints": [[15, 13], [16, 12], [17, 13], [16, 14], [15, 13], [14, 14], [13, 13], [14, 12], [15, 13]] },
+    "enemy-well-loop": { "waypoints": [[19, 20], [20, 20], [20, 21], [19, 21], [18, 21], [18, 20], [18, 19], [19, 19], [19, 20]] }
+  },
+  "anchors": {}
+}
