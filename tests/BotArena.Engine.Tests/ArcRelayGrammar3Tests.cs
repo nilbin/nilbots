@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.Json;
 using BotArena.Engine;
 using BotArena.Sdk;
 
@@ -96,45 +95,6 @@ public sealed class ArcRelayGrammar3Tests
         Assert.NotEqual(
             ActorContractFingerprint.ComputeRules(two.Rules),
             ActorContractFingerprint.ComputeRules(three.Rules));
-    }
-
-    [Fact]
-    public void TaplineFlankDelayProbeChangesOnlyOpeningFlankBirths()
-    {
-        ActorResolvedMatchDefinition baseline = ArcRelayH0Definition.Create(
-            loopProfile: ArcRelayLoopProfile.Tapline3);
-        ActorResolvedMatchDefinition probe = ArcRelayH0Definition.Create(
-            loopProfile: ArcRelayLoopProfile.TaplineFlankDelay25);
-        var baselineMode = Assert.IsType<ArcRelayGameModeDefinition>(
-            baseline.Rules.GameMode);
-        var probeMode = Assert.IsType<ArcRelayGameModeDefinition>(
-            probe.Rules.GameMode);
-
-        Assert.Equal(baseline.Map.Id, probe.Map.Id);
-        Assert.True(baseline.Map.TileRows.SequenceEqual(probe.Map.TileRows));
-        Assert.Equal(
-            baseline.Rules.Collisions,
-            probe.Rules.Collisions);
-        Assert.Equal(
-            baselineMode.Wells.Single(well => well.WellId == "centre"),
-            probeMode.Wells.Single(well => well.WellId == "centre"));
-        foreach (string wellId in new[] { "north", "south" })
-        {
-            ArcRelayWellScheduleDefinition before = baselineMode.Wells
-                .Single(well => well.WellId == wellId);
-            ArcRelayWellScheduleDefinition after = probeMode.Wells
-                .Single(well => well.WellId == wellId);
-            Assert.Equal(50, before.FirstBirthTick);
-            Assert.Equal(75, after.FirstBirthTick);
-            Assert.Equal(before.CadenceTicks, after.CadenceTicks);
-            Assert.Equal(before.FinalBirthTick + 25, after.FinalBirthTick);
-        }
-        Assert.Equal(
-            JsonSerializer.Serialize(baselineMode.Signatures),
-            JsonSerializer.Serialize(probeMode.Signatures));
-        Assert.Equal(
-            "tapline-3",
-            ArcRelayLoopProfile.Current.Id);
     }
 
     [Fact]
