@@ -22,6 +22,16 @@ export const SOUND_EFFECT_CUE_IDS = [
   'signature-exchange',
   'signature-target',
   'signature-kinetic',
+  'signature-mason',
+  'signature-repair',
+  'signature-falling-star',
+  'signature-trip-deploy',
+  'signature-trip-trigger',
+  'signature-arc-toss',
+  'signature-rail-charge',
+  'signature-rail-release',
+  'signature-sentinel-deploy',
+  'signature-sentinel-fire',
 ] as const;
 
 export type SoundEffectCueId = (typeof SOUND_EFFECT_CUE_IDS)[number];
@@ -67,6 +77,8 @@ interface SoundEffectManifest {
     generationRecordSha256: string;
     signatureGenerationRecord: string;
     signatureGenerationRecordSha256: string;
+    signatureGenerationAddendum: string;
+    signatureGenerationAddendumSha256: string;
     deliveryEncoding: {
       encoder: 'macos-afconvert';
       canonicalization: 'zero-iso-bmff-creation-and-modification-times';
@@ -226,7 +238,7 @@ function loadSoundEffectPack(): SoundEffectPack {
   }
   const [manifestPath, manifest] = entries[0]!;
   if (
-    manifest.version !== 12 ||
+    manifest.version !== 13 ||
     manifest.id !== DEFAULT_SOUND_EFFECT_PACK_ID ||
     manifest.approval !== 'approved' ||
     manifest.format !== 'aac-lc-m4a' ||
@@ -269,6 +281,11 @@ function loadSoundEffectPack(): SoundEffectPack {
     !/^[a-f0-9]{64}$/.test(manifest.provenance.generationRecordSha256) ||
     !/^[a-f0-9]{64}$/.test(
       manifest.provenance.signatureGenerationRecordSha256,
+    ) ||
+    manifest.provenance.signatureGenerationAddendum !==
+      'art/audio/sound-lab/v5/signature-v2-sfx-engine-generation.json' ||
+    !/^[a-f0-9]{64}$/.test(
+      manifest.provenance.signatureGenerationAddendumSha256,
     )
   ) {
     throw new Error(`Invalid runtime sound-effect manifest '${manifestPath}'.`);
@@ -340,7 +357,7 @@ function validSignatureDeliveryProcessing(
   }
   return Object.values(cues).every(
     (cue) =>
-      /^signature-source-[a-z0-9-]+$/.test(cue.sourceCueId) &&
+      /^signature-(?:v2-)?source-[a-z0-9-]+$/.test(cue.sourceCueId) &&
       /^[a-f0-9]{64}$/.test(cue.sourceOutputSha256) &&
       ['mid-to-dual-mono', 'side-to-dual-mono'].includes(
         cue.channelTransform,
@@ -355,7 +372,7 @@ function validSignatureDeliveryProcessing(
       cue.durationSeconds > 0 &&
       cue.durationSeconds <= 0.7 &&
       Number.isFinite(cue.lowPassHz) &&
-      cue.lowPassHz >= 500 &&
+      cue.lowPassHz >= 350 &&
       cue.lowPassHz <= 1_000 &&
       Number.isFinite(cue.fadeInSeconds) &&
       cue.fadeInSeconds >= 0.008 &&
@@ -455,8 +472,9 @@ function validCrowdedMixAudit(
     JSON.stringify([...audit.signatureCueIds].sort()) ===
       JSON.stringify([...signatureCueIds].sort()) &&
     audit.signatureVoices === 2 &&
-    audit.signaturePairCount === 36 &&
-    audit.variantCount === 108 &&
+    audit.signaturePairCount ===
+      (signatureCueIds.length * (signatureCueIds.length - 1)) / 2 &&
+    audit.variantCount === audit.coreCueIds.length * audit.signaturePairCount &&
     Number.isFinite(audit.maximumApproximateTruePeakDbtp) &&
     audit.maximumApproximateTruePeakDbtp <= -6 &&
     audit.ceilingDbtp === -6 &&
@@ -538,8 +556,8 @@ function validIntegrity(
         value.deliveryMetrics.effectiveMaximumWindowAbove4kRmsDbfs <= -28) &&
       (!cue.startsWith('signature-') ||
         (value.deliveryMetrics.durationSeconds <= 0.7 &&
-          value.deliveryMetrics.spectralCentroidHz <= 1_200 &&
-          value.deliveryMetrics.energyAbove4kPercent <= 1 &&
+          value.deliveryMetrics.spectralCentroidHz <= 1_000 &&
+          value.deliveryMetrics.energyAbove4kPercent <= 0.5 &&
           value.deliveryMetrics.energyAbove8kPercent <= 0.05 &&
           value.deliveryMetrics.energyAbove12kPercent <= 0.01 &&
           value.deliveryMetrics.interchannelCorrelation >= 0.999 &&

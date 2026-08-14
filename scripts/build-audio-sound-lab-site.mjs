@@ -14,6 +14,10 @@ import { fileURLToPath } from "node:url";
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = resolve(scriptDirectory, "..");
 const sourceDirectory = resolve(repositoryRoot, "art/audio/sound-lab");
+const runtimeAudioDirectory = resolve(
+  repositoryRoot,
+  "web/src/assets/audio/effects/astral-relay",
+);
 const destinationDirectory = resolve(
   process.argv[2] ?? resolve(repositoryRoot, "sandbox/audio-sound-lab-site"),
 );
@@ -42,6 +46,9 @@ assertSafeDestination();
 if (!existsSync(sourceDirectory)) {
   throw new Error(`Missing sound-lab source: ${sourceDirectory}`);
 }
+if (!existsSync(resolve(runtimeAudioDirectory, "manifest.json"))) {
+  throw new Error(`Missing Astral Relay runtime audio: ${runtimeAudioDirectory}`);
+}
 
 const hosting = JSON.parse(readFileSync(hostingSource, "utf8"));
 if (typeof hosting.project_id !== "string" || hosting.project_id.length === 0) {
@@ -57,6 +64,11 @@ mkdirSync(resolve(destinationDirectory, ".openai"), { recursive: true });
 cpSync(sourceDirectory, resolve(destinationDirectory, ".open-next/assets"), {
   recursive: true,
 });
+cpSync(
+  runtimeAudioDirectory,
+  resolve(destinationDirectory, ".open-next/assets/runtime-audio"),
+  { recursive: true },
+);
 cpSync(hostingSource, resolve(destinationDirectory, ".openai/hosting.json"));
 
 writeFileSync(
@@ -84,6 +96,8 @@ Generated from \`art/audio/sound-lab\` by
 \`scripts/build-audio-sound-lab-site.mjs\`.
 
 The deployable worker serves the static review lab from \`.open-next/assets\`.
+\`signatures-v2.html\` auditions exact shipped AAC files copied from the
+approved Astral Relay runtime package into \`runtime-audio\` during this build.
 Edit the repository source and regenerate instead of editing this package.
 `,
 );

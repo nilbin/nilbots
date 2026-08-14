@@ -7,7 +7,12 @@ export default defineArcSignature({
   canvasMarker: 'block',
   webglPainterId: 'hardlight-block',
   audio: [
-    { trigger: 'started', cue: 'signature-construct' },
+    {
+      trigger: 'started',
+      cue: 'signature-mason',
+      priority: 5,
+      tickOffset: 0.28,
+    },
     { trigger: 'maintained', cue: 'silent' },
   ],
   reducedMotion: {

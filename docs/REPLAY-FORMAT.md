@@ -85,7 +85,7 @@ gameplay contract:
       "projectileLookId": "arc-shot-kestrel"
     }
   ],
-  "signaturePresentationId": "arc-relay-signatures-v1"
+  "signaturePresentationId": "arc-relay-signatures-v2"
 }
 ```
 
@@ -95,13 +95,15 @@ and regular-attack projectile identities. `signaturePresentationId` binds one
 immutable, roster-complete visual/audio treatment to the public signature
 operation grammar.
 
-Arc Relay writes `arc-relay-signatures-v1` only for grammar-3 rulesets. All
-sixteen signatures participate even though only four concrete mechanic records
-changed in Tapline-2. Historical replays with no field retain their legacy
-treatment. A viewer that does not recognize a package or signature must show a
-generic marker derived from the public phase, positions, target, capacity, and
-suppression fields; it must not hide the event or reinterpret it using the
-current package.
+Current Arc Relay grammar-3 replays write `arc-relay-signatures-v2`. All sixteen
+signatures participate even though only four concrete mechanic records changed
+in Tapline-2. V2 keeps V1's authored visual treatment but owns the expanded,
+distinct signature-audio bindings. Recorded `arc-relay-signatures-v1` replays
+remain recognized and retain their original audio map; historical replays with
+no field retain their older legacy treatment. A viewer that does not recognize
+a package or signature must show a generic marker derived from the public phase,
+positions, target, capacity, and suppression fields; it must not hide the event
+or reinterpret it using the current package.
 
 A visual/audio revision mints another presentation package ID. It does not
 require a rules version unless mechanics or canonical gameplay fields also

@@ -25,15 +25,25 @@ const expectedCues = [
   'impact',
   'level-up',
   'projectile',
+  'signature-arc-toss',
   'signature-construct',
   'signature-exchange',
+  'signature-falling-star',
   'signature-kinetic',
+  'signature-mason',
   'signature-motion',
   'signature-null',
+  'signature-rail-charge',
+  'signature-rail-release',
+  'signature-repair',
+  'signature-sentinel-deploy',
+  'signature-sentinel-fire',
   'signature-smoke',
   'signature-survey',
   'signature-target',
   'signature-tether',
+  'signature-trip-deploy',
+  'signature-trip-trigger',
 ];
 const signatureCues = expectedCues.filter((cue) =>
   cue.startsWith('signature-'),
@@ -73,6 +83,31 @@ test('the production sound-effect loader accepts the checked-in pack', () => {
   assert.deepEqual(Object.keys(soundEffectPack.mix.cues).sort(), expectedCues);
 });
 
+test('the focused signature review covers every shipped identity at runtime gain', () => {
+  const page = readFileSync(
+    join(repoRoot, 'art', 'audio', 'sound-lab', 'signatures-v2.html'),
+    'utf8',
+  );
+  const review = readFileSync(
+    join(repoRoot, 'art', 'audio', 'sound-lab', 'signatures-v2.js'),
+    'utf8',
+  );
+  const primaryCues = [...review.matchAll(/primaryCue: '([^']+)'/g)].map(
+    (match) => match[1],
+  );
+
+  assert.equal(primaryCues.length, 16);
+  assert.equal(new Set(primaryCues).size, 16);
+  assert.ok(primaryCues.every((cue) => signatureCues.includes(cue)));
+  for (const cue of signatureCues) {
+    assert.match(review, new RegExp(`'${cue}'`), `${cue} needs a review control`);
+  }
+  assert.match(review, /const defaultSignatureGain = 0\.16/);
+  assert.match(review, /\.\/runtime-audio\//);
+  assert.doesNotMatch(page, /autoplay/i);
+  assert.doesNotMatch(review, /ambient|ambience/i);
+});
+
 test('the approved Astral Relay runtime pack is complete, restrained, and traceable', () => {
   const directories = readdirSync(root, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
@@ -98,6 +133,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       generationRecordSha256: string;
       signatureGenerationRecord: string;
       signatureGenerationRecordSha256: string;
+      signatureGenerationAddendum: string;
+      signatureGenerationAddendumSha256: string;
       deliveryEncoding: {
         encoder: string;
         canonicalization: string;
@@ -194,7 +231,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     integrity: Record<string, Integrity>;
   };
 
-  assert.equal(manifest.version, 12);
+  assert.equal(manifest.version, 13);
   assert.equal(manifest.id, 'astral-relay');
   assert.equal(manifest.approval, 'approved');
   assert.equal(manifest.format, 'aac-lc-m4a');
@@ -204,6 +241,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     {
       ...manifest.provenance,
       signatureGenerationRecordSha256: '<hash>',
+      signatureGenerationAddendumSha256: '<hash>',
       signatureDeliveryProcessing: '<checked separately>',
     },
     {
@@ -221,6 +259,9 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     signatureGenerationRecord:
       'art/audio/sound-lab/v5/signature-sfx-engine-generation.json',
     signatureGenerationRecordSha256: '<hash>',
+    signatureGenerationAddendum:
+      'art/audio/sound-lab/v5/signature-v2-sfx-engine-generation.json',
+    signatureGenerationAddendumSha256: '<hash>',
     deliveryEncoding: {
       encoder: 'macos-afconvert',
       canonicalization: 'zero-iso-bmff-creation-and-modification-times',
@@ -338,7 +379,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     rightsStatus: 'rights-cleared',
     license: {
       termsUrl: 'https://sfxengine.com/terms-of-service',
-      checkedAt: '2026-08-11',
+      checkedAt: '2026-08-14',
       permittedUse: 'personal-and-commercial-projects',
       standaloneRedistribution: 'prohibited',
     },
@@ -364,6 +405,13 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     sha256(signatureGenerationRecord),
     manifest.provenance.signatureGenerationRecordSha256,
   );
+  const signatureGenerationAddendum = readFileSync(
+    join(repoRoot, manifest.provenance.signatureGenerationAddendum),
+  );
+  assert.equal(
+    sha256(signatureGenerationAddendum),
+    manifest.provenance.signatureGenerationAddendumSha256,
+  );
   const signatureProvenance = JSON.parse(
     signatureGenerationRecord.toString('utf8'),
   ) as {
@@ -387,7 +435,51 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
   );
   assert.deepEqual(
     signatureProvenance.deliveries.map((delivery) => delivery.id).sort(),
-    signatureCues,
+    signatureCues.filter(
+      (cue) =>
+        ![
+          'signature-arc-toss',
+          'signature-falling-star',
+          'signature-mason',
+          'signature-rail-charge',
+          'signature-rail-release',
+          'signature-repair',
+          'signature-sentinel-deploy',
+          'signature-sentinel-fire',
+          'signature-trip-deploy',
+          'signature-trip-trigger',
+        ].includes(cue),
+    ),
+  );
+  const signatureAddendumProvenance = JSON.parse(
+    signatureGenerationAddendum.toString('utf8'),
+  ) as typeof signatureProvenance & { batch: typeof signatureProvenance.batch & { ambience: boolean } };
+  assert.equal(signatureAddendumProvenance.batch.maximumProviderJobs, 7);
+  assert.equal(signatureAddendumProvenance.batch.automaticRerolls, false);
+  assert.equal(signatureAddendumProvenance.batch.ambience, false);
+  assert.equal(signatureAddendumProvenance.cues.length, 7);
+  assert.ok(
+    signatureAddendumProvenance.cues.every(
+      (cue) =>
+        cue.result.status === 'generated' &&
+        /^[a-f0-9]{64}$/.test(cue.result.sourceSha256) &&
+        /^[a-f0-9]{64}$/.test(cue.result.outputSha256),
+    ),
+  );
+  assert.deepEqual(
+    signatureAddendumProvenance.deliveries
+      .map((delivery) => delivery.id)
+      .sort(),
+    signatureCues.filter(
+      (cue) =>
+        cue.startsWith('signature-arc-') ||
+        cue.startsWith('signature-falling-') ||
+        cue.startsWith('signature-mason') ||
+        cue.startsWith('signature-rail-') ||
+        cue.startsWith('signature-repair') ||
+        cue.startsWith('signature-sentinel-') ||
+        cue.startsWith('signature-trip-'),
+    ),
   );
   assert.deepEqual(
     Object.keys(manifest.provenance.signatureDeliveryProcessing.cues).sort(),
@@ -443,10 +535,20 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
         'signature-exchange',
         'signature-target',
         'signature-kinetic',
+        'signature-mason',
+        'signature-repair',
+        'signature-falling-star',
+        'signature-trip-deploy',
+        'signature-trip-trigger',
+        'signature-arc-toss',
+        'signature-rail-charge',
+        'signature-rail-release',
+        'signature-sentinel-deploy',
+        'signature-sentinel-fire',
       ],
       signatureVoices: 2,
-      signaturePairCount: 36,
-      variantCount: 108,
+      signaturePairCount: 171,
+      variantCount: 513,
       maximumApproximateTruePeakDbtp: '<checked below>',
       worstVariant: '<valid member combination>',
       ceilingDbtp: -6,
@@ -590,7 +692,7 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
       panWidth: 0.45,
       roomSend: false,
     });
-    assert.match(processing.sourceCueId, /^signature-source-/);
+    assert.match(processing.sourceCueId, /^signature-(?:v2-)?source-/);
     assert.match(processing.sourceOutputSha256, /^[a-f0-9]{64}$/);
     assert.ok(
       ['mid-to-dual-mono', 'side-to-dual-mono'].includes(
@@ -601,8 +703,8 @@ test('the approved Astral Relay runtime pack is complete, restrained, and tracea
     assert.ok(processing.lowPassHz <= 1_000);
     assert.ok(processing.targetSamplePeak <= 0.22);
     assert.ok(metrics.durationSeconds <= 0.7);
-    assert.ok(metrics.spectralCentroidHz <= 1_200);
-    assert.ok(metrics.energyAbove4kPercent <= 1);
+    assert.ok(metrics.spectralCentroidHz <= 1_000);
+    assert.ok(metrics.energyAbove4kPercent <= 0.5);
     assert.ok(metrics.energyAbove8kPercent <= 0.05);
     assert.ok(metrics.energyAbove12kPercent <= 0.01);
     assert.ok(metrics.interchannelCorrelation >= 0.999);

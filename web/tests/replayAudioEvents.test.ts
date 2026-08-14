@@ -251,7 +251,7 @@ test('foreground events mask concurrent wind-ups', () => {
   );
 });
 
-test('healing tiles and medic repairs share one positional healing cue', () => {
+test('healing tiles stay shared while V2 medic repairs own a signature cue', () => {
   const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
   const tick = replay.ticks[0]!;
   const template = tick.events[0]!;
@@ -293,17 +293,21 @@ test('healing tiles and medic repairs share one positional healing cue', () => {
   );
 
   tick.events = [medicRepair];
+  replay.signaturePresentationId = 'arc-relay-signatures-v2';
   assert.deepEqual(
     replayAudioEventsAt(replay, 0).map((event) => [event.cue, event.pan]),
-    [['healing', 1]],
-    'a medic repair uses the same cue at the repaired body',
+    [['signature-repair', 1]],
+    'a V2 medic repair owns its skill identity at the repaired body',
   );
 
   tick.events = [zoneHeal, medicRepair];
   assert.deepEqual(
     replayAudioEventsAt(replay, 0).map((event) => [event.cue, event.pan]),
-    [['healing', 0]],
-    'simultaneous heals coalesce to one calm positional centre of energy',
+    [
+      ['healing', -1],
+      ['signature-repair', 1],
+    ],
+    'a station and medic remain distinct while retaining their event positions',
   );
 });
 
@@ -405,6 +409,274 @@ test('grammar-3 signatures schedule their co-located presentation bindings', () 
       `${signatureId} ${reason}`,
     );
   }
+});
+
+test('V2 gives formerly shared signatures distinct authoritative cues', () => {
+  const expected = [
+    ['hardlight-block', 'started', 'signature-mason'],
+    ['falling-star', 'completed', 'signature-falling-star'],
+    ['trip-node', 'started', 'signature-trip-deploy'],
+    ['trip-node', 'triggered', 'signature-trip-trigger'],
+    ['arc-toss', 'launched', 'signature-arc-toss'],
+    ['rail-line', 'started', 'signature-rail-charge'],
+    ['rail-line', 'completed', 'signature-rail-release'],
+    ['sentinel-seed', 'deployed', 'signature-sentinel-deploy'],
+  ] as const;
+
+  for (const [signatureId, reason, cue] of expected) {
+    const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+    replay.signaturePresentationId = 'arc-relay-signatures-v2';
+    const tick = replay.ticks[0]!;
+    const template = tick.events[0]!;
+    const owner = tick.before.actors[0]!.identity;
+    tick.events = [
+      {
+        ...structuredClone(template),
+        eventId: `v2:${signatureId}:${reason}`,
+        type: 'game-mode',
+        sourceActor: owner,
+        projectileId: null,
+        arcRelayFact: {
+          kind: 'signature-changed',
+          operationId: `operation:${signatureId}`,
+          signatureId,
+          ownerActor: owner,
+          phase: reason === 'started' ? 'tell' : null,
+          reason,
+        },
+      } as ReplayCausalEvent,
+    ];
+
+    assert.deepEqual(
+      replayAudioEventsAt(replay, 0).map((event) => event.cue),
+      [cue],
+      `${signatureId} ${reason}`,
+    );
+  }
+});
+
+test('V2 Rail Line replaces generic attack layers and keeps concrete armor contact', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  replay.signaturePresentationId = 'arc-relay-signatures-v2';
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const owner = tick.before.actors[0]!.identity;
+  const target = tick.before.actors[1]!.identity;
+  const strike = {
+    shooter: owner,
+    resolveAtTick: tick.tick,
+    origin: { x: 2, y: 1 },
+    centralHeading: 'east' as const,
+    target,
+    tiles: [{ x: 3, y: 1 }],
+  };
+  const signatureEvent = (
+    reason: 'started' | 'completed',
+  ): ReplayCausalEvent =>
+    ({
+      ...structuredClone(template),
+      eventId: `rail-line:${reason}`,
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-changed',
+        operationId: 'rail-line-operation',
+        signatureId: 'rail-line',
+        ownerActor: owner,
+        phase: reason === 'started' ? 'tell' : null,
+        reason,
+      },
+    }) as ReplayCausalEvent;
+
+  tick.events = [signatureEvent('started')];
+  tick.before.mode = arcMode([]);
+  tick.after.mode = arcMode([{ ...strike, resolveAtTick: tick.tick + 1 }]);
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['signature-rail-charge'],
+    'the rail charge replaces the shared attack wind-up',
+  );
+
+  tick.events = [
+    signatureEvent('completed'),
+    {
+      ...structuredClone(template),
+      eventId: 'rail-line:damage',
+      type: 'game-mode',
+      sourceActor: owner,
+      targetActor: target,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-damage',
+        operationId: 'rail-line-operation',
+        signatureId: 'rail-line',
+        ownerActor: owner,
+        targetActor: target,
+        amount: 1,
+        newHealth: 1,
+        position: { x: 3, y: 1 },
+      },
+    } as ReplayCausalEvent,
+  ];
+  tick.before.mode = arcMode([strike]);
+  tick.after.mode = arcMode([]);
+  tick.projectileTraversals = [
+    {
+      projectileId: 'rail-line-operation',
+      ownerActor: owner,
+      ownerActorKey: owner.actorKey,
+      launchDirection: 'east',
+      from: { x: 2, y: 1 },
+      path: [{ x: 3, y: 1 }],
+      heading: 'east',
+      shotProgram: null,
+      programmedPath: null,
+      trigger: 'attack-launch',
+      attackProfileId: 'rail-line',
+    },
+  ];
+  replay.contract = {
+    kind: 'v3-generic',
+    rawContract: {
+      rules: {
+        attackProfiles: [
+          {
+            id: 'rail-line',
+            projectile: { mode: 'instant-ray', strikeWindupTicks: 1 },
+          },
+        ],
+      },
+    },
+  } as unknown as ReplayModel['contract'];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['impact', 'signature-rail-release'],
+    'the rail release replaces the generic projectile while a real hit keeps armor impact',
+  );
+});
+
+test('V2 signature crowd priority keeps the two most important skill moments', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  replay.signaturePresentationId = 'arc-relay-signatures-v2';
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const actors = tick.before.actors.map((actor) => actor.identity);
+  const event = (
+    owner: (typeof actors)[number],
+    signatureId: string,
+    reason: string,
+  ): ReplayCausalEvent =>
+    ({
+      ...structuredClone(template),
+      eventId: `${signatureId}:${reason}`,
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-changed',
+        operationId: `${signatureId}:operation`,
+        signatureId,
+        ownerActor: owner,
+        phase: null,
+        reason,
+      },
+    }) as ReplayCausalEvent;
+  const thirdActor = {
+    ...actors[0]!,
+    actorKey: `${actors[0]!.actorKey}:third-signature`,
+    unitKey: `${actors[0]!.unitKey}:third-signature`,
+    unitId: actors[0]!.unitId + 100,
+  };
+  tick.events = [
+    event(actors[0]!, 'falling-star', 'completed'),
+    event(actors[1]!, 'arc-toss', 'launched'),
+    event(thirdActor, 'trip-node', 'started'),
+  ];
+
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((audioEvent) => audioEvent.cue),
+    ['signature-falling-star', 'signature-arc-toss'],
+    'priority 7 and 6 survive the two-voice budget ahead of priority 4 deployment',
+  );
+});
+
+test('V2 Arc Toss replaces departure drop audio and Sentinel bolts sound once at launch', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  replay.signaturePresentationId = 'arc-relay-signatures-v2';
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const owner = tick.before.actors[0]!.identity;
+  tick.events = [
+    {
+      ...structuredClone(template),
+      eventId: 'arc-toss-launch',
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-changed',
+        operationId: 'arc-toss-operation',
+        signatureId: 'arc-toss',
+        ownerActor: owner,
+        phase: 'in-flight',
+        reason: 'launched',
+      },
+    } as ReplayCausalEvent,
+    {
+      ...structuredClone(template),
+      eventId: 'arc-toss-departure',
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'core-dropped',
+        coreId: { sourceWellId: 'centre', sourceOrdinal: 0 },
+        sourceActor: owner,
+        position: { x: 2, y: 1 },
+        nextRelocationTick: 2,
+        dropKind: 'signature-departure',
+      },
+    } as ReplayCausalEvent,
+  ];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['signature-arc-toss'],
+  );
+
+  tick.events = [];
+  tick.projectileTraversals = [
+    {
+      projectileId: 'sentinel-bolt',
+      ownerActor: owner,
+      ownerActorKey: owner.actorKey,
+      launchDirection: 'east',
+      from: { x: 2, y: 1 },
+      path: [{ x: 3, y: 1 }],
+      heading: 'east',
+      shotProgram: null,
+      programmedPath: null,
+      trigger: 'attack-launch',
+      attackProfileId: 'sentinel-bolt',
+    },
+    {
+      projectileId: 'sentinel-bolt',
+      ownerActor: owner,
+      ownerActorKey: owner.actorKey,
+      launchDirection: 'east',
+      from: { x: 3, y: 1 },
+      path: [{ x: 4, y: 1 }],
+      heading: 'east',
+      shotProgram: null,
+      programmedPath: null,
+      trigger: 'projectile-advance',
+      attackProfileId: 'sentinel-bolt',
+    },
+  ];
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['signature-sentinel-fire'],
+  );
 });
 
 test('signature audio remains silent for legacy packages, cancellation, and maintenance', () => {

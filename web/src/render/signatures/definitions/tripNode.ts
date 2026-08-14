@@ -7,8 +7,18 @@ export default defineArcSignature({
   canvasMarker: 'prop',
   webglPainterId: 'trip-node',
   audio: [
-    { trigger: 'started', cue: 'silent' },
-    { trigger: 'damage-fact', cue: 'impact' },
+    {
+      trigger: 'started',
+      cue: 'signature-trip-deploy',
+      priority: 4,
+      tickOffset: 0.26,
+    },
+    {
+      trigger: 'triggered',
+      cue: 'signature-trip-trigger',
+      priority: 7,
+      tickOffset: 0.38,
+    },
   ],
   reducedMotion: {
     retain: 'prop-and-capacity',

@@ -444,12 +444,15 @@ The frontend keeps the two routes deliberately separate:
 
 ### Arc Relay signature presentation package
 
-Tapline-2 snapshots `arc-relay-signatures-v1`, one grammar-complete package for
-all sixteen launch signatures. Grammar version and concrete mechanic version
-are deliberately different axes: every roster entry publishes grammar-3
-lifecycle timing, while only Null Field, Target Paint, Kinetic Burst, and Smoke
-Canister use new concrete definition records because only those mechanics
-changed.
+Tapline-2 originally snapshot `arc-relay-signatures-v1`, one grammar-complete
+package for all sixteen launch signatures. Current grammar-3 replays snapshot
+`arc-relay-signatures-v2`, an audio-only successor that keeps the same authored
+visual treatment while giving the full roster distinct skill identities. V1
+stays recognized with its original audio map. Grammar version, concrete
+mechanic version, and presentation version are deliberately different axes:
+every roster entry publishes grammar-3 lifecycle timing, while only Null Field,
+Target Paint, Kinetic Burst, and Smoke Canister use new concrete definition
+records because only those mechanics changed.
 
 The shared, Three-free definition layer lives under
 `web/src/render/signatures/definitions`; every signature declares public phases,

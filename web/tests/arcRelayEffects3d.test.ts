@@ -90,6 +90,16 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
     'signature-exchange',
     'signature-target',
     'signature-kinetic',
+    'signature-mason',
+    'signature-repair',
+    'signature-falling-star',
+    'signature-trip-deploy',
+    'signature-trip-trigger',
+    'signature-arc-toss',
+    'signature-rail-charge',
+    'signature-rail-release',
+    'signature-sentinel-deploy',
+    'signature-sentinel-fire',
     'core-family',
     'silent',
   ]);
@@ -99,6 +109,37 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
     ),
     'presentation definitions cannot name an unowned audio intent',
   );
+  const primaryCueBySignature = new Map([
+    ['vector-dash', 'signature-motion'],
+    ['prism-wall', 'signature-construct'],
+    ['tractor-hook', 'signature-tether'],
+    ['repair-beam', 'signature-repair'],
+    ['survey-flare', 'signature-survey'],
+    ['falling-star', 'signature-falling-star'],
+    ['trip-node', 'signature-trip-deploy'],
+    ['null-field', 'signature-null'],
+    ['arc-toss', 'signature-arc-toss'],
+    ['exchange', 'signature-exchange'],
+    ['rail-line', 'signature-rail-release'],
+    ['hardlight-block', 'signature-mason'],
+    ['target-paint', 'signature-target'],
+    ['kinetic-burst', 'signature-kinetic'],
+    ['smoke-canister', 'signature-smoke'],
+    ['sentinel-seed', 'signature-sentinel-deploy'],
+  ] as const);
+  assert.equal(
+    new Set(primaryCueBySignature.values()).size,
+    signatureIds.length,
+    'each launch signature must own a distinct primary audio identity',
+  );
+  for (const definition of definitions) {
+    const primaryCue = primaryCueBySignature.get(definition.signatureId);
+    assert.ok(primaryCue, `${definition.signatureId} needs a primary cue`);
+    assert.ok(
+      definition.audio.some((binding) => binding.cue === primaryCue),
+      `${definition.signatureId} must bind its primary cue '${primaryCue}'`,
+    );
+  }
   const hook = definitions.find(
     (definition) => definition.signatureId === 'tractor-hook',
   );

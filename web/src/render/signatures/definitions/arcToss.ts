@@ -9,6 +9,12 @@ export default defineArcSignature({
   audio: [
     { trigger: 'core-facts', cue: 'core-family' },
     { trigger: 'started', cue: 'silent' },
+    {
+      trigger: 'launched',
+      cue: 'signature-arc-toss',
+      priority: 6,
+      tickOffset: 0.2,
+    },
   ],
   reducedMotion: {
     retain: 'endpoints-and-outcome',

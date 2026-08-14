@@ -1,0 +1,880 @@
+{
+  "schemaVersion": 1,
+  "provider": "sfx-engine",
+  "providerDisplayName": "SFX Engine",
+  "apiBase": "https://api.sfxengine.com/v1",
+  "apiSpec": ".claude/skills/sfx-engine/references/openapi.yaml",
+  "apiSpecSha256": "c09974c0f70344251844c00e029bcdc5e543106c8cdc315afa8bc6ef5722f116",
+  "authorization": "Owner approved private SFX Engine generation as needed for the complete Tapline signature-audio pass; this addendum permits exactly these seven source jobs and no automatic rerolls.",
+  "keychainService": "com.nilbots.sfxengine.api-key",
+  "privacy": "Every request sets isPublic to false.",
+  "batch": {
+    "id": "arc-relay-signatures-v2-audio-addendum",
+    "label": "Astral Relay distinct signature identities",
+    "direction": "Restrained orbital machinery: short, spacey, low-mid, soft-edged, sparse, materially distinct, and safe under crowded Tapline playback.",
+    "maximumProviderJobs": 7,
+    "automaticRerolls": false,
+    "ambience": false
+  },
+  "outputDirectory": "signature-v2-sources/astral-relay",
+  "processing": "Provider output is decoded with macOS afconvert to 48 kHz stereo signed 16-bit PCM, DC-corrected, endpoint-faded, and peak-normalized without synthesized layers. Runtime deliveries are derived separately by a checked-in deterministic comfort-mastering script.",
+  "cues": [
+    {
+      "id": "signature-v2-source-mason",
+      "file": "mason.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline Mason wall deployment: low earthy ceramic slabs rising and seating, dry muted granular weight, sci-fi but grounded, soft transient, no scrape, crack, boom, sparkle, alarm, speech or music, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_swjs4lznlnn44ckk",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:38:55.885",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:39:46.601Z",
+        "request": {
+          "prompt": "Tapline Mason wall deployment: low earthy ceramic slabs rising and seating, dry muted granular weight, sci-fi but grounded, soft transient, no scrape, crack, boom, sparkle, alarm, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "a2b02876bd769f29409c4e5be221451b0652c054e242a529e062393cf24b2735",
+        "outputSha256": "456aa5a904e82f9e24b0bddab5fa60448a65daa87a91a78b24ce9b67c64ab3be",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.0814,
+          "stereoDifferenceRms": 0.0266,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "signature-v2-source-repair",
+      "file": "repair.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline medic repair transfer: warm low-mid braided energy intake and gentle sealed restoration, soft flowing pulse, compact and dry, no chime, sparkle, beep, alarm, speech, music or high-frequency hiss, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_avaunzwktlejibxi",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:39:48.454",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:40:07.189Z",
+        "request": {
+          "prompt": "Tapline medic repair transfer: warm low-mid braided energy intake and gentle sealed restoration, soft flowing pulse, compact and dry, no chime, sparkle, beep, alarm, speech, music or high-frequency hiss, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "c5f2b041b35145f15be205aeac91b98ddba2a439f4698544390e6ffca080a7a3",
+        "outputSha256": "2e52e37e87ec53f55b858f01e59d2c21d054a5fec9ff2aaed56066b6ac374464",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.3692,
+          "stereoDifferenceRms": 0.1546,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "signature-v2-source-falling-star",
+      "file": "falling-star.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline Falling Star sequence: restrained low descending orbital pressure ending in a cushioned matte impact, cinematic but quiet and short, no explosion, debris, boom, screech, sparkle, speech or music, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_y4shjan25mzhobps",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:40:09.118",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:40:28.104Z",
+        "request": {
+          "prompt": "Tapline Falling Star sequence: restrained low descending orbital pressure ending in a cushioned matte impact, cinematic but quiet and short, no explosion, debris, boom, screech, sparkle, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "d796655a13c1699b4ae7976d914f3f2cabdc999235a8fb991f2fd131b3f233c7",
+        "outputSha256": "8f82573435ebdc2e7b4d549186b7c83d4c0ddef8c4d2b57be9a190b1357bf62a",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.0811,
+          "stereoDifferenceRms": 0.0001,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "signature-v2-source-trip-node",
+      "file": "trip-node.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline Trip Node sequence: compact magnetic mine unfolds and arms, followed later by a muted low snap trigger, small matte mechanism, no beep, alarm, metallic ping, explosion, speech or music, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_3ny2w3nr4eust2f7",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:40:29.908",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:40:48.450Z",
+        "request": {
+          "prompt": "Tapline Trip Node sequence: compact magnetic mine unfolds and arms, followed later by a muted low snap trigger, small matte mechanism, no beep, alarm, metallic ping, explosion, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "dce06608a0c37cad308d11d6c18213b525011946486c3f4baff7f5ae9a9d0fde",
+        "outputSha256": "916494457b008d8d8440545fc68c90572566a9a91a4d60cd9ed84ddccddba46f",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.0541,
+          "stereoDifferenceRms": 0.0074,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "signature-v2-source-arc-toss",
+      "file": "arc-toss.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline Arc Toss launch: one levitating energy sphere slings upward from a carrier with a smooth low-mid lift and soft release, weightless and compact, no projectile flyby, whoosh, chime, sparkle, speech or music, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_3kvljmv73s2w46qf",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:40:50.282",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:41:08.862Z",
+        "request": {
+          "prompt": "Tapline Arc Toss launch: one levitating energy sphere slings upward from a carrier with a smooth low-mid lift and soft release, weightless and compact, no projectile flyby, whoosh, chime, sparkle, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "2825f5bef54f8726627b3fc6d5b96c229a18d6ad6c4e20c0ba6cbfd91b9e111f",
+        "outputSha256": "ae628c82cb0771bbd45d5d129d30eb335ef0c63255a7a5af8602db06eb312abe",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.1888,
+          "stereoDifferenceRms": 0.0944,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "signature-v2-source-rail-line",
+      "file": "rail-line.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline Rail Line sequence: restrained low electric rail charge resolving into a clean soft laser discharge, precise and powerful without noise, no gunshot, crack, hiss, screech, high pitch, explosion, speech or music, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_mcfj53ld6u2lkuqk",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:41:10.687",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:41:29.656Z",
+        "request": {
+          "prompt": "Tapline Rail Line sequence: restrained low electric rail charge resolving into a clean soft laser discharge, precise and powerful without noise, no gunshot, crack, hiss, screech, high pitch, explosion, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "86676db8d36ff6f5d2d6f7a749c5eab5bcf395226c31433998290b47adb6e380",
+        "outputSha256": "6726b2842d6aff1e58d2243b51779c34d49459e21de300bae7db455199c88c61",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.2305,
+          "stereoDifferenceRms": 0.2961,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    },
+    {
+      "id": "signature-v2-source-sentinel",
+      "file": "sentinel.wav",
+      "requestLengthSeconds": 2,
+      "targetPeak": 0.78,
+      "prompt": "Tapline Sentinel Seed sequence: compact seed unfolds into a small matte sentry, followed by a quiet short low pulse shot, orbital machinery, no falling impact, gunshot, beep, metallic ping, hiss, speech or music, 2 seconds.",
+      "result": {
+        "apiSoundEffectId": "se_ek5jmtvwlvmc73l3",
+        "status": "generated",
+        "providerCreatedAt": "2026-08-13 23:41:31.476",
+        "providerLengthSeconds": 2,
+        "providerFileSize": 352844,
+        "recordedAt": "2026-08-13T23:41:50.050Z",
+        "request": {
+          "prompt": "Tapline Sentinel Seed sequence: compact seed unfolds into a small matte sentry, followed by a quiet short low pulse shot, orbital machinery, no falling impact, gunshot, beep, metallic ping, hiss, speech or music, 2 seconds.",
+          "requestLengthSeconds": 2,
+          "secondsToStart": 0,
+          "targetPeak": 0.78
+        },
+        "downloadedContentType": "audio/wav",
+        "sourceSha256": "e30cbd73d0a737adc942700eb9d250d009ff3ca54c2242f4ee7812a2992ae8bb",
+        "outputSha256": "12fbf70f08338a3e5ddc17c005caa34b65ed2e3b7c50eada35d6dac66492bb70",
+        "outputBytes": 384044,
+        "processing": {
+          "endpointTreatment": "short-fades",
+          "fadeInSeconds": 0.005,
+          "fadeOutSeconds": 0.04
+        },
+        "metrics": {
+          "durationSeconds": 2,
+          "sampleRate": 48000,
+          "channels": 2,
+          "bitsPerSample": 16,
+          "peak": 0.78,
+          "rms": 0.0714,
+          "stereoDifferenceRms": 0.0001,
+          "dcOffset": 0,
+          "clippedSamples": 0
+        }
+      }
+    }
+  ],
+  "derivation": {
+    "script": "scripts/derive-audio-v5-signatures.mjs",
+    "policy": "Hash-pinned source selection, channel fold, resampling, low-pass, endpoint fades, and conservative peak normalization only; no synthesized layer and no provider request.",
+    "runtimeGain": 0.16,
+    "limits": {
+      "maximumDurationSeconds": 0.7,
+      "maximumSpectralCentroidHz": 1000,
+      "maximumEnergyAbove4kPercent": 0.5,
+      "maximumEnergyAbove8kPercent": 0.05,
+      "maximumEnergyAbove12kPercent": 0.01,
+      "maximumEffectiveSamplePeakDbfs": -22,
+      "maximumEffectiveRmsDbfs": -34,
+      "maximumEffectiveHighBandWindowRmsDbfs": -42,
+      "maximumCueGain": 0.2,
+      "voiceLimit": 1,
+      "roomSend": false
+    }
+  },
+  "deliveries": [
+    {
+      "id": "signature-mason",
+      "file": "signature-mason.wav",
+      "status": "derived",
+      "description": "The generated ceramic rise and two low slab seats, distinct from Palisade's energy-panel lock.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-mason",
+      "sourceOutputSha256": "456aa5a904e82f9e24b0bddab5fa60448a65daa87a91a78b24ce9b67c64ab3be",
+      "outputSha256": "8c8489565056704654f9fc0826ef9745f25de16610d45103ccb4ff707d26d390",
+      "outputBytes": 130604,
+      "recordedAt": "2026-08-14T00:06:01.994Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0.56,
+        "playbackRate": 0.72,
+        "durationSeconds": 0.68,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 400
+        },
+        "fadeInSeconds": 0.02,
+        "fadeOutSeconds": 0.16,
+        "targetSamplePeak": 0.2,
+        "sourceInterchannelCorrelation": 0.9505
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.68,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -13.98,
+        "rmsDbfs": -23.92,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 80,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 35,
+        "energyAbove4kPercent": 0.401,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 2.739,
+        "maximumWindowAbove4kAtSeconds": 0.341,
+        "maximumWindowAbove4kRmsDbfs": -31.32,
+        "maximumHighBandWindowRmsDbfs": -46.94,
+        "effectiveSamplePeakDbfs": -29.9,
+        "effectiveRmsDbfs": -39.83,
+        "effectiveMaximumHighBandWindowRmsDbfs": -62.86
+      }
+    },
+    {
+      "id": "signature-repair",
+      "file": "signature-repair.wav",
+      "status": "derived",
+      "description": "The generated warm braided transfer compacted into a soft low restoration pulse for medic repairs only.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-repair",
+      "sourceOutputSha256": "2e52e37e87ec53f55b858f01e59d2c21d054a5fec9ff2aaed56066b6ac374464",
+      "outputSha256": "6b13efecd2a348d2d5471b9350ead35844095b4b408bad3ccdf83b4a02fa8781",
+      "outputBytes": 126764,
+      "recordedAt": "2026-08-14T00:00:37.280Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0,
+        "playbackRate": 0.62,
+        "durationSeconds": 0.66,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 650
+        },
+        "fadeInSeconds": 0.04,
+        "fadeOutSeconds": 0.18,
+        "targetSamplePeak": 0.18,
+        "sourceInterchannelCorrelation": 0.9132
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.66,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.89,
+        "rmsDbfs": -22.54,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 60,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 40,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.555,
+        "maximumWindowAbove4kRmsDbfs": -27.54,
+        "maximumHighBandWindowRmsDbfs": -102.7,
+        "effectiveSamplePeakDbfs": -30.81,
+        "effectiveRmsDbfs": -38.45,
+        "effectiveMaximumHighBandWindowRmsDbfs": -118.62
+      }
+    },
+    {
+      "id": "signature-falling-star",
+      "file": "signature-falling-star.wav",
+      "status": "derived",
+      "description": "The generated orbital descent and matte arrival retained as one compact completion gesture.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-falling-star",
+      "sourceOutputSha256": "8f82573435ebdc2e7b4d549186b7c83d4c0ddef8c4d2b57be9a190b1357bf62a",
+      "outputSha256": "02a34bb877bc48ecc93286a750b5c4d723a9a634ac86cbf079fb2f9d523c1654",
+      "outputBytes": 130604,
+      "recordedAt": "2026-08-14T00:00:37.312Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0.14,
+        "playbackRate": 0.78,
+        "durationSeconds": 0.68,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 700
+        },
+        "fadeInSeconds": 0.025,
+        "fadeOutSeconds": 0.2,
+        "targetSamplePeak": 0.19,
+        "sourceInterchannelCorrelation": 1
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.68,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.42,
+        "rmsDbfs": -28.77,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 110,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 88,
+        "energyAbove4kPercent": 0,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0,
+        "maximumWindowAbove4kAtSeconds": 0.555,
+        "maximumWindowAbove4kRmsDbfs": -37.83,
+        "maximumHighBandWindowRmsDbfs": -99.28,
+        "effectiveSamplePeakDbfs": -30.34,
+        "effectiveRmsDbfs": -44.68,
+        "effectiveMaximumHighBandWindowRmsDbfs": -115.2
+      }
+    },
+    {
+      "id": "signature-trip-deploy",
+      "file": "signature-trip-deploy.wav",
+      "status": "derived",
+      "description": "The generated mine's compact opening mechanism, used only when a Trip Node is placed.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-trip-node",
+      "sourceOutputSha256": "916494457b008d8d8440545fc68c90572566a9a91a4d60cd9ed84ddccddba46f",
+      "outputSha256": "382a098c351e91a9f0c61361a7e73ca4eae53399dd870f13b2b9f59758de0dee",
+      "outputBytes": 73004,
+      "recordedAt": "2026-08-14T00:06:02.091Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0,
+        "playbackRate": 0.55,
+        "durationSeconds": 0.38,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 500
+        },
+        "fadeInSeconds": 0.014,
+        "fadeOutSeconds": 0.12,
+        "targetSamplePeak": 0.18,
+        "sourceInterchannelCorrelation": 0.9908
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.38,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.89,
+        "rmsDbfs": -33.18,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 1338,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 890,
+        "energyAbove4kPercent": 0.04,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.075,
+        "maximumWindowAbove4kAtSeconds": 0.085,
+        "maximumWindowAbove4kRmsDbfs": -28.51,
+        "maximumHighBandWindowRmsDbfs": -59.76,
+        "effectiveSamplePeakDbfs": -30.81,
+        "effectiveRmsDbfs": -49.1,
+        "effectiveMaximumHighBandWindowRmsDbfs": -75.68
+      }
+    },
+    {
+      "id": "signature-trip-trigger",
+      "file": "signature-trip-trigger.wav",
+      "status": "derived",
+      "description": "The generated mine's low magnetic snap, reserved for an authoritative triggered removal.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-trip-node",
+      "sourceOutputSha256": "916494457b008d8d8440545fc68c90572566a9a91a4d60cd9ed84ddccddba46f",
+      "outputSha256": "6c5437c17b2bcdc535814cf320dd38611bb7efa715e8350534e086891c7cd416",
+      "outputBytes": 69164,
+      "recordedAt": "2026-08-14T00:00:37.375Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0.22,
+        "playbackRate": 0.75,
+        "durationSeconds": 0.36,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 600
+        },
+        "fadeInSeconds": 0.01,
+        "fadeOutSeconds": 0.12,
+        "targetSamplePeak": 0.19,
+        "sourceInterchannelCorrelation": 0.9908
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.36,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.42,
+        "rmsDbfs": -32.06,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 376,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 541,
+        "energyAbove4kPercent": 0.011,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.075,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -43.68,
+        "maximumHighBandWindowRmsDbfs": -74.96,
+        "effectiveSamplePeakDbfs": -30.34,
+        "effectiveRmsDbfs": -47.97,
+        "effectiveMaximumHighBandWindowRmsDbfs": -90.88
+      }
+    },
+    {
+      "id": "signature-arc-toss",
+      "file": "signature-arc-toss.wav",
+      "status": "derived",
+      "description": "The generated levitation lift and release, used when the authoritative Core leaves its carrier.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-arc-toss",
+      "sourceOutputSha256": "ae628c82cb0771bbd45d5d129d30eb335ef0c63255a7a5af8602db06eb312abe",
+      "outputSha256": "1413aee99c34e92aa107f218d169e6e937f403d3af4fbc294c852dce51b22bec",
+      "outputBytes": 122924,
+      "recordedAt": "2026-08-14T00:00:37.408Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0.02,
+        "playbackRate": 0.7,
+        "durationSeconds": 0.64,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 700
+        },
+        "fadeInSeconds": 0.035,
+        "fadeOutSeconds": 0.18,
+        "targetSamplePeak": 0.18,
+        "sourceInterchannelCorrelation": 0.8752
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.64,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.89,
+        "rmsDbfs": -24.2,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 660,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 84,
+        "energyAbove4kPercent": 0.002,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.651,
+        "maximumWindowAbove4kAtSeconds": 0.128,
+        "maximumWindowAbove4kRmsDbfs": -45.75,
+        "maximumHighBandWindowRmsDbfs": -67.61,
+        "effectiveSamplePeakDbfs": -30.81,
+        "effectiveRmsDbfs": -40.12,
+        "effectiveMaximumHighBandWindowRmsDbfs": -83.53
+      }
+    },
+    {
+      "id": "signature-rail-charge",
+      "file": "signature-rail-charge.wav",
+      "status": "derived",
+      "description": "The generated rail bed's low opening pressure, replacing the ordinary attack wind-up.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-rail-line",
+      "sourceOutputSha256": "6726b2842d6aff1e58d2243b51779c34d49459e21de300bae7db455199c88c61",
+      "outputSha256": "2a8c92f552854aee3ca4f80467ea615692c27ef87f7f5645fcd00484f8335f19",
+      "outputBytes": 73004,
+      "recordedAt": "2026-08-14T00:00:37.439Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0,
+        "playbackRate": 0.58,
+        "durationSeconds": 0.38,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 600
+        },
+        "fadeInSeconds": 0.05,
+        "fadeOutSeconds": 0.12,
+        "targetSamplePeak": 0.16,
+        "sourceInterchannelCorrelation": 0.1746
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.38,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -15.92,
+        "rmsDbfs": -26.68,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 522,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 534,
+        "energyAbove4kPercent": 0.334,
+        "energyAbove8kPercent": 0.001,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.647,
+        "maximumWindowAbove4kAtSeconds": 0,
+        "maximumWindowAbove4kRmsDbfs": -29.17,
+        "maximumHighBandWindowRmsDbfs": -51.06,
+        "effectiveSamplePeakDbfs": -31.84,
+        "effectiveRmsDbfs": -42.6,
+        "effectiveMaximumHighBandWindowRmsDbfs": -66.98
+      }
+    },
+    {
+      "id": "signature-rail-release",
+      "file": "signature-rail-release.wav",
+      "status": "derived",
+      "description": "The generated rail's late discharge, slowed, mono-folded, and softened for the completed line.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-rail-line",
+      "sourceOutputSha256": "6726b2842d6aff1e58d2243b51779c34d49459e21de300bae7db455199c88c61",
+      "outputSha256": "dc0b821de25a24980f471d08f4f7b35f394ffe3f57f9aa7e7dac17b435c3e10e",
+      "outputBytes": 119084,
+      "recordedAt": "2026-08-14T00:00:37.472Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 1.28,
+        "playbackRate": 0.58,
+        "durationSeconds": 0.62,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 500
+        },
+        "fadeInSeconds": 0.018,
+        "fadeOutSeconds": 0.18,
+        "targetSamplePeak": 0.18,
+        "sourceInterchannelCorrelation": 0.1746
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.62,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.89,
+        "rmsDbfs": -25,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 326,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 470,
+        "energyAbove4kPercent": 0.152,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 0.25,
+        "maximumWindowAbove4kAtSeconds": 0.213,
+        "maximumWindowAbove4kRmsDbfs": -24.37,
+        "maximumHighBandWindowRmsDbfs": -50.39,
+        "effectiveSamplePeakDbfs": -30.81,
+        "effectiveRmsDbfs": -40.92,
+        "effectiveMaximumHighBandWindowRmsDbfs": -66.31
+      }
+    },
+    {
+      "id": "signature-sentinel-deploy",
+      "file": "signature-sentinel-deploy.wav",
+      "status": "derived",
+      "description": "The generated seed-to-sentry unfold, aligned with the authoritative deployed fact.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-sentinel",
+      "sourceOutputSha256": "12fbf70f08338a3e5ddc17c005caa34b65ed2e3b7c50eada35d6dac66492bb70",
+      "outputSha256": "3655f2e36ad121952b1d8f8dbbbb9ed130dffbe16600436ddfa20f0c914b7475",
+      "outputBytes": 122924,
+      "recordedAt": "2026-08-14T00:06:02.250Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0,
+        "playbackRate": 0.38,
+        "durationSeconds": 0.64,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 400
+        },
+        "fadeInSeconds": 0.025,
+        "fadeOutSeconds": 0.18,
+        "targetSamplePeak": 0.18,
+        "sourceInterchannelCorrelation": 1
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.64,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -14.89,
+        "rmsDbfs": -32.18,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 916,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 938,
+        "energyAbove4kPercent": 0.381,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 1.135,
+        "maximumWindowAbove4kAtSeconds": 0.171,
+        "maximumWindowAbove4kRmsDbfs": -34.16,
+        "maximumHighBandWindowRmsDbfs": -53.61,
+        "effectiveSamplePeakDbfs": -30.81,
+        "effectiveRmsDbfs": -48.09,
+        "effectiveMaximumHighBandWindowRmsDbfs": -69.53
+      }
+    },
+    {
+      "id": "signature-sentinel-fire",
+      "file": "signature-sentinel-fire.wav",
+      "status": "derived",
+      "description": "The generated sentry's compact low pulse, shortened for repeated bolt launches.",
+      "derivedBy": "scripts/derive-audio-v5-signatures.mjs",
+      "sourceCueId": "signature-v2-source-sentinel",
+      "sourceOutputSha256": "12fbf70f08338a3e5ddc17c005caa34b65ed2e3b7c50eada35d6dac66492bb70",
+      "outputSha256": "d0a8a282df1e8203b6a55c478257049a09b6becc2081b530e8a4bd252c6c38e6",
+      "outputBytes": 46124,
+      "recordedAt": "2026-08-14T00:06:02.272Z",
+      "operations": {
+        "channelTransform": "mid-to-dual-mono",
+        "sourceStartSeconds": 0.02,
+        "playbackRate": 0.38,
+        "durationSeconds": 0.24,
+        "lowPass": {
+          "type": "zero-phase-one-pole",
+          "cutoffHz": 400
+        },
+        "fadeInSeconds": 0.01,
+        "fadeOutSeconds": 0.1,
+        "targetSamplePeak": 0.15,
+        "sourceInterchannelCorrelation": 1
+      },
+      "intendedRuntimeMix": {
+        "gain": 0.16,
+        "voiceLimit": 1,
+        "roomSend": false
+      },
+      "metrics": {
+        "durationSeconds": 0.24,
+        "sampleRate": 48000,
+        "channels": 2,
+        "bitsPerSample": 16,
+        "samplePeakDbfs": -16.48,
+        "rmsDbfs": -32.02,
+        "dcOffset": 0,
+        "clippedSamples": 0,
+        "endpointDiscontinuity": 0,
+        "dominantFrequencyHz": 916,
+        "interchannelCorrelation": 1,
+        "spectralCentroidHz": 948,
+        "energyAbove4kPercent": 0.397,
+        "energyAbove8kPercent": 0,
+        "energyAbove12kPercent": 0,
+        "maximumWindowAbove4kPercent": 1.103,
+        "maximumWindowAbove4kAtSeconds": 0.128,
+        "maximumWindowAbove4kRmsDbfs": -36.64,
+        "maximumHighBandWindowRmsDbfs": -56.21,
+        "effectiveSamplePeakDbfs": -32.4,
+        "effectiveRmsDbfs": -47.94,
+        "effectiveMaximumHighBandWindowRmsDbfs": -72.13
+      }
+    }
+  ]
+}

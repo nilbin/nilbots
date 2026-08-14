@@ -8235,3 +8235,43 @@ with a mine or sentry without becoming an always-on-top silhouette through
 walls or other bots, and double-sided constructs retain correct self-occlusion.
 This is presentation only: occupancy, collision, targeting, visibility, hull
 and signature timing do not change.
+
+## 308. Every Tapline signature owns one calm audio identity; V2 preserves V1
+
+Owner-approved audio ruling (2026-08-14). Current grammar-3 replays mint
+`arc-relay-signatures-v2`. This is an audio-only successor to V1: the authored
+visual definitions are unchanged, while recorded V1 replays remain recognized
+and keep their original bindings. No rule, signature chronology, target,
+projectile path, damage, repair, cooldown, observation, or match fingerprint
+changes.
+
+Every launch signature owns one distinct primary cue. Palisade keeps its energy
+panel materialization while Mason gains a separate earthy ceramic construction.
+Patchbay repair separates from the arena healing tile. Falling Star, Arc Toss,
+and Sentinel deployment gain their own resolve identities. Trip Node has quiet
+deployment and higher-priority trigger beats; Rail Line has a dedicated charge
+and release that replace the generic attack layers; Sentinel bolts speak once
+at authoritative launch rather than on projectile advance. Tractor Hook keeps
+the shared low wind-up plus its own tether. Arc Toss suppresses only the
+signature-departure Core drop and returns to the shared Core family on landing.
+Rail and Sentinel retain ordinary armor impact only when an explicit
+`signature-damage` fact says contact occurred. Maintenance, cancellation,
+interruption, suppression, replacement, and expiry remain intentionally silent.
+
+Seven private SFX Engine jobs—with no rerolls and no ambience—supply the V2
+addendum. Hash-pinned deterministic processing derives ten deliveries from
+those seven sources and retains the original nine deliveries from six earlier
+sources. Runtime manifest v13 therefore carries 33 one-shots: fourteen shared
+Arc cues and nineteen signature deliveries. Each signature delivery is dry,
+dual-mono, no longer than 700 ms, at 0.16 gain, and passes the stricter 1 kHz
+centroid, 0.5% energy-above-4-kHz, -34 dBFS effective-RMS, and -22 dBFS
+effective-peak ceilings. At most two distinct signature voices survive one
+tick by explicit priority. The decoded dry, centered crowd proof covers all 171
+signature pairs across three Core variants—513 sums—and peaks at -7.43 dBTP
+against the -6 dBTP ceiling without limiter or room credit.
+
+The focused `signatures-v2.html` review page plays exact shipped AAC files at
+their declared gains and inventories all sixteen skills. It has no autoplay,
+music, ambience, or replay dependency. The retained replay-capture harness is
+not part of audio iteration and is not run without a separate owner request.
+Neon Protocol remains unchanged, and no ambient loop ships or plays.

@@ -1,9 +1,10 @@
 # Audio design and asset workflow
 
 Status: Astral Relay is the approved default runtime sound-effect direction.
-Twenty-three one-shot voices ship in the web and self-contained replay viewers;
-no ambience loop ships or plays. Effects are enabled by default after the
-browser's first trusted user interaction. Neon Protocol music is unchanged.
+Thirty-three one-shot voices ship in the web and self-contained replay viewers:
+fourteen shared Arc Relay cues and nineteen signature deliveries. No ambience
+loop ships or plays. Effects are enabled by default after the browser's first
+trusted user interaction. Neon Protocol music is unchanged.
 
 ## Product principles
 
@@ -71,10 +72,14 @@ node scripts/validate-audio-candidates.mjs
 node scripts/build-audio-sound-lab-site.mjs
 ```
 
-The soundboard at `art/audio/sound-lab/index.html` works from a static host and
-supports direct A/B/C/D comparison, context demo sequences, volume control,
-keyboard shortcuts, a browser-local favorite marker, and independent playback
-of the three V5 ambient alternatives.
+The archive soundboard at `art/audio/sound-lab/index.html` works from a static
+host and supports direct A/B/C/D comparison, context demo sequences, volume
+control, keyboard shortcuts, a browser-local favorite marker, and independent
+playback of the three V5 ambient alternatives. The current focused review at
+`art/audio/sound-lab/signatures-v2.html` inventories all sixteen Tapline skills
+and plays the exact shipped AAC deliveries at their declared cue gains after
+`scripts/build-audio-sound-lab-site.mjs` copies the approved runtime directory.
+It contains no music, ambience, autoplay, or replay-capture dependency.
 
 ### Arc Relay space / ambient reconcept (V4 archive)
 
@@ -208,22 +213,69 @@ legible when it coincides with the victim's destruction tail. If one bounty
 emits several levels for the same actor on one tick, the runtime scheduler
 coalesces them into one cue at the highest reached level.
 
-The grammar-3 signature package adds exactly six private SFX Engine source
-requests, with no automatic rerolls and no ambience. Their low-mid materialize,
-tether, field, transfer, target, and kinetic sources deterministically derive
-nine short deliveries: `signature-motion`, `signature-construct`,
-`signature-tether`, `signature-survey`, `signature-null`, `signature-smoke`,
-`signature-exchange`, `signature-target`, and `signature-kinetic`. Each is
+The original grammar-3 signature pass made exactly six private SFX Engine
+source requests, with no automatic rerolls and no ambience. Their low-mid
+materialize, tether, field, transfer, target, and kinetic sources
+deterministically derive nine short deliveries: `signature-motion`,
+`signature-construct`, `signature-tether`, `signature-survey`, `signature-null`,
+`signature-smoke`, `signature-exchange`, `signature-target`, and
+`signature-kinetic`.
+
+The V2 audio addendum made exactly seven further private source requests, again
+with no rerolls or ambience: Mason construction, Repair Beam, Falling Star,
+Trip Node, Arc Toss, Rail Line, and Sentinel Seed. Those sources derive ten
+deliveries: `signature-mason`, `signature-repair`,
+`signature-falling-star`, `signature-trip-deploy`, `signature-trip-trigger`,
+`signature-arc-toss`, `signature-rail-charge`, `signature-rail-release`,
+`signature-sentinel-deploy`, and `signature-sentinel-fire`. Together, thirteen
+provider jobs supply nineteen runtime signature deliveries. Every delivery is
 dual-mono, at most 700 ms, played at 0.16 gain, dry, and limited to one voice;
 the signature category permits at most two distinct voices per tick.
 
 Prompts, private request settings, provider IDs and times, source/delivery
 hashes, operations, and measurements are pinned in
-`art/audio/sound-lab/v5/signature-sfx-engine-generation.json`. URLs, user IDs,
-and credentials are omitted. `scripts/derive-audio-v5-signatures.mjs` performs
-only hash-pinned channel folding, resampling, low-pass filtering, endpoint
-fades, and conservative peak fitting. It adds no synthesized layer and makes no
-provider request.
+`art/audio/sound-lab/v5/signature-sfx-engine-generation.json` and
+`art/audio/sound-lab/v5/signature-v2-sfx-engine-generation.json`. URLs, user
+IDs, and credentials are omitted. `scripts/derive-audio-v5-signatures.mjs`
+performs only hash-pinned channel folding, resampling, low-pass filtering,
+endpoint fades, and conservative peak fitting. It adds no synthesized layer and
+makes no provider request. Signature-specific decoded gates are stricter than
+the shared pack: centroid at most 1 kHz, at most 0.5% energy above 4 kHz, at
+most 0.05% above 8 kHz, at most 0.01% above 12 kHz, effective RMS at most
+-34 dBFS, and effective peak at most -22 dBFS.
+
+### Tapline signature audio inventory
+
+`arc-relay-signatures-v2` is an audio-only successor to V1: it keeps the same
+authored visual treatment while preserving V1's old bindings for recorded
+replays. A skill's primary cue is unique across the sixteen-class roster.
+Secondary cues exist only when the replay publishes a second meaningful beat;
+ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
+
+| Class | Signature | Authoritative audible moment | Runtime cue and decision |
+|---|---|---|---|
+| Kestrel | Vector Dash | `completed` | `signature-motion`, the unique displacement resolve |
+| Palisade | Prism Wall | `started` | `signature-construct`, the energy-panel deployment |
+| Towline | Tractor Hook | `started`, then `launched` | shared `attack-windup`, then unique `signature-tether`; the tether replaces generic release |
+| Patchbay | Repair Beam | `signature-repair` fact | `signature-repair`, distinct from the arena healing tile |
+| Lantern | Survey Flare | `landed` | `signature-survey`, the calibration-field arrival |
+| Mortar | Falling Star | `completed` | `signature-falling-star`, one descent/arrival gesture with no second impact layer |
+| Minesmith | Trip Node | `started`, then `triggered` | `signature-trip-deploy`, then `signature-trip-trigger`; trigger priority outranks placement |
+| Hush | Null Field | `activated` | `signature-null`, only when the field becomes active |
+| Relay | Arc Toss | `launched`, then Core landing | `signature-arc-toss` replaces the departure drop; landing keeps shared `arc-drop` |
+| Switchback | Exchange | `completed` | `signature-exchange`, only after the paired relocation succeeds |
+| Longshot | Rail Line | `started`, `completed`, optional `signature-damage` | `signature-rail-charge` and `signature-rail-release` replace generic attack layers; a real hit adds shared `impact` |
+| Mason | Hardlight Block | `started` | `signature-mason`, earthy ceramic construction distinct from Prism Wall |
+| Sunder | Target Paint | `acquired` | `signature-target`, the confirmed acquisition lock |
+| Repulsor | Kinetic Burst | `completed` | `signature-kinetic`, the compact pressure resolve |
+| Veil | Smoke Canister | `landed` | `signature-smoke`, the field bloom rather than the flight |
+| Nest | Sentinel Seed | `deployed`, each `sentinel-bolt` launch, optional `signature-damage` | `signature-sentinel-deploy`, then short `signature-sentinel-fire`; a real hit adds shared `impact` |
+
+Maintenance, suppression, replacement, expiry, voluntary cancellation, and
+interruption stay silent unless a future replay fact gives them an independently
+useful public outcome. V2 priorities protect Falling Star, Trip trigger, Rail
+release, and Core-adjacent Arc Toss from lower-importance placement or sentry
+fire when the two-signature-voice budget is full.
 
 ### Arc Relay tactile reconcept (V3 archive)
 
@@ -258,8 +310,8 @@ node scripts/export-runtime-sound-effects.mjs
 ```
 
 This verifies the hash-pinned V5 sources and exports Astral Relay to
-`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: 23 mapped
-one-shots at 192 kbps, 414,920 bytes together. The unique fizzle,
+`web/src/assets/audio/effects/astral-relay/` as 48 kHz stereo AAC-LC: 33 mapped
+one-shots at 192 kbps, 498,979 bytes together. The unique fizzle,
 cancel, and historical special-steal takes remain lossless review references;
 runtime fizzle aliases the projectile release instead of shipping another
 voice. The production manifest records the SFX Engine and local derivation
@@ -271,7 +323,7 @@ of truth in the sound lab. The exporter also zeros the three standard M4A
 creation/modification timestamps, making repeated exports byte-identical.
 
 Delivery processing now covers wind-up, projectile, impact, healing,
-destruction, level up, Core bank, Core Pulse, handoff, arrival, and all nine
+destruction, level up, Core bank, Core Pulse, handoff, arrival, and all nineteen
 signature voices. It preserves accepted sources and uses only deterministic
 channel folding, resampling, low-pass filtering, endpoint fades, and
 conservative peak normalization—no SFX Engine request and no synthesized layer.
@@ -285,10 +337,11 @@ exact 0.55 collapse boundary. It measures 0% above both 4 kHz and 12 kHz after
 AAC decode; the untouched arrival remains inside the same pack-wide ceilings.
 
 The viewer derives projectile launch, impact, healing, destruction, deflection,
-arrival, veterancy, and every Core possession/scoring cue from authoritative
-replay facts. Both `zone-healed` and `signature-repair` emit the same
-target-local warm restorative intake, lift, and resolved repair bloom. A new
-pending strike emits the smooth wind-up;
+arrival, veterancy, every signature identity, and every Core possession/scoring
+cue from authoritative replay facts. `zone-healed` emits the shared arena
+healing field; under V2, `signature-repair` emits Patchbay's distinct warm
+braided transfer at the healed target. V1 replays retain their original shared
+healing binding. A new pending strike emits the smooth wind-up;
 in WebGL, a matching resolution emits a quiet neutral field release. In WebGL,
 that same resolution also shows the equipped projectile along the
 already-recorded traversal;
@@ -309,9 +362,9 @@ pan. The four-voice hard limit bounds future formats, and even a theoretical
 phase-aligned stack remains below -15 dBFS before the shared limiter. Signature
 delivery retains at most two distinct voices on a tick.
 
-The strict decoded-runtime crowd audit checks 108 dry, centered variants. Every
+The strict decoded-runtime crowd audit checks 513 dry, centered variants. Every
 variant combines four projectiles at their real 16 ms staggering, impact,
-destruction, level up, one of pickup/drop/handoff, and one of all 36 distinct
+destruction, level up, one of pickup/drop/handoff, and one of all 171 distinct
 signature-cue pairs. The worst sum is -7.43 dBTP against a -6 dBTP ceiling,
 without credit for the shared limiter or room attenuation. This is automated
 headroom and spectral evidence; a normal-volume human headphone/speaker listen
@@ -340,7 +393,7 @@ and is separate from approving the web/standalone pack.
 ## Runtime package shape
 
 1. Keep all candidate WAV files as lossless source masters under `art/audio`.
-2. Ship only Astral Relay's 23 approved compressed one-shots; ambience
+2. Ship only Astral Relay's 33 approved compressed one-shots; ambience
    candidates remain sound-lab references.
 3. Keep shared gameplay cues in one rights- and approval-bearing runtime
    manifest.
@@ -367,7 +420,9 @@ current presented tick:
 - matured fizzle, interruption, or miss: alias the projectile release;
 - voluntary cancel before the resolve tick: silent;
 - bot impact: authoritative damage to a bot;
-- healing: authoritative `zone-healed` or `signature-repair` at the healed target;
+- healing tile: authoritative `zone-healed` at the healed target;
+- medic repair: authoritative `signature-repair`, resolved through the replay's
+  signature presentation package with healing as the legacy fallback;
 - projectile deflection: authoritative `projectile-deflected` event;
 - wall impact: authoritative projectile termination against geometry;
 - destruction: transition from active to terminal bot state;
@@ -375,8 +430,9 @@ current presented tick:
 - level up: highest authoritative `leveled-up` fact per actor and tick;
 - signature lifecycle: the binding on the replay-selected signature definition,
   triggered only by its authoritative started/launched/landed/activated/acquired/
-  completed reason or discrete repair/damage/Core fact; declared maintenance and
-  cancellation may be explicitly silent;
+  completed/deployed/triggered reason, a named signature projectile launch, or a
+  discrete repair/damage/Core fact; declared maintenance and cancellation may be
+  explicitly silent;
 - Core lifecycle: authoritative birth, pickup (including steal), handoff, drop,
   bank, and Pulse facts; all pickups share one levitation voice;
 - zone shift: a meaningful control-owner transition, not every pressure tick;

@@ -20,7 +20,7 @@ public static class ArcRelayH0ReplayPresentation
     public const string ProjectileLookId = "arc-pulse";
     public const string ProjectileLookPrefix = "arc-shot-";
     public const string SignaturePresentationId =
-        "arc-relay-signatures-v1";
+        "arc-relay-signatures-v2";
 
     public static GenericActorReplayPresentation Create(
         ActorResolvedMatchDefinition definition)

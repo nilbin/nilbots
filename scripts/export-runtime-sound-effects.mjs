@@ -31,6 +31,11 @@ const signatureGenerationRecordPath = path.join(
   "v5",
   "signature-sfx-engine-generation.json",
 );
+const signatureGenerationAddendumPath = path.join(
+  sourceRoot,
+  "v5",
+  "signature-v2-sfx-engine-generation.json",
+);
 const destinationRoot = path.join(
   repositoryRoot,
   "web",
@@ -87,8 +92,33 @@ const cueIds = [
   "signature-exchange",
   "signature-target",
   "signature-kinetic",
+  "signature-mason",
+  "signature-repair",
+  "signature-falling-star",
+  "signature-trip-deploy",
+  "signature-trip-trigger",
+  "signature-arc-toss",
+  "signature-rail-charge",
+  "signature-rail-release",
+  "signature-sentinel-deploy",
+  "signature-sentinel-fire",
 ];
 const signatureCueIds = cueIds.filter((id) => id.startsWith("signature-"));
+const addendumSignatureCueIds = [
+  "signature-mason",
+  "signature-repair",
+  "signature-falling-star",
+  "signature-trip-deploy",
+  "signature-trip-trigger",
+  "signature-arc-toss",
+  "signature-rail-charge",
+  "signature-rail-release",
+  "signature-sentinel-deploy",
+  "signature-sentinel-fire",
+];
+const baseSignatureCueIds = signatureCueIds.filter(
+  (id) => !addendumSignatureCueIds.includes(id),
+);
 const mix = {
   roomSend: 0.06,
   cues: {
@@ -125,6 +155,16 @@ const mix = {
     "signature-exchange": signatureMix(),
     "signature-target": signatureMix(),
     "signature-kinetic": signatureMix(),
+    "signature-mason": signatureMix(),
+    "signature-repair": signatureMix(),
+    "signature-falling-star": signatureMix(),
+    "signature-trip-deploy": signatureMix(),
+    "signature-trip-trigger": signatureMix(),
+    "signature-arc-toss": signatureMix(),
+    "signature-rail-charge": signatureMix(),
+    "signature-rail-release": signatureMix(),
+    "signature-sentinel-deploy": signatureMix(),
+    "signature-sentinel-fire": signatureMix(),
   },
 };
 
@@ -475,7 +515,7 @@ async function exportAsset({
     );
   }
   const maximumEffectiveRmsDbfs = id.startsWith("signature-") ? -34 : -25;
-  const maximumEnergyAbove4kPercent = id.startsWith("signature-") ? 1 : 3;
+  const maximumEnergyAbove4kPercent = id.startsWith("signature-") ? 0.5 : 3;
   const maximumEnergyAbove8kPercent = id.startsWith("signature-")
     ? 0.05
     : Number.POSITIVE_INFINITY;
@@ -508,7 +548,7 @@ async function exportAsset({
   if (
     id.startsWith("signature-") &&
     (deliveryMetrics.durationSeconds > 0.7 ||
-      deliveryMetrics.spectralCentroidHz > 1_200 ||
+      deliveryMetrics.spectralCentroidHz > 1_000 ||
       deliveryMetrics.interchannelCorrelation < 0.999 ||
       deliveryMetrics.effectiveMaximumHighBandWindowRmsDbfs > -42)
   ) {
@@ -1209,15 +1249,20 @@ const [
   sourceManifestBytes,
   generationRecordBytes,
   signatureGenerationRecordBytes,
+  signatureGenerationAddendumBytes,
 ] = await Promise.all([
   readFile(sourceManifestPath),
   readFile(generationRecordPath),
   readFile(signatureGenerationRecordPath),
+  readFile(signatureGenerationAddendumPath),
 ]);
 const sourceManifest = JSON.parse(sourceManifestBytes);
 const generationRecord = JSON.parse(generationRecordBytes);
 const signatureGenerationRecord = JSON.parse(
   signatureGenerationRecordBytes,
+);
+const signatureGenerationAddendum = JSON.parse(
+  signatureGenerationAddendumBytes,
 );
 const pack = sourceManifest.packs?.find(
   (candidate) => candidate.id === selectedPackId,
@@ -1242,15 +1287,33 @@ if (
   signatureGenerationRecord.batch?.maximumProviderJobs !== 6 ||
   signatureGenerationRecord.batch?.automaticRerolls !== false ||
   signatureGenerationRecord.cues?.length !== 6 ||
-  signatureGenerationRecord.deliveries?.length !== signatureCueIds.length ||
+  signatureGenerationRecord.deliveries?.length !== baseSignatureCueIds.length ||
   signatureGenerationRecord.derivation?.script !==
     "scripts/derive-audio-v5-signatures.mjs"
 ) {
   throw new Error("The signature generation record differs from the approved batch.");
 }
+if (
+  signatureGenerationAddendum.provider !== "sfx-engine" ||
+  signatureGenerationAddendum.batch?.maximumProviderJobs !== 7 ||
+  signatureGenerationAddendum.batch?.automaticRerolls !== false ||
+  signatureGenerationAddendum.batch?.ambience !== false ||
+  signatureGenerationAddendum.cues?.length !== 7 ||
+  signatureGenerationAddendum.deliveries?.length !==
+    addendumSignatureCueIds.length ||
+  signatureGenerationAddendum.derivation?.script !==
+    "scripts/derive-audio-v5-signatures.mjs"
+) {
+  throw new Error("The signature generation addendum differs from the approved batch.");
+}
+
+const signatureDeliveries = [
+  ...signatureGenerationRecord.deliveries,
+  ...signatureGenerationAddendum.deliveries,
+];
 
 const signatureDeliveryProcessing = Object.fromEntries(
-  signatureGenerationRecord.deliveries.map((delivery) => {
+  signatureDeliveries.map((delivery) => {
     const lowPassHz = delivery.operations?.lowPass?.cutoffHz;
     const processing = {
       sourceCueId: delivery.sourceCueId,
@@ -1302,6 +1365,8 @@ try {
   for (const cueId of cueIds) {
     if (signatureCueIds.includes(cueId)) {
       const delivery = signatureGenerationRecord.deliveries.find(
+        (candidate) => candidate.id === cueId,
+      ) ?? signatureGenerationAddendum.deliveries.find(
         (candidate) => candidate.id === cueId,
       );
       if (!delivery?.outputSha256) {
@@ -1360,7 +1425,7 @@ try {
     path.join(directory, "manifest.json"),
     `${JSON.stringify(
       {
-        version: 12,
+        version: 13,
         id: pack.id,
         label: pack.label,
         approval: "approved",
@@ -1378,6 +1443,11 @@ try {
             "art/audio/sound-lab/v5/signature-sfx-engine-generation.json",
           signatureGenerationRecordSha256: sha256(
             signatureGenerationRecordBytes,
+          ),
+          signatureGenerationAddendum:
+            "art/audio/sound-lab/v5/signature-v2-sfx-engine-generation.json",
+          signatureGenerationAddendumSha256: sha256(
+            signatureGenerationAddendumBytes,
           ),
           deliveryEncoding: {
             encoder: "macos-afconvert",
@@ -1398,7 +1468,7 @@ try {
           rightsStatus: "rights-cleared",
           license: {
             termsUrl: "https://sfxengine.com/terms-of-service",
-            checkedAt: "2026-08-11",
+            checkedAt: "2026-08-14",
             permittedUse: "personal-and-commercial-projects",
             standaloneRedistribution: "prohibited",
           },

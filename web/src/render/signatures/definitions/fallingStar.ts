@@ -7,7 +7,13 @@ export default defineArcSignature({
   canvasMarker: 'cardinal-target',
   webglPainterId: 'falling-star',
   audio: [
-    { trigger: 'damage-fact', cue: 'impact' },
+    { trigger: 'started', cue: 'silent' },
+    {
+      trigger: 'completed',
+      cue: 'signature-falling-star',
+      priority: 7,
+      tickOffset: 0.5,
+    },
     { trigger: 'cancelled', cue: 'silent' },
   ],
   reducedMotion: {
