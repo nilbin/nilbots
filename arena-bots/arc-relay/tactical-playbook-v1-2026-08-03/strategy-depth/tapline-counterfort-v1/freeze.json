@@ -1,0 +1,37 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-counterfort-v1",
+  "status": "immutable-reference",
+  "source": "strategy-depth-counter-experiment",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "3cd44a3e057ce563118a6349d1881d5d12888d26d024fd43a2011b740622081b"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "9dc10ad3b0c97d21c4bf0c17f9352d7cd17146bd6b89324f8a3250f63577e85c"
+    },
+    "atl2": {
+      "sha256": "4154332a824c1e1d78af4d83e7c10ad0ba875a9a24c8f08fd36f06a5728eac6e",
+      "bytes": 4771,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Keep two bodies on home logistics and two at centre, occupy the enemy Well with four denial specialists, then collapse that group onto the return lane only when a carrier is visible and recent enemy traffic confirms the corridor is live.",
+  "recognition": {
+    "entry": "visible-enemy-carriers >= 1 AND remembered-enemies-in-zone(enemy-score-corridor, 45 ticks) >= 1",
+    "response": "Towline pull, Sunder mark, Hush suppression, carrier-first focus, and urgent return-corridor closure",
+    "fallback": "when the carrier or corridor evidence disappears, resume loose-Core collection, recovery, ordinary combat, and enemy-Well occupation"
+  },
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-vanguard-v1",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "3-3 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "strategy interaction reference, not a balance claim"
+    }
+  ]
+}

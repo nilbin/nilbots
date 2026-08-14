@@ -1,0 +1,107 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tapline-counterfort-v1",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "home-support",
+      "classes": ["relay", "patchbay"],
+      "upgradePath": ["vitality", "vision"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "id": "arc-pass-home", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        { "id": "repair-home", "when": "signature-ready", "use": { "skill": "repair-beam", "target": "weakest-ally" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-home-well", "move": { "to": { "well": "own" }, "posture": "rear" } }
+      ]
+    },
+    {
+      "id": "centre-runners",
+      "classes": ["relay", "kestrel"],
+      "upgradePath": ["reach", "vitality", "vision"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "id": "arc-pass-centre", "when": { "all": ["carrying-core", "signature-ready"] }, "use": { "skill": "arc-toss", "target": "nearest-ally-toward-own-reactor" } },
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        { "id": "dash-centre-contact", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "vector-dash", "target": "nearest-enemy" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "work-centre-well", "move": { "to": { "well": "centre" }, "posture": "line" } }
+      ]
+    },
+    {
+      "id": "score-denial",
+      "classes": ["towline", "towline", "sunder", "hush"],
+      "upgradePath": ["damage", "vision", "vitality"],
+      "orders": [
+        { "shared": "handoff-core-forward" },
+        { "shared": "score-a-core" },
+        {
+          "id": "collapse-return-lane",
+          "when": { "all": ["empty-handed", "enemy-carrier-visible", "enemy-corridor-live"] },
+          "timeout": 90,
+          "cooldown": 4,
+          "urgency": "urgent",
+          "orders": [
+            { "id": "hook-returning-carrier", "when": "signature-ready", "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+            { "id": "paint-returning-carrier", "when": "signature-ready", "use": { "skill": "target-paint", "target": "enemy-carrier" } },
+            { "id": "silence-return-support", "when": "signature-ready", "use": { "skill": "null-field", "target": "self" } },
+            { "id": "focus-returning-carrier", "when": "enemy-nearby", "fight": { "targets": ["carrier", "marked", "weakest", "nearest"], "style": "advance", "chaseLimit": 5 } },
+            { "id": "close-return-lane", "move": { "to": { "zone": "enemy-score-corridor" }, "posture": "front" } }
+          ]
+        },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        { "id": "hook-visible-carrier", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "tractor-hook", "target": "enemy-carrier" } },
+        { "id": "paint-visible-carrier", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "target-paint", "target": "enemy-carrier" } },
+        { "id": "silence-visible-support", "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] }, "use": { "skill": "null-field", "target": "self" } },
+        { "shared": "fight-visible-enemy" },
+        { "id": "occupy-enemy-well", "move": { "to": { "well": "enemy" }, "posture": "front" } }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "handoff-core-forward": { "when": "carrying-core", "handoff": { "target": "nearest-ally-toward-own-reactor" } },
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [{ "id": "return-to-reactor", "move": { "to": "own-reactor" } }]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [{ "id": "reach-healing", "move": { "to": "nearest-heal-zone", "posture": "rear" } }]
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-nearby"] },
+      "fight": { "targets": ["carrier", "weakest", "nearest"], "style": "advance", "chaseLimit": 3 }
+    }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 },
+    "enemy-carrier-visible": { "fact": "visible-enemy-carriers", "operator": "at-least", "value": 1 },
+    "enemy-corridor-live": { "fact": "remembered-enemies-in-zone", "operator": "at-least", "value": 1, "zone": "enemy-score-corridor", "freshnessTicks": 45 }
+  }
+}
