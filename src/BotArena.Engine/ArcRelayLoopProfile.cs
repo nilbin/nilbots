@@ -36,8 +36,15 @@ public sealed record ArcRelayLoopProfile
         bool seedPhasedWellLead = false,
         bool chiralWellBirths = false,
         int strikeWindupTicks = 0,
-        bool followingVacatedActorAllowed = false)
+        bool followingVacatedActorAllowed = false,
+        int? openingFlankBirthTickOverride = null)
     {
+        if (openingFlankBirthTickOverride is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(openingFlankBirthTickOverride));
+        }
+        OpeningFlankBirthTickOverride = openingFlankBirthTickOverride;
         RotationalSpawnAssignment = rotationalSpawnAssignment;
         SeedPhasedWellLead = seedPhasedWellLead;
         ChiralWellBirths = chiralWellBirths;
@@ -111,6 +118,15 @@ public sealed record ArcRelayLoopProfile
     /// rules and gameplay; historical profiles remain byte-exact.
     /// </summary>
     internal bool FollowingVacatedActorAllowed { get; }
+
+    /// <summary>
+    /// Experimental opening-only override for the first north/south Well
+    /// birth. Null preserves the historical global-beat schedule. It exists
+    /// solely to isolate whether a full-perimeter opening loses because the
+    /// flank objective matures before that route can establish control; it
+    /// does not alter cadence, objectives, or any candidate sheet.
+    /// </summary>
+    internal int? OpeningFlankBirthTickOverride { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -809,6 +825,37 @@ public sealed record ArcRelayLoopProfile
         followingVacatedActorAllowed: true);
 
     /// <summary>
+    /// Registered one-factor opening probe: Tapline-3 unchanged except that
+    /// both flank Wells first mature 25 ticks later. The centre opening,
+    /// subsequent 75-tick cadence, map, classes, and collision rules remain
+    /// identical. This is an experiment, never the product/current profile.
+    /// </summary>
+    public static ArcRelayLoopProfile TaplineFlankDelay25 { get; } = new(
+        "tapline-flank-delay-25",
+        "arc-relay-tapline-flank-delay-25-01",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30,
+        75,
+        25,
+        7,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        openingFlankBirthTickOverride: 75);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
@@ -887,6 +934,7 @@ public sealed record ArcRelayLoopProfile
         Tapline1,
         Tapline2,
         Tapline3,
+        TaplineFlankDelay25,
         Return16,
         Return24,
         Hot60,

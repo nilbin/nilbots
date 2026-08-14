@@ -827,9 +827,11 @@ public static class ArcRelayH0Definition
                             * loopProfile.WellCadenceTicks),
                 new ArcRelayWellScheduleDefinition(
                     "north",
-                    2 * loopProfile.FirstGlobalBeatTicks,
+                    loopProfile.OpeningFlankBirthTickOverride
+                        ?? 2 * loopProfile.FirstGlobalBeatTicks,
                     loopProfile.WellCadenceTicks,
-                    2 * loopProfile.FirstGlobalBeatTicks
+                    (loopProfile.OpeningFlankBirthTickOverride
+                        ?? 2 * loopProfile.FirstGlobalBeatTicks)
                         + (loopProfile.ScheduledBirthRounds - 1)
                             * loopProfile.WellCadenceTicks),
                 // A chiral loop gives the flank pair ONE lead. On a map where
@@ -838,11 +840,13 @@ public static class ArcRelayH0Definition
                 // head start, and a seed coin only moves that between matches.
                 new ArcRelayWellScheduleDefinition(
                     "south",
-                    (loopProfile.ChiralWellBirths ? 2 : 3)
-                        * loopProfile.FirstGlobalBeatTicks,
+                    loopProfile.OpeningFlankBirthTickOverride
+                        ?? (loopProfile.ChiralWellBirths ? 2 : 3)
+                            * loopProfile.FirstGlobalBeatTicks,
                     loopProfile.WellCadenceTicks,
-                    (loopProfile.ChiralWellBirths ? 2 : 3)
-                        * loopProfile.FirstGlobalBeatTicks
+                    (loopProfile.OpeningFlankBirthTickOverride
+                        ?? (loopProfile.ChiralWellBirths ? 2 : 3)
+                            * loopProfile.FirstGlobalBeatTicks)
                         + (loopProfile.ScheduledBirthRounds - 1)
                             * loopProfile.WellCadenceTicks),
             ],
