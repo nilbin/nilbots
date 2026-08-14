@@ -1,0 +1,32 @@
+{
+  "schema": "arc-relay-strategy-reference-freeze-v1",
+  "strategyId": "tapline-shadow-scissors-v1",
+  "status": "immutable-reference",
+  "source": "current-map-four-plus-four-geometry-experiment",
+  "loopProfile": "tapline-3",
+  "mapId": "arc-relay-tapline-01",
+  "assets": {
+    "orders": {
+      "path": "orders.json",
+      "sha256": "ea0984acc068bfea63d04264df4a50ffe5372b3cfa97e8b04525c434985dd85b"
+    },
+    "mapPlan": {
+      "path": "map-plan.json",
+      "sha256": "b59c332752e41e6dc5914316ebab727f3fc18083385193e92eadef1bf45df87d"
+    },
+    "atl2": {
+      "sha256": "283b919be3094a37786c493823fc24d5733224a137f639c963483f80af4a9f59",
+      "bytes": 5480,
+      "reproduce": "nilbots experiment arc-relay-playbook --playbook orders.json --out <directory>"
+    }
+  },
+  "strategy": "Send four bodies around Tapline's full north perimeter and four around its full south perimeter, assemble both wings behind the opponent, collapse together on the enemy-side Well, then return any captured Core by the direct route.",
+  "referenceExhibits": [
+    {
+      "opponent": "tapline-mid-rush-control-v1",
+      "cells": ["w-9001", "w-9002", "e-9005", "e-9009", "w-9012", "e-9004"],
+      "record": "0-6 in these six exhibition cells; all ended reactor-destroyed",
+      "purpose": "geometry and strategic-tempo reference, not a balance claim"
+    }
+  ]
+}

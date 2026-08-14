@@ -1,0 +1,18 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-shadow-scissors-v1",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {
+    "north-rear-rally": { "rect": [24, 10, 27, 12] },
+    "south-rear-rally": { "rect": [24, 21, 27, 23] }
+  },
+  "routes": {
+    "north-shadow-ingress": {
+      "waypoints": [[3, 3], [3, 1], [15, 1], [27, 1], [27, 3], [27, 7], [25, 10]]
+    },
+    "south-shadow-ingress": {
+      "waypoints": [[3, 9], [5, 14], [4, 18], [3, 23], [3, 25], [15, 25], [27, 25], [27, 23], [25, 23]]
+    }
+  },
+  "anchors": {}
+}
