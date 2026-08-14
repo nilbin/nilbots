@@ -3,6 +3,10 @@ import test from 'node:test';
 import {
   ARC_SIGNATURE_PROP_SCALE,
   SENTINEL_YAW_SETTLE_TICKS,
+  SURVEY_FLARE_FLIGHT_HEIGHT,
+  SURVEY_FLARE_IDLE_YAW_PER_TICK,
+  SURVEY_FLARE_LANDED_HEIGHT,
+  SURVEY_FLARE_LANDED_ROLL,
   ARC_SIGNATURE_PRESENTATION_ID,
   ARC_SIGNATURE_WEBGL_PAINTERS,
   CONSTRUCT_STATUS_BIB_FALLBACK_HEIGHT,
@@ -19,6 +23,9 @@ import {
   resolveArcSignaturePresentation,
   sentinelYawTarget,
   surveyFlareFlightEndpoints,
+  surveyFlareFlightHeight,
+  surveyFlareFlightRotation,
+  surveyFlareLandedYaw,
   buildArcVeterancy,
   buildOverlays,
   LEVEL_UP_BEAT_TICKS,
@@ -265,6 +272,101 @@ test('Survey Flare restores flight direction from its owner after canonical endp
   assert.ok(flight);
   assert.equal(flight.from, launch);
   assert.equal(flight.to, target);
+});
+
+test('Survey Flare turns upright during flight and meets its landed pose continuously', () => {
+  const launch = surveyFlareFlightRotation(0, false);
+  const airborne = surveyFlareFlightRotation(0.5, false);
+  const landing = surveyFlareFlightRotation(1, false);
+  const reducedAirborne = surveyFlareFlightRotation(0.5, true);
+
+  assert.deepEqual(launch, { tumbleX: 0, uprightRollZ: 0 });
+  assert.ok(
+    airborne.uprightRollZ > 0 &&
+      airborne.uprightRollZ < SURVEY_FLARE_LANDED_ROLL,
+    `the rigid model is already turning upright in the air (${airborne.uprightRollZ})`,
+  );
+  assert.equal(landing.tumbleX, Math.PI * 4, 'two complete airborne tumbles');
+  assert.equal(landing.uprightRollZ, SURVEY_FLARE_LANDED_ROLL);
+  assert.equal(
+    reducedAirborne.tumbleX,
+    0,
+    'reduced motion removes decorative tumbling',
+  );
+  assert.ok(
+    reducedAirborne.uprightRollZ > 0 &&
+      reducedAirborne.uprightRollZ < SURVEY_FLARE_LANDED_ROLL,
+    'reduced motion retains the structural airborne reorientation',
+  );
+
+  const flightEndpoint = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(landing.tumbleX, 0, landing.uprightRollZ),
+  );
+  const activeStart = new THREE.Quaternion().setFromEuler(
+    new THREE.Euler(0, 0, SURVEY_FLARE_LANDED_ROLL),
+  );
+  assert.ok(
+    flightEndpoint.angleTo(activeStart) < 1e-7,
+    `the last airborne and first landed orientations agree (${flightEndpoint.angleTo(activeStart)})`,
+  );
+
+  assert.equal(surveyFlareFlightHeight(0), SURVEY_FLARE_FLIGHT_HEIGHT);
+  assert.ok(surveyFlareFlightHeight(0.5) > 1);
+  assert.ok(
+    Math.abs(surveyFlareFlightHeight(1) - SURVEY_FLARE_LANDED_HEIGHT) < 1e-12,
+    'the airborne arc reaches the planted height exactly',
+  );
+
+  const arrivalYaw = -Math.PI / 3;
+  assert.equal(
+    surveyFlareLandedYaw(arrivalYaw, 0),
+    arrivalYaw,
+    'the planted prop inherits its final flight bearing',
+  );
+  assert.equal(
+    surveyFlareLandedYaw(arrivalYaw, 2),
+    arrivalYaw + 2 * SURVEY_FLARE_IDLE_YAW_PER_TICK,
+    'the idle rotation continues deterministically from that bearing',
+  );
+});
+
+test('Survey Flare preserves its complete transform across the replay landing boundary', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/core-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  const propTransform = (time: number) => {
+    effects.update(time);
+    let prop: THREE.Object3D | undefined;
+    effects.group.traverse((node) => {
+      if (
+        node.visible &&
+        node.userData.kind === 'arc-relay-signature-prop' &&
+        node.userData.operationId === 'arc-signature-1'
+      ) prop = node;
+    });
+    assert.ok(prop, `Survey Flare prop is visible at ${time}`);
+    return { position: prop.position.clone(), yaw: prop.rotation.y };
+  };
+
+  try {
+    const finalAirborne = propTransform(13.999);
+    const firstPlanted = propTransform(14);
+    assert.ok(
+      finalAirborne.position.distanceTo(firstPlanted.position) < 1e-6,
+      `the prop does not step at landing (${finalAirborne.position.toArray()} -> ${firstPlanted.position.toArray()})`,
+    );
+    assert.ok(
+      Math.abs(finalAirborne.yaw - firstPlanted.yaw) < 1e-9,
+      `the prop retains its flight heading at landing (${finalAirborne.yaw} -> ${firstPlanted.yaw})`,
+    );
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
 });
 
 test('review corrections remove beam-like guide geometry from Vector Dash and Target Paint', () => {

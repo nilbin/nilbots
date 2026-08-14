@@ -265,6 +265,46 @@ export function surveyFlareFlightEndpoints(
   return { from, to };
 }
 
+export const SURVEY_FLARE_LANDED_ROLL = Math.PI / 2;
+export const SURVEY_FLARE_FLIGHT_HEIGHT = 0.14;
+export const SURVEY_FLARE_LANDED_HEIGHT = 0.16;
+export const SURVEY_FLARE_IDLE_YAW_PER_TICK = 0.28;
+
+/** The flight arc ends at exactly the same height used by the planted prop. */
+export function surveyFlareFlightHeight(progress: number): number {
+  const clamped = clamp01(progress);
+  return SURVEY_FLARE_FLIGHT_HEIGHT +
+    (SURVEY_FLARE_LANDED_HEIGHT - SURVEY_FLARE_FLIGHT_HEIGHT) * clamped +
+    Math.sin(clamped * Math.PI) * 1.15;
+}
+
+/** Continue the planted prop's idle turn from its actual arrival bearing. */
+export function surveyFlareLandedYaw(
+  arrivalYaw: number,
+  activeAge: number,
+): number {
+  return arrivalYaw +
+    Math.max(0, activeAge) * SURVEY_FLARE_IDLE_YAW_PER_TICK;
+}
+
+/**
+ * Carries the rigid Survey Flare from its horizontal throw pose into the authored
+ * upright landing pose while it is still airborne. The two complete end-over-end
+ * tumbles preserve the existing throw energy and return to the same orientation at
+ * the endpoint; the eased quarter roll is the structural reorientation that prevents
+ * the model snapping upright when the replay changes from in-flight to active.
+ */
+export function surveyFlareFlightRotation(
+  progress: number,
+  reducedMotion: boolean,
+): { tumbleX: number; uprightRollZ: number } {
+  const clamped = clamp01(progress);
+  return {
+    tumbleX: reducedMotion ? 0 : easeOutCubic(clamped) * Math.PI * 4,
+    uprightRollZ: easeInOutCubic(clamped) * SURVEY_FLARE_LANDED_ROLL,
+  };
+}
+
 function horizontalDistanceSquared(
   point: THREE.Vector3,
   other: THREE.Vector3,

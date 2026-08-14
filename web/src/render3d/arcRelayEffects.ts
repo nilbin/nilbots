@@ -29,10 +29,24 @@ import type {
 import {
   areaBounds as signatureAreaBounds,
   phaseProgress as signaturePhaseProgress,
+  SURVEY_FLARE_IDLE_YAW_PER_TICK,
+  SURVEY_FLARE_LANDED_HEIGHT,
   surveyFlareFlightEndpoints,
+  surveyFlareFlightHeight,
+  surveyFlareFlightRotation,
+  surveyFlareLandedYaw,
 } from './signatures/primitives';
 
-export { surveyFlareFlightEndpoints } from './signatures/primitives';
+export {
+  SURVEY_FLARE_FLIGHT_HEIGHT,
+  SURVEY_FLARE_IDLE_YAW_PER_TICK,
+  SURVEY_FLARE_LANDED_HEIGHT,
+  SURVEY_FLARE_LANDED_ROLL,
+  surveyFlareFlightEndpoints,
+  surveyFlareFlightHeight,
+  surveyFlareFlightRotation,
+  surveyFlareLandedYaw,
+} from './signatures/primitives';
 import {
   centreStatusPips,
   createStatusPipGeometry,
@@ -105,6 +119,11 @@ export function arcSignatureVisualPhase(
 
 interface SignatureShotYaw {
   tick: number;
+  yaw: number;
+}
+
+interface SurveyFlareLanding {
+  position: THREE.Vector3;
   yaw: number;
 }
 
@@ -221,6 +240,7 @@ export function buildArcRelayEffects(
   const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
   const signatureShotYaws = indexSignatureShotYaws(replay);
   const signaturePhaseStarts = indexSignaturePhaseStarts(replay);
+  const surveyFlareLandings = indexSurveyFlareLandings(replay);
   const signatureOutcomes = indexSignatureOutcomes(replay);
   const constructHull = signatureConstructHullById(replay);
   const veterancy = arcVeterancyFor(replay);
@@ -803,25 +823,39 @@ export function buildArcRelayEffects(
         const fromY = sentinel || surveyFlare ? 0 : -0.24;
         if (surveyFlare && phase === 'in-flight') {
           const { from, to } = surveyFlareFlightEndpoints(points, owner)!;
-          const progress = easeOutDeploy(signaturePhaseProgress(signature, time));
+          const landing = surveyFlareLandings.get(signature.operationId);
+          const phaseProgress = signaturePhaseProgress(signature, time);
+          const progress = easeOutDeploy(phaseProgress);
           slot.group.position.lerpVectors(from, to, progress);
-          slot.group.position.y = 0.14 + Math.sin(progress * Math.PI) * 1.15;
-          slot.group.rotation.y = -Math.atan2(to.z - from.z, to.x - from.x);
+          slot.group.position.y = surveyFlareFlightHeight(progress);
+          slot.group.rotation.y = landing?.yaw ??
+            -Math.atan2(to.z - from.z, to.x - from.x);
           if (slot.model) {
-            slot.model.rotation.x = reducedMotion ? 0 : progress * Math.PI * 4;
-            slot.model.rotation.z = 0;
+            const rotation = surveyFlareFlightRotation(
+              phaseProgress,
+              reducedMotion,
+            );
+            slot.model.rotation.x = rotation.tumbleX;
+            slot.model.rotation.z = rotation.uprightRollZ;
           }
         } else {
-          // Survey's active positions are its complete reveal footprint. Park the
-          // authored instrument at that footprint's centre, not at the canonical
-          // first tile (the upper-left edge after engine sorting).
+          // Preserve Survey's recorded flight destination when available. A replay
+          // that begins after landing has only the reveal footprint, whose centre is
+          // the truthful fallback (rather than its canonically sorted first tile).
+          const landing = surveyFlare
+            ? surveyFlareLandings.get(signature.operationId)
+            : undefined;
           const propPosition = surveyFlare
-            ? signatureAreaBounds(points).centre
+            ? landing?.position ?? signatureAreaBounds(points).centre
             : points[0]!;
           slot.group.position.copy(propPosition).setY(
-            surveyFlare ? 0.16 : fromY * (1 - deploy),
+            surveyFlare ? SURVEY_FLARE_LANDED_HEIGHT : fromY * (1 - deploy),
           );
-          slot.group.rotation.y = surveyFlare ? time * 0.28 : 0;
+          slot.group.rotation.y = surveyFlare
+            ? landing
+              ? surveyFlareLandedYaw(landing.yaw, phaseAge)
+              : time * SURVEY_FLARE_IDLE_YAW_PER_TICK
+            : 0;
           if (slot.model) {
             slot.model.rotation.x = 0;
             slot.model.rotation.z = surveyFlare ? Math.PI / 2 : 0;
@@ -1566,6 +1600,49 @@ function indexSignaturePhaseStarts(replay: ReplayModel): Map<string, number> {
     for (const signature of mode.visibleSignatures) {
       const key = `${signature.operationId}:${signature.phase}`;
       if (!result.has(key)) result.set(key, tickIndex);
+    }
+  }
+  return result;
+}
+
+/**
+ * Remember each Survey Flare's authoritative flight destination and bearing so the
+ * same rigid prop can cross the discrete in-flight/active replay boundary without
+ * changing its transform. Replays that begin after landing retain the old footprint
+ * centre fallback.
+ */
+function indexSurveyFlareLandings(
+  replay: ReplayModel,
+): Map<string, SurveyFlareLanding> {
+  const result = new Map<string, SurveyFlareLanding>();
+  for (const [tickIndex, tick] of replay.ticks.entries()) {
+    const mode = tick.after.mode;
+    if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) continue;
+    const candidates = mode.visibleSignatures.filter(
+      (signature) =>
+        signature.signatureId === 'survey-flare' &&
+        signature.phase === 'in-flight' &&
+        !result.has(signature.operationId),
+    );
+    if (candidates.length === 0) continue;
+    const poses = posesAt(replay, tickIndex);
+    for (const signature of candidates) {
+      const points = signature.positions.map(worldPoint);
+      const ownerPose = poses.find(
+        (pose) => pose.actorKey === signature.ownerActor.actorKey,
+      );
+      const owner = ownerPose
+        ? new THREE.Vector3(ownerPose.x + 0.5, 0.08, ownerPose.y + 0.5)
+        : points[0];
+      const flight = surveyFlareFlightEndpoints(points, owner);
+      if (!flight) continue;
+      result.set(signature.operationId, {
+        position: flight.to.clone(),
+        yaw: -Math.atan2(
+          flight.to.z - flight.from.z,
+          flight.to.x - flight.from.x,
+        ),
+      });
     }
   }
   return result;

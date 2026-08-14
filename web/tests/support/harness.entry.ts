@@ -122,6 +122,10 @@ export {
   CONSTRUCT_STATUS_BIB_GAP,
   PERSISTENT_CONSTRUCT_RENDER_ORDER,
   SENTINEL_YAW_SETTLE_TICKS,
+  SURVEY_FLARE_FLIGHT_HEIGHT,
+  SURVEY_FLARE_IDLE_YAW_PER_TICK,
+  SURVEY_FLARE_LANDED_HEIGHT,
+  SURVEY_FLARE_LANDED_ROLL,
   arcSignatureVisualPhase,
   buildArcRelayEffects,
   constructStatusBibHeight,
@@ -129,6 +133,9 @@ export {
   latestObservedSignatureYaw,
   sentinelYawTarget,
   surveyFlareFlightEndpoints,
+  surveyFlareFlightHeight,
+  surveyFlareFlightRotation,
+  surveyFlareLandedYaw,
 } from '../../src/render3d/arcRelayEffects';
 export { orientStatusBib } from '../../src/render3d/statusBib';
 export {
