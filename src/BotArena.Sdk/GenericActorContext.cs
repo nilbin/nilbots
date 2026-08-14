@@ -921,6 +921,10 @@ public sealed record GenericActorContext
         /// channeler. Always null against a per-life opponent, which has no way
         /// to set one.
         /// </param>
+        /// <param name="veterancyLevel">
+        /// Visible Arc Relay veterancy level. Historical profiles and bodies
+        /// without public veteran command information report level one.
+        /// </param>
         public ObservedEnemyState(
             ActorIdentity actorId,
             string formId,
@@ -931,10 +935,13 @@ public sealed record GenericActorContext
             IEnumerable<ActorIdentity> observedBy,
             string? classId = null,
             int carriedScrap = 0,
-            string? roleTag = null)
+            string? roleTag = null,
+            int veterancyLevel = 1)
         {
             ArgumentNullException.ThrowIfNull(actorId);
             ArgumentOutOfRangeException.ThrowIfNegative(carriedScrap);
+            if (veterancyLevel < 1)
+                throw new ArgumentOutOfRangeException(nameof(veterancyLevel));
             ValidatePosition(position, nameof(position));
             if (health <= 0)
                 throw new ArgumentOutOfRangeException(nameof(health));
@@ -960,6 +967,7 @@ public sealed record GenericActorContext
             RoleTag = roleTag is null
                 ? null
                 : MindValueRules.RoleTag(roleTag, nameof(roleTag));
+            VeterancyLevel = veterancyLevel;
         }
 
         /// <summary>
@@ -997,6 +1005,11 @@ public sealed record GenericActorContext
         /// the whole match on every contract without a declared economy.
         /// </summary>
         public int CarriedScrap { get; }
+
+        /// <summary>
+        /// Current visible veteran level. One is the historical/default value.
+        /// </summary>
+        public int VeterancyLevel { get; }
     }
 
     /// <summary>One sensor-visible map tile and its observation provenance.</summary>
@@ -2727,6 +2740,13 @@ public sealed record GenericActorContext
             /// <summary>Tick of the most recent Pulse, if any.</summary>
             public int? LatestPulseTick { get; }
 
+            /// <summary>Next shared respawn-wave tick, when waves are active.</summary>
+            public int? NextRespawnWaveTick { get; init; }
+
+            /// <summary>Public manpower and next-wave count by team.</summary>
+            public ImmutableArray<ArcRelayRespawnWaveTeamState>
+                RespawnWaveTeams { get; init; } = [];
+
             /// <summary>
             /// Every declared strike currently winding up, visible to BOTH
             /// teams (DECISIONS #212): the announcement is the mechanic. The
@@ -2738,6 +2758,11 @@ public sealed record GenericActorContext
             { get; init; } = [];
         }
     }
+
+    public sealed record ArcRelayRespawnWaveTeamState(
+        int TeamId,
+        int LiveBodies,
+        int RespawnsNextWave);
 
     /// <summary>
     /// One publicly declared strike in windup (DECISIONS #212). Tiles are
@@ -2848,7 +2873,14 @@ public sealed record GenericActorContext
         ImmutableArray<Position> Positions,
         ActorIdentity? TargetActorId,
         int RemainingCapacity,
-        bool Suppressed);
+        bool Suppressed)
+    {
+        /// <summary>
+        /// Maximum hull/contact capacity for deployments; zero for other
+        /// signature operations and historical observations.
+        /// </summary>
+        public int MaximumCapacity { get; init; }
+    }
 
     /// <summary>Current physical disposition of a visible Core.</summary>
     public enum ArcRelayCoreDisposition
@@ -2936,7 +2968,10 @@ public sealed record GenericActorContext
             ActorIdentity CarrierActorId,
             int TeamId,
             Position Position,
-            int ChargePips) : ArcRelayEvent;
+            int ChargePips) : ArcRelayEvent
+        {
+            public int ChargeAwarded { get; init; } = 1;
+        }
         /// <summary>A Well's capacity/rearm state changed.</summary>
         public sealed record WellChanged(
             string WellId,

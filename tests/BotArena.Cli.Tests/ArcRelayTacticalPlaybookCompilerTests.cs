@@ -241,6 +241,86 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void DepthPackFactsAndTargetsStayInsideTheOrdersGrammar()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        JsonObject centre = source["roles"]!.AsArray().Select(value =>
+                value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "centre-team");
+        JsonArray orders = centre["orders"]!.AsArray();
+        orders.Insert(0, new JsonObject
+        {
+            ["id"] = "support-authored-ace",
+            ["when"] = "ace-exists",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "repair-beam",
+                ["target"] = new JsonObject { ["role"] = "home-team" },
+            },
+        });
+        orders.Insert(1, new JsonObject
+        {
+            ["id"] = "rally-to-emergent-ace",
+            ["move"] = new JsonObject
+            {
+                ["follow"] = new JsonObject
+                {
+                    ["selector"] = "most-experienced-ally",
+                },
+            },
+        });
+        orders.Insert(2, new JsonObject
+        {
+            ["id"] = "clear-veteran-or-deployment",
+            ["fight"] = new JsonObject
+            {
+                ["targets"] = new JsonArray("veteran", "deployment", "nearest"),
+                ["style"] = "advance",
+                ["chaseLimit"] = 7,
+            },
+        });
+        source["conditions"]!["ace-exists"] = new JsonObject
+        {
+            ["fact"] = "role-highest-level",
+            ["operator"] = "greater-than",
+            ["value"] = 1,
+            ["role"] = "home-team",
+        };
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        string[] bodyAndTeamFacts =
+        [
+            "self-carried-core-bank-value",
+            "enemy-reactor-charge",
+            "reactor-pulses",
+            "live-enemies",
+            "friendly-respawns-next-wave",
+            "enemy-respawns-next-wave",
+            "ticks-until-respawn-wave",
+            "deployment-active",
+            "deployment-lifetime-percent",
+            "deployment-durability-percent",
+        ];
+        foreach (string fact in bodyAndTeamFacts)
+        {
+            source = Source("starter-tapline-v2");
+            JsonObject last = source["roles"]![0]!["orders"]!
+                .AsArray().Last()!.AsObject();
+            source["conditions"]!["candidate-fact"] = new JsonObject
+            {
+                ["fact"] = fact,
+                ["operator"] = "at-least",
+                ["value"] = 0,
+            };
+            last["when"] = "candidate-fact";
+            Assert.True(Compile(source, MapPlan("starter-tapline-v2"))
+                .UsesOrderTree);
+        }
+    }
+
+    [Fact]
     public void VisibleEnemyDistanceIsBodyLocalAndBoundedToTheMapScale()
     {
         JsonObject source = Source("starter-tapline-v2");

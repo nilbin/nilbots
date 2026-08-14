@@ -618,6 +618,16 @@ public static class ActorResolvedMatchDefinitionValidator
                         $"Arc Relay team {team.TeamId} fields {group.Count()} copies of '{group.Key}', above the {mode.MaxCopiesPerClass}-copy cap.");
                 }
             }
+            int distinctClasses = slots
+                .Select(slot => slot.ClassId)
+                .Where(classId => classId is not null)
+                .Distinct(StringComparer.Ordinal)
+                .Count();
+            if (distinctClasses < mode.MinimumDistinctClasses)
+            {
+                errors.Add(
+                    $"Arc Relay team {team.TeamId} fields {distinctClasses} distinct classes, below the {mode.MinimumDistinctClasses}-class minimum.");
+            }
         }
 
         foreach (PublicParticipant participant in topology.Participants)

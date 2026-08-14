@@ -870,7 +870,17 @@ public static class ArcRelayH0Definition
             seedPhasedResolutionOrder:
                 loopProfile.SeedPhasedResolutionOrder,
             seedPhasedWellLead: loopProfile.SeedPhasedWellLead,
-            chiralWellBirths: loopProfile.ChiralWellBirths);
+            chiralWellBirths: loopProfile.ChiralWellBirths,
+            ownWellCoreCharge: 1,
+            centreWellCoreCharge:
+                loopProfile.TeamRelativeCoreCharge ? 2 : 1,
+            enemyWellCoreCharge:
+                loopProfile.TeamRelativeCoreCharge ? 4 : 1,
+            veteranCommand: loopProfile.VeteranCommand,
+            respawnWavePeriodTicks: loopProfile.RespawnWavePeriodTicks,
+            respawnMinimumDeadTicks: loopProfile.RespawnMinimumDeadTicks,
+            minimumDistinctClasses: loopProfile.MinimumDistinctClasses,
+            durableDeployments: loopProfile.DurableDeployments);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;
@@ -952,58 +962,78 @@ public static class ArcRelayH0Definition
                         },
                     _ => entry,
                 })];
-        if (loopProfile.SignatureGrammarVersion < 3)
-            return grammar2;
+        ImmutableArray<LaunchClass> grammar =
+            loopProfile.SignatureGrammarVersion < 3
+                ? grammar2
+                : [.. grammar2.Select(entry => entry.Signature switch
+                {
+                    ArcRelaySignatureDefinition.NullField2 field => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.NullField3(
+                            field.SignatureId,
+                            field.ClassId,
+                            field.ActionId,
+                            field.Radius,
+                            field.DurationTicks,
+                            field.TellTicks,
+                            field.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.TargetPaint paint => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.TargetPaint2(
+                            paint.SignatureId,
+                            paint.ClassId,
+                            paint.ActionId,
+                            paint.Range,
+                            acquisitionTicks: 1,
+                            paint.DurationTicks,
+                            paint.EnhancedHitCount,
+                            paint.BonusDamage,
+                            cancelCooldownTicks: 8,
+                            paint.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.KineticBurst burst => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.KineticBurst2(
+                            burst.SignatureId,
+                            burst.ClassId,
+                            burst.ActionId,
+                            burst.TellTicks,
+                            burst.PushTiles,
+                            cancelCooldownTicks: 6,
+                            burst.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.SmokeCanister smoke => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.SmokeCanister2(
+                            smoke.SignatureId,
+                            smoke.ClassId,
+                            smoke.ActionId,
+                            smoke.Range,
+                            smoke.Radius,
+                            smoke.DurationTicks,
+                            travelTilesPerTick: 3,
+                            smoke.CooldownTicks),
+                    },
+                    _ => entry,
+                })];
+        if (!loopProfile.DurableDeployments)
+            return grammar;
 
-        return [.. grammar2.Select(entry => entry.Signature switch
+        // Candidate-only: keep the stable signature/action IDs and every
+        // other Mason number, but lengthen the projected barrier enough for
+        // both teams to observe, preserve, relocate, or dismantle it.
+        return [.. grammar.Select(entry => entry.Signature switch
         {
-            ArcRelaySignatureDefinition.NullField2 field => entry with
+            ArcRelaySignatureDefinition.HardlightBlock block => entry with
             {
-                Signature = new ArcRelaySignatureDefinition.NullField3(
-                    field.SignatureId,
-                    field.ClassId,
-                    field.ActionId,
-                    field.Radius,
-                    field.DurationTicks,
-                    field.TellTicks,
-                    field.CooldownTicks),
-            },
-            ArcRelaySignatureDefinition.TargetPaint paint => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.TargetPaint2(
-                    paint.SignatureId,
-                    paint.ClassId,
-                    paint.ActionId,
-                    paint.Range,
-                    acquisitionTicks: 1,
-                    paint.DurationTicks,
-                    paint.EnhancedHitCount,
-                    paint.BonusDamage,
-                    cancelCooldownTicks: 8,
-                    paint.CooldownTicks),
-            },
-            ArcRelaySignatureDefinition.KineticBurst burst => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.KineticBurst2(
-                    burst.SignatureId,
-                    burst.ClassId,
-                    burst.ActionId,
-                    burst.TellTicks,
-                    burst.PushTiles,
-                    cancelCooldownTicks: 6,
-                    burst.CooldownTicks),
-            },
-            ArcRelaySignatureDefinition.SmokeCanister smoke => entry with
-            {
-                Signature = new ArcRelaySignatureDefinition.SmokeCanister2(
-                    smoke.SignatureId,
-                    smoke.ClassId,
-                    smoke.ActionId,
-                    smoke.Range,
-                    smoke.Radius,
-                    smoke.DurationTicks,
-                    travelTilesPerTick: 3,
-                    smoke.CooldownTicks),
+                Signature = new ArcRelaySignatureDefinition.HardlightBlock(
+                    block.SignatureId,
+                    block.ClassId,
+                    block.ActionId,
+                    block.Hull,
+                    durationTicks: 30,
+                    block.CooldownTicks),
             },
             _ => entry,
         })];

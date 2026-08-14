@@ -82,6 +82,7 @@ public sealed record GenericActorRuntimeObservation(
         /// match on the per-life generation, which has no way to set one.
         /// </summary>
         public string? RoleTag { get; init; }
+
     }
 
     public sealed record ObservedAllyState(
@@ -125,6 +126,7 @@ public sealed record GenericActorRuntimeObservation(
         /// match on the per-life generation, which has no way to set one.
         /// </summary>
         public string? RoleTag { get; init; }
+
     }
 
     /// <summary>
@@ -304,6 +306,13 @@ public sealed record GenericActorRuntimeObservation(
         /// match on the per-life generation, which has no way to set one.
         /// </summary>
         public string? RoleTag { get; init; }
+
+        /// <summary>
+        /// Current visible veterancy level. One is the omitted default; the
+        /// veteran-command candidate publishes values above one so target
+        /// selection never depends on having witnessed an earlier level-up.
+        /// </summary>
+        public int VeterancyLevel { get; init; } = 1;
     }
 
     public sealed record ObservedTile(
@@ -858,6 +867,20 @@ public sealed record GenericActorRuntimeObservation(
             public int? LatestPulseTick { get; }
 
             /// <summary>
+            /// Next shared Arc Relay respawn-wave tick, or null when the
+            /// selected ruleset uses ordinary per-slot respawns.
+            /// </summary>
+            public int? NextRespawnWaveTick { get; init; }
+
+            /// <summary>
+            /// Public per-team manpower at the current tick and the number of
+            /// dead stable slots due on the next shared wave. Empty when the
+            /// ruleset has no shared respawn clock.
+            /// </summary>
+            public ImmutableArray<ArcRelayRespawnWaveTeamState>
+                RespawnWaveTeams { get; init; } = [];
+
+            /// <summary>
             /// Declared strikes in windup, public to both teams
             /// (DECISIONS #212). Empty on rulesets without strike windups,
             /// keeping historical observations byte-identical.
@@ -874,6 +897,8 @@ public sealed record GenericActorRuntimeObservation(
                 && VisibleSignatures.SequenceEqual(other.VisibleSignatures)
                 && LatestPulseTeamId == other.LatestPulseTeamId
                 && LatestPulseTick == other.LatestPulseTick
+                && NextRespawnWaveTick == other.NextRespawnWaveTick
+                && RespawnWaveTeams.SequenceEqual(other.RespawnWaveTeams)
                 && PendingStrikes.SequenceEqual(other.PendingStrikes);
 
             public override int GetHashCode()
@@ -887,12 +912,20 @@ public sealed record GenericActorRuntimeObservation(
                     hash.Add(value);
                 hash.Add(LatestPulseTeamId);
                 hash.Add(LatestPulseTick);
+                hash.Add(NextRespawnWaveTick);
+                foreach (ArcRelayRespawnWaveTeamState value in RespawnWaveTeams)
+                    hash.Add(value);
                 foreach (ArcRelayPendingStrikeState value in PendingStrikes)
                     hash.Add(value);
                 return hash.ToHashCode();
             }
         }
     }
+
+    public sealed record ArcRelayRespawnWaveTeamState(
+        int TeamId,
+        int LiveBodies,
+        int RespawnsNextWave);
 
     /// <summary>
     /// One publicly declared strike in windup (DECISIONS #212): the shooter,

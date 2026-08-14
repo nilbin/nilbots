@@ -388,7 +388,9 @@ internal sealed record ReplayV3(
         int CarriedScrap = 0,
         // Public on visible enemies by design (§12.2), and trailing-additive
         // so a document without one is byte-identical to yesterday's.
-        string? RoleTag = null);
+        string? RoleTag = null,
+        // Candidate-only, omitted at the historical/default level one.
+        int VeterancyLevel = 1);
 
     internal sealed record PendingSameLifeTransition(
         string TransitionId,
@@ -809,7 +811,10 @@ internal sealed record ReplayV3(
             ActorId CarrierActorId,
             int TeamId,
             PositionValue Position,
-            int ChargePips) : ArcRelayFact("core-banked");
+            int ChargePips) : ArcRelayFact("core-banked")
+        {
+            public int ChargeAwarded { get; init; } = 1;
+        }
 
         internal sealed record WellChanged(
             string WellId,
@@ -1107,6 +1112,11 @@ internal sealed record ReplayV3(
             public ImmutableArray<ArcPendingStrike> PendingStrikes
             { get; init; } = [];
 
+            public int? NextRespawnWaveTick { get; init; }
+
+            public ImmutableArray<ArcRespawnWaveTeam> RespawnWaveTeams
+            { get; init; } = [];
+
             public bool Equals(ArcRelay? other) =>
                 other is not null
                 && string.Equals(Id, other.Id, StringComparison.Ordinal)
@@ -1116,6 +1126,8 @@ internal sealed record ReplayV3(
                 && VisibleSignatures.SequenceEqual(other.VisibleSignatures)
                 && LatestPulseTeamId == other.LatestPulseTeamId
                 && LatestPulseTick == other.LatestPulseTick
+                && NextRespawnWaveTick == other.NextRespawnWaveTick
+                && RespawnWaveTeams.SequenceEqual(other.RespawnWaveTeams)
                 && PendingStrikes.SequenceEqual(other.PendingStrikes);
 
             public override int GetHashCode()
@@ -1129,6 +1141,9 @@ internal sealed record ReplayV3(
                     hash.Add(value);
                 hash.Add(LatestPulseTeamId);
                 hash.Add(LatestPulseTick);
+                hash.Add(NextRespawnWaveTick);
+                foreach (ArcRespawnWaveTeam value in RespawnWaveTeams)
+                    hash.Add(value);
                 foreach (ArcPendingStrike value in PendingStrikes)
                     hash.Add(value);
                 return hash.ToHashCode();
@@ -1181,6 +1196,11 @@ internal sealed record ReplayV3(
     }
 
     internal sealed record ArcCoreId(string SourceWellId, int SourceOrdinal);
+
+    internal sealed record ArcRespawnWaveTeam(
+        int TeamId,
+        int LiveBodies,
+        int RespawnsNextWave);
 
     internal sealed record ArcWell(
         string WellId,
@@ -1249,6 +1269,8 @@ internal sealed record ReplayV3(
         int RemainingCapacity,
         bool Suppressed)
     {
+        public int MaximumCapacity { get; init; }
+
         public bool Equals(ArcSignature? other) =>
             other is not null
             && string.Equals(OperationId, other.OperationId,
@@ -1266,6 +1288,7 @@ internal sealed record ReplayV3(
             && Positions.SequenceEqual(other.Positions)
             && TargetActorId == other.TargetActorId
             && RemainingCapacity == other.RemainingCapacity
+            && MaximumCapacity == other.MaximumCapacity
             && Suppressed == other.Suppressed;
 
         public override int GetHashCode()
@@ -1283,6 +1306,7 @@ internal sealed record ReplayV3(
             foreach (PositionValue position in Positions) hash.Add(position);
             hash.Add(TargetActorId);
             hash.Add(RemainingCapacity);
+            hash.Add(MaximumCapacity);
             hash.Add(Suppressed);
             return hash.ToHashCode();
         }

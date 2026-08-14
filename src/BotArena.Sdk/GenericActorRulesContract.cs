@@ -334,6 +334,20 @@ public sealed class GenericActorRulesContract
         public int RipenResumeTicks { get; init; }
 
         /// <summary>
+        /// Team-relative bank value by Well tier. Historical rules are
+        /// 1/1/1; the Tapline score-depth arm declares 1/2/4.
+        /// </summary>
+        public int OwnWellCoreCharge { get; init; } = 1;
+        public int CentreWellCoreCharge { get; init; } = 1;
+        public int EnemyWellCoreCharge { get; init; } = 1;
+
+        public bool VeteranCommand { get; init; }
+        public int RespawnWavePeriodTicks { get; init; }
+        public int RespawnMinimumDeadTicks { get; init; }
+        public int MinimumDistinctClasses { get; init; }
+        public bool DurableDeployments { get; init; }
+
+        /// <summary>
         /// Projectile damage multiplier for shots whose heading lies inside
         /// the victim's rear quadrant (1 historically).
         /// </summary>

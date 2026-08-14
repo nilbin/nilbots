@@ -356,7 +356,8 @@ internal sealed record GenericActorModeProjection
     public GenericActorModeProjection(
         GenericActorRuntimeObservation.ScoreboardState scoreboard,
         GenericActorRuntimeObservation.ModeObservationState mode,
-        IReadOnlyDictionary<ActorIdentity, int>? carriedScrapByActor = null)
+        IReadOnlyDictionary<ActorIdentity, int>? carriedScrapByActor = null,
+        IReadOnlyDictionary<ActorIdentity, int>? veterancyLevelByActor = null)
     {
         ArgumentNullException.ThrowIfNull(scoreboard);
         ArgumentNullException.ThrowIfNull(mode);
@@ -366,6 +367,9 @@ internal sealed record GenericActorModeProjection
         CarriedScrapByActor = carriedScrapByActor is null
             ? ImmutableDictionary<ActorIdentity, int>.Empty
             : carriedScrapByActor.ToImmutableDictionary();
+        VeterancyLevelByActor = veterancyLevelByActor is null
+            ? ImmutableDictionary<ActorIdentity, int>.Empty
+            : veterancyLevelByActor.ToImmutableDictionary();
     }
 
     public GenericActorRuntimeObservation.ScoreboardState Scoreboard
@@ -381,6 +385,16 @@ internal sealed record GenericActorModeProjection
     /// nothing is simply absent.
     /// </summary>
     public ImmutableDictionary<ActorIdentity, int> CarriedScrapByActor
+    {
+        get;
+    }
+
+    /// <summary>
+    /// Candidate-only body annotation for visible veteran targeting. Missing
+    /// means level 1, so profiles without veteran command preserve their exact
+    /// observation bytes.
+    /// </summary>
+    public ImmutableDictionary<ActorIdentity, int> VeterancyLevelByActor
     {
         get;
     }

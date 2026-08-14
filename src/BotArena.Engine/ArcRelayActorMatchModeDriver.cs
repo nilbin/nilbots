@@ -776,7 +776,14 @@ internal sealed class ArcRelayActorMatchModeDriver
                             eligible.Contains(team.TeamId),
                             Scores(_reactors[team.TeamId])))
                     .ToImmutableArray()),
-            ProjectState());
+            ProjectState(),
+            veterancyLevelByActor: _gameMode.VeteranCommand
+                ? _veterancy
+                    .Where(value => value.Value.Level > 1)
+                    .ToDictionary(
+                        value => value.Key,
+                        value => value.Value.Level)
+                : null);
     }
 
     private static readonly string[] VeterancyTracks =
@@ -963,14 +970,20 @@ internal sealed class ArcRelayActorMatchModeDriver
         }
         else
         {
-            reactor.Charge += core.Value;
+            reactor.Charge += BankCharge(core, reactor.TeamId);
         }
+        int chargeAwarded = _gameMode.ThreefoldSockets
+            ? 1
+            : BankCharge(core, reactor.TeamId);
         events.Add(Public(new ArcRelayEvent.CoreBanked(
             core.CoreId,
             carrier,
             reactor.TeamId,
             reactor.Position,
-            reactor.Charge)));
+            reactor.Charge)
+        {
+            ChargeAwarded = chargeAwarded,
+        }));
         if (!_gameMode.ThreefoldSockets && well.PendingCharge)
         {
             well.RearmCompletesAtTick = checked(
@@ -990,23 +1003,55 @@ internal sealed class ArcRelayActorMatchModeDriver
         {
             return;
         }
-        reactor.FilledSockets.Clear();
-        // Subtracting the threshold carries ripened remainder charge; for
-        // unit-value rulesets the charge only ever lands exactly on the
-        // threshold, so the bytes are unchanged.
-        reactor.Charge = _gameMode.ThreefoldSockets
-            ? 0
-            : reactor.Charge - _gameMode.CoresPerPulse;
-        reactor.Pulses++;
         ReactorRuntime opposing = _reactors.Values.Single(
             value => value.TeamId != reactor.TeamId);
-        opposing.IntegritySegments--;
-        _latestPulseTeamId = reactor.TeamId;
-        _latestPulseTick = tick;
-        events.Add(Public(new ArcRelayEvent.Pulse(
-            reactor.TeamId,
-            reactor.Pulses,
-            opposing.IntegritySegments)));
+        do
+        {
+            if (_gameMode.ThreefoldSockets)
+            {
+                reactor.FilledSockets.Clear();
+                reactor.Charge = 0;
+            }
+            else
+            {
+                // Carry the remainder and resolve EVERY crossed threshold in
+                // this bank. A far Core can therefore cause two ordered
+                // Pulses when the reactor already held two pips.
+                reactor.Charge -= _gameMode.CoresPerPulse;
+            }
+            reactor.Pulses++;
+            opposing.IntegritySegments = Math.Max(
+                0, opposing.IntegritySegments - 1);
+            _latestPulseTeamId = reactor.TeamId;
+            _latestPulseTick = tick;
+            events.Add(Public(new ArcRelayEvent.Pulse(
+                reactor.TeamId,
+                reactor.Pulses,
+                opposing.IntegritySegments)));
+        }
+        while (!_gameMode.ThreefoldSockets
+            && reactor.Charge >= _gameMode.CoresPerPulse);
+    }
+
+    private int BankCharge(CoreRuntime core, int scoringTeamId)
+    {
+        if (_gameMode.OwnWellCoreCharge == 1
+            && _gameMode.CentreWellCoreCharge == 1
+            && _gameMode.EnemyWellCoreCharge == 1)
+        {
+            return core.Value;
+        }
+        WellRuntime well = _wellsById[core.CoreId.SourceWellId];
+        ReactorRuntime own = _reactors[scoringTeamId];
+        ReactorRuntime enemy = _reactors.Values.Single(value =>
+            value.TeamId != scoringTeamId);
+        int ownDistance = own.Position.ChebyshevDistance(well.Position);
+        int enemyDistance = enemy.Position.ChebyshevDistance(well.Position);
+        if (ownDistance == enemyDistance)
+            return _gameMode.CentreWellCoreCharge;
+        return ownDistance < enemyDistance
+            ? _gameMode.OwnWellCoreCharge
+            : _gameMode.EnemyWellCoreCharge;
     }
 
     private GenericActorRuntimeObservation.ModeObservationState.ArcRelay
@@ -1057,7 +1102,14 @@ internal sealed class ArcRelayActorMatchModeDriver
                 .ToImmutableArray(),
             _signatures.Project(_currentTick),
             _latestPulseTeamId,
-            _latestPulseTick);
+            _latestPulseTick)
+        {
+            NextRespawnWaveTick = _gameMode.RespawnWavePeriodTicks == 0
+                ? null
+                : checked(
+                    (_currentTick / _gameMode.RespawnWavePeriodTicks + 1)
+                    * _gameMode.RespawnWavePeriodTicks),
+        };
 
     private Position ArcTossLanding(Position from, Position requested)
     {

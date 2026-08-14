@@ -33,9 +33,46 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int healZoneTicksPerHp = 0,
         bool seedPhasedResolutionOrder = false,
         bool seedPhasedWellLead = false,
-        bool chiralWellBirths = false)
+        bool chiralWellBirths = false,
+        int ownWellCoreCharge = 1,
+        int centreWellCoreCharge = 1,
+        int enemyWellCoreCharge = 1,
+        bool veteranCommand = false,
+        int respawnWavePeriodTicks = 0,
+        int respawnMinimumDeadTicks = 0,
+        int minimumDistinctClasses = 0,
+        bool durableDeployments = false)
         : base(modeId, victory, scoreCatalog)
     {
+        if (ownWellCoreCharge < 1
+            || centreWellCoreCharge < 1
+            || enemyWellCoreCharge < 1)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(ownWellCoreCharge),
+                "Team-relative Core charge values must be positive.");
+        }
+        OwnWellCoreCharge = ownWellCoreCharge;
+        CentreWellCoreCharge = centreWellCoreCharge;
+        EnemyWellCoreCharge = enemyWellCoreCharge;
+        VeteranCommand = veteranCommand;
+        if ((respawnWavePeriodTicks == 0) != (respawnMinimumDeadTicks == 0)
+            || respawnWavePeriodTicks < 0
+            || respawnMinimumDeadTicks < 0)
+        {
+            throw new ArgumentException(
+                "Respawn waves require both a positive period and minimum dead time.");
+        }
+        RespawnWavePeriodTicks = respawnWavePeriodTicks;
+        RespawnMinimumDeadTicks = respawnMinimumDeadTicks;
+        if (minimumDistinctClasses < 0
+            || minimumDistinctClasses > fieldedSlotsPerTeam)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(minimumDistinctClasses));
+        }
+        MinimumDistinctClasses = minimumDistinctClasses;
+        DurableDeployments = durableDeployments;
         if (signatureGrammarVersion is not (1 or 2 or 3))
             throw new ArgumentOutOfRangeException(
                 nameof(signatureGrammarVersion));
@@ -187,6 +224,30 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public int MaxCopiesPerClass { get; }
     public int RespawnDelayTicks { get; }
     public ImmutableArray<ArcRelaySignatureDefinition> Signatures { get; }
+
+    /// <summary>
+    /// Charge awarded when a team banks a Core from its near, centre, or far
+    /// Well. Historical rules use 1/1/1; Tapline depth score uses 1/2/4.
+    /// </summary>
+    public int OwnWellCoreCharge { get; }
+    public int CentreWellCoreCharge { get; }
+    public int EnemyWellCoreCharge { get; }
+
+    /// <summary>Whether Orders may use the veteran-command vocabulary.</summary>
+    public bool VeteranCommand { get; }
+
+    /// <summary>
+    /// Shared public respawn clock. Zero disables waves and preserves the
+    /// ordinary per-slot delay.
+    /// </summary>
+    public int RespawnWavePeriodTicks { get; }
+    public int RespawnMinimumDeadTicks { get; }
+
+    /// <summary>Minimum distinct class IDs in the eight-slot roster.</summary>
+    public int MinimumDistinctClasses { get; }
+
+    /// <summary>Persistent, damageable depth-pack deployment semantics.</summary>
+    public bool DurableDeployments { get; }
 
     /// <summary>
     /// 1 is the historical launch grammar. 2 (owner ruling 2026-08-05) makes

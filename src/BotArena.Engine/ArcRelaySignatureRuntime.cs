@@ -41,6 +41,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         _opposingSlotsByTeam;
 
     private readonly bool _diagonalCornersMustBeClear;
+    private readonly bool _durableDeployments;
 
     /// <summary>
     /// Equal-distance target ties break toward the shooter's own reactor
@@ -63,6 +64,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         ArgumentNullException.ThrowIfNull(mode);
         _map = definition.Map;
         _sideFairTargeting = mode.AlternatingResolutionOrder;
+        _durableDeployments = mode.DurableDeployments;
         if (definition.ModeMapBinding is
                 ArcRelayActorModeMapBindingDefinition reactorBinding)
         {
@@ -810,7 +812,12 @@ internal sealed partial class ArcRelaySignatureRuntime
                 SuppressedByHostileNullField(
                     value.OwnerActorId.TeamId,
                     value.Positions,
-                    tick)))
+                    tick))
+            {
+                MaximumCapacity = _durableDeployments
+                    ? ConstructMaximumCapacity(value.Definition)
+                    : 0,
+            })
             .ToImmutableArray();
 
     public bool IsSmokeAt(Position position, int tick) =>
@@ -875,6 +882,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         Position position,
         int projectileTeamId,
         int tick,
+        int damage,
         out GenericActorModeEvent? modeEvent)
     {
         Operation? construct = _operations.Values
@@ -895,12 +903,54 @@ internal sealed partial class ArcRelaySignatureRuntime
             modeEvent = null;
             return false;
         }
-        construct.RemainingCapacity--;
+        int amount = _durableDeployments
+            ? ConstructDamageAmount(construct.Definition, damage)
+            : 1;
+        construct.RemainingCapacity = Math.Max(
+            0, construct.RemainingCapacity - amount);
         string reason = construct.RemainingCapacity == 0
             ? "destroyed-projectile"
-            : "projectile-contact";
+            : _durableDeployments
+                ? "damaged-projectile"
+                : "projectile-contact";
         modeEvent = SignatureEvent(construct, reason);
         if (construct.RemainingCapacity == 0)
+            _operations.Remove(construct.OperationId);
+        return true;
+    }
+
+    /// <summary>
+    /// Candidate-only explicit direct-signature policy. Damaging area/line
+    /// signatures may dismantle hostile deployments; contact-capacity Prism
+    /// Walls still consume one segment, while hull constructs receive the
+    /// signature's declared damage. The caller owns whether contact stops a
+    /// line (rail does) or merely shares an area (falling star does).
+    /// </summary>
+    public bool TryDamageDeployment(
+        Position position,
+        int attackerTeamId,
+        int damage,
+        string source,
+        out GenericActorModeEvent? modeEvent)
+    {
+        if (!_durableDeployments)
+        {
+            modeEvent = null;
+            return false;
+        }
+        Operation? construct = HostileConstructAt(position, attackerTeamId);
+        if (construct is null)
+        {
+            modeEvent = null;
+            return false;
+        }
+        int amount = ConstructDamageAmount(construct.Definition, damage);
+        construct.RemainingCapacity = Math.Max(
+            0, construct.RemainingCapacity - amount);
+        bool destroyed = construct.RemainingCapacity == 0;
+        modeEvent = SignatureEvent(
+            construct, destroyed ? $"destroyed-{source}" : $"damaged-{source}");
+        if (destroyed)
             _operations.Remove(construct.OperationId);
         return true;
     }
@@ -1072,13 +1122,55 @@ internal sealed partial class ArcRelaySignatureRuntime
             return;
         }
         foreach (Operation existing in _operations.Values.Where(value =>
-                     value.OwnerActorId == replacement.OwnerActorId
+                     (_durableDeployments
+                         ? value.OwnerActorId.TeamId
+                            == replacement.OwnerActorId.TeamId
+                            && value.OwnerActorId.UnitId
+                                == replacement.OwnerActorId.UnitId
+                         : value.OwnerActorId == replacement.OwnerActorId)
                      && value.Definition.Kind == replacement.Definition.Kind)
                  .ToArray())
         {
             Remove(existing, "replaced", events);
         }
     }
+
+    private Operation? HostileConstructAt(
+        Position position,
+        int attackerTeamId) => _operations.Values
+        .Where(value =>
+            value.OwnerActorId.TeamId != attackerTeamId
+            && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
+            && !value.Suppressed
+            && value.Positions.Contains(position)
+            && IsDeployment(value.Definition))
+        .OrderBy(value => value.OperationId, StringComparer.Ordinal)
+        .FirstOrDefault();
+
+    private static bool IsDeployment(ArcRelaySignatureDefinition definition) =>
+        definition is ArcRelaySignatureDefinition.PrismWall
+            or ArcRelaySignatureDefinition.TripNode
+            or ArcRelaySignatureDefinition.HardlightBlock
+            or ArcRelaySignatureDefinition.SentinelSeed
+            or ArcRelaySignatureDefinition.SentinelSeed2;
+
+    private static int ConstructDamageAmount(
+        ArcRelaySignatureDefinition definition,
+        int declaredDamage) => definition is ArcRelaySignatureDefinition.PrismWall
+            ? 1
+            : Math.Max(1, declaredDamage);
+
+    private static int ConstructMaximumCapacity(
+        ArcRelaySignatureDefinition definition) => definition switch
+        {
+            ArcRelaySignatureDefinition.PrismWall value =>
+                value.ContactCapacity,
+            ArcRelaySignatureDefinition.TripNode value => value.Hull,
+            ArcRelaySignatureDefinition.HardlightBlock value => value.Hull,
+            ArcRelaySignatureDefinition.SentinelSeed value => value.Hull,
+            ArcRelaySignatureDefinition.SentinelSeed2 value => value.Hull,
+            _ => 0,
+        };
 
     private void Complete(
         Operation operation,

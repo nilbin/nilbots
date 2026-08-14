@@ -1654,12 +1654,16 @@ public sealed record GenericActorMatchChronology
                 .ModeObservationState.ArcRelay strikesAfter
             && strikesBefore.PendingStrikes
                 .SequenceEqual(strikesAfter.PendingStrikes)
-            && tickStart.Events.Any(value =>
+                && tickStart.Events.Any(value =>
                 value.UnredactedPayload is GenericActorRuntimeObservation
                     .EventPayload.ModeChanged changed
                 && Equals(
                     changed.State,
-                    strikesAfter with { PendingStrikes = [] }));
+                    strikesAfter with
+                    {
+                        PendingStrikes = [],
+                        RespawnWaveTeams = [],
+                    }));
         bool derivedArcScheduleAdvance = ArcScheduleOnlyAdvance(
             before.Mode,
             after.Mode,
@@ -1749,7 +1753,18 @@ public sealed record GenericActorMatchChronology
             return false;
         }
 
-        bool changed = false;
+        bool changed = !left.RespawnWaveTeams.SequenceEqual(
+            right.RespawnWaveTeams);
+        if (left.NextRespawnWaveTick != right.NextRespawnWaveTick)
+        {
+            if (left.NextRespawnWaveTick != tick
+                || right.NextRespawnWaveTick is not int nextWave
+                || nextWave <= tick)
+            {
+                return false;
+            }
+            changed = true;
+        }
         for (int index = 0; index < left.Wells.Length; index++)
         {
             ArcRelayWellState oldWell = left.Wells[index];
@@ -6946,7 +6961,11 @@ public sealed record GenericActorMatchChronology
             if (finalState.Mode is not GenericActorRuntimeObservation
                     .ModeObservationState.ArcRelay finalArc
                 || !Equals(
-                    finalArc with { PendingStrikes = [] },
+                    finalArc with
+                    {
+                        PendingStrikes = [],
+                        RespawnWaveTeams = [],
+                    },
                     arcRelay.State))
             {
                 throw new ArgumentException(

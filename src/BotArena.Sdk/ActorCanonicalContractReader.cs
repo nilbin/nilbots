@@ -755,6 +755,16 @@ public static class ActorCanonicalContractReader
             "chiralWellBirths", out _);
         bool hasHealZones = element.TryGetProperty(
             "healZoneTicksPerHp", out _);
+        bool hasTeamRelativeCharge = element.TryGetProperty(
+            "teamRelativeCoreCharge", out _);
+        bool hasVeteranCommand = element.TryGetProperty(
+            "veteranCommand", out _);
+        bool hasRespawnWave = element.TryGetProperty(
+            "respawnWavePeriodTicks", out _);
+        bool hasMinimumDistinctClasses = element.TryGetProperty(
+            "minimumDistinctClasses", out _);
+        bool hasDurableDeployments = element.TryGetProperty(
+            "durableDeployments", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -801,9 +811,33 @@ public static class ActorCanonicalContractReader
             .. hasHealZones
                 ? new[] { "healZoneTicksPerHp" }
                 : System.Array.Empty<string>(),
+            .. hasTeamRelativeCharge
+                ? new[] { "teamRelativeCoreCharge" }
+                : System.Array.Empty<string>(),
+            .. hasVeteranCommand
+                ? new[] { "veteranCommand" }
+                : System.Array.Empty<string>(),
+            .. hasRespawnWave
+                ? new[]
+                {
+                    "respawnWavePeriodTicks", "respawnMinimumDeadTicks",
+                }
+                : System.Array.Empty<string>(),
+            .. hasMinimumDistinctClasses
+                ? new[] { "minimumDistinctClasses" }
+                : System.Array.Empty<string>(),
+            .. hasDurableDeployments
+                ? new[] { "durableDeployments" }
+                : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
         ExactObject(element, modeFields);
+        if (hasTeamRelativeCharge)
+        {
+            ExactObject(
+                Property(element, "teamRelativeCoreCharge"),
+                "ownWell", "centreWell", "enemyWell");
+        }
         RulesContract.Victory victory =
             ReadVictory(Property(element, "victory"));
         if (victory is not RulesContract.ArcRelayVictory arcRelayVictory)
@@ -864,6 +898,28 @@ public static class ActorCanonicalContractReader
                 && Bool(element, "seedPhasedWellLead"),
             ChiralWellBirths = hasChiralBirths
                 && Bool(element, "chiralWellBirths"),
+            OwnWellCoreCharge = hasTeamRelativeCharge
+                ? Int(Property(element, "teamRelativeCoreCharge"), "ownWell")
+                : 1,
+            CentreWellCoreCharge = hasTeamRelativeCharge
+                ? Int(Property(element, "teamRelativeCoreCharge"), "centreWell")
+                : 1,
+            EnemyWellCoreCharge = hasTeamRelativeCharge
+                ? Int(Property(element, "teamRelativeCoreCharge"), "enemyWell")
+                : 1,
+            VeteranCommand = hasVeteranCommand
+                && Bool(element, "veteranCommand"),
+            RespawnWavePeriodTicks = hasRespawnWave
+                ? Int(element, "respawnWavePeriodTicks")
+                : 0,
+            RespawnMinimumDeadTicks = hasRespawnWave
+                ? Int(element, "respawnMinimumDeadTicks")
+                : 0,
+            MinimumDistinctClasses = hasMinimumDistinctClasses
+                ? Int(element, "minimumDistinctClasses")
+                : 0,
+            DurableDeployments = hasDurableDeployments
+                && Bool(element, "durableDeployments"),
         };
     }
 
@@ -2706,6 +2762,16 @@ public static class ActorCanonicalContractReader
                     || arcRelay.FieldedSlotsPerTeam <= 0
                     || arcRelay.MaxCopiesPerClass <= 0
                     || arcRelay.RespawnDelayTicks <= 0
+                    || arcRelay.OwnWellCoreCharge <= 0
+                    || arcRelay.CentreWellCoreCharge <= 0
+                    || arcRelay.EnemyWellCoreCharge <= 0
+                    || (arcRelay.RespawnWavePeriodTicks == 0)
+                        != (arcRelay.RespawnMinimumDeadTicks == 0)
+                    || arcRelay.RespawnWavePeriodTicks < 0
+                    || arcRelay.RespawnMinimumDeadTicks < 0
+                    || arcRelay.MinimumDistinctClasses < 0
+                    || arcRelay.MinimumDistinctClasses
+                        > arcRelay.FieldedSlotsPerTeam
                     || arcRelay.Wells.IsDefaultOrEmpty
                     || arcRelay.Signatures.IsDefaultOrEmpty
                     || arcBinding.OrderedWellRegionIds.Length

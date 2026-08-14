@@ -563,7 +563,8 @@ internal static class ReplayV3Projection
             value.ObservedBy.Select(ActorId).ToImmutableArray(),
             value.ClassId,
             value.CarriedScrap,
-            value.RoleTag);
+            value.RoleTag,
+            value.VeterancyLevel);
 
     private static ReplayV3.PendingSameLifeTransition? PendingTransition(
         GenericActorRuntimeObservation.PendingSameLifeTransition? value) =>
@@ -1144,7 +1145,10 @@ internal static class ReplayV3Projection
                     ActorId(fact.CarrierActorId),
                     fact.TeamId,
                     Position(fact.Position),
-                    fact.ChargePips),
+                    fact.ChargePips)
+                {
+                    ChargeAwarded = fact.ChargeAwarded,
+                },
             ArcRelayEvent.WellChanged fact =>
                 new ReplayV3.ArcRelayFact.WellChanged(
                     fact.WellId,
@@ -1489,10 +1493,19 @@ internal static class ReplayV3Projection
                         ? ActorId(target)
                         : null,
                     signature.RemainingCapacity,
-                    signature.Suppressed))],
+                    signature.Suppressed)
+                {
+                    MaximumCapacity = signature.MaximumCapacity,
+                })],
             value.LatestPulseTeamId,
             value.LatestPulseTick)
         {
+            NextRespawnWaveTick = value.NextRespawnWaveTick,
+            RespawnWaveTeams = [.. value.RespawnWaveTeams.Select(team =>
+                new ReplayV3.ArcRespawnWaveTeam(
+                    team.TeamId,
+                    team.LiveBodies,
+                    team.RespawnsNextWave))],
             PendingStrikes = [.. value.PendingStrikes.Select(strike =>
                 new ReplayV3.ArcPendingStrike(
                     ActorId(strike.Shooter),
