@@ -42,8 +42,11 @@ for (const input of [...manifest.meshyInputs].sort((left, right) => left.order -
   });
 }
 
-if (inputs[0]?.primary !== true || inputs[0]?.view !== 'strict-front')
-  throw new Error('The first Meshy 7 input must be the primary strict-front view.');
+const primaryView = plan.primaryView ?? 'strict-front';
+if (inputs[0]?.primary !== true || inputs[0]?.view !== primaryView)
+  throw new Error(`The first Meshy 7 input must be the primary ${primaryView} view.`);
+if (inputs.filter((input) => input.primary === true).length !== 1)
+  throw new Error('Exactly one Meshy 7 input must be marked primary.');
 
 if (options.validateOnly) {
   console.log(

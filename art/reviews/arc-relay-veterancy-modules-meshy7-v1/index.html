@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nilbots · Meshy 7 Veterancy Pilot</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #eef2f3;
+        --muted: #a3afb5;
+        --panel: #151b20;
+        --line: #303940;
+        --gold: #e6aa43;
+        --green: #79c79b;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #090d10;
+        font: 15px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { width: min(1120px, 100%); margin: 0 auto; padding: 28px 16px 64px; }
+      h1, h2 { margin: 0; line-height: 1.15; }
+      h1 { font-size: clamp(30px, 7vw, 58px); letter-spacing: -0.035em; }
+      h2 { margin-bottom: 12px; font-size: clamp(21px, 4vw, 30px); }
+      p { margin: 10px 0 0; }
+      .eyebrow { color: var(--gold); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .lead { max-width: 820px; color: #cbd3d7; font-size: clamp(17px, 3vw, 21px); }
+      .verdict {
+        margin: 24px 0 16px;
+        padding: 18px 20px;
+        border: 1px solid #406653;
+        border-radius: 14px;
+        background: #102219;
+      }
+      .verdict strong { color: var(--green); font-size: 21px; }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 18px 0 34px;
+      }
+      .metric { padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .metric b { display: block; color: var(--gold); font-size: 21px; }
+      .metric span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+      section { margin-top: 42px; }
+      figure { margin: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+      figure + figure { margin-top: 16px; }
+      figure a { display: block; }
+      img { display: block; width: 100%; height: auto; background: #11161a; }
+      figcaption { padding: 12px 14px 14px; color: var(--muted); }
+      .split { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(220px, .8fr); gap: 16px; }
+      .note { padding: 16px 18px; border-left: 3px solid var(--gold); background: #171710; color: #d8d1c4; }
+      ul { margin: 10px 0 0; padding-left: 20px; }
+      a { color: #f0bc61; }
+      footer { margin-top: 48px; color: #7f8c93; font-size: 13px; }
+      @media (max-width: 760px) {
+        main { padding-top: 20px; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .split { grid-template-columns: 1fr; }
+        section { margin-top: 34px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Nilbots · art-side Gate B</div>
+      <h1>Meshy 7 veterancy pilot</h1>
+      <p class="lead">Five coherent module inputs, one paid swept-blade model, deterministic static proof. No runtime integration and no calls for the remaining four.</p>
+
+      <div class="verdict">
+        <strong>Verdict: the approach flies.</strong>
+        <p>The model stayed coherent, mirrors cleanly, and reads as veteran armor on both required chassis after correcting the provider's reversed facing.</p>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><b>30</b><span>credits used</span></div>
+        <div class="metric"><b>980</b><span>credits remain</span></div>
+        <div class="metric"><b>1</b><span>paid model</span></div>
+        <div class="metric"><b>0</b><span>runtime changes</span></div>
+      </div>
+
+      <section>
+        <h2>1 · Gate A input family</h2>
+        <p class="note">The sheet below is review evidence. Meshy received four separate 1254×1254 PNGs for the swept blade, with the front three-quarter view first.</p>
+        <figure>
+          <a href="gate-a-inputs.png"><img src="gate-a-inputs-phone.png" alt="Five veterancy modules shown in top, side, front three-quarter and rear three-quarter views" /></a>
+          <figcaption>Tap for the full-resolution five-module sheet. The first two rejected crown-spine drafts are retained in provider provenance.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>2 · Provider result and normalized views</h2>
+        <div class="split">
+          <figure>
+            <a href="pilot/swept-blade-six-view.png"><img src="pilot/swept-blade-six-view.png" alt="Six deterministic views of the normalized Meshy swept blade" /></a>
+            <figcaption>The accepted normalized rich GLB: +Y up, floor Y=0, 0.36-tile X span, and a recorded 180° facing correction.</figcaption>
+          </figure>
+          <figure>
+            <a href="pilot/provider-preview.png"><img src="pilot/provider-preview.png" alt="Original Meshy provider preview of the swept blade" /></a>
+            <figcaption>Original provider preview before the facing review.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section>
+        <h2>3 · Mirroring and chassis fit</h2>
+        <figure>
+          <a href="pilot/swept-blade-fit-board.png"><img src="pilot/swept-blade-fit-board.png" alt="Mirrored swept blade pair fitted to Kestrel and Longshot" /></a>
+          <figcaption>The narrow clipped ends face forward; luminous caps face rearward. Kestrel's nose and Longshot's central rail bed remain readable.</figcaption>
+        </figure>
+        <figure>
+          <a href="pilot/swept-blade-gameplay-scale.png"><img src="pilot/swept-blade-gameplay-scale.png" alt="Unsharpened 96 pixel readability samples" /></a>
+          <figcaption>Unsharpened 96px reductions: the pair remains distinct instead of collapsing into noise.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>What still needs a decision</h2>
+        <ul>
+          <li>The rich result is 65.4 MB and 1.999 million triangles. It is deliberately not a runtime candidate; lean work belongs after silhouette approval.</li>
+          <li>The piece is 0.208 tile wide at the planned 0.36-tile length—broader than the 0.11 starting envelope, though both required fits work.</li>
+          <li>The crown-spine is still the least certain ungenerated concept and deserves an extra look before spending its Gate C call.</li>
+        </ul>
+        <p><a href="pilot/pilot-audit.json">Open the machine-readable pilot audit</a> · <a href="gate-a-input-metrics.json">Open all Gate A hashes and dimensions</a></p>
+      </section>
+
+      <footer>Static review only · no bot models replaced · no renderer/viewer code changed · no replay harness run.</footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "status": "gate-b-static-review",
+  "capturedAt": "2026-08-14T19:09:56.370Z",
+  "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
+  "provider": "Meshy",
+  "providerModel": "meshy-7",
+  "credits": 30,
+  "renderer": "Three.js WebGLRenderer through Playwright Chromium",
+  "sourceViewers": [
+    "scripts/class-models/model-turntable-review.html",
+    "scripts/class-models/veterancy-module-fit-review.html"
+  ],
+  "raw": {
+    "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/raw-model.glb",
+    "bytes": 65381064,
+    "sha256": "1ce6fb55539843f2fa105dd28f57db8e1cf40f226fa78f66688cf1ac55f3f136",
+    "vertices": 1032029,
+    "triangles": 1999010,
+    "materials": 1,
+    "textures": 4,
+    "images": [
+      {
+        "imageIndex": 0,
+        "name": null,
+        "mimeType": "image/jpeg",
+        "slots": [
+          "baseColorTexture"
+        ],
+        "bytes": 3630011,
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "imageIndex": 1,
+        "name": null,
+        "mimeType": "image/jpeg",
+        "slots": [
+          "metallicRoughnessTexture"
+        ],
+        "bytes": 2063699,
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "imageIndex": 2,
+        "name": null,
+        "mimeType": "image/jpeg",
+        "slots": [
+          "normalTexture"
+        ],
+        "bytes": 2463329,
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "imageIndex": 3,
+        "name": null,
+        "mimeType": "image/jpeg",
+        "slots": [
+          "emissiveTexture"
+        ],
+        "bytes": 208392,
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "gltf": {
+      "generator": "pygltflib@v1.16.5",
+      "scenes": 1,
+      "nodes": 1,
+      "meshes": 1,
+      "primitives": 1,
+      "materials": 1,
+      "animations": 0,
+      "skins": 0
+    },
+    "spatialConnectedComponents": 1
+  },
+  "normalizedRich": {
+    "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/model-normalized-rich-review.glb",
+    "bytes": 65381704,
+    "sha256": "dd11a11b98bd88935fbb1b213671cefa56879dc623943473744fc44a557c4825",
+    "vertices": 1032029,
+    "triangles": 1999010,
+    "materials": 1,
+    "textures": 4,
+    "bounds": {
+      "min": [
+        -0.18,
+        0,
+        -0.10420937048654196
+      ],
+      "max": [
+        0.18,
+        0.09259162302188197,
+        0.10420937048654196
+      ]
+    },
+    "dimensions": {
+      "x": 0.36,
+      "y": 0.09259162302188197,
+      "z": 0.2084187409730839
+    },
+    "orientation": "identity",
+    "providerFacing": "-X",
+    "targetFacing": "+X",
+    "facingYawDegrees": 180,
+    "facingEvidence": "The broad luminous capped end is the rear; the narrow clipped armor end points +X/front.",
+    "up": "+Y",
+    "floorY": 0
+  },
+  "startingEnvelope": {
+    "x": 0.36,
+    "y": 0.12,
+    "z": 0.11
+  },
+  "envelopeDeltas": {
+    "x": 1,
+    "y": 0.771596858515683,
+    "z": 1.8947158270280355
+  },
+  "evidence": {
+    "sixViewSheet": {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-six-view.png",
+      "bytes": 716628,
+      "sha256": "57dd9c00023b341fb111852fe80c5e623e7bf79c67c37af7e87b77a1932479d5"
+    },
+    "fitSheet": {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-fit-board.png",
+      "bytes": 395954,
+      "sha256": "f486164eeb3d60957cb119a4ff90c64a072d8b7c43bfedc0ccdc88e3f499305a"
+    },
+    "gameplayScaleSheet": {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-gameplay-scale.png",
+      "bytes": 40028,
+      "sha256": "0f61be14a973877cc6266aff1fc77412546d9bafabb3e9765d94a11e95c1d347"
+    },
+    "isolatedCaptures": [
+      {
+        "view": "front-three-quarter",
+        "label": "GAMEPLAY 3/4",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/isolated-front-three-quarter.png",
+        "sha256": "4165f87cd692592b11c6effd5e5a406a5e031e4bfdf6582cdc9158b0816fdff2"
+      },
+      {
+        "view": "positive-x",
+        "label": "+X CAMERA",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/isolated-positive-x.png",
+        "sha256": "b4f0244b46a7fc042ef60cb9daf74768cc86ae4b5217b25b7ee0198848aa00e8"
+      },
+      {
+        "view": "negative-x",
+        "label": "-X CAMERA",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/isolated-negative-x.png",
+        "sha256": "1ddea97bf353186dedd18eeb54fc40584eb162e66edd015219fa72ed94029fc3"
+      },
+      {
+        "view": "positive-z",
+        "label": "+Z CAMERA",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/isolated-positive-z.png",
+        "sha256": "714d568bb3aecee2125f4f79152ec8d22b3f302f3fe8840ef17606faf408f17a"
+      },
+      {
+        "view": "negative-z",
+        "label": "-Z CAMERA",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/isolated-negative-z.png",
+        "sha256": "f347186583fe1fea7be4244da9955433391e98041db57f526defffae586d6d50"
+      },
+      {
+        "view": "top-down",
+        "label": "STRICT TOP",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/isolated-top-down.png",
+        "sha256": "24a18938aaad3391e0a22b4bcaa82e651b387f12c5690b57106d93a4a37c4bb5"
+      }
+    ],
+    "fitCaptures": [
+      {
+        "view": "mirrored-pair",
+        "label": "MIRRORED PAIR",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/mirrored-pair.png",
+        "sha256": "eaf2f4f059e3a83cc1e7061de44b812aa37ae9a17ff071f34f70d6d8c155ce4b"
+      },
+      {
+        "view": "kestrel-fit",
+        "label": "KESTREL STATIC FIT",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/kestrel-fit.png",
+        "sha256": "284d0fe103936fac8f1c8b96e9f14c3eb0ca539b54a957523526c04e42877122"
+      },
+      {
+        "view": "longshot-fit",
+        "label": "LONGSHOT STATIC FIT",
+        "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/captures/longshot-fit.png",
+        "sha256": "26e8cac97bac54d94c4513fcbe58214ae01beb18454f66a7b8db959d4ee2f765"
+      }
+    ]
+  },
+  "contract": {
+    "purpose": "Static art-side Gate B evidence only; no runtime promotion",
+    "remainingMeshyGenerationsAuthorized": 0,
+    "autoRigging": false
+  }
+}

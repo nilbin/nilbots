@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-swept-blade-meshy7-pilot-v1",
+  "classId": "veterancy-swept-blade",
+  "label": "Veterancy Swept Blade",
+  "status": "owner-review",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner asked to try the Meshy 7 veterancy-model handoff and see whether it flies while AFK on 2026-08-14.",
+  "canonicalIdentity": {
+    "sourceSheet": "source-sheet.png",
+    "gateAReview": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
+    "inputMetrics": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "03-front-three-quarter.png",
+      "sha256": "bc506006edc5e85470b39ce174e48ce4e080b1d19a13136debb9976d9ada48c1",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "02-side.png",
+      "sha256": "617fabbc79a4bfa5532180eae30fb308eb29dbb7b91f8baf7d8e619f657f5d02",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "04-rear-three-quarter.png",
+      "sha256": "b218451bb0acd5db5a7ff69c747552d38b64152206c09dfbee851a986d250d2b",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "01-top.png",
+      "sha256": "0cfcf89ce20da82861bb394a864c1d475f7439cad7bc56c0520abaf57a7c57a0",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "inputGate": {
+    "status": "passed",
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1254,
+    "rootIntent": "The flat underside and recessed inner edge mount to one chassis side; the narrow clipped armor end points +X/front and the broad luminous capped end points rearward.",
+    "family": "matte aged brass shell, graphite recesses, restrained amber inlay"
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "One 30-credit Gate B pilot is within the owner's 2026-08-14 instruction to try the handoff.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy swept-blade armor attachment. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber emissive inlays; sparse edge wear. Preserve the broad low rear-swept armor-blade silhouette, clipped root and end, recessed inner seam, large readable faceted planes, flat mount underside, and one connected rigid object. No bot, chassis, base, floor, fantasy wing, aircraft, sword, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "balanceBeforePreparation": 1010
+  },
+  "nextGate": "owner review of Gate A and the swept-blade pilot before any remaining module generation; no runtime promotion",
+  "providerRun": {
+    "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
+    "directory": "../../veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 1010,
+    "balanceAfter": 980,
+    "rawModelSha256": "1ce6fb55539843f2fa105dd28f57db8e1cf40f226fa78f66688cf1ac55f3f136"
+  },
+  "reviewGate": {
+    "status": "passed-static-review-with-caveats",
+    "runtimePromoted": false,
+    "normalizedRichArtifact": "../../veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/model-normalized-rich-review.glb",
+    "normalizedRichSha256": "dd11a11b98bd88935fbb1b213671cefa56879dc623943473744fc44a557c4825",
+    "facingYawDegrees": 180,
+    "audit": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/pilot-audit.json",
+    "assessment": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/ASSESSMENT.md",
+    "sixView": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-six-view.png",
+    "fitBoard": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-fit-board.png",
+    "gameplayScale": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/pilot/swept-blade-gameplay-scale.png",
+    "richMetrics": {
+      "bytes": 65381704,
+      "vertices": 1032029,
+      "triangles": 1999010,
+      "materials": 1,
+      "textures": 4
+    },
+    "caveat": "The rich proof is intentionally not mobile-ready; the 0.2084-tile Z span is broader than the 0.11 starting envelope but passes both required static fits."
+  }
+}
