@@ -1,0 +1,17 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tapline-vanguard-adaptive-v2-map",
+  "mapId": "arc-relay-tapline-01",
+  "zones": {
+    "home-return-sector": { "rect": [5, 3, 13, 10] },
+    "enemy-approach": { "rect": [18, 11, 20, 13] }
+  },
+  "routes": {
+    "north-flank-ingress": {
+      "waypoints": [[8, 3], [14, 3], [20, 3], [24, 7], [23, 11], [20, 14]]
+    }
+  },
+  "anchors": {
+    "flank-rally": [20, 14]
+  }
+}
