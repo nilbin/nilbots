@@ -282,10 +282,10 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
       onClose={() => { setLibrary(null); setConditionSelection(null); }}>
       {library === 'conditions' && <ConditionsEditor orders={orders} mapPlan={mapPlan} issues={issues} onChange={onChange}
         initialSelected={conditionSelection}
-        onOpenMap={(conditionId) => {
+        onOpenMap={(conditionId, zoneId) => {
           setLibrary(null);
           setConditionSelection(conditionId);
-          onOpenMap({ kind: 'zone', id: '' }, conditionId);
+          onOpenMap({ kind: 'zone', id: zoneId ?? '' }, conditionId);
         }} />}
       {library === 'capacities' && <CapacitiesEditor orders={orders} issues={issues} onChange={onChange} />}
       {library === 'shared' && <SharedOrdersEditor catalog={catalog} orders={orders} mapPlan={mapPlan} issues={issues}
@@ -718,7 +718,7 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap, initia
   mapPlan: MapPlanDocument;
   issues: SheetIssue[];
   onChange: (next: OrdersDocument) => void;
-  onOpenMap: (conditionId: string) => void;
+  onOpenMap: (conditionId: string, zoneId?: string) => void;
   initialSelected?: string | null;
 }) {
   const ids = Object.keys(orders.conditions);
@@ -789,7 +789,7 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap, initia
           onChange={(event) => commit((next) => { next.conditions[selected].value = Number(event.target.value); })} /></label>
       </>}
       <ConditionQualifiers condition={current} roles={orders.roles} mapPlan={mapPlan}
-        onOpenMap={() => onOpenMap(selected)}
+        onOpenMap={(zoneId) => onOpenMap(selected, zoneId)}
         onChange={(condition) => commit((next) => { next.conditions[selected] = condition; })} />
       <IssueList issues={issues.filter((issue) => issue.path.startsWith(`orders.conditions.${selected}`))} />
       <button type="button" className="btn mt-4 min-h-11 text-arena-hot" onClick={() => { commit((next) => { delete next.conditions[selected]; }); setSelected(ids.find((id) => id !== selected) ?? ''); }}>Delete condition</button>
@@ -802,7 +802,7 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }:
   roles: RoleDefinition[];
   mapPlan: MapPlanDocument;
   onChange: (next: ConditionDefinition) => void;
-  onOpenMap: () => void;
+  onOpenMap: (zoneId?: string) => void;
 }) {
   const kind = conditionSubjectKind(condition.fact);
   const zones = Object.keys(mapPlan.zones);
@@ -816,11 +816,21 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }:
   return <div className="mt-3 grid gap-2 sm:grid-cols-2">
     {(kind === 'role' || kind === 'role-zone') && <CardPicker label="Role" value={condition.role ?? ''} values={roles.map((role) => role.id)} onChange={(role) => change((next) => { next.role = role; })} />}
     {(kind === 'zone' || kind === 'role-zone') && (zones.length > 0
-      ? <CardPicker label="Map zone" value={condition.zone ?? ''} values={zones} onChange={(zone) => change((next) => { next.zone = zone; })} />
+      ? <div className="min-w-0">
+        <CardPicker label="Map zone" value={condition.zone ?? ''} values={zones} allowClear
+          onChange={(zone) => change((next) => {
+            if (zone) next.zone = zone;
+            else delete next.zone;
+          })} />
+        <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+          onClick={() => onOpenMap(condition.zone && zones.includes(condition.zone) ? condition.zone : zones[0])}>
+          Edit zones on map →
+        </button>
+      </div>
       : <div className="sm:col-span-2 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
         <p className="type-display text-[15px]">Plot a zone first</p>
         <p className="t-micro mt-1">This fact watches named ground. Draw that ground once in the map plan, then select it here.</p>
-        <button type="button" className="btn btn-secondary mt-2 min-h-11" onClick={onOpenMap}>Open map plan</button>
+        <button type="button" className="btn btn-secondary mt-2 min-h-11" onClick={() => onOpenMap()}>Open map plan</button>
       </div>)}
     {kind === 'well' && <CardPicker label="Well" value={condition.well ?? ''} values={['north', 'centre', 'south', 'own', 'enemy']} onChange={(well) => change((next) => { next.well = well as ConditionDefinition['well']; })} />}
     {['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(condition.fact) && <OptionalTicks label="Knowledge freshness" value={condition.freshnessTicks} min={1} max={600} placeholder="ticks"
@@ -916,15 +926,18 @@ function SharedReference({ node, allOrders, onChange }: { node: OrderNode; allOr
   </div>;
 }
 
-function CardPicker({ label, value, values, descriptions = {}, emptyLabel = 'None', labeler = humanize, onChange }: {
+function CardPicker({ label, value, values, descriptions = {}, emptyLabel = 'None', labeler = humanize,
+  allowClear = false, onChange }: {
   label: string; value: string; values: readonly string[]; descriptions?: Record<string, string>; emptyLabel?: string;
-  labeler?: (value: string) => string; onChange: (value: string) => void;
+  labeler?: (value: string) => string; allowClear?: boolean; onChange: (value: string) => void;
 }) {
   return <fieldset className="mt-3"><legend className="lab mb-2">{label}</legend>
     <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">{values.map((candidate) => <button key={candidate || 'empty'} type="button"
-      className="choice-card min-h-12" data-selected={value === candidate} onClick={() => onChange(candidate)}>
+      className="choice-card min-h-12" data-selected={value === candidate} aria-pressed={value === candidate}
+      onClick={() => onChange(allowClear && value === candidate ? '' : candidate)}>
       <b className="t-body block">{candidate ? labeler(candidate) : emptyLabel}</b>{descriptions[candidate] && <span className="t-micro mt-1 block">{descriptions[candidate]}</span>}
     </button>)}</div>
+    {allowClear && value && <p className="t-micro mt-1.5">Tap the selected zone again to clear it.</p>}
   </fieldset>;
 }
 
