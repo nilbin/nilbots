@@ -461,9 +461,11 @@ public static class ToolchainInfo
     /// durable deployments as Tapline-4 / hosted playlist v22.
     /// 0.9.62 promotes Tapline-5's delayed centre opening as the local, exhibit
     /// and hosted default while preserving the unchanged tactical mind bytes.
+    /// 0.9.63 promotes Tapline-6's equal-return map fork as the local, editor
+    /// and hosted default while preserving Tapline-5 as immutable history.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.62";
+    public const string CliVersion = "0.9.63";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

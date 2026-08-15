@@ -6,6 +6,8 @@ shipped directly into the current Orders v2 product language under Decision
 #317; they have no experimental loop profile or alternate rules identity. The
 delayed centre opening later promoted as Tapline-5 and hosted playlist v23
 under Decision #319.
+The equal-return terrain fork later promoted as Tapline-6 and hosted playlist
+v24 under Decision #321; it changes map geometry, not the depth mechanics below.
 
 ## Goal
 

@@ -770,8 +770,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.OrdersV2Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline3Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline4Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline5Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline5_v23_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Tapline6_v24_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -803,6 +804,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV21(),
                 ArcRelayEntrantPlaylistDefinition.Tapline4Version =>
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV22(),
+                ArcRelayEntrantPlaylistDefinition.Tapline5Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV23(),
                 _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
             };
             var version = new PlaylistVersion
@@ -882,17 +885,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 value.Id == predecessorLadderId);
             Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
             Assert.False(predecessorLadder.IsListed);
-            Ladder v23Ladder = await (
+            Ladder v24Ladder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v23Ladder.Status);
-            Assert.True(v23Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, v24Ladder.Status);
+            Assert.True(v24Ladder.IsListed);
             ArcRelayEntrantRating fresh = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v23Ladder.Id);
+                    value.LadderId == v24Ladder.Id);
             Assert.Equal(BotRating.DefaultRating, fresh.Rating);
             Assert.Equal(0, fresh.RankedMatches);
             ArcRelayEntrantRating historical = await db.ArcRelayEntrantRatings

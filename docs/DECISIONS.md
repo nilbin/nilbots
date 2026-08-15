@@ -8561,3 +8561,31 @@ explicit rather than inferred from a stock opponent. It remains unrated and
 shares the existing account practice/scrimmage admission limit. Ranked matches
 and ordinary entrant scrimmages retain causal broadcasts; no game rule, replay
 format, canonical hash, playlist or rating identity changes.
+
+## 321. Equal-return Tapline promotes as Tapline-6 and hosted v24
+
+Owner product ruling (2026-08-15). The reviewed equal-return terrain fork is
+the game, not an experiment. It ships as `tapline-6` /
+`arc-relay-tapline-06` on the new immutable `arc-relay-tapline-02` map. Relative
+to Tapline-5 it adds exactly twelve walls—six west-authored tiles and their
+180-degree partners—while leaving both reactors, all three Wells, healing
+tiles, spawn protection, scoring, cadence, classes and abilities unchanged.
+The practical north and south returns from the centre Well are both 19
+corner-strict terrain steps; the exact fourteen-route atlas, 523-tile connected
+floor, symmetry, corner and cut-vertex properties are executable test contracts,
+not pathing rails or balance claims. Tapline-5 and its map fingerprint remain
+immutable history.
+
+Hosted entrant playlist v24 starts a fresh rating book at 1200 because map
+geometry changes registered gameplay; v23 ratings are not copied. The
+controlled tactical mind artifact, build input and Tempered Standard Orders
+source are unchanged and reused, while its native Tapline-6 map plan receives a
+new pinned source hash. Playlist v23, its matches, ratings, canonical definition,
+map and provenance remain readable and byte-stable.
+
+Demolition March and Lockbox lead the practice-opponent catalog as the primary
+sparring pair for this map. Idle Field is a third, explicitly inert control: its
+eight bodies have no eligible order and therefore only expose movement, timing
+and signature behavior initiated by the author's draft. The other established
+practice opponents remain available. These catalog roles are authoring tools,
+not ranked entrants and not evidence of balance.

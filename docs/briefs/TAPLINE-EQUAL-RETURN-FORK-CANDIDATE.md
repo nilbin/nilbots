@@ -1,6 +1,6 @@
 # Tapline equal-return fork — map candidate
 
-Status: **owner-liked candidate; not implemented or approved for promotion**.
+Status: **implemented and owner-promoted as Tapline-6 / hosted playlist v24**.
 
 Public 2D review and authoritative candidate route atlas:
 [All 14 own-, centre-, and enemy-Well return routes](https://database-asset-dsc-ports.trycloudflare.com/tapline-return-route-atlas.html)
@@ -105,13 +105,12 @@ This is geometry validation, not balance evidence. It does not establish that
 19 is the correct live-game distance or that both routes have equal tactical
 risk under bodies, deployments, sightlines, and combat.
 
-## Implementation boundary and review gate
+## Promotion boundary and review gate
 
-Implement as a new immutable map/profile identity; do not mutate Tapline-5 or
-any frozen playlist map. Pin the wall delta, rotation, topology invariants, and
-the route measurements above in focused map tests. If promoted into hosted
-play, it is gameplay-affecting and therefore requires the corresponding fresh
-playlist/rating identity and all derived map/fingerprint surfaces.
+The fork ships as the new immutable `arc-relay-tapline-02` map and `tapline-6`
+profile. Tapline-5 and hosted v23 remain immutable history. Focused engine tests
+pin the wall delta, rotation, topology invariants, and every route measurement;
+hosted playlist v24 starts a fresh rating book because the map changes gameplay.
 
 Before a balance or ship verdict, run candidate-native sheets through the
 normal trace-first phone exhibit. Specifically inspect congestion at both

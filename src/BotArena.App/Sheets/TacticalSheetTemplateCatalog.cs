@@ -44,6 +44,24 @@ public sealed class TacticalSheetTemplateCatalog
         TacticalSheetSource[] opponents =
         [
             Resolve(
+                "demolition-march-v1",
+                "Demolition March",
+                "Longshots, Mortar, and Hush clear deployments before Relay and Kestrel turn the breach into a raid.",
+                Resource("BotArena.Sheets.demolition-march-v1.sheet.json"),
+                Resource("BotArena.Sheets.demolition-march-v1.map-plan.json")),
+            Resolve(
+                "lockbox-v1",
+                "Lockbox",
+                "Two Masons fortify the near and centre Wells while a deployment net and support unit hold the enclosure.",
+                Resource("BotArena.Sheets.lockbox-v1.sheet.json"),
+                Resource("BotArena.Sheets.lockbox-v1.map-plan.json")),
+            Resolve(
+                "idle-field-v1",
+                "Idle Field",
+                "Eight stationary bodies that never act: a clean control for routes, timing, skills, and traffic checks.",
+                Resource("BotArena.Sheets.idle-field-v1.sheet.json"),
+                Resource("BotArena.Sheets.idle-field-v1.map-plan.json")),
+            Resolve(
                 ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
                 "Tempered Standard",
                 "A balanced eight-class line: guns contest centre, support keeps the line alive, and couriers convert loose Cores.",
@@ -61,18 +79,6 @@ public sealed class TacticalSheetTemplateCatalog
                 "A protected Longshot ace supported by repair, designator optics, a firing line, and a logistics reserve.",
                 Resource("BotArena.Sheets.crowned-rail-v1.sheet.json"),
                 Resource("BotArena.Sheets.crowned-rail-v1.map-plan.json")),
-            Resolve(
-                "lockbox-v1",
-                "Lockbox",
-                "Two Masons fortify the near and centre Wells while a deployment net and support unit hold the enclosure.",
-                Resource("BotArena.Sheets.lockbox-v1.sheet.json"),
-                Resource("BotArena.Sheets.lockbox-v1.map-plan.json")),
-            Resolve(
-                "demolition-march-v1",
-                "Demolition March",
-                "Longshots, Mortar, and Hush clear deployments before Relay and Kestrel turn the breach into a raid.",
-                Resource("BotArena.Sheets.demolition-march-v1.sheet.json"),
-                Resource("BotArena.Sheets.demolition-march-v1.map-plan.json")),
             Resolve(
                 "rising-standard-v1",
                 "Rising Standard",

@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-5                             # the current local Arc Relay line
+  --loop-profile tapline-6                             # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,16 +208,16 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-5`, whose atomic occupancy contract
+  `--loop-profile` defaults to `tapline-6`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
   `--mind-stepper greedy` is a historical diagnostic control, never the
   implicit owner-gallery path.
-  Immutable hosted entrant playlist v23 pins `tapline-5`, Tapline-native
+  Immutable hosted entrant playlist v24 pins `tapline-6`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
-  the delayed centre opening, and the parity-proven ATL2 WASM mirror. v22
-  remains immutable, replay-only Tapline-4 history. v7
+  the delayed centre opening, the equal-return map fork, and the parity-proven
+  ATL2 WASM mirror. v23 remains immutable, replay-only Tapline-5 history. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -257,6 +257,10 @@ Project boundaries that must not be violated:
   chronology and the registered stock gameplay; v22 ratings are never copied
   into v23. The tactical mind bytes and Tempered Standard source are unchanged
   and are reused rather than minted under a misleading new artifact identity.
+  v24 starts fresh because the new `arc-relay-tapline-02` geometry closes the
+  centre shortcut and changes the registered stock gameplay; v23 ratings are
+  never copied into v24. The tactical mind bytes and Tempered Standard Orders
+  source are unchanged; the native map plan and map fingerprint are new.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

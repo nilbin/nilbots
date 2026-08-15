@@ -1,0 +1,13 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "relay-circuit-v1",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {},
+  "routes": {},
+  "anchors": {
+    "depth-cover": [
+      13,
+      12
+    ]
+  }
+}

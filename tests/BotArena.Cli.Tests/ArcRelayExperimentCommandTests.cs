@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_promoted_Tapline5_product_line()
+    public void Default_is_the_promoted_Tapline6_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,11 +69,11 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-05",
+            "arc-relay-tapline-06",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
-            "arc-relay-tapline-01",
+            "arc-relay-tapline-02",
             document.RootElement.GetProperty("map").GetProperty("mapId")
                 .GetString());
         Assert.Equal(

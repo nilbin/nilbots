@@ -63,7 +63,7 @@ The map-plan root has exactly six keys:
 {
   "schema": "arc-relay-map-plan-v2",
   "mapPlanId": "starter-tapline-v2",
-  "mapId": "arc-relay-tapline-01",
+  "mapId": "arc-relay-tapline-02",
   "zones": {},
   "routes": {},
   "anchors": {}
@@ -96,7 +96,7 @@ normalizes the pair, and computes identity.
 Flattening every `classes` list in source order assigns unit ids 0–7. The
 flattened list must contain exactly eight launch classes, with at most two
 copies of any class and at least seven distinct classes on the current
-Tapline-5 line. A body keeps its role across death and respawn. There is
+Tapline-6 line. A body keeps its role across death and respawn. There is
 no candidate pool, allocator, vacancy, promotion, overflow, or reassignment.
 
 `upgradePath` contains one to four values from `damage`, `vision`, `reach`, and
@@ -475,7 +475,7 @@ Zones, routes, and anchors each allow at most 64 entries. Duplicate geometry
 under different names is an error. Every map object must be referenced from
 the Orders document.
 
-The current hosted map is Tapline: `arc-relay-tapline-01`, 31×27. Runtime
+The current hosted map is Tapline: `arc-relay-tapline-02`, 31×27. Runtime
 binding validates bounds and traversable terrain against the engine-generated
 map. Geometry is never projected between maps.
 
@@ -551,11 +551,11 @@ lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v23 is the promoted Orders v2/Tapline-5 line. It pins
+Hosted entrant playlist v24 is the promoted Orders v2/Tapline-6 line. It pins
 the coordinated EPIBT executor, body-local signature orders, the unchanged
 controlled WASM artifact and Tempered Standard sheet, the combined depth rules,
-the delayed centre opening, and a fresh rating book. Playlist v22 remains
-immutable Tapline-4 history.
+the delayed centre opening, the equal-return map fork, and a fresh rating book.
+Playlist v23 remains immutable Tapline-5 history.
 
 ## 12. Executor-owned squad micro
 
@@ -563,6 +563,6 @@ Orders state tactical intent, not squad micro. The executor jointly assigns
 distinct contribution tiles and resolves physical motion with deterministic
 EPIBT planning. Authored urgency participates only after an order is selected;
 it may settle allied right-of-way but cannot reorder the sheet. Acyclic convoy
-steps into a pre-tick vacancy are legal on Tapline-5, while swaps and closed
+steps into a pre-tick vacancy are legal on Tapline-6, while swaps and closed
 cycles remain blocked. Do not smuggle pathing policy into author-visible orders
 or add route-defense fields to compensate for executor behavior.

@@ -159,7 +159,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void Tapline5V23ReusesTheTapline4MirrorWhileV21AndV20StayFrozen()
+    public void Tapline6V24ReusesTheTapline4MirrorWhileV21AndV20StayFrozen()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(

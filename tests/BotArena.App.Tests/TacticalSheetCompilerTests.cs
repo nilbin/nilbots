@@ -18,16 +18,15 @@ public sealed class TacticalSheetCompilerTests
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
         TacticalSheetSource stock = templates.Stock[0];
-        Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
-            stock.Id);
+        Assert.Equal("demolition-march-v1", stock.Id);
         Assert.Equal(
             [
+                "demolition-march-v1",
+                "lockbox-v1",
+                "idle-field-v1",
                 "tempered-standard-v1",
                 "relay-circuit-v1",
                 "crowned-rail-v1",
-                "lockbox-v1",
-                "demolition-march-v1",
                 "rising-standard-v1",
                 "wavebreak-v1",
             ],

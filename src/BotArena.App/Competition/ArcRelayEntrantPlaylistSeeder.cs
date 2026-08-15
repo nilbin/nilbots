@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v23 deliberately starts
-/// a fresh rating book because Tapline-5 changes the opening Core chronology;
-/// immutable v8-v22 ladders remain readable.
+/// Seeds the current immutable entrant lane. Playlist v24 deliberately starts
+/// a fresh rating book because Tapline-6 changes the map geometry; immutable
+/// v8-v23 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -212,6 +212,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV22()
                 .Validate(playlist, tapline4Version);
         }
+        PlaylistVersion? tapline5Version = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.Tapline5Version,
+                cancellationToken);
+        if (tapline5Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV23()
+                .Validate(playlist, tapline5Version);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
@@ -356,7 +366,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v23 Tapline-5 " +
+                "An open Arc Relay Season 1 can start the fresh v24 Tapline-6 " +
                 "rating book only from one open prior immutable ladder.");
         }
         Ladder previous = open[0].Ladder;
@@ -365,7 +375,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v23 ladder already contains ratings.");
+                "The draft Arc Relay v24 ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants

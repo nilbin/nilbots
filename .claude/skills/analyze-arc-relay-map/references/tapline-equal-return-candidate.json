@@ -1,6 +1,6 @@
 {
-  "title": "Tapline equal-return fork · candidate route atlas",
-  "note": "West-team perspective. Candidate geometry only; scoring occurs at the exact own reactor.",
+  "title": "Tapline-6 equal-return route atlas",
+  "note": "West-team perspective on the promoted product geometry; scoring occurs at the exact own reactor.",
   "map": {
     "builder": "scripts/arc-relay-tapline-build.py",
     "function": "build",

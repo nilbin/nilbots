@@ -299,12 +299,13 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-5`: the accepted Tapline geometry and
+            The default is `tapline-6`: the accepted equal-return Tapline and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
             Core arrives with the outer Wells on the second global beat. The
-            prior hosted v22 ladder pins `tapline-4`; v7 through v22 remain exact history, and all
+            two practical centre-Core returns are both 19 terrain steps. The
+            prior hosted v23 ladder pins `tapline-5`; v7 through v23 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 
