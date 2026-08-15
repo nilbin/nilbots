@@ -3,7 +3,9 @@
 Status: **historical implementation brief**. The first six mechanics shipped
 as Tapline-4 under Decision #316. Destination-facing and historical evidence
 shipped directly into the current Orders v2 product language under Decision
-#317; they have no experimental loop profile or alternate rules identity.
+#317; they have no experimental loop profile or alternate rules identity. The
+delayed centre opening later promoted as Tapline-5 and hosted playlist v23
+under Decision #319.
 
 ## Goal
 

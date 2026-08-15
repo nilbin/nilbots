@@ -498,6 +498,13 @@ function IssueSummary({ issues, onOpen }: { issues: SheetIssue[]; onOpen: (issue
 }
 
 function Modal({ title, children, onClose }: { title: string; children: ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
   return <div className="fixed inset-0 z-[90] overflow-y-auto bg-black/75 p-2 sm:p-6" role="dialog" aria-modal="true" aria-label={title}
     onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section className="panel mx-auto max-w-5xl overflow-hidden"><header className="sticky top-0 z-10 flex items-center gap-2 border-b border-arena-edge bg-arena-panel p-3"><h2 className="type-display mr-auto text-[22px]">{title}</h2><button type="button" className="btn min-h-11 min-w-11" aria-label="Close" onClick={onClose}>×</button></header><div className="p-3 sm:p-4">{children}</div></section></div>;
 }

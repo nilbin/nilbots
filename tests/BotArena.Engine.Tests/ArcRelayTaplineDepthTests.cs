@@ -62,7 +62,6 @@ public sealed class ArcRelayTaplineDepthTests
         ActorResolvedMatchDefinition product = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline4);
 
-        Assert.Equal("tapline-4", ArcRelayLoopProfile.Current.Id);
         Assert.Equal("arc-relay-tapline-04", product.Rules.RulesetId);
         Assert.Equal(candidate.Map.Id, product.Map.Id);
         Assert.True(candidate.Map.TileRows.SequenceEqual(product.Map.TileRows));
@@ -378,6 +377,10 @@ public sealed class ArcRelayTaplineDepthTests
         var candidateMode = Assert.IsType<ArcRelayGameModeDefinition>(
             candidate.Rules.GameMode);
 
+        Assert.Same(ArcRelayLoopProfile.Tapline5, ArcRelayLoopProfile.Current);
+        Assert.Equal("arc-relay-tapline-05", candidate.Rules.RulesetId);
+        Assert.Equal(previous.Map.Id, candidate.Map.Id);
+        Assert.True(previous.Map.TileRows.SequenceEqual(candidate.Map.TileRows));
         Assert.Equal(
             [(25, 65, 545), (50, 65, 570), (50, 65, 570)],
             previousMode.Wells.Select(well => (

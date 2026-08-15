@@ -457,9 +457,13 @@ public static class ToolchainInfo
     /// with the direct Orders v2 tree, including its editor and hosted v20 lane.
     /// 0.9.60 promotes Tapline-3, authored movement urgency, body-local combat
     /// contact and atomic EPIBT squad movement to immutable hosted playlist v21.
+    /// 0.9.61 promotes the combined Tapline depth rules, Orders selectors and
+    /// durable deployments as Tapline-4 / hosted playlist v22.
+    /// 0.9.62 promotes Tapline-5's delayed centre opening as the local, exhibit
+    /// and hosted default while preserving the unchanged tactical mind bytes.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.61";
+    public const string CliVersion = "0.9.62";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

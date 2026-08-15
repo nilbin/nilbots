@@ -59,7 +59,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Tapline4.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Tapline5.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(7, catalog.StockOpponents.Count);
@@ -122,9 +122,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Tapline4.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Tapline5.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Tapline4.RulesetId,
+                ArcRelayLoopProfile.Tapline5.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -159,7 +159,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Tapline4.RulesetId,
+                ArcRelayLoopProfile.Tapline5.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)

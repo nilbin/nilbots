@@ -38,7 +38,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Entrant_v22_promotes_Tapline4_while_v2_through_v21_remain_resolvable_history()
+    public void Entrant_v23_promotes_Tapline5_while_v2_through_v22_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -82,11 +82,13 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV20();
         ArcRelayEntrantPlaylistDefinition tapline3V21 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV21();
+        ArcRelayEntrantPlaylistDefinition tapline4V22 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV22();
 
-        Assert.Equal(22, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline4.MapId, current.Match.Map.Id);
+        Assert.Equal(23, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline5.MapId, current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline4.RulesetId,
+            ArcRelayLoopProfile.Tapline5.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
@@ -104,7 +106,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline4", current.Provenance);
+        Assert.Contains("ownerApprovedTapline5", current.Provenance);
+        Assert.Contains("delayedCentreOpening", current.Provenance);
+        Assert.Contains("stockArtifactReusedFromTapline4", current.Provenance);
         Assert.Contains("teamRelativeCoreCharge", current.Provenance);
         Assert.Contains("publicRespawnWaves", current.Provenance);
         Assert.Contains("minimumSevenDistinctClasses", current.Provenance);
@@ -121,6 +125,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(22, tapline4V22.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline4.RulesetId,
+            tapline4V22.Match.Rules.RulesetId);
+        Assert.Contains("ownerApprovedTapline4", tapline4V22.Provenance);
+        Assert.DoesNotContain("delayedCentreOpening", tapline4V22.Provenance);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
+            tapline4V22.CanonicalDefinition);
         Assert.Equal(21, tapline3V21.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.Tapline3.RulesetId,
@@ -339,6 +352,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 relativeWellV12, stickyRouteV13, carrierClearanceV14,
                 trafficDetourV15, stableCarrierV16, looseCoreMemoryV17,
                 claimableCoreV18, taplineV19, ordersV20, tapline3V21,
+                tapline4V22,
                 current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
@@ -400,6 +414,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(tapline3V21, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Tapline3Version));
+        Assert.Same(tapline4V22, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Tapline4Version));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -619,7 +636,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Frozen_stocks_pin_v7_through_v22_and_their_sources_are_pinned()
+    public void Frozen_stocks_pin_v7_through_v23_and_their_sources_are_pinned()
     {
         string root = RepoPaths.FindUpward("BotArena.sln") is { } solution
             ? Path.GetDirectoryName(solution)!

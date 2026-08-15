@@ -5,6 +5,8 @@ import { gunzipSync } from 'node:zlib';
 import { loadReplayObject } from '../src/replayIngress';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
+  CONDITION_FACT_GROUPS,
+  CONDITION_FACTS,
   actionOf,
   compositionOf,
   freshOrder,
@@ -156,7 +158,7 @@ test('new signature orders persist the selected role skill and its legal default
   });
 });
 
-test('the editor understands every Tapline 4 tactical word', () => {
+test('the editor understands every current Tapline tactical word', () => {
   const draft = parseDraft('Depth pack', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   draft.orders.conditions['ace-live'] = {
     fact: 'role-highest-level', operator: 'at-least', value: 2, role: 'runners',
@@ -191,6 +193,22 @@ test('the editor understands every Tapline 4 tactical word', () => {
 
   const errors = validateDraft(draft, catalog).filter((issue) => issue.severity === 'error');
   assert.deepEqual(errors, []);
+});
+
+test('condition categories expose every current fact exactly once', () => {
+  const grouped = CONDITION_FACT_GROUPS.flatMap((group) => group.facts);
+  assert.deepEqual([...grouped].sort(), [...CONDITION_FACTS].sort());
+  assert.equal(new Set(grouped).size, grouped.length);
+  assert.deepEqual(
+    CONDITION_FACT_GROUPS.find((group) => group.id === 'history')?.facts,
+    [
+      'remembered-enemies-in-zone',
+      'observed-enemy-entries-in-zone',
+      'distinct-enemy-lives-observed-in-zone',
+      'confirmed-enemy-destructions-in-zone',
+      'zone-fully-observed-throughout-interval',
+    ],
+  );
 });
 
 test('order action detection has only the five physical verbs plus branch and exact sharing', () => {

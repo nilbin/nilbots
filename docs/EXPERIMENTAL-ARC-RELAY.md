@@ -8,20 +8,21 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile tapline-4` (rules
-`arc-relay-tapline-04`, map `arc-relay-tapline-01`): the accepted Tapline
+The command defaults to `--loop-profile tapline-5` (rules
+`arc-relay-tapline-05`, map `arc-relay-tapline-01`): the accepted Tapline
 geometry, declared strikes, veterancy, rear-arc damage, and the complete
-signature grammar 3, plus the promoted combined depth rules. Its joint movement step also permits an acyclic convoy to
+signature grammar 3, the promoted combined depth rules, and a delayed centre
+opening on the second global beat. Its joint movement step also permits an acyclic convoy to
 advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
 still block. `h0`, `tapline-1`, `tapline-2`, and every historical profile
 remain explicit immutable compatibility selections.
 
-**Hosted entrant playlist v22 pins Tapline-4.** It freezes the
+**Hosted entrant playlist v23 pins Tapline-5.** It reuses the unchanged
 `arc-relay-orders-v2` sheet format, Tempered Standard stock participant, authored
 movement urgency, body-local fight contact, and atomic EPIBT squad planning on
 the direct ATL2 executor, together with team-relative Core value, veteran
 command, public respawn waves, roster variety, and durable deployments. The
-promoted rules and stock gameplay start a fresh rating book; v21's Tapline-3
+delayed centre chronology and resulting stock gameplay start a fresh rating book; v22's Tapline-4
 ratings and matches remain readable history.
 Earlier playlist definitions and artifacts remain immutable, and geometry is
 never projected between maps.
@@ -153,7 +154,7 @@ Run a native mind locally with:
 nilbots experiment arc-relay \
   --bot <project-or-wasm> --opponent <project-or-wasm> \
   --sheet0 <sheet.json> --sheet1 <sheet.json> \
-  --loop-profile tapline-4 --seed 42
+  --loop-profile tapline-5 --seed 42
 ```
 
 Current sheets pair an `arc-relay-orders-v2` Orders document with an
@@ -235,8 +236,8 @@ stock artifacts, and ratings remain immutable.
 
 This distinction is the repository extension rule, not a Tapline exception:
 grammar generations cover the complete roster, while concrete definition
-versions exist only for real mechanic or chronology changes. Hosted v22 now
-pins grammar 3 and Tapline-4; v21 remains immutable Tapline-3 history. The end-to-end
+versions exist only for real mechanic or chronology changes. Hosted v23 now
+pins grammar 3 and Tapline-5; v22 remains immutable Tapline-4 history. The end-to-end
 class/signature checklist is in
 [`ADDING-ARC-CLASS-AND-SIGNATURE.md`](ADDING-ARC-CLASS-AND-SIGNATURE.md).
 

@@ -1,9 +1,10 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import ClassIcon from '../../components/ClassIcon';
 import type { TacticalSheetCatalog } from '../api';
 import {
   ACTIONS,
+  CONDITION_FACT_GROUPS,
   CONDITION_FACTS,
   CONDITION_OPERATORS,
   actionOf,
@@ -19,6 +20,7 @@ import {
   skillForClass,
   uniqueId,
   type ConditionDefinition,
+  type ConditionFactGroupId,
   type ConditionExpression,
   type MapPlanDocument,
   type MoveOrder,
@@ -35,6 +37,19 @@ import { MapTargetPreview } from './MapPlanEditor';
 
 type LibraryTool = 'conditions' | 'capacities' | 'shared' | null;
 type PlotKind = 'route' | 'zone' | 'anchor';
+
+const CONDITION_FACT_COPY: Readonly<Record<string, string>> = {
+  'self-nearest-visible-enemy-distance': 'Legal path steps this body needs to reach a firing tile',
+  'deployment-active': 'Whether this body still owns a live deployment',
+  'deployment-lifetime-percent': 'Remaining lifetime of this body\'s deployment',
+  'deployment-durability-percent': 'Remaining durability of this body\'s deployment',
+  'known-enemy-carriers': 'Recent carrier knowledge, bounded by freshness',
+  'remembered-enemies-in-zone': 'Recent sightings in a plotted zone, bounded by freshness',
+  'observed-enemy-entries-in-zone': 'Observed outside-to-inside crossings during an interval',
+  'distinct-enemy-lives-observed-in-zone': 'Distinct enemy lives actually seen during an interval',
+  'confirmed-enemy-destructions-in-zone': 'Disclosed enemy destructions during an interval',
+  'zone-fully-observed-throughout-interval': 'Whether every traversable tile stayed visible for the interval',
+};
 
 const UPGRADE_COPY: Record<string, string> = {
   damage: 'Harder hits', vision: 'See threats sooner', reach: 'Longer action reach', vitality: 'Stay online longer',
@@ -254,7 +269,8 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
           ? 'One number limits bodies claiming the same resolved target. A shared name needs at least two consumers.'
           : 'Reuse an exact order tree. Shared orders have no parameters or per-role overrides.'}
       onClose={() => setLibrary(null)}>
-      {library === 'conditions' && <ConditionsEditor orders={orders} mapPlan={mapPlan} issues={issues} onChange={onChange} />}
+      {library === 'conditions' && <ConditionsEditor orders={orders} mapPlan={mapPlan} issues={issues} onChange={onChange}
+        onOpenMap={() => { setLibrary(null); onOpenMap(); }} />}
       {library === 'capacities' && <CapacitiesEditor orders={orders} issues={issues} onChange={onChange} />}
       {library === 'shared' && <SharedOrdersEditor catalog={catalog} orders={orders} mapPlan={mapPlan} issues={issues}
         onChange={onChange} onOpenMap={(focus) => { setLibrary(null); onOpenMap(focus); }} />}
@@ -681,38 +697,81 @@ function CapacityField({ value, allOrders, onChange }: { value: OrderNode['capac
   </div>;
 }
 
-function ConditionsEditor({ orders, mapPlan, issues, onChange }: { orders: OrdersDocument; mapPlan: MapPlanDocument; issues: SheetIssue[]; onChange: (next: OrdersDocument) => void }) {
+function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap }: {
+  orders: OrdersDocument;
+  mapPlan: MapPlanDocument;
+  issues: SheetIssue[];
+  onChange: (next: OrdersDocument) => void;
+  onOpenMap: () => void;
+}) {
   const ids = Object.keys(orders.conditions);
   const [selected, setSelected] = useState(ids[0] ?? '');
+  const [factGroup, setFactGroup] = useState<ConditionFactGroupId>(() =>
+    conditionFactGroup(orders.conditions[ids[0] ?? '']?.fact));
+  const [factSearch, setFactSearch] = useState('');
   const current = orders.conditions[selected];
+  const selectedFactGroup = CONDITION_FACT_GROUPS.find((group) => group.id === factGroup)!;
+  const normalizedFactSearch = factSearch.trim().toLowerCase();
+  const visibleFacts = normalizedFactSearch
+    ? CONDITION_FACTS.filter((fact) => [fact, conditionFactLabel(fact), CONDITION_FACT_COPY[fact] ?? factScope(fact)]
+      .some((value) => value.toLowerCase().includes(normalizedFactSearch)))
+    : selectedFactGroup.facts;
   const commit = (change: (next: OrdersDocument) => void) => { const next = structuredClone(orders); change(next); onChange(next); };
   const add = () => {
     const id = uniqueId('new-condition', ids);
-    commit((next) => { next.conditions[id] = { fact: 'self-health-percent', operator: 'at-most', value: 35 }; }); setSelected(id);
+    commit((next) => { next.conditions[id] = { fact: 'self-health-percent', operator: 'at-most', value: 35 }; });
+    setSelected(id);
+    setFactGroup('body');
   };
-  return <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
-    <div><div className="flex gap-1 overflow-x-auto lg:flex-col">{ids.map((id) => <button key={id} type="button" className="choice-card min-h-12 min-w-[160px] lg:min-w-0"
-      data-selected={id === selected} onClick={() => setSelected(id)}>{humanize(id)}</button>)}</div>
+  return <div className="grid min-w-0 gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="min-w-0"><div className="flex gap-1 overflow-x-auto lg:flex-col">{ids.map((id) => <button key={id} type="button" className="choice-card min-h-12 min-w-[160px] lg:min-w-0"
+      data-selected={id === selected} aria-pressed={id === selected} onClick={() => {
+        setSelected(id);
+        setFactGroup(conditionFactGroup(orders.conditions[id]?.fact));
+      }}>{humanize(id)}</button>)}</div>
       <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" onClick={add}>＋ New condition</button></div>
-    {current ? <div className="rounded-sm border border-arena-edge p-3" data-sheet-path={`orders.conditions.${selected}`}>
+    {current ? <div className="min-w-0 rounded-sm border border-arena-edge p-3" data-sheet-path={`orders.conditions.${selected}`}>
       <label><span className="lab mb-1 block">Condition name</span><input className="field min-h-11" value={selected}
         onChange={(event) => {
           const id = identifierFromName(event.target.value, selected);
           if (id === selected || orders.conditions[id]) return;
           commit((next) => { next.conditions[id] = next.conditions[selected]; delete next.conditions[selected]; renameCondition(next, selected, id); }); setSelected(id);
         }} /></label>
-      <p className="lab mb-2 mt-4">Observed fact</p>
-      <div className="grid max-h-64 gap-1.5 overflow-auto sm:grid-cols-2 xl:grid-cols-3">{CONDITION_FACTS.map((fact) => <button key={fact} type="button"
-        className="choice-card min-h-14" data-selected={current.fact === fact} onClick={() => commit((next) => {
+      <p className="lab mb-2 mt-4">What can trigger this?</p>
+      <label className="mb-2 block"><span className="sr-only">Search observed facts</span><input
+        type="search" className="field min-h-11" value={factSearch}
+        placeholder="Search health, Core, respawn, memory…"
+        onChange={(event) => setFactSearch(event.target.value)} /></label>
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">{CONDITION_FACT_GROUPS.map((group) => <button key={group.id} type="button"
+        className="choice-card min-h-12" data-selected={factGroup === group.id} aria-pressed={factGroup === group.id}
+        onClick={() => { setFactGroup(group.id); setFactSearch(''); }}>{group.label}</button>)}</div>
+      <p className="t-micro mt-2">{normalizedFactSearch
+        ? `${visibleFacts.length} ${visibleFacts.length === 1 ? 'fact' : 'facts'} found across all categories.`
+        : selectedFactGroup.description}</p>
+      {!normalizedFactSearch && factGroup === 'history' && <div className="mt-2 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
+        <p className="type-display text-[15px]">Read-only match memory</p>
+        <p className="t-micro mt-1">The engine remembers only what this team genuinely observed. Evidence is shared by the team, survives death and respawn, and is cleared for the next match.</p>
+      </div>}
+      <div className="mt-2 grid max-h-72 gap-1.5 overflow-auto sm:grid-cols-2 xl:grid-cols-3">{visibleFacts.map((fact) => <button key={fact} type="button"
+        className="choice-card min-h-14" data-selected={current.fact === fact} aria-pressed={current.fact === fact} onClick={() => commit((next) => {
           next.conditions[selected] = normalizedCondition(fact, next.conditions[selected], next, mapPlan);
-        })}><b className="t-body block">{humanize(fact)}</b><span className="t-micro mt-1 block">{factScope(fact)}</span></button>)}</div>
-      <p className="lab mb-2 mt-4">Comparison</p>
-      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">{CONDITION_OPERATORS.map((operator) => <button key={operator} type="button"
-        className="choice-card min-h-12" data-selected={current.operator === operator}
-        onClick={() => commit((next) => { next.conditions[selected].operator = operator; })}>{operatorLabel(operator)}</button>)}</div>
-      <label className="mt-3 block max-w-xs"><span className="t-micro mb-1 block">Compare with</span><input type="number" className="field min-h-11" value={current.value}
-        onChange={(event) => commit((next) => { next.conditions[selected].value = Number(event.target.value); })} /></label>
+        })}><b className="t-body block">{conditionFactLabel(fact)}</b><span className="t-micro mt-1 block">{CONDITION_FACT_COPY[fact] ?? factScope(fact)}</span></button>)}</div>
+      {isBooleanConditionFact(current.fact) ? <fieldset className="mt-4"><legend className="lab mb-2">Must this be true?</legend>
+        <div className="grid max-w-md grid-cols-2 gap-1.5">{([1, 0] as const).map((value) => <button
+          key={value} type="button" className="choice-card min-h-12" data-selected={current.value === value}
+          aria-pressed={current.value === value} onClick={() => commit((next) => {
+            next.conditions[selected].operator = 'equals'; next.conditions[selected].value = value;
+          })}>{value === 1 ? 'Yes' : 'No'}</button>)}</div>
+      </fieldset> : <>
+        <p className="lab mb-2 mt-4">Comparison</p>
+        <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5">{CONDITION_OPERATORS.map((operator) => <button key={operator} type="button"
+          className="choice-card min-h-12" data-selected={current.operator === operator} aria-pressed={current.operator === operator}
+          onClick={() => commit((next) => { next.conditions[selected].operator = operator; })}>{operatorLabel(operator)}</button>)}</div>
+        <label className="mt-3 block max-w-xs"><span className="t-micro mb-1 block">Compare with</span><input type="number" className="field min-h-11" value={current.value}
+          onChange={(event) => commit((next) => { next.conditions[selected].value = Number(event.target.value); })} /></label>
+      </>}
       <ConditionQualifiers condition={current} roles={orders.roles} mapPlan={mapPlan}
+        onOpenMap={onOpenMap}
         onChange={(condition) => commit((next) => { next.conditions[selected] = condition; })} />
       <IssueList issues={issues.filter((issue) => issue.path.startsWith(`orders.conditions.${selected}`))} />
       <button type="button" className="btn mt-4 min-h-11 text-arena-hot" onClick={() => { commit((next) => { delete next.conditions[selected]; }); setSelected(ids.find((id) => id !== selected) ?? ''); }}>Delete condition</button>
@@ -720,8 +779,15 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange }: { orders: Order
   </div>;
 }
 
-function ConditionQualifiers({ condition, roles, mapPlan, onChange }: { condition: ConditionDefinition; roles: RoleDefinition[]; mapPlan: MapPlanDocument; onChange: (next: ConditionDefinition) => void }) {
+function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }: {
+  condition: ConditionDefinition;
+  roles: RoleDefinition[];
+  mapPlan: MapPlanDocument;
+  onChange: (next: ConditionDefinition) => void;
+  onOpenMap: () => void;
+}) {
   const kind = conditionSubjectKind(condition.fact);
+  const zones = Object.keys(mapPlan.zones);
   const historical = [
     'observed-enemy-entries-in-zone',
     'distinct-enemy-lives-observed-in-zone',
@@ -731,7 +797,13 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange }: { conditio
   const change = (mutate: (next: ConditionDefinition) => void) => { const next = structuredClone(condition); mutate(next); onChange(next); };
   return <div className="mt-3 grid gap-2 sm:grid-cols-2">
     {(kind === 'role' || kind === 'role-zone') && <CardPicker label="Role" value={condition.role ?? ''} values={roles.map((role) => role.id)} onChange={(role) => change((next) => { next.role = role; })} />}
-    {(kind === 'zone' || kind === 'role-zone') && <CardPicker label="Map zone" value={condition.zone ?? ''} values={Object.keys(mapPlan.zones)} onChange={(zone) => change((next) => { next.zone = zone; })} />}
+    {(kind === 'zone' || kind === 'role-zone') && (zones.length > 0
+      ? <CardPicker label="Map zone" value={condition.zone ?? ''} values={zones} onChange={(zone) => change((next) => { next.zone = zone; })} />
+      : <div className="sm:col-span-2 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
+        <p className="type-display text-[15px]">Plot a zone first</p>
+        <p className="t-micro mt-1">This fact watches named ground. Draw that ground once in the map plan, then select it here.</p>
+        <button type="button" className="btn btn-secondary mt-2 min-h-11" onClick={onOpenMap}>Open map plan</button>
+      </div>)}
     {kind === 'well' && <CardPicker label="Well" value={condition.well ?? ''} values={['north', 'centre', 'south', 'own', 'enemy']} onChange={(well) => change((next) => { next.well = well as ConditionDefinition['well']; })} />}
     {['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(condition.fact) && <OptionalTicks label="Knowledge freshness" value={condition.freshnessTicks} min={1} max={600} placeholder="ticks"
       onChange={(value) => change((next) => { next.freshnessTicks = value ?? 1; })} />}
@@ -844,6 +916,13 @@ function OptionalTicks({ label, value, placeholder, min, max, onChange }: { labe
 }
 
 function Modal({ title, description, children, onClose }: { title: string; description: string; children: ReactNode; onClose: () => void }) {
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
   return <div className="fixed inset-0 z-[80] overflow-y-auto bg-black/75 p-2 sm:p-6" role="dialog" aria-modal="true" aria-label={title}
     onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
     <section className="panel mx-auto max-w-6xl overflow-hidden">
@@ -974,6 +1053,7 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
     next.value = previous.fact === fact ? previous.value : 7;
   }
   if (['self-carrying', 'self-in-zone', 'signature-ready',
+    'deployment-active', 'well-has-outstanding-core', 'well-socket-filled',
     'zone-fully-observed-throughout-interval'].includes(fact)) {
     next.operator = 'equals';
     next.value = previous.fact === fact && previous.value === 0 ? 0 : 1;
@@ -997,11 +1077,74 @@ function walk(orders: OrdersDocument, visit: (node: OrderNode) => void, includeS
 
 function factScope(fact: string) {
   if (fact === 'self-nearest-visible-enemy-distance') return 'Steps for this body to join';
+  if (fact.startsWith('deployment-')) return "This body's deployment";
+  if (fact === 'known-enemy-carriers') return 'Team memory';
+  if (fact === 'remembered-enemies-in-zone'
+    || fact === 'zone-fully-observed-throughout-interval') return 'Team memory · plotted zone';
   if (fact.startsWith('self-') || fact === 'signature-ready') return 'This body';
   if (fact.startsWith('role-')) return 'A named role';
   if (fact.includes('-in-zone')) return 'A plotted zone';
   if (fact.startsWith('well-')) return 'A Core Well';
   return 'Whole team knowledge';
+}
+
+function conditionFactGroup(fact: string | undefined): ConditionFactGroupId {
+  return CONDITION_FACT_GROUPS.find((group) => fact && group.facts.includes(fact))?.id ?? 'body';
+}
+
+function isBooleanConditionFact(fact: string) {
+  return ['self-carrying', 'self-in-zone', 'signature-ready',
+    'deployment-active', 'well-has-outstanding-core', 'well-socket-filled',
+    'zone-fully-observed-throughout-interval'].includes(fact);
+}
+
+function conditionFactLabel(fact: string) {
+  const labels: Readonly<Record<string, string>> = {
+    'self-health-percent': 'My health',
+    'self-level': 'My veteran level',
+    'self-carrying': 'I am carrying a Core',
+    'self-stuck-ticks': 'Time I have been stuck',
+    'self-order-ticks': 'Time on this order',
+    'self-in-zone': 'I am inside a zone',
+    'self-nearest-visible-enemy-distance': 'Steps to join a visible fight',
+    'self-carried-core-bank-value': 'Value of my carried Core',
+    'signature-ready': 'My signature skill is ready',
+    'deployment-active': 'My deployment is active',
+    'deployment-lifetime-percent': 'My deployment lifetime',
+    'deployment-durability-percent': 'My deployment durability',
+    'role-live-count': 'Bodies alive in this role',
+    'role-highest-level': 'Highest veteran level in this role',
+    'role-lowest-health-percent': 'Lowest health in this role',
+    'role-in-zone-count': 'Role bodies in this zone',
+    'live-friendlies': 'Allies alive',
+    'live-enemies': 'Enemies alive',
+    'friendly-carriers': 'Allied Core carriers',
+    'known-enemy-carriers': 'Enemy carriers remembered',
+    'visible-enemy-carriers': 'Enemy carriers visible now',
+    'known-loose-cores': 'Loose Cores known',
+    'visible-loose-cores': 'Loose Cores visible now',
+    'secured-cores': 'Cores secured',
+    'reactor-integrity': 'Our reactor integrity',
+    'reactor-charge': 'Our reactor charge',
+    'reactor-pulses': 'Our reactor Pulses',
+    'enemy-reactor-charge': 'Enemy reactor charge',
+    'ticks-until-respawn-wave': 'Ticks until the next respawn wave',
+    'friendly-respawns-next-wave': 'Allies returning next wave',
+    'enemy-respawns-next-wave': 'Enemies returning next wave',
+    'ticks-without-objective-progress': 'Time without objective progress',
+    'friendlies-in-zone': 'Allies in this zone',
+    'visible-enemies-in-zone': 'Enemies visible in this zone',
+    'remembered-enemies-in-zone': 'Enemies remembered here',
+    'known-loose-cores-in-zone': 'Loose Cores known in this zone',
+    'well-has-outstanding-core': 'This Well has an active Core',
+    'well-ticks-until-birth': 'Ticks until this Well births a Core',
+    'well-socket-filled': 'This Well socket is filled',
+    'observed-enemy-entries-in-zone': 'Enemy entries seen here',
+    'distinct-enemy-lives-observed-in-zone': 'Distinct enemy lives seen here',
+    'confirmed-enemy-destructions-in-zone': 'Confirmed enemy losses here',
+    'zone-fully-observed-throughout-interval': 'Zone stayed fully watched',
+  };
+  return labels[fact] ?? humanize(fact);
 }
 
 function operatorLabel(operator: string) {

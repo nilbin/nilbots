@@ -49,18 +49,20 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v22 and the local <code>nilbots arc-relay</code>
-          default both run tapline-4 on the accepted Tapline geometry with
+          Hosted playlist v23 and the local <code>nilbots arc-relay</code>
+          default both run tapline-5 on the accepted Tapline geometry with
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
           remain match history but are not accepted by the current Orders v2 workshop;
-          coordinates are never projected between maps. Tapline-4 values a Core at 1, 2,
+          coordinates are never projected between maps. Tapline-5 values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
           requires at least seven distinct classes, and makes deployments durable targets.
-          Playlist v22 opens a fresh rating book at 1200; playlist v21 remains readable
-          Tapline-3 history and its ratings are not carried into v22.
+          Its centre Well opens on the same second global beat as the outer Wells, leaving
+          the first beat for scouting and counter-positioning before the two-charge Core.
+          Playlist v23 opens a fresh rating book at 1200; playlist v22 remains readable
+          Tapline-4 history and its ratings are not carried into v23.
         </p>
       </Doc>
 

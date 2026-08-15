@@ -6,17 +6,19 @@ document. `docs/DECISIONS.md` records where open choices were pinned.
 [`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
 plans, and historical evidence.
 
-## Current product (2026-08-14)
+## Current product (2026-08-15)
 
 Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI default and hosted playlist v22
-run `tapline-4` on `arc-relay-tapline-04` with the coordinated movement planner and
+revisions, match history, and rating. The current CLI default and hosted playlist v23
+run `tapline-5` on `arc-relay-tapline-05` with the coordinated movement planner and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
 public respawn waves, a seven-distinct-class roster floor, durable deployments, and
-scaled combat durability. The primary loop is **change → run → watch → understand →
+scaled combat durability. The centre Well now opens on the second global beat,
+alongside the outer Wells, so the first beat can be used for scouting and setup.
+The primary loop is **change → run → watch → understand →
 change again**.
 
 Legacy Duel records and code remain readable and byte-verifiable, but Duel admission and

@@ -8529,3 +8529,20 @@ rank is lazy-loaded and visible. The five 256 px WebP/quantized runtime GLBs
 total 1,504,868 transfer bytes, with every individual rank below 500 kB and
 25,000 triangles. This is a presentation replacement only: initial level, XP,
 promotion chronology, per-life reset, replay facts, and rules remain unchanged.
+
+## 319. The delayed centre opening promotes as Tapline-5 and hosted v23
+
+Owner product ruling (2026-08-15). The first centre Core now follows the second
+global opening beat: all three Wells have their first nominal birth at tick 50.
+The accepted Tapline map, subsequent 65-tick cadence, birth jitter, relative
+1/2/4 Core values, combat, classes, Orders language, and coordinated movement
+are unchanged. The local command, exhibit harness, sheet catalog, editor and
+hosted product select `tapline-5` / `arc-relay-tapline-05`; Tapline-4 remains a
+registered historical line rather than an alternate current game.
+
+Hosted entrant playlist v23 starts a fresh rating book at 1200 because the
+opening chronology changes registered stock gameplay; v22 ratings are not
+copied. The tactical mind bytes and `tempered-standard-v1` source did not
+change, so v23 deliberately reuses their exact artifact, build-input and source
+hashes rather than minting a misleading duplicate. Playlist v22, its ratings,
+matches, canonical definition and provenance remain immutable and readable.

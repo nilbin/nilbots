@@ -1119,7 +1119,7 @@ public sealed record ArcRelayLoopProfile
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline4;
+    public static ArcRelayLoopProfile Current => Tapline5;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",

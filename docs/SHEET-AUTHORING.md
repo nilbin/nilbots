@@ -96,7 +96,7 @@ normalizes the pair, and computes identity.
 Flattening every `classes` list in source order assigns unit ids 0–7. The
 flattened list must contain exactly eight launch classes, with at most two
 copies of any class and at least seven distinct classes on the current
-Tapline-4 line. A body keeps its role across death and respawn. There is
+Tapline-5 line. A body keeps its role across death and respawn. There is
 no candidate pool, allocator, vacancy, promotion, overflow, or reassignment.
 
 `upgradePath` contains one to four values from `damage`, `vision`, `reach`, and
@@ -296,7 +296,8 @@ fact for a coordinated response to contact reported anywhere in a named zone.
 
 `to` accepts:
 
-- `own-reactor`, `nearest-heal-zone`, or `nearest-known-loose-core`;
+- `own-reactor`, `nearest-heal-zone`, `nearest-known-loose-core`, or
+  `highest-bank-value-known-loose-core`;
 - `{ "zone": "id" }`;
 - `{ "anchor": "id" }`; or
 - `{ "adjacentTo": "anchor-id" }`; or
@@ -308,9 +309,10 @@ once, the `use.at` leaf targets it exactly, and a lower move leaf brings the
 body beside it. Occupancy and casting legality remain runtime facts; no
 duplicate staging zone or companion anchor is authored.
 
-`patrol` repeats a route. `follow` tracks the nearest live body of the named
-role by terrain path distance, then unit id, while standing on a legal adjacent
-tile rather than asking for the leader's occupied tile. `via` is an optional
+`patrol` repeats a route. `follow` tracks either the nearest live body of a
+named role by terrain path distance, then unit id, or the most-experienced live
+ally by level, distance, then unit id. It stands on a legal adjacent tile rather
+than asking for the leader's occupied tile. `via` is an optional
 one-time ingress route for `to` or `patrol`; follow cannot use it. Combat pre-emption
 does not restart ingress. Exit, death, or an impossible route does.
 
@@ -352,7 +354,7 @@ action is authored; contention for the tile remains executor movement micro.
 ```
 
 `targets` contains one to five unique values from `carrier`, `weakest`,
-`nearest`, `medic`, and `marked`. They are ordered preferences among targets
+`nearest`, `medic`, `marked`, `veteran`, and `deployment`. They are ordered preferences among targets
 this body can shoot or reach through known durable obstacles within the current
 fight episode. Body occupancy remains movement traffic rather than terrain. An
 unavailable preference does not mask a later actionable one; if none has a
@@ -377,8 +379,9 @@ At least one class in the role must own the named skill. A mixed-class role may
 state one `use` order per represented skill: only a body that owns the skill can
 take that leaf, while the other bodies continue down their same role ladder.
 Targets are `self`, `own-reactor`, `nearest-enemy`, `weakest-enemy`,
-`enemy-carrier`, `nearest-ally`, `weakest-ally`, `healthiest-ally`, or
-`nearest-ally-toward-own-reactor`; the compiler restricts them further for the
+`enemy-carrier`, `veteran`, `nearest-ally`,
+`weakest-ally`, `healthiest-ally`, `nearest-ally-toward-own-reactor`, a named
+role, or the most-experienced ally; the compiler restricts them further for the
 skill's argument kind. Use never implies travel or an unseen target search.
 For `arc-toss`, the toward-home selector resolves only an empty-handed ally on
 an exact legal landing tile, so the authored pass cannot silently become a
@@ -546,10 +549,11 @@ lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v22 is the promoted Orders v2/Tapline-4 line. It pins
-the coordinated EPIBT executor, body-local signature orders, the current
-controlled WASM artifact, the combined depth rules, and a fresh rating book.
-Playlist v21 remains immutable Tapline-3 history.
+Hosted entrant playlist v23 is the promoted Orders v2/Tapline-5 line. It pins
+the coordinated EPIBT executor, body-local signature orders, the unchanged
+controlled WASM artifact and Tempered Standard sheet, the combined depth rules,
+the delayed centre opening, and a fresh rating book. Playlist v22 remains
+immutable Tapline-4 history.
 
 ## 12. Executor-owned squad micro
 
@@ -557,6 +561,6 @@ Orders state tactical intent, not squad micro. The executor jointly assigns
 distinct contribution tiles and resolves physical motion with deterministic
 EPIBT planning. Authored urgency participates only after an order is selected;
 it may settle allied right-of-way but cannot reorder the sheet. Acyclic convoy
-steps into a pre-tick vacancy are legal on Tapline-4, while swaps and closed
+steps into a pre-tick vacancy are legal on Tapline-5, while swaps and closed
 cycles remain blocked. Do not smuggle pathing policy into author-visible orders
 or add route-defense fields to compensate for executor behavior.

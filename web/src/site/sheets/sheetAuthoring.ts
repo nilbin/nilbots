@@ -148,6 +148,71 @@ export const CONDITION_FACTS = [
   'confirmed-enemy-destructions-in-zone',
   'zone-fully-observed-throughout-interval',
 ] as const;
+export type ConditionFactGroupId = 'body' | 'squad' | 'match' | 'ground' | 'history';
+export const CONDITION_FACT_GROUPS: ReadonlyArray<{
+  id: ConditionFactGroupId;
+  label: string;
+  description: string;
+  facts: readonly string[];
+}> = [
+  {
+    id: 'body',
+    label: 'Body',
+    description: 'Health, cargo, movement, signature readiness and this body\'s deployment.',
+    facts: CONDITION_FACTS.filter((fact) => fact.startsWith('self-')
+      || fact === 'signature-ready' || fact.startsWith('deployment-')),
+  },
+  {
+    id: 'squad',
+    label: 'Squad',
+    description: 'Live role strength and where a named role is positioned.',
+    facts: CONDITION_FACTS.filter((fact) => fact.startsWith('role-')),
+  },
+  {
+    id: 'match',
+    label: 'Match',
+    description: 'Current team strength, Core economy, reactor state and respawn timing.',
+    facts: CONDITION_FACTS.filter((fact) => !fact.startsWith('self-')
+      && !fact.startsWith('role-')
+      && !fact.startsWith('deployment-')
+      && !fact.startsWith('well-')
+      && !fact.includes('-in-zone')
+      && ![
+        'signature-ready',
+        'observed-enemy-entries-in-zone',
+        'distinct-enemy-lives-observed-in-zone',
+        'confirmed-enemy-destructions-in-zone',
+        'zone-fully-observed-throughout-interval',
+      ].includes(fact)),
+  },
+  {
+    id: 'ground',
+    label: 'Ground',
+    description: 'Current pressure in a plotted zone and the live state of a Core Well.',
+    facts: CONDITION_FACTS.filter((fact) => fact.startsWith('well-')
+      || (!fact.startsWith('self-')
+        && !fact.startsWith('role-')
+        && fact.includes('-in-zone')
+        && ![
+          'remembered-enemies-in-zone',
+          'observed-enemy-entries-in-zone',
+          'distinct-enemy-lives-observed-in-zone',
+          'confirmed-enemy-destructions-in-zone',
+        ].includes(fact))),
+  },
+  {
+    id: 'history',
+    label: 'Observed history',
+    description: 'Team memory from genuinely observed play. It survives respawns and resets each match.',
+    facts: [
+      'remembered-enemies-in-zone',
+      'observed-enemy-entries-in-zone',
+      'distinct-enemy-lives-observed-in-zone',
+      'confirmed-enemy-destructions-in-zone',
+      'zone-fully-observed-throughout-interval',
+    ],
+  },
+];
 export const ACTIONS: readonly Exclude<OrderAction, 'branch' | 'shared'>[] =
   ['move', 'fight', 'use', 'handoff', 'drop'];
 export const UI_STATE_KEY = 'nilbots-sheet-map-ui-v2';

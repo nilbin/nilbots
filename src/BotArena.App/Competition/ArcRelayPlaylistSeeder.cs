@@ -605,7 +605,7 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayLoopProfile.Tapline3,
             active: false,
             cancellationToken);
-        return await SeedTaplineTacticalPlaybookMindVersionAsync(
+        await SeedTaplineTacticalPlaybookMindVersionAsync(
             "tapline-4-stock-v1",
             ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
             "arc-relay-orders-v2",
@@ -614,6 +614,17 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,
             ArcRelayEntrantPlaylistDefinition.Tapline4TacticalBuildInputHash,
             ArcRelayLoopProfile.Tapline4,
+            active: false,
+            cancellationToken);
+        return await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "tapline-4-stock-v1",
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
+            "arc-relay-orders-v2",
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline4TacticalBuildInputHash,
+            ArcRelayLoopProfile.Tapline5,
             active: true,
             cancellationToken);
     }
@@ -678,7 +689,11 @@ public sealed class ArcRelayPlaylistSeeder(
         }
         BotVersion? version = bot.Versions.SingleOrDefault(value =>
             string.Equals(
-                value.ArtifactHash, artifactHash, StringComparison.Ordinal));
+                value.ArtifactHash, artifactHash, StringComparison.Ordinal)
+            && string.Equals(
+                value.GameRulesVersion,
+                loopProfile.RulesetId,
+                StringComparison.Ordinal));
         if (version is null)
         {
             if (active)
