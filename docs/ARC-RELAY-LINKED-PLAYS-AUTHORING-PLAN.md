@@ -9,6 +9,31 @@ one direct positional-priority Orders tree, current capacity/lifecycle words,
 destination facing and observed history, and no named-play runtime or second
 state machine.
 
+## Owner amendments — 2026-08-16
+
+These amendments change the implementation order and proof posture of this
+plan:
+
+- Do not build a disposable mock-up before the product path. The first phase is
+  a thin but real vertical slice of the **Plays** workspace, including the App
+  API/persistence required to save it and the web UI required to author it.
+- Build and prove the North corridor ambush and dual Relay chain through visible
+  editor controls. Do not author either acceptance Play by editing JSON and then
+  merely load it into the editor.
+- Use the exact current authoring vocabulary in UI labels. A role contains
+  **Orders**; Orders use `when`, `until`, `timeout`, `cooldown`, `urgency`,
+  `capacity`, and the five action names `move`, `fight`, `use`, `handoff`, and
+  `drop`. Zones, routes, and anchors retain their map-plan names. Do not create
+  synonyms such as “task”, “staffing rule”, or “commitment field” for an
+  existing Orders concept. Recipe explanations may use natural prose, but every
+  editable control and generated-source explanation names the underlying
+  Orders word.
+- The behavior proof may use the fully idle practice opponent. The proof is
+  about whether the authored Orders execute the intended ambush and Relay
+  sequence, not whether either Play beats a competent sheet. Compilation,
+  persistence, deterministic projection, editing, detach, desktop/phone UX,
+  and generated-Orders inspection remain required.
+
 ## Outcome
 
 A human should be able to author and maintain a spatially coordinated tactic
@@ -78,14 +103,14 @@ project.
 
 ## UX model
 
-### Generic linked tasks, recipe-specific lenses
+### Generic linked Orders, recipe-specific lenses
 
 Do not make `ASSEMBLE`, `READY`, and `ENGAGE` mandatory fields in the base Play
 model. They are the useful human lens for an Ambush recipe. The generic editor
 model is smaller:
 
 - one or more participating roles/bodies;
-- one or more linked role tasks expressed with current Orders;
+- one or more linked Orders projections in the participating roles;
 - selected map geometry and class skills;
 - shared editable values such as a trigger, route, anchor, capacity, timeout,
   or partner role;
@@ -190,7 +215,7 @@ JSON structure.
    exact posts, facing anchor, deployment anchor, and optional routes directly
    on Tapline. Multi-select and group movement should make relocating a whole
    setup practical.
-3. **Choose participants and linked tasks.** Select one or more roles, including
+3. **Choose roles and linked Orders.** Select one or more roles, including
    multiple bodies from one role where useful. Give each role its current action
    and lifecycle intent; link the values that should edit together rather than
    copying them.
@@ -214,7 +239,7 @@ priority. Relay chain first asks for two Relays, corridor, toss direction, and
 fallback. Exact generated leaves, cooldown, urgency, capacity, and advanced
 condition details remain available without crowding the initial flow.
 
-## Capacity is the staffing mechanism
+## Capacity limits participation
 
 Plays must expose the current target-scoped capacity rule rather than inventing
 a new roster allocator.
@@ -715,36 +740,49 @@ It is an explanation of ordinary source, not a second editable representation.
 
 ## Implementation sequence
 
-### Phase 0 — interaction prototype and contract check
+### Phase 0 — real persisted editor vertical slice
 
-Prototype both the North corridor ambush and the dual Relay corridor chain
-against the real current editor layout, desktop and 390×844 touch, before
-freezing the sidecar shape. Resolve the generic participant/task/projection
-model first. Then resolve the Ambush panel's map multi-selection, required slot
-staffing/ranges and 5/5 gate, and the Relay panel's paired roles, logical
-corridor/derived hop routes, carrier/receiver tasks, and Toss inspection.
+Build the first production-shaped slice rather than a separate interaction
+mock-up:
+
+- add optional versioned workshop metadata to sheet persistence and the sheet
+  API without changing gameplay identity;
+- implement a pure Play-to-Orders projection transform with stable ids;
+- add the fourth **Plays** workspace to the current editor and connect it to
+  that real persistence path;
+- reuse the current map, role, condition, capacity, lifecycle, priority, and
+  Practice controls, labelled with the exact current Orders vocabulary; and
+- save, server-compile, reload, and inspect an initial linked projection end to
+  end.
+
+Use this real editor to create both the North corridor ambush and dual Relay
+chain through visible controls at desktop and 390×844 touch widths. No JSON
+shortcut counts as authoring proof. Resolve the generic role/Orders/projection
+model first, then the Ambush map multi-selection, required slot ranges and 5/5
+condition, and the Relay paired roles, logical corridor/derived hop routes,
+carrier/receiver Orders, and Toss inspection.
 
 Confirm that both materialize under current Orders v2 without changing the
 compiler. If role-qualified readiness or alternating Relay movement exposes a
 real current-contract gap, document that exact gap and stop for an owner ruling;
 do not conceal it in editor state. A sidecar model proven only against the
-Ambush recipe does not pass Phase 0. The Relay behavior proof uses Idle Field;
-only a traced failure attributable to the current one-tick Toss tell opens the
-separate timing candidate and presentation verification above.
+Ambush recipe does not pass Phase 0. Both behavior proofs may use the idle
+practice opponent. Only a traced Relay failure attributable to the current
+one-tick Toss tell opens the separate timing candidate and presentation
+verification above.
 
-### Phase 1 — sidecar, ownership, and deterministic projection
+### Phase 1 — complete ownership and safe linked editing
 
-- Add optional versioned workshop metadata to draft persistence and the sheet
-  API without changing gameplay identity.
-- Implement a pure Play-to-Orders projection transform with stable ids.
 - Implement fingerprints, divergence detection, detach, delete, and atomic
   undo/redo.
 - Render linked projections read-only in the existing Orders tree with exact
   priority neighbors and an Edit Play deep-link.
+- Prove that imported or externally changed generated Orders are never silently
+  overwritten and that detach preserves the exact materialized gameplay.
 
-At this phase a Play may be created from a narrow form even if the full map UX
-is not yet complete. Persistence and non-destructive ownership must be proven
-before richer generation.
+Persistence, deterministic projection, and non-destructive ownership are the
+foundation of the richer generation that follows; none may be deferred to a
+mock-up-only phase.
 
 ### Phase 2 — additive map-first Plays workspace
 
