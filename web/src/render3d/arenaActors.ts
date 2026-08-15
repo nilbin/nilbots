@@ -425,15 +425,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     solid.add(mask);
   };
   const presenter = createPresenter(replay);
-  const veterancy = arcVeterancyFor(replay);
+  let veterancy = arcVeterancyFor(replay);
   const rawGameMode = replay.contract.kind === 'v3-generic'
     ? replay.contract.rawContract.rules.gameMode
     : null;
-  const veterancyEnabled = veterancy.hasLevels || (
-    rawGameMode?.kind === 'arc-relay' &&
+  const rulesPublishVeterancy = rawGameMode?.kind === 'arc-relay' &&
     (rawGameMode.veterancyXpPerLevel ?? 0) > 0 &&
-    (rawGameMode.veterancyMaxLevel ?? 0) >= 2
-  );
+    (rawGameMode.veterancyMaxLevel ?? 0) >= 2;
+  let veterancyEnabled = veterancy.hasLevels || rulesPublishVeterancy;
   // A replay can be closed while a chassis is still being fetched and triangulated. Adding
   // the model to a torn-down scene would resurrect meshes nothing will ever dispose.
   let live = true;
@@ -1562,11 +1561,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       fade,
     };
   });
-  const signedTravel = signedTravelByActor(replay);
-  const attackCooldownScales = attackCooldownScaleByUnit(replay);
-  const signatureCooldowns = signatureCooldownsByActor(replay);
-  const signaturePhaseStarts = signaturePhaseStartsByOperation(replay);
-  const signatureBodyReleases = signatureBodyReleasesByActor(replay);
+  let signedTravel = signedTravelByActor(replay);
+  let attackCooldownScales = attackCooldownScaleByUnit(replay);
+  let signatureCooldowns = signatureCooldownsByActor(replay);
+  let signaturePhaseStarts = signaturePhaseStartsByOperation(replay);
+  let signatureBodyReleases = signatureBodyReleasesByActor(replay);
+  let indexedTickCount = replay.ticks.length;
   const reducedMotionQuery =
     typeof window !== 'undefined' && window.matchMedia
       ? window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -1621,7 +1621,6 @@ export function buildActors(replay: ReplayModel): ArenaActors {
      */
     stanceMove: boolean;
   };
-  const formTimelines = new Map<ReplayActorLifeKey, FormSegment[]>();
   const stationaryForm = (formId: string | null) =>
     formId === null
       ? null
@@ -1633,63 +1632,82 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       : stationaryForm(formId) === true
         ? 'turret'
         : 'mobile';
-  for (const tick of replay.ticks)
-    for (const event of tick.events) {
-      if (!event.sourceActor) continue;
-      const cancelled = event.type === 'form-transition-cancelled';
-      if (
-        !cancelled &&
-        event.type !== 'form-transition-started' &&
-        event.type !== 'form-changed'
-      )
-        continue;
-      // A cancel leaves the life in the form it started from; everything else moves it to
-      // the form the transition targets.
-      const stationary = stationaryForm(
-        cancelled ? event.fromFormId : event.toFormId,
-      );
-      if (stationary === null) continue;
-      const at = cancelled
-        ? event.tick
-        : (event.formTransitionStartedAtTick ?? event.tick);
-      const completes = cancelled
-        ? event.tick
-        : (event.formTransitionCompletesAtTick ?? event.tick);
-      const key = event.sourceActor.actorKey;
-      const timeline = formTimelines.get(key) ?? [];
-      // `form-transition-started` and the replay-v2 `form-changed` both describe one
-      // transition, and a replay carrying both must not queue it twice.
-      if (
-        timeline.some(
-          (segment) =>
-            segment.at === at && segment.stationary === stationary,
+  const indexFormTimelines = () => {
+    const indexed = new Map<ReplayActorLifeKey, FormSegment[]>();
+    for (const tick of replay.ticks)
+      for (const event of tick.events) {
+        if (!event.sourceActor) continue;
+        const cancelled = event.type === 'form-transition-cancelled';
+        if (
+          !cancelled &&
+          event.type !== 'form-transition-started' &&
+          event.type !== 'form-changed'
         )
-      )
-        continue;
-      const shape = shapeOfForm(
-        cancelled ? event.fromFormId : event.toFormId,
-      );
-      const sourceShape = shapeOfForm(
-        cancelled ? event.toFormId : event.fromFormId,
-      );
-      const stanceMove = shape === 'stance' || sourceShape === 'stance';
-      timeline.push({
-        at,
-        // A windup the replay describes always wins; the floor only covers the transitions
-        // that begin and end in one tick, and those two kinds of move are not one length.
-        span: Math.max(
-          completes - at + 1,
-          stanceMove ? STANCE_TICKS : DEPLOY_TICKS,
-        ),
-        stationary,
-        shape,
-        sourceShape,
-        stanceMove,
-      });
-      formTimelines.set(key, timeline);
-    }
-  for (const timeline of formTimelines.values())
-    timeline.sort((left, right) => left.at - right.at);
+          continue;
+        // A cancel leaves the life in the form it started from; everything else moves it to
+        // the form the transition targets.
+        const stationary = stationaryForm(
+          cancelled ? event.fromFormId : event.toFormId,
+        );
+        if (stationary === null) continue;
+        const at = cancelled
+          ? event.tick
+          : (event.formTransitionStartedAtTick ?? event.tick);
+        const completes = cancelled
+          ? event.tick
+          : (event.formTransitionCompletesAtTick ?? event.tick);
+        const key = event.sourceActor.actorKey;
+        const timeline = indexed.get(key) ?? [];
+        // `form-transition-started` and the replay-v2 `form-changed` both describe one
+        // transition, and a replay carrying both must not queue it twice.
+        if (
+          timeline.some(
+            (segment) =>
+              segment.at === at && segment.stationary === stationary,
+          )
+        )
+          continue;
+        const shape = shapeOfForm(
+          cancelled ? event.fromFormId : event.toFormId,
+        );
+        const sourceShape = shapeOfForm(
+          cancelled ? event.toFormId : event.fromFormId,
+        );
+        const stanceMove = shape === 'stance' || sourceShape === 'stance';
+        timeline.push({
+          at,
+          // A windup the replay describes always wins; the floor only covers the transitions
+          // that begin and end in one tick, and those two kinds of move are not one length.
+          span: Math.max(
+            completes - at + 1,
+            stanceMove ? STANCE_TICKS : DEPLOY_TICKS,
+          ),
+          stationary,
+          shape,
+          sourceShape,
+          stanceMove,
+        });
+        indexed.set(key, timeline);
+      }
+    for (const timeline of indexed.values())
+      timeline.sort((left, right) => left.at - right.at);
+    return indexed;
+  };
+  let formTimelines = indexFormTimelines();
+
+  /** Refresh only the folds that depend on the growing causal tick prefix. */
+  const refreshReplayIndexes = () => {
+    if (indexedTickCount === replay.ticks.length) return;
+    indexedTickCount = replay.ticks.length;
+    veterancy = arcVeterancyFor(replay);
+    veterancyEnabled = veterancy.hasLevels || rulesPublishVeterancy;
+    signedTravel = signedTravelByActor(replay);
+    attackCooldownScales = attackCooldownScaleByUnit(replay);
+    signatureCooldowns = signatureCooldownsByActor(replay);
+    signaturePhaseStarts = signaturePhaseStartsByOperation(replay);
+    signatureBodyReleases = signatureBodyReleasesByActor(replay);
+    formTimelines = indexFormTimelines();
+  };
 
   /** The transition covering the playhead for this life, or null before its first one. */
   const segmentAt = (
@@ -1843,6 +1861,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     showVisibility: boolean,
     showFog = true,
   ) => {
+    refreshReplayIndexes();
     const tick = Math.max(
       0,
       Math.min(Math.floor(time), replay.ticks.length - 1),

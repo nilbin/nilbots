@@ -513,18 +513,25 @@ export interface ReplayPresenter {
 }
 
 export function createPresenter(replay: ReplayModel): ReplayPresenter {
-  const maxHealth = replayMaxHealth(replay);
-  const tickCount = replay.ticks.length;
+  let maxHealth = replayMaxHealth(replay);
   const legacyZone = deriveLegacyZone(replay);
   const economyRules = scrapEconomyRules(replay);
   const captureRules = frontlineCaptureRules(replay);
-  const arcRelayBeats = arcRelayBeatTimeline(replay);
+  let indexedTickCount = -1;
+  let arcRelayBeats: ArcRelayBeat[] = [];
   // Both renderers call this once per animation frame, and the playhead crosses
   // dozens of frames per tick. The answer is a pure function of the tick, so it
   // is derived once and handed back until the tick changes.
   let memo: { tickIndex: number; value: TickPresentation } | null = null;
 
   const at = (rawTick: number): TickPresentation => {
+    const tickCount = replay.ticks.length;
+    if (indexedTickCount !== tickCount) {
+      indexedTickCount = tickCount;
+      maxHealth = replayMaxHealth(replay);
+      arcRelayBeats = arcRelayBeatTimeline(replay);
+      memo = null;
+    }
     if (tickCount === 0) {
       return {
         tick: 0,
@@ -582,7 +589,15 @@ export function createPresenter(replay: ReplayModel): ReplayPresenter {
     return value;
   };
 
-  return { tickCount, maxHealth, at };
+  return {
+    get tickCount() {
+      return replay.ticks.length;
+    },
+    get maxHealth() {
+      return maxHealth;
+    },
+    at,
+  };
 }
 
 function presentUnit(

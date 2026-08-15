@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { ReplayModel, ReplayStableUnitKey } from '../replayModel';
 import { posesAt } from '../render/interpolate';
@@ -27,6 +27,12 @@ import {
   takeArenaFrame,
   type ArenaRenderProfile,
 } from '../render/arenaRenderProfile';
+import {
+  replaySceneIdentity,
+  useCurrentReplayView,
+} from '../render/useCurrentReplayView';
+
+let sceneMountGeneration = 0;
 
 /**
  * The 3D arena.
@@ -83,6 +89,12 @@ export default function ArenaCanvas3D({
   renderProfile: ArenaRenderProfile;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const currentReplay = useCurrentReplayView(replay);
+  const sceneIdentity = useMemo(() => replaySceneIdentity(replay), [replay]);
+  const entrantIdentity = useMemo(
+    () => JSON.stringify(entrants ?? []),
+    [entrants],
+  );
   // All of these go through refs for the same reason `time` does: they change while a
   // replay is open, and putting them in the effect's dependencies would tear down the
   // renderer and rebuild the entire scene every time someone clicked a bot card.
@@ -113,6 +125,10 @@ export default function ArenaCanvas3D({
     active,
   };
   useEffect(() => {
+    // This stable read-through object follows live causal-prefix replacements without
+    // making a new prefix a new WebGL scene. A genuinely different match changes
+    // sceneIdentity and still receives a clean renderer/camera lifecycle.
+    const replay = currentReplay;
     const container = host.current;
     if (!container) return;
 
@@ -158,6 +174,9 @@ export default function ArenaCanvas3D({
     renderer.domElement.dataset.idleFps = String(renderProfile.idleFramesPerSecond);
     renderer.domElement.dataset.pixelRatio = String(renderer.getPixelRatio());
     renderer.domElement.dataset.shadowMapSize = String(renderProfile.shadowMapSize);
+    renderer.domElement.dataset.sceneMountGeneration = String(
+      ++sceneMountGeneration,
+    );
 
     const arena = buildArena(replay, { shadowMapSize: renderProfile.shadowMapSize });
     const actors = buildActors(replay);
@@ -568,7 +587,7 @@ export default function ArenaCanvas3D({
       renderer.forceContextLoss();
       container.removeChild(renderer.domElement);
     };
-  }, [replay, entrants, renderProfile]);
+  }, [currentReplay, entrantIdentity, renderProfile, sceneIdentity]);
 
   return (
     <div

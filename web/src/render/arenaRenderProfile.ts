@@ -34,18 +34,20 @@ export const FULL_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
 /**
  * Sustained desktop-watch budget.
  *
- * Desktop keeps the reference resolution and shadow fidelity. It only stops submitting
- * duplicate work above 60 Hz, lets paused micro-life breathe at 12 Hz, and avoids forcing
- * a discrete GPU when the browser's default adapter can render the match comfortably.
+ * The unrestricted evidence profile remains available for stills. Ordinary watching is
+ * sustained work: forty-five frames keeps tweened motion fluid, DPR 1.5 keeps class detail
+ * crisp, and a 1024 shadow map is already larger than the arena's normal on-screen height.
+ * Together those bounds avoid spending most of every frame redrawing an off-screen 2048²
+ * shadow texture — the dominant cost on otherwise ordinary desktop GPUs.
  */
 export const DESKTOP_ARENA_RENDER_PROFILE: ArenaRenderProfile = Object.freeze({
   id: 'desktop',
   presentationRateLimited: true,
-  activeFramesPerSecond: 60,
+  activeFramesPerSecond: 45,
   idleFramesPerSecond: 12,
-  webglMaxPixelRatio: 2,
-  canvasMaxPixelRatio: 2,
-  shadowMapSize: 2048,
+  webglMaxPixelRatio: 1.5,
+  canvasMaxPixelRatio: 1.5,
+  shadowMapSize: 1024,
   powerPreference: 'default',
 });
 

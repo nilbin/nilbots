@@ -54,7 +54,10 @@ export interface ArcVeterancyIndex {
 const lifeKey = (teamId: number, unitId: number, lifeId: number) =>
   `${teamId}:${unitId}:${lifeId}`;
 
-const cache = new WeakMap<ReplayModel, ArcVeterancyIndex>();
+const cache = new WeakMap<
+  ReplayModel,
+  { tickCount: number; index: ArcVeterancyIndex }
+>();
 
 /**
  * The per-replay index, built on first use. Both renderers draw every frame,
@@ -63,11 +66,10 @@ const cache = new WeakMap<ReplayModel, ArcVeterancyIndex>();
  * than a parameter.
  */
 export function arcVeterancyFor(replay: ReplayModel): ArcVeterancyIndex {
-  let index = cache.get(replay);
-  if (!index) {
-    index = buildArcVeterancy(replay);
-    cache.set(replay, index);
-  }
+  const cached = cache.get(replay);
+  if (cached?.tickCount === replay.ticks.length) return cached.index;
+  const index = buildArcVeterancy(replay);
+  cache.set(replay, { tickCount: replay.ticks.length, index });
   return index;
 }
 

@@ -106,7 +106,10 @@ const TASK_NAMES: Readonly<Record<string, string>> = {
   task: 'assigned task',
 };
 
-const cache = new WeakMap<ReplayModel, PlayAwarenessTimeline>();
+const cache = new WeakMap<
+  ReplayModel,
+  { tickCount: number; timeline: PlayAwarenessTimeline }
+>();
 
 export function parsePlayRoleTag(tag: string | null): ParsedPlayRole | null {
   if (!tag) return null;
@@ -136,9 +139,9 @@ export function playAwarenessTimeline(
   replay: ReplayModel,
 ): PlayAwarenessTimeline {
   const prior = cache.get(replay);
-  if (prior) return prior;
+  if (prior?.tickCount === replay.ticks.length) return prior.timeline;
   const built = buildTimeline(replay);
-  cache.set(replay, built);
+  cache.set(replay, { tickCount: replay.ticks.length, timeline: built });
   return built;
 }
 

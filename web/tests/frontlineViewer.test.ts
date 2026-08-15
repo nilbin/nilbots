@@ -60,6 +60,22 @@ test('generic replay-v3 presents exact stable units and actor lives', () => {
   );
 });
 
+test('one presenter follows a causal replay prefix as ticks are appended', () => {
+  const growing = structuredClone(replay);
+  const later = growing.ticks.splice(1);
+  const presenter = createPresenter(growing);
+
+  assert.equal(presenter.tickCount, 1);
+  assert.equal(presenter.at(99).tick, growing.ticks[0]!.tick);
+
+  growing.ticks.push(...later);
+  assert.equal(presenter.tickCount, replay.ticks.length);
+  assert.equal(
+    presenter.at(replay.ticks.length - 1).tick,
+    replay.ticks.at(-1)!.tick,
+  );
+});
+
 test('generic Frontline replay-v3 presents contract tuning and the derived breach winner', () => {
   const source = JSON.parse(
     readFileSync(

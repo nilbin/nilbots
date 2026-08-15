@@ -43,6 +43,10 @@ export {
 } from '../../src/presentation/playAwareness';
 export { defaultPlaybackSpeed } from '../../src/playback';
 export {
+  liveClockPollMilliseconds,
+  replayPrefixPollMilliseconds,
+} from '../../src/site/liveBroadcastCadence';
+export {
   SOUND_EFFECT_CUE_IDS,
   soundEffectPack,
 } from '../../src/audio/soundEffects';

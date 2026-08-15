@@ -212,6 +212,8 @@ export function useLiveFollower(
 ): number {
   const [time, setTime] = useState(0);
   const anchor = useRef<{ tick: number; at: number } | null>(null);
+  const availableTicks = useRef(replay.ticks.length);
+  availableTicks.current = replay.ticks.length;
 
   useEffect(() => {
     if (!live) return;
@@ -228,12 +230,12 @@ export function useLiveFollower(
       }
       const a = anchor.current!;
       const elapsed = (stamp - a.at) / 1000;
-      setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, replay.ticks.length));
+      setTime(Math.min(a.tick + elapsed * live.ticksPerSecond, availableTicks.current));
       frame = requestAnimationFrame(advance);
     };
     frame = requestAnimationFrame(advance);
     return () => cancelAnimationFrame(frame);
-  }, [live?.tick, live?.ticksPerSecond, live, replay.ticks.length, framesPerSecond]);
+  }, [live?.tick, live?.ticksPerSecond, framesPerSecond]);
 
   return time;
 }

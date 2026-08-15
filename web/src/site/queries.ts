@@ -16,6 +16,10 @@ import {
   type SubmitVersionRequest,
   type UpdateBotAppearanceRequest,
 } from './api';
+import {
+  liveClockPollMilliseconds,
+  replayPrefixPollMilliseconds,
+} from './liveBroadcastCadence';
 
 /**
  * One hook per resource, each owning its own key and cadence.
@@ -332,7 +336,7 @@ export function useMatchLive(matchId: string | undefined) {
     queryKey: keys.matchLive(matchId ?? ''),
     queryFn: () => endpoints.matchLive(matchId!),
     enabled: Boolean(matchId),
-    refetchInterval: (query) => (query.state.data?.broadcastComplete ? false : 1_500),
+    refetchInterval: (query) => liveClockPollMilliseconds(query.state.data),
   });
 }
 
@@ -367,7 +371,13 @@ export function useMatchReplay(matchId: string | undefined, live: MatchLive | un
     // Keep Viewer (and its shared audio session) mounted while the completion
     // key's full document replaces the final partial response.
     placeholderData: (previous) => previous,
-    refetchInterval: () => (live && !live.broadcastComplete ? 1_500 : false),
+    // Clock reads are cheap and frequent; the causal document is re-read only after that
+    // clock proves another tick has become public. This avoids both an exhausted-prefix
+    // freeze and redundant full-prefix parsing between ticks.
+    refetchInterval: (query) => replayPrefixPollMilliseconds(
+      live,
+      query.state.data?.replay.ticks.length ?? 0,
+    ),
     // Truncated mid-broadcast, so the cached copy goes stale the moment it lands.
     staleTime: 0,
   });

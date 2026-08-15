@@ -53,15 +53,15 @@ test('explicit profile override makes same-build visual A/B deterministic', () =
   );
 });
 
-test('desktop preserves image quality without forcing unrestricted GPU work', () => {
+test('desktop keeps fluid motion inside a sustained watch budget', () => {
   assert.deepEqual(DESKTOP_ARENA_RENDER_PROFILE, {
     id: 'desktop',
     presentationRateLimited: true,
-    activeFramesPerSecond: 60,
+    activeFramesPerSecond: 45,
     idleFramesPerSecond: 12,
-    webglMaxPixelRatio: 2,
-    canvasMaxPixelRatio: 2,
-    shadowMapSize: 2048,
+    webglMaxPixelRatio: 1.5,
+    canvasMaxPixelRatio: 1.5,
+    shadowMapSize: 1024,
     powerPreference: 'default',
   });
 
@@ -79,7 +79,8 @@ test('desktop preserves image quality without forcing unrestricted GPU work', ()
     2,
     144,
   );
-  assert.equal(desktopWork / unrestrictedWork, 60 / 144);
+  assert.ok(desktopWork <= 180_000_000);
+  assert.ok(desktopWork / unrestrictedWork < 0.32);
 });
 
 test('mobile profile has a bounded sustained phone workload', () => {
@@ -130,16 +131,16 @@ test('frame limiter presents thirty evenly paced frames on 60 and 120 Hz clocks'
   }
 });
 
-test('desktop limiter presents at most sixty frames on high-refresh clocks', () => {
+test('desktop limiter presents forty-five evenly paced frames on high-refresh clocks', () => {
   for (const refreshRate of [60, 120, 144]) {
     const pacer = createArenaFramePacer();
     let presented = 0;
     for (let index = 0; index < refreshRate * 10; index++) {
       const stamp = index * (1000 / refreshRate);
-      if (takeArenaFrame(pacer, stamp, 60)) presented++;
+      if (takeArenaFrame(pacer, stamp, 45)) presented++;
     }
     assert.ok(
-      presented >= 599 && presented <= 601,
+      presented >= 449 && presented <= 451,
       `${refreshRate} Hz presented ${presented} frames`,
     );
   }

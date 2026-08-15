@@ -77,7 +77,7 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
     const next = structuredClone(orders); change(next); onChange(next);
   };
 
-  return <section className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_310px]" data-sheet-path="orders.roles">
+  return <section className="grid gap-3" data-sheet-path="orders.roles">
     <div className="panel pad min-w-0">
       <div className="flex flex-wrap items-start gap-2">
         <div className="mr-auto max-w-2xl">
@@ -94,6 +94,7 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
           const open = openRole === role.id;
           return <article key={role.id} className={clsx(
             'overflow-hidden rounded-sm border bg-arena-deep/25',
+            open && 'md:col-span-2',
             open ? 'border-arena-material/65' : 'border-arena-edge',
           )} data-sheet-path={`orders.roles.${roleIndex}`}>
             <button type="button" className="flex min-h-16 w-full items-center gap-3 p-3 text-left"
@@ -184,9 +185,9 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
           setOpenRole(id);
         }}>＋ Add tactical role</button>
     </div>
-    <aside className="panel pad h-fit xl:sticky xl:top-20">
+    <aside className="panel pad h-fit">
       <p className="lab">Roster read</p>
-      <div className="mt-3 grid grid-cols-4 gap-2">{orders.roles.flatMap((role) => role.classes.map((classId, index) => <div key={`${role.id}:${index}`} className="text-center">
+      <div className="mt-3 grid grid-cols-4 gap-2 sm:grid-cols-8">{orders.roles.flatMap((role) => role.classes.map((classId, index) => <div key={`${role.id}:${index}`} className="text-center">
         <ClassIcon classId={classId} size={46} label={`${humanize(role.id)} · ${humanize(classId)}`} />
         <span className="t-micro mt-1 block truncate">{humanize(role.id)}</span>
       </div>))}</div>
@@ -225,21 +226,21 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
   }, [onResumeConditionHandled, resumeConditionId]);
 
   if (!role) return null;
-  return <section className="grid min-w-0 gap-3 xl:grid-cols-[250px_minmax(0,1fr)]">
-    <aside className="panel h-fit overflow-hidden xl:sticky xl:top-20">
+  return <section className="grid min-w-0 gap-3">
+    <aside className="panel h-fit overflow-hidden">
       <div className="border-b border-arena-edge p-3">
         <p className="lab text-arena-material">Role plans</p>
         <p className="t-micro mt-1">Read top to bottom. The first executable leaf wins.</p>
       </div>
-      <div className="flex gap-1 overflow-x-auto p-2 xl:flex-col">{orders.roles.map((entry) => <button key={entry.id}
+      <div className="flex gap-1 overflow-x-auto p-2">{orders.roles.map((entry) => <button key={entry.id}
         type="button" className={clsx(
-          'min-h-14 min-w-[180px] rounded-sm border p-2 text-left xl:min-w-0',
+          'min-h-14 min-w-[180px] flex-1 rounded-sm border p-2 text-left',
           entry.id === role.id ? 'border-arena-material/65 bg-arena-material/10' : 'border-transparent bg-arena-deep/25',
         )} onClick={() => { setRoleId(entry.id); setOpenPath(null); }}>
         <span className="flex items-center gap-2"><span className="flex -space-x-1">{entry.classes.map((classId, index) => <ClassIcon key={`${classId}:${index}`} classId={classId} size={28} decorative />)}</span><b className="t-body truncate">{humanize(entry.id)}</b></span>
         <span className="t-micro mt-1 block">{entry.orders.length} top-level orders</span>
       </button>)}</div>
-      <div className="grid gap-1 border-t border-arena-edge p-2">
+      <div className="grid gap-1 border-t border-arena-edge p-2 sm:grid-cols-3">
         <button type="button" className="btn min-h-11 justify-start" onClick={() => { setConditionSelection(null); setLibrary('conditions'); }}>◇ Conditions <span className="pill ml-auto">{Object.keys(orders.conditions).length}</span></button>
         <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('capacities')}>⫶ Capacities <span className="pill ml-auto">{Object.keys(orders.capacities).length}</span></button>
         <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('shared')}>⧉ Shared orders <span className="pill ml-auto">{Object.keys(orders.sharedOrders).length}</span></button>

@@ -107,7 +107,10 @@ interface VolleyIndex {
   }[];
 }
 
-const indexCache = new WeakMap<ReplayModel, VolleyIndex>();
+const indexCache = new WeakMap<
+  ReplayModel,
+  { tickCount: number; index: VolleyIndex }
+>();
 
 const EMPTY_INDEX: VolleyIndex = {
   lanes: new Map(),
@@ -138,7 +141,7 @@ function decimal(value: string): bigint | null {
 
 function volleyIndex(replay: ReplayModel): VolleyIndex {
   const cached = indexCache.get(replay);
-  if (cached !== undefined) return cached;
+  if (cached?.tickCount === replay.ticks.length) return cached.index;
 
   // Launch tick + owner life, from the authoritative attack event. Replay-v3 names the
   // event `attack`; replay-v1/v2 name the same thing `shot`, and neither of those
@@ -223,7 +226,10 @@ function volleyIndex(replay: ReplayModel): VolleyIndex {
     });
   }
   if (tracks.size === 0) {
-    indexCache.set(replay, EMPTY_INDEX);
+    indexCache.set(replay, {
+      tickCount: replay.ticks.length,
+      index: EMPTY_INDEX,
+    });
     return EMPTY_INDEX;
   }
 
@@ -281,7 +287,7 @@ function volleyIndex(replay: ReplayModel): VolleyIndex {
   }
 
   const built: VolleyIndex = { lanes, tracks, volleys };
-  indexCache.set(replay, built);
+  indexCache.set(replay, { tickCount: replay.ticks.length, index: built });
   return built;
 }
 

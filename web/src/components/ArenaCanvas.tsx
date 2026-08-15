@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type {
   ReplayModel,
   ReplayStableUnitKey,
@@ -28,6 +28,12 @@ import {
   unprojectCanvasY,
 } from '../render/arenaProjection';
 import type { ViewerEntrantPresentation } from './Viewer';
+import {
+  replaySceneIdentity,
+  useCurrentReplayView,
+} from '../render/useCurrentReplayView';
+
+let sceneMountGeneration = 0;
 
 interface ArenaCanvasProps {
   replay: ReplayModel;
@@ -71,6 +77,12 @@ export default function ArenaCanvas({
   renderProfile,
 }: ArenaCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const currentReplay = useCurrentReplayView(replay);
+  const sceneIdentity = useMemo(() => replaySceneIdentity(replay), [replay]);
+  const entrantIdentity = useMemo(
+    () => JSON.stringify(entrants ?? []),
+    [entrants],
+  );
   const stateRef = useRef({
     time,
     selectedUnitKey,
@@ -104,7 +116,9 @@ export default function ArenaCanvas({
   const gesturesRef = useRef<{ panned: () => boolean } | null>(null);
 
   useEffect(() => {
+    const replay = currentReplay;
     const canvas = canvasRef.current!;
+    canvas.dataset.sceneMountGeneration = String(++sceneMountGeneration);
     const ctx = canvas.getContext('2d')!;
     let frame = 0;
     let last: number | null = null;
@@ -298,7 +312,7 @@ export default function ArenaCanvas({
       gestures?.detach();
       gesturesRef.current = null;
     };
-  }, [replay, cameraGestures, entrants, renderProfile]);
+  }, [cameraGestures, currentReplay, entrantIdentity, renderProfile, sceneIdentity]);
 
   const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
     // A drag that moved the camera is not a tap on a bot.

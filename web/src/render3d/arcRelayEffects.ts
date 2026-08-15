@@ -226,12 +226,13 @@ export function buildArcRelayEffects(
   const group = new THREE.Group();
   group.userData.kind = 'arc-relay-signatures-and-beats';
   const theme = arenaTheme(replay.map.presentation?.themeId ?? undefined);
-  const signatureShotYaws = indexSignatureShotYaws(replay);
-  const signaturePhaseStarts = indexSignaturePhaseStarts(replay);
-  const surveyFlareLandings = indexSurveyFlareLandings(replay);
-  const signatureOutcomes = indexSignatureOutcomes(replay);
-  const constructHull = signatureConstructHullById(replay);
-  const veterancy = arcVeterancyFor(replay);
+  let signatureShotYaws = indexSignatureShotYaws(replay);
+  let signaturePhaseStarts = indexSignaturePhaseStarts(replay);
+  let surveyFlareLandings = indexSurveyFlareLandings(replay);
+  let signatureOutcomes = indexSignatureOutcomes(replay);
+  let constructHull = signatureConstructHullById(replay);
+  let veterancy = arcVeterancyFor(replay);
+  let indexedTickCount = replay.ticks.length;
   const reducedMotionQuery =
     typeof window !== 'undefined' && window.matchMedia
       ? window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -629,6 +630,15 @@ export function buildArcRelayEffects(
   disposables.push(levelMaterial, levelRingGeometry, levelFacetGeometry);
 
   const update = (time: number) => {
+    if (indexedTickCount !== replay.ticks.length) {
+      indexedTickCount = replay.ticks.length;
+      signatureShotYaws = indexSignatureShotYaws(replay);
+      signaturePhaseStarts = indexSignaturePhaseStarts(replay);
+      surveyFlareLandings = indexSurveyFlareLandings(replay);
+      signatureOutcomes = indexSignatureOutcomes(replay);
+      constructHull = signatureConstructHullById(replay);
+      veterancy = arcVeterancyFor(replay);
+    }
     for (const rig of rigs) rig.group.visible = false;
     for (const capacity of capacityBars) capacity.bib.visible = false;
     for (const pool of propPools.values())
