@@ -1,7 +1,8 @@
 # Arc Relay apex forms concept v1
 
-Status: owner-review candidate. This sheet is art direction only; it does not
-change the runtime class looks or approve a Meshy generation pass.
+Status: owner-review candidate. V2 is the current candidate. This sheet is art
+direction only; it does not change the runtime class looks or approve a Meshy
+generation pass.
 
 `apex-forms-concept-v1.png` proposes one complete level-5 chassis evolution for
 each of Arc Relay's sixteen launch classes. The generated sheet uses the current
@@ -9,6 +10,14 @@ approved Meshy 7 V3 fleet as its identity reference and the strict top-down
 runtime icons as its gameplay-planform reference. It deliberately avoids the
 retired shared crown/halo direction: every apex read comes from class-specific
 signature hardware and a changed whole-body silhouette.
+
+Owner review found V1 too far from the current fleet. V2 therefore treats the
+approved model sheet as an edit target rather than loose inspiration. It keeps
+roughly 85–90 percent of every current planform, proportion, material region,
+and signature mechanism, then makes those mechanisms look fully awakened with
+short unfolded elements, aged-brass reinforcement, and broad neutral
+violet-white power channels. `apex-forms-concept-v2.png` is that corrected full
+sheet; `apex-forms-gameplay-scale-v2.png` is its reduced silhouette check.
 
 The fixed four-by-four order remains:
 
@@ -51,7 +60,8 @@ footprint, making the silhouette check more honest than the full-size render.
 ## Provenance
 
 - Generated with the built-in OpenAI image-generation tool on 2026-08-15.
-- Exact prompt: `PROMPT.md`.
+- V1 exact prompt: `PROMPT.md`.
+- V2 exact correction prompt: `PROMPT-V2.md`.
 - Identity reference:
   `art/reviews/arc-relay-meshy7-fleet-retexture-v3/fixed-orientation-sheet.png`.
 - Planform reference:
@@ -60,4 +70,8 @@ footprint, making the silhouette check more honest than the full-size render.
   `48a2abd89fd49026947ac0f4c98260c8aceafee80d5a4a9a1deb0440b439fd81`.
 - Gameplay-scale sheet SHA-256:
   `66f3892b03b1dadbaf3a3f0158d7c3153d78c9de1a5f289f150ddf80b527160b`.
+- V2 full sheet SHA-256:
+  `39f8ef71a599c92da2cedb164fe90da579d6684d390aae5ce4168b73ea5bce55`.
+- V2 gameplay-scale sheet SHA-256:
+  `46b633899a2d80133eef279135b49cd7140be3939378a23f49aad2543e60ca5a`.
 
