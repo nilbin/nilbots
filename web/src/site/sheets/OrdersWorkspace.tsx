@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import clsx from 'clsx';
 import ClassIcon from '../../components/ClassIcon';
 import type { TacticalSheetCatalog } from '../api';
@@ -34,6 +34,7 @@ import {
 } from './sheetAuthoring';
 import { MapTargetPreview } from './MapPlanEditor';
 import IdentifierInput from './IdentifierInput';
+import type { WorkshopDocument } from './workshopTypes';
 
 type LibraryTool = 'conditions' | 'capacities' | 'shared' | null;
 type PlotKind = 'route' | 'zone' | 'anchor';
@@ -198,7 +199,8 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
 }
 
 export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, onOpenMap,
-  resumeConditionId = null, onResumeConditionHandled }: {
+  resumeConditionId = null, onResumeConditionHandled, workshop,
+  initialRoleId = null, onEditPlay }: {
   catalog: TacticalSheetCatalog;
   orders: OrdersDocument;
   mapPlan: MapPlanDocument;
@@ -207,6 +209,9 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
   onOpenMap: (focus?: { kind: PlotKind; id: string }, returnToConditionId?: string) => void;
   resumeConditionId?: string | null;
   onResumeConditionHandled?: () => void;
+  workshop?: WorkshopDocument;
+  initialRoleId?: string | null;
+  onEditPlay?: (playId: string) => void;
 }) {
   const [roleId, setRoleId] = useState(orders.roles[0]?.id ?? '');
   const [openPath, setOpenPath] = useState<string | null>(null);
@@ -214,6 +219,16 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
   const [conditionSelection, setConditionSelection] = useState<string | null>(null);
   const roleIndex = Math.max(0, orders.roles.findIndex((role) => role.id === roleId));
   const role = orders.roles[roleIndex];
+  const linkedRoots = useMemo(() => {
+    const result = new Map<string, LinkedProjectionInfo>();
+    for (const play of workshop?.plays ?? []) for (const projection of play.projections)
+      for (const generated of projection.lastGenerated) result.set(generated.orderId, {
+        playId: play.id,
+        playName: play.name,
+        projectionId: projection.id,
+      });
+    return result;
+  }, [workshop]);
   const commit = (change: (next: OrdersDocument) => void) => {
     const next = structuredClone(orders); change(next); onChange(next);
   };
@@ -224,6 +239,13 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
     setLibrary('conditions');
     onResumeConditionHandled?.();
   }, [onResumeConditionHandled, resumeConditionId]);
+
+  useEffect(() => {
+    if (initialRoleId && orders.roles.some((entry) => entry.id === initialRoleId)) {
+      setRoleId(initialRoleId);
+      setOpenPath(null);
+    }
+  }, [initialRoleId, orders.roles]);
 
   if (!role) return null;
   return <section className="grid min-w-0 gap-3">
@@ -268,6 +290,8 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
         openPath={openPath}
         setOpenPath={setOpenPath}
         onOpenMap={onOpenMap}
+        linkedRoots={linkedRoots}
+        onEditPlay={onEditPlay}
         onChange={(nextOrders) => commit((next) => { next.roles[roleIndex].orders = nextOrders; })}
       />
       <IssueList issues={issues.filter((issue) => issue.path.startsWith(`orders.roles.${roleIndex}`))} />
@@ -294,7 +318,31 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
   </section>;
 }
 
-function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issues, depth, openPath, setOpenPath, onOpenMap, onChange }: {
+interface LinkedProjectionInfo {
+  playId: string;
+  playName: string;
+  projectionId: string;
+}
+
+export function ProjectionOrdersComposer({ catalog, orders, mapPlan, role, source, issues, onChange, onOpenMap }: {
+  catalog: TacticalSheetCatalog;
+  orders: OrdersDocument;
+  mapPlan: MapPlanDocument;
+  role: RoleDefinition;
+  source: OrderNode[];
+  issues: SheetIssue[];
+  onChange: (orders: OrderNode[]) => void;
+  onOpenMap: (focus?: { kind: PlotKind; id: string }) => void;
+}) {
+  const [openPath, setOpenPath] = useState<string | null>(null);
+  return <OrderList orders={source} path={`workshop.projections.${role.id}.orders`}
+    role={role} allOrders={orders} mapPlan={mapPlan} catalog={catalog}
+    issues={issues} depth={0} openPath={openPath} setOpenPath={setOpenPath}
+    onOpenMap={onOpenMap} onChange={onChange} />;
+}
+
+function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issues, depth, openPath, setOpenPath, onOpenMap, onChange,
+  linkedRoots, onEditPlay }: {
   orders: OrderNode[];
   path: string;
   role: RoleDefinition;
@@ -307,6 +355,8 @@ function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issu
   setOpenPath: (path: string | null) => void;
   onOpenMap: (focus?: { kind: PlotKind; id: string }) => void;
   onChange: (next: OrderNode[]) => void;
+  linkedRoots?: Map<string, LinkedProjectionInfo>;
+  onEditPlay?: (playId: string) => void;
 }) {
   const mutate = (change: (next: OrderNode[]) => void) => { const next = structuredClone(list); change(next); onChange(next); };
   const ids = allOrderIds(allOrders);
@@ -314,10 +364,12 @@ function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issu
     {list.map((node, index) => {
       const nodePath = `${path}.${index}`;
       const open = openPath === nodePath || Boolean(openPath?.startsWith(`${nodePath}.orders.`));
+      const linked = node.id ? linkedRoots?.get(node.id) : undefined;
       return <OrderCard key={`${node.id ?? node.shared ?? 'branch'}:${index}`}
         node={node} path={nodePath} role={role} allOrders={allOrders} mapPlan={mapPlan}
         catalog={catalog} issues={issues} depth={depth} open={open}
         openPath={openPath}
+        linked={linked} linkedRoots={linkedRoots} onEditPlay={onEditPlay}
         onToggle={() => setOpenPath(open ? null : nodePath)}
         onOpenPath={setOpenPath} onOpenMap={onOpenMap}
         onChange={(nextNode) => mutate((next) => { next[index] = nextNode; })}
@@ -337,7 +389,8 @@ function OrderList({ orders: list, path, role, allOrders, mapPlan, catalog, issu
   </div>;
 }
 
-function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, depth, open, openPath, onToggle, onOpenPath, onOpenMap, onChange, onMove, onDuplicate, onDelete, first, last, externalId }: {
+function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, depth, open, openPath, onToggle, onOpenPath, onOpenMap, onChange, onMove, onDuplicate, onDelete, first, last, externalId,
+  linked, linkedRoots, onEditPlay }: {
   node: OrderNode;
   path: string;
   role: RoleDefinition;
@@ -358,12 +411,17 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
   first: boolean;
   last: boolean;
   externalId?: string;
+  linked?: LinkedProjectionInfo;
+  linkedRoots?: Map<string, LinkedProjectionInfo>;
+  onEditPlay?: (playId: string) => void;
 }) {
   const action = actionOf(node);
   const meta = action && action !== 'branch' && action !== 'shared' ? ACTION_COPY[action] : null;
   const label = externalId ?? node.id ?? node.shared ?? 'Unnamed order';
   const localIssues = issues.filter((issue) => issue.path.startsWith(path));
   const change = (mutate: (next: OrderNode) => void) => { const next = structuredClone(node); mutate(next); onChange(next); };
+  if (linked) return <LinkedOrderCard node={node} path={path} depth={depth}
+    info={linked} open={open} onToggle={onToggle} onEditPlay={onEditPlay} />;
   return <article className={clsx(
     'overflow-hidden rounded-sm border bg-arena-deep/25',
     open ? 'border-arena-material/70 shadow-[inset_3px_0_0_var(--color-arena-material)]' : 'border-arena-edge',
@@ -397,6 +455,7 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
             <OrderList orders={node.orders} path={`${path}.orders`} role={role} allOrders={allOrders}
               mapPlan={mapPlan} catalog={catalog} issues={issues} depth={depth + 1}
               openPath={openPath} setOpenPath={onOpenPath} onOpenMap={onOpenMap}
+              linkedRoots={linkedRoots} onEditPlay={onEditPlay}
               onChange={(children) => change((next) => { next.orders = children; })} />
           </div>
         </>}
@@ -428,6 +487,47 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
         <button type="button" className="btn min-h-11" onClick={onDuplicate}>Duplicate</button>
         <button type="button" className="btn min-h-11 text-arena-hot" onClick={onDelete}>Delete</button>
       </div>}
+    </div>}
+  </article>;
+}
+
+function LinkedOrderCard({ node, path, depth, info, open, onToggle, onEditPlay }: {
+  node: OrderNode;
+  path: string;
+  depth: number;
+  info: LinkedProjectionInfo;
+  open: boolean;
+  onToggle: () => void;
+  onEditPlay?: (playId: string) => void;
+}) {
+  const action = actionOf(node);
+  const meta = action && action !== 'branch' && action !== 'shared' ? ACTION_COPY[action] : null;
+  return <article className={clsx(
+    'overflow-hidden rounded-sm border bg-arena-material/5',
+    open ? 'border-arena-material/75 shadow-[inset_3px_0_0_var(--color-arena-material)]' : 'border-arena-material/35',
+  )} data-sheet-path={path}>
+    <div className="flex min-h-16 items-center gap-2 p-2">
+      <span className="pill shrink-0">{depth === 0 ? priorityFromPath(path) : '↳'}</span>
+      <button type="button" className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        onClick={onToggle} aria-expanded={open}>
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-sm border border-arena-material/35 bg-arena-panel font-mono text-[18px] text-arena-material">
+          {action === 'branch' ? '⌘' : meta?.glyph ?? '⧉'}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="lab text-arena-material">Play · {info.playName}</span>
+          <b className="type-display mt-0.5 block truncate text-[16px]">{humanize(node.id ?? 'linked-order')}</b>
+          <span className="t-micro mt-0.5 block truncate">Read-only while linked · {action ?? 'Order'}</span>
+        </span>
+        <span className="disclosure-chevron shrink-0">›</span>
+      </button>
+      {onEditPlay && <button type="button" className="btn btn-secondary hidden min-h-10 sm:inline-flex"
+        onClick={() => onEditPlay(info.playId)}>Edit Play</button>}
+    </div>
+    {open && <div className="border-t border-arena-material/25 p-3">
+      <p className="t-meta">This is ordinary Orders source generated by <b>{info.playName}</b>. Edit linked values, geometry and priority in Plays, or detach it to edit here.</p>
+      <pre className="mt-3 max-h-72 overflow-auto rounded-sm border border-arena-edge bg-[#080c10] p-3 text-[11px] leading-relaxed text-arena-muted">{JSON.stringify(node, null, 2)}</pre>
+      {onEditPlay && <button type="button" className="btn btn-secondary mt-3 min-h-11 w-full sm:hidden"
+        onClick={() => onEditPlay(info.playId)}>Edit Play</button>}
     </div>}
   </article>;
 }

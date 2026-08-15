@@ -23,8 +23,9 @@ import {
   type MapTeamRelation,
 } from './sheetMapPresentation';
 
-type PlotKind = 'route' | 'zone' | 'anchor';
-type Side = 'west' | 'east';
+export type PlotKind = 'route' | 'zone' | 'anchor';
+export type MapPreviewSide = 'west' | 'east';
+type Side = MapPreviewSide;
 type Tool = 'select' | 'draw';
 type Drag = { kind: PlotKind; id: string; index?: number; start?: Point };
 
@@ -415,7 +416,7 @@ export function MapTargetPreview({
   </button>;
 }
 
-function BaseMap({ catalog, side, transform, compact = false }: {
+export function BaseMap({ catalog, side, transform, compact = false }: {
   catalog: TacticalSheetCatalog;
   side: Side;
   transform: (point: Point) => Point;

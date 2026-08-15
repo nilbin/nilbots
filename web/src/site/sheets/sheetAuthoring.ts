@@ -1,4 +1,8 @@
 import type { TacticalSheetCatalog } from '../api';
+import {
+  emptyWorkshop,
+  type WorkshopDocument,
+} from './workshopTypes';
 
 export type JsonObject = Record<string, unknown>;
 export interface Point { x: number; y: number }
@@ -117,6 +121,7 @@ export interface SheetDraft {
   enterLadder: boolean;
   orders: OrdersDocument;
   mapPlan: MapPlanDocument;
+  workshop: WorkshopDocument;
 }
 
 export interface SheetIssue {
@@ -264,13 +269,21 @@ export function parseDraft(
   ordersJson: string,
   mapPlanJson: string,
   enterLadder = true,
+  workshopJson?: string | null,
 ): SheetDraft {
   const orders = JSON.parse(ordersJson) as OrdersDocument;
   const mapPlan = JSON.parse(mapPlanJson) as MapPlanDocument;
+  const workshop = workshopJson
+    ? JSON.parse(workshopJson) as WorkshopDocument
+    : emptyWorkshop();
   if (!orders || typeof orders !== 'object' || Array.isArray(orders))
     throw new Error('sheet.json must contain one JSON object.');
   if (!mapPlan || typeof mapPlan !== 'object' || Array.isArray(mapPlan))
     throw new Error('map-plan.json must contain one JSON object.');
+  if (!workshop || typeof workshop !== 'object' || Array.isArray(workshop)
+    || workshop.schema !== 'arc-relay-workshop-v1'
+    || !Array.isArray(workshop.plays))
+    throw new Error('workshop.json must use arc-relay-workshop-v1.');
   return {
     localId: sheetId ? `sheet:${sheetId}` : newLocalDraftId(),
     name,
@@ -279,6 +292,7 @@ export function parseDraft(
     enterLadder,
     orders,
     mapPlan,
+    workshop,
   };
 }
 
@@ -395,6 +409,7 @@ export async function pinDraft(draft: SheetDraft): Promise<{
   draft: SheetDraft;
   ordersJson: string;
   mapPlanJson: string;
+  workshopJson: string;
 }> {
   const next = structuredClone(draft);
   const id = identifierFromName(next.name);
@@ -403,7 +418,8 @@ export async function pinDraft(draft: SheetDraft): Promise<{
   next.mapPlan.mapPlanId = `${id}-map`;
   const ordersJson = stringifyDocument(next.orders);
   const mapPlanJson = stringifyDocument(next.mapPlan);
-  return { draft: next, ordersJson, mapPlanJson };
+  const workshopJson = stringifyDocument(next.workshop);
+  return { draft: next, ordersJson, mapPlanJson, workshopJson };
 }
 
 export function stringifyDocument(value: unknown): string {
@@ -834,7 +850,7 @@ export async function loadLocalDraft(localId?: string): Promise<SheetDraft | nul
   if (!resolvedId) { db.close(); return null; }
   const result = await readLocalRecord(db, `${LOCAL_DRAFT_PREFIX}${resolvedId}`);
   db.close();
-  return result?.value ?? null;
+  return result?.value ? withWorkshop(result.value) : null;
 }
 
 export async function listLocalDrafts(): Promise<SheetDraft[]> {
@@ -847,7 +863,7 @@ export async function listLocalDrafts(): Promise<SheetDraft[]> {
   });
   db.close();
   return records.filter((record) => record.key.startsWith(LOCAL_DRAFT_PREFIX) && record.value)
-    .sort((a, b) => b.updatedAt - a.updatedAt).map((record) => record.value!);
+    .sort((a, b) => b.updatedAt - a.updatedAt).map((record) => withWorkshop(record.value!));
 }
 
 export async function deleteLocalDraft(localId: string): Promise<void> {
@@ -882,6 +898,11 @@ function openDraftDatabase(): Promise<IDBDatabase> {
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => reject(request.error);
   });
+}
+
+function withWorkshop(draft: SheetDraft): SheetDraft {
+  if (draft.workshop?.schema === 'arc-relay-workshop-v1') return draft;
+  return { ...draft, workshop: emptyWorkshop() };
 }
 
 /** Map the shared compiler's path-bearing diagnostic onto the editor's panels. */

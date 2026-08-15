@@ -42,13 +42,20 @@ import {
 } from './sheetTrials';
 import { OrdersWorkspace, SquadEditor } from './OrdersWorkspace';
 import MapPlanEditor from './MapPlanEditor';
+import PlaysWorkspace from './PlaysWorkspace';
+import {
+  inspectWorkshop,
+  materializeWorkshop,
+} from './linkedPlays';
+import { renamePlayGeometry } from './playEditing';
+import { playGeometryIssues } from './playGeometry';
 
 interface TacticalSheetEditorProps {
   catalog: TacticalSheetCatalog;
   initialSheetId?: string | null;
 }
 
-type Section = 'squad' | 'orders' | 'map';
+type Section = 'squad' | 'orders' | 'map' | 'plays';
 type PlotFocus = { kind: 'route' | 'zone' | 'anchor'; id: string } | null;
 type MapReturn = { conditionId: string } | null;
 
@@ -56,6 +63,7 @@ const SECTIONS: ReadonlyArray<{ id: Section; label: string; description: string 
   { id: 'squad', label: 'Squad', description: 'Cast eight bodies into roles' },
   { id: 'orders', label: 'Orders', description: 'Write each role’s priorities' },
   { id: 'map', label: 'Map plan', description: 'Plot the named ground' },
+  { id: 'plays', label: 'Plays', description: 'Link Orders across the map' },
 ];
 
 export default function TacticalSheetEditor({ catalog, initialSheetId = null }: TacticalSheetEditorProps) {
@@ -70,6 +78,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [, forceHistory] = useState(0);
   const [localDrafts, setLocalDrafts] = useState<SheetDraft[]>([]);
   const [section, setSection] = useState<Section>('orders');
+  const [selectedPlayId, setSelectedPlayId] = useState<string | null>(() =>
+    window.sessionStorage.getItem('nilbots-sheet-selected-play'));
+  const [ordersRoleFocus, setOrdersRoleFocus] = useState<string | null>(null);
   const [mapFocus, setMapFocus] = useState<PlotFocus>(null);
   const [mapReturn, setMapReturn] = useState<MapReturn>(null);
   const [resumeConditionId, setResumeConditionId] = useState<string | null>(null);
@@ -159,7 +170,18 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     return () => window.clearTimeout(timer);
   }, [draft]);
 
-  const clientIssues = useMemo(() => draft ? validateDraft(draft, catalog) : [], [catalog, draft]);
+  const clientIssues = useMemo(() => {
+    if (!draft) return [];
+    const workshopIssues: SheetIssue[] = [
+      ...draft.workshop.plays.flatMap((play) => playGeometryIssues(draft, play.id)),
+      ...inspectWorkshop(draft.orders, draft.workshop).map((drift) => ({
+        path: `workshop.plays.${drift.playId}.${drift.projectionId}`,
+        severity: 'error' as const,
+        message: drift.message,
+      })),
+    ];
+    return [...validateDraft(draft, catalog), ...workshopIssues];
+  }, [catalog, draft]);
   const issues = compilerIssue ? [...clientIssues, compilerIssue] : clientIssues;
   const blocking = issues.filter((issue) => issue.severity === 'error');
   const runsForSheet = draft?.sheetId
@@ -169,6 +191,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const { data: selectedRunLive } = useMatchLive(selectedRun?.matchId);
   const { data: selectedRunReplay } = useMatchReplay(selectedRun?.matchId, selectedRunLive);
   const selectedTracks = useMemo(() => replayUnitTracks(selectedRunReplay?.replay), [selectedRunReplay?.replay]);
+
+  useEffect(() => {
+    if (selectedPlayId) window.sessionStorage.setItem('nilbots-sheet-selected-play', selectedPlayId);
+    else window.sessionStorage.removeItem('nilbots-sheet-selected-play');
+  }, [selectedPlayId]);
 
   const mutate = (change: (next: SheetDraft) => void) => {
     const current = draftRef.current;
@@ -200,7 +227,23 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     const current = draftRef.current;
     if (!current) throw new Error('No draft is open.');
     setCompilerIssue(null);
-    const prepared = await pinDraft(current);
+    const materialized = materializeWorkshop(current.orders, current.workshop);
+    if (materialized.drifts.length > 0) {
+      const first = materialized.drifts[0];
+      const issue: SheetIssue = {
+        path: `workshop.plays.${first.playId}`,
+        severity: 'error',
+        message: `${first.message} Regenerate from Play or detach it before saving.`,
+      };
+      setCompilerIssue(issue);
+      setSection('plays');
+      throw new Error(issue.message);
+    }
+    const prepared = await pinDraft({
+      ...current,
+      orders: materialized.orders,
+      workshop: materialized.workshop,
+    });
     const targetId = asCopy ? null : prepared.draft.sheetId;
     const previousLocalId = current.localId;
     try {
@@ -212,6 +255,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           ordersJson: prepared.ordersJson,
           mapPlanJson: prepared.mapPlanJson,
           enterLadder: prepared.draft.enterLadder,
+          workshopJson: prepared.workshopJson,
+          replaceWorkshop: true,
         },
       });
       const persisted = fromServer(saved);
@@ -375,6 +420,9 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         onChange={(orders) => mutate((next) => { next.orders = orders; })} />}
       {section === 'orders' && <OrdersWorkspace catalog={catalog} orders={draft.orders} mapPlan={draft.mapPlan} issues={issues}
         onChange={(orders) => mutate((next) => { next.orders = orders; })}
+        workshop={draft.workshop}
+        initialRoleId={ordersRoleFocus}
+        onEditPlay={(playId) => { setSelectedPlayId(playId); setSection('plays'); }}
         resumeConditionId={resumeConditionId}
         onResumeConditionHandled={() => setResumeConditionId(null)}
         onOpenMap={(focus, returnToConditionId) => {
@@ -396,7 +444,18 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
           },
         } : null}
         onChange={(mapPlan) => mutate((next) => { next.mapPlan = mapPlan; })}
-        onRename={(kind, previous, nextId) => mutate((next) => renameGeometry(next, kind, previous, nextId))} />}
+        onRename={(kind, previous, nextId) => mutate((next) => renameGeometryAware(next, kind, previous, nextId))} />}
+      {section === 'plays' && <PlaysWorkspace catalog={catalog} draft={draft} issues={issues}
+        tracks={selectedTracks} selectedPlayId={selectedPlayId} onSelectPlay={setSelectedPlayId}
+        onChange={(changed) => mutate((next) => { Object.assign(next, changed); })}
+        onOpenSquad={() => setSection('squad')}
+        onOpenOrders={(playId, projectionId) => {
+          const play = draft.workshop.plays.find((entry) => entry.id === playId);
+          const projection = play?.projections.find((entry) => entry.id === projectionId) ?? play?.projections[0];
+          setOrdersRoleFocus(projection?.roleId ?? null);
+          setSelectedPlayId(playId);
+          setSection('orders');
+        }} />}
     </main>
 
     <div className="fixed inset-x-0 bottom-0 z-50 border-t border-arena-edge bg-arena-panel/95 p-2 backdrop-blur sm:hidden">
@@ -423,7 +482,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   </div>;
 
   function revealIssue(path: string) {
-    const target = path.startsWith('mapPlan') ? 'map' : path.startsWith('orders.roles') ? 'squad' : 'orders';
+    const target = path.startsWith('workshop') ? 'plays'
+      : path.startsWith('mapPlan') ? 'map' : path.startsWith('orders.roles') ? 'squad' : 'orders';
     setSection(target);
     window.setTimeout(() => {
       const exact = document.querySelector<HTMLElement>(`[data-sheet-path="${CSS.escape(path)}"]`);
@@ -533,7 +593,15 @@ function Modal({ title, children, onClose }: { title: string; children: ReactNod
 }
 
 function fromServer(sheet: TacticalSheet): SheetDraft {
-  return parseDraft(sheet.name, sheet.id, sheet.revision, sheet.ordersJson, sheet.mapPlanJson, sheet.entrant.ladderOptedIn);
+  return parseDraft(
+    sheet.name,
+    sheet.id,
+    sheet.revision,
+    sheet.ordersJson,
+    sheet.mapPlanJson,
+    sheet.entrant.ladderOptedIn,
+    sheet.workshopJson,
+  );
 }
 
 function isOrdersDraft(value: SheetDraft): boolean {
@@ -541,9 +609,25 @@ function isOrdersDraft(value: SheetDraft): boolean {
 }
 
 function sectionIssues(section: Section, issues: SheetIssue[]) {
-  return issues.filter((issue) => section === 'map' ? issue.path.startsWith('mapPlan')
+  return issues.filter((issue) => section === 'plays' ? issue.path.startsWith('workshop')
+    : section === 'map' ? issue.path.startsWith('mapPlan')
     : section === 'squad' ? issue.path.startsWith('orders.roles') && !issue.path.includes('.orders')
       : issue.path.startsWith('orders'));
+}
+
+function renameGeometryAware(
+  draft: SheetDraft,
+  kind: 'route' | 'zone' | 'anchor',
+  previous: string,
+  nextId: string,
+) {
+  const owner = draft.workshop.plays.find((play) => play.ownedGeometry.some((entry) =>
+    entry.kind === kind && entry.id === previous));
+  if (!owner) {
+    renameGeometry(draft, kind, previous, nextId);
+    return;
+  }
+  Object.assign(draft, renamePlayGeometry(draft, owner.id, kind, previous, nextId));
 }
 
 function renameGeometry(draft: SheetDraft, kind: 'route' | 'zone' | 'anchor', previous: string, nextId: string) {
