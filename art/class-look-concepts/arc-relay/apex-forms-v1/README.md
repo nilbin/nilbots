@@ -1,6 +1,6 @@
 # Arc Relay apex forms concept v1
 
-Status: owner-review candidate. V3 is the current candidate. This sheet is art
+Status: owner-review candidate. V4 is the current candidate. This sheet is art
 direction only; it does not change the runtime class looks or approve a Meshy
 generation pass.
 
@@ -27,6 +27,14 @@ fleet-sheet heading, so `apex-forms-concept-v3-source.png` preserves that exact
 provider result while `apex-forms-concept-v3.png` is its deterministic header
 crop. No bot pixels were repainted. `apex-forms-gameplay-scale-v3.png` is the
 current small-read check.
+
+V3 then failed the apex read because fidelity consumed nearly all of the visible
+transformation. V4 keeps the recognizable current chassis as an inner machine
+but adds one large, physically connected signature-specific exoframe around it.
+Those low perimeter mantles change roughly 20–30 percent of each silhouette,
+using pale matte armor, dark negative space, and dull mechanical joints rather
+than glow. `apex-forms-concept-v4.png` and
+`apex-forms-gameplay-scale-v4.png` are the current owner-review pair.
 
 The fixed four-by-four order remains:
 
@@ -72,6 +80,7 @@ footprint, making the silhouette check more honest than the full-size render.
 - V1 exact prompt: `PROMPT.md`.
 - V2 exact correction prompt: `PROMPT-V2.md`.
 - V3 exact no-glow correction prompt: `PROMPT-V3.md`.
+- V4 exact apex-exoframe correction prompt: `PROMPT-V4.md`.
 - Identity reference:
   `art/reviews/arc-relay-meshy7-fleet-retexture-v3/fixed-orientation-sheet.png`.
 - Planform reference:
@@ -90,4 +99,8 @@ footprint, making the silhouette check more honest than the full-size render.
   `62d9364142d98593920fc4e8e0bc95c3f6f96bfc072bc98bab8ef0e348184345`.
 - V3 gameplay-scale sheet SHA-256:
   `418341f7e3baa9093bb2e334cacbf6bc6212f7b4bbfa56139721ef81cd676a9d`.
+- V4 full sheet SHA-256:
+  `5e7dd351587520eddc06fd72abb1578ee98fd6e3b20c8f4df1c2433b26cd8575`.
+- V4 gameplay-scale sheet SHA-256:
+  `2750cb3d72988ed1b856f9a4a030bd2a9473953bff014de316c4d4e93271d654`.
 
