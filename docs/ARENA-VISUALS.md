@@ -522,15 +522,16 @@ Modes without a veterancy rule or facts receive no rank rail. Temporary
 level-up geometry is gone by 1.8 presentation ticks; the effect has no white
 flash, full-height column, camera shake, or mesh mutation.
 
-At authoritative level 5, a genuine WebGL bot model additionally receives a
-texture-preserving Apex edge: a crisp violet back-face silhouette just outside
-the authored hull plus one narrow violet-pearl scan moving over its normals. The
-outside edge survives phone-scale minification without globally lifting or
-recolouring the texture. The level-5 promotion beat eases it in, and
-reduced-motion freezes the scan while retaining the edge. It creates no scene
-light, emission bloom, floor aura, team tint, model mutation, or spill onto
-nearby actors, Wells, or Reactors. Canvas and model-load fallbacks retain the
-exact five-cell rank rail without inventing a substitute effect.
+Every genuine WebGL bot model receives a thin, low-opacity silhouette in its
+authoritative team accent. At level 5 that same edge widens and strengthens, a
+broader additive shell breathes just outside it, and one narrow team-coloured
+scan moves over the authored normals. The hierarchy survives phone-scale
+minification without bleaching or globally recolouring the texture: ordinary
+bots read their team quietly, while Apex bots radiate it. The level-5 promotion
+beat eases the radiance in, and reduced-motion freezes its breathing and scan
+while retaining the stronger edge. It creates no scene light, floor aura, model
+mutation, or spill onto nearby actors, Wells, or Reactors. Canvas and model-load
+fallbacks retain the existing team paint and rank rail only.
 
 Five complete Meshy-authored split-diadem rank models remain checked in with
 their manifests, source concepts, provider records, audits, and deterministic

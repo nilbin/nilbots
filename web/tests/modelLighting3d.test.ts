@@ -5,7 +5,7 @@ import {
   MODEL_LIGHTING_PROFILE,
   applyModelLighting,
   applyPointLightIsolation,
-  createModelApexOutline,
+  createModelTeamOutline,
   injectPointLightIsolation,
   injectModelLighting,
   isolateModelFromPointLights,
@@ -25,55 +25,86 @@ test('genuine model lighting adds a bounded fill and cool rim after ordinary PBR
   assert.ok(MODEL_LIGHTING_PROFILE.rimStrength <= 0.16);
 });
 
-test('apex surface treatment stays narrow, violet, and texture-preserving', () => {
+test('apex surface treatment stays narrow, team-coloured, and texture-preserving', () => {
   const shader = injectModelLighting(`before\n${shaderAnchor}\nafter`);
   assert.match(shader, /uniform float nilbotsApexStrength/);
+  assert.match(shader, /uniform vec3 nilbotsApexColor/);
   assert.match(shader, /nilbotsApexRim/);
   assert.match(shader, /nilbotsApexSweepDirection/);
-  assert.match(shader, /vec3\( 0\.38, 0\.12, 0\.72 \)/);
+  assert.match(shader, /nilbotsApexColor/);
   assert.match(shader, /material\.diffuseColor/);
+  assert.doesNotMatch(shader, /0\.38, 0\.12, 0\.72/);
   assert.doesNotMatch(shader, /nilbotsApexCoat/);
   assert.doesNotMatch(shader, /nilbotsApexCounterSweep/);
   assert.doesNotMatch(shader, /PointLight/);
   assert.ok(MODEL_LIGHTING_PROFILE.apexRimStrength <= 0.04);
   assert.ok(MODEL_LIGHTING_PROFILE.apexSweepStrength <= 0.15);
   assert.ok(MODEL_LIGHTING_PROFILE.apexSweepPower >= 30);
-  assert.ok(MODEL_LIGHTING_PROFILE.apexOutlineWidth <= 0.045);
+  assert.ok(MODEL_LIGHTING_PROFILE.teamOutlineWidth < 0.03);
+  assert.ok(MODEL_LIGHTING_PROFILE.teamOutlineOpacity < 0.5);
 });
 
-test('apex outline expands a crisp violet back-face shell without touching source paint', () => {
+test('team outline stays quiet until Apex reveals the wider additive radiance', () => {
   const sourceMaterial = new THREE.MeshStandardMaterial({ color: 0x6c7d52 });
   const source = new THREE.Mesh(new THREE.BoxGeometry(), sourceMaterial);
-  const outline = createModelApexOutline();
-  const shell = outline.attach(source);
-  assert.ok(shell);
-  assert.equal(shell.parent, source);
-  assert.equal(shell.material, outline.material);
+  const teamColor = new THREE.Color('#38bdf8');
+  const outline = createModelTeamOutline(teamColor);
+  const shells = outline.attach(source);
+  assert.ok(shells);
+  assert.equal(shells.core.parent, source);
+  assert.equal(shells.radiance.parent, source);
+  assert.equal(shells.core.material, outline.material);
+  assert.equal(shells.radiance.material, outline.radianceMaterial);
   assert.equal(outline.material.side, THREE.BackSide);
   assert.equal(outline.material.depthWrite, false);
   assert.equal(outline.material.toneMapped, false);
+  assert.equal(outline.material.blending, THREE.NormalBlending);
+  assert.equal(outline.radianceMaterial.blending, THREE.AdditiveBlending);
+  assert.equal(outline.material.color.getHex(), teamColor.getHex());
+  assert.equal(outline.radianceMaterial.color.getHex(), teamColor.getHex());
   assert.equal(sourceMaterial.color.getHex(), 0x6c7d52);
 
-  outline.set(1, 0.5, 1);
-  assert.equal(shell.visible, true);
-  assert.ok(outline.material.opacity > 0.7);
-  assert.ok(outline.material.color.b > outline.material.color.g);
+  outline.set(0, 0.5, 1);
+  assert.equal(shells.core.visible, true);
+  assert.equal(shells.radiance.visible, false);
+  assert.equal(outline.material.opacity, MODEL_LIGHTING_PROFILE.teamOutlineOpacity);
+  assert.equal(outline.radianceMaterial.opacity, 0);
 
-  const shader = {
+  const coreShader = {
     vertexShader: `before\n#include <begin_vertex>\nafter`,
     fragmentShader: 'void main() {}',
     uniforms: {},
   } as Parameters<typeof outline.material.onBeforeCompile>[0];
   outline.material.onBeforeCompile(
-    shader,
+    coreShader,
     {} as Parameters<typeof outline.material.onBeforeCompile>[1],
   );
-  assert.match(shader.vertexShader, /uniform float nilbotsApexOutlineWidth/);
-  assert.match(shader.vertexShader, /normalize\( normal \)/);
-  assert.ok(shader.uniforms.nilbotsApexOutlineWidth!.value > 0);
+  assert.match(coreShader.vertexShader, /uniform float nilbotsTeamOutlineWidth/);
+  assert.match(coreShader.vertexShader, /normalize\( normal \)/);
+  assert.equal(
+    coreShader.uniforms.nilbotsTeamOutlineWidth!.value,
+    MODEL_LIGHTING_PROFILE.teamOutlineWidth,
+  );
 
-  outline.set(0, 1, 1);
-  assert.equal(shell.visible, false);
+  const radianceShader = {
+    vertexShader: `before\n#include <begin_vertex>\nafter`,
+    fragmentShader: 'void main() {}',
+    uniforms: {},
+  } as Parameters<typeof outline.radianceMaterial.onBeforeCompile>[0];
+  outline.radianceMaterial.onBeforeCompile(
+    radianceShader,
+    {} as Parameters<typeof outline.radianceMaterial.onBeforeCompile>[1],
+  );
+
+  outline.set(1, 1, 1);
+  assert.equal(shells.core.visible, true);
+  assert.equal(shells.radiance.visible, true);
+  assert.ok(outline.material.opacity > 0.7);
+  assert.ok(outline.radianceMaterial.opacity > 0.1);
+  assert.ok(
+    radianceShader.uniforms.nilbotsTeamOutlineWidth!.value >
+      coreShader.uniforms.nilbotsTeamOutlineWidth!.value,
+  );
   outline.dispose();
   source.geometry.dispose();
   sourceMaterial.dispose();
@@ -81,15 +112,19 @@ test('apex outline expands a crisp violet back-face shell without touching sourc
 
 test('apex treatment retains precompile state and updates compiled uniforms', () => {
   const material = new THREE.MeshStandardMaterial();
+  const teal = new THREE.Color('#38bdf8');
+  const orange = new THREE.Color('#fb923c');
   applyModelLighting(material);
-  setModelApexTreatment(material, 2, 1.25);
+  setModelApexTreatment(material, 2, 1.25, teal);
 
   const state = material.userData.nilbotsModelLightingState as {
     apexStrength: number;
     apexPhase: number;
+    apexColor: THREE.Color;
   };
   assert.equal(state.apexStrength, 1);
   assert.equal(state.apexPhase, 1.25);
+  assert.equal(state.apexColor.getHex(), teal.getHex());
 
   const shader = {
     fragmentShader: `before\n${shaderAnchor}\nafter`,
@@ -101,10 +136,12 @@ test('apex treatment retains precompile state and updates compiled uniforms', ()
   );
   assert.equal(shader.uniforms.nilbotsApexStrength!.value, 1);
   assert.equal(shader.uniforms.nilbotsApexPhase!.value, 1.25);
+  assert.equal(shader.uniforms.nilbotsApexColor!.value.getHex(), teal.getHex());
 
-  setModelApexTreatment(material, 0.35, 2.5);
+  setModelApexTreatment(material, 0.35, 2.5, orange);
   assert.equal(shader.uniforms.nilbotsApexStrength!.value, 0.35);
   assert.equal(shader.uniforms.nilbotsApexPhase!.value, 2.5);
+  assert.equal(shader.uniforms.nilbotsApexColor!.value.getHex(), orange.getHex());
 });
 
 test('model lighting is idempotent and owns a distinct shader cache key', () => {
@@ -116,8 +153,8 @@ test('model lighting is idempotent and owns a distinct shader cache key', () => 
 
   assert.equal(material.onBeforeCompile, firstCompile);
   assert.equal(material.customProgramCacheKey(), firstKey);
-  assert.match(firstKey, /nilbots-model-lighting-v4/);
-  assert.equal(material.userData.nilbotsModelLighting, 'nilbots-model-lighting-v4');
+  assert.match(firstKey, /nilbots-model-lighting-v5/);
+  assert.equal(material.userData.nilbotsModelLighting, 'nilbots-model-lighting-v5');
 });
 
 test('model lighting fails loudly if Three changes its physical shader seam', () => {
@@ -146,7 +183,7 @@ test('point-light isolation composes once with readable model lighting', () => {
 
   assert.equal(material.onBeforeCompile, firstCompile);
   assert.equal(material.customProgramCacheKey(), firstKey);
-  assert.match(firstKey, /nilbots-model-lighting-v4/);
+  assert.match(firstKey, /nilbots-model-lighting-v5/);
   assert.match(firstKey, /nilbots-point-light-isolation-v1/);
 
   const model = new THREE.Group();
