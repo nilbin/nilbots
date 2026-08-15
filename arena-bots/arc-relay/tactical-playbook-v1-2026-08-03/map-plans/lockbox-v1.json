@@ -3,14 +3,6 @@
   "mapPlanId": "lockbox-v1",
   "mapId": "arc-relay-tapline-01",
   "zones": {
-    "reactor-approach-queue": {
-      "rect": [
-        4,
-        7,
-        7,
-        8
-      ]
-    },
     "centre-pressure-gate": {
       "rect": [12, 11, 18, 15]
     },
