@@ -2235,7 +2235,7 @@ internal static class ArenaBasics
             && body.Action(signature.ActionId) is { AllowedByForm: true };
     }
 
-    private static bool TryRotate(
+    internal static bool TryRotate(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         Direction direction,
@@ -2388,7 +2388,7 @@ internal static class ArenaBasics
             : clockwise is not (1 or 7);
     }
 
-    private static Direction FacingForCone(
+    internal static Direction FacingForCone(
         Direction current,
         ProjectileHeading target,
         bool mirrored)
@@ -2404,6 +2404,24 @@ internal static class ArenaBasics
                 : (int)direction)
             .ToArray();
         return candidates[0];
+    }
+
+    internal static Direction FacingTowardAnchor(
+        Direction current,
+        Position from,
+        Position anchor,
+        bool mirrored)
+    {
+        int dx = Math.Sign(anchor.X - from.X);
+        int dy = Math.Sign(anchor.Y - from.Y);
+        if (dx == 0 && dy == 0)
+            return current;
+        ProjectileHeading target = FromVector(dx, dy);
+        ProjectileHeading currentHeading =
+            (ProjectileHeading)((int)current * 2);
+        return HeadingDistance(currentHeading, target) <= 1
+            ? current
+            : FacingForCone(current, target, mirrored);
     }
 
     private static int HeadingDistance(

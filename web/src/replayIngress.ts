@@ -1,6 +1,7 @@
 import type {
   ReplayModel,
   ReplayPublishedUnitDestination,
+  ReplayPublishedUnitFacing,
   ReplayPublishedUnitOrder,
 } from './replayModel';
 import {
@@ -102,6 +103,21 @@ function loadArcRelayBroadcast(
       }
       if (!tick) continue;
       tick.publishedUnitDestinations = [...standing.values()];
+    }
+  }
+  if (input.facings !== undefined) {
+    const standing = new Map<string, ReplayPublishedUnitFacing>();
+    for (const [tickIndex, rows] of input.facings.entries()) {
+      const tick = replay.ticks[tickIndex];
+      for (const [teamId, unitId, x, y] of rows) {
+        standing.set(`${teamId}:${unitId}`, {
+          teamId,
+          unitId,
+          target: x === null || y === null ? null : { x, y },
+        });
+      }
+      if (!tick) continue;
+      tick.publishedUnitFacings = [...standing.values()];
     }
   }
   return {

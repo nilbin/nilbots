@@ -518,6 +518,8 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
     onChange(next);
   };
   const highlight = mapHighlight(value);
+  const canFace = kind === 'to' && typeof value.to === 'object'
+    && ('zone' in value.to || 'anchor' in value.to);
   return <div className="mt-4">
     <p className="lab mb-2">Movement intent</p>
     <div className="grid grid-cols-3 gap-1.5">
@@ -526,7 +528,10 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
         <b className="type-display block text-[15px]">{label}</b><span className="t-micro mt-1 block">{copy}</span>
       </button>)}
     </div>
-    {kind === 'to' && <MoveDestination value={value.to ?? { well: 'centre' }} mapPlan={mapPlan} onChange={(to) => change((next) => { next.to = to; })} />}
+    {kind === 'to' && <MoveDestination value={value.to ?? { well: 'centre' }} mapPlan={mapPlan} onChange={(to) => change((next) => {
+      next.to = to;
+      if (!(typeof to === 'object' && ('zone' in to || 'anchor' in to))) delete next.face;
+    })} />}
     {kind === 'patrol' && (routeIds.length > 0
       ? <CardPicker label="Patrol route" value={value.patrol ?? ''} values={routeIds}
         onChange={(patrol) => change((next) => { next.patrol = patrol; })} />
@@ -550,7 +555,13 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
     <CardPicker label="Pre-combat posture" value={value.posture ?? ''} values={['front', 'line', 'rear']} emptyLabel="No posture"
       descriptions={{ front: 'Press the front edge', line: 'Occupy the neutral line', rear: 'Stay behind the destination' }}
       onChange={(posture) => change((next) => { if (!posture) delete next.posture; else next.posture = posture as MoveOrder['posture']; })} />
+    {canFace && <CardPicker label="Watch toward after arrival · optional" value={value.face?.anchor ?? ''}
+      values={['', ...Object.keys(mapPlan.anchors)]} emptyLabel="Keep natural facing"
+      descriptions={Object.fromEntries(Object.keys(mapPlan.anchors).map((id) => [id,
+        `Turn toward ${humanize(id)} after reaching the destination; movement there is unchanged.`]))}
+      onChange={(anchor) => change((next) => { if (!anchor) delete next.face; else next.face = { anchor }; })} />}
     <div className="mt-3"><MapTargetPreview catalog={catalog} mapPlan={mapPlan} highlight={highlight}
+      facingAnchor={value.face?.anchor}
       onOpenMap={highlight ? () => onOpenMap(highlight) : () => onOpenMap()} /></div>
   </div>;
 }
@@ -711,6 +722,12 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange }: { orders: Order
 
 function ConditionQualifiers({ condition, roles, mapPlan, onChange }: { condition: ConditionDefinition; roles: RoleDefinition[]; mapPlan: MapPlanDocument; onChange: (next: ConditionDefinition) => void }) {
   const kind = conditionSubjectKind(condition.fact);
+  const historical = [
+    'observed-enemy-entries-in-zone',
+    'distinct-enemy-lives-observed-in-zone',
+    'confirmed-enemy-destructions-in-zone',
+    'zone-fully-observed-throughout-interval',
+  ].includes(condition.fact);
   const change = (mutate: (next: ConditionDefinition) => void) => { const next = structuredClone(condition); mutate(next); onChange(next); };
   return <div className="mt-3 grid gap-2 sm:grid-cols-2">
     {(kind === 'role' || kind === 'role-zone') && <CardPicker label="Role" value={condition.role ?? ''} values={roles.map((role) => role.id)} onChange={(role) => change((next) => { next.role = role; })} />}
@@ -718,6 +735,24 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange }: { conditio
     {kind === 'well' && <CardPicker label="Well" value={condition.well ?? ''} values={['north', 'centre', 'south', 'own', 'enemy']} onChange={(well) => change((next) => { next.well = well as ConditionDefinition['well']; })} />}
     {['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(condition.fact) && <OptionalTicks label="Knowledge freshness" value={condition.freshnessTicks} min={1} max={600} placeholder="ticks"
       onChange={(value) => change((next) => { next.freshnessTicks = value ?? 1; })} />}
+    {historical && <div className="sm:col-span-2 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">
+      <p className="lab">Evidence interval</p>
+      <p className="t-micro mt-1">Only completed, genuinely observed ticks count. This history is shared by the team and resets each match.</p>
+      <div className="mt-2 grid grid-cols-3 gap-1.5">
+        {([['window', 'Recent window'], ['match-start', 'Whole match'], ['node-entry', 'This episode']] as const).map(([id, label]) => {
+          const selected = id === 'window' ? condition.windowTicks !== undefined : condition.since === id;
+          return <button key={id} type="button" className="choice-card min-h-12" data-selected={selected}
+            onClick={() => change((next) => {
+              delete next.windowTicks; delete next.since;
+              if (id === 'window') next.windowTicks = condition.windowTicks ?? 120;
+              else next.since = id;
+            })}>{label}</button>;
+        })}
+      </div>
+      {condition.windowTicks !== undefined && <OptionalTicks label="Look back" value={condition.windowTicks}
+        min={1} max={1200} placeholder="ticks" onChange={(value) => change((next) => { next.windowTicks = value ?? 1; })} />}
+      {condition.since === 'node-entry' && <p className="t-micro mt-2 text-arena-material">Episode evidence belongs in an order’s Until trigger; each body gets its own entry tick.</p>}
+    </div>}
   </div>;
 }
 
@@ -928,11 +963,18 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
   if (kind === 'zone' || kind === 'role-zone') next.zone = previous.zone ?? Object.keys(mapPlan.zones)[0];
   if (kind === 'well') next.well = previous.well ?? 'centre';
   if (['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(fact)) next.freshnessTicks = previous.freshnessTicks ?? 60;
+  if ([
+    'observed-enemy-entries-in-zone',
+    'distinct-enemy-lives-observed-in-zone',
+    'confirmed-enemy-destructions-in-zone',
+    'zone-fully-observed-throughout-interval',
+  ].includes(fact)) next.windowTicks = previous.windowTicks ?? 120;
   if (fact === 'self-nearest-visible-enemy-distance') {
     next.operator = 'at-most';
     next.value = previous.fact === fact ? previous.value : 7;
   }
-  if (['self-carrying', 'self-in-zone', 'signature-ready'].includes(fact)) {
+  if (['self-carrying', 'self-in-zone', 'signature-ready',
+    'zone-fully-observed-throughout-interval'].includes(fact)) {
     next.operator = 'equals';
     next.value = previous.fact === fact && previous.value === 0 ? 0 : 1;
   }

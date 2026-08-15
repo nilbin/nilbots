@@ -13,11 +13,11 @@ internal sealed class OrderTreeRuntime
         ActorIdentity actor,
         OrdersPackage.Role role,
         int tick,
-        Func<OrdersPackage.ConditionExpression, int, bool> evaluate)
+        Func<OrdersPackage.ConditionExpression, int, ConditionEvaluation> evaluate)
     {
         var result = new List<EligibleLeaf>();
         foreach (OrdersPackage.OrderNode node in role.Orders)
-            Visit(actor, node, tick, evaluate, result);
+            Visit(actor, node, tick, evaluate, result, inheritedEvidence: null);
         return result;
     }
 
@@ -34,7 +34,8 @@ internal sealed class OrderTreeRuntime
         int tick)
     {
         (ActorIdentity, string) key = (actor, node.Path);
-        State state = _states.GetValueOrDefault(key) ?? new State(false, tick, 0);
+        State state = _states.GetValueOrDefault(key)
+            ?? new State(false, tick, 0, null);
         _states[key] = Exit(state, node, tick);
     }
 
@@ -42,32 +43,51 @@ internal sealed class OrderTreeRuntime
         ActorIdentity actor,
         OrdersPackage.OrderNode node,
         int tick,
-        Func<OrdersPackage.ConditionExpression, int, bool> evaluate,
-        List<EligibleLeaf> result)
+        Func<OrdersPackage.ConditionExpression, int, ConditionEvaluation> evaluate,
+        List<EligibleLeaf> result,
+        string? inheritedEvidence)
     {
         (ActorIdentity, string) key = (actor, node.Path);
-        State state = _states.GetValueOrDefault(key) ?? new State(false, tick, 0);
+        State state = _states.GetValueOrDefault(key)
+            ?? new State(false, tick, 0, null);
         int elapsed = state.Active ? tick - state.StartedTick : 0;
+        string? currentEvidence = state.EvidenceTrace;
         bool left = false;
         if (state.Active)
         {
             bool timedOut = node.Timeout is int timeout && elapsed >= timeout;
-            bool until = node.Until is not null && evaluate(node.Until, elapsed);
-            bool whenEnded = node.Until is null
-                && node.When is not null
-                && !evaluate(node.When, elapsed);
+            ConditionEvaluation? untilEvaluation = node.Until is not null
+                ? evaluate(node.Until, elapsed)
+                : null;
+            ConditionEvaluation? whenEvaluation = node.Until is null
+                    && node.When is not null
+                ? evaluate(node.When, elapsed)
+                : null;
+            currentEvidence = MergeEvidence(
+                state.EvidenceTrace,
+                untilEvaluation?.Trace ?? whenEvaluation?.Trace);
+            bool until = untilEvaluation?.Value == true;
+            bool whenEnded = whenEvaluation is { Value: false };
             if (timedOut || until || whenEnded)
             {
                 state = Exit(state, node, tick);
                 left = true;
             }
         }
+        ConditionEvaluation entry = !state.Active
+                && !left
+                && tick >= state.ReadyTick
+            ? node.When is null
+                ? ConditionEvaluation.True
+                : evaluate(node.When, 0)
+            : ConditionEvaluation.False;
         if (!state.Active
             && !left
             && tick >= state.ReadyTick
-            && (node.When is null || evaluate(node.When, 0)))
+            && entry.Value)
         {
-            state = new State(true, tick, state.ReadyTick);
+            state = new State(true, tick, state.ReadyTick, entry.Trace);
+            currentEvidence = entry.Trace;
         }
         _states[key] = state;
         if (!state.Active)
@@ -76,13 +96,15 @@ internal sealed class OrderTreeRuntime
             return;
         }
         int orderTicks = tick - state.StartedTick;
+        string? evidence = MergeEvidence(inheritedEvidence, currentEvidence);
         if (node.Action is not null)
         {
-            result.Add(new EligibleLeaf(node, orderTicks, state.StartedTick));
+            result.Add(new EligibleLeaf(
+                node, orderTicks, state.StartedTick, evidence));
             return;
         }
         foreach (OrdersPackage.OrderNode child in node.Children)
-            Visit(actor, child, tick, evaluate, result);
+            Visit(actor, child, tick, evaluate, result, evidence);
     }
 
     private void DeactivateChildren(
@@ -105,12 +127,34 @@ internal sealed class OrderTreeRuntime
         int tick) => new(
             Active: false,
             StartedTick: state.StartedTick,
-            ReadyTick: checked(tick + 1 + node.Cooldown));
+            ReadyTick: checked(tick + 1 + node.Cooldown),
+            EvidenceTrace: null);
+
+    private static string? MergeEvidence(string? first, string? second)
+    {
+        if (string.IsNullOrEmpty(first))
+            return second;
+        if (string.IsNullOrEmpty(second) || first.Contains(
+                second, StringComparison.Ordinal))
+            return first;
+        return $"{first}+{second}";
+    }
+
+    internal readonly record struct ConditionEvaluation(bool Value, string? Trace)
+    {
+        public static ConditionEvaluation True => new(true, null);
+        public static ConditionEvaluation False => new(false, null);
+    }
 
     internal sealed record EligibleLeaf(
         OrdersPackage.OrderNode Node,
         int OrderTicks,
-        int ActivatedTick);
+        int ActivatedTick,
+        string? EvidenceTrace);
 
-    private sealed record State(bool Active, int StartedTick, int ReadyTick);
+    private sealed record State(
+        bool Active,
+        int StartedTick,
+        int ReadyTick,
+        string? EvidenceTrace);
 }

@@ -370,6 +370,104 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void DestinationFacingIsNarrowAndConsumesItsAnchor()
+    {
+        JsonObject source = Source("lockbox-v1");
+        JsonObject map = MapPlan("lockbox-v1");
+        map["anchors"]!["facing-destination"] = new JsonArray(14, 13);
+        map["anchors"]!["facing-target"] = new JsonArray(18, 13);
+        JsonObject move = source["roles"]![1]!["orders"]!.AsArray()
+            .Last()!["move"]!.AsObject();
+        move["to"] = new JsonObject { ["anchor"] = "facing-destination" };
+        move["face"] = new JsonObject { ["anchor"] = "facing-target" };
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        move["to"] = "own-reactor";
+        InvalidDataException dynamic = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("authored zone or anchor", dynamic.Message);
+
+        source = Source("crowned-rail-v1");
+        map = MapPlan("crowned-rail-v1");
+        JsonObject patrol = source["roles"]![0]!["orders"]!.AsArray()
+            .Last()!["move"]!.AsObject();
+        patrol["face"] = new JsonObject { ["anchor"] = "north-rail-entry" };
+        InvalidDataException route = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("face is legal only on move.to", route.Message);
+    }
+
+    [Theory]
+    [InlineData("observed-enemy-entries-in-zone")]
+    [InlineData("distinct-enemy-lives-observed-in-zone")]
+    [InlineData("confirmed-enemy-destructions-in-zone")]
+    [InlineData("zone-fully-observed-throughout-interval")]
+    public void HistoricalEvidenceRequiresOneBoundedInterval(string fact)
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        map["zones"]!["watched-gate"] = new JsonObject
+        {
+            ["rect"] = new JsonArray(14, 12, 16, 14),
+        };
+        JsonObject condition = new()
+        {
+            ["fact"] = fact,
+            ["zone"] = "watched-gate",
+            ["windowTicks"] = 90,
+            ["operator"] = "at-least",
+            ["value"] = 0,
+        };
+        source["conditions"]!["gate-history"] = condition;
+        source["roles"]![0]!["orders"]!.AsArray().Last()!["when"] =
+            "gate-history";
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        condition.Remove("windowTicks");
+        InvalidDataException none = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("exactly one of windowTicks or since", none.Message);
+
+        condition["windowTicks"] = 90;
+        condition["since"] = "match-start";
+        InvalidDataException both = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("exactly one of windowTicks or since", both.Message);
+    }
+
+    [Fact]
+    public void NodeEntryEvidenceIsLegalOnlyFromAnUntilExpression()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        map["zones"]!["watched-gate"] = new JsonObject
+        {
+            ["rect"] = new JsonArray(14, 12, 16, 14),
+        };
+        source["conditions"]!["episode-kills"] = new JsonObject
+        {
+            ["fact"] = "confirmed-enemy-destructions-in-zone",
+            ["zone"] = "watched-gate",
+            ["since"] = "node-entry",
+            ["operator"] = "at-least",
+            ["value"] = 2,
+        };
+        JsonObject order = source["roles"]![0]!["orders"]!.AsArray()
+            .Last()!.AsObject();
+        order["until"] = "episode-kills";
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        order.Remove("until");
+        order["when"] = "episode-kills";
+        InvalidDataException when = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("legal only in until", when.Message);
+    }
+
+    [Fact]
     public void SharedOrdersAndCapacitiesRequireHonestReuse()
     {
         JsonObject source = Source("starter-tapline-v2");

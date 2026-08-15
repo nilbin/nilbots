@@ -8477,3 +8477,36 @@ review, not a balance verdict or a claim that the game is fun. The next owner
 gate is one mixed six-match exhibit that exposes each strategy and its intended
 counterplay; any mechanic or sheet tuning follows what those replays actually
 show.
+
+## 317. Facing and observed history are current Orders words, not experiments
+
+Owner product ruling (2026-08-15). Destination-facing and finite historical
+evidence join the current `arc-relay-orders-v2` authoring language directly.
+They do not create isolated loop profiles, alternate rulesets, writable sheet
+memory, named plays, or a second state machine. An authored zone/anchor
+`move.to` may name one `face` anchor; travel is unchanged and the arrived body
+uses ordinary rotation actions to keep that anchor inside its bare firing
+quadrant. Patrol, follow, Well, reactor, adjacent and dynamic targets remain
+ineligible.
+
+The first-party executor owns one team-shared, match-local, read-only ledger
+reconstructed from the observation/event stream. It exposes only four bounded
+facts: observed zone entries, distinct observed enemy lives, confirmed enemy
+destructions, and continuous zone visibility. Every query ends before the
+current tick's actions, carries an explicit rolling/match/node interval, never
+backfills hidden movement, survives body death, and resets at match start.
+`since: node-entry` is legal only from that active node's `until`. Debug traces
+publish the interval and count or coverage gap; compact broadcasts publish only
+the resulting authored order, destination, and watched anchor, not the private
+ledger.
+
+`lockbox-v1` is the first product use: observed centre traffic recruits a
+bounded six-body killbox and releases after confirmed centre destructions or a
+timeout. Its anti-column roster combines a Palisade, Mortar, two Repulsors,
+Hush, Patchbay and Longshot around a Mason-held home lane.
+`demolition-march-v1` uses destination-facing for its overwatch post.
+This establishes an authored reply to a centre column; an exhibit may show
+whether that reply changes a scene, but does not establish balance or prove
+that centre pressure is weak, dominant, or solved. Ordinary merges may leave
+the first-party WASM mirror stale until the explicit deployment checkpoint, as
+already ruled; no frozen playlist artifact is amended here.

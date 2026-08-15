@@ -276,6 +276,44 @@ test('movement urgency is a three-word optional node property', () => {
   assert.ok(validateDraft(valid, catalog).some((issue) => issue.path.endsWith('.urgency')));
 });
 
+test('historical evidence and destination facing stay inside their narrow grammar', () => {
+  const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
+  draft.mapPlan.zones['centre-gate'] = { rect: [1, 1, 2, 2] };
+  draft.mapPlan.anchors['threat-axis'] = [4, 2];
+  draft.orders.conditions['column-seen'] = {
+    fact: 'distinct-enemy-lives-observed-in-zone', zone: 'centre-gate',
+    windowTicks: 90, operator: 'at-least', value: 4,
+  };
+  draft.orders.conditions['response-earned'] = {
+    fact: 'confirmed-enemy-destructions-in-zone', zone: 'centre-gate',
+    since: 'node-entry', operator: 'at-least', value: 2,
+  };
+  draft.orders.roles[0].orders.unshift({
+    id: 'answer-column', when: 'column-seen', until: 'response-earned',
+    orders: [{
+      id: 'watch-gate',
+      move: {
+        to: { zone: 'centre-gate' }, posture: 'line',
+        face: { anchor: 'threat-axis' },
+      },
+    }],
+  });
+  assert.deepEqual(
+    validateDraft(draft, catalog).filter((issue) => issue.severity === 'error'),
+    [],
+  );
+
+  const nodeEntryInWhen = structuredClone(draft);
+  nodeEntryInWhen.orders.roles[0].orders[0].when = 'response-earned';
+  assert.ok(validateDraft(nodeEntryInWhen, catalog).some((issue) =>
+    issue.message.includes('legal only in Until')));
+
+  const dynamicFacing = structuredClone(draft);
+  dynamicFacing.orders.roles[0].orders[0].orders![0].move!.to = { well: 'centre' };
+  assert.ok(validateDraft(dynamicFacing, catalog).some((issue) =>
+    issue.message.includes('authored zone or anchor')));
+});
+
 test('mixed-class roles may branch by owned skill and self-in-zone geography', () => {
   const draft = parseDraft('Test', null, null, stringifyDocument(orders), stringifyDocument(mapPlan));
   draft.mapPlan.zones['north-choke'] = { rect: [1, 0, 3, 2] };

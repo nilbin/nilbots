@@ -75,6 +75,7 @@ type UnitOrderTuple = [number, number, string | null, string];
  * cost the order column its compression and gain nothing.
  */
 type UnitDestinationTuple = [number, number, number | null, number | null];
+type UnitFacingTuple = [number, number, number | null, number | null];
 type TurnTuple = [
   ActorTuple,
   number,
@@ -103,6 +104,8 @@ export interface ArcRelayBroadcastV1 {
   orders?: UnitOrderTuple[][];
   /** Additive: absent on archived broadcasts written before the pathing lens. */
   destinations?: UnitDestinationTuple[][];
+  /** Additive: absent on broadcasts written before destination-facing. */
+  facings?: UnitFacingTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -129,6 +132,8 @@ export interface ArcRelayBroadcastV2 {
   orders?: UnitOrderTuple[][];
   /** Additive: absent on stored broadcasts written before the pathing lens. */
   destinations?: UnitDestinationTuple[][];
+  /** Additive: absent on broadcasts written before destination-facing. */
+  facings?: UnitFacingTuple[][];
   startEvents: V3.ReplayV3AuthoritativeEvent[][];
   events: V3.ReplayV3AuthoritativeEvent[][];
   traversals: V3.ReplayV3ProjectileTraversal[][];
@@ -163,6 +168,7 @@ export function expandArcRelayBroadcastV1(
     (broadcast.orders !== undefined && broadcast.orders.length !== count) ||
     (broadcast.destinations !== undefined &&
       broadcast.destinations.length !== count) ||
+    (broadcast.facings !== undefined && broadcast.facings.length !== count) ||
     broadcast.startEvents.length !== count ||
     broadcast.events.length !== count ||
     broadcast.traversals.length !== count ||

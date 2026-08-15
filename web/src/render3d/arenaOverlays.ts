@@ -3681,6 +3681,7 @@ function buildStrikeAims(
  * `#f87171` on strikes and the engaged mark.
  */
 const LENS_COLOR = '#38bdf8';
+const FACING_LENS_COLOR = '#f0a35e';
 const LENS_HEIGHT = 0.05;
 const LENS_GAUGE = 0.05;
 const LENS_TARGET_INNER = 0.26;
@@ -3722,7 +3723,16 @@ function buildPathingLens(
     depthWrite: false,
     side: THREE.DoubleSide,
   });
-  disposables.push(lineGeometry, targetGeometry, stepGeometry, material);
+  const facingMaterial = new THREE.MeshBasicMaterial({
+    color: FACING_LENS_COLOR,
+    transparent: true,
+    opacity: 0.68,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  disposables.push(
+    lineGeometry, targetGeometry, stepGeometry, material, facingMaterial,
+  );
 
   const line = new THREE.Mesh(lineGeometry, material);
   line.userData.cue = 'pathing-lens-line';
@@ -3733,7 +3743,13 @@ function buildPathingLens(
   const step = new THREE.Mesh(stepGeometry, material);
   step.userData.cue = 'pathing-lens-step';
   step.position.y = LENS_HEIGHT;
-  group.add(line, target, step);
+  const facingLine = new THREE.Mesh(lineGeometry, facingMaterial);
+  facingLine.userData.cue = 'pathing-lens-facing-line';
+  facingLine.position.y = LENS_HEIGHT + 0.004;
+  const facingTarget = new THREE.Mesh(targetGeometry, facingMaterial);
+  facingTarget.userData.cue = 'pathing-lens-facing-target';
+  facingTarget.position.y = LENS_HEIGHT + 0.004;
+  group.add(line, target, step, facingLine, facingTarget);
 
   const update = (
     time: number,
@@ -3744,12 +3760,15 @@ function buildPathingLens(
     line.visible = false;
     target.visible = false;
     step.visible = false;
+    facingLine.visible = false;
+    facingTarget.visible = false;
     if (selectedUnitKey === null) return;
     const unit = presentation.units.find(
       (candidate) => candidate.unitKey === selectedUnitKey,
     );
     if (!unit || unit.status !== 'active') return;
-    if (unit.destination === null && unit.nextStep === null) return;
+    if (unit.destination === null && unit.nextStep === null
+      && unit.facingTarget === null) return;
     const pose = posesAt(replay, time).find(
       (candidate) => candidate.unitKey === selectedUnitKey,
     );
@@ -3781,6 +3800,25 @@ function buildPathingLens(
         LENS_HEIGHT,
         unit.nextStep.y + 0.5,
       );
+    }
+    if (unit.facingTarget !== null) {
+      const toX = unit.facingTarget.x + 0.5;
+      const toZ = unit.facingTarget.y + 0.5;
+      facingTarget.visible = true;
+      facingTarget.position.set(toX, LENS_HEIGHT + 0.004, toZ);
+      const dx = toX - fromX;
+      const dz = toZ - fromZ;
+      const length = Math.hypot(dx, dz);
+      if (length > LENS_TARGET_OUTER) {
+        facingLine.visible = true;
+        facingLine.position.set(
+          (fromX + toX) / 2,
+          LENS_HEIGHT + 0.004,
+          (fromZ + toZ) / 2,
+        );
+        facingLine.rotation.y = -Math.atan2(dz, dx);
+        facingLine.scale.set(length, 1, 1);
+      }
     }
   };
 

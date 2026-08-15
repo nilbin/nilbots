@@ -321,23 +321,31 @@ internal sealed class OrdersPackage
         string? posture = value.TryGetProperty("posture", out JsonElement postureValue)
             ? postureValue.GetString()
             : null;
+        string? faceAnchor = value.TryGetProperty("face", out JsonElement faceValue)
+            ? faceValue.GetProperty("anchor").GetString()
+            : null;
         if (value.TryGetProperty("patrol", out JsonElement patrol))
-            return new MoveAction("patrol", "route", patrol.GetString()!, via, posture);
+            return new MoveAction(
+                "patrol", "route", patrol.GetString()!, via, posture, null);
         if (value.TryGetProperty("follow", out JsonElement follow))
             return follow.ValueKind == JsonValueKind.String
                 ? new MoveAction(
-                    "follow", "role", follow.GetString()!, null, posture)
+                    "follow", "role", follow.GetString()!, null, posture, null)
                 : new MoveAction(
                     "follow",
                     "selector",
                     follow.GetProperty("selector").GetString()!,
                     null,
-                    posture);
+                    posture,
+                    null);
         JsonElement to = value.GetProperty("to");
         if (to.ValueKind == JsonValueKind.String)
-            return new MoveAction("to", "dynamic", to.GetString()!, via, posture);
+            return new MoveAction(
+                "to", "dynamic", to.GetString()!, via, posture, null);
         JsonProperty target = to.EnumerateObject().Single();
-        return new MoveAction("to", target.Name, target.Value.GetString()!, via, posture);
+        return new MoveAction(
+            "to", target.Name, target.Value.GetString()!, via, posture,
+            faceAnchor);
     }
 
     private static FightAction ParseFight(JsonElement value) => new(
@@ -400,7 +408,11 @@ internal sealed class OrdersPackage
         Optional(value, "well"),
         value.TryGetProperty("freshnessTicks", out JsonElement freshness)
             ? freshness.GetInt32()
-            : null);
+            : null,
+        value.TryGetProperty("windowTicks", out JsonElement window)
+            ? window.GetInt32()
+            : null,
+        Optional(value, "since"));
 
     private static string? Optional(JsonElement value, string name) =>
         value.TryGetProperty(name, out JsonElement property)
@@ -505,7 +517,9 @@ internal sealed class OrdersPackage
         string? Role,
         string? Zone,
         string? Well,
-        int? FreshnessTicks);
+        int? FreshnessTicks,
+        int? WindowTicks,
+        string? Since);
     internal sealed record Capacity(string Id, int? InlineValue);
 
     internal abstract record OrderAction;
@@ -514,7 +528,8 @@ internal sealed class OrdersPackage
         string TargetKind,
         string Target,
         string? Via,
-        string? Posture) : OrderAction;
+        string? Posture,
+        string? FaceAnchor) : OrderAction;
     internal sealed record FightAction(
         string[] Targets,
         string Style,

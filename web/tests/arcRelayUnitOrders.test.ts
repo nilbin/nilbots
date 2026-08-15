@@ -55,6 +55,9 @@ function truncated(broadcast: ArcRelayBroadcastV1, ticks: number): void {
   if (broadcast.destinations !== undefined) {
     broadcast.destinations = broadcast.destinations.slice(0, ticks);
   }
+  if (broadcast.facings !== undefined) {
+    broadcast.facings = broadcast.facings.slice(0, ticks);
+  }
 }
 
 test('a mind diagnostic splits into the order it names and what it is doing', () => {
@@ -63,15 +66,15 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
   // so these cases are the contract between the two implementations.
   assert.deepEqual(
     parseCommandReason('tp:prowl:shadow-group:ghost-patrol:march via East'),
-    { orderId: 'ghost-patrol', action: 'march', destination: null },
+    { orderId: 'ghost-patrol', action: 'march', destination: null, facingTarget: null },
   );
   assert.deepEqual(
     parseCommandReason('idle-break:tp:prowl:well-group:race-north:streak via North'),
-    { orderId: 'race-north', action: 'idle-break/streak', destination: null },
+    { orderId: 'race-north', action: 'idle-break/streak', destination: null, facingTarget: null },
   );
   assert.deepEqual(
     parseCommandReason('turn for tp:prowl:well-group:well-watch:march'),
-    { orderId: 'well-watch', action: 'turn/march', destination: null },
+    { orderId: 'well-watch', action: 'turn/march', destination: null, facingTarget: null },
   );
   assert.deepEqual(
     parseCommandReason(
@@ -81,6 +84,7 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
       orderId: 'shadow-hunt',
       action: 'route-held-next-3-6',
       destination: null,
+      facingTarget: null,
     },
   );
   assert.deepEqual(
@@ -91,12 +95,14 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
       orderId: 'return-to-reactor',
       action: 'turn/move',
       destination: { x: 12, y: 7 },
+      facingTarget: null,
     },
   );
   assert.deepEqual(parseCommandReason('orders:medic:upgrade:reach'), {
     orderId: null,
     action: 'upgrade:reach',
     destination: null,
+    facingTarget: null,
   });
   // Unrecognised vocabulary is carried whole rather than discarded: a reader
   // must not decide that a word it was not taught is not worth showing.
@@ -104,6 +110,7 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
     orderId: null,
     action: 'custody:committed-delivery-wait',
     destination: null,
+    facingTarget: null,
   });
   // The movement plane names where it is going. The coordinates come OFF the
   // action — the chip keeps reading `march`, and the map gets the tile.
@@ -115,6 +122,7 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
       orderId: 'well-watch',
       action: 'march',
       destination: { x: 12, y: 7 },
+      facingTarget: null,
     },
   );
   assert.deepEqual(
@@ -125,6 +133,7 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
       orderId: 'shadow-hunt',
       action: 'march:urgency-routine+b13=>normal:route-held-nex',
       destination: { x: 23, y: 11 },
+      facingTarget: null,
     },
   );
   assert.deepEqual(
@@ -135,6 +144,7 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
       orderId: 'watch-centre',
       action: 'march:urgency-normal+b0+passage4:move:well:centr',
       destination: { x: 15, y: 13 },
+      facingTarget: null,
     },
   );
   assert.deepEqual(
@@ -145,6 +155,29 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
       orderId: 'well-watch',
       action: 'turn/repath-reflow',
       destination: { x: 0, y: 0 },
+      facingTarget: null,
+    },
+  );
+  assert.deepEqual(
+    parseCommandReason(
+      'orders:guard > hold-gate:march@14,12:at-target:face-anchor:threat:face@19,13',
+    ),
+    {
+      orderId: 'hold-gate',
+      action: 'march:at-target:face-anchor:threat:',
+      destination: { x: 14, y: 12 },
+      facingTarget: { x: 19, y: 13 },
+    },
+  );
+  assert.deepEqual(
+    parseCommandReason(
+      'orders:guard > answer-centre > hold-gate:evidence[surge=4-entries@10..20]:march@14,12:face@19,13',
+    ),
+    {
+      orderId: 'hold-gate',
+      action: 'march:',
+      destination: { x: 14, y: 12 },
+      facingTarget: { x: 19, y: 13 },
     },
   );
   assert.equal(parseCommandReason(null), null);
@@ -286,6 +319,32 @@ test('the destination column clears as well as it sets', () => {
   assert.equal(unitAt(2)?.destination, null);
 });
 
+test('the facing column is independent and clears as well as it sets', () => {
+  const broadcast = fixture();
+  truncated(broadcast, 4);
+  const [teamId, unitId] = [
+    broadcast.turns[0]![0]![0][0],
+    broadcast.turns[0]![0]![0][1],
+  ];
+  broadcast.facings = [
+    [[teamId, unitId, 19, 13]],
+    [],
+    [[teamId, unitId, null, null]],
+    [],
+  ];
+  const { replay } = loadReplayObject(broadcast);
+  const at = (tick: number) =>
+    replay.ticks[tick]!.publishedUnitFacings?.[0]?.target;
+  assert.deepEqual(at(0), { x: 19, y: 13 });
+  assert.deepEqual(at(1), { x: 19, y: 13 });
+  assert.equal(at(2), null);
+  assert.equal(at(3), null);
+  const unit = createPresenter(replay).at(1).units.find(
+    (candidate) => candidate.teamId === teamId && candidate.unitId === unitId,
+  );
+  assert.deepEqual(unit?.facingTarget, { x: 19, y: 13 });
+});
+
 test('a broadcast written before the pathing lens still loads', () => {
   const broadcast = fixture();
   truncated(broadcast, 2);
@@ -304,6 +363,13 @@ test('a destination column of the wrong length is rejected rather than misaligne
   const broadcast = fixture();
   truncated(broadcast, 3);
   broadcast.destinations = [[]];
+  assert.throws(() => loadReplayObject(broadcast), /equal tick counts/);
+});
+
+test('a facing column of the wrong length is rejected rather than misaligned', () => {
+  const broadcast = fixture();
+  truncated(broadcast, 3);
+  broadcast.facings = [[]];
   assert.throws(() => loadReplayObject(broadcast), /equal tick counts/);
 });
 

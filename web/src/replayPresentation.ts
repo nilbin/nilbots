@@ -354,6 +354,8 @@ export interface UnitPresentation {
    * body fighting, holding or carrying reads null and the arena draws nothing.
    */
   destination: ReplayPosition | null;
+  /** The authored anchor to watch after arrival, separate from travel. */
+  facingTarget: ReplayPosition | null;
   /**
    * The tile this body's CHOSEN action steps it onto, or null when it chose
    * something that is not a step.
@@ -681,6 +683,9 @@ function presentUnit(
     ?.publishedUnitDestinations?.find(
       (entry) => entry.teamId === unit.teamId && entry.unitId === unit.unitId,
     );
+  const publishedFacing = replay.ticks[tickIndex]?.publishedUnitFacings?.find(
+    (entry) => entry.teamId === unit.teamId && entry.unitId === unit.unitId,
+  );
   const reason = parseCommandReason(turn?.runtimeReply.debugMessage);
   const roleTag = turn?.observation.self?.roleTag ?? null;
   // The published table first, because a broadcast has no debug text left to
@@ -753,6 +758,9 @@ function presentUnit(
       (publishedDestination
         ? publishedDestination.destination
         : (reason?.destination ?? null)) ?? null,
+    facingTarget:
+      (publishedFacing ? publishedFacing.target : (reason?.facingTarget ?? null))
+        ?? null,
     nextStep: nextStepFor(
       position,
       turn?.actionResolution.chosenActionId ?? null,

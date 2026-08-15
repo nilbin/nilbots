@@ -63,6 +63,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
             "known-loose-cores-in-zone", "well-has-outstanding-core",
             "well-ticks-until-birth", "well-socket-filled",
+            "observed-enemy-entries-in-zone",
+            "distinct-enemy-lives-observed-in-zone",
+            "confirmed-enemy-destructions-in-zone",
+            "zone-fully-observed-throughout-interval",
         };
 
     private static readonly HashSet<string> RoleFacts =
@@ -77,7 +81,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             "self-in-zone", "role-in-zone-count", "friendlies-in-zone",
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
-            "known-loose-cores-in-zone",
+            "known-loose-cores-in-zone", "observed-enemy-entries-in-zone",
+            "distinct-enemy-lives-observed-in-zone",
+            "confirmed-enemy-destructions-in-zone",
+            "zone-fully-observed-throughout-interval",
+        };
+
+    private static readonly HashSet<string> HistoricalFacts =
+        new(StringComparer.Ordinal)
+        {
+            "observed-enemy-entries-in-zone",
+            "distinct-enemy-lives-observed-in-zone",
+            "confirmed-enemy-destructions-in-zone",
+            "zone-fully-observed-throughout-interval",
         };
 
     private static readonly HashSet<string> WellFacts =
@@ -254,7 +270,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             string at = $"{path}.conditions.{id}";
             Object(property.Value, at,
                 ["fact", "operator", "value"],
-                ["role", "zone", "well", "freshnessTicks"]);
+                [
+                    "role", "zone", "well", "freshnessTicks",
+                    "windowTicks", "since",
+                ]);
             string fact = RequiredString(property.Value, "fact", at);
             if (!ConditionFacts.Contains(fact))
                 throw Error(at, $"unknown condition fact '{fact}'.");
@@ -298,6 +317,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             bool hasWell = property.Value.TryGetProperty("well", out JsonElement well);
             bool hasFreshness = property.Value.TryGetProperty(
                 "freshnessTicks", out JsonElement freshness);
+            bool hasWindow = property.Value.TryGetProperty(
+                "windowTicks", out JsonElement window);
+            bool hasSince = property.Value.TryGetProperty(
+                "since", out JsonElement since);
             if (RoleFacts.Contains(fact))
             {
                 if (!hasRole || role.ValueKind != JsonValueKind.String
@@ -340,9 +363,47 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             else if (hasFreshness)
                 throw Error(at, $"'{fact}' does not take freshnessTicks.");
 
+            if (HistoricalFacts.Contains(fact))
+            {
+                if (hasWindow == hasSince)
+                {
+                    throw Error(at,
+                        $"'{fact}' needs exactly one of windowTicks or since.");
+                }
+                if (hasWindow
+                    && (window.ValueKind != JsonValueKind.Number
+                        || !window.TryGetInt32(out int windowTicks)
+                        || windowTicks is < 1 or > 1200))
+                {
+                    throw Error(at, $"'{fact}' needs windowTicks in [1, 1200].");
+                }
+                if (hasSince
+                    && (since.ValueKind != JsonValueKind.String
+                        || since.GetString() is not
+                            ("match-start" or "node-entry")))
+                {
+                    throw Error(at,
+                        $"'{fact}' since must be match-start or node-entry.");
+                }
+                if (fact == "zone-fully-observed-throughout-interval"
+                    && comparison is not (0 or 1))
+                {
+                    throw Error(at,
+                        "zone coverage compares against 0 or 1.");
+                }
+                if (comparison < 0)
+                    throw Error(at, "historical evidence cannot compare below 0.");
+            }
+            else if (hasWindow || hasSince)
+            {
+                throw Error(at,
+                    $"'{fact}' does not take windowTicks or since.");
+            }
+
             result.Add(id, new ConditionInfo(
                 fact,
-                hasZone ? zone.GetString() : null));
+                hasZone ? zone.GetString() : null,
+                hasSince ? since.GetString() : null));
         }
         return result;
     }
@@ -487,7 +548,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             if (value.TryGetProperty(name, out JsonElement expression))
                 ValidateConditionExpression(
-                    expression, $"{path}.{name}", conditions, consumers);
+                    expression, $"{path}.{name}", conditions, consumers,
+                    isUntil: name == "until");
         }
         if (value.TryGetProperty("timeout", out JsonElement timeout)
             && (timeout.ValueKind != JsonValueKind.Number
@@ -509,7 +571,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonElement value,
         string path,
         IReadOnlyDictionary<string, ConditionInfo> conditions,
-        ConsumerLedger consumers)
+        ConsumerLedger consumers,
+        bool isUntil)
     {
         if (value.ValueKind == JsonValueKind.String)
         {
@@ -518,6 +581,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 return;
             if (!conditions.ContainsKey(id))
                 throw Error(path, $"unknown condition '{id}'.");
+            if (conditions[id].Since == "node-entry" && !isUntil)
+            {
+                throw Error(path,
+                    $"condition '{id}' uses since node-entry and is legal only in until.");
+            }
             consumers.Conditions[id]++;
             if (conditions[id].Zone is string zone)
                 consumers.ReferenceZone(zone, path);
@@ -537,6 +605,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             if (name == "always" || !conditions.ContainsKey(name))
                 throw Error(path, $"unknown condition '{name}'.");
+            if (conditions[name].Since == "node-entry" && !isUntil)
+            {
+                throw Error(path,
+                    $"condition '{name}' uses since node-entry and is legal only in until.");
+            }
             consumers.Conditions[name]++;
             if (conditions[name].Zone is string zone)
                 consumers.ReferenceZone(zone, path);
@@ -580,7 +653,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             .ToArray();
         if (found.Length != 1)
             throw Error($"{path}.move", "move needs exactly one of to/patrol/follow.");
-        Object(value, $"{path}.move", [found[0]], ["via", "posture"]);
+        Object(value, $"{path}.move", [found[0]], ["via", "posture", "face"]);
         if (value.TryGetProperty("posture", out _))
             OneOf(value, "posture", $"{path}.move", "front", "line", "rear");
         if (value.TryGetProperty("via", out JsonElement via))
@@ -593,6 +666,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (found[0] == "patrol")
         {
+            if (value.TryGetProperty("face", out _))
+                throw Error($"{path}.move.face", "face is legal only on move.to.");
             string route = StringValue(value.GetProperty("patrol"),
                 $"{path}.move.patrol");
             IdentifierValue(route, $"{path}.move.patrol", "route");
@@ -601,6 +676,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (found[0] == "follow")
         {
+            if (value.TryGetProperty("face", out _))
+                throw Error($"{path}.move.face", "face is legal only on move.to.");
             JsonElement follow = value.GetProperty("follow");
             if (follow.ValueKind == JsonValueKind.String)
             {
@@ -624,7 +701,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             return;
         }
-        ValidateMoveTarget(value.GetProperty("to"), $"{path}.move.to", consumers);
+        JsonElement to = value.GetProperty("to");
+        ValidateMoveTarget(to, $"{path}.move.to", consumers);
+        if (!value.TryGetProperty("face", out JsonElement face))
+            return;
+        if (to.ValueKind != JsonValueKind.Object
+            || !to.EnumerateObject().Any(property => property.Name is
+                "zone" or "anchor"))
+        {
+            throw Error($"{path}.move.face",
+                "face requires an authored zone or anchor move.to destination.");
+        }
+        Object(face, $"{path}.move.face", ["anchor"]);
+        string faceAnchor = StringValue(
+            face.GetProperty("anchor"), $"{path}.move.face.anchor");
+        IdentifierValue(faceAnchor, $"{path}.move.face.anchor", "anchor");
+        consumers.ReferenceAnchor(faceAnchor, path);
     }
 
     private static void ValidateMoveTarget(
@@ -926,7 +1018,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
     private sealed record RoleInfo(string Id, string[] Classes, JsonElement Orders);
 
-    private sealed record ConditionInfo(string Fact, string? Zone);
+    private sealed record ConditionInfo(string Fact, string? Zone, string? Since);
 
     private sealed record SheetValidation(
         string[] Composition,

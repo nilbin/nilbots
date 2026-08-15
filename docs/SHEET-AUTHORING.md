@@ -243,10 +243,10 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `signature-ready` |
-| role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
-| team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
-| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `signature-ready`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
+| role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count` |
+| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
+| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 
 Role facts require `role`; zone facts require `zone`; Well facts require
@@ -254,6 +254,17 @@ Role facts require `role`; zone facts require `zone`; Well facts require
 `known-enemy-carriers` and `remembered-enemies-in-zone` require
 `freshnessTicks` in `1..600`. Qualifiers on other facts are errors. Health
 percent comparisons are `0..100`; boolean facts compare with `0` or `1`.
+
+The four historical zone facts are finite, read-only team evidence. Each needs
+exactly one interval: `windowTicks: 1..1200`, `since: "match-start"`, or
+`since: "node-entry"`. Node-entry evidence is legal only in the active order's
+`until`. At decision tick T the interval ends before T's actions. Entries count
+only outside-to-inside movement whose before and after tiles were both visible;
+distinct lives use observed actor-life identities; destructions use disclosed
+events; full coverage is 1 only when every traversable zone tile was visible on
+every completed tick. Evidence survives body death but resets between matches.
+The executor reason names the interval, count/lives, and first coverage gap, so
+a replay can explain why a response activated without exposing hidden enemies.
 
 Known loose Cores use the team's objective ledger. A Core remains known until
 a visible pickup, handoff, bank, drop, or new position updates it; leaving
@@ -280,6 +291,7 @@ fact for a coordinated response to contact reported anywhere in a named zone.
 { "move": { "to": "nearest-known-loose-core", "via": "north-ingress", "posture": "front" } }
 { "move": { "patrol": "north-loop", "posture": "line" } }
 { "move": { "follow": "runner", "posture": "rear" } }
+{ "move": { "to": { "zone": "killbox" }, "face": { "anchor": "lane-mouth" } } }
 ```
 
 `to` accepts:
@@ -304,6 +316,15 @@ does not restart ingress. Exit, death, or an impossible route does.
 
 Optional posture is `front`, `line`, or `rear`. It is individual pre-combat
 positioning relative to the destination, not a formation or combat behavior.
+
+Optional `face: { "anchor": "id" }` is legal only on a `move.to` whose
+destination is an authored zone or anchor. It never changes travel. Once the
+body arrives, it keeps a facing whose bare 90-degree firing quadrant contains
+the anchor, spending an ordinary rotation action only when needed. Displacement
+first returns it to the destination; higher-priority orders still pre-empt it.
+Patrols, follows, Wells, reactors, adjacent targets, and dynamic Core/heal
+targets cannot use `face`. Selected-body intent draws travel in cyan and the
+watched anchor in amber.
 
 Routes guide intent. Reaching the destination outranks blindly visiting every
 waypoint. Route hysteresis, traffic detours, legal corners, and collision

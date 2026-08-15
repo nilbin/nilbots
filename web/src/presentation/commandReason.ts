@@ -42,11 +42,14 @@ export interface CommandReason {
    * target is not. Null everywhere else, and the arena simply draws nothing.
    */
   destination: { x: number; y: number } | null;
+  /** The authored anchor this body watches after arriving, when one is named. */
+  facingTarget: { x: number; y: number } | null;
 }
 
-/** The `@x,y` suffix on the first movement-action segment. Later structured
- * qualifiers (`:urgency-…`, route state, blockers) deliberately follow it. */
-const DESTINATION = /@(\d+),(\d+)(?=:|$)/;
+/** Structured map coordinates deliberately embedded in executor diagnostics. */
+const DESTINATION = /\b((?!face\b)[a-z][a-z0-9-]*)@(\d+),(\d+)(?=:|$)/;
+const FACING_TARGET = /face@(\d+),(\d+)(?=:|$)/;
+const LEADING_EVIDENCE = /^evidence\[[^\]]*\]:?/;
 
 function finishReason(
   text: string,
@@ -61,18 +64,35 @@ function finishReason(
     .split(/[\s:]+/)
     .filter((word) => word.length > 0 && word !== 'for')
     .join('/');
+  // Historical evidence is an explain trace for the canonical replay, not a
+  // spectator-facing action (and not public tactical state). Keep the chosen
+  // order and resulting action while leaving the ledger in the audit artifact.
+  tail = tail.replace(LEADING_EVIDENCE, '');
   // Split the destination off BEFORE the length cap: a long action tail must
   // never silently eat the coordinates off the end of the lens.
-  const found = DESTINATION.exec(tail);
-  const destination = found
-    ? { x: Number(found[1]), y: Number(found[2]) }
+  const destinationFound = DESTINATION.exec(tail);
+  const destination = destinationFound
+    ? { x: Number(destinationFound[2]), y: Number(destinationFound[3]) }
     : null;
-  if (found) tail = tail.slice(0, found.index) + tail.slice(found.index + found[0].length);
+  if (destinationFound) {
+    tail = tail.slice(0, destinationFound.index)
+      + destinationFound[1]
+      + tail.slice(destinationFound.index + destinationFound[0].length);
+  }
+  const facingFound = FACING_TARGET.exec(tail);
+  const facingTarget = facingFound
+    ? { x: Number(facingFound[1]), y: Number(facingFound[2]) }
+    : null;
+  if (facingFound) {
+    tail = tail.slice(0, facingFound.index)
+      + tail.slice(facingFound.index + facingFound[0].length);
+  }
   const action = qualifier.length > 0 ? `${qualifier}/${tail}` : tail;
   return {
     orderId,
     action: action.slice(0, REASON_MAX_CHARS),
     destination,
+    facingTarget,
   };
 }
 
@@ -113,6 +133,7 @@ export function parseCommandReason(
       orderId: null,
       action: text.slice(0, REASON_MAX_CHARS),
       destination: null,
+      facingTarget: null,
     };
   }
   const parts = text.slice(marker).split(':');
@@ -121,6 +142,7 @@ export function parseCommandReason(
       orderId: null,
       action: text.slice(0, REASON_MAX_CHARS),
       destination: null,
+      facingTarget: null,
     };
   }
   return finishReason(

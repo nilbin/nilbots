@@ -1615,6 +1615,8 @@ export interface ReplayTick {
    * and on broadcasts written before the column existed.
    */
   publishedUnitDestinations?: ReplayPublishedUnitDestination[];
+  /** The authored anchor each arrived body is instructed to watch. */
+  publishedUnitFacings?: ReplayPublishedUnitFacing[];
   events: ReplayCausalEvent[];
   projectileTraversals: ReplayProjectileTraversal[];
   after: ReplayWorldSnapshot;
@@ -1647,6 +1649,12 @@ export interface ReplayPublishedUnitDestination {
   teamId: number;
   unitId: number;
   destination: ReplayPosition | null;
+}
+
+export interface ReplayPublishedUnitFacing {
+  teamId: number;
+  unitId: number;
+  target: ReplayPosition | null;
 }
 
 export interface ReplayTeamResult {

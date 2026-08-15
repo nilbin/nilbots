@@ -85,11 +85,24 @@
         },
         {
           "id": "march-to-defended-well",
+          "capacity": 2,
           "move": {
             "to": {
               "well": "enemy"
             },
             "posture": "front"
+          }
+        },
+        {
+          "id": "hold-centre-reserve",
+          "move": {
+            "to": {
+              "zone": "centre-overwatch"
+            },
+            "posture": "rear",
+            "face": {
+              "anchor": "enemy-centre-approach"
+            }
           }
         }
       ]
@@ -178,9 +191,12 @@
           "id": "hold-demolition-overwatch",
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "centre-overwatch"
             },
-            "posture": "line"
+            "posture": "line",
+            "face": {
+              "anchor": "enemy-centre-approach"
+            }
           }
         }
       ]

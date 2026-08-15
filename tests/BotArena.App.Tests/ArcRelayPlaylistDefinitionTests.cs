@@ -505,7 +505,13 @@ public sealed class ArcRelayPlaylistDefinitionTests
         JsonElement root = broadcast.RootElement;
         JsonElement worlds = root.GetProperty("worlds");
         JsonElement vision = root.GetProperty("vision");
+        JsonElement orders = root.GetProperty("orders");
+        JsonElement destinations = root.GetProperty("destinations");
+        JsonElement facings = root.GetProperty("facings");
         Assert.Equal(worlds.GetArrayLength(), vision.GetArrayLength());
+        Assert.Equal(worlds.GetArrayLength(), orders.GetArrayLength());
+        Assert.Equal(worlds.GetArrayLength(), destinations.GetArrayLength());
+        Assert.Equal(worlds.GetArrayLength(), facings.GetArrayLength());
         Assert.All(vision[0].EnumerateArray(), team =>
             Assert.NotEmpty(team[1].EnumerateArray()));
 
@@ -516,6 +522,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Equal(
             Math.Min(3, worlds.GetArrayLength()),
             prefix.RootElement.GetProperty("vision").GetArrayLength());
+        Assert.Equal(
+            Math.Min(3, worlds.GetArrayLength()),
+            prefix.RootElement.GetProperty("facings").GetArrayLength());
     }
 
     [Fact]

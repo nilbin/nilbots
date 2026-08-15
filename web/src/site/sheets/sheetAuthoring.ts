@@ -15,6 +15,8 @@ export interface ConditionDefinition {
   zone?: string;
   well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
   freshnessTicks?: number;
+  windowTicks?: number;
+  since?: 'match-start' | 'node-entry';
 }
 
 export type MoveTarget =
@@ -33,6 +35,7 @@ export interface MoveOrder {
   follow?: string | { selector: 'most-experienced-ally' };
   via?: string;
   posture?: 'front' | 'line' | 'rear';
+  face?: { anchor: string };
 }
 
 export type MoveIntentKind = 'to' | 'patrol' | 'follow';
@@ -140,6 +143,10 @@ export const CONDITION_FACTS = [
   'friendlies-in-zone', 'visible-enemies-in-zone',
   'remembered-enemies-in-zone', 'known-loose-cores-in-zone',
   'well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled',
+  'observed-enemy-entries-in-zone',
+  'distinct-enemy-lives-observed-in-zone',
+  'confirmed-enemy-destructions-in-zone',
+  'zone-fully-observed-throughout-interval',
 ] as const;
 export const ACTIONS: readonly Exclude<OrderAction, 'branch' | 'shared'>[] =
   ['move', 'fight', 'use', 'handoff', 'drop'];
@@ -152,15 +159,26 @@ const ROLE_FACTS = new Set([
 const ZONE_FACTS = new Set([
   'self-in-zone', 'role-in-zone-count', 'friendlies-in-zone', 'visible-enemies-in-zone',
   'remembered-enemies-in-zone', 'known-loose-cores-in-zone',
+  'observed-enemy-entries-in-zone',
+  'distinct-enemy-lives-observed-in-zone',
+  'confirmed-enemy-destructions-in-zone',
+  'zone-fully-observed-throughout-interval',
 ]);
 const WELL_FACTS = new Set(['well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled']);
 const FRESH_FACTS = new Set(['known-enemy-carriers', 'remembered-enemies-in-zone']);
+const HISTORICAL_FACTS = new Set([
+  'observed-enemy-entries-in-zone',
+  'distinct-enemy-lives-observed-in-zone',
+  'confirmed-enemy-destructions-in-zone',
+  'zone-fully-observed-throughout-interval',
+]);
 const PERCENT_FACTS = new Set([
   'self-health-percent', 'role-lowest-health-percent',
   'deployment-lifetime-percent', 'deployment-durability-percent',
 ]);
 const BOOLEAN_FACTS = new Set([
   'self-carrying', 'self-in-zone', 'signature-ready', 'deployment-active',
+  'zone-fully-observed-throughout-interval',
 ]);
 const DRAFT_DB = 'nilbots-sheet-drafts-v2';
 const DRAFT_STORE = 'drafts';
@@ -413,6 +431,9 @@ export function validateDraft(
   }
   for (const [id, condition] of Object.entries(orders.conditions)) {
     const path = `orders.conditions.${id}`;
+    exactKeys(condition as unknown as JsonObject,
+      ['fact', 'operator', 'value'], path, error,
+      ['role', 'zone', 'well', 'freshnessTicks', 'windowTicks', 'since']);
     if (!validId(id)) error(path, 'Condition id must be kebab-case.');
     if (!(CONDITION_FACTS as readonly string[]).includes(condition.fact)) error(`${path}.fact`, 'Choose a published fact.');
     if (!CONDITION_OPERATORS.includes(condition.operator)) error(`${path}.operator`, 'Choose a comparison.');
@@ -441,6 +462,23 @@ export function validateDraft(
     if (FRESH_FACTS.has(condition.fact)
       && (!Number.isInteger(condition.freshnessTicks) || condition.freshnessTicks! < 1 || condition.freshnessTicks! > 600))
       error(`${path}.freshnessTicks`, 'Remembered facts need freshness from 1 to 600 ticks.');
+    const intervalCount = Number(condition.windowTicks !== undefined)
+      + Number(condition.since !== undefined);
+    if (HISTORICAL_FACTS.has(condition.fact)) {
+      if (intervalCount !== 1)
+        error(path, 'Historical evidence needs exactly one interval.');
+      if (condition.windowTicks !== undefined
+        && (!Number.isInteger(condition.windowTicks)
+          || condition.windowTicks < 1 || condition.windowTicks > 1200))
+        error(`${path}.windowTicks`, 'The rolling window is 1–1200 ticks.');
+      if (condition.since !== undefined
+        && !['match-start', 'node-entry'].includes(condition.since))
+        error(`${path}.since`, 'Choose match start or this order episode.');
+      if (condition.value < 0)
+        error(`${path}.value`, 'Historical evidence cannot compare below zero.');
+    } else if (intervalCount > 0) {
+      error(path, 'Only historical evidence facts take an interval.');
+    }
     if ((conditionUse.get(id) ?? 0) === 0)
       error(path, 'Delete this unused condition or use it in an order.');
   }
@@ -501,7 +539,8 @@ function validateOrder(
   exactKeys(node as unknown as JsonObject, expected,
     path, error, ['when', 'until', 'timeout', 'cooldown', 'capacity', 'urgency']);
   for (const expression of [['when', node.when], ['until', node.until]] as const)
-    validateExpression(expression[1], `${path}.${expression[0]}`, orders, conditionUse, error);
+    validateExpression(expression[1], `${path}.${expression[0]}`, orders, conditionUse, error,
+      expression[0] === 'until');
   if (node.timeout !== undefined && (!Number.isInteger(node.timeout) || node.timeout < 1 || node.timeout > 1200))
     error(`${path}.timeout`, 'Timeout is 1–1200 ticks.');
   if (node.cooldown !== undefined && (!Number.isInteger(node.cooldown) || node.cooldown < 0 || node.cooldown > 1200))
@@ -531,6 +570,10 @@ function validateOrder(
     const move = node.move!;
     const kinds = [move.to !== undefined, move.patrol !== undefined, move.follow !== undefined].filter(Boolean).length;
     if (kinds !== 1) error(`${path}.move`, 'Choose one destination, patrol route, or followed role.');
+    const requiredMoveKey = move.to !== undefined ? 'to'
+      : move.patrol !== undefined ? 'patrol' : 'follow';
+    exactKeys(move as unknown as JsonObject, [requiredMoveKey],
+      `${path}.move`, error, ['via', 'posture', 'face']);
     if (move.patrol) usedRoutes.add(move.patrol);
     if (move.via) usedRoutes.add(move.via);
     // The complete role set is checked after every role has been walked. At
@@ -541,6 +584,15 @@ function validateOrder(
       if ('zone' in move.to) usedZones.add(move.to.zone);
       if ('anchor' in move.to) usedAnchors.add(move.to.anchor);
       if ('adjacentTo' in move.to) usedAnchors.add(move.to.adjacentTo);
+    }
+    if (move.face) {
+      exactKeys(move.face as unknown as JsonObject, ['anchor'],
+        `${path}.move.face`, error);
+      usedAnchors.add(move.face.anchor);
+      const authoredDestination = typeof move.to === 'object'
+        && ('zone' in move.to || 'anchor' in move.to);
+      if (!authoredDestination)
+        error(`${path}.move.face`, 'Facing needs an authored zone or anchor destination.');
     }
   }
   if (action === 'fight') {
@@ -582,6 +634,7 @@ function validateExpression(
   orders: OrdersDocument,
   uses: Map<string, number>,
   error: (path: string, message: string) => void,
+  isUntil: boolean,
 ) {
   if (!expression) return;
   const names = conditionExpressionNames(expression);
@@ -589,8 +642,13 @@ function validateExpression(
     error(path, 'AND/OR combines two to eight conditions.');
   if (new Set(names).size !== names.length) error(path, 'Do not repeat a condition in one expression.');
   for (const name of names) {
-    if (!orders.conditions[name]) error(path, `Unknown condition '${name}'.`);
-    else uses.set(name, (uses.get(name) ?? 0) + 1);
+    const condition = orders.conditions[name];
+    if (!condition) error(path, `Unknown condition '${name}'.`);
+    else {
+      if (condition.since === 'node-entry' && !isUntil)
+        error(path, `'${name}' reads this order episode and is legal only in Until.`);
+      uses.set(name, (uses.get(name) ?? 0) + 1);
+    }
   }
 }
 

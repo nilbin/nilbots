@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace BotArena.Engine;
 
@@ -23,6 +24,13 @@ public sealed class ArcRelayBroadcastDocument
 {
     public const int FormatVersion = BotArenaVersions.ArcRelayBroadcastFormatVersion;
     public const int BroadcastVersion = 2;
+    private const int ReasonMaxChars = 48;
+    private static readonly Regex DestinationReasonPattern = new(
+        @"\b((?!face\b)[a-z][a-z0-9-]*)@(\d+),(\d+)(?=:|$)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
+    private static readonly Regex FacingReasonPattern = new(
+        @"face@(\d+),(\d+)(?=:|$)",
+        RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     private ArcRelayBroadcastDocument(
         byte[] canonicalUtf8,
@@ -65,6 +73,9 @@ public sealed class ArcRelayBroadcastDocument
         var worlds = new List<ReplayV3.WorldState>(session.Definition.Rules.Limits.MaxTicks);
         var turns = new List<ImmutableArray<CompactTurn>>(session.Definition.Rules.Limits.MaxTicks);
         var vision = new List<ImmutableArray<CompactTeamVision>>(session.Definition.Rules.Limits.MaxTicks);
+        var orders = new List<ImmutableArray<CompactUnitOrder>>(session.Definition.Rules.Limits.MaxTicks);
+        var destinations = new List<ImmutableArray<CompactUnitMapTarget>>(session.Definition.Rules.Limits.MaxTicks);
+        var facings = new List<ImmutableArray<CompactUnitMapTarget>>(session.Definition.Rules.Limits.MaxTicks);
         var startEvents = new List<ImmutableArray<ReplayV3.AuthoritativeEvent>>(session.Definition.Rules.Limits.MaxTicks);
         var events = new List<ImmutableArray<ReplayV3.AuthoritativeEvent>>(session.Definition.Rules.Limits.MaxTicks);
         var traversals = new List<ImmutableArray<ReplayV3.ProjectileTraversal>>(session.Definition.Rules.Limits.MaxTicks);
@@ -75,6 +86,9 @@ public sealed class ArcRelayBroadcastDocument
                 value.ActorId.UnitId,
                 value.ActorId.LifeId))
             .ToHashSet();
+        var publishedOrders = new Dictionary<ActorIdentity, CompactReason>();
+        var publishedDestinations = new Dictionary<ActorIdentity, ReplayV3.PositionValue?>();
+        var publishedFacings = new Dictionary<ActorIdentity, ReplayV3.PositionValue?>();
 
         long simulationTicks = 0;
         long projectionTicks = 0;
@@ -92,6 +106,17 @@ public sealed class ArcRelayBroadcastDocument
             worlds.Add(ReplayV3Projection.WorldState(step.PostState));
             turns.Add(ProjectTurns(step, signatureIds));
             vision.Add(ProjectVision(step));
+            ProjectIntentDeltas(
+                step,
+                publishedOrders,
+                publishedDestinations,
+                publishedFacings,
+                out ImmutableArray<CompactUnitOrder> tickOrders,
+                out ImmutableArray<CompactUnitMapTarget> tickDestinations,
+                out ImmutableArray<CompactUnitMapTarget> tickFacings);
+            orders.Add(tickOrders);
+            destinations.Add(tickDestinations);
+            facings.Add(tickFacings);
             startEvents.Add(ProjectEvents(tickStart.Events));
             events.Add(ProjectEvents(step.AuthoritativeEvents));
             traversals.Add(step.ProjectileTraversals
@@ -118,6 +143,9 @@ public sealed class ArcRelayBroadcastDocument
             worlds,
             turns,
             vision,
+            orders,
+            destinations,
+            facings,
             startEvents,
             events,
             traversals,
@@ -177,6 +205,9 @@ public sealed class ArcRelayBroadcastDocument
             CopyPrefix(writer, root, "worlds", count);
             CopyPrefix(writer, root, "turns", count);
             CopyPrefixIfPresent(writer, root, "vision", count);
+            CopyPrefixIfPresent(writer, root, "orders", count);
+            CopyPrefixIfPresent(writer, root, "destinations", count);
+            CopyPrefixIfPresent(writer, root, "facings", count);
             CopyPrefix(writer, root, "startEvents", count);
             CopyPrefix(writer, root, "events", count);
             CopyPrefix(writer, root, "traversals", count);
@@ -239,6 +270,156 @@ public sealed class ArcRelayBroadcastDocument
             .Select(ReplayV3Projection.Event),
     ];
 
+    private static void ProjectIntentDeltas(
+        GenericActorMatchStepResult step,
+        Dictionary<ActorIdentity, CompactReason> publishedOrders,
+        Dictionary<ActorIdentity, ReplayV3.PositionValue?> publishedDestinations,
+        Dictionary<ActorIdentity, ReplayV3.PositionValue?> publishedFacings,
+        out ImmutableArray<CompactUnitOrder> orders,
+        out ImmutableArray<CompactUnitMapTarget> destinations,
+        out ImmutableArray<CompactUnitMapTarget> facings)
+    {
+        var orderRows = ImmutableArray.CreateBuilder<CompactUnitOrder>();
+        var destinationRows = ImmutableArray.CreateBuilder<CompactUnitMapTarget>();
+        var facingRows = ImmutableArray.CreateBuilder<CompactUnitMapTarget>();
+        foreach (GenericMindRuntimeTurn turn in step.MindTurns
+                     .OrderBy(value => value.TeamId)
+                     .ThenBy(value => value.ParticipantId))
+        {
+            foreach (GenericMindCommandResolution resolution in turn.Commands
+                         .OrderBy(value => value.Command.UnitId)
+                         .ThenBy(value => value.Command.LifeId))
+            {
+                GenericMindCommand command = resolution.Command;
+                CompactReason? parsed = ParseReason(command.DebugMessage);
+                if (parsed is null)
+                    continue;
+                ActorIdentity actor = command.ActorIdIn(turn.TeamId);
+                if (!publishedOrders.TryGetValue(actor, out CompactReason? prior)
+                    || prior.OrderId != parsed.OrderId
+                    || prior.Action != parsed.Action)
+                {
+                    publishedOrders[actor] = parsed;
+                    orderRows.Add(new CompactUnitOrder(
+                        turn.TeamId, command.UnitId, parsed.OrderId, parsed.Action));
+                }
+                PublishMapTarget(
+                    actor, turn.TeamId, command.UnitId, parsed.Destination,
+                    publishedDestinations, destinationRows);
+                PublishMapTarget(
+                    actor, turn.TeamId, command.UnitId, parsed.Facing,
+                    publishedFacings, facingRows);
+            }
+        }
+        orders = orderRows.ToImmutable();
+        destinations = destinationRows.ToImmutable();
+        facings = facingRows.ToImmutable();
+    }
+
+    private static void PublishMapTarget(
+        ActorIdentity actor,
+        int teamId,
+        int unitId,
+        ReplayV3.PositionValue? target,
+        Dictionary<ActorIdentity, ReplayV3.PositionValue?> published,
+        ImmutableArray<CompactUnitMapTarget>.Builder rows)
+    {
+        if (published.TryGetValue(actor, out ReplayV3.PositionValue? prior)
+            && prior == target)
+        {
+            return;
+        }
+        published[actor] = target;
+        rows.Add(new CompactUnitMapTarget(teamId, unitId, target));
+    }
+
+    internal static CompactReason? ParseReason(string? message)
+    {
+        if (string.IsNullOrWhiteSpace(message))
+            return null;
+        int via = message.IndexOf(" via ", StringComparison.Ordinal);
+        string text = (via < 0 ? message : message[..via]).Trim();
+        if (text.Length == 0)
+            return null;
+
+        int ordersMarker = text.IndexOf("orders:", StringComparison.Ordinal);
+        if (ordersMarker >= 0)
+        {
+            string sentence = text[(ordersMarker + "orders:".Length)..];
+            int actionMarker = sentence.IndexOf(':');
+            if (actionMarker >= 0)
+            {
+                string[] path = sentence[..actionMarker]
+                    .Split('>', StringSplitOptions.TrimEntries
+                        | StringSplitOptions.RemoveEmptyEntries);
+                string? orderId = path.Length > 1 ? path[^1] : null;
+                return FinishReason(
+                    text,
+                    ordersMarker,
+                    orderId,
+                    sentence[(actionMarker + 1)..]);
+            }
+        }
+
+        int tacticalMarker = text.IndexOf("tp:", StringComparison.Ordinal);
+        if (tacticalMarker < 0)
+            return new CompactReason(null, TruncateReason(text), null, null);
+        string[] parts = text[tacticalMarker..].Split(':');
+        if (parts.Length < 5)
+            return new CompactReason(null, TruncateReason(text), null, null);
+        return FinishReason(
+            text,
+            tacticalMarker,
+            string.IsNullOrEmpty(parts[3]) ? null : parts[3],
+            string.Join(':', parts.Skip(4)));
+    }
+
+    private static CompactReason FinishReason(
+        string text,
+        int marker,
+        string? orderId,
+        string action)
+    {
+        string qualifier = string.Join(
+            '/',
+            Regex.Split(text[..marker], @"[\s:]+")
+                .Where(word => word.Length > 0 && word != "for"));
+        if (action.StartsWith("evidence[", StringComparison.Ordinal))
+        {
+            int evidenceEnd = action.IndexOf("]:", StringComparison.Ordinal);
+            if (evidenceEnd >= 0)
+                action = action[(evidenceEnd + 2)..];
+        }
+        ReplayV3.PositionValue? destination = null;
+        Match found = DestinationReasonPattern.Match(action);
+        if (found.Success)
+        {
+            destination = new ReplayV3.PositionValue(
+                int.Parse(found.Groups[2].Value),
+                int.Parse(found.Groups[3].Value));
+            action = action[..found.Index]
+                + found.Groups[1].Value
+                + action[(found.Index + found.Length)..];
+        }
+        ReplayV3.PositionValue? facing = null;
+        found = FacingReasonPattern.Match(action);
+        if (found.Success)
+        {
+            facing = new ReplayV3.PositionValue(
+                int.Parse(found.Groups[1].Value),
+                int.Parse(found.Groups[2].Value));
+            action = action[..found.Index]
+                + action[(found.Index + found.Length)..];
+        }
+        if (qualifier.Length > 0)
+            action = $"{qualifier}/{action}";
+        return new CompactReason(
+            orderId, TruncateReason(action), destination, facing);
+    }
+
+    private static string TruncateReason(string value) =>
+        value.Length <= ReasonMaxChars ? value : value[..ReasonMaxChars];
+
     private static ImmutableArray<CompactTeamVision> ProjectVision(
         GenericActorMatchStepResult step) =>
     [
@@ -263,6 +444,9 @@ public sealed class ArcRelayBroadcastDocument
         IReadOnlyList<ReplayV3.WorldState> worlds,
         IReadOnlyList<ImmutableArray<CompactTurn>> turns,
         IReadOnlyList<ImmutableArray<CompactTeamVision>> vision,
+        IReadOnlyList<ImmutableArray<CompactUnitOrder>> orders,
+        IReadOnlyList<ImmutableArray<CompactUnitMapTarget>> destinations,
+        IReadOnlyList<ImmutableArray<CompactUnitMapTarget>> facings,
         IReadOnlyList<ImmutableArray<ReplayV3.AuthoritativeEvent>> startEvents,
         IReadOnlyList<ImmutableArray<ReplayV3.AuthoritativeEvent>> events,
         IReadOnlyList<ImmutableArray<ReplayV3.ProjectileTraversal>> traversals,
@@ -281,6 +465,9 @@ public sealed class ArcRelayBroadcastDocument
             WriteColumn(writer, "worlds", worlds, WriteWorld);
             WriteColumn(writer, "turns", turns, static (json, value) => WriteTurns(json, value));
             WriteColumn(writer, "vision", vision, static (json, value) => WriteVision(json, value));
+            WriteColumn(writer, "orders", orders, static (json, value) => WriteOrders(json, value));
+            WriteColumn(writer, "destinations", destinations, static (json, value) => WriteMapTargets(json, value));
+            WriteColumn(writer, "facings", facings, static (json, value) => WriteMapTargets(json, value));
             WriteColumn(writer, "startEvents", startEvents, static (json, value) => WriteEvents(json, value));
             WriteColumn(writer, "events", events, static (json, value) => WriteEvents(json, value));
             WriteColumn(writer, "traversals", traversals, static (json, value) => WriteTraversals(json, value));
@@ -513,6 +700,48 @@ public sealed class ArcRelayBroadcastDocument
         writer.WriteEndArray();
     }
 
+    private static void WriteOrders(
+        Utf8JsonWriter writer,
+        IReadOnlyList<CompactUnitOrder> values)
+    {
+        writer.WriteStartArray();
+        foreach (CompactUnitOrder value in values)
+        {
+            writer.WriteStartArray();
+            writer.WriteNumberValue(value.TeamId);
+            writer.WriteNumberValue(value.UnitId);
+            WriteNullableStringValue(writer, value.OrderId);
+            writer.WriteStringValue(value.Action);
+            writer.WriteEndArray();
+        }
+        writer.WriteEndArray();
+    }
+
+    private static void WriteMapTargets(
+        Utf8JsonWriter writer,
+        IReadOnlyList<CompactUnitMapTarget> values)
+    {
+        writer.WriteStartArray();
+        foreach (CompactUnitMapTarget value in values)
+        {
+            writer.WriteStartArray();
+            writer.WriteNumberValue(value.TeamId);
+            writer.WriteNumberValue(value.UnitId);
+            if (value.Target is ReplayV3.PositionValue target)
+            {
+                writer.WriteNumberValue(target.X);
+                writer.WriteNumberValue(target.Y);
+            }
+            else
+            {
+                writer.WriteNullValue();
+                writer.WriteNullValue();
+            }
+            writer.WriteEndArray();
+        }
+        writer.WriteEndArray();
+    }
+
     private static void WriteEvents(
         Utf8JsonWriter writer,
         IReadOnlyList<ReplayV3.AuthoritativeEvent> values)
@@ -615,4 +844,21 @@ public sealed class ArcRelayBroadcastDocument
     private sealed record CompactTeamVision(
         int TeamId,
         ImmutableArray<ReplayV3.PositionValue> VisibleTiles);
+
+    internal sealed record CompactReason(
+        string? OrderId,
+        string Action,
+        ReplayV3.PositionValue? Destination,
+        ReplayV3.PositionValue? Facing);
+
+    private sealed record CompactUnitOrder(
+        int TeamId,
+        int UnitId,
+        string? OrderId,
+        string Action);
+
+    private sealed record CompactUnitMapTarget(
+        int TeamId,
+        int UnitId,
+        ReplayV3.PositionValue? Target);
 }

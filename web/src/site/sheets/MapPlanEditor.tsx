@@ -366,11 +366,13 @@ export function MapTargetPreview({
   catalog,
   mapPlan,
   highlight,
+  facingAnchor,
   onOpenMap,
 }: {
   catalog: TacticalSheetCatalog;
   mapPlan: MapPlanDocument;
   highlight?: { kind: PlotKind; id: string } | null;
+  facingAnchor?: string;
   onOpenMap?: () => void;
 }) {
   return <button type="button" onClick={onOpenMap} disabled={!onOpenMap}
@@ -389,7 +391,15 @@ export function MapTargetPreview({
         strokeWidth={highlight?.kind === 'route' && highlight.id === id ? .22 : .08} />)}
       {Object.entries(mapPlan.anchors).map(([id, [x, y]]) => <circle key={id}
         cx={x + .5} cy={y + .5} r={highlight?.kind === 'anchor' && highlight.id === id ? .4 : .2}
-        fill="#f472b6" />)}
+        fill={facingAnchor === id ? '#f0a35e' : '#f472b6'}
+        stroke={facingAnchor === id ? '#ffe0b8' : 'none'} strokeWidth={.12} />)}
+      {facingAnchor && mapPlan.anchors[facingAnchor] && <g>
+        <circle cx={mapPlan.anchors[facingAnchor][0] + .5}
+          cy={mapPlan.anchors[facingAnchor][1] + .5} r={.58} fill="none"
+          stroke="#f0a35e" strokeWidth={.12} strokeDasharray=".22 .12" />
+        <path d={`M ${mapPlan.anchors[facingAnchor][0] + .2} ${mapPlan.anchors[facingAnchor][1] + .5} h .6`}
+          stroke="#ffe0b8" strokeWidth={.12} />
+      </g>}
     </svg>
     {onOpenMap && <span className="block border-t border-arena-edge px-2 py-1.5 t-micro text-arena-material group-hover:text-arena-text">Edit on full map →</span>}
   </button>;

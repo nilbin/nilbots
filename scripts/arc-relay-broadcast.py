@@ -200,13 +200,21 @@ def compact_turns(tick: dict, signature_ids: set[str]) -> list:
     return result
 
 
-DESTINATION = re.compile(r"@(\d+),(\d+)(?=:|$)")
+DESTINATION = re.compile(
+    r"\b((?!face\b)[a-z][a-z0-9-]*)@(\d+),(\d+)(?=:|$)")
+FACING_TARGET = re.compile(r"face@(\d+),(\d+)(?=:|$)")
+LEADING_EVIDENCE = re.compile(r"^evidence\[[^\]]*\]:?")
 
 
 def command_reason(
     message: object,
-) -> tuple[str | None, str, tuple[int, int] | None] | None:
-    """Split a body's per-tick diagnostic into (order id, action, destination).
+) -> tuple[
+    str | None,
+    str,
+    tuple[int, int] | None,
+    tuple[int, int] | None,
+] | None:
+    """Split a diagnostic into order, action, destination and facing anchor.
 
     The canonical replay's debug text is dropped by this projection on purpose,
     but "what is this body doing right now" is the one thing in it a spectator
@@ -253,10 +261,10 @@ def command_reason(
 
     marker = text.find("tp:")
     if marker < 0:
-        return (None, text[:REASON_MAX_CHARS], None)
+        return (None, text[:REASON_MAX_CHARS], None, None)
     parts = text[marker:].split(":")
     if len(parts) < 5:
-        return (None, text[:REASON_MAX_CHARS], None)
+        return (None, text[:REASON_MAX_CHARS], None, None)
     return finish_command_reason(
         text, marker, parts[3] or None, ":".join(parts[4:]))
 
@@ -266,7 +274,12 @@ def finish_command_reason(
     marker: int,
     order_id: str | None,
     action: str,
-) -> tuple[str | None, str, tuple[int, int] | None]:
+) -> tuple[
+    str | None,
+    str,
+    tuple[int, int] | None,
+    tuple[int, int] | None,
+]:
     """Finish the qualifier/destination split shared by both mind grammars."""
     # "turn for idle-break:tp:..." is two stacked qualifiers and a preposition.
     # Keep the words, drop the grammar, and join them the way the tail reads.
@@ -275,21 +288,34 @@ def finish_command_reason(
         for word in re.split(r"[\s:]+", text[:marker])
         if word and word != "for"
     )
+    # Evidence is retained in canonical debug diagnostics for an audit, but it
+    # is neither the body's action nor public tactical state in a broadcast.
+    action = LEADING_EVIDENCE.sub("", action)
     # Strip the destination BEFORE the length cap, so a long action tail can
     # never silently eat the coordinates off the end of the lens.
     destination = None
     found = DESTINATION.search(action)
     if found is not None:
-        destination = (int(found.group(1)), int(found.group(2)))
+        destination = (int(found.group(2)), int(found.group(3)))
+        action = action[: found.start()] + found.group(1) + action[found.end():]
+    facing_target = None
+    found = FACING_TARGET.search(action)
+    if found is not None:
+        facing_target = (int(found.group(1)), int(found.group(2)))
         action = action[: found.start()] + action[found.end():]
     if qualifier:
         action = f"{qualifier}/{action}"
-    return (order_id, action[:REASON_MAX_CHARS], destination)
+    return (order_id, action[:REASON_MAX_CHARS], destination, facing_target)
 
 
 def turn_reasons(
     tick: dict,
-) -> list[tuple[int, int, int, tuple[str | None, str, tuple[int, int] | None]]]:
+) -> list[tuple[
+    int,
+    int,
+    int,
+    tuple[str | None, str, tuple[int, int] | None, tuple[int, int] | None],
+]]:
     """Every (teamId, unitId, lifeId, reason) this tick recorded, in order."""
     result = []
     for mind in tick.get("mindTurns") or []:
@@ -340,6 +366,7 @@ def project(replay: dict) -> dict:
     vision_by_tick = []
     orders_by_tick = []
     destinations_by_tick = []
+    facings_by_tick = []
     # Last reason PUBLISHED per body, so the column carries changes rather than
     # a full table 600 times. Keyed by life, not by unit: a respawned body
     # restates its order even when it happens to resume the same one, which is
@@ -350,6 +377,9 @@ def project(replay: dict) -> dict:
     # so it gets its own delta column rather than widening the order row and
     # costing that column its compression.
     published_destinations: dict[
+        tuple[int, int, int], tuple[int, int] | None
+    ] = {}
+    published_facings: dict[
         tuple[int, int, int], tuple[int, int] | None
     ] = {}
     previous_actor_ids = {
@@ -372,9 +402,10 @@ def project(replay: dict) -> dict:
         turns.append(compact_turns(tick, signature_ids))
         orders = []
         destinations = []
+        facings = []
         for team_id, unit_id, life_id, reason in turn_reasons(tick):
             key = (team_id, unit_id, life_id)
-            order_id, action, destination = reason
+            order_id, action, destination, facing_target = reason
             if published_reasons.get(key) != (order_id, action):
                 published_reasons[key] = (order_id, action)
                 orders.append([team_id, unit_id, order_id, action])
@@ -387,8 +418,15 @@ def project(replay: dict) -> dict:
                 destinations.append(
                     [team_id, unit_id, *(destination or (None, None))]
                 )
+            if (key not in published_facings
+                    or published_facings[key] != facing_target):
+                published_facings[key] = facing_target
+                facings.append(
+                    [team_id, unit_id, *(facing_target or (None, None))]
+                )
         orders_by_tick.append(orders)
         destinations_by_tick.append(destinations)
+        facings_by_tick.append(facings)
         start_events_by_tick.append(start_events)
         events_by_tick.append(events)
         traversals_by_tick.append(tick["traversals"])
@@ -442,6 +480,9 @@ def project(replay: dict) -> dict:
         # Where each body is walking, on the same delta pattern. `[x, y]` is
         # null when the body's reason names no destination.
         "destinations": destinations_by_tick,
+        # The authored anchor a body watches after arrival. This is distinct
+        # from where it travelled and clears independently.
+        "facings": facings_by_tick,
         "result": replay["result"],
     }
 

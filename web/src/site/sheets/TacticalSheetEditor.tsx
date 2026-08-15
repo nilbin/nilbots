@@ -527,6 +527,9 @@ function renameGeometry(draft: SheetDraft, kind: 'route' | 'zone' | 'anchor', pr
     }
     if (kind === 'zone' && typeof node.move?.to === 'object' && 'zone' in node.move.to && node.move.to.zone === previous) node.move.to.zone = nextId;
     if (kind === 'anchor' && typeof node.move?.to === 'object' && 'anchor' in node.move.to && node.move.to.anchor === previous) node.move.to.anchor = nextId;
+    if (kind === 'anchor' && typeof node.move?.to === 'object' && 'adjacentTo' in node.move.to && node.move.to.adjacentTo === previous) node.move.to.adjacentTo = nextId;
+    if (kind === 'anchor' && node.move?.face?.anchor === previous) node.move.face.anchor = nextId;
+    if (kind === 'anchor' && node.use?.at === previous) node.use.at = nextId;
   });
   if (kind === 'zone') for (const condition of Object.values(draft.orders.conditions)) if (condition.zone === previous) condition.zone = nextId;
 }

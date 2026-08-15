@@ -31,6 +31,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<ActorIdentity, int?> _firingApproachDistances = [];
     private readonly Dictionary<FiringEpisodeKey, int[]> _firingEpisodeFields = [];
     private readonly Dictionary<FiringGroundKey, Position[]> _firingGround = [];
+    private readonly OrdersEvidenceLedger _evidence = new();
 
     private GenericActorResolvedMatchContract? _contract;
     private OrdersPackage? _package;
@@ -48,6 +49,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         _contract = start.Contract;
         _teamId = start.TeamId;
+        _evidence.Reset();
         if (start.Contract.ModeMapBinding is not
             GenericActorResolvedMatchContract.ArcRelayModeMapBinding binding)
         {
@@ -112,6 +114,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _firingGround.Clear();
 
         UpdateMemory(contract, mind, arc);
+        _evidence.Observe(_teamId, mind);
         ResolvePreviousOneShots(mind);
         UpdateMotionMemory(mind);
         IReadOnlySet<ActorIdentity> live = mind.Bodies
@@ -1531,6 +1534,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> carried)
     {
         string reason = $"orders:{proposal.Leaf.Node.Path}";
+        if (proposal.Leaf.EvidenceTrace is string evidenceTrace)
+            reason += $":evidence[{evidenceTrace}]";
         if (proposal.SelectionTrace is string selectionTrace)
             reason += $":{selectionTrace}";
         if (proposal.Leaf.Node.Action is not OrdersPackage.FightAction
@@ -1543,7 +1548,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             case OrdersPackage.MoveAction:
                 ExecuteMove(
-                    contract, mind, body, proposal, movePlan!, claims,
+                    contract, mind, package, body, proposal, movePlan!, claims,
                     reason, urgency,
                     carried.ContainsKey(body.ActorId));
                 return;
@@ -1593,6 +1598,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private void ExecuteMove(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
+        OrdersPackage package,
         MindBody body,
         Proposal proposal,
         MovePlan plan,
@@ -1607,6 +1613,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             if (TryRestingYield(contract, mind, body, claims, movement))
                 return;
+            OrdersPackage.MoveAction move =
+                (OrdersPackage.MoveAction)proposal.Leaf.Node.Action!;
+            if (move.FaceAnchor is string anchorId)
+            {
+                Position anchor = package.AnchorPosition(anchorId);
+                string facing = $"{movement}:at-target:face-anchor:{anchorId}"
+                    + $":face@{anchor.X},{anchor.Y}";
+                Direction desired = ArenaBasics.FacingTowardAnchor(
+                    body.Facing, body.Position, anchor, _mirrored);
+                if (desired != body.Facing
+                    && ArenaBasics.TryRotate(contract, body, desired, facing))
+                {
+                    return;
+                }
+                body.Hold($"{movement}:at-target:facing-anchor:{anchorId}"
+                    + $":face@{anchor.X},{anchor.Y}");
+                return;
+            }
             body.Hold($"{movement}:at-target:{proposal.Target.Key}");
             return;
         }
@@ -1834,7 +1858,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract, body, signature.Kind, trace);
     }
 
-    private bool Evaluate(
+    private OrderTreeRuntime.ConditionEvaluation Evaluate(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
@@ -1847,19 +1871,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> carried)
     {
         if (expression.Names.Length == 1 && expression.Names[0] == "always")
-            return true;
-        IEnumerable<bool> values = expression.Names.Select(name =>
+            return OrderTreeRuntime.ConditionEvaluation.True;
+        var results = expression.Names.Select(name =>
         {
             if (name == "always")
-                return true;
+                return OrderTreeRuntime.ConditionEvaluation.True;
             OrdersPackage.Condition condition = package.Conditions[name];
-            int actual = Fact(
-                contract, mind, arc, package, body, role, condition,
-                orderTicks, carried);
-            return Compare(actual, condition.Operator, condition.Value);
-        });
-        return expression.Kind == "any" ? values.Any(value => value)
-            : values.All(value => value);
+            int actual;
+            string? trace = null;
+            if (condition.WindowTicks is not null || condition.Since is not null)
+            {
+                OrdersEvidenceLedger.EvidenceRead read = _evidence.Read(
+                    package, contract.Map, condition, mind.Tick, orderTicks);
+                actual = read.Actual;
+                trace = read.Trace;
+            }
+            else
+            {
+                actual = Fact(
+                    contract, mind, arc, package, body, role, condition,
+                    orderTicks, carried);
+            }
+            return new OrderTreeRuntime.ConditionEvaluation(
+                Compare(actual, condition.Operator, condition.Value), trace);
+        }).ToArray();
+        bool value = expression.Kind == "any"
+            ? results.Any(result => result.Value)
+            : results.All(result => result.Value);
+        string? evidence = string.Join(
+            "+",
+            results.Where(result => result.Trace is not null)
+                .Select(result => result.Trace));
+        return new OrderTreeRuntime.ConditionEvaluation(
+            value,
+            string.IsNullOrEmpty(evidence) ? null : evidence);
     }
 
     private int Fact(

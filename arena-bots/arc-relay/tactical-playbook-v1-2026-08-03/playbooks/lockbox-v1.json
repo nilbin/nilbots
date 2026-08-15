@@ -18,7 +18,7 @@
           "shared": "score-a-core"
         },
         {
-          "shared": "collect-loose-core"
+          "shared": "queue-loaded-core"
         },
         {
           "shared": "recover-health"
@@ -32,6 +32,8 @@
               "deployment-damaged"
             ]
           },
+          "timeout": 16,
+          "cooldown": 12,
           "orders": [
             {
               "id": "place-own-well-lock",
@@ -55,6 +57,12 @@
           ]
         },
         {
+          "shared": "answer-centre-column"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
           "shared": "fight-visible-enemy"
         },
         {
@@ -69,9 +77,10 @@
       ]
     },
     {
-      "id": "centre-mason",
+      "id": "centre-screen",
       "classes": [
-        "mason"
+        "palisade",
+        "mortar"
       ],
       "upgradePath": [
         "vitality",
@@ -83,41 +92,44 @@
           "shared": "score-a-core"
         },
         {
-          "shared": "collect-loose-core"
+          "shared": "queue-loaded-core"
         },
         {
           "shared": "recover-health"
         },
         {
-          "id": "maintain-centre-return-lock",
+          "id": "wall-centre-column",
           "when": {
-            "any": [
-              "deployment-missing",
-              "deployment-expiring",
-              "deployment-damaged"
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
             ]
           },
-          "orders": [
-            {
-              "id": "place-centre-return-lock",
-              "when": "signature-ready",
-              "use": {
-                "skill": "hardlight-block",
-                "target": "nearest-ally",
-                "at": "centre-return-lock"
-              }
-            },
-            {
-              "id": "stage-centre-return-lock",
-              "urgency": "routine",
-              "move": {
-                "to": {
-                  "adjacentTo": "centre-return-lock"
-                },
-                "posture": "front"
-              }
-            }
-          ]
+          "use": {
+            "skill": "prism-wall",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "lob-centre-column",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "falling-star",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "answer-centre-column"
+        },
+        {
+          "shared": "collect-loose-core"
         },
         {
           "shared": "fight-visible-enemy"
@@ -134,58 +146,45 @@
       ]
     },
     {
-      "id": "deployment-net",
+      "id": "centre-breakers",
       "classes": [
-        "nest",
-        "minesmith"
+        "repulsor",
+        "repulsor"
       ],
       "upgradePath": [
-        "vision",
+        "vitality",
         "damage",
-        "vitality"
+        "vision"
       ],
       "orders": [
         {
           "shared": "score-a-core"
         },
         {
-          "shared": "collect-loose-core"
+          "shared": "queue-loaded-core"
         },
         {
           "shared": "recover-health"
         },
         {
-          "id": "maintain-support-deployment",
-          "when": "deployment-missing",
-          "orders": [
-            {
-              "id": "seed-own-sentry",
-              "when": "signature-ready",
-              "use": {
-                "skill": "sentinel-seed",
-                "target": "nearest-ally",
-                "at": "own-sentry"
-              }
-            },
-            {
-              "id": "seed-centre-trip",
-              "when": "signature-ready",
-              "use": {
-                "skill": "trip-node",
-                "target": "nearest-ally",
-                "at": "centre-trip"
-              }
-            },
-            {
-              "id": "stage-support-deployment",
-              "move": {
-                "to": {
-                  "adjacentTo": "centre-trip"
-                },
-                "posture": "line"
-              }
-            }
-          ]
+          "id": "repulse-centre-column",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "kinetic-burst",
+            "target": "self"
+          }
+        },
+        {
+          "shared": "answer-centre-column"
+        },
+        {
+          "shared": "collect-loose-core"
         },
         {
           "shared": "fight-visible-enemy"
@@ -205,9 +204,8 @@
       "id": "lockbox-support",
       "classes": [
         "hush",
-        "relay",
         "patchbay",
-        "lantern"
+        "longshot"
       ],
       "upgradePath": [
         "vitality",
@@ -220,7 +218,7 @@
           "shared": "score-a-core"
         },
         {
-          "shared": "collect-loose-core"
+          "shared": "queue-loaded-core"
         },
         {
           "shared": "recover-health"
@@ -240,19 +238,6 @@
           }
         },
         {
-          "id": "pass-lockbox-core",
-          "when": {
-            "all": [
-              "carrying-core",
-              "signature-ready"
-            ]
-          },
-          "use": {
-            "skill": "arc-toss",
-            "target": "nearest-ally-toward-own-reactor"
-          }
-        },
-        {
           "id": "repair-lockbox",
           "when": "signature-ready",
           "use": {
@@ -261,7 +246,7 @@
           }
         },
         {
-          "id": "reveal-demolition",
+          "id": "rail-centre-column",
           "when": {
             "all": [
               "empty-handed",
@@ -270,9 +255,15 @@
             ]
           },
           "use": {
-            "skill": "survey-flare",
-            "target": "nearest-enemy"
+            "skill": "rail-line",
+            "target": "weakest-enemy"
           }
+        },
+        {
+          "shared": "answer-centre-column"
+        },
+        {
+          "shared": "collect-loose-core"
         },
         {
           "shared": "fight-visible-enemy"
@@ -299,11 +290,22 @@
       "orders": [
         {
           "id": "return-to-reactor",
+          "capacity": "reactor-lane-one",
           "move": {
             "to": "own-reactor"
           }
         }
       ]
+    },
+    "queue-loaded-core": {
+      "when": "carrying-core",
+      "urgency": "normal",
+      "move": {
+        "to": {
+          "zone": "reactor-approach-queue"
+        },
+        "posture": "line"
+      }
     },
     "collect-loose-core": {
       "when": {
@@ -333,6 +335,53 @@
         }
       ]
     },
+    "answer-centre-column": {
+      "when": {
+        "any": [
+          "centre-entry-surge",
+          "centre-column-seen"
+        ]
+      },
+      "until": "centre-response-earned",
+      "timeout": 120,
+      "cooldown": 12,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "break-centre-column",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby"
+            ]
+          },
+          "fight": {
+            "targets": [
+              "carrier",
+              "veteran",
+              "weakest",
+              "nearest"
+            ],
+            "style": "hold",
+            "chaseLimit": 3
+          }
+        },
+        {
+          "id": "form-centre-killbox",
+          "when": "empty-handed",
+          "capacity": "centre-response-six",
+          "move": {
+            "to": {
+              "zone": "centre-killbox"
+            },
+            "posture": "line",
+            "face": {
+              "anchor": "centre-threat-axis"
+            }
+          }
+        }
+      ]
+    },
     "fight-visible-enemy": {
       "when": {
         "all": [
@@ -352,7 +401,9 @@
     }
   },
   "capacities": {
-    "two-per-core": 2
+    "two-per-core": 2,
+    "reactor-lane-one": 1,
+    "centre-response-six": 6
   },
   "conditions": {
     "carrying-core": {
@@ -404,6 +455,27 @@
       "fact": "deployment-durability-percent",
       "operator": "at-most",
       "value": 34
+    },
+    "centre-entry-surge": {
+      "fact": "observed-enemy-entries-in-zone",
+      "zone": "centre-pressure-gate",
+      "windowTicks": 75,
+      "operator": "at-least",
+      "value": 3
+    },
+    "centre-column-seen": {
+      "fact": "distinct-enemy-lives-observed-in-zone",
+      "zone": "centre-pressure-gate",
+      "windowTicks": 75,
+      "operator": "at-least",
+      "value": 4
+    },
+    "centre-response-earned": {
+      "fact": "confirmed-enemy-destructions-in-zone",
+      "zone": "centre-pressure-gate",
+      "since": "node-entry",
+      "operator": "at-least",
+      "value": 3
     }
   }
 }

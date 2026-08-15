@@ -33,8 +33,11 @@ export default function DocsPage() {
           inside roles under the two-copy cap. Each role reads one nested priority list
           made from five physical actions: move, fight, use a signature skill, handoff a
           Core, or drop it. Named conditions control entry, exit, timeout and cooldown;
-          one capacity rule limits bodies claiming the same resolved target. Routes,
-          zones and anchors are plotted directly on the map. Saving compiles through the
+          one capacity rule limits bodies claiming the same resolved target. Finite
+          historical conditions can react to movement, sightings and destructions the
+          team actually observed; they are read-only and reset every match. Routes,
+          zones and anchors are plotted directly on the map. A body holding an authored
+          zone or anchor may also watch toward another anchor after it arrives. Saving compiles through the
           same shared compiler as the CLI and fields the sheet in the current Season by
           default. A revision preserves entrant identity and rating; <b>save as copy</b>
           starts a new entrant and rating.
@@ -73,7 +76,9 @@ export default function DocsPage() {
         <p className="mt-2 text-arena-dim">
           Your mind should read the action legality mask every tick. If a visible target
           is outside the published three-heading cone, rotate or reposition before
-          firing instead of submitting a forbidden heading.
+          firing instead of submitting a forbidden heading. A sheet&apos;s optional
+          destination-facing instruction affects only an arrived body; it does not steer
+          the route, promise line of sight, or override a higher-priority fight.
         </p>
       </Doc>
 

@@ -1,8 +1,9 @@
 # Arc Relay Tapline depth pack — implementation brief (owner-set 2026-08-14)
 
-Status: **approved for isolated prototyping; not shipped**. Tapline-3, hosted
-entrant playlist v21, historical rules, sheets, fingerprints, and replays stay
-immutable until a later owner review explicitly promotes a result.
+Status: **historical implementation brief**. The first six mechanics shipped
+as Tapline-4 under Decision #316. Destination-facing and historical evidence
+shipped directly into the current Orders v2 product language under Decision
+#317; they have no experimental loop profile or alternate rules identity.
 
 ## Goal
 
