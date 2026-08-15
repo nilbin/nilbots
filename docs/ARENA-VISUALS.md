@@ -505,25 +505,22 @@ Nest presses forward with slight upward clearance and no nose-down pitch, so
 its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
-thin brass floor ring and three short converging matte facets, followed by the
-persistent rules-owned rank ornament. In WebGL, levels 1–5 select one of five
-complete Meshy-authored split diadems. Rank I is two low disconnected rails;
-each later rank adds one clipped mechanical crown blade per side until Rank V
-reads as an open eight-blade moose-antler crown. The renderer does not rebuild
-that silhouette from repeated parts. It lazy-loads only the selected rank,
-keeps exactly one complete rank visible, and uses a cheap whole-rank silhouette
-while the GLB loads or if it fails.
+thin brass floor ring, three short converging matte facets, then the persistent
+rules-owned rank plate. In WebGL that plate starts visibly at authoritative
+level 1 and occupies one fixed footprint through level 5: a matte dark octagon
+with a restrained brass rim and a block-readable brass numeral. It is attached
+to the left edge of the health bar, and the complete plate-gap-bar row is
+centred over the body. Changing rank swaps only the numeral, so higher ranks do
+not build a vertical tower, collide with the engaged mark, or require a learned
+compressed-chevron code. Modes without a veterancy rule or facts receive no
+rank plate. Temporary level-up geometry is gone by 1.8 presentation ticks; the
+effect has no white flash, full-height column, camera shake, or mesh mutation.
 
-The neutral matte aged-brass diadem is attached directly to the chassis at a
-fixed rear offset. It follows authoritative bot yaw and remains world-up without
-inheriting recoil, hover bob, signature lean, or Core animation state. Every
-rank retains the same full-height centre corridor, so the existing pickup,
-carry, handoff, drop, and Arc Toss sphere can pass through without ornament
-animation or a second Core. Canvas2D retains the compact numeric rank badge as
-its deliberate model-free fallback. Modes without a veterancy rule or facts
-receive neither treatment. Temporary level-up geometry is gone by 1.8
-presentation ticks; the effect has no white flash, full-height column, camera
-shake, or bot-mesh mutation.
+Five complete Meshy-authored split-diadem rank models remain checked in with
+their manifests, source concepts, provider records, audits, and deterministic
+promotion tooling as dormant candidates. The active actor renderer does not
+attach, select, or load them. Retaining that work is an art-library decision,
+not approval of the ornaments for gameplay.
 
 The approval artifact and per-effect fidelity target live under
 `art/reviews/arc-relay-presentation-batch-v1`. A release capture uses a real
