@@ -72,8 +72,7 @@ import {
   paintVeterancyRankRail,
 } from './veterancyRankRail';
 import {
-  createModelTeamOutline,
-  setModelApexTreatment,
+  createModelApexRadiance,
 } from './modelLighting';
 
 export { BOT_BODY_RENDER_ORDER } from './occlusionLayers';
@@ -759,26 +758,16 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     tintable(lidMaterial);
     tintable(noseMaterial);
 
-    // Genuine GLB materials carry the model-lighting shader seam and two shared-geometry
-    // silhouette shells. They stay hidden below level five; Apex reveals the crisp team edge
-    // and its radiating outer shell. Keep the current values before a lazy model arrives so a
-    // seek directly to Apex dresses it correctly on its first compiled frame. Sprite-derived
-    // fallbacks retain their established Canvas-compatible team paint.
-    const apexMaterials = new Set<THREE.MeshStandardMaterial>();
-    const teamOutline = createModelTeamOutline(accent);
-    disposables.push(teamOutline);
+    // Genuine GLB materials carry one shared-geometry Apex aura. It stays hidden below
+    // level five and never modifies the authored surface. Keep the current values before a
+    // lazy model arrives so a seek directly to Apex dresses it correctly on its first frame.
+    // Sprite-derived fallbacks retain their established Canvas-compatible team paint.
+    const apexRadiance = createModelApexRadiance(accent);
+    disposables.push(apexRadiance);
     let currentApexStrength = 0;
     let currentApexPhase = 0;
-    const paintApex = () => {
-      for (const material of apexMaterials)
-        setModelApexTreatment(
-          material,
-          currentApexStrength,
-          currentApexPhase,
-          accent,
-        );
-      teamOutline.set(currentApexStrength, currentApexPhase, lastFactor);
-    };
+    const paintApex = () =>
+      apexRadiance.set(currentApexStrength, currentApexPhase, lastFactor);
     const apex = (strength: number, phase: number) => {
       currentApexStrength = strength;
       currentApexPhase = phase;
@@ -813,27 +802,20 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         for (const material of materials) {
           if (
             material instanceof THREE.MeshStandardMaterial &&
-            material.userData.nilbotsModelLightingState !== undefined
+            material.userData.nilbotsModelLighting !== undefined
           ) apexEligible = true;
           if (seen.has(material)) continue;
           seen.add(material);
           fading.push({ material, base: 1 });
           if (material instanceof THREE.MeshStandardMaterial) {
             tintable(material);
-            apexMaterials.add(material);
-            setModelApexTreatment(
-              material,
-              currentApexStrength,
-              currentApexPhase,
-              accent,
-            );
           }
           disposables.push(material);
         }
         if (apexEligible) apexMeshes.push(mesh);
       });
       for (const mesh of solidMeshes) installActorMask(mesh);
-      for (const mesh of apexMeshes) teamOutline.attach(mesh);
+      for (const mesh of apexMeshes) apexRadiance.attach(mesh);
       paintApex();
       // A model that lands mid-highlight or mid-flash has to arrive wearing it, not plain.
       repaint();
@@ -1548,7 +1530,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           factor < 1 ||
           base < 1;
       }
-      teamOutline.set(currentApexStrength, currentApexPhase, lastFactor);
+      apexRadiance.set(currentApexStrength, currentApexPhase, lastFactor);
     };
 
     /**

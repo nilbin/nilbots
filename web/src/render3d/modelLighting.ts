@@ -2,8 +2,8 @@ import * as THREE from 'three';
 
 const OUTGOING_LIGHT =
   'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;';
-const PROFILE_KEY = 'nilbots-model-lighting-v5';
-const TEAM_OUTLINE_PROFILE_KEY = 'nilbots-team-outline-v1';
+const PROFILE_KEY = 'nilbots-model-lighting-v6';
+const APEX_RADIANCE_PROFILE_KEY = 'nilbots-apex-radiance-v1';
 const POINT_LIGHT_ISOLATION_KEY = 'nilbots-point-light-isolation-v1';
 const LIGHTS_FRAGMENT_INCLUDE = '#include <lights_fragment_begin>';
 const BEGIN_VERTEX_INCLUDE = '#include <begin_vertex>';
@@ -11,33 +11,14 @@ const POINT_LIGHTS_START =
   '#if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )';
 const POINT_LIGHTS_END =
   '#if ( NUM_SPOT_LIGHTS > 0 ) && defined( RE_Direct )';
-const APEX_UNIFORMS = `uniform float nilbotsApexStrength;
-uniform float nilbotsApexPhase;
-uniform vec3 nilbotsApexColor;`;
-
-interface ModelLightingState {
-  apexStrength: number;
-  apexPhase: number;
-  apexColor: THREE.Color;
-  strengthUniform: { value: number } | null;
-  phaseUniform: { value: number } | null;
-  colorUniform: { value: THREE.Color } | null;
-}
-
-interface OutlineMaterialState {
+interface RadianceMaterialState {
   width: number;
   widthUniform: { value: number } | null;
 }
 
-export interface ModelTeamOutlineShells {
-  readonly core: THREE.Mesh;
-  readonly radiance: THREE.Mesh;
-}
-
-export interface ModelTeamOutline {
+export interface ModelApexRadiance {
   readonly material: THREE.MeshBasicMaterial;
-  readonly radianceMaterial: THREE.MeshBasicMaterial;
-  attach: (source: THREE.Mesh) => ModelTeamOutlineShells | null;
+  attach: (source: THREE.Mesh) => THREE.Mesh | null;
   set: (strength: number, phase: number, visibility: number) => void;
   dispose: () => void;
 }
@@ -56,12 +37,6 @@ export const MODEL_LIGHTING_PROFILE = {
   facingFillMaximum: 0.2,
   rimStrength: 0.16,
   rimPower: 2.2,
-  apexRimStrength: 0.035,
-  apexRimPower: 3,
-  apexSweepStrength: 0.14,
-  apexSweepPower: 30,
-  apexOutlineWidth: 0.05,
-  apexOutlineOpacity: 0.88,
   apexRadianceWidthMinimum: 0.072,
   apexRadianceWidthMaximum: 0.096,
   apexRadianceOpacityMinimum: 0.12,
@@ -74,148 +49,66 @@ export function applyModelLighting(
   if (material.userData.nilbotsModelLighting === PROFILE_KEY) return;
   const beforeCompile = material.onBeforeCompile.bind(material);
   const beforeCacheKey = material.customProgramCacheKey.bind(material);
-  const state: ModelLightingState = {
-    apexStrength: 0,
-    apexPhase: 0,
-    apexColor: new THREE.Color(0xffffff),
-    strengthUniform: null,
-    phaseUniform: null,
-    colorUniform: null,
-  };
 
   material.onBeforeCompile = (shader, renderer) => {
     beforeCompile(shader, renderer);
-    state.strengthUniform = { value: state.apexStrength };
-    state.phaseUniform = { value: state.apexPhase };
-    state.colorUniform = { value: state.apexColor.clone() };
-    shader.uniforms.nilbotsApexStrength = state.strengthUniform;
-    shader.uniforms.nilbotsApexPhase = state.phaseUniform;
-    shader.uniforms.nilbotsApexColor = state.colorUniform;
     shader.fragmentShader = injectModelLighting(shader.fragmentShader);
   };
   material.customProgramCacheKey = () =>
     `${beforeCacheKey()}|${PROFILE_KEY}`;
   material.userData.nilbotsModelLighting = PROFILE_KEY;
-  material.userData.nilbotsModelLightingState = state;
   material.needsUpdate = true;
 }
 
 /**
- * Drive the level-five treatment on one actor-owned material.
+ * Build one actor-owned, team-coloured Apex aura and attach it to genuine GLBs.
  *
- * The uniforms modify only this material's final light. No Three light is created, so the
- * treatment cannot touch the floor, nearby actors, fog, Wells, or Reactors. Calling this
- * before the material first compiles is supported: the state is retained and copied into
- * the shader uniforms when Three builds its program.
+ * One low-opacity additive back-face shell expands along authored vertex normals and
+ * breathes outside the body. There is no crisp contour shell and no shader treatment on
+ * the authored surface. The actor shares one material across source geometry, so the aura
+ * introduces no model or texture bytes.
  */
-export function setModelApexTreatment(
-  material: THREE.MeshStandardMaterial,
-  strength: number,
-  phase: number,
-  color: THREE.Color,
-): void {
-  const state = material.userData.nilbotsModelLightingState as
-    | ModelLightingState
-    | undefined;
-  if (!state) return;
-  state.apexStrength = THREE.MathUtils.clamp(strength, 0, 1);
-  state.apexPhase = phase;
-  state.apexColor.copy(color);
-  if (state.strengthUniform)
-    state.strengthUniform.value = state.apexStrength;
-  if (state.phaseUniform) state.phaseUniform.value = state.apexPhase;
-  if (state.colorUniform) state.colorUniform.value.copy(state.apexColor);
-}
-
-/**
- * Build one actor-owned team-coloured Apex radiance and attach it to genuine GLBs.
- *
- * Both back-face shells expand along authored vertex normals. Level five reveals a crisp
- * normal-blended team silhouette and a wider additive shell which breathes outside it.
- * Lower levels show neither shell. Materials are shared per actor and both shells reuse
- * source geometry, so no model or texture bytes are copied.
- */
-export function createModelTeamOutline(color: THREE.Color): ModelTeamOutline {
-  const material = createOutlineMaterial(color, 'core', THREE.NormalBlending);
-  const radianceMaterial = createOutlineMaterial(
-    color,
-    'radiance',
-    THREE.AdditiveBlending,
-  );
-  const materialState = material.userData.nilbotsTeamOutlineState as
-    OutlineMaterialState;
-  const radianceState = radianceMaterial.userData.nilbotsTeamOutlineState as
-    OutlineMaterialState;
-  const coreShells = new Set<THREE.Mesh>();
-  const radianceShells = new Set<THREE.Mesh>();
+export function createModelApexRadiance(color: THREE.Color): ModelApexRadiance {
+  const material = createRadianceMaterial(color);
+  const state = material.userData.nilbotsApexRadianceState as
+    RadianceMaterialState;
+  const shells = new Set<THREE.Mesh>();
 
   return {
     material,
-    radianceMaterial,
     attach: (source) => {
       // Meshy bots are deliberately unrigged. Fail soft if a future look introduces skinning
-      // rather than leaving rigid shells behind while the authored body deforms.
+      // rather than leaving a rigid aura behind while the authored body deforms.
       if ((source as THREE.SkinnedMesh).isSkinnedMesh) return null;
-      const radiance = outlineShell(
-        source,
-        radianceMaterial,
-        'team-radiance',
-        0.2,
-      );
-      const core = outlineShell(
-        source,
-        material,
-        'team-outline',
-        0.25,
-      );
-      radiance.visible = false;
-      core.visible = false;
-      source.add(radiance, core);
-      radianceShells.add(radiance);
-      coreShells.add(core);
-      return { core, radiance };
+      const shell = radianceShell(source, material);
+      shell.visible = false;
+      source.add(shell);
+      shells.add(shell);
+      return shell;
     },
     set: (strength, phase, visibility) => {
       const amount = THREE.MathUtils.clamp(strength, 0, 1);
       const visibleAmount = THREE.MathUtils.clamp(visibility, 0, 1);
       const pulse = 0.5 + 0.5 * Math.sin(phase * 1.7);
-      materialState.width = MODEL_LIGHTING_PROFILE.apexOutlineWidth
-        * (0.94 + pulse * 0.06)
-        * amount;
-      radianceState.width = THREE.MathUtils.lerp(
+      state.width = THREE.MathUtils.lerp(
         MODEL_LIGHTING_PROFILE.apexRadianceWidthMinimum,
         MODEL_LIGHTING_PROFILE.apexRadianceWidthMaximum,
         pulse,
       ) * amount;
-      if (materialState.widthUniform)
-        materialState.widthUniform.value = materialState.width;
-      if (radianceState.widthUniform)
-        radianceState.widthUniform.value = radianceState.width;
-
-      material.opacity = MODEL_LIGHTING_PROFILE.apexOutlineOpacity
-        * (0.9 + pulse * 0.1)
-        * amount
-        * visibleAmount;
-      radianceMaterial.opacity = THREE.MathUtils.lerp(
+      if (state.widthUniform) state.widthUniform.value = state.width;
+      material.opacity = THREE.MathUtils.lerp(
         MODEL_LIGHTING_PROFILE.apexRadianceOpacityMinimum,
         MODEL_LIGHTING_PROFILE.apexRadianceOpacityMaximum,
         pulse,
       ) * amount * visibleAmount;
-      for (const shell of coreShells) shell.visible = material.opacity > 0.01;
-      for (const shell of radianceShells)
-        shell.visible = radianceMaterial.opacity > 0.01;
+      for (const shell of shells) shell.visible = material.opacity > 0.01;
     },
-    dispose: () => {
-      material.dispose();
-      radianceMaterial.dispose();
-    },
+    dispose: () => material.dispose(),
   };
 }
 
-function createOutlineMaterial(
+function createRadianceMaterial(
   color: THREE.Color,
-  kind: 'core' | 'radiance',
-  blending: THREE.Blending,
 ): THREE.MeshBasicMaterial {
   const material = new THREE.MeshBasicMaterial({
     color,
@@ -225,51 +118,48 @@ function createOutlineMaterial(
     depthWrite: false,
     depthTest: true,
     toneMapped: false,
-    blending,
+    blending: THREE.AdditiveBlending,
   });
   const beforeCompile = material.onBeforeCompile.bind(material);
   const beforeCacheKey = material.customProgramCacheKey.bind(material);
-  const state: OutlineMaterialState = { width: 0, widthUniform: null };
+  const state: RadianceMaterialState = { width: 0, widthUniform: null };
 
   material.onBeforeCompile = (shader, renderer) => {
     beforeCompile(shader, renderer);
     state.widthUniform = { value: state.width };
-    shader.uniforms.nilbotsTeamOutlineWidth = state.widthUniform;
+    shader.uniforms.nilbotsApexRadianceWidth = state.widthUniform;
     if (!shader.vertexShader.includes(BEGIN_VERTEX_INCLUDE))
-      throw new Error('MeshBasicMaterial shader no longer exposes the team-outline anchor.');
-    shader.vertexShader = `uniform float nilbotsTeamOutlineWidth;\n${shader.vertexShader.replace(
+      throw new Error('MeshBasicMaterial shader no longer exposes the Apex-radiance anchor.');
+    shader.vertexShader = `uniform float nilbotsApexRadianceWidth;\n${shader.vertexShader.replace(
       BEGIN_VERTEX_INCLUDE,
-      `${BEGIN_VERTEX_INCLUDE}\n\ttransformed += normalize( normal ) * nilbotsTeamOutlineWidth;`,
+      `${BEGIN_VERTEX_INCLUDE}\n\ttransformed += normalize( normal ) * nilbotsApexRadianceWidth;`,
     )}`;
   };
   material.customProgramCacheKey = () =>
-    `${beforeCacheKey()}|${TEAM_OUTLINE_PROFILE_KEY}-${kind}`;
-  material.userData.nilbotsTeamOutline = TEAM_OUTLINE_PROFILE_KEY;
-  material.userData.nilbotsTeamOutlineState = state;
+    `${beforeCacheKey()}|${APEX_RADIANCE_PROFILE_KEY}`;
+  material.userData.nilbotsApexRadiance = APEX_RADIANCE_PROFILE_KEY;
+  material.userData.nilbotsApexRadianceState = state;
   material.needsUpdate = true;
   return material;
 }
 
-function outlineShell(
+function radianceShell(
   source: THREE.Mesh,
   material: THREE.MeshBasicMaterial,
-  kind: 'team-outline' | 'team-radiance',
-  renderOffset: number,
 ): THREE.Mesh {
   const shell = new THREE.Mesh(source.geometry, material);
-  shell.name = `${source.name || 'mesh'}-${kind}`;
-  shell.userData.kind = kind;
+  shell.name = `${source.name || 'mesh'}-apex-radiance`;
+  shell.userData.kind = 'apex-radiance';
   shell.castShadow = false;
   shell.receiveShadow = false;
-  shell.renderOrder = source.renderOrder + renderOffset;
+  shell.renderOrder = source.renderOrder + 0.2;
   return shell;
 }
 
 export function injectModelLighting(fragmentShader: string): string {
   if (!fragmentShader.includes(OUTGOING_LIGHT))
     throw new Error('MeshStandardMaterial shader no longer exposes the model-lighting anchor.');
-  return `${APEX_UNIFORMS}
-${fragmentShader.replace(
+  return fragmentShader.replace(
     OUTGOING_LIGHT,
     `${OUTGOING_LIGHT}
 
@@ -289,32 +179,8 @@ ${fragmentShader.replace(
     vec3( 0.22, 0.28, 0.36 ),
     material.diffuseColor,
     0.22
-  ) * nilbotsModelRim;
-
-  // Apex surface scan: the separate back-face shell owns zoomed-out readability, so this
-  // term can stay narrow and coloured instead of lifting the entire texture toward white.
-  float nilbotsApexRim = pow(
-    1.0 - nilbotsModelFacing,
-    ${MODEL_LIGHTING_PROFILE.apexRimPower.toFixed(1)}
-  ) * ${MODEL_LIGHTING_PROFILE.apexRimStrength.toFixed(2)};
-  vec3 nilbotsApexSweepDirection = normalize( vec3(
-    cos( nilbotsApexPhase ) * 0.58,
-    sin( nilbotsApexPhase ) * 0.5,
-    1.0
-  ) );
-  float nilbotsApexSweep = pow(
-    saturate( dot( geometryNormal, nilbotsApexSweepDirection ) ),
-    ${MODEL_LIGHTING_PROFILE.apexSweepPower.toFixed(1)}
-  ) * ${MODEL_LIGHTING_PROFILE.apexSweepStrength.toFixed(2)};
-  vec3 nilbotsApexTint = mix(
-    nilbotsApexColor,
-    material.diffuseColor,
-    0.58
+  ) * nilbotsModelRim;`,
   );
-  outgoingLight += nilbotsApexTint
-    * ( nilbotsApexRim + nilbotsApexSweep )
-    * nilbotsApexStrength;`,
-  )}`;
 }
 
 /**
