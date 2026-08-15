@@ -195,7 +195,9 @@ public static class ArcRelayCoreStageCommand
             veteranCommand: mode.VeteranCommand,
             respawnWavePeriodTicks: mode.RespawnWavePeriodTicks,
             respawnMinimumDeadTicks: mode.RespawnMinimumDeadTicks,
-            minimumDistinctClasses: mode.MinimumDistinctClasses,
+            minimumDistinctClasses: Math.Min(
+                mode.MinimumDistinctClasses,
+                BodiesPerTeam),
             durableDeployments: mode.DurableDeployments,
             veterancyDamagePerPoint: mode.VeterancyDamagePerPoint,
             veterancyDamageBonusCap: mode.VeterancyDamageBonusCap,

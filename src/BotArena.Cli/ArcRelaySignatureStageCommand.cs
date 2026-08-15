@@ -249,6 +249,17 @@ public static class ArcRelaySignatureStageCommand
     private static IReadOnlyList<string> Sheet(string first, string second)
     {
         var classes = new List<string> { first, second };
+        // Fill distinct classes first so this presentation-only stage remains
+        // a legal current-roster match even when the caster and required
+        // context body share a class. Only then spend the eighth slot on a
+        // permitted duplicate.
+        foreach (string candidate in ArcRelayLaunchClassIds.All)
+        {
+            if (classes.Count == 8)
+                break;
+            if (!classes.Contains(candidate, StringComparer.Ordinal))
+                classes.Add(candidate);
+        }
         foreach (string candidate in ArcRelayLaunchClassIds.All)
         {
             if (classes.Count == 8)

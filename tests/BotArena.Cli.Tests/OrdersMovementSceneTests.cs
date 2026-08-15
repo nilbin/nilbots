@@ -24,7 +24,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             lockbox.Composition,
             demolition.Composition,
-            loopProfile: ArcRelayLoopProfile.Tapline4);
+            loopProfile: ArcRelayLoopProfile.Tapline6);
 
         using var session = new GenericActorMatchSession(
             definition,
