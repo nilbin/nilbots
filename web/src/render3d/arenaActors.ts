@@ -1191,10 +1191,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       signatureCooldownMaterial,
     );
 
-    // One quiet five-cell rail carries exact rank and power without changing shape:
-    // N cells light for level N, while the fixed rim and lit cells advance through
-    // a high-contrast steel/cyan/blue/violet/gold tier palette.
-    const veterancyRankRail = createVeterancyRankRail();
+    // One quiet five-cell rail carries exact rank without changing shape or inventing
+    // a second color code: N cells light for level N, always in this bot's team accent.
+    const veterancyRankRail = createVeterancyRankRail(accent);
     veterancyRankRail.group.userData.forUnitKey = unit.unitKey;
     if (veterancyEnabled) statusBib.add(veterancyRankRail.group);
     disposables.push(...veterancyRankRail.disposables);
@@ -1495,11 +1494,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         base: 0.98,
         alwaysTransparent: true,
       },
-      ...veterancyRankRail.rankMaterials.map((material) => ({
-        material,
+      {
+        material: veterancyRankRail.teamMaterial,
         base: 1,
         alwaysTransparent: true,
-      })),
+      },
       { material: bladeMaterial, base: 1, alwaysTransparent: true },
     );
     /**
@@ -2185,9 +2184,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       }
       if (screening) bot.screenMaterial.opacity = 0.24;
 
-      // Veterancy rank rail: exact rank is the energized-cell count and the fixed rim
-      // changes tier color. Level is a per-life fold, so a respawn returns to the
-      // truthful one-cell steel state without renderer reset logic.
+      // Veterancy rank rail: exact rank is the energized-cell count, while its fixed
+      // rim and lit cells remain in the bot's team accent. Level is a per-life fold,
+      // so a respawn returns to the truthful one-cell state without renderer reset logic.
       const level = veterancy.levelAt(
         time,
         pose.teamId,
@@ -2217,7 +2216,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         bot.motionPhase +
           (reducedMotionQuery?.matches === true ? 0 : time * APEX_SWEEP_RATE),
       );
-      // Health and rail remain centred at every rank; only fill count and color change.
+      // Health and rail remain centred at every rank; only the rank-cell count changes.
       bot.healthBar.group.position.x = 0;
       bot.engagedMark.position.y = ENGAGED_MARK_LIFT;
 

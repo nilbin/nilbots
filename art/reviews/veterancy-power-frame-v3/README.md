@@ -3,7 +3,8 @@
 Hybrid concept and rejected renderer-native trial. It kept the exact-readable
 five-cell rank rail from v2 but added a progressively assembling flat 2D command
 frame that did not look good in play. Runtime returned to one fixed rail and
-moved the power progression into rank-specific color instead.
+moved the power read entirely into its exact cell count, with team color kept
+consistent at every level.
 
 ![Five readable veterancy rails with progressively stronger command frames](./veterancy-power-frame-concept-v3.png)
 

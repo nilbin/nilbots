@@ -499,7 +499,7 @@ test('3D health presentation is one proportional bar for scaled hulls', () => {
   }
 });
 
-test('Arc veterancy uses one readable rail with a distinct color at every rank', () => {
+test('Arc veterancy uses one readable rail in its owner team color at every rank', () => {
   const leveled = structuredClone(replay);
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;
   const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
@@ -525,11 +525,21 @@ test('Arc veterancy uses one readable rail with a distinct color at every rank',
     cells.every((cell) => cell.renderOrder === rail.renderOrder),
     'nested cell groups preserve the status-row order above the rail face',
   );
-  const tierRim = rail.children.find(
-    (child) => child.userData.cue === 'veterancy-rank-tier-rim',
+  const teamRim = rail.children.find(
+    (child) => child.userData.cue === 'veterancy-rank-team-rim',
   );
-  assert.ok(tierRim instanceof THREE.Mesh);
-  const expectedColors = ['a9c2ca', '4fd7e8', '668cff', 'bd72f5', 'ffd05a'];
+  assert.ok(teamRim instanceof THREE.Mesh);
+  assert.ok(teamRim.material instanceof THREE.MeshBasicMaterial);
+  const healthBar = healthBarOf(actors.group, actor.unitKey);
+  const healthTrack = healthTrackOf(healthBar);
+  const healthFrame = healthTrack.children.find(
+    (child) => child.userData.cue === 'health-bar-frame',
+  );
+  assert.ok(healthFrame instanceof THREE.Mesh);
+  assert.ok(healthFrame.material instanceof THREE.MeshBasicMaterial);
+  const expectedTeamColor = healthFrame.material.color.getHexString();
+  assert.equal(teamRim.material.color.getHexString(), expectedTeamColor);
+  assert.equal(rail.userData.teamColor, `#${expectedTeamColor}`);
   const rankAt = (time: number) => {
     actors.update(time, null, false);
     const energized = cells.filter((cell) => cell.userData.energized === true);
@@ -541,16 +551,15 @@ test('Arc veterancy uses one readable rail with a distinct color at every rank',
       'the energized-cell count is the exact rank',
     );
     assert.ok(cells.every((cell) => cell.visible), 'all five rank cells stay readable');
-    assert.ok(tierRim.material instanceof THREE.MeshBasicMaterial);
-    const color = tierRim.material.color.getHexString();
-    assert.equal(color, expectedColors[rank - 1]);
-    assert.equal(rail.userData.tierColor, `#${color}`);
+    assert.ok(teamRim.material instanceof THREE.MeshBasicMaterial);
+    const color = teamRim.material.color.getHexString();
+    assert.equal(color, expectedTeamColor);
     for (const cell of energized) {
       const energy = cell.children.find(
         (child) => child.userData.cue === 'veterancy-rank-cell-energy',
       );
       assert.ok(energy instanceof THREE.Mesh);
-      assert.equal(energy.material, tierRim.material);
+      assert.equal(energy.material, teamRim.material);
     }
     return {
       rank,
@@ -561,8 +570,10 @@ test('Arc veterancy uses one readable rail with a distinct color at every rank',
   const ranks = [0.25, 1.25, 2.25, 3.25, 4.25].map(rankAt);
   assert.deepEqual(ranks.map((state) => state.rank), [1, 2, 3, 4, 5]);
   assert.deepEqual(ranks.map((state) => state.energized), [1, 2, 3, 4, 5]);
-  assert.deepEqual(ranks.map((state) => state.color), expectedColors);
-  assert.equal(new Set(expectedColors).size, 5, 'every power tier has its own color');
+  assert.ok(
+    ranks.every((state) => state.color === expectedTeamColor),
+    'level-up never changes the rail away from its owner team color',
+  );
   assert.equal(rail.userData.rankValue, 5);
   assert.equal(rail.userData.visualRankValue, 5);
   assert.equal(rail.position.x, 0, 'the rank rail stays centred on health');
@@ -590,9 +601,7 @@ test('Arc veterancy uses one readable rail with a distinct color at every rank',
     'retained Meshy rank models are not attached to gameplay actors',
   );
 
-  // Rank changes color and fill only; neither health nor the rail ever changes footprint.
-  const healthBar = healthBarOf(actors.group, actor.unitKey);
-  const healthTrack = healthTrackOf(healthBar);
+  // Rank changes fill count only; neither health nor the rail changes footprint or color.
   assert.equal(healthTrack.position.x, 0);
   assert.equal(rail.userData.width, 0.54);
   const railHeight = rail.userData.height as number;
@@ -656,7 +665,23 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
     assert.ok(rail);
     assert.equal(rail.visible, true);
     assert.equal(rail.userData.rankValue, 1);
-    assert.equal(rail.userData.tierColor, '#a9c2ca');
+    const teamRim = rail.children.find(
+      (child) => child.userData.cue === 'veterancy-rank-team-rim',
+    );
+    assert.ok(teamRim instanceof THREE.Mesh);
+    assert.ok(teamRim.material instanceof THREE.MeshBasicMaterial);
+    const healthFrame = healthTrackOf(healthBarOf(arcActors.group, unitKey))
+      .children.find((child) => child.userData.cue === 'health-bar-frame');
+    assert.ok(healthFrame instanceof THREE.Mesh);
+    assert.ok(healthFrame.material instanceof THREE.MeshBasicMaterial);
+    assert.equal(
+      teamRim.material.color.getHexString(),
+      healthFrame.material.color.getHexString(),
+    );
+    assert.equal(
+      rail.userData.teamColor,
+      `#${healthFrame.material.color.getHexString()}`,
+    );
     assert.equal(
       veterancyRankCellsOf(rail).filter((cell) => cell.userData.energized).length,
       1,

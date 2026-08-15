@@ -7,18 +7,6 @@ export const VETERANCY_RANK_RAIL_MAX_LEVEL = 5;
 export const VETERANCY_RANK_RAIL_WIDTH = 0.54;
 export const VETERANCY_RANK_RAIL_HEIGHT = 0.18;
 
-/**
- * A familiar rarity-style progression, deliberately excluding health green and
- * danger red. Exact rank never depends on color: level N still lights N cells.
- */
-export const VETERANCY_RANK_TIER_COLORS = [
-  '#a9c2ca', // steel veteran
-  '#4fd7e8', // energized cyan
-  '#668cff', // rare blue
-  '#bd72f5', // elite violet
-  '#ffd05a', // apex gold
-] as const;
-
 const CELL_WIDTH = 0.086;
 const CELL_HEIGHT = 0.078;
 const CELL_GAP = 0.012;
@@ -32,12 +20,12 @@ export interface VeterancyRankRailRig {
   group: THREE.Group;
   cells: readonly THREE.Group[];
   cellEnergy: readonly THREE.Mesh[];
-  tierRim: THREE.Mesh;
+  teamRim: THREE.Mesh;
   keylineMaterial: THREE.MeshBasicMaterial;
   cellMetalMaterial: THREE.MeshBasicMaterial;
   faceMaterial: THREE.MeshBasicMaterial;
   dormantCellMaterial: THREE.MeshBasicMaterial;
-  rankMaterials: readonly THREE.MeshBasicMaterial[];
+  teamMaterial: THREE.MeshBasicMaterial;
   disposables: Array<THREE.Material | THREE.BufferGeometry>;
 }
 
@@ -70,8 +58,10 @@ function chamferedRectangle(
   ]);
 }
 
-/** Create one fixed-footprint, camera-facing five-cell rank rail. */
-export function createVeterancyRankRail(): VeterancyRankRailRig {
+/** Create one fixed-footprint, team-colored, camera-facing five-cell rank rail. */
+export function createVeterancyRankRail(
+  teamAccent: THREE.ColorRepresentation,
+): VeterancyRankRailRig {
   const group = new THREE.Group();
   group.userData.cue = 'veterancy-rank-rail';
   group.userData.width = VETERANCY_RANK_RAIL_WIDTH;
@@ -106,33 +96,33 @@ export function createVeterancyRankRail(): VeterancyRankRailRig {
     depthWrite: false,
     depthTest: false,
   });
-  const rankMaterials = VETERANCY_RANK_TIER_COLORS.map(
-    (color) => new THREE.MeshBasicMaterial({
-      color,
-      transparent: true,
-      depthWrite: false,
-      depthTest: false,
-    }),
-  );
+  const teamMaterial = new THREE.MeshBasicMaterial({
+    color: teamAccent,
+    transparent: true,
+    depthWrite: false,
+    depthTest: false,
+  });
+  group.userData.teamColor = `#${teamMaterial.color.getHexString()}`;
 
   // One unchanging outer silhouette makes the rail quiet and immediately learnable.
-  // Its thin tier rim changes with rank, making power visible before cells are counted.
+  // Its rim and energized cells repeat the health frame's authoritative team accent;
+  // exact power remains the count, so color never has two competing meanings.
   const railGeometry = chamferedRectangle(RAIL_WIDTH, RAIL_HEIGHT, 0.018);
   const railKeyline = new THREE.Mesh(railGeometry, keylineMaterial);
   railKeyline.userData.cue = 'veterancy-rank-rail-keyline';
   railKeyline.position.set(0, RAIL_Y, 0);
   railKeyline.scale.set(1.08, 1.14, 1);
   railKeyline.renderOrder = 10;
-  const tierRim = new THREE.Mesh(railGeometry, rankMaterials[0]);
-  tierRim.userData.cue = 'veterancy-rank-tier-rim';
-  tierRim.position.set(0, RAIL_Y, 0.003);
-  tierRim.renderOrder = 11;
+  const teamRim = new THREE.Mesh(railGeometry, teamMaterial);
+  teamRim.userData.cue = 'veterancy-rank-team-rim';
+  teamRim.position.set(0, RAIL_Y, 0.003);
+  teamRim.renderOrder = 11;
   const railFace = new THREE.Mesh(railGeometry, faceMaterial);
   railFace.userData.cue = 'veterancy-rank-rail-face';
   railFace.position.set(0, RAIL_Y, 0.006);
   railFace.scale.set(0.94, 0.82, 1);
   railFace.renderOrder = 12;
-  group.add(railKeyline, tierRim, railFace);
+  group.add(railKeyline, teamRim, railFace);
 
   const cellGeometry = chamferedRectangle(CELL_WIDTH, CELL_HEIGHT, 0.012);
   const cellEnergy: THREE.Mesh[] = [];
@@ -163,7 +153,7 @@ export function createVeterancyRankRail(): VeterancyRankRailRig {
     dormant.scale.setScalar(0.72);
     dormant.position.z = 0.015;
     dormant.renderOrder = 15;
-    const energy = new THREE.Mesh(cellGeometry, rankMaterials[0]);
+    const energy = new THREE.Mesh(cellGeometry, teamMaterial);
     energy.userData.cue = 'veterancy-rank-cell-energy';
     energy.scale.setScalar(0.72);
     energy.position.z = 0.018;
@@ -179,12 +169,12 @@ export function createVeterancyRankRail(): VeterancyRankRailRig {
     group,
     cells,
     cellEnergy,
-    tierRim,
+    teamRim,
     keylineMaterial,
     cellMetalMaterial,
     faceMaterial,
     dormantCellMaterial,
-    rankMaterials,
+    teamMaterial,
     disposables: [
       railGeometry,
       cellGeometry,
@@ -192,12 +182,12 @@ export function createVeterancyRankRail(): VeterancyRankRailRig {
       cellMetalMaterial,
       faceMaterial,
       dormantCellMaterial,
-      ...rankMaterials,
+      teamMaterial,
     ],
   };
 }
 
-/** Keep the shape fixed, tint the tier, and energize exactly one cell per level. */
+/** Keep shape and team color fixed, energizing exactly one cell per level. */
 export function paintVeterancyRankRail(
   rig: VeterancyRankRailRig,
   level: number,
@@ -205,14 +195,10 @@ export function paintVeterancyRankRail(
 ): void {
   const rank = Math.max(1, Math.floor(level));
   const visualRank = Math.min(VETERANCY_RANK_RAIL_MAX_LEVEL, rank);
-  const rankMaterial = rig.rankMaterials[visualRank - 1]!;
   rig.group.visible = visible;
   rig.group.userData.rankValue = rank;
   rig.group.userData.visualRankValue = visualRank;
-  rig.group.userData.tierColor = `#${rankMaterial.color.getHexString()}`;
-  rig.tierRim.material = rankMaterial;
   for (const [index, energy] of rig.cellEnergy.entries()) {
-    energy.material = rankMaterial;
     energy.visible = visible && index < visualRank;
     rig.cells[index]!.userData.energized = energy.visible;
   }

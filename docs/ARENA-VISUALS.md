@@ -511,13 +511,14 @@ rules-owned veterancy rank rail. In WebGL the rail starts visibly at
 authoritative level 1 and never changes footprint. Its five cells sit directly
 above the centred health bar; level `N` energizes exactly its first `N` cells,
 while the remaining cells stay visibly dormant. The rail rim and every energized
-cell share the level's power color: steel, cyan, blue, violet, then Apex gold.
-Exact rank therefore never depends on color, but the changing tier is visible
-before a spectator counts cells. A near-black oversized keyline, pale unlit cell
-outlines, and a blue-black face keep every tier separate from Tapline's dark
-copper floor. Health and the rail remain fixed and centred. The treatment has no
-numeral, changing silhouette, standalone plate or crest, accumulating chevron
-stack, vertical tower, or 3D bot ornament. The engaged marker clears the rail.
+cell repeat the owning bot's authoritative team accent at every level, matching
+the health-bar frame instead of inventing a second rank palette. Color reports
+team; count reports power. A near-black oversized keyline, pale unlit cell
+outlines, and a blue-black face keep both team accents separate from Tapline's
+dark copper floor. Health and the rail remain fixed and centred. The treatment
+has no numeral, changing silhouette, standalone plate or crest, accumulating
+chevron stack, vertical tower, or 3D bot ornament. The engaged marker clears the
+rail.
 Modes without a veterancy rule or facts receive no rank rail. Temporary
 level-up geometry is gone by 1.8 presentation ticks; the effect has no white
 flash, full-height column, camera shake, or mesh mutation.
