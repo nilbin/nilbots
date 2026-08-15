@@ -40,11 +40,10 @@ test('apex surface treatment stays narrow, team-coloured, and texture-preserving
   assert.ok(MODEL_LIGHTING_PROFILE.apexRimStrength <= 0.04);
   assert.ok(MODEL_LIGHTING_PROFILE.apexSweepStrength <= 0.15);
   assert.ok(MODEL_LIGHTING_PROFILE.apexSweepPower >= 30);
-  assert.ok(MODEL_LIGHTING_PROFILE.teamOutlineWidth < 0.03);
-  assert.ok(MODEL_LIGHTING_PROFILE.teamOutlineOpacity < 0.5);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexOutlineWidth <= 0.05);
 });
 
-test('team outline stays quiet until Apex reveals the wider additive radiance', () => {
+test('team-coloured outline and radiance remain exclusive to Apex', () => {
   const sourceMaterial = new THREE.MeshStandardMaterial({ color: 0x6c7d52 });
   const source = new THREE.Mesh(new THREE.BoxGeometry(), sourceMaterial);
   const teamColor = new THREE.Color('#38bdf8');
@@ -65,9 +64,9 @@ test('team outline stays quiet until Apex reveals the wider additive radiance', 
   assert.equal(sourceMaterial.color.getHex(), 0x6c7d52);
 
   outline.set(0, 0.5, 1);
-  assert.equal(shells.core.visible, true);
+  assert.equal(shells.core.visible, false);
   assert.equal(shells.radiance.visible, false);
-  assert.equal(outline.material.opacity, MODEL_LIGHTING_PROFILE.teamOutlineOpacity);
+  assert.equal(outline.material.opacity, 0);
   assert.equal(outline.radianceMaterial.opacity, 0);
 
   const coreShader = {
@@ -83,7 +82,7 @@ test('team outline stays quiet until Apex reveals the wider additive radiance', 
   assert.match(coreShader.vertexShader, /normalize\( normal \)/);
   assert.equal(
     coreShader.uniforms.nilbotsTeamOutlineWidth!.value,
-    MODEL_LIGHTING_PROFILE.teamOutlineWidth,
+    0,
   );
 
   const radianceShader = {

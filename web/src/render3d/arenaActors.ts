@@ -760,10 +760,10 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     tintable(noseMaterial);
 
     // Genuine GLB materials carry the model-lighting shader seam and two shared-geometry
-    // silhouette shells. Every loaded bot gets the quiet team edge; level five strengthens
-    // it and reveals the radiating outer shell. Keep the current values before a lazy model
-    // arrives so a seek directly to Apex dresses it correctly on its first compiled frame.
-    // Sprite-derived fallbacks retain their established Canvas-compatible team paint.
+    // silhouette shells. They stay hidden below level five; Apex reveals the crisp team edge
+    // and its radiating outer shell. Keep the current values before a lazy model arrives so a
+    // seek directly to Apex dresses it correctly on its first compiled frame. Sprite-derived
+    // fallbacks retain their established Canvas-compatible team paint.
     const apexMaterials = new Set<THREE.MeshStandardMaterial>();
     const teamOutline = createModelTeamOutline(accent);
     disposables.push(teamOutline);

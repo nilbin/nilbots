@@ -522,16 +522,16 @@ Modes without a veterancy rule or facts receive no rank rail. Temporary
 level-up geometry is gone by 1.8 presentation ticks; the effect has no white
 flash, full-height column, camera shake, or mesh mutation.
 
-Every genuine WebGL bot model receives a thin, low-opacity silhouette in its
-authoritative team accent. At level 5 that same edge widens and strengthens, a
-broader additive shell breathes just outside it, and one narrow team-coloured
-scan moves over the authored normals. The hierarchy survives phone-scale
-minification without bleaching or globally recolouring the texture: ordinary
-bots read their team quietly, while Apex bots radiate it. The level-5 promotion
-beat eases the radiance in, and reduced-motion freezes its breathing and scan
-while retaining the stronger edge. It creates no scene light, floor aura, model
-mutation, or spill onto nearby actors, Wells, or Reactors. Canvas and model-load
-fallbacks retain the existing team paint and rank rail only.
+At authoritative level 5, every genuine WebGL bot model receives a crisp
+silhouette in its team accent, a broader additive shell breathing just outside
+it, and one narrow team-coloured scan moving over the authored normals. Lower
+levels retain the model exactly as authored with no silhouette shell. Apex
+therefore survives phone-scale minification without bleaching or globally
+recolouring the texture. The level-5 promotion beat eases the radiance in, and
+reduced-motion freezes its breathing and scan while retaining the edge. It
+creates no scene light, floor aura, model mutation, or spill onto nearby actors,
+Wells, or Reactors. Canvas and model-load fallbacks retain the existing team
+paint and rank rail only.
 
 Five complete Meshy-authored split-diadem rank models remain checked in with
 their manifests, source concepts, provider records, audits, and deterministic

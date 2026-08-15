@@ -60,8 +60,6 @@ export const MODEL_LIGHTING_PROFILE = {
   apexRimPower: 3,
   apexSweepStrength: 0.14,
   apexSweepPower: 30,
-  teamOutlineWidth: 0.022,
-  teamOutlineOpacity: 0.42,
   apexOutlineWidth: 0.05,
   apexOutlineOpacity: 0.88,
   apexRadianceWidthMinimum: 0.072,
@@ -130,12 +128,12 @@ export function setModelApexTreatment(
 }
 
 /**
- * Build one actor-owned team edge and Apex radiance, then attach them to genuine GLBs.
+ * Build one actor-owned team-coloured Apex radiance and attach it to genuine GLBs.
  *
- * Both back-face shells expand along authored vertex normals. The narrow normal-blended
- * shell gives every machine a quiet team-colour silhouette; level five strengthens that
- * edge and reveals a wider additive shell which breathes outside it. Materials are shared
- * per actor and both shells reuse source geometry, so no model or texture bytes are copied.
+ * Both back-face shells expand along authored vertex normals. Level five reveals a crisp
+ * normal-blended team silhouette and a wider additive shell which breathes outside it.
+ * Lower levels show neither shell. Materials are shared per actor and both shells reuse
+ * source geometry, so no model or texture bytes are copied.
  */
 export function createModelTeamOutline(color: THREE.Color): ModelTeamOutline {
   const material = createOutlineMaterial(color, 'core', THREE.NormalBlending);
@@ -181,11 +179,9 @@ export function createModelTeamOutline(color: THREE.Color): ModelTeamOutline {
       const amount = THREE.MathUtils.clamp(strength, 0, 1);
       const visibleAmount = THREE.MathUtils.clamp(visibility, 0, 1);
       const pulse = 0.5 + 0.5 * Math.sin(phase * 1.7);
-      materialState.width = THREE.MathUtils.lerp(
-        MODEL_LIGHTING_PROFILE.teamOutlineWidth,
-        MODEL_LIGHTING_PROFILE.apexOutlineWidth * (0.94 + pulse * 0.06),
-        amount,
-      );
+      materialState.width = MODEL_LIGHTING_PROFILE.apexOutlineWidth
+        * (0.94 + pulse * 0.06)
+        * amount;
       radianceState.width = THREE.MathUtils.lerp(
         MODEL_LIGHTING_PROFILE.apexRadianceWidthMinimum,
         MODEL_LIGHTING_PROFILE.apexRadianceWidthMaximum,
@@ -196,11 +192,10 @@ export function createModelTeamOutline(color: THREE.Color): ModelTeamOutline {
       if (radianceState.widthUniform)
         radianceState.widthUniform.value = radianceState.width;
 
-      material.opacity = THREE.MathUtils.lerp(
-        MODEL_LIGHTING_PROFILE.teamOutlineOpacity,
-        MODEL_LIGHTING_PROFILE.apexOutlineOpacity * (0.9 + pulse * 0.1),
-        amount,
-      ) * visibleAmount;
+      material.opacity = MODEL_LIGHTING_PROFILE.apexOutlineOpacity
+        * (0.9 + pulse * 0.1)
+        * amount
+        * visibleAmount;
       radianceMaterial.opacity = THREE.MathUtils.lerp(
         MODEL_LIGHTING_PROFILE.apexRadianceOpacityMinimum,
         MODEL_LIGHTING_PROFILE.apexRadianceOpacityMaximum,
