@@ -8448,3 +8448,23 @@ XP thresholds, promotion chronology, maximum level, per-life reset, replay
 facts, bot selection, game rules, or the Canvas compatibility renderer. The
 level-up ring and converging-facet beat remain unchanged and resolve into the
 updated persistent plate.
+
+## 316. WebGL veterancy uses five complete split-diadem models
+
+Owner art direction (2026-08-15), superseding Decision #315 in WebGL after
+concept and gameplay-scale review. Arc veterancy now selects one complete
+Meshy-authored rank model: two low disconnected rails at Rank I, then one
+additional clipped crown blade on each side per rank, ending in an open
+eight-blade moose-antler silhouette at Rank V. The five models use neutral
+matte aged brass, remain visibly split through their full height, and replace
+both the numeric WebGL plate and the rejected renderer-composed reusable
+feather. Canvas2D keeps the numeric plate as its model-free fallback.
+
+Each diadem follows chassis yaw from a fixed rear mount while remaining
+world-up. A common empty centre corridor protects the existing authoritative
+Core pickup, carry, handoff, drop, and Arc Toss presentation; the ornaments do
+not animate around the sphere and the Core path is unchanged. Only the current
+rank is lazy-loaded and visible. The five 256 px WebP/quantized runtime GLBs
+total 1,504,868 transfer bytes, with every individual rank below 500 kB and
+25,000 triangles. This is a presentation replacement only: initial level, XP,
+promotion chronology, per-life reset, replay facts, and rules remain unchanged.

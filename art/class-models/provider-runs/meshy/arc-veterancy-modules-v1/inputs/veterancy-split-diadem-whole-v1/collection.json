@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-split-diadem-whole-v1",
+  "status": "five-provider-results-runtime-promoted-awaiting-owner-gameplay-review",
+  "ownerApproval": "Owner approved five complete rank-specific Meshy ornaments on 2026-08-15, conditional on fidelity to the approved conceptual art, with a 150-credit collection cap.",
+  "totalCreditCap": 150,
+  "perTaskCreditCap": 30,
+  "creditsConsumed": 150,
+  "balanceAfter": 650,
+  "retriesUsed": 0,
+  "autoRigging": false,
+  "ranks": [
+    {
+      "rank": 1,
+      "classId": "veterancy-split-diadem-rank-1-v1",
+      "bladeCount": 0,
+      "source": "source-turnarounds/rank-1.png",
+      "sourceSha256": "16f41359f4dc5696fd07e5dc80fc1d1e8889efed7a243b0470663a5993143324",
+      "manifest": "rank-1/manifest.json",
+      "inputs": [
+        {
+          "order": 1,
+          "view": "front-three-quarter",
+          "primary": true,
+          "file": "01-front-three-quarter.png",
+          "sha256": "d08a0dadcfff9d4f04acf3ce112db6646277b64acd2ec1c3299a0a88f4231a6a",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 2,
+          "view": "right-side",
+          "primary": false,
+          "file": "02-right-side.png",
+          "sha256": "2dadfc154a69cbb847a6992afd49a71b146bfb20f251ef87a7eb4154e51d5653",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 3,
+          "view": "rear-three-quarter",
+          "primary": false,
+          "file": "03-rear-three-quarter.png",
+          "sha256": "4ea60f68e58cd3fe3094a707e43d3fdc27b95883561a4f3c56bae5b640c44ad5",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 4,
+          "view": "strict-top",
+          "primary": false,
+          "file": "04-strict-top.png",
+          "sha256": "b0a530d274b2cf23d1f891d11433993e481c4b59eacdae2cf052b580b19d698c",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "classId": "veterancy-split-diadem-rank-2-v1",
+      "bladeCount": 2,
+      "source": "source-turnarounds/rank-2.png",
+      "sourceSha256": "1b93592be15f96427cc679c20811145f28339623063a519f80a4b84ee18b2ddf",
+      "manifest": "rank-2/manifest.json",
+      "inputs": [
+        {
+          "order": 1,
+          "view": "front-three-quarter",
+          "primary": true,
+          "file": "01-front-three-quarter.png",
+          "sha256": "e04456e5c38be96bae6e724f6827890553b73facd010c24fe88b4bd0df92d3e0",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 2,
+          "view": "right-side",
+          "primary": false,
+          "file": "02-right-side.png",
+          "sha256": "64c83cdec4d16dd5284d7801647499fdf906388e151a12f6e67b03a88a3ba8a8",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 3,
+          "view": "rear-three-quarter",
+          "primary": false,
+          "file": "03-rear-three-quarter.png",
+          "sha256": "6f2b7f35f8a466c162eb3489de2acc7297bb6e63d68c871102cf0b9ac53c0d86",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 4,
+          "view": "strict-top",
+          "primary": false,
+          "file": "04-strict-top.png",
+          "sha256": "981e83826f16d01f7bf913bb17dc87f8f9c2b99d6084e965e88e4a612e10e9c5",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "classId": "veterancy-split-diadem-rank-3-v1",
+      "bladeCount": 4,
+      "source": "source-turnarounds/rank-3.png",
+      "sourceSha256": "aa2aa7a1dcbfcd316b88f61222bf79f121ae003efcf8156d6c7638c971b11163",
+      "manifest": "rank-3/manifest.json",
+      "inputs": [
+        {
+          "order": 1,
+          "view": "front-three-quarter",
+          "primary": true,
+          "file": "01-front-three-quarter.png",
+          "sha256": "8bd1891a1913e039e161f6d347c66f4a76345f55c0350a6a77351cfbd49a33a6",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 2,
+          "view": "right-side",
+          "primary": false,
+          "file": "02-right-side.png",
+          "sha256": "c89d0113d58ee3a4806bf7d2dd0ad89e633cba13a966ef06ef0478fc8580ed14",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 3,
+          "view": "rear-three-quarter",
+          "primary": false,
+          "file": "03-rear-three-quarter.png",
+          "sha256": "04ac968c5b0f40012a27dcb1406563e557b5404938c00279a13ee0bdde73127f",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 4,
+          "view": "strict-top",
+          "primary": false,
+          "file": "04-strict-top.png",
+          "sha256": "8b9e53c2ce433fdccc93954c2b91ffb2628131922ddbe852e2fc24ca271c9214",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "classId": "veterancy-split-diadem-rank-4-v1",
+      "bladeCount": 6,
+      "source": "source-turnarounds/rank-4.png",
+      "sourceSha256": "43131eaa5678896d016e835cf752c08210735fef51fb0c380d1070538d8d984b",
+      "manifest": "rank-4/manifest.json",
+      "inputs": [
+        {
+          "order": 1,
+          "view": "front-three-quarter",
+          "primary": true,
+          "file": "01-front-three-quarter.png",
+          "sha256": "7bdd5078365dc5e3d2691bffffb5ea9a6448fc83a9f25ea959721768f81dffdb",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 2,
+          "view": "right-side",
+          "primary": false,
+          "file": "02-right-side.png",
+          "sha256": "3dd6c12427e6fe54de806a578f2503232f3ada553defd26af27e1baeba974996",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 3,
+          "view": "rear-three-quarter",
+          "primary": false,
+          "file": "03-rear-three-quarter.png",
+          "sha256": "25599f8d9514288f3cc0ca3fce2039c9807b728a451ae2b22fe23328295da161",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 4,
+          "view": "strict-top",
+          "primary": false,
+          "file": "04-strict-top.png",
+          "sha256": "97e7f05138d2f62caa27d5290051638aeed833327267b64567b449691ab9e77d",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "classId": "veterancy-split-diadem-rank-5-v1",
+      "bladeCount": 8,
+      "source": "source-turnarounds/rank-5.png",
+      "sourceSha256": "3f284bcb9cb0cdc0d1d0037ab5b73eabe2b4be3456695decb6fc5bf2b745089b",
+      "manifest": "rank-5/manifest.json",
+      "inputs": [
+        {
+          "order": 1,
+          "view": "front-three-quarter",
+          "primary": true,
+          "file": "01-front-three-quarter.png",
+          "sha256": "e1326ad43e5e6050e9e2a4d97b1473a48c6d71c0d1bb102a57c5c261f0aafe82",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 2,
+          "view": "right-side",
+          "primary": false,
+          "file": "02-right-side.png",
+          "sha256": "3ba86870860dfd3ef12418128d572d075e2a3b4c31d606a2db0a04f77aff6ae8",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 3,
+          "view": "rear-three-quarter",
+          "primary": false,
+          "file": "03-rear-three-quarter.png",
+          "sha256": "1fc95a10a8086f4fe07039d789aab8314423b6788fbf2f742da5c36102079108",
+          "width": 1536,
+          "height": 1024
+        },
+        {
+          "order": 4,
+          "view": "strict-top",
+          "primary": false,
+          "file": "04-strict-top.png",
+          "sha256": "141be7aa6c9576d30c7b57560fbdf8fbf03252a379742eb78fd87df8b87cf853",
+          "width": 1536,
+          "height": 1024
+        }
+      ]
+    }
+  ],
+  "providerTasks": [
+    { "rank": 1, "taskId": "01a00294-5948-7ee8-bc63-2f81cb0be753", "credits": 30, "status": "runtime-promoted" },
+    { "rank": 2, "taskId": "01a00295-fde7-7cbf-a014-4c4b04b6f3b4", "credits": 30, "status": "runtime-promoted" },
+    { "rank": 3, "taskId": "01a00297-c1fe-7f4a-8236-b646e390bd2b", "credits": 30, "status": "runtime-promoted" },
+    { "rank": 4, "taskId": "01a00299-e6dc-7d02-a713-86a9ccf8c7e9", "credits": 30, "status": "runtime-promoted" },
+    { "rank": 5, "taskId": "01a00290-9941-7b7c-86eb-568a05e213a2", "credits": 30, "status": "runtime-promoted" }
+  ],
+  "runtimeAudit": "../../../../../runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/audit.json"
+}

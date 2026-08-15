@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-split-feather-meshy7-v1",
+  "classId": "veterancy-split-feather-v1",
+  "label": "Veterancy Split-Crown Feather",
+  "status": "superseded-by-five-complete-rank-models",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner approved the motion-safe split-diadem concept after noting its moose-like silhouette, then said 'Let's go ahead and get it done' on 2026-08-15. This authorizes one bounded reusable-feather Meshy task and runtime implementation across ranks 1-5.",
+  "canonicalIdentity": {
+    "sourceSheet": "source-sheet.png",
+    "approvedRankConcept": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clean.png",
+    "motionClearanceConcept": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clearance.png",
+    "runtimeIntent": "One slim mechanical feather is instantiated, mirrored, and progressively revealed on two separated rear-quarter crown arcs. The ornament rotates with bot yaw while remaining world-up."
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "03-front-three-quarter.png",
+      "sha256": "75564b8f8987edf3b35d0c4346ad67e376fc2d0c284299f5cda277604f915161",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "02-side.png",
+      "sha256": "244b502a48afe2eba4121fc4e4dfd57620cf1e54d6994b5eee1626ec7da42908",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "04-rear-three-quarter.png",
+      "sha256": "cac169f4428c311a3059c2db89a177381d91c69d15ec82a0e13d3207c4415079",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front",
+      "primary": false,
+      "file": "01-front.png",
+      "sha256": "cb5a796c9088ba8b383a74a1a688df008a00b445417c967f15d2cae65660faea",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "inputGate": {
+    "status": "passed-motion-safe-concept-review",
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1024,
+    "rootIntent": "The compact graphite root seats on a deterministic rear arc. This task owns one feather only; runtime code owns repetition, mirroring, rank progression, and the split mounting arcs.",
+    "family": "slim layered clipped-tip matte aged-brass mechanical feather with graphite root and restrained warm-gold channel",
+    "angleNote": "Four coherent views of the same isolated object: front-three-quarter primary, side, rear-three-quarter, and front."
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "One Meshy 7 multiview generation with a hard 30-credit cap; no retexture, remesh, auto-rig, or second task is authorized by this record.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots mechanical veterancy feather module. Rough matte desaturated aged warm brass/bronze plates; graphite recessed back, root, and seams; narrow dim warm-gold emissive channel; sparse edge wear. Preserve one slim rigid layered clipped-tip feather with long readable facets, shallow thickness, and a compact graphite root for repeated mirrored crown placement. One connected object. No bot, crown assembly, paired feather, floor, pedestal, organic antler, wing, weapon, text, symbols, team teal/cyan, saturated orange, blue, red, white plastic, chrome, lacquer, baked lighting, or cast shadow.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "hardCreditCap": 30,
+    "balanceBeforePreparation": 830
+  },
+  "ownerReview": "Superseded after gameplay-scale review by the owner-approved five-complete-model direction; retained only as provider history.",
+  "nextGate": "none; do not promote this reusable-feather architecture",
+  "providerRun": {
+    "taskId": "01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8",
+    "directory": "../../veterancy-split-feather-v1/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 830,
+    "balanceAfter": 800,
+    "rawModelSha256": "0a0dcad4bf7ceead0c41c11a124ddde69bd97d95fa7c0d8eccdcba74c56e201a"
+  }
+}

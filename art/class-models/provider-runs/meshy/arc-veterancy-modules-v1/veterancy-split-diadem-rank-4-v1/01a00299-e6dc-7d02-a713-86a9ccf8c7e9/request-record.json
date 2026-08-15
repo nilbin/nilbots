@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-split-diadem-rank-4-v1",
+  "taskId": "01a00299-e6dc-7d02-a713-86a9ccf8c7e9",
+  "submittedAt": "2026-08-14T23:27:14.941Z",
+  "balanceBefore": 680,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-4/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-4/01-front-three-quarter.png",
+      "bytes": 932317,
+      "sha256": "7bdd5078365dc5e3d2691bffffb5ea9a6448fc83a9f25ea959721768f81dffdb",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "right-side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-4/02-right-side.png",
+      "bytes": 826458,
+      "sha256": "3dd6c12427e6fe54de806a578f2503232f3ada553defd26af27e1baeba974996",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-4/03-rear-three-quarter.png",
+      "bytes": 946443,
+      "sha256": "25599f8d9514288f3cc0ca3fce2039c9807b728a451ae2b22fe23328295da161",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "strict-top",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-4/04-strict-top.png",
+      "bytes": 657606,
+      "sha256": "97e7f05138d2f62caa27d5290051638aeed833327267b64567b449691ab9e77d",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Complete Nilbots veterancy rank 4 split diadem: exactly two disconnected bilateral rail halves and exactly 6 total clipped-tip mechanical blades. Preserve the wide full-height empty center corridor and open moose-antler silhouette. Rough matte desaturated aged warm brass/bronze plates; graphite only in recessed seams; dim warm-gold edge channels; sparse wear. Broad readable facets, shallow thickness. No bot, Core, bridge, connector, center spike, ring, roof, pedestal, organic antler, wing, weapon, text, team teal/cyan, saturated orange, blue, red, white plastic, chrome, lacquer, baked lighting, shadow, or extra blades.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-split-diadem-rank-4-v1-meshy7",
+  "classId": "veterancy-split-diadem-rank-4-v1",
+  "label": "Veterancy Split Diadem Rank 4",
+  "status": "runtime-promoted-awaiting-owner-gameplay-review",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner approved five complete rank-specific Meshy ornaments on 2026-08-15, conditional on fidelity to the approved conceptual art. This manifest consumes at most 30 of the authorized 150 credits.",
+  "canonicalIdentity": {
+    "sourceSheet": "../source-turnarounds/rank-4.png",
+    "approvedRankConcept": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clean.png",
+    "motionClearanceConcept": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clearance.png",
+    "rank": 4,
+    "bladeCount": 6,
+    "runtimeIntent": "One complete bilateral ornament replaces the corresponding renderer-built rank. It follows chassis yaw, stays world-up, and never alters Core animation."
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "01-front-three-quarter.png",
+      "sha256": "7bdd5078365dc5e3d2691bffffb5ea9a6448fc83a9f25ea959721768f81dffdb",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "right-side",
+      "primary": false,
+      "file": "02-right-side.png",
+      "sha256": "3dd6c12427e6fe54de806a578f2503232f3ada553defd26af27e1baeba974996",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "03-rear-three-quarter.png",
+      "sha256": "25599f8d9514288f3cc0ca3fce2039c9807b728a451ae2b22fe23328295da161",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "strict-top",
+      "primary": false,
+      "file": "04-strict-top.png",
+      "sha256": "97e7f05138d2f62caa27d5290051638aeed833327267b64567b449691ab9e77d",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "inputGate": {
+    "status": "passed-owner-concept-fidelity-review",
+    "oneObjectPerTask": true,
+    "disconnectedHalvesRequired": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1024,
+    "exactBladeCount": 6,
+    "family": "complete open bilateral mechanical moose-antler diadem in matte desaturated aged brass",
+    "angleNote": "Four coherent views of the unchanged full assembly: front three-quarter primary, strict right side, rear three-quarter, and strict top."
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "One Meshy 7 multiview generation for rank 4, hard 30-credit cap within the owner-approved 150-credit collection; no remesh, retexture, auto-rig, or second task.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Complete Nilbots veterancy rank 4 split diadem: exactly two disconnected bilateral rail halves and exactly 6 total clipped-tip mechanical blades. Preserve the wide full-height empty center corridor and open moose-antler silhouette. Rough matte desaturated aged warm brass/bronze plates; graphite only in recessed seams; dim warm-gold edge channels; sparse wear. Broad readable facets, shallow thickness. No bot, Core, bridge, connector, center spike, ring, roof, pedestal, organic antler, wing, weapon, text, team teal/cyan, saturated orange, blue, red, white plastic, chrome, lacquer, baked lighting, shadow, or extra blades.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a00299-e6dc-7d02-a713-86a9ccf8c7e9",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricingVerifiedAt": "2026-08-15",
+    "expectedCredits": 30,
+    "hardCreditCap": 30,
+    "collectionHardCreditCap": 150,
+    "balanceBeforePreparation": 800
+  },
+  "ownerReview": "Conditional concept approval; technical concept-fidelity and gameplay-clearance review passed, with the gameplay gallery still awaiting owner review.",
+  "nextGate": "owner gameplay-gallery review of the promoted lean model",
+  "providerRun": {
+    "taskId": "01a00299-e6dc-7d02-a713-86a9ccf8c7e9",
+    "directory": "../../../veterancy-split-diadem-rank-4-v1/01a00299-e6dc-7d02-a713-86a9ccf8c7e9",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 680,
+    "balanceAfter": 650,
+    "rawModelSha256": "680007459e960a0f2a66dfc0ab615df3fdb9a7f358106e5b4e0b15f5d601d9bc"
+  }
+}

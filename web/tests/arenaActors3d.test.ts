@@ -113,26 +113,30 @@ function healthPipsOf(
   return found;
 }
 
-function veterancyRankPlateOf(
+function veterancyDiademOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
 ): THREE.Object3D | null {
-  const pips = healthPipsOf(group, unitKey);
   let found: THREE.Object3D | null = null;
-  pips.traverse((child) => {
-    if (child.userData.cue === 'veterancy-rank-plate') found = child;
+  group.traverse((child) => {
+    if (
+      child.userData.cue === 'veterancy-split-diadem' &&
+      child.userData.forUnitKey === unitKey
+    ) found = child;
   });
   return found;
 }
 
-function veterancyDigitsOf(
-  plate: THREE.Object3D,
-): THREE.Object3D[] {
-  const digits: THREE.Object3D[] = [];
-  plate.traverse((child) => {
-    if (child.userData.cue === 'veterancy-rank-digit') digits.push(child);
+function visibleVeterancyRankModels(
+  diadem: THREE.Object3D,
+): THREE.Mesh[] {
+  const models: THREE.Mesh[] = [];
+  diadem.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (mesh.visible && mesh.userData.cue === 'veterancy-rank-model')
+      models.push(mesh);
   });
-  return digits;
+  return models;
 }
 
 function statusCueOf(
@@ -474,7 +478,7 @@ test('3D health pips follow the effective form maximum and remain centred', () =
   actors.dispose();
 });
 
-test('Arc veterancy uses one fixed numeric plate incorporated into the health row', () => {
+test('Arc veterancy selects one complete motion-safe split diadem from rank one through five', () => {
   const leveled = structuredClone(replay);
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;
   const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
@@ -492,60 +496,77 @@ test('Arc veterancy uses one fixed numeric plate incorporated into the health ro
     });
   }
   const actors = buildActors(leveled);
-  const plate = veterancyRankPlateOf(actors.group, actor.unitKey);
-  assert.ok(plate);
-  const digits = veterancyDigitsOf(plate);
+  const diadem = veterancyDiademOf(actors.group, actor.unitKey);
+  assert.ok(diadem);
+  const chassis = chassisOf(actors.group, actor.unitKey);
+  assert.equal(diadem.parent, chassis, 'diadem inherits authoritative chassis yaw');
+  assert.equal(diadem.userData.yawSource, 'chassis');
+  assert.equal(diadem.userData.worldUp, true);
+  assert.equal(diadem.userData.coreClearanceRadius, 0.26);
+  assert.equal(diadem.userData.modelArchitecture, 'complete-rank-model');
+  assert.deepEqual(diadem.userData.gameplayReadabilityScale, {
+    depth: 1.08,
+    vertical: 1.3,
+    lateral: 1,
+  });
+  assert.equal(diadem.position.y, 0.37);
+  assert.ok(Math.abs(diadem.scale.x / diadem.scale.z - 1.08) < 1e-9);
+  assert.ok(Math.abs(diadem.scale.y / diadem.scale.z - 1.3) < 1e-9);
   const rankAt = (time: number) => {
     actors.update(time, null, false);
-    const visible = digits.filter((digit) => digit.visible);
-    assert.equal(plate.visible, true);
-    assert.equal(visible.length, 1, 'exactly one rank numeral is visible');
+    const rank = diadem.userData.rankValue as number;
+    const visible = visibleVeterancyRankModels(diadem);
+    assert.equal(diadem.visible, true);
+    assert.equal(visible.length, 1, 'one whole-rank model is visible');
+    assert.equal(visible[0]!.userData.featherCount, (rank - 1) * 2);
     assert.equal(
-      visible[0]!.renderOrder,
-      plate.renderOrder,
-      'the nested numeral stays in the plate transparent-sort layer',
+      diadem.userData.rankModelId,
+      `arc-veterancy-diadem-rank-${rank}`,
     );
-    assert.ok(
-      visible[0]!.children.some(
-        (child) => child.userData.cue === 'veterancy-rank-segment',
-      ),
-      'the numeral owns font-independent display geometry',
-    );
-    return visible[0]!.userData.rankValue;
+    return rank;
   };
   assert.deepEqual(
     [0.25, 1.25, 2.25, 3.25, 4.25].map(rankAt),
     [1, 2, 3, 4, 5],
   );
-  assert.equal(plate.userData.rankValue, 5);
-  assert.equal(plate.position.y, 0, 'rank plate stays in the health row');
+  assert.equal(diadem.userData.featherCount, 8);
 
-  // The complete plate + gap + pip row, not merely the pips alone, is centred over the
-  // body. A rank change swaps the numeral without moving either edge of that row.
+  // Every committed vertex remains outside the full-height Core path. Core pickup,
+  // handoff, drop and toss therefore need no ornament-specific animation state.
+  const clearance = diadem.userData.coreClearanceRadius as number;
+  chassis.updateWorldMatrix(true, true);
+  const chassisCentre = new THREE.Vector3();
+  chassis.getWorldPosition(chassisCentre);
+  diadem.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.visible) return;
+    const positions = mesh.geometry.getAttribute('position');
+    const point = new THREE.Vector3();
+    for (let index = 0; index < positions.count; index += 1) {
+      point.fromBufferAttribute(positions, index).applyMatrix4(mesh.matrixWorld);
+      const radius = Math.hypot(
+        point.x - chassisCentre.x,
+        point.z - chassisCentre.z,
+      );
+      assert.ok(
+        radius >= clearance,
+        `rank ${mesh.userData.rankValue} enters Core corridor at ${radius}`,
+      );
+    }
+  });
+
+  // Removing the old numeral lets health remain centred on its own, independent of rank.
   const pips = healthPipsOf(actors.group, actor.unitKey);
-  const visiblePips = pips.children.filter(
-    (child) => child.visible && child.userData.cue === 'health-pip',
-  );
-  const badgeWidth = plate.userData.width as number;
-  const badgeHeight = plate.userData.height as number;
-  const badgeLeft = plate.position.x - badgeWidth / 2;
-  const badgeRight = plate.position.x + badgeWidth / 2;
-  const pipsLeft = visiblePips[0]!.position.x - 0.06;
-  const pipsRight = visiblePips.at(-1)!.position.x + 0.06;
-  assert.ok(
-    Math.abs(badgeLeft + pipsRight) < 1e-9,
-    `composite rank and health row is not centred (${badgeLeft} to ${pipsRight})`,
-  );
-  assert.ok(pipsLeft - badgeRight >= 0.045 - 1e-9);
+  assertCenteredPips(pips, leveled.forms[0]!.maxHealth);
   assert.equal(
-    pips.children.some((child) => child.userData.cue === 'veterancy-stack'),
+    pips.children.some((child) => child.userData.cue === 'veterancy-rank-plate'),
     false,
-    'the rejected vertical chevron tower is gone',
+    'the superseded status-bib numeral is gone',
   );
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
   assert.ok(
-    engaged.position.y > badgeHeight / 2 + 0.1,
-    'combat state remains clear above the shared rank and health row',
+    engaged.position.y > 0,
+    'combat state remains clear above the now-centred health row',
   );
   actors.dispose();
 });
@@ -555,7 +576,7 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
   try {
     plainActors.update(0.25, null, false);
     assert.equal(
-      veterancyRankPlateOf(plainActors.group, 'duel:0:unit:0'),
+      veterancyDiademOf(plainActors.group, 'duel:0:unit:0'),
       null,
     );
   } finally {
@@ -575,13 +596,12 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
   try {
     const unitKey = unpromotedArc.ticks[0]!.after.actors[0]!.unitKey;
     arcActors.update(0.25, null, false);
-    const plate = veterancyRankPlateOf(arcActors.group, unitKey);
-    assert.ok(plate);
-    assert.equal(plate.visible, true);
-    assert.equal(plate.userData.rankValue, 1);
-    const visible = veterancyDigitsOf(plate).filter((digit) => digit.visible);
-    assert.equal(visible.length, 1);
-    assert.equal(visible[0]!.userData.rankValue, 1);
+    const diadem = veterancyDiademOf(arcActors.group, unitKey);
+    assert.ok(diadem);
+    assert.equal(diadem.visible, true);
+    assert.equal(diadem.userData.rankValue, 1);
+    assert.equal(diadem.userData.featherCount, 0);
+    assert.equal(visibleVeterancyRankModels(diadem).length, 1);
   } finally {
     arcActors.dispose();
   }

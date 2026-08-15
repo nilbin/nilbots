@@ -179,6 +179,45 @@ test('the approved Core Well resolves as a neutral objective housing', () => {
   assert.equal(lookModelSource('arc-core-well'), 'gltf');
 });
 
+test('the five approved veterancy ranks resolve as complete neutral ornament models', () => {
+  const taskIds = [
+    '01a00294-5948-7ee8-bc63-2f81cb0be753',
+    '01a00295-fde7-7cbf-a014-4c4b04b6f3b4',
+    '01a00297-c1fe-7f4a-8236-b646e390bd2b',
+    '01a00299-e6dc-7d02-a713-86a9ccf8c7e9',
+    '01a00290-9941-7b7c-86eb-568a05e213a2',
+  ];
+  for (let rank = 1; rank <= 5; rank += 1) {
+    const id = `arc-veterancy-diadem-rank-${rank}`;
+    const spec = modelSpec(id);
+    assert.equal(spec?.kind, 'ornament');
+    assert.equal(spec?.part, 'whole');
+    assert.equal(spec?.facing, '+x');
+    assert.equal(spec?.up, '+y');
+    assert.equal(
+      spec?.source?.generator,
+      'scripts/class-models/promote-veterancy-whole-diadem-v1.mjs',
+    );
+    assert.equal(spec?.source?.provider, 'Meshy');
+    assert.equal(spec?.source?.model, 'meshy-7');
+    assert.equal(spec?.source?.endpoint, 'multi-image-to-3d');
+    assert.equal(spec?.source?.taskId, taskIds[rank - 1]);
+    assert.equal(spec?.source?.orientation, 'identity');
+    assert.equal(spec?.source?.facingYawDegrees, 90);
+    assert.equal(
+      spec?.source?.textureTier,
+      'meshy7-veterancy-split-diadem-whole-v1-lean-256-webp',
+    );
+    assert.ok((spec?.ledger?.bytes ?? Number.POSITIVE_INFINITY) <= 500_000);
+    assert.ok((spec?.ledger?.triangles ?? Number.POSITIVE_INFINITY) <= 25_000);
+    assert.equal(spec?.ledger?.materials, 1);
+    assert.equal(spec?.ledger?.textureCount, 4);
+    assert.equal(spec?.nodes, undefined);
+    assert.equal(spec?.motion, undefined);
+    assert.equal(lookModelSource(id), 'gltf');
+  }
+});
+
 test('a whole-body GLB cannot serve a turret sector and yields to the sprite', () => {
   // The turret is the chassis' forward section repeated around an axis. A layered SVG can
   // be cropped to that section; the Striker's `part: 'whole'` mesh cannot, and handing the

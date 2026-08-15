@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "status": "runtime-promoted-for-gameplay-review",
+  "generator": "scripts/class-models/promote-veterancy-whole-diadem-v1.mjs",
+  "supersedes": "arc-veterancy-split-feather renderer-composed rank geometry",
+  "audit": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/audit.json",
+  "assets": [
+    {
+      "rank": 1,
+      "id": "arc-veterancy-diadem-rank-1",
+      "model": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-1/model.glb",
+      "manifest": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-1/model3d.json",
+      "bytes": 173036,
+      "sha256": "f84779e00d7b16aabc940baa714f6918a4679b77fefbd6479dce69e8604ca809",
+      "triangles": 6538
+    },
+    {
+      "rank": 2,
+      "id": "arc-veterancy-diadem-rank-2",
+      "model": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-2/model.glb",
+      "manifest": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-2/model3d.json",
+      "bytes": 166080,
+      "sha256": "798099f0dce355cd1fb351d2135dbb4e3e67fe94df0647692b17d6ec6e69bdbe",
+      "triangles": 6238
+    },
+    {
+      "rank": 3,
+      "id": "arc-veterancy-diadem-rank-3",
+      "model": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-3/model.glb",
+      "manifest": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-3/model3d.json",
+      "bytes": 287464,
+      "sha256": "e09e711423c08977a152b1a278f75055812cd04201c480f9e1963f9b21bad16e",
+      "triangles": 12170
+    },
+    {
+      "rank": 4,
+      "id": "arc-veterancy-diadem-rank-4",
+      "model": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-4/model.glb",
+      "manifest": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-4/model3d.json",
+      "bytes": 420356,
+      "sha256": "86ccea29103f5ac8bdbf8b0bf7f829b9aa57484a3b7a5917c19425d202fcb066",
+      "triangles": 17368
+    },
+    {
+      "rank": 5,
+      "id": "arc-veterancy-diadem-rank-5",
+      "model": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-5/model.glb",
+      "manifest": "web/src/assets/ornament-models/arc-veterancy-diadem-rank-5/model3d.json",
+      "bytes": 457932,
+      "sha256": "a73af93ad20ac6e16dac1ddb9cc7669aceb817d7445cdfb2b07ecff4dadafce1",
+      "triangles": 19832
+    }
+  ]
+}
