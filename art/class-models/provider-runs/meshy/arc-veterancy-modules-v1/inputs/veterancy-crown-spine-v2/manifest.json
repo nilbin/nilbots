@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-crown-spine-meshy7-corrective-v2",
+  "classId": "veterancy-crown-spine-v2",
+  "label": "Veterancy Petaled Crown Spine V2",
+  "status": "salvageable-transform-retake-required",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner explicitly rejected the blade-only/bridge-like result by asking 'What about the crown and feathers etc?!' on 2026-08-14. This authorizes one bounded corrective crown generation so the reviewed level-five composition contains the visible petaled command crown from the approved roster concept.",
+  "canonicalIdentity": {
+    "sourceSheet": "source-sheet.png",
+    "approvedRosterConcept": "../../../../../../reviews/veterancy-power-concepts-v1/veterancy-crowned-mantle-full-roster.png",
+    "rejectedTaskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+    "rejectedReason": "The first result is a low bridge and does not preserve the approved petaled crown/feather silhouette."
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "03-front-three-quarter.png",
+      "sha256": "3b5a77abc5d4e9052eb53a43ac34bc9d051eb69e58741b559d8d0576615906e7",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "02-side.png",
+      "sha256": "8df44984b13353776ed3dc0aaa365cb73f6373fadcb3923c7b3db9876cdaa809",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "04-rear-three-quarter.png",
+      "sha256": "12ce637a491592ff5c79b0d3a4ac8ff7f7d9a6167b78d78fbc5033c94feea9d7",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "front",
+      "primary": false,
+      "file": "01-front.png",
+      "sha256": "844ce75f2e915b402a165534c9170ba40362ac6c01907212a4ed0b9bc43e2099",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "inputGate": {
+    "status": "passed-corrective-concept-review",
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1254,
+    "rootIntent": "One centered dorsal crown on Z=0; a shared graphite base and two flat underside pads mount to the chassis. The five thick crest petals rise from that single connected base.",
+    "family": "five-petal matte aged brass command crown, graphite base, restrained amber inlay",
+    "angleNote": "Meshy's public multiview contract accepts one to four same-object angles without prescribing an orthographic set. The generated overhead attempt was not truthful, so the provider set uses front, side, front-three-quarter, and rear-three-quarter rather than mislabeling a front elevation as top."
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "One 30-credit corrective generation cap inferred from the owner's explicit missing-crown correction; no further crown generation or retexture is authorized by this record.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy petaled command crest. Rough matte aged desaturated warm brass/bronze shells; graphite shared mounting base and recesses; narrow restrained dim amber channels; sparse edge wear. Preserve exactly five thick broad clipped mechanical petals: one dominant center spine and two progressively lower swept pairs, fused to one low rigid base with two flat mounting pads. Large readable facets and centered symmetry. No bot, chassis, floor, pedestal, flat bridge, hovercar, jewelry, jewels, horns, antlers, organic feathers, wings, floating parts, weapon, rank symbols, teal/cyan, saturated orange panels, blue, red, white, glossy plastic, chrome, lacquer, text, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "retryPolicySource": "https://help.meshy.ai/en/articles/9992034-does-the-meshy-api-support-retry-for-generations",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "balanceBeforePreparation": 860,
+    "freeRetryAvailableThroughApi": false
+  },
+  "nextGate": "concept-aligned orientation, scale, and mounting retake with an approved replacement feather; no runtime promotion",
+  "providerRun": {
+    "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
+    "directory": "../../veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 860,
+    "balanceAfter": 830,
+    "rawModelSha256": "e8ce74b4dcf49f904ba238ccd51b829a69be91b19978c7384e3809199111463f"
+  },
+  "reviewGate": {
+    "status": "salvageable-after-owner-composition-rejection",
+    "runtimePromoted": false,
+    "normalizedRichArtifact": "../../veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60/model-normalized-rich-review.glb",
+    "normalization": "../../veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60/normalization.json",
+    "sixView": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/veterancy-crown-spine-v2-six-view.png",
+    "levelFive": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-crown-and-feathers-level5.png",
+    "rankStrip": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/kestrel-real-rank-1-5-strip.png",
+    "orientation": "identity",
+    "dimensions": { "x": 0.22, "y": 0.11991886005613431, "z": 0.037808471102170234 },
+    "assessment": "All five petals remain visible on one spatially connected object, but the owner rejected the level-five composition because the crown was shown too small or edge-on. Geometry is salvageable; presentation is not approved."
+  }
+}

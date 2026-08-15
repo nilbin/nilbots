@@ -1,0 +1,265 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-14T19:05:20.456Z",
+  "sourceLayout": {
+    "size": 1254,
+    "margin": 16,
+    "gutter": 16,
+    "panel": 603
+  },
+  "outputSize": 1254,
+  "providerContract": {
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "inputCountPerTask": 4,
+    "primaryView": "front-three-quarter",
+    "providerOrder": [
+      "front-three-quarter",
+      "side",
+      "rear-three-quarter",
+      "top"
+    ]
+  },
+  "modules": [
+    {
+      "id": "veterancy-crown-spine",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/source-sheet.png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1359570,
+        "sha256": "c31a6eb49542bd5fecb30e7744b1d71ada77b86b9bfee6de615cb6e9e336343b"
+      },
+      "views": [
+        {
+          "view": "top",
+          "rootIntent": "centered dorsal part; split flat underside pads mount to the chassis",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1045703,
+          "sha256": "467f2cd65d504d938bbac8c8daeabfc78761ae83983b3953cce523939bb316d2"
+        },
+        {
+          "view": "side",
+          "rootIntent": "centered dorsal part; split flat underside pads mount to the chassis",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 948612,
+          "sha256": "9e0604e8e7739086a8a233f6f50a64c1903dfee0f2e67b5d8082ef7ea1cabd17"
+        },
+        {
+          "view": "front-three-quarter",
+          "rootIntent": "centered dorsal part; split flat underside pads mount to the chassis",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1202230,
+          "sha256": "f6cc19da655b4b4c58c4499acc16f0f2d2fef30ecdbf25ed43e4b3548987452e"
+        },
+        {
+          "view": "rear-three-quarter",
+          "rootIntent": "centered dorsal part; split flat underside pads mount to the chassis",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1013457,
+          "sha256": "532b4ff95e680415f6661ec877d27890205d7f5ceb5ded5e9916785f774908c0"
+        }
+      ]
+    },
+    {
+      "id": "veterancy-swept-blade",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/source-sheet.png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1274442,
+        "sha256": "fb29802f51fff5a8055f1311d89fecd80e18bb2cb210301ccbb414787c3480e2"
+      },
+      "views": [
+        {
+          "view": "top",
+          "rootIntent": "flat underside and recessed inner edge mount to one chassis side; +X is the narrow forward end",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1190371,
+          "sha256": "0cfcf89ce20da82861bb394a864c1d475f7439cad7bc56c0520abaf57a7c57a0"
+        },
+        {
+          "view": "side",
+          "rootIntent": "flat underside and recessed inner edge mount to one chassis side; +X is the narrow forward end",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 716353,
+          "sha256": "617fabbc79a4bfa5532180eae30fb308eb29dbb7b91f8baf7d8e619f657f5d02"
+        },
+        {
+          "view": "front-three-quarter",
+          "rootIntent": "flat underside and recessed inner edge mount to one chassis side; +X is the narrow forward end",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 962938,
+          "sha256": "bc506006edc5e85470b39ce174e48ce4e080b1d19a13136debb9976d9ada48c1"
+        },
+        {
+          "view": "rear-three-quarter",
+          "rootIntent": "flat underside and recessed inner edge mount to one chassis side; +X is the narrow forward end",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 805206,
+          "sha256": "b218451bb0acd5db5a7ff69c747552d38b64152206c09dfbee851a986d250d2b"
+        }
+      ]
+    },
+    {
+      "id": "veterancy-square-mantle",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/source-sheet.png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1409751,
+        "sha256": "145357913cdf55653a090df5b42063924f7438a940e181512358a40ef530a81e"
+      },
+      "views": [
+        {
+          "view": "top",
+          "rootIntent": "notched open edge faces inward; flat underside mounts to one chassis side",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1487373,
+          "sha256": "adb1aad71437c2a8bb66fbfbf75764376049a0e0ae6ebcbe0e4863cf209fd413"
+        },
+        {
+          "view": "side",
+          "rootIntent": "notched open edge faces inward; flat underside mounts to one chassis side",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 710954,
+          "sha256": "7a87ecf6ce83c17f1b1ce97d1eb89c12332414afdc00c5d9599a8d76cec9b504"
+        },
+        {
+          "view": "front-three-quarter",
+          "rootIntent": "notched open edge faces inward; flat underside mounts to one chassis side",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1219712,
+          "sha256": "a42c93708add2eae91761fd8d1d08d25aa0e851e46a70654e1c2510aaa3ef3db"
+        },
+        {
+          "view": "rear-three-quarter",
+          "rootIntent": "notched open edge faces inward; flat underside mounts to one chassis side",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-square-mantle/04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1035440,
+          "sha256": "2712c112d244c791b418f342ca9b7c97e2c0fb7e3dc57d4c0e5321afc432a576"
+        }
+      ]
+    },
+    {
+      "id": "veterancy-radial-petal",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/source-sheet.png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1272674,
+        "sha256": "d3698c23e6198dfb8737fb2bbd9fe0b1181391895550b541fb6b5af55323ead8"
+      },
+      "views": [
+        {
+          "view": "top",
+          "rootIntent": "narrow inner root points toward the chassis center; broad clipped cap points outward",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 1062461,
+          "sha256": "207a017e723d38dec4987ae77f916770d5c1b2833e113c964df250d214e641fc"
+        },
+        {
+          "view": "side",
+          "rootIntent": "narrow inner root points toward the chassis center; broad clipped cap points outward",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 645331,
+          "sha256": "bd4a0b377c83770626f2719ad7fbd37b59f3094b3eeab6cc04833f006ecc6179"
+        },
+        {
+          "view": "front-three-quarter",
+          "rootIntent": "narrow inner root points toward the chassis center; broad clipped cap points outward",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 947539,
+          "sha256": "fde9ce29bbabfb8e23d9a03e99ed786526d886433d289bd632f3ed3da6b6d248"
+        },
+        {
+          "view": "rear-three-quarter",
+          "rootIntent": "narrow inner root points toward the chassis center; broad clipped cap points outward",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 933353,
+          "sha256": "a38b7374e1a78c5f6e4f7ac9baf0d6eccb1d1a585475cbe6a2201930b5baa573"
+        }
+      ]
+    },
+    {
+      "id": "veterancy-curved-rail",
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/source-sheet.png",
+        "width": 1254,
+        "height": 1254,
+        "bytes": 1179779,
+        "sha256": "35913819cbfbd4b74010401e321b556e2089849da38cca94668b5f0c29768c12"
+      },
+      "views": [
+        {
+          "view": "top",
+          "rootIntent": "flat underside and capped-end pads mount around open chassis space",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/01-top.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 837631,
+          "sha256": "8066f71fc1662dc291b4d49f38f92bd2f6550d8a896fc7ba0d23c04f187353b0"
+        },
+        {
+          "view": "side",
+          "rootIntent": "flat underside and capped-end pads mount around open chassis space",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/02-side.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 537889,
+          "sha256": "0f375f316641e49298a559c9501e4e36ed5d76770d4fcb96b2a2ca36315c519f"
+        },
+        {
+          "view": "front-three-quarter",
+          "rootIntent": "flat underside and capped-end pads mount around open chassis space",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/03-front-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 759076,
+          "sha256": "0df1a0ed1987e8894172446df164f25fa7e4b640c5cd08e9051a0e76ba6eb1f4"
+        },
+        {
+          "view": "rear-three-quarter",
+          "rootIntent": "flat underside and capped-end pads mount around open chassis space",
+          "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/04-rear-three-quarter.png",
+          "width": 1254,
+          "height": 1254,
+          "bytes": 736942,
+          "sha256": "1c33b8c4e2c63b21546cc034051998444f008e46690e4673c0270e6db2db9337"
+        }
+      ]
+    }
+  ]
+}

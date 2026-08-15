@@ -1,0 +1,127 @@
+{
+  "schemaVersion": 1,
+  "id": "arc-veterancy-modules-v1",
+  "status": "five-whole-diadems-runtime-promoted-awaiting-owner-gameplay-review",
+  "handoff": "../../../../reviews/veterancy-power-concepts-v1/MESHY-7-HANDOFF-PLAN.md",
+  "ownerAuthorization": [
+    "Owner asked to try the Meshy 7 veterancy handoff while AFK on 2026-08-14.",
+    "Owner rejected the blade-only/bridge-like study by asking 'What about the crown and feathers etc?!'; this authorized Gate C and one bounded corrective petaled-crown task.",
+    "Owner rejected the resulting level-five composition on 2026-08-14 as 'Not really looking like the conceptual art.' This closes Gate D as failed and does not authorize another paid provider call.",
+    "Owner requested conceptual art for a simpler shared floating halo that grows into a crown across veterancy levels. This authorizes conceptual art only, not another Meshy task or runtime integration.",
+    "Owner requested conceptual art including the carried-Core clipping solution on 2026-08-14. This authorizes the correction-v4 compatibility sheet only; it does not authorize another Meshy task or runtime integration.",
+    "Owner highlighted pickup, drop, and toss animation clearance, then requested a level 1–5 concept that makes those animations possible. This authorized the correction-v5 split-diadem concept only; Core animation work belongs to another agent.",
+    "Owner approved the motion-safe split-diadem after noting its moose-like silhouette, confirmed that it should rotate with the bot, and said 'Let's go ahead and get it done' on 2026-08-15. This authorized one 30-credit reusable-feather Meshy task and runtime implementation.",
+    "After seeing the renderer-composed feather result at gameplay scale, owner approved replacing it with five complete rank-specific Meshy ornaments on 2026-08-15, conditional on fidelity to the approved conceptual art. This authorizes five 30-credit tasks with a new 150-credit hard cap."
+  ],
+  "runtimePromotionAuthorized": true,
+  "replacementDirection": {
+    "id": "motion-safe-split-diadem-v2",
+    "status": "whole-rank-provider-set-runtime-promoted",
+    "concept": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clean.png",
+    "motionClearanceConcept": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clearance.png",
+    "previousFixedCarryConcept": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v4/core-carry-clearance-concept-v2.png",
+    "assetIntent": "five complete bilateral diadem models progressing from separated arcs to four slim crown feathers per side for all sixteen bots",
+    "coreCompatibilityIntent": "a full-height central no-geometry corridor remains unchanged across all five ranks; Core animation may route within it without ornament state changes",
+    "providerArchitecture": "one full two-part Meshy GLB per rank; renderer selects exactly one rank model and does not reconstruct the approved silhouette",
+    "supersededProviderArchitecture": "one shared slim feather GLB, mirrored and instanced over deterministic split rear arcs",
+    "meshyCreditsConsumed": 180,
+    "wholeRankCreditsConsumed": 150,
+    "newAuthorizedCreditCap": 150,
+    "totalReplacementCreditCeilingIncludingSupersededFeather": 180
+  },
+  "inputBriefs": "INPUT-BRIEFS.md",
+  "provider": "Meshy",
+  "providerModel": "meshy-7",
+  "ownerApprovedModuleCount": 5,
+  "salvageableModules": [
+    "veterancy-crown-spine-v2"
+  ],
+  "ownerRejectedForConceptFidelity": [
+    "veterancy-swept-blade",
+    "veterancy-radial-petal"
+  ],
+  "ownerUnreviewedInIsolation": [
+    "veterancy-square-mantle",
+    "veterancy-curved-rail"
+  ],
+  "rejectedModels": [
+    {
+      "module": "veterancy-crown-spine",
+      "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+      "reason": "Low bridge-like silhouette did not retain the petaled command crown from the approved roster concept."
+    }
+  ],
+  "providerTasks": [
+    { "module": "veterancy-swept-blade", "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979", "credits": 30, "technicalReview": "passed", "ownerReview": "rejected-concept-fidelity" },
+    { "module": "veterancy-crown-spine", "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b", "credits": 30, "technicalReview": "passed", "ownerReview": "rejected-bridge-silhouette" },
+    { "module": "veterancy-radial-petal", "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6", "credits": 30, "technicalReview": "passed", "ownerReview": "rejected-concept-fidelity" },
+    { "module": "veterancy-square-mantle", "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25", "credits": 30, "technicalReview": "passed", "ownerReview": "unreviewed-in-isolation" },
+    { "module": "veterancy-curved-rail", "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025", "credits": 30, "technicalReview": "passed", "ownerReview": "unreviewed-in-isolation" },
+    { "module": "veterancy-crown-spine-v2", "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60", "credits": 30, "technicalReview": "passed", "ownerReview": "salvageable-after-transform-retake" },
+    { "module": "veterancy-split-feather-v1", "taskId": "01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8", "credits": 30, "technicalReview": "passed", "ownerReview": "superseded-by-five-whole-model-direction" },
+    { "module": "veterancy-split-diadem-rank-1-v1", "taskId": "01a00294-5948-7ee8-bc63-2f81cb0be753", "credits": 30, "technicalReview": "passed-and-runtime-promoted", "ownerReview": "conditional-concept-approval-awaiting-gameplay-gallery" },
+    { "module": "veterancy-split-diadem-rank-2-v1", "taskId": "01a00295-fde7-7cbf-a014-4c4b04b6f3b4", "credits": 30, "technicalReview": "passed-and-runtime-promoted", "ownerReview": "conditional-concept-approval-awaiting-gameplay-gallery" },
+    { "module": "veterancy-split-diadem-rank-3-v1", "taskId": "01a00297-c1fe-7f4a-8236-b646e390bd2b", "credits": 30, "technicalReview": "passed-and-runtime-promoted", "ownerReview": "conditional-concept-approval-awaiting-gameplay-gallery" },
+    { "module": "veterancy-split-diadem-rank-4-v1", "taskId": "01a00299-e6dc-7d02-a713-86a9ccf8c7e9", "credits": 30, "technicalReview": "passed-and-runtime-promoted", "ownerReview": "conditional-concept-approval-awaiting-gameplay-gallery" },
+    { "module": "veterancy-split-diadem-rank-5-v1", "taskId": "01a00290-9941-7b7c-86eb-568a05e213a2", "credits": 30, "technicalReview": "passed-and-runtime-promoted", "ownerReview": "conditional-concept-approval-awaiting-gameplay-gallery" }
+  ],
+  "accounting": {
+    "creditsConsumed": 360,
+    "balanceBeforeFirstTask": 1010,
+    "balanceAfterFinalTask": 650,
+    "textureResolution": "2k",
+    "autoRigging": false,
+    "apiFreeRetryAvailable": true,
+    "apiFreeRetryLimitPerTask": 12,
+    "wholeRankRetriesUsed": 0,
+    "retryPolicySource": "https://help.meshy.ai/en/articles/9992034-does-the-meshy-api-support-retry-for-generations"
+  },
+  "gates": {
+    "gateA": {
+      "status": "historical-input-review-complete",
+      "reviewSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
+      "metrics": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json",
+      "note": "The original crown input failed to preserve the approved crown language. The later owner review also found the swept and radial inputs intrinsically too broad to match the authoritative concept."
+    },
+    "gateB": {
+      "status": "owner-rejected-after-composition",
+      "pilot": "veterancy-swept-blade",
+      "recommendedLateralScale": 0.7,
+      "facingYawDegrees": 180
+    },
+    "gateC": {
+      "status": "generated-results-not-owner-approved",
+      "ownerApprovedFamilies": 0,
+      "rejectedProviderResults": 3,
+      "salvageableProviderResults": 1,
+      "unreviewedProviderResults": 2
+    },
+    "gateD": {
+      "status": "five-whole-rank-provider-set-complete",
+      "gallery": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/index.html",
+      "fiveModelSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/five-real-modules.png",
+      "levelFiveSheet": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-crown-and-feathers-level5.png",
+      "rankStrip": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/kestrel-real-rank-1-5-strip.png",
+      "gameplayScale": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-level5-gameplay-scale.png",
+      "complete": true,
+      "wholeRankInputReview": "inputs/veterancy-split-diadem-whole-v1/input-review.png",
+      "wholeRankInputCollection": "inputs/veterancy-split-diadem-whole-v1/collection.json",
+      "wholeRankRuntimeAudit": "../../../../class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/audit.json",
+      "wholeRankRuntimeTierReview": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-split-diadem-whole-v1/rank-1-5-rich-vs-lean.png",
+      "remaining": []
+    },
+    "gateE": {
+      "status": "runtime-promoted-technical-gameplay-review-complete",
+      "promotion": "../../../../class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/promotion.json",
+      "gameplayEvidence": "../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/evidence.json",
+      "reason": "Five lazy-loaded lean ranks preserve the approved split silhouette and fixed Core corridor. Desktop and phone WebGL captures cover carry, handoff, headings, and Arc Toss without changing Core animation. Owner gallery review remains."
+    }
+  },
+  "sourceAndPricing": {
+    "multiImageParameters": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricing": "https://docs.meshy.ai/en/api/pricing",
+    "verifiedAt": "2026-08-14",
+    "retentionNote": "Provider artifacts were downloaded immediately because non-Enterprise API assets may be retained for no more than three days."
+  },
+  "nextGate": "Owner gameplay-gallery review of all five complete ranks during real Core carry, handoff, and Arc Toss motion."
+}

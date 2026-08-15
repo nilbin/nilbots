@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-crown-spine",
+  "taskId": "01a001c4-aa9c-7b46-bf18-db6473395f8b",
+  "submittedAt": "2026-08-14T19:34:20.218Z",
+  "balanceBefore": 980,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/03-front-three-quarter.png",
+      "bytes": 1202230,
+      "sha256": "f6cc19da655b4b4c58c4499acc16f0f2d2fef30ecdbf25ed43e4b3548987452e",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/02-side.png",
+      "bytes": 948612,
+      "sha256": "9e0604e8e7739086a8a233f6f50a64c1903dfee0f2e67b5d8082ef7ea1cabd17",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/04-rear-three-quarter.png",
+      "bytes": 1013457,
+      "sha256": "532b4ff95e680415f6661ec877d27890205d7f5ceb5ded5e9916785f774908c0",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine/01-top.png",
+      "bytes": 1045703,
+      "sha256": "467f2cd65d504d938bbac8c8daeabfc78761ae83983b3953cce523939bb316d2",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy crown-spine armor attachment, a compact low angular command crest rather than a literal royal crown. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the bridged crest, split mounting pads, readable faceted planes, low profile, centered symmetry, and one connected rigid object. No bot, chassis, base, floor, jewels, points, fantasy crown, tiara, horns, antenna, weapon, barrel, rank symbols, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

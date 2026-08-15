@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-radial-petal",
+  "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6",
+  "submittedAt": "2026-08-14T19:40:08.048Z",
+  "balanceBefore": 950,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/03-front-three-quarter.png",
+      "bytes": 947539,
+      "sha256": "fde9ce29bbabfb8e23d9a03e99ed786526d886433d289bd632f3ed3da6b6d248",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/02-side.png",
+      "bytes": 645331,
+      "sha256": "bd4a0b377c83770626f2719ad7fbd37b59f3094b3eeab6cc04833f006ecc6179",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/04-rear-three-quarter.png",
+      "bytes": 933353,
+      "sha256": "a38b7374e1a78c5f6e4f7ac9baf0d6eccb1d1a585475cbe6a2201930b5baa573",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-radial-petal/01-top.png",
+      "bytes": 1062461,
+      "sha256": "207a017e723d38dec4987ae77f916770d5c1b2833e113c964df250d214e641fc",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy radial-petal armor attachment: one low thick armored feather-like wedge, not a biological feather or wing. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the narrow inner mounting root, broad clipped outer cap, shallow layered feather facets, large readable planes, flat underside, clean mirrorability, and one connected rigid object. No bot, chassis, base, floor, full ring, halo, flower, organic feather barbs, fantasy wing, sword, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

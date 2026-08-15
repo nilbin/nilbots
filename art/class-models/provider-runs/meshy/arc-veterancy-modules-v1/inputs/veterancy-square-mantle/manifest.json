@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-square-mantle-meshy7-gate-c-v1",
+  "classId": "veterancy-square-mantle",
+  "label": "Veterancy Square Mantle",
+  "status": "technical-pass-owner-unreviewed",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner rejected the blade-only level-five study and explicitly asked 'What about the crown and feathers etc?!' on 2026-08-14; treated as Gate C approval for the remaining real module families.",
+  "canonicalIdentity": {
+    "sourceSheet": "source-sheet.png",
+    "gateAReview": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
+    "inputMetrics": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "03-front-three-quarter.png",
+      "sha256": "a42c93708add2eae91761fd8d1d08d25aa0e851e46a70654e1c2510aaa3ef3db",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "02-side.png",
+      "sha256": "7a87ecf6ce83c17f1b1ce97d1eb89c12332414afdc00c5d9599a8d76cec9b504",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "04-rear-three-quarter.png",
+      "sha256": "2712c112d244c791b418f342ca9b7c97e2c0fb7e3dc57d4c0e5321afc432a576",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "01-top.png",
+      "sha256": "adb1aad71437c2a8bb66fbfbf75764376049a0e0ae6ebcbe0e4863cf209fd413",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "inputGate": {
+    "status": "passed",
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1254,
+    "rootIntent": "Notched open edge faces inward toward the chassis; the flat underside mounts to one chassis side and the stepped mass remains outward.",
+    "family": "matte aged brass shell, graphite recesses, restrained amber inlay"
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "Gate C owner approval on 2026-08-14; run only after crown-spine and radial-petal pass inspection.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy square-mantle armor attachment: one compact stepped shoulder frame with deliberate negative space at its inner root. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the squared notched C-like plan, thick readable planes, chamfered ends, flat underside, clean mirrorability, and one connected rigid object. No bot, chassis, base, floor, solid crate, wall block, building, turret, weapon, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, rank symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a001cd-c77a-7656-ad14-daffbca45d25",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "balanceBeforePreparation": 980
+  },
+  "nextGate": "deferred until the corrected crown-feather Kestrel composition passes; no runtime promotion",
+  "providerRun": {
+    "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25",
+    "directory": "../../veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 920,
+    "balanceAfter": 890,
+    "rawModelSha256": "93b2c811120cf7ef816a4147feec1cebc38fc3f5ea419c3237a5963e96ea2eea"
+  },
+  "reviewGate": {
+    "status": "technical-pass-owner-unreviewed",
+    "runtimePromoted": false,
+    "normalizedRichArtifact": "../../veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25/model-normalized-rich-review.glb",
+    "normalization": "../../veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25/normalization.json",
+    "sixView": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/veterancy-square-mantle-six-view.png",
+    "orientation": "lay-flat-x",
+    "dimensions": { "x": 0.26, "y": 0.07561286977427129, "z": 0.2559420557230166 },
+    "assessment": "The open C-like frame and inner negative space survive the required lay-flat orientation correction."
+  }
+}

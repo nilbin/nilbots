@@ -1,0 +1,383 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Gameplay-scale review of rank I-V split diadem during real Core custody, handoff, and Arc Toss motion",
+  "sourceUrl": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/?standalone&audio=off",
+  "sourceReplay": "sandbox/arc-relay-veterancy-split-diadem-v1/veterancy-ranked-core-stage.broadcast.json.gz",
+  "modelLoadPolicy": "one page and one model load per render profile; all ticks sought in place",
+  "captures": [
+    {
+      "id": "desktop-overview-tick-08",
+      "profile": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 8,
+      "beat": "Relay V carries the Core",
+      "camera": "overview",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/desktop-overview-tick-08.png",
+      "imageBytes": 501495,
+      "imageSha256": "e6e27013e954d6af492b5f30ecc65a91b82ad45f3daebacbdaf8f06850d323c5",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "desktop-director-tick-08",
+      "profile": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 8,
+      "beat": "Relay V carries the Core",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/desktop-director-tick-08.png",
+      "imageBytes": 1209373,
+      "imageSha256": "34f5041626bfb20bb27ccaabd89ea6e5a8b67154514574672fbeda449b7e6f2a",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "desktop-director-tick-10",
+      "profile": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 10,
+      "beat": "Relay V hands the Core to Kestrel I",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/desktop-director-tick-10.png",
+      "imageBytes": 1208444,
+      "imageSha256": "3a3e21bb1654989e11e3fb1fea03026d18fb18a8203c855cf3cf630abcc0ba04",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "desktop-director-tick-34",
+      "profile": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 34,
+      "beat": "Nest IV hands the Core to Palisade V",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/desktop-director-tick-34.png",
+      "imageBytes": 1235931,
+      "imageSha256": "a07c9167c8fa153d2f5a5b57fb9819943e8ef934cdcf0ae993bfdfa3052c3505",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "desktop-director-tick-50",
+      "profile": "desktop",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "tick": 50,
+      "beat": "Relay V launches the four-tile Arc Toss",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 1440,
+        "height": 900,
+        "clientWidth": 1440,
+        "clientHeight": 900
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/desktop-director-tick-50.png",
+      "imageBytes": 1202187,
+      "imageSha256": "31b48435eff7a121f0d42022f487d63535423121e841adf9abda41f250727d84",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "phone-landscape-overview-tick-08",
+      "profile": "phone-landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 8,
+      "beat": "Relay V carries the Core",
+      "camera": "overview",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/phone-landscape-overview-tick-08.png",
+      "imageBytes": 98874,
+      "imageSha256": "856981aa097ec81d0809d75c12b29321b205c362045ddc105d4570b3a3596ebb",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "phone-landscape-director-tick-08",
+      "profile": "phone-landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 8,
+      "beat": "Relay V carries the Core",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/phone-landscape-director-tick-08.png",
+      "imageBytes": 352695,
+      "imageSha256": "950944b3c4838cde5fb61e9b6eac4be386b84b1736ada3ebeaa8a2c5720a8b0b",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "phone-landscape-director-tick-10",
+      "profile": "phone-landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 10,
+      "beat": "Relay V hands the Core to Kestrel I",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/phone-landscape-director-tick-10.png",
+      "imageBytes": 352293,
+      "imageSha256": "81462d85e2ebdb0afb1bd66bd4f9ad6b5e85199a7ad5f2e998f772c6132d7a11",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "phone-landscape-director-tick-34",
+      "profile": "phone-landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 34,
+      "beat": "Nest IV hands the Core to Palisade V",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/phone-landscape-director-tick-34.png",
+      "imageBytes": 352604,
+      "imageSha256": "a40960ae02ecef4cb6201ce7d35aa473701ec91bcc1e3448bec9204f6e5025eb",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    },
+    {
+      "id": "phone-landscape-director-tick-50",
+      "profile": "phone-landscape",
+      "viewport": {
+        "width": 844,
+        "height": 390
+      },
+      "tick": 50,
+      "beat": "Relay V launches the four-tile Arc Toss",
+      "camera": "director",
+      "renderer": "webgl",
+      "canvasPixels": {
+        "width": 844,
+        "height": 390,
+        "clientWidth": 844,
+        "clientHeight": 390
+      },
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/phone-landscape-director-tick-50.png",
+      "imageBytes": 354907,
+      "imageSha256": "4b62456172245f3e30f16cdf01be891c6cee8d9fb3fde39fa200f85d0cbc9ce5",
+      "replayResponses": [
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays.json",
+          "status": 200,
+          "contentEncoding": null
+        },
+        {
+          "url": "http://127.0.0.1:9201/sandbox/arc-relay-veterancy-split-diadem-v1/site/replays/veterancy-rank-lineup-core-motion.json",
+          "status": 200,
+          "contentEncoding": null
+        }
+      ],
+      "pageErrors": [],
+      "consoleErrors": [],
+      "failedRequests": []
+    }
+  ],
+  "contactSheets": [
+    {
+      "profile": "desktop",
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/desktop-gameplay-scale.webp",
+      "imageBytes": 255330,
+      "imageSha256": "973869710dc6624e6548e0e17c982702767d6dc16d4d6aa32988ab34f10ab189"
+    },
+    {
+      "profile": "phone-landscape",
+      "image": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/phone-landscape-gameplay-scale.webp",
+      "imageBytes": 192452,
+      "imageSha256": "bc4aabb535661b859f9ca82c33b215b811ff35f6b5c51310c153a2bfc57ad80b"
+    }
+  ]
+}

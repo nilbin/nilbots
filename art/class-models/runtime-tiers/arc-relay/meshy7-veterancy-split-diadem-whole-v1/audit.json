@@ -1,0 +1,1149 @@
+{
+  "schemaVersion": 1,
+  "id": "meshy7-veterancy-split-diadem-whole-v1",
+  "status": "runtime-review",
+  "generator": "scripts/class-models/build-veterancy-whole-diadem-runtime-tiers.mjs",
+  "ownerDirection": "Five complete Meshy rank models must match the approved motion-safe conceptual art; renderer reconstruction is superseded.",
+  "source": {
+    "provider": "Meshy",
+    "providerModel": "meshy-7",
+    "endpoint": "multi-image-to-3d",
+    "credits": {
+      "perRank": 30,
+      "ranks": 5,
+      "total": 150,
+      "balanceAfter": 650
+    },
+    "autoRigging": false,
+    "concept": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clean.png",
+    "clearanceConcept": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/correction-v5/motion-safe-split-diadem-rank-1-5-clearance.png"
+  },
+  "toolchain": {
+    "gltfTransform": "4.4.2",
+    "simplifier": "meshoptimizer through glTF-Transform",
+    "geometryCompression": "KHR_mesh_quantization",
+    "textureEncoding": "WebP"
+  },
+  "contract": {
+    "orientation": "provider +x width rotated 90 degrees about world +y into local lateral +z",
+    "facing": "+x",
+    "up": "+y",
+    "floorY": 0,
+    "targetGapRatio": 0.34,
+    "centreClearance": "Disconnected provider halves are translated outward without scaling until the empty lateral gap is 34% of final span; Core animation is not modified.",
+    "matteFinish": "Metallic-roughness green channel is deterministically floored at 0.78; base colour, metallic, normal, and emission remain provider-authored.",
+    "runtimeSelection": "Exactly one complete rank mesh is visible per bot; no repeated feather instances or renderer-built crown geometry."
+  },
+  "ranks": [
+    {
+      "rank": 1,
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-split-diadem-rank-1-v1/01a00294-5948-7ee8-bc63-2f81cb0be753/raw-model.glb",
+        "bytes": 26633780,
+        "sha256": "b2418ca52b206f2eee4cff8e7685609ce920bd1afb0ed022765748448391171b",
+        "taskId": "01a00294-5948-7ee8-bc63-2f81cb0be753",
+        "manifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-1/manifest.json"
+      },
+      "normalization": {
+        "targetPlanformSpan": 0.78,
+        "targetCentreGap": 0.2667926784777879,
+        "heightScale": 1,
+        "normalizedHeight": 0.06841137856358143,
+        "facingYawDegrees": 90,
+        "splitClearance": {
+          "version": 1,
+          "axis": "provider-x",
+          "method": "translate vertices left/right about provider bounds centre; no scaling",
+          "targetGapRatio": 0.34,
+          "centre": -0.00048798322677612305,
+          "totalWidthBefore": 1.9020739793777466,
+          "totalWidthAfter": 1.9020739793777466,
+          "gapBefore": 0.6505889892578125,
+          "gapAfter": 0.6505889892578125,
+          "achievedGapRatio": 0.3420418954843435,
+          "offsetPerSide": 0
+        }
+      },
+      "profiles": [
+        {
+          "id": "rich-512",
+          "settings": {
+            "textureSize": 512,
+            "simplifyRatio": 0.025,
+            "simplifyError": 0.001,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 1200000,
+            "triangles": 60000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-1-rich-512.glb",
+            "bytes": 412256,
+            "sha256": "bcbfb3276bbcd64918327823deb06d93e43e95f327ec738ab0bbb90f3b3a6fc7"
+          },
+          "triangles": 16348,
+          "geometrySha256": "4ed84eb84a8c9431794131019ef14f7fc638d045a5cd998868934038d056fdad",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 412256,
+            "geometryGpuBytes": 334668,
+            "textureGpuBytesCompressedTarget": 5592400,
+            "textureGpuBytesRgba8Fallback": 5592400,
+            "modelGpuBytesCompressedTarget": 5927068,
+            "modelGpuBytesRgba8Fallback": 5927068,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 52490,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 9730,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 11468,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 528,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              }
+            ]
+          }
+        },
+        {
+          "id": "lean-256",
+          "settings": {
+            "textureSize": 256,
+            "simplifyRatio": 0.01,
+            "simplifyError": 0.0025,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 500000,
+            "triangles": 25000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-1-lean-256.glb",
+            "bytes": 173036,
+            "sha256": "f84779e00d7b16aabc940baa714f6918a4679b77fefbd6479dce69e8604ca809"
+          },
+          "triangles": 6538,
+          "geometrySha256": "53d03d77291c97db4ccbb78feb4fe2c122472ba0da5823387ad2068f945d6daf",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 173036,
+            "geometryGpuBytes": 144808,
+            "textureGpuBytesCompressedTarget": 1398096,
+            "textureGpuBytesRgba8Fallback": 1398096,
+            "modelGpuBytesCompressedTarget": 1542904,
+            "modelGpuBytesRgba8Fallback": 1542904,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 19692,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 3280,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 1712,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 178,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-split-diadem-rank-2-v1/01a00295-fde7-7cbf-a014-4c4b04b6f3b4/raw-model.glb",
+        "bytes": 26350116,
+        "sha256": "6deaed7b2c8abb94c5804165fd552ae1444e8fccce7cd2024a1bc9380234816e",
+        "taskId": "01a00295-fde7-7cbf-a014-4c4b04b6f3b4",
+        "manifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-2/manifest.json"
+      },
+      "normalization": {
+        "targetPlanformSpan": 0.82,
+        "targetCentreGap": 0.27880000000000005,
+        "heightScale": 1.25,
+        "normalizedHeight": 0.3033820410142716,
+        "facingYawDegrees": 90,
+        "splitClearance": {
+          "version": 1,
+          "axis": "provider-x",
+          "method": "translate vertices left/right about provider bounds centre; no scaling",
+          "targetGapRatio": 0.34,
+          "centre": -0.00047451257705688477,
+          "totalWidthBefore": 1.894500970840454,
+          "totalWidthAfter": 2.24584239450368,
+          "gapBefore": 0.4122449904680252,
+          "gapAfter": 0.7635864141312514,
+          "achievedGapRatio": 0.3400000000000001,
+          "offsetPerSide": 0.1756707118316131
+        }
+      },
+      "profiles": [
+        {
+          "id": "rich-512",
+          "settings": {
+            "textureSize": 512,
+            "simplifyRatio": 0.025,
+            "simplifyError": 0.001,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 1200000,
+            "triangles": 60000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-2-rich-512.glb",
+            "bytes": 406408,
+            "sha256": "83abdfce0708230dd6d6e14377ac835f190ef144ae7fbd373ac79866b6d888a9"
+          },
+          "triangles": 15598,
+          "geometrySha256": "16d982125b1c57dea3488db3b37c3fcd0675db5ef27f099aa3b8dd12701ba4c4",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 406408,
+            "geometryGpuBytes": 322208,
+            "textureGpuBytesCompressedTarget": 5592400,
+            "textureGpuBytesRgba8Fallback": 5592400,
+            "modelGpuBytesCompressedTarget": 5914608,
+            "modelGpuBytesRgba8Fallback": 5914608,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 57712,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 9060,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 13506,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 528,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              }
+            ]
+          }
+        },
+        {
+          "id": "lean-256",
+          "settings": {
+            "textureSize": 256,
+            "simplifyRatio": 0.01,
+            "simplifyError": 0.0025,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 500000,
+            "triangles": 25000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-2-lean-256.glb",
+            "bytes": 166080,
+            "sha256": "798099f0dce355cd1fb351d2135dbb4e3e67fe94df0647692b17d6ec6e69bdbe"
+          },
+          "triangles": 6238,
+          "geometrySha256": "aaf52ef5b59927fc03982a4730786975d9b9c2ae6ecb620073bcba2e1ac1e8eb",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 166080,
+            "geometryGpuBytes": 139128,
+            "textureGpuBytesCompressedTarget": 1398096,
+            "textureGpuBytesRgba8Fallback": 1398096,
+            "modelGpuBytesCompressedTarget": 1537224,
+            "modelGpuBytesRgba8Fallback": 1537224,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 19038,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 2894,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 1448,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 178,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-split-diadem-rank-3-v1/01a00297-c1fe-7f4a-8236-b646e390bd2b/raw-model.glb",
+        "bytes": 43252500,
+        "sha256": "362f476bced0eaa38616a7eb37738cd3c222311414932d8970f475ae4326c020",
+        "taskId": "01a00297-c1fe-7f4a-8236-b646e390bd2b",
+        "manifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-3/manifest.json"
+      },
+      "normalization": {
+        "targetPlanformSpan": 0.86,
+        "targetCentreGap": 0.2924,
+        "heightScale": 1.1,
+        "normalizedHeight": 0.3802538313364589,
+        "facingYawDegrees": 90,
+        "splitClearance": {
+          "version": 1,
+          "axis": "provider-x",
+          "method": "translate vertices left/right about provider bounds centre; no scaling",
+          "targetGapRatio": 0.34,
+          "centre": -0.0006320178508758545,
+          "totalWidthBefore": 1.900052011013031,
+          "totalWidthAfter": 2.3958075904484954,
+          "gapBefore": 0.31881900131702423,
+          "gapAfter": 0.8145745807524886,
+          "achievedGapRatio": 0.34,
+          "offsetPerSide": 0.24787778971773217
+        }
+      },
+      "profiles": [
+        {
+          "id": "rich-512",
+          "settings": {
+            "textureSize": 512,
+            "simplifyRatio": 0.025,
+            "simplifyError": 0.001,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 1200000,
+            "triangles": 60000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-3-rich-512.glb",
+            "bytes": 693100,
+            "sha256": "868fccff462c6c617790fcc16975b4828f7bb2369e521822960946bddeaa04fd"
+          },
+          "triangles": 30428,
+          "geometrySha256": "ed51db4cef1fbd117cc51a3d20068a00ff24a7b718b81790c7f0aa6445dcd45a",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 693100,
+            "geometryGpuBytes": 603128,
+            "textureGpuBytesCompressedTarget": 5592400,
+            "textureGpuBytesRgba8Fallback": 5592400,
+            "modelGpuBytesCompressedTarget": 6195528,
+            "modelGpuBytesRgba8Fallback": 6195528,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 63466,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 7852,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 14734,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 528,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              }
+            ]
+          }
+        },
+        {
+          "id": "lean-256",
+          "settings": {
+            "textureSize": 256,
+            "simplifyRatio": 0.01,
+            "simplifyError": 0.0025,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 500000,
+            "triangles": 25000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-3-lean-256.glb",
+            "bytes": 287464,
+            "sha256": "e09e711423c08977a152b1a278f75055812cd04201c480f9e1963f9b21bad16e"
+          },
+          "triangles": 12170,
+          "geometrySha256": "826962604065a82e687e8f16277d3325c05c127ee979b6d82f295455a2637ce5",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 287464,
+            "geometryGpuBytes": 259200,
+            "textureGpuBytesCompressedTarget": 1398096,
+            "textureGpuBytesRgba8Fallback": 1398096,
+            "modelGpuBytesCompressedTarget": 1657296,
+            "modelGpuBytesRgba8Fallback": 1657296,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 20692,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 2598,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 1404,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 178,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-split-diadem-rank-4-v1/01a00299-e6dc-7d02-a713-86a9ccf8c7e9/raw-model.glb",
+        "bytes": 58220072,
+        "sha256": "680007459e960a0f2a66dfc0ab615df3fdb9a7f358106e5b4e0b15f5d601d9bc",
+        "taskId": "01a00299-e6dc-7d02-a713-86a9ccf8c7e9",
+        "manifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-4/manifest.json"
+      },
+      "normalization": {
+        "targetPlanformSpan": 0.9,
+        "targetCentreGap": 0.30600000000000005,
+        "heightScale": 1.05,
+        "normalizedHeight": 0.4646805695040083,
+        "facingYawDegrees": 90,
+        "splitClearance": {
+          "version": 1,
+          "axis": "provider-x",
+          "method": "translate vertices left/right about provider bounds centre; no scaling",
+          "targetGapRatio": 0.34,
+          "centre": -0.00032648444175720215,
+          "totalWidthBefore": 1.900605022907257,
+          "totalWidthAfter": 2.4360848872950585,
+          "gapBefore": 0.2927889972925186,
+          "gapAfter": 0.82826886168032,
+          "achievedGapRatio": 0.34,
+          "offsetPerSide": 0.2677399321939007
+        }
+      },
+      "profiles": [
+        {
+          "id": "rich-512",
+          "settings": {
+            "textureSize": 512,
+            "simplifyRatio": 0.025,
+            "simplifyError": 0.001,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 1200000,
+            "triangles": 60000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-4-rich-512.glb",
+            "bytes": 986700,
+            "sha256": "4740eaa3684a326fe0a782a18345bbff517652277b910ad69d72cbd4f3b72405"
+          },
+          "triangles": 43422,
+          "geometrySha256": "b1371c79718ff8afcbb0386383f872c1adf61e52941d8b51803c5221ee3310a5",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 986700,
+            "geometryGpuBytes": 894612,
+            "textureGpuBytesCompressedTarget": 5592400,
+            "textureGpuBytesRgba8Fallback": 5592400,
+            "modelGpuBytesCompressedTarget": 6487012,
+            "modelGpuBytesRgba8Fallback": 6487012,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 65800,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 8452,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 13914,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 528,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              }
+            ]
+          }
+        },
+        {
+          "id": "lean-256",
+          "settings": {
+            "textureSize": 256,
+            "simplifyRatio": 0.01,
+            "simplifyError": 0.0025,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 500000,
+            "triangles": 25000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-4-lean-256.glb",
+            "bytes": 420356,
+            "sha256": "86ccea29103f5ac8bdbf8b0bf7f829b9aa57484a3b7a5917c19425d202fcb066"
+          },
+          "triangles": 17368,
+          "geometrySha256": "0b5faa5ac66276f92de7104a58ae4d2c1ae09be976546fa6a1bb36751b495c43",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 420356,
+            "geometryGpuBytes": 392308,
+            "textureGpuBytesCompressedTarget": 1398096,
+            "textureGpuBytesRgba8Fallback": 1398096,
+            "modelGpuBytesCompressedTarget": 1790404,
+            "modelGpuBytesRgba8Fallback": 1790404,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 20616,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 2610,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 1252,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 178,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "source": {
+        "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-split-diadem-rank-5-v1/01a00290-9941-7b7c-86eb-568a05e213a2/raw-model.glb",
+        "bytes": 64738616,
+        "sha256": "946a8f6c1eb305cd820ff494753c0f292fbd0f5c6235d7a37e8db299820f7dc0",
+        "taskId": "01a00290-9941-7b7c-86eb-568a05e213a2",
+        "manifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-diadem-whole-v1/rank-5/manifest.json"
+      },
+      "normalization": {
+        "targetPlanformSpan": 0.94,
+        "targetCentreGap": 0.3196,
+        "heightScale": 1.05,
+        "normalizedHeight": 0.49871311052377165,
+        "facingYawDegrees": 90,
+        "splitClearance": {
+          "version": 1,
+          "axis": "provider-x",
+          "method": "translate vertices left/right about provider bounds centre; no scaling",
+          "targetGapRatio": 0.34,
+          "centre": -0.00021600723266601562,
+          "totalWidthBefore": 1.9006680250167847,
+          "totalWidthAfter": 2.5756697311545866,
+          "gapBefore": 0.2007260024547577,
+          "gapAfter": 0.8757277085925596,
+          "achievedGapRatio": 0.34,
+          "offsetPerSide": 0.33750085306890093
+        }
+      },
+      "profiles": [
+        {
+          "id": "rich-512",
+          "settings": {
+            "textureSize": 512,
+            "simplifyRatio": 0.025,
+            "simplifyError": 0.001,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 1200000,
+            "triangles": 60000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-5-rich-512.glb",
+            "bytes": 1080432,
+            "sha256": "c6a2f528ba1a0492b564d0cebe61056cd4e642e88704cc6dc60df4fbee1217f3"
+          },
+          "triangles": 49580,
+          "geometrySha256": "c1347dd2a6174a439d5e02bcb013cc4fc30f2a732b1a742b4c2151e02b5794a0",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 1080432,
+            "geometryGpuBytes": 996540,
+            "textureGpuBytesCompressedTarget": 5592400,
+            "textureGpuBytesRgba8Fallback": 5592400,
+            "modelGpuBytesCompressedTarget": 6588940,
+            "modelGpuBytesRgba8Fallback": 6588940,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 60372,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 8184,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 11418,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 512,
+                "height": 512,
+                "mipLevels": 10,
+                "transferBytes": 532,
+                "gpuBytesCompressedTarget": 1398100,
+                "gpuBytesRgba8Fallback": 1398100
+              }
+            ]
+          }
+        },
+        {
+          "id": "lean-256",
+          "settings": {
+            "textureSize": 256,
+            "simplifyRatio": 0.01,
+            "simplifyError": 0.0025,
+            "simplifyLockBorder": false,
+            "matteRoughnessFloor": 0.78
+          },
+          "budgets": {
+            "transferBytes": 500000,
+            "triangles": 25000
+          },
+          "artifact": {
+            "file": "art/class-models/runtime-tiers/arc-relay/meshy7-veterancy-split-diadem-whole-v1/rank-5-lean-256.glb",
+            "bytes": 457932,
+            "sha256": "a73af93ad20ac6e16dac1ddb9cc7669aceb817d7445cdfb2b07ecff4dadafce1"
+          },
+          "triangles": 19832,
+          "geometrySha256": "d3bca49c6677e9e0924cb214a09ebfff260f0da301e333f30dd56266a0a2af00",
+          "meshes": 1,
+          "primitives": 1,
+          "materials": 1,
+          "textures": 4,
+          "memory": {
+            "transferBytes": 457932,
+            "geometryGpuBytes": 432312,
+            "textureGpuBytesCompressedTarget": 1398096,
+            "textureGpuBytesRgba8Fallback": 1398096,
+            "modelGpuBytesCompressedTarget": 1830408,
+            "modelGpuBytesRgba8Fallback": 1830408,
+            "textures": [
+              {
+                "imageIndex": 0,
+                "name": null,
+                "slots": [
+                  "baseColorTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 19072,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 1,
+                "name": null,
+                "slots": [
+                  "metallicRoughnessTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 2022,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 2,
+                "name": null,
+                "slots": [
+                  "normalTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 968,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              },
+              {
+                "imageIndex": 3,
+                "name": null,
+                "slots": [
+                  "emissiveTexture"
+                ],
+                "mimeType": "image/webp",
+                "encoding": "RGBA8",
+                "width": 256,
+                "height": 256,
+                "mipLevels": 9,
+                "transferBytes": 178,
+                "gpuBytesCompressedTarget": 349524,
+                "gpuBytesRgba8Fallback": 349524
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

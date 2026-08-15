@@ -42,8 +42,11 @@ for (const input of [...manifest.meshyInputs].sort((left, right) => left.order -
   });
 }
 
-if (inputs[0]?.primary !== true || inputs[0]?.view !== 'strict-front')
-  throw new Error('The first Meshy 7 input must be the primary strict-front view.');
+const primaryView = plan.primaryView ?? 'strict-front';
+if (inputs[0]?.primary !== true || inputs[0]?.view !== primaryView)
+  throw new Error(`The first Meshy 7 input must be the primary ${primaryView} view.`);
+if (inputs.filter((input) => input.primary === true).length !== 1)
+  throw new Error('Exactly one Meshy 7 input must be marked primary.');
 
 if (options.validateOnly) {
   console.log(
@@ -335,6 +338,11 @@ function validateManifest(value, requestPlan, { requireAuthorization }) {
     throw new Error('The authorized clean-input generation disables remesh and image enhancement.');
   if (requestPlan.pilotCreditCap !== 30)
     throw new Error('The authorized per-task credit cap must be exactly 30.');
+  if (
+    typeof requestPlan.texture_prompt !== 'string' ||
+    requestPlan.texture_prompt.length > 800
+  )
+    throw new Error('The Meshy texture prompt must be a string of at most 800 characters.');
   if (requestPlan.autoRigging !== false)
     throw new Error('Auto-rigging must be explicitly disabled.');
   if (

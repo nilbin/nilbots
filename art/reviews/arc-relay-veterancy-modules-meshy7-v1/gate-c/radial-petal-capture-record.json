@@ -1,0 +1,52 @@
+{
+  "moduleId": "veterancy-radial-petal",
+  "taskId": "01a001c9-f953-7c78-955b-0027fc53e9d6",
+  "model": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-radial-petal/01a001c9-f953-7c78-955b-0027fc53e9d6/model-normalized-rich-review.glb",
+  "sheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/veterancy-radial-petal-six-view.png",
+  "bytes": 554588,
+  "sha256": "b6deb3d247afea2e0d73eb6b97f2b1f87bcbacfe24451d97243347152507a433",
+  "captures": [
+    {
+      "view": "front-three-quarter",
+      "label": "GAMEPLAY 3/4",
+      "bytes": 55418,
+      "sha256": "14bd79cf86fdccb6e4ccdd5d3e6f769bf23cc898b5d5076fc8f3f4de838a45d0",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/captures/front-three-quarter.png"
+    },
+    {
+      "view": "positive-x",
+      "label": "+X CAMERA",
+      "bytes": 68288,
+      "sha256": "45effe86417cf8f0aaf2db108a34418f24ea1b2315b51c0f7fc786d2d307b7da",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/captures/positive-x.png"
+    },
+    {
+      "view": "negative-x",
+      "label": "-X CAMERA",
+      "bytes": 91145,
+      "sha256": "ccdbba9fada75c723af0b3926bfb948019115c19a94b5c53f7db87e52753e93c",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/captures/negative-x.png"
+    },
+    {
+      "view": "positive-z",
+      "label": "+Z CAMERA",
+      "bytes": 42940,
+      "sha256": "d21e862e2ee99184eb79cd40bc5587556307ec7189df68acbca1fcb758bd596e",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/captures/positive-z.png"
+    },
+    {
+      "view": "negative-z",
+      "label": "-Z CAMERA",
+      "bytes": 43491,
+      "sha256": "02e3372a4b9797511c2e99a3647fe0c95714b7a015f947acf9c78aab7c5dc64b",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/captures/negative-z.png"
+    },
+    {
+      "view": "top-down",
+      "label": "STRICT TOP",
+      "bytes": 96737,
+      "sha256": "f061663e2fe6fdd5ad27dd789a30d39ae50e61af651355189a3bf55e1262244a",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-radial-petal/captures/top-down.png"
+    }
+  ]
+}

@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "id": "veterancy-curved-rail-meshy7-gate-c-v1",
+  "classId": "veterancy-curved-rail",
+  "label": "Veterancy Curved Rail",
+  "status": "technical-pass-owner-unreviewed",
+  "providerRunCollection": "arc-veterancy-modules-v1",
+  "ownerApproval": "Owner rejected the blade-only level-five study and explicitly asked 'What about the crown and feathers etc?!' on 2026-08-14; treated as Gate C approval for the remaining real module families.",
+  "canonicalIdentity": {
+    "sourceSheet": "source-sheet.png",
+    "gateAReview": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-inputs.png",
+    "inputMetrics": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-a-input-metrics.json"
+  },
+  "meshyInputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "03-front-three-quarter.png",
+      "sha256": "0df1a0ed1987e8894172446df164f25fa7e4b640c5cd08e9051a0e76ba6eb1f4",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "02-side.png",
+      "sha256": "0f375f316641e49298a559c9501e4e36ed5d76770d4fcb96b2a2ca36315c519f",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "04-rear-three-quarter.png",
+      "sha256": "1c33b8c4e2c63b21546cc034051998444f008e46690e4673c0270e6db2db9337",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "01-top.png",
+      "sha256": "8066f71fc1662dc291b4d49f38f92bd2f6550d8a896fc7ba0d23c04f187353b0",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "inputGate": {
+    "status": "passed",
+    "oneObjectPerTask": true,
+    "separateImages": true,
+    "plainBackground": true,
+    "diffuseLighting": true,
+    "castShadow": false,
+    "minimumShortestSide": 1254,
+    "rootIntent": "Flat underside and capped-end pads mount around open chassis space; the broken curve must retain a clear gap and never close into a ring.",
+    "family": "matte aged brass shell, graphite recesses, restrained amber inlay"
+  },
+  "meshyRequestPlan": {
+    "authorized": false,
+    "authorizationConsumed": true,
+    "authorization": "Gate C owner approval on 2026-08-14; run last after all earlier Gate C modules pass inspection.",
+    "pilotCreditCap": 30,
+    "primaryView": "front-three-quarter",
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy curved-rail armor attachment: one low broken curved mantle segment framing deliberate negative space. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the incomplete arc, thick readable body, capped ends, flat mounting underside, clean mirrorability, open center, and one connected rigid object. No bot, chassis, base, floor, complete ring, halo, selection circle, shield hoop, force field, crescent weapon, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, rank symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ],
+    "autoRigging": false,
+    "completedTaskId": "01a001d2-0a49-7b75-bacd-a9f48010f025",
+    "consumedCredits": 30
+  },
+  "creditCheck": {
+    "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+    "parameterSource": "https://docs.meshy.ai/en/api/multi-image-to-3d",
+    "pricingVerifiedAt": "2026-08-14",
+    "expectedCredits": 30,
+    "balanceBeforePreparation": 980
+  },
+  "nextGate": "deferred until the corrected crown-feather Kestrel composition passes; no runtime promotion",
+  "providerRun": {
+    "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025",
+    "directory": "../../veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025",
+    "status": "SUCCEEDED",
+    "consumedCredits": 30,
+    "balanceBefore": 890,
+    "balanceAfter": 860,
+    "rawModelSha256": "d92d84ef012f50ee7253de3f973bfc3e5e27ebce500bef2ee36a2da748d00b08"
+  },
+  "reviewGate": {
+    "status": "technical-pass-owner-unreviewed",
+    "runtimePromoted": false,
+    "normalizedRichArtifact": "../../veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025/model-normalized-rich-review.glb",
+    "normalization": "../../veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025/normalization.json",
+    "sixView": "../../../../../../reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-curved-rail/veterancy-curved-rail-six-view.png",
+    "orientation": "identity",
+    "dimensions": { "x": 0.34, "y": 0.03519505460576863, "z": 0.13364502152512934 },
+    "assessment": "The result remains an open capped arc with no complete halo, selection-ring, or weapon read."
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "moduleId": "veterancy-swept-blade",
+  "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
+  "model": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/model-normalized-rich-review.glb",
+  "sheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/veterancy-swept-blade-six-view.png",
+  "bytes": 655777,
+  "sha256": "68db14c7e4a7d74b498af2c7efe0f6ef741eae9422d4e0fb5bd16a81f1d8f647",
+  "captures": [
+    {
+      "view": "front-three-quarter",
+      "label": "GAMEPLAY 3/4",
+      "bytes": 65395,
+      "sha256": "95743180116f76a15b0d7a45a7217b0fde4a0e3bb3f8c3211eb8115a48691376",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/captures/front-three-quarter.png"
+    },
+    {
+      "view": "positive-x",
+      "label": "+X CAMERA",
+      "bytes": 117551,
+      "sha256": "3d8bc4330dd362bba08e04ef430b65035e88f01ee2194fd44ed3f814bee21698",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/captures/positive-x.png"
+    },
+    {
+      "view": "negative-x",
+      "label": "-X CAMERA",
+      "bytes": 72506,
+      "sha256": "0cef9361f6965ac055d418b0af10ffbf00dc0fa47077965d9588ef858f3663e4",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/captures/negative-x.png"
+    },
+    {
+      "view": "positive-z",
+      "label": "+Z CAMERA",
+      "bytes": 47149,
+      "sha256": "8b1528a92b1d7dc209dc7b0d38d9abdf457ae08221b6a7138e3b791b3631f6ac",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/captures/positive-z.png"
+    },
+    {
+      "view": "negative-z",
+      "label": "-Z CAMERA",
+      "bytes": 48696,
+      "sha256": "2f3cba340406429c5918fba3cd804f554ba56a35c86d6db8f1a6980f03da86fe",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/captures/negative-z.png"
+    },
+    {
+      "view": "top-down",
+      "label": "STRICT TOP",
+      "bytes": 100592,
+      "sha256": "39a763e1c988a30af0285ea320f5c0adc7739789af5579a3945a60b16dd9d440",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-swept-blade/captures/top-down.png"
+    }
+  ]
+}

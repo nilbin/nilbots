@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nilbots veterancy composition static review</title>
+    <style>
+      html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #17191c; }
+      canvas { display: block; width: 100%; height: 100%; }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "../../web/node_modules/three/build/three.module.js",
+          "three/addons/": "../../web/node_modules/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <script type="module">
+      import * as THREE from 'three';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+      const search = new URLSearchParams(location.search);
+      const required = ['chassis', 'crown', 'inner', 'outer'];
+      for (const key of required)
+        if (!search.get(key)) throw new Error(`Missing ?${key} URL.`);
+      const rank = Number(search.get('rank') ?? 5);
+      const view = search.get('view') ?? 'gameplay';
+      const innerKind = search.get('innerKind') ?? 'swept';
+      const outerKind = search.get('outerKind') ?? 'radial';
+      const profileName = search.get('profile') ?? 'standard';
+      if (!Number.isInteger(rank) || rank < 1 || rank > 5) throw new Error('Rank must be 1–5.');
+      if (!['gameplay', 'top-down'].includes(view)) throw new Error(`Unknown view ${view}.`);
+      const supportedKinds = new Set(['swept', 'square', 'radial', 'curved']);
+      if (!supportedKinds.has(innerKind) || !supportedKinds.has(outerKind))
+        throw new Error('Unknown module kind.');
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setPixelRatio(1);
+      renderer.setSize(innerWidth, innerHeight);
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.08;
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      document.body.append(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color('#17191c');
+      scene.add(new THREE.HemisphereLight('#fff8e8', '#28313a', 2.25));
+      const key = new THREE.DirectionalLight('#ffe7be', 3.5);
+      key.position.set(3.5, 6, -4.5);
+      key.castShadow = true;
+      scene.add(key);
+      const fill = new THREE.DirectionalLight('#dce8ff', 1.35);
+      fill.position.set(-4, 3, 3);
+      scene.add(fill);
+
+      const loader = new GLTFLoader();
+      const [chassis, crownTemplate, innerTemplate, outerTemplate] = await Promise.all([
+        loader.loadAsync(search.get('chassis')).then((result) => result.scene),
+        loader.loadAsync(search.get('crown')).then((result) => result.scene),
+        loader.loadAsync(search.get('inner')).then((result) => result.scene),
+        loader.loadAsync(search.get('outer')).then((result) => result.scene),
+      ]);
+      centreAndGround(chassis);
+      const content = new THREE.Group();
+      content.add(chassis);
+      scene.add(content);
+      const bounds = new THREE.Box3().setFromObject(chassis);
+      const size = bounds.getSize(new THREE.Vector3());
+      const centre = bounds.getCenter(new THREE.Vector3());
+      const profiles = {
+        standard: {
+          crown: { scale: 1.04, x: -0.08, y: 0.91 },
+          inner: { scale: 0.76, x: 0.03, y: 0.8, z: 0.24, yaw: 5, width: 0.72 },
+          outer: { scale: 0.72, x: -0.08, y: 0.72, z: 0.39, yaw: 7, width: 0.72 },
+        },
+        long: {
+          crown: { scale: 0.94, x: -0.22, y: 0.87 },
+          inner: { scale: 0.73, x: 0.03, y: 0.68, z: 0.22, yaw: 5, width: 0.68 },
+          outer: { scale: 0.78, x: -0.06, y: 0.62, z: 0.38, yaw: 14, width: 0.68 },
+        },
+        round: {
+          crown: { scale: 0.94, x: -0.04, y: 0.89 },
+          inner: { scale: 0.67, x: 0.17, y: 0.79, z: 0.26, yaw: 3, width: 0.7 },
+          outer: { scale: 0.64, x: -0.17, y: 0.72, z: 0.4, yaw: 3, width: 0.7 },
+        },
+        heavy: {
+          crown: { scale: 0.96, x: -0.06, y: 0.9 },
+          inner: { scale: 0.64, x: 0.01, y: 0.75, z: 0.23, yaw: 5, width: 0.62 },
+          outer: { scale: 0.64, x: -0.08, y: 0.68, z: 0.38, yaw: 14, width: 0.62 },
+        },
+        low: {
+          crown: { scale: 0.74, x: -0.05, y: 0.82 },
+          inner: { scale: 0.58, x: 0.01, y: 0.7, z: 0.22, yaw: 4, width: 0.64 },
+          outer: { scale: 0.54, x: -0.05, y: 0.63, z: 0.36, yaw: 12, width: 0.64 },
+        },
+      };
+      const profile = profiles[profileName];
+      if (!profile) throw new Error(`Unknown profile ${profileName}.`);
+
+      const strongest = rank === 5;
+      const energized = rank >= 3;
+      const crown = crownTemplate.clone(true);
+      const crownScale = profile.crown.scale * (strongest ? 1.18 : energized ? 1.03 : 0.94);
+      crown.scale.setScalar(crownScale);
+      crown.position.set(
+        centre.x + size.x * profile.crown.x,
+        bounds.min.y + size.y * profile.crown.y,
+        centre.z,
+      );
+      boostEmission(crown, strongest ? 1.3 : energized ? 1.08 : 0.85);
+      content.add(crown);
+
+      if (rank >= 2) {
+        const spread = rank === 2 ? 0.84 : strongest ? 1.16 : 0.96;
+        addPair(content, innerTemplate, innerKind, {
+          ...profile.inner,
+          scale: profile.inner.scale * (strongest ? 1.1 : 1),
+          x: centre.x + size.x * profile.inner.x,
+          y: bounds.min.y + size.y * profile.inner.y,
+          z: size.z * profile.inner.z * spread,
+          yaw: profile.inner.yaw * (rank === 2 ? 0.25 : strongest ? 1.6 : 0.8),
+          emission: strongest ? 1.3 : energized ? 1.08 : 0.9,
+        });
+      }
+      if (rank >= 4) {
+        addPair(content, outerTemplate, outerKind, {
+          ...profile.outer,
+          scale: profile.outer.scale * (strongest ? 1.16 : 0.98),
+          x: centre.x + size.x * profile.outer.x,
+          y: bounds.min.y + size.y * profile.outer.y,
+          z: size.z * profile.outer.z * (strongest ? 1.18 : 0.96),
+          yaw: profile.outer.yaw * (strongest ? 1.35 : 0.78),
+          emission: strongest ? 1.3 : 1.06,
+        });
+      }
+
+      content.traverse((object) => {
+        if (!object.isMesh) return;
+        object.castShadow = true;
+        object.receiveShadow = true;
+      });
+      const visualBounds = new THREE.Box3().setFromObject(content);
+      const visualCentre = visualBounds.getCenter(new THREE.Vector3());
+      const floorSize = Math.max(size.x, size.z) * 1.55;
+      const floor = new THREE.Mesh(
+        new THREE.PlaneGeometry(floorSize, floorSize),
+        new THREE.MeshStandardMaterial({ color: '#24292e', roughness: 0.98, metalness: 0.02 }),
+      );
+      floor.rotation.x = -Math.PI / 2;
+      floor.position.set(visualCentre.x, -0.008, visualCentre.z);
+      floor.receiveShadow = true;
+      scene.add(floor);
+      const grid = new THREE.GridHelper(floorSize, 6, '#424a50', '#31383d');
+      grid.position.set(visualCentre.x, -0.004, visualCentre.z);
+      for (const material of Array.isArray(grid.material) ? grid.material : [grid.material]) {
+        material.transparent = true;
+        material.opacity = 0.34;
+      }
+      scene.add(grid);
+
+      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.01, 20);
+      const cameraVector = view === 'top-down'
+        ? new THREE.Vector3(0, 1, 0)
+        : new THREE.Vector3(1, 1.42, -1.12);
+      if (view === 'top-down') camera.up.set(0, 0, -1);
+      camera.position.copy(visualCentre).add(cameraVector.normalize().multiplyScalar(4));
+      camera.lookAt(visualCentre);
+      camera.updateMatrixWorld();
+      const corners = [];
+      for (const x of [visualBounds.min.x, visualBounds.max.x])
+        for (const y of [visualBounds.min.y, visualBounds.max.y])
+          for (const z of [visualBounds.min.z, visualBounds.max.z])
+            corners.push(new THREE.Vector3(x, y, z));
+      let maximum = 0;
+      for (const corner of corners) {
+        const projected = corner.clone().project(camera);
+        maximum = Math.max(maximum, Math.abs(projected.x), Math.abs(projected.y));
+      }
+      const half = Math.max(maximum, 0.01) * 1.2;
+      camera.left = -half;
+      camera.right = half;
+      camera.top = half;
+      camera.bottom = -half;
+      camera.updateProjectionMatrix();
+      renderer.render(scene, camera);
+      window.__veterancyCompositionReady = true;
+
+      function addPair(parent, template, kind, placement) {
+        for (const side of [-1, 1]) {
+          const instance = template.clone(true);
+          if (kind === 'radial') {
+            instance.scale.setScalar(placement.scale);
+            const radialAngle = Math.atan2(
+              -side * placement.z,
+              placement.x - centre.x,
+            );
+            instance.rotation.y =
+              radialAngle + THREE.MathUtils.degToRad(side * placement.yaw);
+          } else {
+            instance.scale.set(
+              placement.scale,
+              placement.scale,
+              placement.scale * placement.width * side,
+            );
+            instance.rotation.y = THREE.MathUtils.degToRad(placement.yaw * side);
+          }
+          instance.position.set(placement.x, placement.y, placement.z * side);
+          boostEmission(instance, placement.emission);
+          parent.add(instance);
+        }
+      }
+
+      function boostEmission(instance, multiplier) {
+        if (multiplier === 1) return;
+        instance.traverse((object) => {
+          if (!object.isMesh) return;
+          object.material = object.material.clone();
+          object.material.emissiveIntensity =
+            (object.material.emissiveIntensity ?? 1) * multiplier;
+        });
+      }
+
+      function centreAndGround(object) {
+        const objectBounds = new THREE.Box3().setFromObject(object);
+        const objectCentre = objectBounds.getCenter(new THREE.Vector3());
+        object.position.x -= objectCentre.x;
+        object.position.z -= objectCentre.z;
+        const grounded = new THREE.Box3().setFromObject(object);
+        object.position.y -= grounded.min.y;
+      }
+    </script>
+  </body>
+</html>

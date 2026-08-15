@@ -1,0 +1,52 @@
+{
+  "moduleId": "veterancy-crown-spine-v2",
+  "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
+  "model": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60/model-normalized-rich-review.glb",
+  "sheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/veterancy-crown-spine-v2-six-view.png",
+  "bytes": 525470,
+  "sha256": "2fc74b2eb94dd991c63d8963d7c7dea784e5bb02ac1b8481e1d295c6585368da",
+  "captures": [
+    {
+      "view": "front-three-quarter",
+      "label": "GAMEPLAY 3/4",
+      "bytes": 90417,
+      "sha256": "f675b66615e787e5230221bcba89560bf6c62d670b2378c9518b35963e54e118",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/captures/front-three-quarter.png"
+    },
+    {
+      "view": "positive-x",
+      "label": "+X CAMERA",
+      "bytes": 47372,
+      "sha256": "e38741e471cded84fb46adb235563114777f69d5b83bc73085c465a55a3d064f",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/captures/positive-x.png"
+    },
+    {
+      "view": "negative-x",
+      "label": "-X CAMERA",
+      "bytes": 47514,
+      "sha256": "4e3d09c011c2eaa337a6e5d7b6dcfd5e1559b2ca86aa903526f59b99aa42619a",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/captures/negative-x.png"
+    },
+    {
+      "view": "positive-z",
+      "label": "+Z CAMERA",
+      "bytes": 80711,
+      "sha256": "300bce01a78a936e1c5119c53517720f6faef445daa9f5974106df2edc1cd93b",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/captures/positive-z.png"
+    },
+    {
+      "view": "negative-z",
+      "label": "-Z CAMERA",
+      "bytes": 85868,
+      "sha256": "2747f21c6db016cdd837a10820c7fee41fe7f10f6b37484a793433d65b85ea16",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/captures/negative-z.png"
+    },
+    {
+      "view": "top-down",
+      "label": "STRICT TOP",
+      "bytes": 34623,
+      "sha256": "72d6829788f4e87ce654d0e49322336fb277e48b46f2cdc8528fadadb36976f1",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-crown-spine-v2/captures/top-down.png"
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-curved-rail",
+  "taskId": "01a001d2-0a49-7b75-bacd-a9f48010f025",
+  "submittedAt": "2026-08-14T19:48:56.707Z",
+  "balanceBefore": 890,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/03-front-three-quarter.png",
+      "bytes": 759076,
+      "sha256": "0df1a0ed1987e8894172446df164f25fa7e4b640c5cd08e9051a0e76ba6eb1f4",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/02-side.png",
+      "bytes": 537889,
+      "sha256": "0f375f316641e49298a559c9501e4e36ed5d76770d4fcb96b2a2ca36315c519f",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/04-rear-three-quarter.png",
+      "bytes": 736942,
+      "sha256": "1c33b8c4e2c63b21546cc034051998444f008e46690e4673c0270e6db2db9337",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-curved-rail/01-top.png",
+      "bytes": 837631,
+      "sha256": "8066f71fc1662dc291b4d49f38f92bd2f6550d8a896fc7ba0d23c04f187353b0",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy curved-rail armor attachment: one low broken curved mantle segment framing deliberate negative space. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber inlay; sparse edge wear. Preserve the incomplete arc, thick readable body, capped ends, flat mounting underside, clean mirrorability, open center, and one connected rigid object. No bot, chassis, base, floor, complete ring, halo, selection circle, shield hoop, force field, crescent weapon, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, rank symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-crown-spine-v2",
+  "taskId": "01a001e6-49a2-7e18-b5d8-c6b7240d5d60",
+  "submittedAt": "2026-08-14T20:11:03.657Z",
+  "balanceBefore": 860,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine-v2/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine-v2/03-front-three-quarter.png",
+      "bytes": 1343613,
+      "sha256": "3b5a77abc5d4e9052eb53a43ac34bc9d051eb69e58741b559d8d0576615906e7",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine-v2/02-side.png",
+      "bytes": 952497,
+      "sha256": "8df44984b13353776ed3dc0aaa365cb73f6373fadcb3923c7b3db9876cdaa809",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine-v2/04-rear-three-quarter.png",
+      "bytes": 1268732,
+      "sha256": "12ce637a491592ff5c79b0d3a4ac8ff7f7d9a6167b78d78fbc5033c94feea9d7",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "front",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-crown-spine-v2/01-front.png",
+      "bytes": 1265609,
+      "sha256": "844ce75f2e915b402a165534c9170ba40362ac6c01907212a4ed0b9bc43e2099",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy petaled command crest. Rough matte aged desaturated warm brass/bronze shells; graphite shared mounting base and recesses; narrow restrained dim amber channels; sparse edge wear. Preserve exactly five thick broad clipped mechanical petals: one dominant center spine and two progressively lower swept pairs, fused to one low rigid base with two flat mounting pads. Large readable facets and centered symmetry. No bot, chassis, floor, pedestal, flat bridge, hovercar, jewelry, jewels, horns, antlers, organic feathers, wings, floating parts, weapon, rank symbols, teal/cyan, saturated orange panels, blue, red, white, glossy plastic, chrome, lacquer, text, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

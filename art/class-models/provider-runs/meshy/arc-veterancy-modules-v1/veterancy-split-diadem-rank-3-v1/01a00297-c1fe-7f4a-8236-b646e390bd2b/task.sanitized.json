@@ -1,0 +1,36 @@
+{
+  "id": "01a00297-c1fe-7f4a-8236-b646e390bd2b",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Complete Nilbots veterancy rank 3 split diadem: exactly two disconnected bilateral rail halves and exactly 4 total clipped-tip mechanical blades. Preserve the wide full-height empty center corridor and open moose-antler silhouette. Rough matte desaturated aged warm brass/bronze plates; graphite only in recessed seams; dim warm-gold edge channels; sparse wear. Broad readable facets, shallow thickness. No bot, Core, bridge, connector, center spike, ring, roof, pedestal, organic antler, wing, weapon, text, team teal/cyan, saturated orange, blue, red, white plastic, chrome, lacquer, baked lighting, shadow, or extra blades.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786749897671,
+  "progress": 100,
+  "started_at": 1786749897676,
+  "finished_at": 1786750025582,
+  "expires_at": 1787009225582,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a00297-c1fe-7f4a-8236-b646e390bd2b/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

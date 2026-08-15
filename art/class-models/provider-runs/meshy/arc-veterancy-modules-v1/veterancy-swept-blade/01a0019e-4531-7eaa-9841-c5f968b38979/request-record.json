@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-swept-blade",
+  "taskId": "01a0019e-4531-7eaa-9841-c5f968b38979",
+  "submittedAt": "2026-08-14T18:52:23.947Z",
+  "balanceBefore": 1010,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/03-front-three-quarter.png",
+      "bytes": 962938,
+      "sha256": "bc506006edc5e85470b39ce174e48ce4e080b1d19a13136debb9976d9ada48c1",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/02-side.png",
+      "bytes": 716353,
+      "sha256": "617fabbc79a4bfa5532180eae30fb308eb29dbb7b91f8baf7d8e619f657f5d02",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/04-rear-three-quarter.png",
+      "bytes": 805206,
+      "sha256": "b218451bb0acd5db5a7ff69c747552d38b64152206c09dfbee851a986d250d2b",
+      "width": 1254,
+      "height": 1254
+    },
+    {
+      "order": 4,
+      "view": "top",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-swept-blade/01-top.png",
+      "bytes": 1190371,
+      "sha256": "0cfcf89ce20da82861bb394a864c1d475f7439cad7bc56c0520abaf57a7c57a0",
+      "width": 1254,
+      "height": 1254
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots veterancy swept-blade armor attachment. Rough matte aged desaturated warm brass/bronze shell; graphite recessed underside and seams; narrow restrained dim amber emissive inlays; sparse edge wear. Preserve the broad low rear-swept armor-blade silhouette, clipped root and end, recessed inner seam, large readable faceted planes, flat mount underside, and one connected rigid object. No bot, chassis, base, floor, fantasy wing, aircraft, sword, gun, barrel, team teal/cyan, saturated orange team panels, blue, red, white, glossy plastic, chrome, lacquer, text, labels, symbols, eyes, baked lighting, or cast shadows.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

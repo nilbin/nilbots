@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nilbots · Meshy 7 Veterancy Crown and Feathers</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --ink: #eef2f3;
+        --muted: #a3afb5;
+        --panel: #151b20;
+        --line: #303940;
+        --gold: #e6aa43;
+        --green: #79c79b;
+        --red: #ee8d83;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: #090d10;
+        font: 15px/1.55 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main { width: min(1120px, 100%); margin: 0 auto; padding: 28px 16px 64px; }
+      h1, h2 { margin: 0; line-height: 1.15; }
+      h1 { font-size: clamp(30px, 7vw, 58px); letter-spacing: -0.035em; }
+      h2 { margin-bottom: 12px; font-size: clamp(21px, 4vw, 30px); }
+      p { margin: 10px 0 0; }
+      .eyebrow { color: var(--gold); font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .lead { max-width: 820px; color: #cbd3d7; font-size: clamp(17px, 3vw, 21px); }
+      .verdict {
+        margin: 24px 0 16px;
+        padding: 18px 20px;
+        border: 1px solid #406653;
+        border-radius: 14px;
+        background: #102219;
+      }
+      .verdict strong { color: var(--green); font-size: 21px; }
+      .metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 10px;
+        margin: 18px 0 34px;
+      }
+      .metric { padding: 13px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+      .metric b { display: block; color: var(--gold); font-size: 21px; }
+      .metric span { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+      section { margin-top: 42px; }
+      figure { margin: 0; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; background: var(--panel); }
+      figure + figure { margin-top: 16px; }
+      figure a { display: block; }
+      img { display: block; width: 100%; height: auto; background: #11161a; }
+      figcaption { padding: 12px 14px 14px; color: var(--muted); }
+      .split { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(220px, .8fr); gap: 16px; }
+      .note { padding: 16px 18px; border-left: 3px solid var(--gold); background: #171710; color: #d8d1c4; }
+      ul { margin: 10px 0 0; padding-left: 20px; }
+      a { color: #f0bc61; }
+      footer { margin-top: 48px; color: #7f8c93; font-size: 13px; }
+      @media (max-width: 760px) {
+        main { padding-top: 20px; }
+        .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .split { grid-template-columns: 1fr; }
+        section { margin-top: 34px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="eyebrow">Nilbots · universal veterancy concept</div>
+      <h1>A split diadem, growing around an open Core lane.</h1>
+      <p class="lead">A simpler replacement for five attachment families and sixteen hand-fit profiles: one shared paired ornament floats behind every chassis and develops from two broken rear arcs into a six-feather command crown while its center remains empty for Core motion.</p>
+
+      <div class="verdict">
+        <strong>Proposal: review the motion-safe split diadem before more modeling.</strong>
+        <p>It removes chassis clipping, keeps one consistent read across all sixteen bots, and reserves one unchanged pickup/drop/toss corridor at every rank. The rejected broad-plate and center-prong studies remain preserved below for comparison.</p>
+      </div>
+
+      <div class="metrics">
+        <div class="metric"><b>1</b><span>shared ornament</span></div>
+        <div class="metric"><b>16</b><span>bots covered</span></div>
+        <div class="metric"><b>0</b><span>new Meshy credits</span></div>
+        <div class="metric"><b>0</b><span>runtime changes</span></div>
+      </div>
+
+      <section>
+        <h2>1 · Motion-safe split diadem, levels 1–5</h2>
+        <p class="note">The actual ornament is two rear-quarter halves with no center bridge or center prong. Feather pairs grow only upward and outward, preserving the same empty Core lane through every rank.</p>
+        <figure>
+          <a href="correction-v5/motion-safe-split-diadem-rank-1-5-clean.png"><img src="correction-v5/motion-safe-split-diadem-rank-1-5-clean.png" alt="Five-panel clean concept showing a split rear diadem growing into a six-feather crown" /></a>
+          <figcaption>Clean game-facing concept. Levels 1–5 from left to right; the permanent center notch is part of the ornament silhouette.</figcaption>
+        </figure>
+        <figure>
+          <a href="correction-v5/motion-safe-split-diadem-rank-1-5-clearance.png"><img src="correction-v5/motion-safe-split-diadem-rank-1-5-clearance.png" alt="Five-panel technical concept showing the empty Core clearance capsule through every split-crown rank" /></a>
+          <figcaption>Diagnostic companion. The translucent capsule and Core are review overlays only; they record the no-geometry volume for pickup, carry, drop, handoff, and toss.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>2 · Earlier fixed-carry check</h2>
+        <p class="note">This predecessor proved the carried pose and match-zoom hierarchy, but its center prong did not prove the complete animated path. The split-crown sheet above supersedes its geometry while retaining the detached Core, tether, and objective-first read.</p>
+        <figure>
+          <a href="correction-v4/core-carry-clearance-concept-v2.png"><img src="correction-v4/core-carry-clearance-concept-v2.png" alt="Three-panel concept showing a maximum-rank floating crown empty, carrying a Core, and carrying a Core at match zoom" /></a>
+          <figcaption>Conceptual art only. Empty close view, carried-Core close view, and match-zoom read. The bright sphere is the objective; the matte brass crown is secondary.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>3 · The authoritative target</h2>
+        <p class="note">The maximum-rank target is a crown-led silhouette with slim layered feathers and compact chassis-following mantles. The attachment rhythm must feel integrated and elite, not like four weapons bolted onto the sides.</p>
+        <figure>
+          <a href="correction-v2/authoritative-power-directions.png"><img src="correction-v2/authoritative-power-directions.png" alt="Authoritative veterancy power direction board" /></a>
+          <figcaption>Authoritative progression: a compact three-prong start grows into a broad five-prong winged command crown.</figcaption>
+        </figure>
+        <figure>
+          <a href="correction-v2/authoritative-full-roster.png"><img src="correction-v2/authoritative-full-roster.png" alt="Authoritative Crowned Mantle full roster" /></a>
+          <figcaption>Authoritative roster treatment: restrained scale, layered brass forms, and per-chassis integration.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>4 · The rejected 3D read</h2>
+        <p class="note">The crown was too small or presented edge-on, while the side modules were too broad, too flat, and too far from the dorsal crown cluster. They dominate the chassis as armor slabs rather than completing its crown.</p>
+        <figure>
+          <a href="gate-d/real-crown-and-feathers-level5.png"><img src="gate-d/real-crown-and-feathers-level5.png" alt="Rejected level-five veterancy composition" /></a>
+          <figcaption>Rejected owner review. Retained only to show the exact fidelity failure.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>5 · Reusable feather language</h2>
+        <p class="note">This is the proposed replacement direction before another provider call: one narrow connected feather, layered stepped vanes, clipped tip, graphite root, and a restrained amber seam. Inner and outer pairs can reuse this object at different scales and cant angles, matching the authoritative winged-crown progression more closely.</p>
+        <figure>
+          <a href="correction-v2/corrected-swept-feather-candidate.png"><img src="correction-v2/corrected-swept-feather-candidate.png" alt="Four-view candidate for a corrected slim mechanical crown feather" /></a>
+          <figcaption>New 2D candidate only. No Meshy credits have been spent on it.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>6 · What remains usable</h2>
+        <p class="note">The corrected five-petal crown geometry itself matches the reference family reasonably well. Its next composition test must rotate its broad face toward the gameplay camera/chassis width, enlarge it, and group the feather roots tightly around it.</p>
+        <figure>
+          <a href="gate-c/veterancy-crown-spine-v2/veterancy-crown-spine-v2-six-view.png"><img src="gate-c/veterancy-crown-spine-v2/veterancy-crown-spine-v2-six-view.png" alt="Six deterministic views of the salvageable crown model" /></a>
+          <figcaption>Salvageable crown geometry. The rejected level-5 render did not present this broad face correctly.</figcaption>
+        </figure>
+      </section>
+
+      <section>
+        <h2>7 · Rejected module evidence</h2>
+        <ul>
+          <li><a href="gate-c/veterancy-swept-blade/veterancy-swept-blade-six-view.png">Over-broad swept blade</a></li>
+          <li><a href="gate-c/veterancy-radial-petal/veterancy-radial-petal-six-view.png">Over-broad radial petal</a></li>
+          <li><a href="gate-d/five-real-modules.png">Original five-module sheet</a></li>
+          <li><a href="gate-d/kestrel-real-rank-1-5-strip.png">Rejected rank progression</a></li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Next approval gate</h2>
+        <ul>
+          <li>Approve or reject the bilateral split-diadem direction.</li>
+          <li>Choose whether the center corridor and maximum level-five width should be reduced before modeling.</li>
+          <li>Confirm that the permanent six-feather open notch is sufficiently crown-like at gameplay zoom.</li>
+          <li>After approval, build one shared ornament proof and test it at real gameplay scale on several differently shaped bots.</li>
+        </ul>
+      </section>
+
+      <footer>Static art-side review only · no bot models replaced · no runtime renderer/viewer code changed · no replay harness run.</footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T20:19:11.159Z",
+  "renderer": "Three.js WebGLRenderer through Playwright Chromium",
+  "runtimePromoted": false,
+  "modules": {
+    "crown": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-crown-spine-v2/01a001e6-49a2-7e18-b5d8-c6b7240d5d60/model-normalized-rich-review.glb",
+    "swept": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/model-normalized-rich-review.glb",
+    "square": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25/model-normalized-rich-review.glb",
+    "radial": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-radial-petal/01a001c9-f953-7c78-955b-0027fc53e9d6/model-normalized-rich-review.glb",
+    "curved": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-curved-rail/01a001d2-0a49-7b75-bacd-a9f48010f025/model-normalized-rich-review.glb"
+  },
+  "heroSheet": {
+    "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-crown-and-feathers-level5.png",
+    "bytes": 1432806,
+    "sha256": "1347a01a7072cd7a8c98659e44cdee4b2875ec30972e9e8f07b070e4cec6a3a2"
+  },
+  "rankStrip": {
+    "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/kestrel-real-rank-1-5-strip.png",
+    "bytes": 459143,
+    "sha256": "8f2d95bf02fdbfb6b883d3fd3a1959c665dabcd84a874711277c5fb0e3c62d2e"
+  },
+  "gameplayScale": {
+    "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/real-level5-gameplay-scale.png",
+    "bytes": 65637,
+    "sha256": "e3dca25d69c19029b135ed72a422feffc8b3b12d9d73cadf9a33cd326553a7ce"
+  },
+  "moduleSheet": {
+    "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/five-real-modules.png",
+    "bytes": 301668,
+    "sha256": "24ffa99de76a27a19f53db32f6a708bb61aecb28f546f2cfd858ea6fcbf439e6"
+  },
+  "heroCaptures": [
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-level5-gameplay.png",
+      "label": "KESTREL · CROWN + FEATHERS",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 5,
+      "view": "gameplay",
+      "bytes": 85133,
+      "sha256": "872809b504580d59c28d2e7ccca2280cd7304a5f72f5c28f67461f424af9eea3"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-level5-top.png",
+      "label": "KESTREL · STRICT TOP",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 5,
+      "view": "top-down",
+      "bytes": 138245,
+      "sha256": "f40eafd6512fa2e38e94c5630f4502f8c14b04ec03f4f05a9db2ede888770e45"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/sunder-level5-gameplay.png",
+      "label": "SUNDER · CROWN + FEATHERS",
+      "configuration": "sunder-crown-feathers",
+      "rank": 5,
+      "view": "gameplay",
+      "bytes": 78498,
+      "sha256": "7a74ee55b764d371199c7b1ad9490125436392ff7b9edcae515f4f1c85cce2a9"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/sunder-level5-top.png",
+      "label": "SUNDER · STRICT TOP",
+      "configuration": "sunder-crown-feathers",
+      "rank": 5,
+      "view": "top-down",
+      "bytes": 134395,
+      "sha256": "051506bce9f3ef74a874712ca79aa388b02e81f4d9568a4b5196cf70e9799844"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/repulsor-level5-gameplay.png",
+      "label": "REPULSOR · FOUR PETALS",
+      "configuration": "repulsor-full-feathers",
+      "rank": 5,
+      "view": "gameplay",
+      "bytes": 99139,
+      "sha256": "e3d69cb1d938bccf0c74a5ba10e75c2456de31b13966eac60a73b774d745d8b6"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/repulsor-level5-top.png",
+      "label": "REPULSOR · STRICT TOP",
+      "configuration": "repulsor-full-feathers",
+      "rank": 5,
+      "view": "top-down",
+      "bytes": 193753,
+      "sha256": "1110520d950df0ccc832c8e1a0998188a6269ea1eaca331d38cc7c18816a641b"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/longshot-level5-gameplay-real-crown.png",
+      "label": "LONGSHOT · REAL CROWN",
+      "configuration": "longshot-canonical",
+      "rank": 5,
+      "view": "gameplay",
+      "bytes": 108949,
+      "sha256": "b99b9f6e8a278dd8fa0bcf4c306c307e023e6e96cac4ab4338710c762ab0fee1"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/longshot-level5-top-real-crown.png",
+      "label": "LONGSHOT · STRICT TOP",
+      "configuration": "longshot-canonical",
+      "rank": 5,
+      "view": "top-down",
+      "bytes": 193624,
+      "sha256": "13b4009219a0b5f56513a06a1a669ef82ea8711940442e5d249e1461509a21aa"
+    }
+  ],
+  "rankCaptures": [
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-rank-1.png",
+      "label": "RANK 1",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 1,
+      "view": "gameplay",
+      "bytes": 90571,
+      "sha256": "c75bc4c7e797e4259293db8219ae2773f8c580dcff27ea8e8fad19cbcf49df69"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-rank-2.png",
+      "label": "RANK 2",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 2,
+      "view": "gameplay",
+      "bytes": 92810,
+      "sha256": "54d815c84ed4082663eaa862f352e847e663a14ed53844c328d668163bbe0682"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-rank-3.png",
+      "label": "RANK 3",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 3,
+      "view": "gameplay",
+      "bytes": 92714,
+      "sha256": "fd7b799570f607b2cb15908bbfc1954530992d63021914188d88c701681e41ee"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-rank-4.png",
+      "label": "RANK 4",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 4,
+      "view": "gameplay",
+      "bytes": 92953,
+      "sha256": "83756edab8621c66b5c13efc2c5fd76db8c546bd4f05f906b984411b976226b6"
+    },
+    {
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-d/captures/kestrel-rank-5.png",
+      "label": "RANK 5",
+      "configuration": "kestrel-crown-feathers",
+      "rank": 5,
+      "view": "gameplay",
+      "bytes": 85133,
+      "sha256": "872809b504580d59c28d2e7ccca2280cd7304a5f72f5c28f67461f424af9eea3"
+    }
+  ]
+}

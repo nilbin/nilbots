@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "provider": "Meshy",
+  "endpoint": "multi-image-to-3d",
+  "providerModel": "meshy-7",
+  "classId": "veterancy-split-feather-v1",
+  "taskId": "01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8",
+  "submittedAt": "2026-08-14T22:03:49.760Z",
+  "balanceBefore": 830,
+  "authorizedCreditCap": 30,
+  "sourceManifest": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-feather-v1/manifest.json",
+  "inputs": [
+    {
+      "order": 1,
+      "view": "front-three-quarter",
+      "primary": true,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-feather-v1/03-front-three-quarter.png",
+      "bytes": 775715,
+      "sha256": "75564b8f8987edf3b35d0c4346ad67e376fc2d0c284299f5cda277604f915161",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 2,
+      "view": "side",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-feather-v1/02-side.png",
+      "bytes": 558429,
+      "sha256": "244b502a48afe2eba4121fc4e4dfd57620cf1e54d6994b5eee1626ec7da42908",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 3,
+      "view": "rear-three-quarter",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-feather-v1/04-rear-three-quarter.png",
+      "bytes": 715516,
+      "sha256": "cac169f4428c311a3059c2db89a177381d91c69d15ec82a0e13d3207c4415079",
+      "width": 1536,
+      "height": 1024
+    },
+    {
+      "order": 4,
+      "view": "front",
+      "primary": false,
+      "file": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/inputs/veterancy-split-feather-v1/01-front.png",
+      "bytes": 741481,
+      "sha256": "cb5a796c9088ba8b383a74a1a688df008a00b445417c967f15d2cae65660faea",
+      "width": 1536,
+      "height": 1024
+    }
+  ],
+  "settings": {
+    "ai_model": "meshy-7",
+    "should_texture": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "should_remesh": false,
+    "image_enhancement": false,
+    "remove_lighting": true,
+    "pose_mode": "",
+    "texture_prompt": "Standalone Nilbots mechanical veterancy feather module. Rough matte desaturated aged warm brass/bronze plates; graphite recessed back, root, and seams; narrow dim warm-gold emissive channel; sparse edge wear. Preserve one slim rigid layered clipped-tip feather with long readable facets, shallow thickness, and a compact graphite root for repeated mirrored crown placement. One connected object. No bot, crown assembly, paired feather, floor, pedestal, organic antler, wing, weapon, text, symbols, team teal/cyan, saturated orange, blue, red, white plastic, chrome, lacquer, baked lighting, or cast shadow.",
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "pricingSource": "https://docs.meshy.ai/en/api/pricing",
+  "licenseTerms": "https://www.meshy.ai/terms"
+}

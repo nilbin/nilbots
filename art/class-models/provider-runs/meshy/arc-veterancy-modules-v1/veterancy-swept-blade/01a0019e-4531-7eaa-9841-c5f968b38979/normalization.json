@@ -1,0 +1,34 @@
+{
+  "input": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/raw-model.glb",
+  "output": "/Users/sebastian.lind/hobby-projects/nilbots-wt/longshot-redesign-v2/art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-swept-blade/01a0019e-4531-7eaa-9841-c5f968b38979/model-normalized-rich-provider-facing-review.glb",
+  "bytes": 65381628,
+  "sourceBounds": {
+    "min": [
+      -0.9511269927024841,
+      -0.24485300481319427,
+      -0.5507199764251709
+    ],
+    "max": [
+      0.9507820010185242,
+      0.2443159967660904,
+      0.5503730177879333
+    ]
+  },
+  "orientation": "identity",
+  "scale": 0.18928350472525737,
+  "heightScale": 1,
+  "targetPlanformSpan": 0.36,
+  "strippedTangentAttributes": 0,
+  "normalizedBounds": {
+    "min": [
+      -0.18,
+      0,
+      -0.10420937048654196
+    ],
+    "max": [
+      0.18,
+      0.09259162302188197,
+      0.10420937048654196
+    ]
+  }
+}

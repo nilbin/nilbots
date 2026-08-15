@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "source": {
+    "file": "raw-model.glb",
+    "bytes": 65518504,
+    "sha256": "ea243e655df5147a377b9082860693b6553b7ebe7200c76e30591ffc13e252e0"
+  },
+  "gltf": {
+    "generator": "pygltflib@v1.16.5",
+    "scenes": 1,
+    "nodes": 1,
+    "meshes": 1,
+    "primitives": 1,
+    "materials": 1,
+    "animations": 0,
+    "skins": 0
+  },
+  "bounds": {
+    "min": [
+      -0.9513499736785889,
+      -0.351502001285553,
+      -0.31103599071502686
+    ],
+    "max": [
+      0.950190007686615,
+      0.34808000922203064,
+      0.3103429973125458
+    ]
+  },
+  "vertices": 1035503,
+  "triangles": 1992708,
+  "indexedConnectedComponents": 379,
+  "spatialAudit": {
+    "positionTolerance": 0.00001,
+    "uniquePositionCells": 996300,
+    "duplicatePositionVertices": 39203,
+    "connectedComponents": 1,
+    "collapsedTriangles": 0,
+    "zeroAreaTriangles": 0
+  },
+  "semanticPartContract": {
+    "explicitSceneNodes": 1,
+    "explicitMeshes": 1,
+    "explicitPrimitives": 1,
+    "providerOutputIsMonolithic": true
+  },
+  "method": "Union indexed triangle vertices, then repeat after quantizing POSITION values to the recorded tolerance. No geometry is modified."
+}

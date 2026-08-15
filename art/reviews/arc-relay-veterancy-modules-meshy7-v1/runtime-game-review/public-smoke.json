@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "exactPublicGalleryUrl": "https://solo-tabs-along-burner.trycloudflare.com/",
+  "galleryImages": [
+    {
+      "src": "https://solo-tabs-along-burner.trycloudflare.com/captures/concept-rank-1-5.png",
+      "complete": true,
+      "width": 1983,
+      "height": 793
+    },
+    {
+      "src": "https://solo-tabs-along-burner.trycloudflare.com/captures/meshy-rank-1-5-inputs.png",
+      "complete": true,
+      "width": 2800,
+      "height": 520
+    },
+    {
+      "src": "https://solo-tabs-along-burner.trycloudflare.com/captures/rank-1-5-rich-vs-lean.png",
+      "complete": true,
+      "width": 1800,
+      "height": 890
+    },
+    {
+      "src": "https://solo-tabs-along-burner.trycloudflare.com/captures/rank-5-six-view.png",
+      "complete": true,
+      "width": 1080,
+      "height": 890
+    },
+    {
+      "src": "https://solo-tabs-along-burner.trycloudflare.com/captures/desktop-gameplay.webp",
+      "complete": true,
+      "width": 720,
+      "height": 2490
+    },
+    {
+      "src": "https://solo-tabs-along-burner.trycloudflare.com/captures/phone-gameplay.webp",
+      "complete": true,
+      "width": 720,
+      "height": 1905
+    }
+  ],
+  "linkedViewerUrl": "https://solo-tabs-along-burner.trycloudflare.com/viewer/?standalone=&audio=off",
+  "renderer": "webgl",
+  "replayResponses": [
+    {
+      "url": "https://solo-tabs-along-burner.trycloudflare.com/viewer/replays.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    },
+    {
+      "url": "https://solo-tabs-along-burner.trycloudflare.com/viewer/replays/veterancy-rank-lineup-core-motion.json",
+      "status": 200,
+      "contentEncoding": "gzip"
+    }
+  ],
+  "errors": {
+    "page": [],
+    "console": [],
+    "requests": []
+  },
+  "screenshots": [
+    "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/public-gallery-phone-smoke.png",
+    "art/reviews/arc-relay-veterancy-modules-meshy7-v1/runtime-game-review/public-viewer-phone-smoke.png"
+  ]
+}

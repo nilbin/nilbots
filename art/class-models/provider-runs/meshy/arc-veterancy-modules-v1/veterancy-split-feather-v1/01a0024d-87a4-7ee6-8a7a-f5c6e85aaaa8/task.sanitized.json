@@ -1,0 +1,36 @@
+{
+  "id": "01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8",
+  "type": "multi-image-to-3d",
+  "name": "",
+  "art_style": "",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "Standalone Nilbots mechanical veterancy feather module. Rough matte desaturated aged warm brass/bronze plates; graphite recessed back, root, and seams; narrow dim warm-gold emissive channel; sparse edge wear. Preserve one slim rigid layered clipped-tip feather with long readable facets, shallow thickness, and a compact graphite root for repeated mirrored crown placement. One connected object. No bot, crown assembly, paired feather, floor, pedestal, organic antler, wing, weapon, text, symbols, team teal/cyan, saturated orange, blue, red, white plastic, chrome, lacquer, baked lighting, or cast shadow.",
+  "texture_image_url": "[redacted-input]",
+  "text_style_prompt": "",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1786745033926,
+  "progress": 100,
+  "started_at": 1786745033934,
+  "finished_at": 1786745157144,
+  "expires_at": 1787004357144,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/29781997-b87b-46dc-88af-ceddfcbe1458/tasks/01a0024d-87a4-7ee6-8a7a-f5c6e85aaaa8/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 30
+}

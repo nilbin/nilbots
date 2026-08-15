@@ -1,0 +1,52 @@
+{
+  "moduleId": "veterancy-square-mantle",
+  "taskId": "01a001cd-c77a-7656-ad14-daffbca45d25",
+  "model": "art/class-models/provider-runs/meshy/arc-veterancy-modules-v1/veterancy-square-mantle/01a001cd-c77a-7656-ad14-daffbca45d25/model-normalized-rich-review.glb",
+  "sheet": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/veterancy-square-mantle-six-view.png",
+  "bytes": 855188,
+  "sha256": "a67f83b3d8fef90e5de87ff7ec66a60803f9231fcfca1d57c75d86e6337fc557",
+  "captures": [
+    {
+      "view": "front-three-quarter",
+      "label": "GAMEPLAY 3/4",
+      "bytes": 80274,
+      "sha256": "74daec5046f8be8c648fe9519f078658c865eccf40577cb1841bd9be96db7cb6",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/captures/front-three-quarter.png"
+    },
+    {
+      "view": "positive-x",
+      "label": "+X CAMERA",
+      "bytes": 75117,
+      "sha256": "653d1df4772728ef181daeb2c75b5db80e6bb3ba74c3775f9187c37d4353ae46",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/captures/positive-x.png"
+    },
+    {
+      "view": "negative-x",
+      "label": "-X CAMERA",
+      "bytes": 78265,
+      "sha256": "03ac4e54eadde47ab54169a21b346fb16d33984345ee23be37ab9750116c3878",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/captures/negative-x.png"
+    },
+    {
+      "view": "positive-z",
+      "label": "+Z CAMERA",
+      "bytes": 76338,
+      "sha256": "1e36ea4febc624a5d4314edcb7a117139bf8f5faece397db4a207b74476ab621",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/captures/positive-z.png"
+    },
+    {
+      "view": "negative-z",
+      "label": "-Z CAMERA",
+      "bytes": 84213,
+      "sha256": "db5c3be88f87bde64ead2c19de864cca0b14e8956d9cdf6f349d91b984ff5b86",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/captures/negative-z.png"
+    },
+    {
+      "view": "top-down",
+      "label": "STRICT TOP",
+      "bytes": 208657,
+      "sha256": "78d9d7756e5e73411858f912870b52d229868ae77b5754d938d7107e8fd9e7e3",
+      "file": "art/reviews/arc-relay-veterancy-modules-meshy7-v1/gate-c/veterancy-square-mantle/captures/top-down.png"
+    }
+  ]
+}
