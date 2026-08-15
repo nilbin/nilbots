@@ -340,10 +340,9 @@
           "urgency": "urgent",
           "orders": [
             {
-              "id": "take-stolen-core-home-around-north",
+              "id": "escape-with-stolen-core",
               "move": {
-                "to": "own-reactor",
-                "via": "north-safe-return"
+                "to": "own-reactor"
               }
             }
           ]
@@ -369,7 +368,7 @@
                   "loose-core-in-enemy-return-ambush"
                 ]
               },
-              "capacity": "two-per-core",
+              "capacity": 1,
               "move": {
                 "to": "nearest-known-loose-core"
               }
@@ -458,6 +457,25 @@
                 ],
                 "style": "advance",
                 "chaseLimit": 3
+              }
+            },
+            {
+              "id": "clear-stolen-core-exit",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-enemy-return-ambush",
+                  "enemy-nearby"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "marked",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 2
               }
             },
             {
