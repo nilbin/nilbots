@@ -38,6 +38,7 @@ export default function MapPlanEditor({
   tracks,
   trackLabel,
   focus,
+  returnPrompt,
   onChange,
   onRename,
 }: {
@@ -47,6 +48,7 @@ export default function MapPlanEditor({
   tracks: UnitTrack[];
   trackLabel: string | null;
   focus?: { kind: PlotKind; id: string } | null;
+  returnPrompt?: { label: string; description: string; onReturn: () => void } | null;
   onChange: (next: MapPlanDocument) => void;
   onRename: (kind: PlotKind, previous: string, next: string) => void;
 }) {
@@ -205,6 +207,13 @@ export default function MapPlanEditor({
     'panel min-w-0 pad',
     expanded && 'fixed inset-0 z-[70] overflow-y-auto rounded-none border-0 bg-arena-bg',
   )} data-sheet-path="mapPlan">
+    {returnPrompt && <div className="mb-3 flex flex-wrap items-center gap-3 rounded-sm border border-arena-material/45 bg-arena-material/10 p-3">
+      <div className="min-w-0 flex-1">
+        <p className="type-display text-[15px]">Finish plotting this condition</p>
+        <p className="t-micro mt-1">{returnPrompt.description}</p>
+      </div>
+      <button type="button" className="btn btn-secondary min-h-11 shrink-0" onClick={returnPrompt.onReturn}>← {returnPrompt.label}</button>
+    </div>}
     <div className="flex flex-wrap items-start gap-2">
       <div className="mr-auto max-w-3xl">
         <p className="lab text-arena-material">Map plan</p>

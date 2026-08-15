@@ -197,22 +197,33 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
   </section>;
 }
 
-export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, onOpenMap }: {
+export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, onOpenMap,
+  resumeConditionId = null, onResumeConditionHandled }: {
   catalog: TacticalSheetCatalog;
   orders: OrdersDocument;
   mapPlan: MapPlanDocument;
   issues: SheetIssue[];
   onChange: (next: OrdersDocument) => void;
-  onOpenMap: (focus?: { kind: PlotKind; id: string }) => void;
+  onOpenMap: (focus?: { kind: PlotKind; id: string }, returnToConditionId?: string) => void;
+  resumeConditionId?: string | null;
+  onResumeConditionHandled?: () => void;
 }) {
   const [roleId, setRoleId] = useState(orders.roles[0]?.id ?? '');
   const [openPath, setOpenPath] = useState<string | null>(null);
   const [library, setLibrary] = useState<LibraryTool>(null);
+  const [conditionSelection, setConditionSelection] = useState<string | null>(null);
   const roleIndex = Math.max(0, orders.roles.findIndex((role) => role.id === roleId));
   const role = orders.roles[roleIndex];
   const commit = (change: (next: OrdersDocument) => void) => {
     const next = structuredClone(orders); change(next); onChange(next);
   };
+
+  useEffect(() => {
+    if (!resumeConditionId) return;
+    setConditionSelection(resumeConditionId);
+    setLibrary('conditions');
+    onResumeConditionHandled?.();
+  }, [onResumeConditionHandled, resumeConditionId]);
 
   if (!role) return null;
   return <section className="grid min-w-0 gap-3 xl:grid-cols-[250px_minmax(0,1fr)]">
@@ -230,7 +241,7 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
         <span className="t-micro mt-1 block">{entry.orders.length} top-level orders</span>
       </button>)}</div>
       <div className="grid gap-1 border-t border-arena-edge p-2">
-        <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('conditions')}>◇ Conditions <span className="pill ml-auto">{Object.keys(orders.conditions).length}</span></button>
+        <button type="button" className="btn min-h-11 justify-start" onClick={() => { setConditionSelection(null); setLibrary('conditions'); }}>◇ Conditions <span className="pill ml-auto">{Object.keys(orders.conditions).length}</span></button>
         <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('capacities')}>⫶ Capacities <span className="pill ml-auto">{Object.keys(orders.capacities).length}</span></button>
         <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('shared')}>⧉ Shared orders <span className="pill ml-auto">{Object.keys(orders.sharedOrders).length}</span></button>
       </div>
@@ -268,9 +279,14 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
         : library === 'capacities'
           ? 'One number limits bodies claiming the same resolved target. A shared name needs at least two consumers.'
           : 'Reuse an exact order tree. Shared orders have no parameters or per-role overrides.'}
-      onClose={() => setLibrary(null)}>
+      onClose={() => { setLibrary(null); setConditionSelection(null); }}>
       {library === 'conditions' && <ConditionsEditor orders={orders} mapPlan={mapPlan} issues={issues} onChange={onChange}
-        onOpenMap={() => { setLibrary(null); onOpenMap(); }} />}
+        initialSelected={conditionSelection}
+        onOpenMap={(conditionId) => {
+          setLibrary(null);
+          setConditionSelection(conditionId);
+          onOpenMap({ kind: 'zone', id: '' }, conditionId);
+        }} />}
       {library === 'capacities' && <CapacitiesEditor orders={orders} issues={issues} onChange={onChange} />}
       {library === 'shared' && <SharedOrdersEditor catalog={catalog} orders={orders} mapPlan={mapPlan} issues={issues}
         onChange={onChange} onOpenMap={(focus) => { setLibrary(null); onOpenMap(focus); }} />}
@@ -697,17 +713,19 @@ function CapacityField({ value, allOrders, onChange }: { value: OrderNode['capac
   </div>;
 }
 
-function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap }: {
+function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap, initialSelected }: {
   orders: OrdersDocument;
   mapPlan: MapPlanDocument;
   issues: SheetIssue[];
   onChange: (next: OrdersDocument) => void;
-  onOpenMap: () => void;
+  onOpenMap: (conditionId: string) => void;
+  initialSelected?: string | null;
 }) {
   const ids = Object.keys(orders.conditions);
-  const [selected, setSelected] = useState(ids[0] ?? '');
+  const initialSelectedId = initialSelected && orders.conditions[initialSelected] ? initialSelected : ids[0] ?? '';
+  const [selected, setSelected] = useState(initialSelectedId);
   const [factGroup, setFactGroup] = useState<ConditionFactGroupId>(() =>
-    conditionFactGroup(orders.conditions[ids[0] ?? '']?.fact));
+    conditionFactGroup(orders.conditions[initialSelectedId]?.fact));
   const [factSearch, setFactSearch] = useState('');
   const current = orders.conditions[selected];
   const selectedFactGroup = CONDITION_FACT_GROUPS.find((group) => group.id === factGroup)!;
@@ -771,7 +789,7 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap }: {
           onChange={(event) => commit((next) => { next.conditions[selected].value = Number(event.target.value); })} /></label>
       </>}
       <ConditionQualifiers condition={current} roles={orders.roles} mapPlan={mapPlan}
-        onOpenMap={onOpenMap}
+        onOpenMap={() => onOpenMap(selected)}
         onChange={(condition) => commit((next) => { next.conditions[selected] = condition; })} />
       <IssueList issues={issues.filter((issue) => issue.path.startsWith(`orders.conditions.${selected}`))} />
       <button type="button" className="btn mt-4 min-h-11 text-arena-hot" onClick={() => { commit((next) => { delete next.conditions[selected]; }); setSelected(ids.find((id) => id !== selected) ?? ''); }}>Delete condition</button>

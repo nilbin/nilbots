@@ -50,6 +50,7 @@ interface TacticalSheetEditorProps {
 
 type Section = 'squad' | 'orders' | 'map';
 type PlotFocus = { kind: 'route' | 'zone' | 'anchor'; id: string } | null;
+type MapReturn = { conditionId: string } | null;
 
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; description: string }> = [
   { id: 'squad', label: 'Squad', description: 'Cast eight bodies into roles' },
@@ -70,6 +71,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [localDrafts, setLocalDrafts] = useState<SheetDraft[]>([]);
   const [section, setSection] = useState<Section>('orders');
   const [mapFocus, setMapFocus] = useState<PlotFocus>(null);
+  const [mapReturn, setMapReturn] = useState<MapReturn>(null);
+  const [resumeConditionId, setResumeConditionId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
@@ -372,10 +375,26 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         onChange={(orders) => mutate((next) => { next.orders = orders; })} />}
       {section === 'orders' && <OrdersWorkspace catalog={catalog} orders={draft.orders} mapPlan={draft.mapPlan} issues={issues}
         onChange={(orders) => mutate((next) => { next.orders = orders; })}
-        onOpenMap={(focus) => { setMapFocus(focus ?? null); setSection('map'); }} />}
+        resumeConditionId={resumeConditionId}
+        onResumeConditionHandled={() => setResumeConditionId(null)}
+        onOpenMap={(focus, returnToConditionId) => {
+          setMapFocus(focus ?? null);
+          setMapReturn(returnToConditionId ? { conditionId: returnToConditionId } : null);
+          setSection('map');
+        }} />}
       {section === 'map' && <MapPlanEditor catalog={catalog} mapPlan={draft.mapPlan} issues={issues}
         tracks={selectedTracks} focus={mapFocus}
         trackLabel={selectedRun ? `r${selectedRun.revision} vs ${selectedRun.stockName} · seed ${selectedRun.seed ?? 'automatic'}` : null}
+        returnPrompt={mapReturn ? {
+          label: `Back to ${displayName(mapReturn.conditionId)}`,
+          description: 'Draw or select the zone here, then return to finish the condition. Your place is preserved.',
+          onReturn: () => {
+            setResumeConditionId(mapReturn.conditionId);
+            setMapReturn(null);
+            setMapFocus(null);
+            setSection('orders');
+          },
+        } : null}
         onChange={(mapPlan) => mutate((next) => { next.mapPlan = mapPlan; })}
         onRename={(kind, previous, nextId) => mutate((next) => renameGeometry(next, kind, previous, nextId))} />}
     </main>
@@ -414,6 +433,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       (exact ?? prefix)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }, 30);
   }
+}
+
+function displayName(value: string) {
+  return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function SheetRail({ current, restored, localDrafts, saved, loading, runs, selectedRunId, onNew, onOpenLocal, onOpenSaved, onPlotRun }: {
