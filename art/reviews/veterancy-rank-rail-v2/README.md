@@ -1,8 +1,9 @@
-# Veterancy rank rail v2
+# Veterancy color-tier rank rail v2
 
 Replacement concept for the silhouette-only veterancy plates. The v1 crests
 were attractive when enlarged, but their exact rank collapsed at ordinary
-gameplay scale.
+gameplay scale. This fixed rail returned to the renderer after the larger v3
+power-frame trial added visual weight without looking good in play.
 
 ![Five fixed-width veterancy rank-rail states](./veterancy-rank-rail-concept-v2.png)
 
@@ -12,17 +13,22 @@ The separate badge is gone. One fixed five-cell rail sits directly above the
 current health bar. Every cell is always present; authoritative level `N`
 energizes exactly the first `N` cells from left to right.
 
-- Level 1: one amber cell, four dark cells.
-- Level 2: two amber cells, three dark cells.
-- Level 3: three amber cells, two dark cells.
-- Level 4: four amber cells, one dark cell.
-- Level 5: all five cells energized.
+- Level 1: one steel cell, four dark cells.
+- Level 2: two cyan cells, three dark cells.
+- Level 3: three blue cells, two dark cells.
+- Level 4: four violet cells, one dark cell.
+- Level 5: all five cells energized in Apex gold.
 
-This trades subtle silhouette progression for an explicit count at the scale
-the game actually renders. The fixed footprint still prevents the health row
-from moving on level-up. A near-black keyline and cool pale-metal structure
-separate the rail from Tapline's dark copper floor, while amber belongs only to
-veterancy and green/amber/red remain health-fill states.
+This trades silhouette progression for an explicit count at the scale the game
+actually renders. The fixed footprint prevents the health row from moving on
+level-up. The whole rail rim changes with the active tier, so color supplies the
+quick power read while cell count remains authoritative. A near-black keyline
+and pale-metal cell outlines keep the rail separate from Tapline's dark copper
+floor. The progression avoids health green and danger red.
+
+Runtime tier colors are `#a9c2ca`, `#4fd7e8`, `#668cff`, `#bd72f5`, and
+`#ffd05a`. They are flat unlit materials with no bloom, so arena lighting cannot
+hide or exaggerate a rank.
 
 The upper row is an enlarged construction view. The lower row is the
 decision-critical gameplay-scale test. The renderer should reconstruct this as

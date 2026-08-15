@@ -113,29 +113,21 @@ function healthBarOf(
   return found;
 }
 
-function veterancyPowerFrameOf(
+function veterancyRankRailOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
 ): THREE.Object3D | null {
   const healthRow = healthBarOf(group, unitKey);
   let found: THREE.Object3D | null = null;
   healthRow.traverse((child) => {
-    if (child.userData.cue === 'veterancy-power-frame') found = child;
+    if (child.userData.cue === 'veterancy-rank-rail') found = child;
   });
   return found;
 }
 
-function veterancyPowerStatesOf(frame: THREE.Object3D): THREE.Object3D[] {
-  const states: THREE.Object3D[] = [];
-  frame.traverse((child) => {
-    if (child.userData.cue === 'veterancy-power-frame-state') states.push(child);
-  });
-  return states;
-}
-
-function veterancyRankCellsOf(frame: THREE.Object3D): THREE.Object3D[] {
+function veterancyRankCellsOf(rail: THREE.Object3D): THREE.Object3D[] {
   const cells: THREE.Object3D[] = [];
-  frame.traverse((child) => {
+  rail.traverse((child) => {
     if (child.userData.cue === 'veterancy-rank-cell') cells.push(child);
   });
   return cells;
@@ -507,7 +499,7 @@ test('3D health presentation is one proportional bar for scaled hulls', () => {
   }
 });
 
-test('Arc veterancy combines an exact five-cell rank with a progressive 2D power frame', () => {
+test('Arc veterancy uses one readable rail with a distinct color at every rank', () => {
   const leveled = structuredClone(replay);
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;
   const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
@@ -525,66 +517,59 @@ test('Arc veterancy combines an exact five-cell rank with a progressive 2D power
     });
   }
   const actors = buildActors(leveled);
-  const frame = veterancyPowerFrameOf(actors.group, actor.unitKey);
-  assert.ok(frame);
-  const powerStates = veterancyPowerStatesOf(frame);
-  const cells = veterancyRankCellsOf(frame);
-  assert.equal(powerStates.length, 5);
+  const rail = veterancyRankRailOf(actors.group, actor.unitKey);
+  assert.ok(rail);
+  const cells = veterancyRankCellsOf(rail);
   assert.equal(cells.length, 5);
+  assert.ok(
+    cells.every((cell) => cell.renderOrder === rail.renderOrder),
+    'nested cell groups preserve the status-row order above the rail face',
+  );
+  const tierRim = rail.children.find(
+    (child) => child.userData.cue === 'veterancy-rank-tier-rim',
+  );
+  assert.ok(tierRim instanceof THREE.Mesh);
+  const expectedColors = ['a9c2ca', '4fd7e8', '668cff', 'bd72f5', 'ffd05a'];
   const rankAt = (time: number) => {
     actors.update(time, null, false);
-    const visible = powerStates.filter((state) => state.visible);
     const energized = cells.filter((cell) => cell.userData.energized === true);
-    assert.equal(frame.visible, true);
-    assert.equal(visible.length, 1, 'exactly one power silhouette is visible');
+    const rank = rail.userData.visualRankValue as number;
+    assert.equal(rail.visible, true);
     assert.equal(
       energized.length,
-      visible[0]!.userData.rankValue,
+      rank,
       'the energized-cell count is the exact rank',
     );
     assert.ok(cells.every((cell) => cell.visible), 'all five rank cells stay readable');
-    assert.ok(
-      visible[0]!.children.some(
-        (child) => child.userData.cue === 'veterancy-frame-keyline',
-      ),
-      'the frame owns a floor-separating dark keyline',
-    );
-    assert.ok(
-      visible[0]!.children.some(
-        (child) => child.userData.cue === 'veterancy-frame-metal',
-      ),
-      'the frame owns a bright cool-metal structure',
-    );
-    assert.ok(
-      visible[0]!.children.some(
-        (child) => child.userData.cue === 'veterancy-frame-face',
-      ),
-      'the frame owns a blue-black face',
-    );
+    assert.ok(tierRim.material instanceof THREE.MeshBasicMaterial);
+    const color = tierRim.material.color.getHexString();
+    assert.equal(color, expectedColors[rank - 1]);
+    assert.equal(rail.userData.tierColor, `#${color}`);
+    for (const cell of energized) {
+      const energy = cell.children.find(
+        (child) => child.userData.cue === 'veterancy-rank-cell-energy',
+      );
+      assert.ok(energy instanceof THREE.Mesh);
+      assert.equal(energy.material, tierRim.material);
+    }
     return {
-      rank: visible[0]!.userData.rankValue as number,
-      width: visible[0]!.userData.silhouetteWidth as number,
-      height: visible[0]!.userData.silhouetteHeight as number,
-      seams: visible[0]!.userData.energySeamCount as number,
+      rank,
       energized: energized.length,
-      state: visible[0]!,
+      color,
     };
   };
   const ranks = [0.25, 1.25, 2.25, 3.25, 4.25].map(rankAt);
   assert.deepEqual(ranks.map((state) => state.rank), [1, 2, 3, 4, 5]);
   assert.deepEqual(ranks.map((state) => state.energized), [1, 2, 3, 4, 5]);
-  assert.deepEqual(ranks.map((state) => state.seams), [0, 2, 3, 4, 5]);
-  for (let index = 1; index < ranks.length; index++) {
-    assert.ok(ranks[index]!.width > ranks[index - 1]!.width);
-    assert.ok(ranks[index]!.height > ranks[index - 1]!.height);
-  }
-  assert.equal(frame.userData.rankValue, 5);
-  assert.equal(frame.userData.visualRankValue, 5);
-  assert.equal(frame.position.x, 0, 'the power frame stays centred on health');
-  assert.equal(frame.position.y, 0, 'the power frame stays in the health row');
+  assert.deepEqual(ranks.map((state) => state.color), expectedColors);
+  assert.equal(new Set(expectedColors).size, 5, 'every power tier has its own color');
+  assert.equal(rail.userData.rankValue, 5);
+  assert.equal(rail.userData.visualRankValue, 5);
+  assert.equal(rail.position.x, 0, 'the rank rail stays centred on health');
+  assert.equal(rail.position.y, 0, 'the rank rail stays in the health row');
   let hasNumeral = false;
   let hasDiadem = false;
-  let hasRejectedCrest = false;
+  let hasRejectedShape = false;
   actors.group.traverse((node) => {
     if (
       node.userData.cue === 'veterancy-rank-digit' ||
@@ -593,54 +578,51 @@ test('Arc veterancy combines an exact five-cell rank with a progressive 2D power
     if (node.userData.cue === 'veterancy-split-diadem') hasDiadem = true;
     if (
       node.userData.cue === 'veterancy-rank-plate' ||
-      node.userData.cue === 'veterancy-rank-crest'
-    ) hasRejectedCrest = true;
+      node.userData.cue === 'veterancy-rank-crest' ||
+      node.userData.cue === 'veterancy-power-frame-state'
+    ) hasRejectedShape = true;
   });
   assert.equal(hasNumeral, false, 'the rejected numeric treatment is gone');
-  assert.equal(hasRejectedCrest, false, 'the unreadable standalone crests are gone');
+  assert.equal(hasRejectedShape, false, 'changing silhouettes and crests are gone');
   assert.equal(
     hasDiadem,
     false,
     'retained Meshy rank models are not attached to gameplay actors',
   );
 
-  // Power grows around the fixed centre instead of shifting the health bar at level-up.
+  // Rank changes color and fill only; neither health nor the rail ever changes footprint.
   const healthBar = healthBarOf(actors.group, actor.unitKey);
   const healthTrack = healthTrackOf(healthBar);
   assert.equal(healthTrack.position.x, 0);
-  assert.equal(frame.userData.width, 1);
-  const frameHeight = frame.userData.height as number;
+  assert.equal(rail.userData.width, 0.54);
+  const railHeight = rail.userData.height as number;
   assert.equal(
     healthBar.children.some((child) => child.userData.cue === 'veterancy-stack'),
     false,
     'the rejected vertical chevron tower remains gone',
   );
-  const apex = ranks[4]!.state;
-  const materialFor = (cue: string): THREE.MeshBasicMaterial => {
-    const mesh = apex.children.find((child) => child.userData.cue === cue);
+  const materialFor = (
+    parent: THREE.Object3D,
+    cue: string,
+  ): THREE.MeshBasicMaterial => {
+    const mesh = parent.children.find((child) => child.userData.cue === cue);
     assert.ok(mesh instanceof THREE.Mesh, `no ${cue} mesh`);
     assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
     return mesh.material;
   };
-  const keyline = materialFor('veterancy-frame-keyline');
-  const metal = materialFor('veterancy-frame-metal');
-  const face = materialFor('veterancy-frame-face');
+  const keyline = materialFor(rail, 'veterancy-rank-rail-keyline');
+  const face = materialFor(rail, 'veterancy-rank-rail-face');
+  const metal = materialFor(cells[0]!, 'veterancy-rank-cell-metal');
   assert.equal(keyline.color.getHexString(), '010609');
-  assert.equal(metal.color.getHexString(), 'e1f2f0');
-  assert.equal(face.color.getHexString(), '061119');
+  assert.equal(metal.color.getHexString(), 'd8e8e8');
+  assert.equal(face.color.getHexString(), '07131c');
   assert.equal(keyline.depthTest, false);
   assert.equal(metal.depthTest, false);
   assert.equal(face.depthTest, false);
-  const firstCellEnergy = cells[0]!.children.find(
-    (child) => child.userData.cue === 'veterancy-rank-cell-energy',
-  );
-  assert.ok(firstCellEnergy instanceof THREE.Mesh);
-  assert.ok(firstCellEnergy.material instanceof THREE.MeshBasicMaterial);
-  assert.equal(firstCellEnergy.material.color.getHexString(), 'ffc247');
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
   assert.ok(
-    engaged.position.y > frameHeight / 2 + 0.1,
-    'combat state remains clear above the shared rank and health row',
+    engaged.position.y > railHeight / 2 + 0.1,
+    'combat state remains clear above the rank rail',
   );
   actors.dispose();
 });
@@ -650,7 +632,7 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
   try {
     plainActors.update(0.25, null, false);
     assert.equal(
-      veterancyPowerFrameOf(plainActors.group, 'duel:0:unit:0'),
+      veterancyRankRailOf(plainActors.group, 'duel:0:unit:0'),
       null,
     );
   } finally {
@@ -670,15 +652,13 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
   try {
     const unitKey = unpromotedArc.ticks[0]!.after.actors[0]!.unitKey;
     arcActors.update(0.25, null, false);
-    const frame = veterancyPowerFrameOf(arcActors.group, unitKey);
-    assert.ok(frame);
-    assert.equal(frame.visible, true);
-    assert.equal(frame.userData.rankValue, 1);
-    const visible = veterancyPowerStatesOf(frame).filter((state) => state.visible);
-    assert.equal(visible.length, 1);
-    assert.equal(visible[0]!.userData.rankValue, 1);
+    const rail = veterancyRankRailOf(arcActors.group, unitKey);
+    assert.ok(rail);
+    assert.equal(rail.visible, true);
+    assert.equal(rail.userData.rankValue, 1);
+    assert.equal(rail.userData.tierColor, '#a9c2ca');
     assert.equal(
-      veterancyRankCellsOf(frame).filter((cell) => cell.userData.energized).length,
+      veterancyRankCellsOf(rail).filter((cell) => cell.userData.energized).length,
       1,
     );
   } finally {

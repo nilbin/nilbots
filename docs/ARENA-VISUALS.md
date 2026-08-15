@@ -507,19 +507,18 @@ its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
-rules-owned veterancy power frame. In WebGL that frame starts visibly at
-authoritative level 1. A fixed rail of five cells sits immediately above the
-centred health bar; level `N` energizes exactly its first `N` cells, while the
-remaining cells stay visibly dormant. One of five renderer-native flat command
-silhouettes encloses that stable core. Each successive state gains width,
-height, structural shoulders, and restrained amber seams without moving or
-obscuring health. A near-black oversized keyline, unlit pale-alloy structure
-(`#e1f2f0`), and blue-black face separate the frame from Tapline's dark copper
-floor. The runtime deliberately does not use the concept's dark brass; warm
-amber is reserved for the exact rank and energy seams. The treatment has no
-numeral, standalone plate or crest, accumulating chevron stack, vertical tower,
-or 3D bot ornament. The engaged marker clears the maximum authored frame.
-Modes without a veterancy rule or facts receive no power frame. Temporary
+rules-owned veterancy rank rail. In WebGL the rail starts visibly at
+authoritative level 1 and never changes footprint. Its five cells sit directly
+above the centred health bar; level `N` energizes exactly its first `N` cells,
+while the remaining cells stay visibly dormant. The rail rim and every energized
+cell share the level's power color: steel, cyan, blue, violet, then Apex gold.
+Exact rank therefore never depends on color, but the changing tier is visible
+before a spectator counts cells. A near-black oversized keyline, pale unlit cell
+outlines, and a blue-black face keep every tier separate from Tapline's dark
+copper floor. Health and the rail remain fixed and centred. The treatment has no
+numeral, changing silhouette, standalone plate or crest, accumulating chevron
+stack, vertical tower, or 3D bot ornament. The engaged marker clears the rail.
+Modes without a veterancy rule or facts receive no rank rail. Temporary
 level-up geometry is gone by 1.8 presentation ticks; the effect has no white
 flash, full-height column, camera shake, or mesh mutation.
 
