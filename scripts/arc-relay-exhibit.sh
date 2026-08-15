@@ -296,10 +296,13 @@ for i, cell in enumerate(cells, 1):
     })
 open(f'{outdir}/{name}-sample.json', 'w').write(json.dumps(manifest, indent=1))
 cards_path = f'{outdir}/{name}-cards.json'
-provided_path = os.environ.get('EXHIBIT_CARDS')
+provided_value = os.environ.get('EXHIBIT_CARDS')
 provided = None
-if provided_path:
-    provided = json.load(open(provided_path))
+if provided_value:
+    stripped = provided_value.lstrip()
+    provided = (json.loads(provided_value)
+                if stripped.startswith(('{', '['))
+                else json.load(open(provided_value)))
     provided_cards = provided if isinstance(provided, list) else provided['cards']
     overlays = {(card.get('id') or card.get('sample')): card
                 for card in provided_cards}
