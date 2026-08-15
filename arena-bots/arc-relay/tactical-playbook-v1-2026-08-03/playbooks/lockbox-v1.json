@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "lockbox-v1",
-  "mapPlan": "../map-plans/lockbox-v1.json",
+  "mapPlan": "../map-plans/tapline-6/lockbox-v1.json",
   "roles": [
     {
       "id": "own-well-mason",

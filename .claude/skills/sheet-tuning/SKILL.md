@@ -98,11 +98,11 @@ and atomically swaps it into `SITE_DIR`. Reuse that directory to update a live
 gallery without changing its URL. Expect roughly one minute for six cells on
 the reference machine.
 
-The exhibit harness defaults to the current `tapline-4` product line. It uses
+The exhibit harness defaults to the current `tapline-6` product line. It uses
 the accepted Tapline geometry and coordinated movement plus the promoted
 1/2/4 Core economy, veteran command, public respawn waves, seven-class roster
-floor, durable deployments, and tenfold combat scale. Pin
-`EXHIBIT_LOOP_PROFILE=tapline-3` only for an explicitly labelled historical
+floor, durable deployments, and tenfold combat scale. Pin an older
+`EXHIBIT_LOOP_PROFILE` only for an explicitly labelled historical
 control. Do not use the now-inadmissible Hunter/Wellwright sheets as current
 controls; choose a current seven-class sheet and name it on every card.
 
