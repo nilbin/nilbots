@@ -1,8 +1,8 @@
 # Veterancy power frame v3
 
-Hybrid concept that keeps the exact-readable five-cell rank rail from v2 and
-adds the missing dangerous-power read through a progressively assembling flat
-2D command frame.
+Hybrid concept and current renderer-native trial. It keeps the exact-readable
+five-cell rank rail from v2 and adds the missing dangerous-power read through a
+progressively assembling flat 2D command frame. Owner review is still pending.
 
 ![Five readable veterancy rails with progressively stronger command frames](./veterancy-power-frame-concept-v3.png)
 
@@ -19,6 +19,11 @@ The health bar remains centred, fixed-width, and unobscured. Level 1 is a
 compact framed veteran read. Level 3 has clear armored shoulders. Level 5 is a
 low, broad five-part command mantle intended to read like a mini-boss frame
 even without counting cells.
+
+The Tapline implementation deliberately replaces the board's darker brass cue
+with unlit pale alloy (`#e1f2f0`) behind a near-black clearance keyline. Real
+gameplay frames showed that the darker material would lose its silhouette on
+the copper-black floor. Amber remains exclusive to energized cells and seams.
 
 This is flat renderer-owned status geometry, not a bot attachment. It does not
 revive the rejected 3D wings, crown models, orbitals, floor fields, or tiny

@@ -507,17 +507,19 @@ its long prow cannot enter the floor. Its existing recall exit is unchanged.
 
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
-rules-owned rank plate. In WebGL that plate starts visibly at authoritative
-level 1 and occupies one reserved footprint through level 5. Only one
-renderer-native flat crest is visible: Seed, Kindled, Proven, Elite, or Apex.
-Each successive state gains width, height, and restrained amber inlay while the
-health bar stays fixed. A near-black oversized keyline, cool-metal unlit rim,
-and blue-black unlit face separate the plate from Tapline's dark copper floor;
-warm amber is reserved for the rank-energy inlay. It is attached to the left
-edge of the health bar, and the complete maximum-plate-slot, gap, and bar row
-is centred over the body. The treatment has no numeral, accumulating marks,
-vertical tower, or compressed-chevron code.
-Modes without a veterancy rule or facts receive no rank plate. Temporary
+rules-owned veterancy power frame. In WebGL that frame starts visibly at
+authoritative level 1. A fixed rail of five cells sits immediately above the
+centred health bar; level `N` energizes exactly its first `N` cells, while the
+remaining cells stay visibly dormant. One of five renderer-native flat command
+silhouettes encloses that stable core. Each successive state gains width,
+height, structural shoulders, and restrained amber seams without moving or
+obscuring health. A near-black oversized keyline, unlit pale-alloy structure
+(`#e1f2f0`), and blue-black face separate the frame from Tapline's dark copper
+floor. The runtime deliberately does not use the concept's dark brass; warm
+amber is reserved for the exact rank and energy seams. The treatment has no
+numeral, standalone plate or crest, accumulating chevron stack, vertical tower,
+or 3D bot ornament. The engaged marker clears the maximum authored frame.
+Modes without a veterancy rule or facts receive no power frame. Temporary
 level-up geometry is gone by 1.8 presentation ticks; the effect has no white
 flash, full-height column, camera shake, or mesh mutation.
 

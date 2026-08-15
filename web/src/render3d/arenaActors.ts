@@ -68,11 +68,9 @@ import {
   createActorOcclusionMaskMaterial,
 } from './occlusionLayers';
 import {
-  createVeterancyPlate,
-  paintVeterancyPlate,
-  VETERANCY_PLATE_GAP,
-  VETERANCY_PLATE_WIDTH,
-} from './veterancyPlate';
+  createVeterancyPowerFrame,
+  paintVeterancyPowerFrame,
+} from './veterancyPowerFrame';
 
 export { BOT_BODY_RENDER_ORDER } from './occlusionLayers';
 
@@ -218,7 +216,7 @@ export const PROJECTILE_HOVER = 0.2;
  * each frame, already squared to the camera, and already hides with the body —
  * so the mark cannot outlive a death or leak through fog by construction.
  */
-const ENGAGED_MARK_LIFT = 0.23;
+const ENGAGED_MARK_LIFT = 0.42;
 const ENGAGED_MARK_REACH = 0.085;
 const ENGAGED_MARK_GAUGE = 0.028;
 const ENGAGED_MARK_COLOR = '#f87171';
@@ -1158,13 +1156,14 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       signatureCooldownMaterial,
     );
 
-    // One of five flat vector crests occupies a fixed left-endcap slot beside health.
-    // The near-black keyline and unlit cool-metal rim keep it separate from Tapline's
-    // dark copper floor; only the silhouette and amber inlay grow with authoritative rank.
-    const veterancyPlate = createVeterancyPlate();
-    veterancyPlate.group.userData.forUnitKey = unit.unitKey;
-    if (veterancyEnabled) statusBib.add(veterancyPlate.group);
-    disposables.push(...veterancyPlate.disposables);
+    // Exact level and dangerous power use separate channels in one camera-facing frame:
+    // five countable cells sit over health while the pale-metal command silhouette grows.
+    // Runtime metal is deliberately brighter than the concept's brass so Tapline cannot
+    // swallow its edges at ordinary gameplay scale.
+    const veterancyPowerFrame = createVeterancyPowerFrame();
+    veterancyPowerFrame.group.userData.forUnitKey = unit.unitKey;
+    if (veterancyEnabled) statusBib.add(veterancyPowerFrame.group);
+    disposables.push(...veterancyPowerFrame.disposables);
 
     // Crossed blades over the health row — see ENGAGED_MARK_*. Two quads in one
     // group so the whole mark toggles with a single `visible`, and squared to
@@ -1442,10 +1441,31 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       { material: cooldownTrackMaterial, base: 0.62, alwaysTransparent: true },
       { material: attackCooldownMaterial, base: 0.88, alwaysTransparent: true },
       { material: signatureCooldownMaterial, base: 0.9, alwaysTransparent: true },
-      { material: veterancyPlate.shadowMaterial, base: 0.94, alwaysTransparent: true },
-      { material: veterancyPlate.rimMaterial, base: 1, alwaysTransparent: true },
-      { material: veterancyPlate.faceMaterial, base: 0.97, alwaysTransparent: true },
-      { material: veterancyPlate.energyMaterial, base: 0.96, alwaysTransparent: true },
+      {
+        material: veterancyPowerFrame.keylineMaterial,
+        base: 0.98,
+        alwaysTransparent: true,
+      },
+      {
+        material: veterancyPowerFrame.metalMaterial,
+        base: 1,
+        alwaysTransparent: true,
+      },
+      {
+        material: veterancyPowerFrame.faceMaterial,
+        base: 0.98,
+        alwaysTransparent: true,
+      },
+      {
+        material: veterancyPowerFrame.dormantCellMaterial,
+        base: 0.98,
+        alwaysTransparent: true,
+      },
+      {
+        material: veterancyPowerFrame.energyMaterial,
+        base: 1,
+        alwaysTransparent: true,
+      },
       { material: bladeMaterial, base: 1, alwaysTransparent: true },
     );
     /**
@@ -1523,7 +1543,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       attackCooldown,
       signatureCooldown,
       engagedMark,
-      veterancyPlate,
+      veterancyPowerFrame,
       channelRing,
       channelMaterial,
       screenRing,
@@ -2109,25 +2129,19 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       }
       if (screening) bot.screenMaterial.opacity = 0.24;
 
-      // Veterancy plate: one of five fixed-slot crests incorporated into the health row.
-      // Level is a per-life fold, so a respawned body returns to the visible seed without
-      // reset logic and every later rank swaps silhouette without moving the bar.
+      // Veterancy power frame: exact rank is the energized-cell count; the one visible
+      // command silhouette grows independently to communicate danger. Level is a per-life
+      // fold, so a respawn returns to the truthful one-cell state without reset logic.
       const level = veterancy.levelAt(
         time,
         pose.teamId,
         pose.unitId,
         pose.lifeId,
       );
-      const badgeVisible = veterancyEnabled && bot.statusBib.visible;
-      paintVeterancyPlate(bot.veterancyPlate, level, badgeVisible);
-      if (badgeVisible) {
-        // Centre the complete maximum crest slot + gap + fixed health bar over the body.
-        // Reserving the Apex footprint prevents health from shifting at level-up.
-        const barShift = (VETERANCY_PLATE_WIDTH + VETERANCY_PLATE_GAP) / 2;
-        bot.healthBar.group.position.x = barShift;
-        bot.veterancyPlate.group.position.x =
-          -(STATUS_TRACK_WIDTH + VETERANCY_PLATE_GAP) / 2;
-      } else bot.healthBar.group.position.x = 0;
+      const rankVisible = veterancyEnabled && bot.statusBib.visible;
+      paintVeterancyPowerFrame(bot.veterancyPowerFrame, level, rankVisible);
+      // Health remains centred at every rank; the frame reserves and grows around it.
+      bot.healthBar.group.position.x = 0;
       bot.engagedMark.position.y = ENGAGED_MARK_LIFT;
 
       const declaredAttackCooldown =
