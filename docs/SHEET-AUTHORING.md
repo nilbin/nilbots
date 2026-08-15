@@ -514,7 +514,9 @@ The product loop is **change → practice → watch → change**.
   compiler. The stored source-size ceilings are 192 KiB for Orders and 96 KiB
   for the map plan.
 - `POST /api/sheets/{id}/trial` runs the saved draft against a selected frozen
-  stock sheet and opens the replay viewer.
+  stock sheet and opens its fully revealed replay as soon as execution finishes.
+  Practice has no causal broadcast countdown or paced prefix: the author can pause,
+  seek and inspect the whole match immediately.
 - Saving fields a sheet in the current ladder by default, subject to the
   account cap; opting out is deliberate.
 

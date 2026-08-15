@@ -244,12 +244,18 @@ function Standing({
     return (
       <div className="panel-quiet pad flex flex-wrap items-center gap-x-3 gap-y-2">
         <p className="lab">
-          {arcRelayLane === 'ranked' ? 'Ranked Arc Relay' : 'Arc Relay scrimmage'}
+          {arcRelayLane === 'ranked'
+            ? 'Ranked Arc Relay'
+            : arcRelayLane === 'practice'
+              ? 'Practice replay'
+              : 'Arc Relay scrimmage'}
         </p>
         <span className="t-micro">
           {arcRelayLane === 'ranked'
             ? 'Rating settles when the causal broadcast completes.'
-            : 'Entrants from one account · always unrated.'}
+            : arcRelayLane === 'practice'
+              ? 'Immediate and unrated · seek freely while refining the sheet.'
+              : 'Entrants from one account · always unrated.'}
         </span>
         <StandingPill live={live} failed={failed} />
       </div>

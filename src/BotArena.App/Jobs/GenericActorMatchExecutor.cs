@@ -438,8 +438,16 @@ public sealed class GenericActorMatchExecutor(
         DateTime completedAt =
             timeProvider.GetUtcNow().UtcDateTime;
         match.CompletedAt = completedAt;
-        match.BroadcastStartedAt = completedAt.AddSeconds(
-            settings.BroadcastDelaySeconds);
+        // Editor practice is an authoring/debug artifact, not a spectator event. Its
+        // compact replay is fully public as soon as execution finishes so the author can
+        // seek, inspect and return to editing without waiting through a causal broadcast.
+        // Ranked and ordinary scrimmage lanes retain the shared presentation clock.
+        match.BroadcastStartedAt = string.Equals(
+            match.ArcRelayLane,
+            ArcRelayMatchLane.Practice,
+            StringComparison.Ordinal)
+                ? null
+                : completedAt.AddSeconds(settings.BroadcastDelaySeconds);
         match.PresentationTicksPerSecond =
             expected.PresentationTicksPerSecond
             ?? settings.BroadcastTicksPerSecond;

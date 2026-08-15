@@ -321,13 +321,38 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.Participants)
                 .SingleAsync(value => value.Id == trialMatch.Id);
             Assert.Equal(MatchStatus.Completed, trialResult.Status);
-            Assert.Equal(ArcRelayMatchLane.Scrimmage, trialResult.ArcRelayLane);
+            Assert.Equal(ArcRelayMatchLane.Practice, trialResult.ArcRelayLane);
+            Assert.Null(trialResult.BroadcastStartedAt);
+            Assert.True(trialResult.BroadcastComplete(DateTime.UtcNow));
             Assert.Collection(
                 trialResult.Participants.OrderBy(value => value.Slot),
                 participant => Assert.Equal("sheet",
                     participant.EntrantKindSnapshot),
                 participant => Assert.Equal("stock-fixture",
                     participant.EntrantKindSnapshot));
+        }
+        HttpResponseMessage practiceReplayResponse = await client.GetAsync(
+            $"/api/matches/{trialMatch.Id}/replay");
+        practiceReplayResponse.EnsureSuccessStatusCode();
+        Assert.Contains(
+            "gzip",
+            practiceReplayResponse.Content.Headers.ContentEncoding);
+        await using (Stream practiceBody =
+                     await practiceReplayResponse.Content.ReadAsStreamAsync())
+        await using (var practiceGzip = new System.IO.Compression.GZipStream(
+                         practiceBody,
+                         System.IO.Compression.CompressionMode.Decompress))
+        using (JsonDocument practiceReplay =
+               await JsonDocument.ParseAsync(practiceGzip))
+        {
+            Assert.False(
+                practiceReplay.RootElement.GetProperty("partial").GetBoolean());
+            Assert.Equal(
+                JsonValueKind.Object,
+                practiceReplay.RootElement.GetProperty("result").ValueKind);
+            Assert.Equal(
+                JsonValueKind.String,
+                practiceReplay.RootElement.GetProperty("replayHash").ValueKind);
         }
 
         // The first executed match pays one-time application/runtime JIT and

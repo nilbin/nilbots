@@ -78,7 +78,8 @@ map-plan sources, validates
 every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
-sheet and opens it in the ordinary replay viewer. v23's stock sheet is the
+sheet and opens the completed compact replay immediately, without the causal
+spectator clock used by ranked matches and scrimmages. v23's stock sheet is the
 Tapline-native Tempered Standard Orders v2 sheet, and six additional named
 strategy sheets are available as practice opponents. New map plans are authored directly
 on the Tapline export; earlier-map sheets are shown as legacy and cannot enter

@@ -48,7 +48,7 @@ public sealed class ArcRelayMatchAdmissionService(
             templates.GetStock(stockSheetId), cancellationToken);
         return await CreateCoreAsync(
             [candidate, stock],
-            ArcRelayMatchLane.Scrimmage,
+            ArcRelayMatchLane.Practice,
             initiatedBy,
             seed,
             cancellationToken);

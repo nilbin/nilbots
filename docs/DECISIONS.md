@@ -8546,3 +8546,18 @@ copied. The tactical mind bytes and `tempered-standard-v1` source did not
 change, so v23 deliberately reuses their exact artifact, build-input and source
 hashes rather than minting a misleading duplicate. Playlist v22, its ratings,
 matches, canonical definition and provenance remain immutable and readable.
+
+## 320. Sheet-editor practice produces an immediately seekable replay
+
+Owner product ruling (2026-08-15). A sheet-editor practice run is an authoring
+and debugging loop, not a spectator event. It keeps the exact same deterministic
+simulation and compact Arc Relay broadcast artifact, but becomes fully public as
+soon as execution completes: no countdown, causal prefix, paced live playback or
+withheld result. The author can immediately pause, seek, inspect unit tracks and
+return to the draft.
+
+Practice receives its own persisted Arc Relay lane so this presentation rule is
+explicit rather than inferred from a stock opponent. It remains unrated and
+shares the existing account practice/scrimmage admission limit. Ranked matches
+and ordinary entrant scrimmages retain causal broadcasts; no game rule, replay
+format, canonical hash, playlist or rating identity changes.

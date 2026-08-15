@@ -390,7 +390,8 @@ public static class TacticalSheetEndpoints
             DateTime dayAgo = timeProvider.GetUtcNow().UtcDateTime.AddHours(-24);
             int started = await db.Matches.CountAsync(value =>
                 value.InitiatedByUserId == userId
-                && value.ArcRelayLane == ArcRelayMatchLane.Scrimmage
+                && (value.ArcRelayLane == ArcRelayMatchLane.Practice
+                    || value.ArcRelayLane == ArcRelayMatchLane.Scrimmage)
                 && value.CreatedAt >= dayAgo, cancellationToken);
             if (started >= limits.AccountDailyLimit)
             {
