@@ -1,0 +1,221 @@
+{
+  "title": "Tapline equal-return fork · candidate route atlas",
+  "note": "West-team perspective. Candidate geometry only; scoring occurs at the exact own reactor.",
+  "map": {
+    "builder": "scripts/arc-relay-tapline-build.py",
+    "function": "build",
+    "addWalls": [
+      [9, 9],
+      [9, 10],
+      [5, 10],
+      [10, 11],
+      [21, 17],
+      [21, 16],
+      [25, 16],
+      [20, 15]
+    ],
+    "removeWalls": []
+  },
+  "symmetry": "rotate-180",
+  "stubAllowance": 2,
+  "validateCutVertices": true,
+  "landmarkRequirements": {
+    "reactor": 2,
+    "well": 3,
+    "healing": 2
+  },
+  "requiredLandmarkIds": [
+    "own-reactor",
+    "enemy-reactor",
+    "own-well",
+    "centre-well",
+    "enemy-well",
+    "north-healing",
+    "south-healing"
+  ],
+  "landmarks": [
+    {
+      "id": "own-reactor",
+      "kind": "reactor",
+      "name": "Own reactor",
+      "label": "R",
+      "team": "west",
+      "position": [2, 5]
+    },
+    {
+      "id": "enemy-reactor",
+      "kind": "reactor",
+      "name": "Enemy reactor",
+      "label": "R",
+      "team": "east",
+      "position": [28, 21]
+    },
+    {
+      "id": "own-well",
+      "kind": "well",
+      "name": "Own Well (1)",
+      "label": "1",
+      "team": "west",
+      "position": [11, 6]
+    },
+    {
+      "id": "centre-well",
+      "kind": "well",
+      "name": "Centre Well (2)",
+      "label": "2",
+      "position": [15, 13]
+    },
+    {
+      "id": "enemy-well",
+      "kind": "well",
+      "name": "Enemy Well (4)",
+      "label": "4",
+      "team": "east",
+      "position": [19, 20]
+    },
+    {
+      "id": "north-healing",
+      "kind": "healing",
+      "name": "North healing tile",
+      "label": "+",
+      "position": [21, 7]
+    },
+    {
+      "id": "south-healing",
+      "kind": "healing",
+      "name": "South healing tile",
+      "label": "+",
+      "position": [9, 19]
+    }
+  ],
+  "routes": [
+    {
+      "id": "own-direct",
+      "label": "Shortest return",
+      "origin": "Own Well",
+      "group": "Own Well · direct",
+      "style": "direct",
+      "from": "own-well",
+      "to": "own-reactor",
+      "mode": "shortest",
+      "expectedSteps": 12,
+      "labelAt": [7, 5]
+    },
+    {
+      "id": "centre-north",
+      "label": "North return",
+      "origin": "Centre Well",
+      "group": "Centre Well · equal fork",
+      "style": "north",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": ["own-well"],
+      "expectedSteps": 19,
+      "labelAt": [12, 8]
+    },
+    {
+      "id": "centre-south",
+      "label": "South return",
+      "origin": "Centre Well",
+      "group": "Centre Well · equal fork",
+      "style": "south",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[9, 11]],
+      "expectedSteps": 19,
+      "labelAt": [8, 12]
+    },
+    {
+      "id": "enemy-direct",
+      "label": "Absolute shortest",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · practical",
+      "style": "direct",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "shortest",
+      "expectedSteps": 25,
+      "labelAt": [13, 17]
+    },
+    {
+      "id": "enemy-via-centre-north",
+      "label": "Via centre · north",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · via centre",
+      "style": "north",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": ["centre-well", "own-well"],
+      "expectedSteps": 26,
+      "labelAt": [13, 9]
+    },
+    {
+      "id": "enemy-via-centre-south",
+      "label": "Via centre · south",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · via centre",
+      "style": "south",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": ["centre-well", [9, 11]],
+      "expectedSteps": 26,
+      "labelAt": [9, 13]
+    },
+    {
+      "id": "enemy-middle-north",
+      "label": "Middle shadow · north",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · middle shadow",
+      "style": "north",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[15, 3], [15, 2], [15, 1], [3, 1], [3, 2], [3, 3]],
+      "expectedSteps": 35,
+      "labelAt": [10, 1]
+    },
+    {
+      "id": "enemy-middle-south",
+      "label": "Middle shadow · south",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · middle shadow",
+      "style": "south",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[15, 23], [15, 24], [15, 25], [3, 25], [3, 24], [3, 23]],
+      "expectedSteps": 41,
+      "labelAt": [10, 25]
+    },
+    {
+      "id": "enemy-full-north",
+      "label": "Full shadow · north",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · full shadow",
+      "style": "north",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[27, 3], [27, 2], [27, 1], [3, 1], [3, 2], [3, 3]],
+      "expectedSteps": 52,
+      "labelAt": [22, 1]
+    },
+    {
+      "id": "enemy-full-south",
+      "label": "Full shadow · south",
+      "origin": "Enemy Well",
+      "group": "Enemy Well · full shadow",
+      "style": "south",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[27, 23], [27, 24], [27, 25], [3, 25], [3, 24], [3, 23]],
+      "expectedSteps": 58,
+      "labelAt": [22, 25]
+    }
+  ]
+}

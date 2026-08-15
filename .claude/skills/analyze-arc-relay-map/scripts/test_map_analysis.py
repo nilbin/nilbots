@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""Regression tests for the Arc Relay map analyzer."""
+
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+import sys
+import tempfile
+import unittest
+
+
+SCRIPT_DIRECTORY = Path(__file__).resolve().parent
+REPOSITORY_ROOT = Path(__file__).resolve().parents[4]
+sys.path.insert(0, str(SCRIPT_DIRECTORY))
+
+import map_analysis  # noqa: E402
+
+
+EXAMPLE = (
+    REPOSITORY_ROOT
+    / ".claude/skills/analyze-arc-relay-map/references"
+    / "tapline-equal-return-candidate.json"
+)
+
+
+class GridTests(unittest.TestCase):
+    def test_corner_strict_rule_blocks_a_false_diagonal(self) -> None:
+        grid = map_analysis.Grid([list(".#."), list("..."), list("...")])
+
+        self.assertFalse(grid.step_ok((0, 0), (1, 1)))
+        path = grid.shortest_path((0, 0), (1, 1))
+        self.assertIsNotNone(path)
+        self.assertEqual(len(path) - 1, 2)
+
+    def test_authored_route_rejects_an_illegal_step(self) -> None:
+        spec = {
+            "map": {"rows": [".#", "#."]},
+            "landmarks": [
+                {"id": "start", "position": [0, 0]},
+                {"id": "end", "position": [1, 1]},
+            ],
+            "validateCutVertices": False,
+            "routes": [
+                {
+                    "id": "illegal",
+                    "from": "start",
+                    "to": "end",
+                    "mode": "authored",
+                    "path": [[0, 0], [1, 1]],
+                }
+            ],
+        }
+
+        result = map_analysis.analyze_spec(spec, Path("test.json"))
+
+        self.assertFalse(result["valid"])
+        self.assertTrue(any("illegal step" in error for error in result["errors"]))
+
+    def test_custom_wall_symbol_is_preserved_for_the_atlas(self) -> None:
+        spec = {
+            "map": {"rows": ["xxx", "x.x", "xxx"], "wall": "x"},
+            "validateCutVertices": False,
+        }
+
+        result = map_analysis.analyze_spec(spec, Path("test.json"))
+
+        self.assertTrue(result["valid"], result["errors"])
+        self.assertEqual(result["wall"], "x")
+        self.assertIn("tile===data.wall", map_analysis.render_html(result))
+
+
+class TaplineCandidateTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.spec = json.loads(EXAMPLE.read_text(encoding="utf-8"))
+
+    def test_pins_landmarks_topology_and_every_route_family(self) -> None:
+        result = map_analysis.analyze_spec(self.spec, EXAMPLE)
+
+        self.assertTrue(result["valid"], result["errors"])
+        self.assertEqual(
+            {landmark["id"] for landmark in result["landmarks"]},
+            {
+                "own-reactor",
+                "enemy-reactor",
+                "own-well",
+                "centre-well",
+                "enemy-well",
+                "north-healing",
+                "south-healing",
+            },
+        )
+        self.assertEqual(
+            {route["id"]: route["steps"] for route in result["routes"]},
+            {
+                "own-direct": 12,
+                "centre-north": 19,
+                "centre-south": 19,
+                "enemy-direct": 25,
+                "enemy-via-centre-north": 26,
+                "enemy-via-centre-south": 26,
+                "enemy-middle-north": 35,
+                "enemy-middle-south": 41,
+                "enemy-full-north": 52,
+                "enemy-full-south": 58,
+            },
+        )
+        self.assertEqual(result["topology"]["connectedComponents"], [527])
+        self.assertEqual(result["topology"]["falseCornerTouches"], [])
+        self.assertEqual(result["topology"]["cutVertices"], [])
+        self.assertEqual(result["topology"]["symmetryMismatches"], [])
+        self.assertEqual(result["topology"]["landmarkSymmetryMismatches"], [])
+
+    def test_required_own_well_cannot_be_silently_omitted(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["landmarks"] = [
+            landmark
+            for landmark in spec["landmarks"]
+            if landmark["id"] != "own-well"
+        ]
+        spec["routes"] = []
+
+        result = map_analysis.analyze_spec(spec, EXAMPLE)
+
+        self.assertFalse(result["valid"])
+        self.assertIn("expected 3 well landmarks, found 2", result["errors"])
+        self.assertIn("missing required landmarks: own-well", result["errors"])
+
+    def test_html_names_all_wells_and_both_healing_tiles(self) -> None:
+        result = map_analysis.analyze_spec(self.spec, EXAMPLE)
+        document = map_analysis.render_html(result)
+
+        for expected in (
+            "Own Well (1)",
+            "Centre Well (2)",
+            "Enemy Well (4)",
+            "North healing tile",
+            "South healing tile",
+        ):
+            self.assertIn(expected, document)
+
+    def test_cli_writes_json_and_self_contained_html(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            exit_code = map_analysis.main(
+                [
+                    str(EXAMPLE),
+                    "--json-out",
+                    str(output / "analysis.json"),
+                    "--html-out",
+                    str(output / "atlas.html"),
+                ]
+            )
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue(json.loads((output / "analysis.json").read_text())["valid"])
+            self.assertIn("<svg id=\"map\"", (output / "atlas.html").read_text())
+
+
+if __name__ == "__main__":
+    unittest.main()
