@@ -342,7 +342,8 @@
             {
               "id": "escape-with-stolen-core",
               "move": {
-                "to": "own-reactor"
+                "to": "own-reactor",
+                "via": "north-centre-extraction"
               }
             }
           ]

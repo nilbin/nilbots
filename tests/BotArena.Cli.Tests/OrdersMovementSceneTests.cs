@@ -82,6 +82,53 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
+    public void LockboxStolenCoreExtractionUsesTheNorthInnerCorridor()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        using JsonDocument playbook = JsonDocument.Parse(
+            lockbox.NormalizedPlaybook);
+        JsonElement interceptor = playbook.RootElement.GetProperty("roles")
+            .EnumerateArray()
+            .Single(role => role.GetProperty("id").GetString()
+                == "return-lane-interceptors");
+        JsonElement safeReturn = interceptor.GetProperty("orders")
+            .EnumerateArray()
+            .Single(order => order.TryGetProperty("id", out JsonElement id)
+                && id.GetString() == "return-ambush-steal-safely");
+        JsonElement escape = safeReturn.GetProperty("orders")
+            .EnumerateArray()
+            .Single(order => order.GetProperty("id").GetString()
+                == "escape-with-stolen-core");
+
+        Assert.Equal(
+            "north-centre-extraction",
+            escape.GetProperty("move").GetProperty("via").GetString());
+
+        using JsonDocument mapPlan = JsonDocument.Parse(
+            lockbox.NormalizedLayout);
+        Position[] extraction = RoutePoints(
+            mapPlan.RootElement.GetProperty("routes"),
+            "north-centre-extraction");
+
+        // A carrier leaving any of the four ambush slots must first take the
+        // open mouth immediately north of the pocket, then cross the inner
+        // corridor above centre. The old unconstrained move chose the shorter
+        // southern return from the pocket's inner edge; the deleted historical
+        // route over-corrected with a full outer-perimeter lap.
+        Assert.Equal(
+            [
+                new Position(26, 15),
+                new Position(25, 13),
+                new Position(20, 13),
+                new Position(15, 10),
+                new Position(12, 7),
+                new Position(11, 7),
+            ],
+            extraction);
+    }
+
+    [Fact]
     public void LockboxCentreScreenPocketIsOpenOnBothTeamBindings()
     {
         string root = FindRepoRoot();
@@ -1457,6 +1504,16 @@ public sealed class OrdersMovementSceneTests
             "tactical-playbook-v1-2026-08-03",
             "playbooks",
             fileName));
+
+    private static Position[] RoutePoints(
+        JsonElement routes,
+        string routeId) => routes.GetProperty(routeId)
+        .GetProperty("waypoints")
+        .EnumerateArray()
+        .Select(point => point.EnumerateArray()
+            .Select(value => value.GetInt32()).ToArray())
+        .Select(point => new Position(point[0], point[1]))
+        .ToArray();
 
     private static TacticalPlaybookCompilation CompileHistoricalTapline4(
         string root,
