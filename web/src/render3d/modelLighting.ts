@@ -2,7 +2,7 @@ import * as THREE from 'three';
 
 const OUTGOING_LIGHT =
   'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;';
-const PROFILE_KEY = 'nilbots-model-lighting-v2';
+const PROFILE_KEY = 'nilbots-model-lighting-v3';
 const POINT_LIGHT_ISOLATION_KEY = 'nilbots-point-light-isolation-v1';
 const LIGHTS_FRAGMENT_INCLUDE = '#include <lights_fragment_begin>';
 const POINT_LIGHTS_START =
@@ -33,10 +33,13 @@ export const MODEL_LIGHTING_PROFILE = {
   facingFillMaximum: 0.2,
   rimStrength: 0.16,
   rimPower: 2.2,
-  apexRimStrength: 0.28,
-  apexRimPower: 1.7,
-  apexSweepStrength: 0.4,
-  apexSweepPower: 22,
+  apexCoatStrength: 0.3,
+  apexRimStrength: 0.48,
+  apexRimPower: 1.3,
+  apexSweepStrength: 0.58,
+  apexSweepPower: 5.5,
+  apexCounterSweepStrength: 0.38,
+  apexCounterSweepPower: 8,
 } as const;
 
 export function applyModelLighting(
@@ -117,28 +120,48 @@ ${fragmentShader.replace(
     0.22
   ) * nilbotsModelRim;
 
-  // Apex lacquer: a silver Fresnel edge and a tight satin lobe moving over the
-  // authored normals. This is model-local final light, not emission or a scene light.
+  // Apex phase coat: a persistent platinum lift, broad Fresnel edge, and two
+  // counter-crossing light bands. The broad terms survive phone-scale minification;
+  // authored diffuse colour remains in every term instead of being replaced by white.
+  float nilbotsApexBreath = 0.90 + 0.10 * sin( nilbotsApexPhase * 0.55 );
+  float nilbotsApexCoat =
+    ${MODEL_LIGHTING_PROFILE.apexCoatStrength.toFixed(2)} * nilbotsApexBreath;
   float nilbotsApexRim = pow(
     1.0 - nilbotsModelFacing,
     ${MODEL_LIGHTING_PROFILE.apexRimPower.toFixed(1)}
   ) * ${MODEL_LIGHTING_PROFILE.apexRimStrength.toFixed(2)};
+  float nilbotsApexCos = cos( nilbotsApexPhase );
+  float nilbotsApexSin = sin( nilbotsApexPhase );
   vec3 nilbotsApexSweepDirection = normalize( vec3(
-    cos( nilbotsApexPhase ) * 0.58,
-    sin( nilbotsApexPhase ) * 0.48,
-    1.0
+    nilbotsApexCos * 0.72,
+    nilbotsApexSin * 0.64,
+    0.82
   ) );
   float nilbotsApexSweep = pow(
     saturate( dot( geometryNormal, nilbotsApexSweepDirection ) ),
     ${MODEL_LIGHTING_PROFILE.apexSweepPower.toFixed(1)}
   ) * ${MODEL_LIGHTING_PROFILE.apexSweepStrength.toFixed(2)};
-  vec3 nilbotsApexSilver = mix(
-    vec3( 0.58, 0.64, 0.70 ),
+  vec3 nilbotsApexCounterDirection = normalize( vec3(
+    -nilbotsApexSin * 0.66,
+    nilbotsApexCos * 0.72,
+    0.56
+  ) );
+  float nilbotsApexCounterSweep = pow(
+    saturate( dot( geometryNormal, nilbotsApexCounterDirection ) ),
+    ${MODEL_LIGHTING_PROFILE.apexCounterSweepPower.toFixed(1)}
+  ) * ${MODEL_LIGHTING_PROFILE.apexCounterSweepStrength.toFixed(2)};
+  vec3 nilbotsApexPlatinum = mix(
+    vec3( 0.72, 0.76, 0.84 ),
     material.diffuseColor,
-    0.16
+    0.34
   );
-  outgoingLight += nilbotsApexSilver
-    * ( nilbotsApexRim + nilbotsApexSweep )
+  outgoingLight += nilbotsApexPlatinum
+    * (
+      nilbotsApexCoat
+      + nilbotsApexRim
+      + nilbotsApexSweep
+      + nilbotsApexCounterSweep
+    )
     * nilbotsApexStrength;`,
   )}`;
 }

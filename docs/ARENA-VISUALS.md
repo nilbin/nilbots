@@ -523,13 +523,15 @@ level-up geometry is gone by 1.8 presentation ticks; the effect has no white
 flash, full-height column, camera shake, or mesh mutation.
 
 At authoritative level 5, a genuine WebGL bot model additionally receives a
-model-local Apex lacquer: one restrained silver Fresnel edge plus a narrow satin
-highlight that moves slowly across the authored normals. The level-5 promotion
-beat eases it in, and reduced-motion freezes the moving lobe while retaining the
-edge. It creates no scene light, emission bloom, floor aura, team tint, model
-mutation, or spill onto nearby actors, Wells, or Reactors. Canvas and model-load
-fallbacks retain the exact five-cell rank rail without inventing a substitute
-effect.
+model-local Apex phase coat: a persistent platinum lift, a broad silver Fresnel
+edge, and two counter-crossing light bands moving over the authored normals. The
+effect is deliberately broad enough to survive phone-scale minification while
+retaining the authored diffuse colour beneath it. The level-5 promotion beat
+eases it in, and reduced-motion freezes the moving bands while retaining the
+coat and edge. It creates no scene light, emission bloom, floor aura, team tint,
+model mutation, or spill onto nearby actors, Wells, or Reactors. Canvas and
+model-load fallbacks retain the exact five-cell rank rail without inventing a
+substitute effect.
 
 Five complete Meshy-authored split-diadem rank models remain checked in with
 their manifests, source concepts, provider records, audits, and deterministic

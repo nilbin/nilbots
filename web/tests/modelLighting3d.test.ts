@@ -24,15 +24,19 @@ test('genuine model lighting adds a bounded fill and cool rim after ordinary PBR
   assert.ok(MODEL_LIGHTING_PROFILE.rimStrength <= 0.16);
 });
 
-test('apex treatment adds a silver Fresnel edge and moving satin lobe without a scene light', () => {
+test('apex treatment adds an obvious platinum phase coat without a scene light', () => {
   const shader = injectModelLighting(`before\n${shaderAnchor}\nafter`);
   assert.match(shader, /uniform float nilbotsApexStrength/);
+  assert.match(shader, /nilbotsApexCoat/);
   assert.match(shader, /nilbotsApexRim/);
   assert.match(shader, /nilbotsApexSweepDirection/);
+  assert.match(shader, /nilbotsApexCounterSweep/);
   assert.match(shader, /material\.diffuseColor/);
   assert.doesNotMatch(shader, /PointLight/);
-  assert.ok(MODEL_LIGHTING_PROFILE.apexRimStrength <= 0.3);
-  assert.ok(MODEL_LIGHTING_PROFILE.apexSweepStrength <= 0.4);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexCoatStrength >= 0.25);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexRimStrength <= 0.5);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexSweepStrength <= 0.6);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexCounterSweepStrength <= 0.4);
 });
 
 test('apex treatment retains precompile state and updates compiled uniforms', () => {
@@ -72,8 +76,8 @@ test('model lighting is idempotent and owns a distinct shader cache key', () => 
 
   assert.equal(material.onBeforeCompile, firstCompile);
   assert.equal(material.customProgramCacheKey(), firstKey);
-  assert.match(firstKey, /nilbots-model-lighting-v2/);
-  assert.equal(material.userData.nilbotsModelLighting, 'nilbots-model-lighting-v2');
+  assert.match(firstKey, /nilbots-model-lighting-v3/);
+  assert.equal(material.userData.nilbotsModelLighting, 'nilbots-model-lighting-v3');
 });
 
 test('model lighting fails loudly if Three changes its physical shader seam', () => {
@@ -102,7 +106,7 @@ test('point-light isolation composes once with readable model lighting', () => {
 
   assert.equal(material.onBeforeCompile, firstCompile);
   assert.equal(material.customProgramCacheKey(), firstKey);
-  assert.match(firstKey, /nilbots-model-lighting-v2/);
+  assert.match(firstKey, /nilbots-model-lighting-v3/);
   assert.match(firstKey, /nilbots-point-light-isolation-v1/);
 
   const model = new THREE.Group();
