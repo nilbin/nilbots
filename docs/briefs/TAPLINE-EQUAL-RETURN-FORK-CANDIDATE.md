@@ -5,6 +5,9 @@ Status: **owner-liked candidate; not implemented or approved for promotion**.
 Public 2D review:
 [Tapline equal-return fork](https://database-asset-dsc-ports.trycloudflare.com/tapline-equal-return-fork.html)
 
+Candidate-only route atlas:
+[Centre and enemy-Well return routes](https://database-asset-dsc-ports.trycloudflare.com/tapline-return-route-atlas.html)
+
 ## Design intent
 
 Remove the current 14-step centre-Well-to-reactor shortcut and replace it with
