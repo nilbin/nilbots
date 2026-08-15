@@ -82,7 +82,8 @@ public sealed record TacticalMovementPriority(
     int AlliedBlockDebt,
     int PassageLeaseTicksRemaining,
     int ActivatedTick,
-    int? BlockedSince)
+    int? BlockedSince,
+    Position? AlliedBlockTile)
 {
     public string Trace =>
         $"{AuthoredUrgency.ToString().ToLowerInvariant()}"
@@ -882,6 +883,7 @@ public sealed class TacticalTrafficGovernor
                 passageLeaseUntil,
                 passageLeaseNoProgress,
                 passageLeaseArmed,
+                sample.AlliedBlockTile,
                 tick);
         }
     }
@@ -918,8 +920,12 @@ public sealed class TacticalTrafficGovernor
             state.AlliedBlockDebt,
             PassageLeaseRemaining(state),
             state.ActivatedTick,
-            state.BlockedSince);
+            state.BlockedSince,
+            state.AlliedBlockTile);
     }
+
+    public Position? AlliedBlockTile(int unitId) =>
+        _states.GetValueOrDefault(unitId)?.AlliedBlockTile;
 
     private static int EffectiveUrgency(State state) => Math.Min(
         (int)TacticalMovementUrgency.Urgent,
@@ -970,7 +976,8 @@ public sealed class TacticalTrafficGovernor
         bool BlockedByAlly,
         bool MayAge,
         TacticalMovementUrgency Urgency,
-        int ActivatedTick);
+        int ActivatedTick,
+        Position? AlliedBlockTile);
 
     private sealed record State(
         ActorIdentity Actor,
@@ -985,6 +992,7 @@ public sealed class TacticalTrafficGovernor
         int? PassageLeaseUntil,
         int PassageLeaseNoProgress,
         bool PassageLeaseArmed,
+        Position? AlliedBlockTile,
         int ObservedTick)
     {
         internal static State For(Sample sample, int tick) => new(
@@ -1000,6 +1008,7 @@ public sealed class TacticalTrafficGovernor
             null,
             0,
             false,
+            sample.AlliedBlockTile,
             tick);
     }
 }
@@ -1094,26 +1103,49 @@ public sealed class TacticalOscillationGovernor
         Position destination,
         TacticalMovementAuthority authority)
     {
+        Avoidance? avoidance = ActiveAvoidance(actor, tick, authority);
+        if (avoidance is null || avoidance.Destination != destination)
+            return new Admission(true, "clear");
+        _denials.Add($"{actor.UnitId}:{avoidance.Reason}");
+        return new Admission(false, avoidance.Reason);
+    }
+
+    /// <summary>
+    /// The tile this authority must temporarily avoid, if any. Movement
+    /// planners query the same decision before choosing an operation; the
+    /// command seam still calls <see cref="Admit"/> as the final invariant.
+    /// Keeping this query side-effect free prevents candidate enumeration from
+    /// manufacturing denial telemetry while ensuring a rejected A-B return is
+    /// not selected afresh on every following tick.
+    /// </summary>
+    public Avoidance? ActiveAvoidance(
+        ActorIdentity actor,
+        int tick,
+        TacticalMovementAuthority authority)
+    {
         if (!_states.TryGetValue(actor.UnitId, out State? state)
             || state.Actor != actor)
         {
-            return new Admission(true, "clear");
+            return null;
         }
-
-        string? reason = state.HardBlockedReturn == destination
-            && tick < state.HardBlockedUntil
-                ? $"oscillation-yield@{state.HardBlockedUntil}"
-                    + $"-avoid-{destination.X}-{destination.Y}"
-                : authority == TacticalMovementAuthority.Tactical
-                    && state.SoftBlockedReturn == destination
-                    && tick < state.SoftBlockedUntil
-                        ? $"movement-lease@{state.SoftBlockedUntil}"
-                            + $"-avoid-{destination.X}-{destination.Y}"
-                        : null;
-        if (reason is null)
-            return new Admission(true, "clear");
-        _denials.Add($"{actor.UnitId}:{reason}");
-        return new Admission(false, reason);
+        if (state.HardBlockedReturn is Position hard
+            && tick < state.HardBlockedUntil)
+        {
+            return new Avoidance(
+                hard,
+                $"oscillation-yield@{state.HardBlockedUntil}"
+                    + $"-avoid-{hard.X}-{hard.Y}");
+        }
+        if (authority == TacticalMovementAuthority.Tactical
+            && state.SoftBlockedReturn is Position soft
+            && tick < state.SoftBlockedUntil)
+        {
+            return new Avoidance(
+                soft,
+                $"movement-lease@{state.SoftBlockedUntil}"
+                    + $"-avoid-{soft.X}-{soft.Y}");
+        }
+        return null;
     }
 
     /// <summary>
@@ -1177,6 +1209,8 @@ public sealed class TacticalOscillationGovernor
         bool MovedLastTick);
 
     public sealed record Admission(bool Admitted, string Reason);
+
+    public sealed record Avoidance(Position Destination, string Reason);
 
     private sealed record State(
         ActorIdentity Actor,

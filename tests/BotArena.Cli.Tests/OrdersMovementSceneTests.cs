@@ -1,5 +1,8 @@
 using System.Collections.Immutable;
 using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 using BotArena.Engine;
 using BotArena.Runtime;
 
@@ -14,6 +17,171 @@ namespace BotArena.Cli.Tests;
 /// </summary>
 public sealed class OrdersMovementSceneTests
 {
+    [Fact]
+    public void LockboxCentreScreenPocketIsOpenOnBothTeamBindings()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        using JsonDocument mapPlan = JsonDocument.Parse(
+            lockbox.NormalizedLayout);
+        int[] rect = mapPlan.RootElement
+            .GetProperty("zones")
+            .GetProperty("centre-screen-pocket")
+            .GetProperty("rect")
+            .EnumerateArray()
+            .Select(value => value.GetInt32())
+            .ToArray();
+        Assert.Equal([12, 11, 14, 13], rect);
+
+        ActorMapDefinition map = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline6).Map;
+        Position[] west = (from y in Enumerable.Range(
+                               rect[1], rect[3] - rect[1] + 1)
+                           from x in Enumerable.Range(
+                               rect[0], rect[2] - rect[0] + 1)
+                           select new Position(x, y)).ToArray();
+        Position[] east = west.Select(tile => new Position(
+            map.Width - 1 - tile.X,
+            map.Height - 1 - tile.Y)).ToArray();
+
+        // Tapline-6 added a wall through the inherited Tapline-5 rectangle.
+        // Zone expansion silently removed those cells and packed Lockbox's
+        // centre screen into a choke. A formation pocket is authored floor,
+        // not a rectangle whose useful shape changes when a map wall moves.
+        Assert.Equal(9, west.Length);
+        Assert.All(west.Concat(east), tile => Assert.False(map.IsWall(tile)));
+    }
+
+    [Fact]
+    public void SquadPlannerConsumesOscillationAvoidanceBeforeSubmission()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        TacticalPlaybookCompilation lockbox = CompileLockboxWithPocket(
+            root, [10, 11, 12, 13]);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            demolition.Composition,
+            lockbox.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline6);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, demolition), Participant(1, lockbox)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        int plannerAvoidances = 0;
+        var commandSeamDenials = new List<string>();
+        while (!session.IsCompleted && session.Tick < 150)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn turn = Assert.Single(
+                step.MindTurns, candidate => candidate.TeamId == 1);
+            foreach (GenericMindCommandResolution command in turn.Commands)
+            {
+                string reason = command.Command.DebugMessage ?? "";
+                if (reason.Contains(
+                        ":planner-oscillation-yield@",
+                        StringComparison.Ordinal))
+                {
+                    plannerAvoidances++;
+                }
+                if (reason.Contains(
+                        ":oscillation-yield@",
+                        StringComparison.Ordinal))
+                {
+                    commandSeamDenials.Add(
+                        $"t{step.Tick}:u{command.Command.UnitId}:{reason}");
+                }
+            }
+        }
+
+        // Tapline-6 G1 owner catch: a respawned Repulsor walked A-B-A,
+        // the oscillation governor denied B, and the squad planner selected B
+        // again on every subsequent tick. Keep the old pocket as a fixture so
+        // this match still exercises the planner/command seam independently
+        // of the product geometry repair: avoidance must appear in planning
+        // and must never leak through as a rejected move at submission. The
+        // following product-scene test pins the alternative motion itself.
+        Assert.True(plannerAvoidances > 0);
+        Assert.Empty(commandSeamDenials);
+    }
+
+    [Fact]
+    public void AlliedTrafficDebtOpensTheLongerDetourInsteadOfWaitingForever()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            demolition.Composition,
+            lockbox.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline6);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, demolition), Participant(1, lockbox)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        int[] watchedUnits = [4, 6];
+        var previous = new Dictionary<int, Position>();
+        var stationary = watchedUnits.ToDictionary(unit => unit, _ => 0);
+        var worst = watchedUnits.ToDictionary(unit => unit, _ => 0);
+        bool sawDebtBackedDetour = false;
+        while (!session.IsCompleted && session.Tick < 95)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn lockboxTurn = Assert.Single(
+                step.MindTurns, candidate => candidate.TeamId == 1);
+            foreach (int unit in watchedUnits)
+            {
+                GenericActorWorldSnapshot.LifeSnapshot? life = step.PostState
+                    .ActiveLives.SingleOrDefault(candidate =>
+                        candidate.ActorId.TeamId == 1
+                        && candidate.ActorId.UnitId == unit
+                        && candidate.ActorId.LifeId == 0);
+                GenericMindCommandResolution? command = lockboxTurn.Commands
+                    .SingleOrDefault(candidate =>
+                        candidate.Command.UnitId == unit
+                        && candidate.Command.LifeId == 0);
+                string reason = command?.Command.DebugMessage ?? "";
+                bool staging = life is not null && reason.Contains(
+                    "stage-return-lane-ambush", StringComparison.Ordinal);
+                if (!staging)
+                {
+                    stationary[unit] = 0;
+                    if (life is not null)
+                        previous[unit] = life.Position;
+                    continue;
+                }
+                stationary[unit] = previous.GetValueOrDefault(unit)
+                        == life!.Position
+                    ? stationary[unit] + 1
+                    : 0;
+                worst[unit] = Math.Max(worst[unit], stationary[unit]);
+                previous[unit] = life.Position;
+                sawDebtBackedDetour |= reason.Contains(
+                        "urgency-urgent+b2", StringComparison.Ordinal)
+                    && reason.Contains(
+                        ":epibt-move:", StringComparison.Ordinal);
+            }
+        }
+
+        // G1 follow-on catch: u4 at (10,12) and u6 at (9,12) each wanted
+        // the other's shortest exit while an enemy occupied the remaining
+        // mouth. EPIBT generated a valid north/west detour, but WWW ranked
+        // ahead because that first step temporarily increased goal distance.
+        // Proven allied-block debt must open the already-generated detour.
+        Assert.True(sawDebtBackedDetour);
+        Assert.All(watchedUnits, unit => Assert.True(
+            worst[unit] < 18,
+            $"Lockbox u{unit} remained stationary under its ambush move for "
+            + $"{worst[unit]} ticks."));
+    }
+
     [Fact]
     public void DirectMoveCourseDoesNotAlternateTurnsAtDeployment()
     {
@@ -1000,6 +1168,28 @@ public sealed class OrdersMovementSceneTests
             "tactical-playbook-v1-2026-08-03",
             "playbooks",
             fileName));
+
+    private static TacticalPlaybookCompilation CompileLockboxWithPocket(
+        string root,
+        int[] rect)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string playbook = Path.Combine(package, "playbooks", "lockbox-v1.json");
+        string mapPlan = Path.Combine(
+            package, "map-plans", "tapline-6", "lockbox-v1.json");
+        JsonObject map = JsonNode.Parse(File.ReadAllText(mapPlan))!.AsObject();
+        map["zones"]!["centre-screen-pocket"]!["rect"] = new JsonArray(
+            rect.Select(value => JsonValue.Create(value)).ToArray());
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            File.ReadAllBytes(playbook),
+            Encoding.UTF8.GetBytes(map.ToJsonString()),
+            playbook,
+            mapPlan + "#test-pocket");
+    }
 
     private static TacticalPlaybookCompilation CompileStrategy(
         string root,

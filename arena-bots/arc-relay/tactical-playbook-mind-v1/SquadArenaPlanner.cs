@@ -77,10 +77,18 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             intent => intent.Body.UnitId);
         Dictionary<int, Position> assignments = AssignContributions(
             contract, intents);
+        Dictionary<int, Position?> trafficObstacles = intents.ToDictionary(
+            intent => intent.Body.UnitId,
+            intent => ResolveTrafficObstacle(
+                mind, intent, assignments[intent.Body.UnitId]));
         Dictionary<int, Position[]> courses = intents.ToDictionary(
             intent => intent.Body.UnitId,
             intent => ResolveCourse(
-                contract, mind, intent, assignments[intent.Body.UnitId]));
+                contract,
+                mind,
+                intent,
+                assignments[intent.Body.UnitId],
+                trafficObstacles[intent.Body.UnitId]));
 
         var inherited = new Dictionary<int, Operation>();
         var candidates = new Dictionary<int, Operation[]>();
@@ -89,8 +97,10 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             inherited[intent.Body.UnitId] = InheritedOperation(
                 contract,
                 mind,
+                claims,
                 intent,
-                assignments[intent.Body.UnitId]);
+                assignments[intent.Body.UnitId],
+                trafficObstacles[intent.Body.UnitId]);
             // An EPIBT revisit changes only the collision set and inherited
             // priority. This body's map, legality, authored goal, assignment
             // and course are all frozen for the tick, so regenerating the
@@ -102,7 +112,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 claims,
                 intent,
                 assignments[intent.Body.UnitId],
-                courses[intent.Body.UnitId]);
+                courses[intent.Body.UnitId],
+                trafficObstacles[intent.Body.UnitId]);
         }
         var selected = inherited.ToDictionary(pair => pair.Key, pair => pair.Value);
         var visits = intents.ToDictionary(intent => intent.Body.UnitId, _ => 0);
@@ -194,6 +205,13 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 reason += $":avoid-denied-{denied.Tile.X}-{denied.Tile.Y}"
                     + $"@{denied.UntilTick}";
             }
+            if (claims.ActiveMovementAvoidance(intent.Body)
+                is TacticalOscillationGovernor.Avoidance avoidance)
+            {
+                reason += $":planner-{avoidance.Reason}";
+            }
+            if (trafficObstacles[intent.Body.UnitId] is Position traffic)
+                reason += $":traffic-detour-{traffic.X}-{traffic.Y}";
             if (jointSafetyFallback)
                 reason += ":joint-plan-safety-fallback";
             // A facing-locked resting body may need to rotate before its
@@ -215,7 +233,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 intent.Key,
                 assignments[intent.Body.UnitId],
                 operation,
-                courses[intent.Body.UnitId]);
+                courses[intent.Body.UnitId],
+                trafficObstacles[intent.Body.UnitId]);
         }
         return;
 
@@ -326,8 +345,10 @@ internal sealed class SquadArenaPlanner : IArenaStepper
     private Operation InheritedOperation(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
+        ArenaBasics.Claims claims,
         SquadMovementIntent intent,
-        Position assignment)
+        Position assignment,
+        Position? trafficObstacle)
     {
         Operation wait = WaitOperation(intent.Body);
         // Rooting is authoritative for this tick. A shifted operation from a
@@ -361,12 +382,15 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // and an operation EPIBT could never physically execute.
         if (!ActionAvailableNow(contract, intent.Body, shifted[0]))
             return wait;
+        HashSet<Position> obstacles = DurableObstaclesExceptGoal(
+            contract, mind, intent.Body, assignment, claims);
+        if (trafficObstacle is Position traffic && traffic != assignment)
+            obstacles.Add(traffic);
         return BuildOperation(
                 contract,
                 intent.Body,
                 shifted,
-                DurableObstaclesExceptGoal(
-                    contract, mind, intent.Body, assignment),
+                obstacles,
                 inherited: true)
             ?? wait;
     }
@@ -377,7 +401,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         ArenaBasics.Claims claims,
         SquadMovementIntent intent,
         Position assignment,
-        Position[] course)
+        Position[] course,
+        Position? trafficObstacle)
     {
         if (intent.Pinned)
             return [WaitOperation(intent.Body)];
@@ -395,6 +420,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // obstacle; reserved tiles en route remain blocked.
         durable.Remove(assignment);
         durable.Remove(intent.Body.Position);
+        if (trafficObstacle is Position traffic && traffic != assignment)
+            durable.Add(traffic);
         // A simultaneous hostile move can reject a step even though the
         // destination was visibly empty when this mind planned. The generic
         // one-tick BlockedNow memory is insufficient for carried Cores because
@@ -434,13 +461,20 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             // and "which legal course makes progress?".
             if (activeDenied is DeniedStep carrierDenied)
                 distanceObstacles.Add(carrierDenied.Tile);
+            if (trafficObstacle is Position carrierTraffic
+                && carrierTraffic != assignment)
+            {
+                distanceObstacles.Add(carrierTraffic);
+            }
             distanceField = ArenaBasics.StaticRouteDistanceField(
                 contract,
                 intent.Body,
                 assignment,
                 distanceObstacles);
         }
-        else if (courseStartsWithNecessaryDetour || activeDenied is not null)
+        else if (courseStartsWithNecessaryDetour
+            || activeDenied is not null
+            || trafficObstacle is not null)
         {
             // Chebyshev progress cannot recognize the first step of a real
             // route around a persistent obstacle: sideways and briefly-away
@@ -959,6 +993,11 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             // duplicated as static occupancy walls.
             immediate.ExceptWith(mind.Bodies.Select(ally => ally.Position));
             result.UnionWith(immediate);
+            if (claims.ActiveMovementAvoidance(body)
+                is TacticalOscillationGovernor.Avoidance avoidance)
+            {
+                result.Add(avoidance.Destination);
+            }
         }
         result.Remove(body.Position);
         return result;
@@ -981,7 +1020,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         SquadMovementIntent intent,
-        Position assignment)
+        Position assignment,
+        Position? trafficObstacle)
     {
         if (intent.Pinned || intent.Body.Position == assignment)
             return [intent.Body.Position];
@@ -992,6 +1032,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 contract.LifecycleAssignments,
                 contract.Map.SpawnAnchors,
                 intent.Body.ActorId.TeamId));
+        if (trafficObstacle is Position traffic && traffic != assignment)
+            obstacles.Add(traffic);
         Position[]? course = null;
         if (_states.TryGetValue(
                 intent.Body.UnitId, out PersistentState? prior)
@@ -1031,6 +1073,30 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 .Where(tile => tile != preferred)];
         }
         return course;
+    }
+
+    private Position? ResolveTrafficObstacle(
+        MindContext mind,
+        SquadMovementIntent intent,
+        Position assignment)
+    {
+        if (_states.TryGetValue(
+                intent.Body.UnitId, out PersistentState? prior)
+            && prior.Actor == intent.Body.ActorId
+            && string.Equals(prior.Key, intent.Key, StringComparison.Ordinal)
+            && prior.Assignment == assignment
+            && prior.TrafficObstacle is Position held
+            && held != assignment
+            && mind.Bodies.Any(ally => ally.UnitId != intent.Body.UnitId
+                && ally.Position == held))
+        {
+            return held;
+        }
+        return intent.Priority.AlliedBlockDebt >= 2
+            && intent.Priority.AlliedBlockTile is Position blocked
+            && blocked != assignment
+                ? blocked
+                : null;
     }
 
     private static bool IsCarrierReturn(SquadMovementIntent intent) =>
@@ -1426,7 +1492,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         string Key,
         Position Assignment,
         Operation Operation,
-        Position[] Course);
+        Position[] Course,
+        Position? TrafficObstacle);
     private sealed record DeniedStep(
         ActorIdentity Actor,
         Position Tile,

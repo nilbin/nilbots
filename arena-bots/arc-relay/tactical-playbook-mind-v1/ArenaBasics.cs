@@ -239,6 +239,12 @@ internal static class ArenaBasics
                 destination,
                 authority);
 
+        public TacticalOscillationGovernor.Avoidance? ActiveMovementAvoidance(
+            MindBody body,
+            TacticalMovementAuthority authority =
+                TacticalMovementAuthority.Tactical) =>
+            _oscillation.ActiveAvoidance(body.ActorId, _tick, authority);
+
         public static Claims ForTick(
             GenericActorResolvedMatchContract contract,
             MindContext mind,

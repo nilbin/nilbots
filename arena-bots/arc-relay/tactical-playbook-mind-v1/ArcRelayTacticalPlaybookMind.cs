@@ -1475,6 +1475,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             bool blocked = first is Position wanted
                 && mind.Bodies.Any(other => other.UnitId != body.UnitId
                     && other.Position == wanted);
+            Position? previousBlock = _traffic.AlliedBlockTile(body.UnitId);
+            bool previousBlockStillOccupied = previousBlock is Position held
+                && mind.Bodies.Any(other => other.UnitId != body.UnitId
+                    && other.Position == held);
+            Position? alliedBlockTile = blocked
+                ? first
+                : previousBlockStillOccupied
+                    ? previousBlock
+                    : null;
             return new TacticalTrafficGovernor.Sample(
                 body.ActorId,
                 selected.GetValueOrDefault(body.UnitId)?.Leaf.Node.Path
@@ -1487,7 +1496,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 Urgency: selected.GetValueOrDefault(body.UnitId)?.Leaf.Node.Urgency
                     ?? TacticalMovementUrgency.Normal,
                 ActivatedTick: selected.GetValueOrDefault(body.UnitId)
-                    ?.Leaf.ActivatedTick ?? mind.Tick);
+                    ?.Leaf.ActivatedTick ?? mind.Tick,
+                AlliedBlockTile: alliedBlockTile);
         }).ToArray();
     }
 

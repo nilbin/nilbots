@@ -755,6 +755,12 @@ public sealed class TacticalMovementGovernorTests
             actor, 3, a, TacticalMovementAuthority.Tactical);
         Assert.False(tactical.Admitted);
         Assert.Contains("oscillation-yield", tactical.Reason);
+        TacticalOscillationGovernor.Avoidance avoidance = Assert.IsType<
+            TacticalOscillationGovernor.Avoidance>(
+                governor.ActiveAvoidance(
+                    actor, 3, TacticalMovementAuthority.Tactical));
+        Assert.Equal(a, avoidance.Destination);
+        Assert.Equal(tactical.Reason, avoidance.Reason);
         Assert.True(governor.Admit(
             actor, 3, c, TacticalMovementAuthority.Tactical).Admitted);
         Assert.False(governor.Admit(
@@ -883,7 +889,8 @@ public sealed class TacticalMovementGovernorTests
         blocked,
         mayAge,
         urgency,
-        activatedTick);
+        activatedTick,
+        blocked ? new Position(14, 6) : null);
 
     private static TacticalOscillationGovernor.Sample Motion(
         ActorIdentity actor,
