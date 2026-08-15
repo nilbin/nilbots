@@ -117,22 +117,22 @@ function veterancyRankPlateOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,
 ): THREE.Object3D | null {
-  const pips = healthBarOf(group, unitKey);
+  const healthRow = healthBarOf(group, unitKey);
   let found: THREE.Object3D | null = null;
-  pips.traverse((child) => {
+  healthRow.traverse((child) => {
     if (child.userData.cue === 'veterancy-rank-plate') found = child;
   });
   return found;
 }
 
-function veterancyDigitsOf(
+function veterancyCrestsOf(
   plate: THREE.Object3D,
 ): THREE.Object3D[] {
-  const digits: THREE.Object3D[] = [];
+  const crests: THREE.Object3D[] = [];
   plate.traverse((child) => {
-    if (child.userData.cue === 'veterancy-rank-digit') digits.push(child);
+    if (child.userData.cue === 'veterancy-rank-crest') crests.push(child);
   });
-  return digits;
+  return crests;
 }
 
 function statusCueOf(
@@ -501,7 +501,7 @@ test('3D health presentation is one proportional bar for scaled hulls', () => {
   }
 });
 
-test('Arc veterancy uses one fixed numeric plate incorporated into the health row', () => {
+test('Arc veterancy uses five progressive 2D crests in one fixed health-row slot', () => {
   const leveled = structuredClone(replay);
   const actor = leveled.ticks[0]!.after.actors[0]!.identity;
   const template = leveled.ticks[0]!.events[0] ?? leveled.ticks[0]!.lifecycleEvents[0];
@@ -521,43 +521,67 @@ test('Arc veterancy uses one fixed numeric plate incorporated into the health ro
   const actors = buildActors(leveled);
   const plate = veterancyRankPlateOf(actors.group, actor.unitKey);
   assert.ok(plate);
-  const digits = veterancyDigitsOf(plate);
+  const crests = veterancyCrestsOf(plate);
+  assert.equal(crests.length, 5);
   const rankAt = (time: number) => {
     actors.update(time, null, false);
-    const visible = digits.filter((digit) => digit.visible);
+    const visible = crests.filter((crest) => crest.visible);
     assert.equal(plate.visible, true);
-    assert.equal(visible.length, 1, 'exactly one rank numeral is visible');
-    assert.equal(
-      visible[0]!.renderOrder,
-      plate.renderOrder,
-      'the nested numeral stays in the plate transparent-sort layer',
+    assert.equal(visible.length, 1, 'exactly one rank crest is visible');
+    assert.ok(
+      visible[0]!.children.some(
+        (child) => child.userData.cue === 'veterancy-rank-shadow',
+      ),
+      'the crest owns a floor-separating dark keyline',
     );
     assert.ok(
       visible[0]!.children.some(
-        (child) => child.userData.cue === 'veterancy-rank-segment',
+        (child) => child.userData.cue === 'veterancy-rank-rim',
       ),
-      'the numeral owns font-independent display geometry',
+      'the crest owns a cool-metal rim',
     );
-    return visible[0]!.userData.rankValue;
+    assert.ok(
+      visible[0]!.children.some(
+        (child) => child.userData.cue === 'veterancy-rank-face',
+      ),
+      'the crest owns a blue-black face',
+    );
+    return {
+      rank: visible[0]!.userData.rankValue as number,
+      width: visible[0]!.userData.silhouetteWidth as number,
+      height: visible[0]!.userData.silhouetteHeight as number,
+      energy: visible[0]!.userData.energyMarkCount as number,
+      crest: visible[0]!,
+    };
   };
-  assert.deepEqual(
-    [0.25, 1.25, 2.25, 3.25, 4.25].map(rankAt),
-    [1, 2, 3, 4, 5],
-  );
+  const states = [0.25, 1.25, 2.25, 3.25, 4.25].map(rankAt);
+  assert.deepEqual(states.map((state) => state.rank), [1, 2, 3, 4, 5]);
+  assert.deepEqual(states.map((state) => state.energy), [0, 1, 2, 3, 5]);
+  for (let index = 1; index < states.length; index++) {
+    assert.ok(states[index]!.width > states[index - 1]!.width);
+    assert.ok(states[index]!.height > states[index - 1]!.height);
+  }
   assert.equal(plate.userData.rankValue, 5);
+  assert.equal(plate.userData.visualRankValue, 5);
   assert.equal(plate.position.y, 0, 'rank plate stays in the health row');
+  let hasNumeral = false;
   let hasDiadem = false;
   actors.group.traverse((node) => {
+    if (
+      node.userData.cue === 'veterancy-rank-digit' ||
+      node.userData.cue === 'veterancy-rank-segment'
+    ) hasNumeral = true;
     if (node.userData.cue === 'veterancy-split-diadem') hasDiadem = true;
   });
+  assert.equal(hasNumeral, false, 'the rejected numeric treatment is gone');
   assert.equal(
     hasDiadem,
     false,
     'retained Meshy rank models are not attached to gameplay actors',
   );
 
-  // The complete plate + gap + health row, not merely the bar alone, is centred over the
-  // body. A rank change swaps the numeral without moving either edge of that row.
+  // The complete maximum plate slot + gap + health row, not merely the bar alone, is
+  // centred over the body. Rank changes grow inside that slot without moving the bar.
   const healthBar = healthBarOf(actors.group, actor.unitKey);
   const healthTrack = healthTrackOf(healthBar);
   const badgeWidth = plate.userData.width as number;
@@ -575,8 +599,24 @@ test('Arc veterancy uses one fixed numeric plate incorporated into the health ro
   assert.equal(
     healthBar.children.some((child) => child.userData.cue === 'veterancy-stack'),
     false,
-    'the rejected vertical chevron tower is gone',
+    'the rejected vertical chevron tower remains gone',
   );
+  const apex = states[4]!.crest;
+  const materialFor = (cue: string): THREE.MeshBasicMaterial => {
+    const mesh = apex.children.find((child) => child.userData.cue === cue);
+    assert.ok(mesh instanceof THREE.Mesh, `no ${cue} mesh`);
+    assert.ok(mesh.material instanceof THREE.MeshBasicMaterial);
+    return mesh.material;
+  };
+  const shadow = materialFor('veterancy-rank-shadow');
+  const rim = materialFor('veterancy-rank-rim');
+  const face = materialFor('veterancy-rank-face');
+  assert.equal(shadow.color.getHexString(), '01060a');
+  assert.equal(rim.color.getHexString(), 'cfe8ea');
+  assert.equal(face.color.getHexString(), '07131c');
+  assert.equal(shadow.depthTest, false);
+  assert.equal(rim.depthTest, false);
+  assert.equal(face.depthTest, false);
   const engaged = statusCueOf(actors.group, actor.unitKey, 'engaged-mark');
   assert.ok(
     engaged.position.y > badgeHeight / 2 + 0.1,
@@ -614,7 +654,7 @@ test('only a veterancy-enabled replay receives the visible level-one rank', () =
     assert.ok(plate);
     assert.equal(plate.visible, true);
     assert.equal(plate.userData.rankValue, 1);
-    const visible = veterancyDigitsOf(plate).filter((digit) => digit.visible);
+    const visible = veterancyCrestsOf(plate).filter((crest) => crest.visible);
     assert.equal(visible.length, 1);
     assert.equal(visible[0]!.userData.rankValue, 1);
   } finally {
@@ -1438,7 +1478,7 @@ test('the volley stance is fully out on the tick it fires, and never pops', () =
   actors.dispose();
 });
 
-/** The floor ring belonging to one unit, found by its cue like the health pips are. */
+/** The floor ring belonging to one unit, found by its cue like the health bar is. */
 function selectionRingOf(
   group: THREE.Object3D,
   unitKey: ReplayStableUnitKey,

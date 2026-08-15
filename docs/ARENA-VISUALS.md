@@ -303,8 +303,9 @@ paths at a glance.
 
 ### Adaptive combat contrast
 
-Health and ordnance retain their original accent-colored pips, glow, trails,
-and projectile silhouettes. The renderer samples the already-painted pixels
+Health bars retain their team-accent frame and universal
+green/amber/red wound fill; ordnance retains its accent-colored glow, trail,
+and projectile silhouette. The renderer samples the already-painted pixels
 beneath each indicator. If the authored bot accent falls below 3:1 graphical
 contrast there, it makes the smallest one-percent blend toward black or white
 that reaches the threshold. Otherwise it uses the authored color unchanged.
@@ -314,9 +315,9 @@ accent or replay data, add a plaque/outline, or constrain theme materials.
 Projectile glow remains additive, while its slim accent core uses normal
 compositing so a locally darkened accent can actually read on a pale floor.
 Canvas sampling failure also falls back to the authored accent rather than
-breaking playback. Health pip count comes from the replay's rules-owned
-`maxHealth` snapshot (with the historical three-health fallback), never a
-presentation constant.
+breaking playback. Health-bar fill comes from current health divided by the
+replay's rules-owned effective-form `maxHealth` snapshot, never a presentation
+constant.
 
 ## Bot-look contract
 
@@ -507,14 +508,18 @@ its long prow cannot enter the floor. Its existing recall exit is unchanged.
 An authoritative `leveled-up` fact also drives a bounded presentation beat: a
 thin brass floor ring, three short converging matte facets, then the persistent
 rules-owned rank plate. In WebGL that plate starts visibly at authoritative
-level 1 and occupies one fixed footprint through level 5: a matte dark octagon
-with a restrained brass rim and a block-readable brass numeral. It is attached
-to the left edge of the health bar, and the complete plate-gap-bar row is
-centred over the body. Changing rank swaps only the numeral, so higher ranks do
-not build a vertical tower, collide with the engaged mark, or require a learned
-compressed-chevron code. Modes without a veterancy rule or facts receive no
-rank plate. Temporary level-up geometry is gone by 1.8 presentation ticks; the
-effect has no white flash, full-height column, camera shake, or mesh mutation.
+level 1 and occupies one reserved footprint through level 5. Only one
+renderer-native flat crest is visible: Seed, Kindled, Proven, Elite, or Apex.
+Each successive state gains width, height, and restrained amber inlay while the
+health bar stays fixed. A near-black oversized keyline, cool-metal unlit rim,
+and blue-black unlit face separate the plate from Tapline's dark copper floor;
+warm amber is reserved for the rank-energy inlay. It is attached to the left
+edge of the health bar, and the complete maximum-plate-slot, gap, and bar row
+is centred over the body. The treatment has no numeral, accumulating marks,
+vertical tower, or compressed-chevron code.
+Modes without a veterancy rule or facts receive no rank plate. Temporary
+level-up geometry is gone by 1.8 presentation ticks; the effect has no white
+flash, full-height column, camera shake, or mesh mutation.
 
 Five complete Meshy-authored split-diadem rank models remain checked in with
 their manifests, source concepts, provider records, audits, and deterministic

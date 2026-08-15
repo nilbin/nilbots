@@ -1,15 +1,17 @@
 # Veterancy rank plates v1
 
-Concept-only owner review artifact. Nothing in this directory approves a
-renderer implementation.
+Concept source for the current renderer-native in-game trial. Final acceptance
+still depends on owner review at ordinary gameplay scale.
 
 ![Five 2D veterancy rank plates with health-pip scale tests](./veterancy-rank-plates-concept-v1.png)
 
 ## Proposed grammar
 
-Only one plate is visible at a time. The upper row shows the shape language;
-the lower row shows the same five plates as left endcaps beside a four-pip
-health readout.
+Only one plate is visible at a time. The upper row shows the shape language.
+The generated lower row used the then-available four-pip reference; health is
+now a fixed-width bar, so those pips are stale placement shorthand rather than
+runtime direction. The retained idea is one compact left endcap beside the
+current health bar.
 
 1. **Level 1 — Seed:** compact dark hexagonal plate with a restrained brass
    edge.
@@ -24,11 +26,16 @@ The persistent treatment deliberately avoids numbers, Roman numerals, stars,
 chevrons, medals, wings, team colors, and accumulating rank marks. Rank is
 communicated by the silhouette and controlled energy of one evolving plate.
 
-The lower strip is the decision-critical part of this board. Before
-implementation, confirm whether levels 4 and 5 are appropriately rewarding or
-too dominant beside the health pips. Final renderer-native shapes should be
-reconstructed as crisp vector/canvas geometry rather than shipping this
-generated raster directly.
+The relative scale in the lower strip remains useful, but its health-pip form
+is obsolete. Levels 4 and 5 still need gameplay review for whether they are
+appropriately rewarding or too dominant beside the bar. Final renderer-native
+shapes are reconstructed as crisp geometry rather than shipping this generated
+raster directly.
+
+The runtime adaptation also replaces the concept's brass structural rim with
+cool pale metal. Tapline's floor already carries dark copper and brass detail,
+so amber is reserved for the rank-energy inlays and the plate remains distinct
+at ordinary gameplay scale.
 
 ## Generation record
 

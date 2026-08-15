@@ -32,7 +32,7 @@ import { buildBastionScenery } from './bastionScenery';
  * How far above horizontal the camera sits.
  *
  * Exported because it is not only the camera's business: anything that has to face the
- * viewer squarely — health pips, any future label — needs the same angle, and a second copy
+ * viewer squarely — health bars, any future label — needs the same angle, and a second copy
  * of it is a thing that silently stops matching the day the framing is adjusted.
  */
 export const CAMERA_PITCH = (58 * Math.PI) / 180;
