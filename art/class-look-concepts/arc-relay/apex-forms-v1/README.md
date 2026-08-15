@@ -35,6 +35,11 @@ Those low perimeter mantles change roughly 20–30 percent of each silhouette,
 using pale matte armor, dark negative space, and dull mechanical joints rather
 than glow. `apex-forms-concept-v4.png` and
 `apex-forms-gameplay-scale-v4.png` are the current owner-review pair.
+`apex-v4-current-comparison.png` pairs every current chassis with its V4 concept
+inside one four-by-four review board. The Longshot CURRENT panel deliberately
+uses the promoted muted-blue Railback provider render because the fleet identity
+sheet predates that remodel; the other fifteen panels use the approved V3 fleet
+sheet.
 
 The fixed four-by-four order remains:
 
@@ -103,4 +108,7 @@ footprint, making the silhouette check more honest than the full-size render.
   `5e7dd351587520eddc06fd72abb1578ee98fd6e3b20c8f4df1c2433b26cd8575`.
 - V4 gameplay-scale sheet SHA-256:
   `2750cb3d72988ed1b856f9a4a030bd2a9473953bff014de316c4d4e93271d654`.
-
+- V4 current-versus-apex comparison SHA-256:
+  `971fe74a74dab1aac4a0f41edef6c94f3fa411de4eea6518002b28a7bc6d806e`.
+- Current Longshot override:
+  `art/reviews/arc-relay-longshot-railback-v1/provider-review/muted-blue-v3/front-three-quarter.png`.
