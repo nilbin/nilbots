@@ -24,6 +24,21 @@ export interface RelayChainRecipeRoles {
   relayBRoleId: string;
 }
 
+export interface VeteranEscortRecipeRoles {
+  veteranRoleId: string;
+  escortRoleId: string;
+}
+
+export interface SafeReturnRecipeRoles {
+  carrierRoleId: string;
+  relayRoleId: string;
+}
+
+export interface LaneClosureRecipeRoles {
+  masonRoleId: string;
+  guardRoleId: string;
+}
+
 export function addBlankPlay(draft: SheetDraft, name = 'Untitled Play'): SheetDraft {
   const next = structuredClone(draft);
   const id = uniquePlayId('untitled-play', next.workshop);
@@ -290,7 +305,10 @@ export function addRelayChainPlay(
       roleId: index % 2 === 0 ? roles.relayARoleId : roles.relayBRoleId,
       anchorId: station,
       readinessZoneId: zoneIds[index],
-      required: true,
+      // Relay stations are sequential receiver posts, not a simultaneous
+      // formation-readiness gate. They remain visible/editable slots without
+      // claiming that one body must occupy both of its stations at once.
+      required: false,
       tolerance: 0,
       capacity: 1,
     })),
@@ -298,6 +316,257 @@ export function addRelayChainPlay(
     ownedCapacityIds: [],
     projections,
     linkedValues,
+  };
+  next.workshop.plays.push(play);
+  return applyMaterialization(next);
+}
+
+export function addVeteranEscortPlay(
+  draft: SheetDraft,
+  roles: VeteranEscortRecipeRoles,
+  name = 'Veteran route escort',
+): SheetDraft {
+  const next = structuredClone(draft);
+  const veteran = requireRole(next, roles.veteranRoleId);
+  const escort = requireRole(next, roles.escortRoleId);
+  if (roles.veteranRoleId === roles.escortRoleId)
+    throw new Error('Choose a veteran role and a different escort role.');
+  if (veteran.classes.length !== 1)
+    throw new Error('The veteran route needs a one-body role so its authoring is predictable.');
+  if (escort.classes.length < 1)
+    throw new Error('The escort role needs at least one body.');
+
+  const id = uniquePlayId('veteran-escort', next.workshop);
+  const routeId = `${id}-route`;
+  const facingId = `${id}-front`;
+  const screenA = `${id}-screen-a`;
+  const screenB = `${id}-screen-b`;
+  const screenAZone = `${screenA}-ready`;
+  const screenBZone = `${screenB}-ready`;
+  next.mapPlan.routes[routeId] = { waypoints: [[6, 7], [11, 6], [12, 9], [15, 13]] };
+  next.mapPlan.anchors[facingId] = [15, 13];
+  next.mapPlan.anchors[screenA] = [12, 7];
+  next.mapPlan.anchors[screenB] = [14, 7];
+  next.mapPlan.zones[screenAZone] = { rect: [12, 7, 12, 7] };
+  next.mapPlan.zones[screenBZone] = { rect: [14, 7, 14, 7] };
+  const conditionIds = {
+    active: `${id}-veteran-active`, hurt: `${id}-escort-hurt`,
+    contact: `${id}-escort-contact`, screenA: `${id}-screen-a-filled`,
+    screenB: `${id}-screen-b-filled`,
+  };
+  Object.assign(next.orders.conditions, {
+    [conditionIds.active]: { fact: 'role-highest-level', operator: 'at-least', value: 1, role: roles.veteranRoleId },
+    [conditionIds.hurt]: { fact: 'self-health-percent', operator: 'at-most', value: 35 },
+    [conditionIds.contact]: { fact: 'self-nearest-visible-enemy-distance', operator: 'at-most', value: 6 },
+    [conditionIds.screenA]: roleReady(roles.escortRoleId, screenAZone),
+    [conditionIds.screenB]: roleReady(roles.escortRoleId, screenBZone),
+  } satisfies Record<string, ConditionDefinition>);
+  const capacityId = `${id}-one-per-screen`;
+  next.orders.capacities[capacityId] = 1;
+  const leaderProjection: PlayProjection = {
+    id: `${id}-veteran`, roleId: roles.veteranRoleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(veteran) }, lastGenerated: [],
+    orders: [{
+      id: `${id}-veteran-route`, when: conditionIds.active,
+      move: { patrol: routeId, posture: 'front' },
+    }],
+  };
+  const escortProjection: PlayProjection = {
+    id: `${id}-escort`, roleId: roles.escortRoleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(escort) }, lastGenerated: [],
+    orders: [
+      { id: `${id}-escort-recover`, when: conditionIds.hurt, urgency: 'urgent', move: { to: 'nearest-heal-zone' } },
+      { id: `${id}-escort-fight`, when: conditionIds.contact, fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'hold', chaseLimit: 4 } },
+      { id: `${id}-screen-a`, when: conditionIds.active, until: conditionIds.screenA, capacity: capacityId,
+        move: { to: { anchor: screenA }, face: { anchor: facingId }, posture: 'front' } },
+      { id: `${id}-screen-b`, when: conditionIds.active, until: conditionIds.screenB, capacity: capacityId,
+        move: { to: { anchor: screenB }, face: { anchor: facingId }, posture: 'front' } },
+      { id: `${id}-follow`, when: conditionIds.active, capacity: Math.min(2, escort.classes.length),
+        move: { follow: roles.veteranRoleId, posture: 'rear' } },
+    ],
+  };
+  const projections = [leaderProjection, escortProjection];
+  const play: LinkedPlay = {
+    id, name, recipe: 'veteran-escort',
+    ownedGeometry: [
+      { kind: 'route', id: routeId, purpose: 'move.patrol' },
+      { kind: 'anchor', id: facingId, purpose: 'move.face' },
+      { kind: 'anchor', id: screenA, purpose: 'move.to' },
+      { kind: 'zone', id: screenAZone, purpose: 'role-in-zone-count', derivedFrom: screenA, tolerance: 0 },
+      { kind: 'anchor', id: screenB, purpose: 'move.to' },
+      { kind: 'zone', id: screenBZone, purpose: 'role-in-zone-count', derivedFrom: screenB, tolerance: 0 },
+    ],
+    geometryGroups: [{
+      id: `${id}-geometry`, kind: 'selection',
+      objectIds: [routeId, facingId, screenA, screenB],
+      derivedObjectIds: [screenAZone, screenBZone],
+    }],
+    slots: [
+      { id: `${screenA}-slot`, roleId: roles.escortRoleId, anchorId: screenA, readinessZoneId: screenAZone, required: false, tolerance: 0, capacity: capacityId },
+      { id: `${screenB}-slot`, roleId: roles.escortRoleId, anchorId: screenB, readinessZoneId: screenBZone, required: false, tolerance: 0, capacity: capacityId },
+    ],
+    ownedConditionIds: Object.values(conditionIds), ownedCapacityIds: [capacityId], projections,
+    linkedValues: [
+      linkedLifecycle(`${id}-screen-timeout`, 'timeout', 40, [escortProjection], 'screen'),
+      linkedLifecycle(`${id}-screen-cooldown`, 'cooldown', 120, [escortProjection], 'screen'),
+    ],
+  };
+  // Both screen leaves intentionally share these timing values.
+  for (const linked of play.linkedValues) linked.targets = [
+    { projectionId: escortProjection.id, orderId: `${id}-screen-a`, field: linked.field },
+    { projectionId: escortProjection.id, orderId: `${id}-screen-b`, field: linked.field },
+  ];
+  next.workshop.plays.push(play);
+  return applyMaterialization(next);
+}
+
+export function addSafeReturnPlay(
+  draft: SheetDraft,
+  roles: SafeReturnRecipeRoles,
+  name = 'Safe Core return handoff',
+): SheetDraft {
+  const next = structuredClone(draft);
+  const carrier = requireRole(next, roles.carrierRoleId);
+  const relay = requireRole(next, roles.relayRoleId);
+  if (roles.carrierRoleId === roles.relayRoleId)
+    throw new Error('Choose a carrier role and a different Relay role.');
+  assertOneBodyClass(next, roles.relayRoleId, 'relay');
+  if (carrier.classes.length !== 1)
+    throw new Error('The safe-return carrier needs a one-body role for a predictable handoff.');
+
+  const id = uniquePlayId('safe-return', next.workshop);
+  const pickupZone = `${id}-enemy-pickup`;
+  const exchange = `${id}-exchange`;
+  const exchangeZone = `${exchange}-ready`;
+  const safeRoute = `${id}-safe-route`;
+  const homeRoute = `${id}-home-route`;
+  next.mapPlan.zones[pickupZone] = { rect: [17, 18, 21, 22] };
+  next.mapPlan.anchors[exchange] = [9, 19];
+  next.mapPlan.zones[exchangeZone] = { rect: [9, 19, 9, 19] };
+  next.mapPlan.routes[safeRoute] = {
+    waypoints: [[19, 20], [22, 23], [27, 25], [15, 25], [3, 25], [3, 23], [9, 19]],
+  };
+  next.mapPlan.routes[homeRoute] = {
+    waypoints: [[9, 19], [8, 17], [8, 14], [10, 12], [12, 10], [12, 7], [11, 6], [7, 5], [4, 6], [2, 5]],
+  };
+  const conditions = {
+    carrying: `${id}-carrying`, empty: `${id}-empty`, pickup: `${id}-in-enemy-pickup`,
+    exchange: `${id}-at-exchange`, relay: `${id}-relay-at-exchange`,
+  };
+  Object.assign(next.orders.conditions, {
+    [conditions.carrying]: { fact: 'self-carrying', operator: 'equals', value: 1 },
+    [conditions.empty]: { fact: 'self-carrying', operator: 'equals', value: 0 },
+    [conditions.pickup]: { fact: 'self-in-zone', operator: 'equals', value: 1, zone: pickupZone },
+    [conditions.exchange]: { fact: 'self-in-zone', operator: 'equals', value: 1, zone: exchangeZone },
+    [conditions.relay]: roleReady(roles.relayRoleId, exchangeZone),
+  } satisfies Record<string, ConditionDefinition>);
+  const carrierProjection: PlayProjection = {
+    id: `${id}-carrier`, roleId: roles.carrierRoleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(carrier) }, lastGenerated: [],
+    orders: [{
+      id: `${id}-carrier-return`, when: { all: [conditions.carrying, conditions.pickup] },
+      until: conditions.empty, urgency: 'urgent', orders: [
+        { id: `${id}-handoff`, when: { all: [conditions.exchange, conditions.relay] }, handoff: { target: { role: roles.relayRoleId } } },
+        { id: `${id}-reach-exchange`, move: { to: { anchor: exchange }, via: safeRoute } },
+      ],
+    }],
+  };
+  const relayProjection: PlayProjection = {
+    id: `${id}-relay`, roleId: roles.relayRoleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(relay) }, lastGenerated: [],
+    orders: [
+      { id: `${id}-relay-bank`, when: conditions.carrying, until: conditions.empty, urgency: 'urgent', move: { to: 'own-reactor', via: homeRoute } },
+      { id: `${id}-relay-stage`, when: conditions.empty, move: { to: { anchor: exchange }, posture: 'rear' } },
+    ],
+  };
+  const projections = [carrierProjection, relayProjection];
+  const play: LinkedPlay = {
+    id, name, recipe: 'safe-return',
+    ownedGeometry: [
+      { kind: 'zone', id: pickupZone, purpose: 'self-in-zone' },
+      { kind: 'anchor', id: exchange, purpose: 'move.to' },
+      { kind: 'zone', id: exchangeZone, purpose: 'role-in-zone-count and self-in-zone', derivedFrom: exchange, tolerance: 0 },
+      { kind: 'route', id: safeRoute, purpose: 'move.via' },
+      { kind: 'route', id: homeRoute, purpose: 'move.via' },
+    ],
+    geometryGroups: [{
+      id: `${id}-geometry`, kind: 'selection',
+      objectIds: [pickupZone, exchange, safeRoute, homeRoute], derivedObjectIds: [exchangeZone],
+    }],
+    slots: [{ id: `${exchange}-slot`, roleId: roles.relayRoleId, anchorId: exchange, readinessZoneId: exchangeZone, required: false, tolerance: 0, capacity: 1 }],
+    ownedConditionIds: Object.values(conditions), ownedCapacityIds: [], projections,
+    linkedValues: [linkedLifecycle(`${id}-timeout`, 'timeout', 240, projections, 'return')],
+  };
+  play.linkedValues[0].targets = [
+    { projectionId: carrierProjection.id, orderId: `${id}-carrier-return`, field: 'timeout' },
+    { projectionId: relayProjection.id, orderId: `${id}-relay-bank`, field: 'timeout' },
+  ];
+  next.workshop.plays.push(play);
+  return applyMaterialization(next);
+}
+
+export function addLaneClosurePlay(
+  draft: SheetDraft,
+  roles: LaneClosureRecipeRoles,
+  name = 'Hardlight lane closure',
+): SheetDraft {
+  const next = structuredClone(draft);
+  assertOneBodyClass(next, roles.masonRoleId, 'mason');
+  const guard = requireRole(next, roles.guardRoleId);
+  if (roles.masonRoleId === roles.guardRoleId || guard.classes.length < 2)
+    throw new Error('Lane closure needs a Mason role and a different role with at least two guards.');
+  const mason = requireRole(next, roles.masonRoleId);
+  const id = uniquePlayId('lane-closure', next.workshop);
+  const hardlight = `${id}-hardlight`;
+  const facing = `${id}-open-lane`;
+  const guardA = `${id}-guard-a`;
+  const guardB = `${id}-guard-b`;
+  next.mapPlan.anchors[hardlight] = [24, 9];
+  next.mapPlan.anchors[facing] = [25, 9];
+  next.mapPlan.anchors[guardA] = [21, 9];
+  next.mapPlan.anchors[guardB] = [23, 11];
+  const conditions = { signature: `${id}-signature-ready`, contact: `${id}-contact` };
+  Object.assign(next.orders.conditions, {
+    [conditions.signature]: { fact: 'signature-ready', operator: 'equals', value: 1 },
+    [conditions.contact]: { fact: 'self-nearest-visible-enemy-distance', operator: 'at-most', value: 6 },
+  } satisfies Record<string, ConditionDefinition>);
+  const capacityId = `${id}-one-per-guard-post`;
+  next.orders.capacities[capacityId] = 1;
+  const masonProjection: PlayProjection = {
+    id: `${id}-mason`, roleId: roles.masonRoleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(mason) }, lastGenerated: [],
+    orders: [{ id: `${id}-mason-closure`, orders: [
+      { id: `${id}-place-hardlight`, when: conditions.signature, use: { skill: 'hardlight-block', target: 'nearest-ally', at: hardlight } },
+      { id: `${id}-stage-mason`, urgency: 'normal', move: { to: { adjacentTo: hardlight } } },
+    ] }],
+  };
+  const guardProjection: PlayProjection = {
+    id: `${id}-guards`, roleId: roles.guardRoleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(guard) }, lastGenerated: [],
+    orders: [
+      { id: `${id}-guard-fight`, when: conditions.contact, fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'hold', chaseLimit: 3 } },
+      { id: `${id}-guard-a`, capacity: capacityId, move: { to: { anchor: guardA }, face: { anchor: facing }, posture: 'front' } },
+      { id: `${id}-guard-b`, capacity: capacityId, move: { to: { anchor: guardB }, face: { anchor: facing }, posture: 'rear' } },
+    ],
+  };
+  const play: LinkedPlay = {
+    id, name, recipe: 'lane-closure',
+    ownedGeometry: [
+      { kind: 'anchor', id: hardlight, purpose: 'use.at and move.adjacentTo' },
+      { kind: 'anchor', id: facing, purpose: 'move.face' },
+      { kind: 'anchor', id: guardA, purpose: 'move.to' },
+      { kind: 'anchor', id: guardB, purpose: 'move.to' },
+    ],
+    geometryGroups: [{
+      id: `${id}-geometry`, kind: 'selection', objectIds: [hardlight, facing, guardA, guardB],
+      derivedObjectIds: [],
+    }],
+    // These are independent capacity-limited move destinations, not an arming
+    // formation. Keep them as visible anchors without manufacturing unused
+    // readiness zones in the gameplay map plan.
+    slots: [],
+    ownedConditionIds: Object.values(conditions), ownedCapacityIds: [capacityId],
+    projections: [masonProjection, guardProjection], linkedValues: [],
   };
   next.workshop.plays.push(play);
   return applyMaterialization(next);
@@ -457,7 +726,9 @@ function linkedLifecycle(
   return {
     id,
     field,
-    value,
+    // A linked field owns its own editor value. Reusing the same condition
+    // object for engage.when and assembly.until must never alias later edits.
+    value: structuredClone(value),
     targets: projections.map((projection) => ({
       projectionId: projection.id,
       orderId: projection.orders.find((order) => order.id?.endsWith(orderSuffix))?.id

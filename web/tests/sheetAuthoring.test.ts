@@ -418,6 +418,9 @@ test('trial tracks contain only authoritative occupied tiles', () => {
   assert.equal(tracks.length, replay.initialWorld?.actors.length);
   for (const track of tracks) {
     assert.ok(track.points.length > 0);
+    assert.ok(track.samples.length >= track.points.length);
+    assert.ok(track.samples.every((sample, index) => index === 0
+      || sample.tick >= track.samples[index - 1].tick));
     assert.ok(track.points.every((point, index) => index === 0
       || point.x !== track.points[index - 1].x || point.y !== track.points[index - 1].y));
   }

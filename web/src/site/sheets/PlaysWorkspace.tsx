@@ -14,8 +14,10 @@ import {
   uniquePlayId,
 } from './linkedPlays';
 import {
+  addAmbushReserveSlot,
   movePlayAnchor,
   rematerializeDraft,
+  removeAmbushReserveSlot,
   renamePlayGeometry,
   replacePlayRole,
   setPlayLinkedValue,
@@ -32,8 +34,11 @@ import {
 import {
   addBlankPlay,
   addBlankPlayProjection,
+  addLaneClosurePlay,
   addNorthAmbushPlay,
   addRelayChainPlay,
+  addSafeReturnPlay,
+  addVeteranEscortPlay,
 } from './playRecipes';
 import type {
   ConditionDefinition,
@@ -41,7 +46,7 @@ import type {
   SheetDraft,
   SheetIssue,
 } from './sheetAuthoring';
-import type { UnitTrack } from './sheetTrials';
+import { bestPlayReadiness, type UnitTrack } from './sheetTrials';
 import type {
   LinkedPlay,
   PlayGeometryKind,
@@ -49,7 +54,7 @@ import type {
   PlayRecipe,
 } from './workshopTypes';
 
-type RecipeChoice = Extract<PlayRecipe, 'blank' | 'ambush' | 'relay-chain'>;
+type RecipeChoice = PlayRecipe;
 
 const RECIPE_COPY: Record<RecipeChoice, { title: string; kicker: string; description: string }> = {
   blank: {
@@ -66,6 +71,21 @@ const RECIPE_COPY: Record<RecipeChoice, { title: string; kicker: string; descrip
     title: 'Relay chain',
     kicker: 'Two alternating carriers',
     description: 'Two one-body Relays move and Arc Toss along one linked corridor.',
+  },
+  'veteran-escort': {
+    title: 'Veteran escort',
+    kicker: 'Route, screen, follow',
+    description: 'A veteran patrols while an escort role screens, fights, recovers and follows.',
+  },
+  'safe-return': {
+    title: 'Safe Core return',
+    kicker: 'Latched route and handoff',
+    description: 'A carrier keeps a long safe route after leaving enemy ground, then hands off to a Relay.',
+  },
+  'lane-closure': {
+    title: 'Lane closure',
+    kicker: 'Hardlight and two posts',
+    description: 'A Mason closes one lane while two guards face and hold the remaining opening.',
   },
 };
 
@@ -168,7 +188,8 @@ export default function PlaysWorkspace({
               onMoveAnchor={(anchorId, point) => commit(movePlayAnchor(draft, play.id, anchorId, point))} />
           </div>
           <GeometryControls catalog={catalog} draft={draft} play={play}
-            selectedId={selectedGeometry} onSelect={setSelectedGeometry} onChange={commit} />
+            selectedId={selectedGeometry} tracks={tracks}
+            onSelect={setSelectedGeometry} onChange={commit} />
         </section>
 
         <div className="min-w-0 space-y-3">
@@ -244,21 +265,39 @@ function CreatePlayPanel({ recipe, draft, error, onRecipe, onCreate, onCancel, o
   const hush = rolesFor('hush');
   const reserves = draft.orders.roles.filter((role) => role.classes.length >= 2);
   const relays = rolesFor('relay');
+  const oneBodyRoles = draft.orders.roles.filter((role) => role.classes.length === 1);
   const [masonRoleId, setMason] = useState(mason[0]?.id ?? '');
   const [longshotRoleId, setLongshot] = useState(longshot[0]?.id ?? '');
   const [hushRoleId, setHush] = useState(hush[0]?.id ?? '');
   const [reserveRoleId, setReserve] = useState(reserves[0]?.id ?? '');
   const [relayARoleId, setRelayA] = useState(relays[0]?.id ?? '');
   const [relayBRoleId, setRelayB] = useState(relays[1]?.id ?? '');
+  const [veteranRoleId, setVeteran] = useState(oneBodyRoles[0]?.id ?? '');
+  const [escortRoleId, setEscort] = useState(
+    draft.orders.roles.find((role) => role.id !== oneBodyRoles[0]?.id)?.id ?? '',
+  );
+  const [carrierRoleId, setCarrier] = useState(oneBodyRoles[0]?.id ?? '');
+  const [safeRelayRoleId, setSafeRelay] = useState(
+    relays.find((role) => role.id !== oneBodyRoles[0]?.id)?.id ?? '',
+  );
+  const [guardRoleId, setGuard] = useState(
+    reserves.find((role) => role.id !== mason[0]?.id)?.id ?? '',
+  );
   const ready = recipe === 'blank'
-    || recipe === 'ambush' && masonRoleId && longshotRoleId && hushRoleId && reserveRoleId
-    || recipe === 'relay-chain' && relayARoleId && relayBRoleId && relayARoleId !== relayBRoleId;
+    || recipe === 'ambush' && Boolean(masonRoleId && longshotRoleId && hushRoleId && reserveRoleId)
+    || recipe === 'relay-chain' && Boolean(relayARoleId && relayBRoleId && relayARoleId !== relayBRoleId)
+    || recipe === 'veteran-escort' && Boolean(veteranRoleId && escortRoleId && veteranRoleId !== escortRoleId)
+    || recipe === 'safe-return' && Boolean(carrierRoleId && safeRelayRoleId && carrierRoleId !== safeRelayRoleId)
+    || recipe === 'lane-closure' && Boolean(masonRoleId && guardRoleId && masonRoleId !== guardRoleId);
 
   const create = () => {
     try {
       let next: SheetDraft;
       if (recipe === 'ambush') next = addNorthAmbushPlay(draft, { masonRoleId, longshotRoleId, hushRoleId, reserveRoleId });
       else if (recipe === 'relay-chain') next = addRelayChainPlay(draft, { relayARoleId, relayBRoleId });
+      else if (recipe === 'veteran-escort') next = addVeteranEscortPlay(draft, { veteranRoleId, escortRoleId });
+      else if (recipe === 'safe-return') next = addSafeReturnPlay(draft, { carrierRoleId, relayRoleId: safeRelayRoleId });
+      else if (recipe === 'lane-closure') next = addLaneClosurePlay(draft, { masonRoleId, guardRoleId });
       else next = addBlankPlay(draft);
       onCreate(next, next.workshop.plays.at(-1)!.id);
     } catch (cause) {
@@ -289,6 +328,21 @@ function CreatePlayPanel({ recipe, draft, error, onRecipe, onCreate, onCancel, o
       <RoleChoice label="Relay A role" value={relayARoleId} roles={relays} onChange={setRelayA} />
       <RoleChoice label="Relay B role" value={relayBRoleId} roles={relays.filter((role) => role.id !== relayARoleId)} onChange={setRelayB} />
     </div>}
+    {recipe === 'veteran-escort' && <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <RoleChoice label="Veteran role" value={veteranRoleId} roles={oneBodyRoles} onChange={setVeteran} />
+      <RoleChoice label="Escort role" value={escortRoleId}
+        roles={draft.orders.roles.filter((role) => role.id !== veteranRoleId)} onChange={setEscort} />
+    </div>}
+    {recipe === 'safe-return' && <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <RoleChoice label="Carrier role" value={carrierRoleId} roles={oneBodyRoles} onChange={setCarrier} />
+      <RoleChoice label="Relay handoff role" value={safeRelayRoleId}
+        roles={relays.filter((role) => role.id !== carrierRoleId)} onChange={setSafeRelay} />
+    </div>}
+    {recipe === 'lane-closure' && <div className="mt-4 grid gap-2 sm:grid-cols-2">
+      <RoleChoice label="Mason role" value={masonRoleId} roles={mason} onChange={setMason} />
+      <RoleChoice label="Guard role · at least two bodies" value={guardRoleId}
+        roles={reserves.filter((role) => role.id !== masonRoleId)} onChange={setGuard} />
+    </div>}
     {!ready && <div className="mt-3 rounded-sm border border-arena-material/40 bg-arena-material/10 p-3">
       <p className="t-body">This recipe needs eligible roles in the Squad first.</p>
       <p className="t-micro mt-1">Roles are not invented or silently split by a Play.</p>
@@ -301,15 +355,24 @@ function CreatePlayPanel({ recipe, draft, error, onRecipe, onCreate, onCancel, o
   </section>;
 }
 
-function GeometryControls({ catalog, draft, play, selectedId, onSelect, onChange }: {
+function GeometryControls({ catalog, draft, play, selectedId, tracks, onSelect, onChange }: {
   catalog: TacticalSheetCatalog;
   draft: SheetDraft;
   play: LinkedPlay;
   selectedId: string | null;
+  tracks: UnitTrack[];
   onSelect: (id: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const selected = play.ownedGeometry.find((entry) => entry.id === selectedId);
+  const reserveProjection = play.recipe === 'ambush'
+    ? play.projections.find((entry) => entry.id.endsWith('-reserve')) : undefined;
+  const reserveSlots = reserveProjection
+    ? play.slots.filter((slot) => slot.roleId === reserveProjection.roleId) : [];
+  const reserveBodies = reserveProjection
+    ? draft.orders.roles.find((role) => role.id === reserveProjection.roleId)?.classes.length ?? 0 : 0;
+  const readiness = useMemo(() => bestPlayReadiness(draft, play, tracks), [draft, play, tracks]);
+  const readySlots = new Set(readiness.readySlotIds);
   return <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
     <div className="flex gap-1.5 overflow-x-auto pb-1">{play.ownedGeometry.filter((entry) => !entry.derivedFrom).map((entry) => <button key={`${entry.kind}:${entry.id}`}
       type="button" className={clsx('btn min-h-11 min-w-[150px] justify-start', entry.id === selectedId && 'btn-on')}
@@ -333,14 +396,39 @@ function GeometryControls({ catalog, draft, play, selectedId, onSelect, onChange
             }} /></label>}
       </div>
     </div>}
-    {play.slots.length > 0 && <div className="grid gap-2 sm:grid-cols-2 lg:col-span-2">{play.slots.map((slot) => <article key={slot.id}
-      className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
-      <div className="flex items-center gap-2"><b className="t-body mr-auto">{humanize(slot.roleId)} · {humanize(slot.anchorId)}</b><span className="pill">{slot.required ? 'required' : 'optional'}</span></div>
+    {play.slots.length > 0 && <div className="grid gap-2 sm:grid-cols-2 lg:col-span-2">
+      {readiness.total > 0 && <div className="rounded-sm border border-arena-material/45 bg-arena-material/10 p-3 sm:col-span-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="mr-auto"><p className="lab text-arena-material">Last Practice readiness</p>
+            <p className="t-meta mt-1">{readiness.tick === null
+              ? 'Run Practice to compare actual body tracks with these required positions.'
+              : `Best frame at tick ${readiness.tick}`}</p></div>
+          <strong className="type-display text-[24px]">{readiness.ready}/{readiness.total}</strong>
+        </div>
+      </div>}
+      {play.slots.map((slot) => {
+      const reserveIndex = reserveSlots.findIndex((entry) => entry.id === slot.id);
+      return <article key={slot.id}
+      className={clsx('rounded-sm border bg-arena-deep/25 p-3',
+        slot.required && readySlots.has(slot.id) ? 'border-arena-cyan/65' : 'border-arena-edge')}>
+      <div className="flex items-center gap-2"><b className="t-body mr-auto">{humanize(slot.roleId)} · {humanize(slot.anchorId)}</b>
+        {slot.required && readiness.tick !== null && <span className={clsx('pill', readySlots.has(slot.id) && 'text-arena-cyan')}>{readySlots.has(slot.id) ? 'reached' : 'not reached'}</span>}
+        <span className="pill">{slot.required ? 'required' : 'optional'}</span></div>
       <label className="mt-2 block"><span className="t-micro mb-1 block">Readiness range · {slot.tolerance} {slot.tolerance === 1 ? 'tile' : 'tiles'}</span>
         <input type="range" min={0} max={3} value={slot.tolerance} className="w-full accent-[var(--color-arena-material)]"
           onChange={(event) => onChange(setPlaySlotTolerance(draft, play.id, slot.id, Number(event.target.value)))} /></label>
       <p className="t-micro mt-1">capacity {slot.capacity ?? 1} · recomputed per resolved position, never a sticky reservation</p>
-    </article>)}</div>}
+      {reserveIndex >= 2 && <button type="button" className="btn mt-2 min-h-10 text-arena-hot"
+        onClick={() => onChange(removeAmbushReserveSlot(draft, play.id, slot.id))}>Remove pooled post</button>}
+    </article>})}
+      {reserveProjection && <div className="rounded-sm border border-dashed border-arena-material/45 p-3 sm:col-span-2">
+        <div className="flex flex-wrap items-center gap-2"><div className="mr-auto"><b className="t-body block">Pooled reserve positions</b>
+          <span className="t-micro mt-1 block">{reserveBodies} {reserveBodies === 1 ? 'body' : 'bodies'} available for {reserveSlots.length} required posts · capacity one per resolved post</span></div>
+          <button type="button" className="btn btn-secondary min-h-11" disabled={reserveSlots.length >= 4}
+            onClick={() => onChange(addAmbushReserveSlot(draft, play.id))}>＋ Add pooled post</button></div>
+        {reserveSlots.length > reserveBodies && <p className="t-micro mt-2 text-arena-hot">This cannot arm: the role needs at least {reserveSlots.length} bodies, or one post must be removed.</p>}
+      </div>}
+    </div>}
   </div>;
 }
 
@@ -517,6 +605,20 @@ function compatibleRoles(draft: SheetDraft, play: LinkedPlay, projection: PlayPr
         && role.classes.length === 1 && role.classes[0] === requiredClass)
       : draft.orders.roles.filter((role) => !claimed.has(role.id) && role.classes.length >= 2);
   }
+  if (play.recipe === 'veteran-escort')
+    return projection.id.endsWith('-veteran')
+      ? draft.orders.roles.filter((role) => !claimed.has(role.id) && role.classes.length === 1)
+      : draft.orders.roles.filter((role) => !claimed.has(role.id) && role.classes.length >= 1);
+  if (play.recipe === 'safe-return')
+    return projection.id.endsWith('-relay')
+      ? draft.orders.roles.filter((role) => !claimed.has(role.id)
+        && role.classes.length === 1 && role.classes[0] === 'relay')
+      : draft.orders.roles.filter((role) => !claimed.has(role.id) && role.classes.length === 1);
+  if (play.recipe === 'lane-closure')
+    return projection.id.endsWith('-mason')
+      ? draft.orders.roles.filter((role) => !claimed.has(role.id)
+        && role.classes.length === 1 && role.classes[0] === 'mason')
+      : draft.orders.roles.filter((role) => !claimed.has(role.id) && role.classes.length >= 2);
   return draft.orders.roles.filter((role) => !claimed.has(role.id));
 }
 

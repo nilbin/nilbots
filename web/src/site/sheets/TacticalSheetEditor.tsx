@@ -59,6 +59,11 @@ type Section = 'squad' | 'orders' | 'map' | 'plays';
 type PlotFocus = { kind: 'route' | 'zone' | 'anchor'; id: string } | null;
 type MapReturn = { conditionId: string } | null;
 
+const SECTION_STORAGE_KEY = 'nilbots-sheet-workshop-section-v1';
+const STOCK_STORAGE_KEY = 'nilbots-sheet-practice-opponent-v1';
+const SEED_STORAGE_KEY = 'nilbots-sheet-practice-seed-v1';
+const RANDOM_SEED_STORAGE_KEY = 'nilbots-sheet-practice-random-seed-v1';
+
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; description: string }> = [
   { id: 'squad', label: 'Squad', description: 'Cast eight bodies into roles' },
   { id: 'orders', label: 'Orders', description: 'Write each role’s priorities' },
@@ -77,7 +82,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const redoStack = useRef<SheetDraft[]>([]);
   const [, forceHistory] = useState(0);
   const [localDrafts, setLocalDrafts] = useState<SheetDraft[]>([]);
-  const [section, setSection] = useState<Section>('orders');
+  const [section, setSection] = useState<Section>(() => {
+    const stored = window.sessionStorage.getItem(SECTION_STORAGE_KEY);
+    return stored === 'squad' || stored === 'orders' || stored === 'map' || stored === 'plays'
+      ? stored : 'orders';
+  });
   const [selectedPlayId, setSelectedPlayId] = useState<string | null>(() =>
     window.sessionStorage.getItem('nilbots-sheet-selected-play'));
   const [ordersRoleFocus, setOrdersRoleFocus] = useState<string | null>(null);
@@ -89,9 +98,15 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [toolsOpen, setToolsOpen] = useState(false);
   const [restored, setRestored] = useState(false);
   const [compilerIssue, setCompilerIssue] = useState<SheetIssue | null>(null);
-  const [stockId, setStockId] = useState(catalog.stockOpponents[0]?.id ?? '');
-  const [seed, setSeed] = useState('104729');
-  const [randomSeed, setRandomSeed] = useState(false);
+  const [stockId, setStockId] = useState(() => {
+    const stored = window.sessionStorage.getItem(STOCK_STORAGE_KEY);
+    return catalog.stockOpponents.some((entry) => entry.id === stored)
+      ? stored! : catalog.stockOpponents[0]?.id ?? '';
+  });
+  const [seed, setSeed] = useState(() =>
+    window.sessionStorage.getItem(SEED_STORAGE_KEY) ?? '104729');
+  const [randomSeed, setRandomSeed] = useState(() =>
+    window.sessionStorage.getItem(RANDOM_SEED_STORAGE_KEY) === 'true');
   const [trialHistory, setTrialHistory] = useState<SheetTrialRun[]>(() => loadTrialHistory());
   const [selectedRunId, setSelectedRunId] = useState<string | null>(null);
   const save = useSaveTacticalSheet();
@@ -196,6 +211,35 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     if (selectedPlayId) window.sessionStorage.setItem('nilbots-sheet-selected-play', selectedPlayId);
     else window.sessionStorage.removeItem('nilbots-sheet-selected-play');
   }, [selectedPlayId]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem(SECTION_STORAGE_KEY, section);
+  }, [section]);
+
+  useEffect(() => {
+    window.sessionStorage.setItem(STOCK_STORAGE_KEY, stockId);
+    window.sessionStorage.setItem(SEED_STORAGE_KEY, seed);
+    window.sessionStorage.setItem(RANDOM_SEED_STORAGE_KEY, String(randomSeed));
+  }, [randomSeed, seed, stockId]);
+
+  const selectedPlayTracks = useMemo(() => {
+    if (!draft || !selectedPlayId) return [];
+    const play = draft.workshop.plays.find((entry) => entry.id === selectedPlayId);
+    if (!play) return [];
+    const selectedRoles = new Set(play.projections.map((projection) => projection.roleId));
+    const unitIds = new Set<number>();
+    let unitId = 0;
+    for (const role of draft.orders.roles) {
+      if (selectedRoles.has(role.id)) {
+        for (let offset = 0; offset < role.classes.length; offset++)
+          unitIds.add(unitId + offset);
+      }
+      unitId += role.classes.length;
+    }
+    // Hosted Practice always places the edited sheet in team 0. Preserve only
+    // authoritative occupied tiles for the selected Play's participants.
+    return selectedTracks.filter((track) => track.teamId === 0 && unitIds.has(track.unitId));
+  }, [draft, selectedPlayId, selectedTracks]);
 
   const mutate = (change: (next: SheetDraft) => void) => {
     const current = draftRef.current;
@@ -446,7 +490,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         onChange={(mapPlan) => mutate((next) => { next.mapPlan = mapPlan; })}
         onRename={(kind, previous, nextId) => mutate((next) => renameGeometryAware(next, kind, previous, nextId))} />}
       {section === 'plays' && <PlaysWorkspace catalog={catalog} draft={draft} issues={issues}
-        tracks={selectedTracks} selectedPlayId={selectedPlayId} onSelectPlay={setSelectedPlayId}
+        tracks={selectedPlayTracks} selectedPlayId={selectedPlayId} onSelectPlay={setSelectedPlayId}
         onChange={(changed) => mutate((next) => { Object.assign(next, changed); })}
         onOpenSquad={() => setSection('squad')}
         onOpenOrders={(playId, projectionId) => {

@@ -4,6 +4,7 @@ import type {
   ReplayPosition,
 } from '../../replayModel';
 import type { SheetDraft } from './sheetAuthoring';
+import type { LinkedPlay } from './workshopTypes';
 
 export const TRIAL_HISTORY_KEY = 'nilbots-sheet-trial-history-v1';
 
@@ -35,6 +36,14 @@ export interface UnitTrack {
   teamId: number;
   unitId: number;
   points: ReplayPosition[];
+  samples: Array<{ tick: number; position: ReplayPosition }>;
+}
+
+export interface PlayReadinessEvidence {
+  ready: number;
+  total: number;
+  tick: number | null;
+  readySlotIds: string[];
 }
 
 export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
@@ -102,7 +111,7 @@ export function saveTrialHistory(
 export function replayUnitTracks(replay: ReplayModel | undefined): UnitTrack[] {
   if (!replay?.initialWorld) return [];
   const tracks = new Map<string, UnitTrack>();
-  const collect = (actors: ReplayActorState[]) => {
+  const collect = (tick: number, actors: ReplayActorState[]) => {
     for (const actor of actors) {
       const key = actor.unitKey;
       const track = tracks.get(key) ?? {
@@ -110,18 +119,68 @@ export function replayUnitTracks(replay: ReplayModel | undefined): UnitTrack[] {
         teamId: actor.identity.teamId,
         unitId: actor.identity.unitId,
         points: [],
+        samples: [],
       };
       const last = track.points.at(-1);
       if (!last || last.x !== actor.position.x || last.y !== actor.position.y)
         track.points.push({ ...actor.position });
+      track.samples.push({ tick, position: { ...actor.position } });
       tracks.set(key, track);
     }
   };
-  collect(replay.initialWorld.actors);
-  replay.ticks.forEach((tick) => collect(tick.after.actors));
+  collect(0, replay.initialWorld.actors);
+  replay.ticks.forEach((tick) => collect(tick.tick, tick.after.actors));
   return [...tracks.values()]
     .filter((track) => track.points.length > 0)
     .sort((a, b) => a.teamId - b.teamId || a.unitId - b.unitId || a.key.localeCompare(b.key));
+}
+
+/**
+ * Find the authoritative replay frame that filled the most required slots.
+ * Roles are resolved to unit ids with the same ordered composition mapping as
+ * the compiler. A body counts only at a position the replay actually reports.
+ */
+export function bestPlayReadiness(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  tracks: UnitTrack[],
+): PlayReadinessEvidence {
+  const required = play.slots.filter((slot) => slot.required);
+  if (required.length === 0)
+    return { ready: 0, total: 0, tick: null, readySlotIds: [] };
+
+  const roleUnits = new Map<string, Set<number>>();
+  let unitId = 0;
+  for (const role of draft.orders.roles) {
+    roleUnits.set(role.id, new Set(role.classes.map((_, offset) => unitId + offset)));
+    unitId += role.classes.length;
+  }
+  const samplesByTick = new Map<number, Map<number, ReplayPosition>>();
+  for (const track of tracks) {
+    if (track.teamId !== 0) continue;
+    for (const sample of track.samples) {
+      const positions = samplesByTick.get(sample.tick) ?? new Map<number, ReplayPosition>();
+      positions.set(track.unitId, sample.position);
+      samplesByTick.set(sample.tick, positions);
+    }
+  }
+
+  let best: PlayReadinessEvidence = { ready: 0, total: required.length, tick: null, readySlotIds: [] };
+  for (const [tick, positions] of [...samplesByTick].sort(([left], [right]) => left - right)) {
+    const readySlotIds = required.filter((slot) => {
+      const rect = draft.mapPlan.zones[slot.readinessZoneId]?.rect;
+      if (!rect) return false;
+      const units = roleUnits.get(slot.roleId) ?? new Set<number>();
+      return [...units].some((candidate) => {
+        const point = positions.get(candidate);
+        return point && point.x >= rect[0] && point.x <= rect[2]
+          && point.y >= rect[1] && point.y <= rect[3];
+      });
+    }).map((slot) => slot.id);
+    if (readySlotIds.length > best.ready)
+      best = { ready: readySlotIds.length, total: required.length, tick, readySlotIds };
+  }
+  return best;
 }
 
 function browserStorage(): Storage | undefined {

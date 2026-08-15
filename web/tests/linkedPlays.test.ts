@@ -16,17 +16,23 @@ import {
   setLinkedValue,
 } from '../src/site/sheets/linkedPlays';
 import {
+  addAmbushReserveSlot,
   renamePlayGeometry,
+  removeAmbushReserveSlot,
   replacePlayRole,
   setPlayLinkedValue,
 } from '../src/site/sheets/playEditing';
 import {
   addBlankPlay,
   addBlankPlayProjection,
+  addLaneClosurePlay,
   addNorthAmbushPlay,
   addRelayChainPlay,
+  addSafeReturnPlay,
+  addVeteranEscortPlay,
 } from '../src/site/sheets/playRecipes';
 import { playGeometryIssues, setPlaySlotTolerance } from '../src/site/sheets/playGeometry';
+import { bestPlayReadiness, type UnitTrack } from '../src/site/sheets/sheetTrials';
 
 const signatures: Record<string, string> = {
   mason: 'hardlight-block', longshot: 'rail-line', hush: 'null-field',
@@ -112,6 +118,26 @@ test('required pooled readiness refuses overlap and delete cleans only Play-owne
   assert.equal(Object.keys(removed.draft.mapPlan.anchors).length, 0);
 });
 
+test('an Ambush pooled post updates readiness and reserve Orders as one reversible edit', () => {
+  let linked = addNorthAmbushPlay(draft(), {
+    masonRoleId: 'mason', longshotRoleId: 'longshot', hushRoleId: 'hush', reserveRoleId: 'reserve',
+  });
+  const playId = linked.workshop.plays[0].id;
+  linked = addAmbushReserveSlot(linked, playId);
+  const play = linked.workshop.plays[0];
+  assert.equal(play.slots.length, 6);
+  assert.match(playGeometryIssues(linked, playId)[0].message, /2 bodies for 3 required positions/);
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
+  const engageWhen = play.linkedValues.find((entry) => entry.id === `${playId}-engage-when`)!;
+  assert.equal(typeof engageWhen.value === 'object' && engageWhen.value && 'all' in engageWhen.value
+    ? engageWhen.value.all.length : 0, 7);
+  const third = play.slots.find((slot) => slot.id === `${playId}-reserve-c-slot`)!;
+  linked = removeAmbushReserveSlot(linked, playId, third.id);
+  assert.equal(linked.workshop.plays[0].slots.length, 5);
+  assert.equal(playGeometryIssues(linked, playId).length, 0);
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
+});
+
 test('the Relay chain uses the same projection path and leaves standalone Orders on detach', () => {
   const linked = addRelayChainPlay(draft(), {
     relayARoleId: 'relay-a', relayBRoleId: 'relay-b',
@@ -165,6 +191,40 @@ test('a blank Play authors ordinary Orders through the generic projection path',
   if (timeout) linked = setPlayLinkedValue(linked, playId, timeout.id, 30);
   assert.ok(linked.orders.roles.find((entry) => entry.id === 'support')!.orders
     .some((order) => order.id?.startsWith(`${playId}-support-move`)));
+});
+
+test('the remaining recipe lenses materialize only valid ordinary Orders', () => {
+  const candidates = [
+    addVeteranEscortPlay(draft(), { veteranRoleId: 'longshot', escortRoleId: 'reserve' }),
+    addSafeReturnPlay(draft(), { carrierRoleId: 'longshot', relayRoleId: 'relay-a' }),
+    addLaneClosurePlay(draft(), { masonRoleId: 'mason', guardRoleId: 'reserve' }),
+  ];
+  assert.deepEqual(candidates.map((candidate) => candidate.workshop.plays[0].recipe),
+    ['veteran-escort', 'safe-return', 'lane-closure']);
+  for (const candidate of candidates) {
+    const play = candidate.workshop.plays[0];
+    assert.equal(inspectWorkshop(candidate.orders, candidate.workshop).length, 0);
+    assert.equal(playGeometryIssues(candidate, play.id).length, 0);
+    assert.deepEqual(validateDraft(candidate, catalog).filter((issue) => issue.severity === 'error'), []);
+  }
+});
+
+test('Practice evidence distinguishes four of five from complete Ambush readiness', () => {
+  const linked = addNorthAmbushPlay(draft(), {
+    masonRoleId: 'mason', longshotRoleId: 'longshot', hushRoleId: 'hush', reserveRoleId: 'reserve',
+  });
+  const play = linked.workshop.plays[0];
+  const track = (unitId: number, point: [number, number]): UnitTrack => ({
+    key: `0:${unitId}`, teamId: 0, unitId, points: [{ x: point[0], y: point[1] }],
+    samples: [{ tick: 20, position: { x: point[0], y: point[1] } }],
+  });
+  const tracks = play.slots.slice(0, 4).map((slot, index) =>
+    track(index, linked.mapPlan.anchors[slot.anchorId]));
+  assert.deepEqual(bestPlayReadiness(linked, play, tracks), {
+    ready: 4, total: 5, tick: 20, readySlotIds: play.slots.slice(0, 4).map((slot) => slot.id),
+  });
+  tracks.push(track(4, linked.mapPlan.anchors[play.slots[4].anchorId]));
+  assert.equal(bestPlayReadiness(linked, play, tracks).ready, 5);
 });
 
 function role(id: string, classes: string[]) {

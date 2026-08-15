@@ -139,6 +139,127 @@ export function updatePlayCondition(
   return next;
 }
 
+/**
+ * Add one more required post to an Ambush reserve pool. The post remains an
+ * ordinary anchor + readiness zone + role-qualified condition, and the
+ * reserve projection gains one ordinary capacity-limited move leaf. Nothing
+ * in the runtime learns that the objects came from a Play.
+ */
+export function addAmbushReserveSlot(
+  draft: SheetDraft,
+  playId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (play.recipe !== 'ambush')
+    throw new Error('Pooled reserve posts are available only in the Ambush recipe.');
+  const reserveProjection = play.projections.find((entry) => entry.id.endsWith('-reserve'));
+  if (!reserveProjection)
+    throw new Error('The Ambush has no reserve projection.');
+  const reserveSlots = play.slots.filter((slot) => slot.roleId === reserveProjection.roleId);
+  const ordinal = reserveSlots.length;
+  const suffix = String.fromCharCode('a'.charCodeAt(0) + ordinal);
+  const anchorId = `${play.id}-reserve-${suffix}`;
+  const zoneId = `${anchorId}-ready`;
+  const conditionId = `${anchorId}-in-position`;
+  const slotId = `${anchorId}-slot`;
+  if (next.mapPlan.anchors[anchorId] || next.mapPlan.zones[zoneId])
+    throw new Error(`Ambush reserve post '${anchorId}' already exists.`);
+
+  const previous = next.mapPlan.anchors[reserveSlots.at(-1)?.anchorId ?? ''] ?? [21, 8];
+  const facingAnchor = play.ownedGeometry.find((entry) =>
+    entry.kind === 'anchor' && entry.purpose === 'move.face')?.id;
+  if (!facingAnchor) throw new Error('The Ambush corridor-facing anchor is missing.');
+  const engageWhen = play.linkedValues.find((entry) => entry.id === `${play.id}-engage-when`);
+  if (engageWhen && typeof engageWhen.value === 'object' && engageWhen.value !== null
+    && 'all' in engageWhen.value && engageWhen.value.all.length >= 8)
+    throw new Error('This Ambush already uses the eight-condition flat expression limit.');
+  const point: [number, number] = [Math.max(1, previous[0] - 2), Math.min(25, previous[1] + 2)];
+  next.mapPlan.anchors[anchorId] = point;
+  next.mapPlan.zones[zoneId] = { rect: [point[0], point[1], point[0], point[1]] };
+  next.orders.conditions[conditionId] = {
+    fact: 'role-in-zone-count', operator: 'at-least', value: 1,
+    role: reserveProjection.roleId, zone: zoneId,
+  };
+  play.ownedGeometry.push(
+    { kind: 'anchor', id: anchorId, purpose: 'move.to' },
+    { kind: 'zone', id: zoneId, purpose: 'role-in-zone-count', derivedFrom: anchorId, tolerance: 0 },
+  );
+  const group = play.geometryGroups[0];
+  group?.objectIds.push(anchorId);
+  group?.derivedObjectIds.push(zoneId);
+  const capacity = reserveSlots[0]?.capacity ?? 1;
+  play.slots.push({
+    id: slotId,
+    roleId: reserveProjection.roleId,
+    anchorId,
+    readinessZoneId: zoneId,
+    required: true,
+    tolerance: 0,
+    capacity,
+  });
+  play.ownedConditionIds.push(conditionId);
+  appendConditionToLinkedValue(play, `${play.id}-engage-when`, conditionId);
+  appendConditionToLinkedValue(play, `${play.id}-assembly-until`, conditionId);
+  const assembly = reserveProjection.orders.find((order) => order.id?.endsWith('-reserve-assembly'));
+  if (!assembly?.orders)
+    throw new Error('The Ambush reserve assembly branch is missing.');
+  assembly.orders.push({
+    id: `${play.id}-reserve-${suffix}`,
+    capacity,
+    move: {
+      to: { anchor: anchorId },
+      face: { anchor: facingAnchor },
+      posture: 'front',
+    },
+  });
+  return requireMaterialized(next);
+}
+
+export function removeAmbushReserveSlot(
+  draft: SheetDraft,
+  playId: string,
+  slotId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (play.recipe !== 'ambush')
+    throw new Error('Pooled reserve posts are available only in the Ambush recipe.');
+  const slot = play.slots.find((entry) => entry.id === slotId);
+  if (!slot) throw new Error(`Unknown Ambush slot '${slotId}'.`);
+  const reserveProjection = play.projections.find((entry) => entry.id.endsWith('-reserve'));
+  const reserveSlots = reserveProjection
+    ? play.slots.filter((entry) => entry.roleId === reserveProjection.roleId)
+    : [];
+  if (!reserveProjection || slot.roleId !== reserveProjection.roleId || reserveSlots.length <= 2)
+    throw new Error('An Ambush keeps at least two pooled reserve posts.');
+  const conditionId = play.ownedConditionIds.find((id) =>
+    next.orders.conditions[id]?.zone === slot.readinessZoneId
+    && next.orders.conditions[id]?.role === slot.roleId);
+  play.slots = play.slots.filter((entry) => entry.id !== slot.id);
+  play.ownedGeometry = play.ownedGeometry.filter((entry) =>
+    entry.id !== slot.anchorId && entry.id !== slot.readinessZoneId);
+  for (const group of play.geometryGroups) {
+    group.objectIds = group.objectIds.filter((id) => id !== slot.anchorId && id !== slot.readinessZoneId);
+    group.derivedObjectIds = group.derivedObjectIds.filter((id) => id !== slot.anchorId && id !== slot.readinessZoneId);
+  }
+  delete next.mapPlan.anchors[slot.anchorId];
+  delete next.mapPlan.zones[slot.readinessZoneId];
+  if (conditionId) {
+    delete next.orders.conditions[conditionId];
+    play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== conditionId);
+    removeConditionFromLinkedValue(play, `${play.id}-engage-when`, conditionId);
+    removeConditionFromLinkedValue(play, `${play.id}-assembly-until`, conditionId);
+  }
+  const assembly = reserveProjection.orders.find((order) => order.id?.endsWith('-reserve-assembly'));
+  if (assembly?.orders)
+    assembly.orders = assembly.orders.filter((order) => order.move?.to === undefined
+      || typeof order.move.to !== 'object'
+      || !('anchor' in order.move.to)
+      || order.move.to.anchor !== slot.anchorId);
+  return requireMaterialized(next);
+}
+
 export function movePlayAnchor(
   draft: SheetDraft,
   playId: string,
@@ -193,6 +314,19 @@ function requireMaterialized(draft: SheetDraft, force = false): SheetDraft {
   draft.orders = result.orders;
   draft.workshop = result.workshop;
   return draft;
+}
+
+function appendConditionToLinkedValue(play: LinkedPlay, linkedId: string, conditionId: string) {
+  const linked = play.linkedValues.find((entry) => entry.id === linkedId);
+  if (!linked || typeof linked.value !== 'object' || linked.value === null || !('all' in linked.value))
+    throw new Error(`Linked condition '${linkedId}' is missing.`);
+  linked.value.all.push(conditionId);
+}
+
+function removeConditionFromLinkedValue(play: LinkedPlay, linkedId: string, conditionId: string) {
+  const linked = play.linkedValues.find((entry) => entry.id === linkedId);
+  if (linked && typeof linked.value === 'object' && linked.value !== null && 'all' in linked.value)
+    linked.value.all = linked.value.all.filter((id) => id !== conditionId);
 }
 
 function renameMapObject(

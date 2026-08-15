@@ -79,6 +79,19 @@ export function movePlayGeometryGroup(
 export function playGeometryIssues(draft: SheetDraft, playId: string): SheetIssue[] {
   const play = requirePlay(draft, playId);
   const issues: SheetIssue[] = [];
+  const requiredByRole = new Map<string, number>();
+  for (const slot of play.slots) {
+    if (slot.required)
+      requiredByRole.set(slot.roleId, (requiredByRole.get(slot.roleId) ?? 0) + 1);
+  }
+  for (const [roleId, required] of requiredByRole) {
+    const available = draft.orders.roles.find((role) => role.id === roleId)?.classes.length ?? 0;
+    if (required > available) issues.push({
+      path: `workshop.plays.${playId}.slots`,
+      severity: 'error',
+      message: `${roleId} has ${available} ${available === 1 ? 'body' : 'bodies'} for ${required} required positions. Split or expand the role, or remove a required position.`,
+    });
+  }
   for (let left = 0; left < play.slots.length; left++) {
     const a = play.slots[left];
     if (!a.required) continue;
