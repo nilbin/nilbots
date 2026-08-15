@@ -4799,6 +4799,18 @@
               "null",
               "boolean"
             ]
+          },
+          "workshopJson": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "replaceWorkshop": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -5260,6 +5272,7 @@
           "updatedAt",
           "ordersJson",
           "mapPlanJson",
+          "workshopJson",
           "entrant"
         ],
         "type": "object",
@@ -5291,6 +5304,12 @@
           },
           "mapPlanJson": {
             "type": "string"
+          },
+          "workshopJson": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "entrant": {
             "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"

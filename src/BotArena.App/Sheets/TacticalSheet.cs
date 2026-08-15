@@ -13,6 +13,11 @@ public sealed class TacticalSheet
     public int Revision { get; set; } = 1;
     public required string PlaybookJson { get; set; }
     public required string LayoutJson { get; set; }
+    /// <summary>
+    /// Optional editor-only linked-Play metadata. It is never compiled,
+    /// snapshotted into a match, or included in <see cref="ContentHash"/>.
+    /// </summary>
+    public string? WorkshopJson { get; set; }
     public required string ContentHash { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;

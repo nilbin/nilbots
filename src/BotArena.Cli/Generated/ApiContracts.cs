@@ -2899,6 +2899,12 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("enterLadder")]
         public bool? EnterLadder { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
+        public string? WorkshopJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("replaceWorkshop")]
+        public bool? ReplaceWorkshop { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -3463,6 +3469,9 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string MapPlanJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
+        public string? WorkshopJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("entrant")]
         [System.ComponentModel.DataAnnotations.Required]

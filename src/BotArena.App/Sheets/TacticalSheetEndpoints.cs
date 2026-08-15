@@ -150,6 +150,7 @@ public static class TacticalSheetEndpoints
             ValidatedTacticalSheet compiled;
             try
             {
+                ValidateWorkshopRequest(request);
                 compiled = compiler.Compile(
                     request.OrdersJson,
                     request.MapPlanJson,
@@ -194,6 +195,9 @@ public static class TacticalSheetEndpoints
                 Name = name,
                 PlaybookJson = request.OrdersJson,
                 LayoutJson = request.MapPlanJson,
+                WorkshopJson = request.ReplaceWorkshop == true
+                    ? request.WorkshopJson
+                    : null,
                 ContentHash = compiled.ContentHash,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -269,6 +273,7 @@ public static class TacticalSheetEndpoints
             ValidatedTacticalSheet compiled;
             try
             {
+                ValidateWorkshopRequest(request);
                 compiled = compiler.Compile(
                     request.OrdersJson,
                     request.MapPlanJson,
@@ -305,6 +310,8 @@ public static class TacticalSheetEndpoints
             sheet.Revision++;
             sheet.PlaybookJson = request.OrdersJson;
             sheet.LayoutJson = request.MapPlanJson;
+            if (request.ReplaceWorkshop == true)
+                sheet.WorkshopJson = request.WorkshopJson;
             sheet.ContentHash = compiled.ContentHash;
             sheet.UpdatedAt = entrant.UpdatedAt = now;
             entrant.LadderOptedIn = enterLadder;
@@ -447,6 +454,7 @@ public static class TacticalSheetEndpoints
             sheet.UpdatedAt,
             sheet.PlaybookJson,
             sheet.LayoutJson,
+            sheet.WorkshopJson,
             await projector.ProjectAsync(
                 entrant, userId, ladderId, cancellationToken));
 
@@ -497,6 +505,19 @@ public static class TacticalSheetEndpoints
         exception is InvalidDataException
             or System.Text.Json.JsonException
             or ArgumentException;
+
+    private static void ValidateWorkshopRequest(
+        SaveTacticalSheetRequest request)
+    {
+        if (request.WorkshopJson is not null
+            && request.ReplaceWorkshop != true)
+        {
+            throw new InvalidDataException(
+                "workshopJson requires replaceWorkshop=true.");
+        }
+        if (request.ReplaceWorkshop == true)
+            TacticalSheetWorkshopValidator.Validate(request.WorkshopJson);
+    }
 
     private static IResult Invalid(string detail) => Results.Problem(
         detail,

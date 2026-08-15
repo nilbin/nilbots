@@ -256,6 +256,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Layout pins hash bytes, so whitespace rewriting is corruption.
             entity.Property(sheet => sheet.PlaybookJson).HasColumnType("json");
             entity.Property(sheet => sheet.LayoutJson).HasColumnType("json");
+            // Workshop metadata is editor-only and deliberately excluded from
+            // the compiled ATL2 identity. jsonb normalization is therefore safe.
+            entity.Property(sheet => sheet.WorkshopJson).HasColumnType("jsonb");
             entity.Property(sheet => sheet.ContentHash)
                 .HasMaxLength(64)
                 .IsFixedLength();

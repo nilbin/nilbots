@@ -1393,6 +1393,9 @@ namespace BotArena.App.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("WorkshopJson")
+                        .HasColumnType("jsonb");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerUserId", "Name");

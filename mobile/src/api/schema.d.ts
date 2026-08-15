@@ -3103,6 +3103,8 @@ export interface components {
             ordersJson: string;
             mapPlanJson: string;
             enterLadder?: null | boolean;
+            workshopJson?: null | string;
+            replaceWorkshop?: null | boolean;
         };
         SetArcRelayCrestRequest: {
             /** Format: int32 */
@@ -3234,6 +3236,7 @@ export interface components {
             updatedAt: string;
             ordersJson: string;
             mapPlanJson: string;
+            workshopJson: null | string;
             entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
         };
         TacticalSheetSummaryResponse: {

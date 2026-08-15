@@ -114,13 +114,20 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 sheets[0].Revision,
                 catalog.TemplateOrdersJson,
                 catalog.TemplateMapPlanJson,
-                EnterLadder: true));
+                EnterLadder: true,
+                WorkshopJson:
+                    "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[]}",
+                ReplaceWorkshop: true));
         revisedResponse.EnsureSuccessStatusCode();
         TacticalSheetResponse revised = (await revisedResponse.Content
             .ReadFromJsonAsync<TacticalSheetResponse>())!;
         Assert.Equal(sheets[0].Id, revised.Id);
         Assert.Equal(2, revised.Revision);
         Assert.Equal(BotRating.DefaultRating, revised.Entrant.Rating);
+        Assert.Equal(sheets[0].ContentHash, revised.ContentHash);
+        Assert.Equal(
+            "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[]}",
+            revised.WorkshopJson);
         HttpResponseMessage staleUpdate = await client.PutAsJsonAsync(
             $"/api/sheets/{sheets[0].Id}",
             new SaveTacticalSheetRequest(
@@ -130,6 +137,23 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 catalog.TemplateMapPlanJson,
                 true));
         Assert.Equal(HttpStatusCode.Conflict, staleUpdate.StatusCode);
+
+        // Older clients do not know about editor-only workshop metadata. An
+        // ordinary update must preserve it rather than silently detaching all
+        // linked Plays.
+        HttpResponseMessage legacyClientUpdate = await client.PutAsJsonAsync(
+            $"/api/sheets/{sheets[0].Id}",
+            new SaveTacticalSheetRequest(
+                "Sheet 1 revised again",
+                revised.Revision,
+                catalog.TemplateOrdersJson,
+                catalog.TemplateMapPlanJson,
+                EnterLadder: true));
+        legacyClientUpdate.EnsureSuccessStatusCode();
+        TacticalSheetResponse preserved = (await legacyClientUpdate.Content
+            .ReadFromJsonAsync<TacticalSheetResponse>())!;
+        Assert.Equal(revised.WorkshopJson, preserved.WorkshopJson);
+        Assert.Equal(revised.ContentHash, preserved.ContentHash);
 
         HttpResponseMessage scrimmage = await client.PostAsJsonAsync("/api/arc-relay/scrimmages",
             new CreateArcRelayScrimmageRequest(sheets[0].Id, sheets[1].Id, 104729));

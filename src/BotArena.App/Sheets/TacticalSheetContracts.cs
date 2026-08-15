@@ -20,6 +20,7 @@ public sealed record TacticalSheetResponse(
     DateTime UpdatedAt,
     string OrdersJson,
     string MapPlanJson,
+    string? WorkshopJson,
     ArcRelayEntrantCardResponse Entrant);
 
 public sealed record SaveTacticalSheetRequest(
@@ -27,7 +28,9 @@ public sealed record SaveTacticalSheetRequest(
     int? ExpectedRevision,
     string OrdersJson,
     string MapPlanJson,
-    bool? EnterLadder = null);
+    bool? EnterLadder = null,
+    string? WorkshopJson = null,
+    bool? ReplaceWorkshop = null);
 
 public sealed record TrialTacticalSheetRequest(
     string StockSheetId,
