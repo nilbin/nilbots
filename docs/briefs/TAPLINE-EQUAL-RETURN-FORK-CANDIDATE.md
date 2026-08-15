@@ -1,4 +1,4 @@
-# Tapline equal-return fork — map candidate
+# Tapline equal-return fork — promoted map
 
 Status: **implemented and owner-promoted as Tapline-6 / hosted playlist v24**.
 
@@ -105,15 +105,15 @@ This is geometry validation, not balance evidence. It does not establish that
 19 is the correct live-game distance or that both routes have equal tactical
 risk under bodies, deployments, sightlines, and combat.
 
-## Promotion boundary and review gate
+## Post-promotion tuning boundary
 
 The fork ships as the new immutable `arc-relay-tapline-02` map and `tapline-6`
 profile. Tapline-5 and hosted v23 remain immutable history. Focused engine tests
 pin the wall delta, rotation, topology invariants, and every route measurement;
 hosted playlist v24 starts a fresh rating book because the map changes gameplay.
 
-Before a balance or ship verdict, run candidate-native sheets through the
-normal trace-first phone exhibit. Specifically inspect congestion at both
+For follow-on tuning, run Tapline-6-native sheets through the normal
+trace-first phone exhibit. Specifically inspect congestion at both
 19-step branches, Mason barrier leverage, loaded-carrier right-of-way,
 interception windows, and whether the 25-step enemy-Well return remains worth
 its 4 charge under the 1/2/4 economy.
