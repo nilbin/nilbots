@@ -8,6 +8,7 @@ import {
   injectPointLightIsolation,
   injectModelLighting,
   isolateModelFromPointLights,
+  setModelApexTreatment,
 } from '../src/render3d/modelLighting.ts';
 
 const shaderAnchor =
@@ -23,6 +24,45 @@ test('genuine model lighting adds a bounded fill and cool rim after ordinary PBR
   assert.ok(MODEL_LIGHTING_PROFILE.rimStrength <= 0.16);
 });
 
+test('apex treatment adds a silver Fresnel edge and moving satin lobe without a scene light', () => {
+  const shader = injectModelLighting(`before\n${shaderAnchor}\nafter`);
+  assert.match(shader, /uniform float nilbotsApexStrength/);
+  assert.match(shader, /nilbotsApexRim/);
+  assert.match(shader, /nilbotsApexSweepDirection/);
+  assert.match(shader, /material\.diffuseColor/);
+  assert.doesNotMatch(shader, /PointLight/);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexRimStrength <= 0.3);
+  assert.ok(MODEL_LIGHTING_PROFILE.apexSweepStrength <= 0.4);
+});
+
+test('apex treatment retains precompile state and updates compiled uniforms', () => {
+  const material = new THREE.MeshStandardMaterial();
+  applyModelLighting(material);
+  setModelApexTreatment(material, 2, 1.25);
+
+  const state = material.userData.nilbotsModelLightingState as {
+    apexStrength: number;
+    apexPhase: number;
+  };
+  assert.equal(state.apexStrength, 1);
+  assert.equal(state.apexPhase, 1.25);
+
+  const shader = {
+    fragmentShader: `before\n${shaderAnchor}\nafter`,
+    uniforms: {},
+  } as Parameters<typeof material.onBeforeCompile>[0];
+  material.onBeforeCompile(
+    shader,
+    {} as Parameters<typeof material.onBeforeCompile>[1],
+  );
+  assert.equal(shader.uniforms.nilbotsApexStrength!.value, 1);
+  assert.equal(shader.uniforms.nilbotsApexPhase!.value, 1.25);
+
+  setModelApexTreatment(material, 0.35, 2.5);
+  assert.equal(shader.uniforms.nilbotsApexStrength!.value, 0.35);
+  assert.equal(shader.uniforms.nilbotsApexPhase!.value, 2.5);
+});
+
 test('model lighting is idempotent and owns a distinct shader cache key', () => {
   const material = new THREE.MeshStandardMaterial();
   applyModelLighting(material);
@@ -32,8 +72,8 @@ test('model lighting is idempotent and owns a distinct shader cache key', () => 
 
   assert.equal(material.onBeforeCompile, firstCompile);
   assert.equal(material.customProgramCacheKey(), firstKey);
-  assert.match(firstKey, /nilbots-model-lighting-v1/);
-  assert.equal(material.userData.nilbotsModelLighting, 'nilbots-model-lighting-v1');
+  assert.match(firstKey, /nilbots-model-lighting-v2/);
+  assert.equal(material.userData.nilbotsModelLighting, 'nilbots-model-lighting-v2');
 });
 
 test('model lighting fails loudly if Three changes its physical shader seam', () => {
@@ -62,7 +102,7 @@ test('point-light isolation composes once with readable model lighting', () => {
 
   assert.equal(material.onBeforeCompile, firstCompile);
   assert.equal(material.customProgramCacheKey(), firstKey);
-  assert.match(firstKey, /nilbots-model-lighting-v1/);
+  assert.match(firstKey, /nilbots-model-lighting-v2/);
   assert.match(firstKey, /nilbots-point-light-isolation-v1/);
 
   const model = new THREE.Group();

@@ -71,6 +71,7 @@ import {
   createVeterancyRankRail,
   paintVeterancyRankRail,
 } from './veterancyRankRail';
+import { setModelApexTreatment } from './modelLighting';
 
 export { BOT_BODY_RENDER_ORDER } from './occlusionLayers';
 
@@ -273,6 +274,13 @@ const SELECTED_TRIM_GAIN = 2.6;
 const SELECTED_TINT = 0.12;
 const SELECTED_POOL = 1;
 const UNSELECTED_POOL = 0.9;
+
+/** Level five is Arc Relay's rules-owned apex; lower ranks retain their authored finish. */
+const APEX_LEVEL = 5;
+/** Let the level-up beat reveal the lacquer instead of switching the whole hull in one frame. */
+const APEX_ENGAGE_TICKS = 0.7;
+/** Radians per presentation tick; one quiet sweep takes about twenty-six ticks. */
+const APEX_SWEEP_RATE = 0.24;
 
 /**
  * The ring of ground that belongs to the selected body.
@@ -748,6 +756,20 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     tintable(lidMaterial);
     tintable(noseMaterial);
 
+    // Genuine GLB materials carry the model-lighting shader seam. Keep the current values
+    // even before a lazy model arrives so a seek directly to level five dresses it correctly
+    // on its first compiled frame. Sprite-derived fallbacks ignore the setter and keep their
+    // established Canvas-compatible treatment.
+    const apexMaterials = new Set<THREE.MeshStandardMaterial>();
+    let currentApexStrength = 0;
+    let currentApexPhase = 0;
+    const apex = (strength: number, phase: number) => {
+      currentApexStrength = strength;
+      currentApexPhase = phase;
+      for (const material of apexMaterials)
+        setModelApexTreatment(material, strength, phase);
+    };
+
     /**
      * Enrol the loader-owned material set in this actor's presentation state.
      *
@@ -775,8 +797,15 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           if (seen.has(material)) continue;
           seen.add(material);
           fading.push({ material, base: 1 });
-          if (material instanceof THREE.MeshStandardMaterial)
+          if (material instanceof THREE.MeshStandardMaterial) {
             tintable(material);
+            apexMaterials.add(material);
+            setModelApexTreatment(
+              material,
+              currentApexStrength,
+              currentApexPhase,
+            );
+          }
           disposables.push(material);
         }
       });
@@ -1536,6 +1565,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       highlight,
       charge,
       flash,
+      apex,
       statusBib,
       healthBar,
       attackCooldown,
@@ -2158,6 +2188,27 @@ export function buildActors(replay: ReplayModel): ArenaActors {
       );
       const rankVisible = veterancyEnabled && bot.statusBib.visible;
       paintVeterancyRankRail(bot.veterancyRankRail, level, rankVisible);
+      const promotion = level >= APEX_LEVEL
+        ? veterancy.levelUpAt(
+            time,
+            pose.teamId,
+            pose.unitId,
+            pose.lifeId,
+          )
+        : null;
+      const apexStrength = level < APEX_LEVEL
+        ? 0
+        : promotion?.level === APEX_LEVEL
+          ? easeOut(Math.min(1, promotion.age / APEX_ENGAGE_TICKS))
+          : 1;
+      // Reduced-motion keeps the silver edge and freezes the satin lobe at this actor's
+      // stable phase. The normal path moves only reflected-looking light over the model;
+      // no geometry, floor cue, or scene light animates.
+      bot.apex(
+        apexStrength,
+        bot.motionPhase +
+          (reducedMotionQuery?.matches === true ? 0 : time * APEX_SWEEP_RATE),
+      );
       // Health and rail remain centred at every rank; only fill count and color change.
       bot.healthBar.group.position.x = 0;
       bot.engagedMark.position.y = ENGAGED_MARK_LIFT;

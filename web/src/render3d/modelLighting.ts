@@ -2,13 +2,22 @@ import * as THREE from 'three';
 
 const OUTGOING_LIGHT =
   'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;';
-const PROFILE_KEY = 'nilbots-model-lighting-v1';
+const PROFILE_KEY = 'nilbots-model-lighting-v2';
 const POINT_LIGHT_ISOLATION_KEY = 'nilbots-point-light-isolation-v1';
 const LIGHTS_FRAGMENT_INCLUDE = '#include <lights_fragment_begin>';
 const POINT_LIGHTS_START =
   '#if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )';
 const POINT_LIGHTS_END =
   '#if ( NUM_SPOT_LIGHTS > 0 ) && defined( RE_Direct )';
+const APEX_UNIFORMS = `uniform float nilbotsApexStrength;
+uniform float nilbotsApexPhase;`;
+
+interface ModelLightingState {
+  apexStrength: number;
+  apexPhase: number;
+  strengthUniform: { value: number } | null;
+  phaseUniform: { value: number } | null;
+}
 
 /**
  * A restrained, model-local fill and rim for genuine GLB actors.
@@ -24,6 +33,10 @@ export const MODEL_LIGHTING_PROFILE = {
   facingFillMaximum: 0.2,
   rimStrength: 0.16,
   rimPower: 2.2,
+  apexRimStrength: 0.28,
+  apexRimPower: 1.7,
+  apexSweepStrength: 0.4,
+  apexSweepPower: 22,
 } as const;
 
 export function applyModelLighting(
@@ -32,21 +45,57 @@ export function applyModelLighting(
   if (material.userData.nilbotsModelLighting === PROFILE_KEY) return;
   const beforeCompile = material.onBeforeCompile.bind(material);
   const beforeCacheKey = material.customProgramCacheKey.bind(material);
+  const state: ModelLightingState = {
+    apexStrength: 0,
+    apexPhase: 0,
+    strengthUniform: null,
+    phaseUniform: null,
+  };
 
   material.onBeforeCompile = (shader, renderer) => {
     beforeCompile(shader, renderer);
+    state.strengthUniform = { value: state.apexStrength };
+    state.phaseUniform = { value: state.apexPhase };
+    shader.uniforms.nilbotsApexStrength = state.strengthUniform;
+    shader.uniforms.nilbotsApexPhase = state.phaseUniform;
     shader.fragmentShader = injectModelLighting(shader.fragmentShader);
   };
   material.customProgramCacheKey = () =>
     `${beforeCacheKey()}|${PROFILE_KEY}`;
   material.userData.nilbotsModelLighting = PROFILE_KEY;
+  material.userData.nilbotsModelLightingState = state;
   material.needsUpdate = true;
+}
+
+/**
+ * Drive the level-five treatment on one actor-owned material.
+ *
+ * The uniforms modify only this material's final light. No Three light is created, so the
+ * treatment cannot touch the floor, nearby actors, fog, Wells, or Reactors. Calling this
+ * before the material first compiles is supported: the state is retained and copied into
+ * the shader uniforms when Three builds its program.
+ */
+export function setModelApexTreatment(
+  material: THREE.MeshStandardMaterial,
+  strength: number,
+  phase: number,
+): void {
+  const state = material.userData.nilbotsModelLightingState as
+    | ModelLightingState
+    | undefined;
+  if (!state) return;
+  state.apexStrength = THREE.MathUtils.clamp(strength, 0, 1);
+  state.apexPhase = phase;
+  if (state.strengthUniform)
+    state.strengthUniform.value = state.apexStrength;
+  if (state.phaseUniform) state.phaseUniform.value = state.apexPhase;
 }
 
 export function injectModelLighting(fragmentShader: string): string {
   if (!fragmentShader.includes(OUTGOING_LIGHT))
     throw new Error('MeshStandardMaterial shader no longer exposes the model-lighting anchor.');
-  return fragmentShader.replace(
+  return `${APEX_UNIFORMS}
+${fragmentShader.replace(
     OUTGOING_LIGHT,
     `${OUTGOING_LIGHT}
 
@@ -66,8 +115,32 @@ export function injectModelLighting(fragmentShader: string): string {
     vec3( 0.22, 0.28, 0.36 ),
     material.diffuseColor,
     0.22
-  ) * nilbotsModelRim;`,
+  ) * nilbotsModelRim;
+
+  // Apex lacquer: a silver Fresnel edge and a tight satin lobe moving over the
+  // authored normals. This is model-local final light, not emission or a scene light.
+  float nilbotsApexRim = pow(
+    1.0 - nilbotsModelFacing,
+    ${MODEL_LIGHTING_PROFILE.apexRimPower.toFixed(1)}
+  ) * ${MODEL_LIGHTING_PROFILE.apexRimStrength.toFixed(2)};
+  vec3 nilbotsApexSweepDirection = normalize( vec3(
+    cos( nilbotsApexPhase ) * 0.58,
+    sin( nilbotsApexPhase ) * 0.48,
+    1.0
+  ) );
+  float nilbotsApexSweep = pow(
+    saturate( dot( geometryNormal, nilbotsApexSweepDirection ) ),
+    ${MODEL_LIGHTING_PROFILE.apexSweepPower.toFixed(1)}
+  ) * ${MODEL_LIGHTING_PROFILE.apexSweepStrength.toFixed(2)};
+  vec3 nilbotsApexSilver = mix(
+    vec3( 0.58, 0.64, 0.70 ),
+    material.diffuseColor,
+    0.16
   );
+  outgoingLight += nilbotsApexSilver
+    * ( nilbotsApexRim + nilbotsApexSweep )
+    * nilbotsApexStrength;`,
+  )}`;
 }
 
 /**
