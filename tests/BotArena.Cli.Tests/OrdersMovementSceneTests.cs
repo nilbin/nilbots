@@ -82,7 +82,7 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
-    public void LockboxInterceptorCarryUsesTheSafeSideCorridorForItsWholeEpisode()
+    public void LockboxInterceptorCarryUsesTheInnerFlankForItsWholeEpisode()
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
@@ -122,7 +122,7 @@ public sealed class OrdersMovementSceneTests
             safeReturn.GetProperty("until").GetString());
         Assert.Equal("normal", stage.GetProperty("urgency").GetString());
         Assert.Equal(
-            "safe-side-corridor-extraction",
+            "inner-flank-extraction",
             escape.GetProperty("move").GetProperty("via").GetString());
 
         using JsonDocument mapPlan = JsonDocument.Parse(
@@ -137,21 +137,19 @@ public sealed class OrdersMovementSceneTests
                 .ToArray());
         Position[] extraction = RoutePoints(
             mapPlan.RootElement.GetProperty("routes"),
-            "safe-side-corridor-extraction");
+            "inner-flank-extraction");
 
         // Pickup can resolve one tile outside the narrow ambush rectangle, so
         // the return belongs to the interceptor's entire carrying episode,
         // not to a coordinate snapshot. These west-authored points bind to an
-        // immediate north turn for the east team: the nearby side corridor,
-        // neither the centre shortcut nor a needless full-perimeter lap.
+        // immediate south turn for the east team: down to the nearby inner
+        // horizontal lane, neither through centre nor around the perimeter.
         Assert.Equal(
             [
-                new Position(25, 23),
-                new Position(20, 23),
-                new Position(20, 21),
-                new Position(18, 19),
-                new Position(15, 19),
-                new Position(12, 17),
+                new Position(25, 13),
+                new Position(19, 7),
+                new Position(19, 3),
+                new Position(8, 3),
             ],
             extraction);
 
@@ -191,14 +189,14 @@ public sealed class OrdersMovementSceneTests
             from = destination;
         }
 
-        Assert.Equal(new Position(5, 3), eastBinding[0]);
-        Assert.Equal(47, traversed.Count - 1);
+        Assert.Equal(new Position(5, 13), eastBinding[0]);
+        Assert.Equal(32, traversed.Count - 1);
         Assert.DoesNotContain(traversed, enemyHome.Contains);
         Assert.DoesNotContain(
             traversed,
             tile => tile.X is >= 12 and <= 18
                 && tile.Y is >= 11 and <= 15);
-        Assert.DoesNotContain(traversed, tile => tile.Y <= 2);
+        Assert.DoesNotContain(traversed, tile => tile.Y >= 24);
     }
 
     [Fact]
