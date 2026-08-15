@@ -159,6 +159,34 @@ public sealed class SquadArenaPlannerTests
         Assert.DoesNotContain(1, predecessors.Keys);
     }
 
+    [Theory]
+    [InlineData(0, 3, true, 0)]
+    [InlineData(4, 1, true, 1)]
+    [InlineData(4, 1, false, 2)]
+    public void ResolvedPriorityAloneControlsAlliedTraffic(
+        int moverRank,
+        int blockerRank,
+        bool alternateRouteExists,
+        int expected)
+    {
+        TacticalMovementPriority Priority(int unitId, int rank) => new(
+            unitId,
+            rank,
+            TacticalMovementUrgency.Normal,
+            AlliedBlockDebt: 0,
+            PassageLeaseTicksRemaining: 0,
+            ActivatedTick: 0,
+            BlockedSince: null,
+            AlliedBlockTile: null);
+
+        Assert.Equal(
+            (SquadArenaPlanner.AlliedTrafficDisposition)expected,
+            SquadArenaPlanner.ResolveAlliedTraffic(
+                Priority(0, moverRank),
+                Priority(1, blockerRank),
+                alternateRouteExists));
+    }
+
     [Fact]
     public void CarrierReturnUsesEveryOwnedAutomaticReturnTile()
     {

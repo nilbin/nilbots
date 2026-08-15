@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "crowned-rail-v1",
-  "mapPlan": "../map-plans/crowned-rail-v1.json",
+  "mapPlan": "../map-plans/tapline-6/crowned-rail-v1.json",
   "roles": [
     {
       "id": "ace",

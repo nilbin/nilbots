@@ -33,7 +33,7 @@ const taplineTemplatePlaybook = readFileSync(
 ).trim();
 const taplineTemplateLayout = readFileSync(
   new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/starter-tapline-v2.json',
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/starter-tapline-v2.json',
     import.meta.url,
   ),
   'utf8',

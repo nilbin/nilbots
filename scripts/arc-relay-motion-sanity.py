@@ -8,7 +8,9 @@ and a planner move trace that silently degrades into an actual Wait command.
 It also rejects a body spending a sustained move episode orbiting a tiny patch
 without reaching the named destination; rotating in place is the one-tile case.
 Enemy occupancy pauses the recovery clock; contesting a scarce healer is play,
-not a planner fault. Core progress is enforced by the frozen scorecard bars.
+not a planner fault. Loaded returns are checked here because aggregate Core
+score bars cannot distinguish a carrier waiting for right-of-way from one that
+is actively commanded into a backward loop.
 """
 
 from __future__ import annotations
@@ -24,6 +26,9 @@ from pathlib import Path
 
 RECOVER_GOAL = re.compile(r"recover-health.*?march@(-?\d+),(-?\d+)")
 MOVE_GOAL = re.compile(r":march@(-?\d+),(-?\d+)")
+AVOID_DENIED = re.compile(r":avoid-denied-(-?\d+)-(-?\d+)@")
+TRAFFIC_RIGHT_OF_WAY = re.compile(
+    r":traffic-right-of-way-(-?\d+)-(-?\d+)")
 RECOVERY_NO_PROGRESS_BAR = 18
 MOVEMENT_CYCLE_BAR = 3
 RECOVERY_CONTEST_DISTANCE = 1
@@ -32,6 +37,26 @@ RECOVERY_CONTEST_DISTANCE = 1
 # orbit; the owner-caught failures ran for 100+ ticks and remain far over this
 # bar.
 LOCAL_MOVE_ORBIT_BAR = 18
+CARRIER_ROUTE_REGRESSION_BAR = 3
+CARRIER_PAIR_REVERSAL_BAR = 2
+HEADINGS = {
+    0: (0, -1),
+    1: (1, -1),
+    2: (1, 0),
+    3: (1, 1),
+    4: (0, 1),
+    5: (-1, 1),
+    6: (-1, 0),
+    7: (-1, -1),
+    "north": (0, -1),
+    "north-east": (1, -1),
+    "east": (1, 0),
+    "south-east": (1, 1),
+    "south": (0, 1),
+    "south-west": (-1, 1),
+    "west": (-1, 0),
+    "north-west": (-1, -1),
+}
 
 
 def read(path: Path) -> dict:
@@ -82,15 +107,67 @@ def movement_cycle(events: list[dict]) -> list[list[int]]:
     return cycles
 
 
+def static_distance_field(replay: dict, team: int,
+                          goal: tuple[int, int]) -> dict[tuple[int, int], int]:
+    """Corner-strict terrain distance with the team's return pads blocked."""
+    contract = replay["header"]["contract"]
+    arena = contract["map"]
+    rows = arena["tileRows"]
+    width = arena["width"]
+    height = arena["height"]
+    assigned = {
+        value.get("assignedRespawnSpawnId")
+        for value in contract.get("lifecycleAssignments", [])
+        if value["teamId"] == team
+        and value.get("assignedRespawnSpawnId") is not None
+    }
+    blocked = {
+        tuple(anchor["position"])
+        for anchor in arena.get("spawnAnchors", [])
+        if anchor["spawnId"] in assigned
+    }
+    blocked.discard(goal)
+
+    def open_tile(tile: tuple[int, int]) -> bool:
+        x, y = tile
+        return 0 <= x < width and 0 <= y < height \
+            and rows[y][x] != "#" and tile not in blocked
+
+    distances = {goal: 0}
+    queue = collections.deque([goal])
+    while queue:
+        current = queue.popleft()
+        for dx, dy in HEADINGS.values():
+            candidate = current[0] + dx, current[1] + dy
+            if candidate in distances or not open_tile(candidate):
+                continue
+            if dx != 0 and dy != 0 \
+                    and (not open_tile((current[0] + dx, current[1]))
+                         or not open_tile((current[0], current[1] + dy))):
+                continue
+            distances[candidate] = distances[current] + 1
+            queue.append(candidate)
+    return distances
+
+
 def analyze(path: Path) -> dict:
     replay = read(path)
     recovery: dict[tuple[int, int, int], dict] = {}
     worst_recovery: dict[tuple[int, int, int], dict] = {}
     cycle_ticks: list[dict] = []
     false_move_traces: list[dict] = []
+    contradictory_traffic_traces: list[dict] = []
     move_windows: dict[tuple[int, int, int], dict] = {}
     local_move_orbits: list[dict] = []
+    carrier_route_trips: list[dict] = []
+    carrier_regression_debt: dict[tuple[int, int, int], int] = {}
+    tripped_carrier_routes: set[tuple[int, int, int]] = set()
     tripped_move_episodes: set[tuple[int, int, int, tuple[int, int]]] = set()
+    move_fields: dict[tuple[int, tuple[int, int]],
+                      dict[tuple[int, int], int]] = {}
+    carrier_fields: dict[tuple[int, tuple[int, int]],
+                         dict[tuple[int, int], int]] = {}
+    carrier_motion: dict[tuple[int, int, int], dict] = {}
 
     for tick in replay.get("ticks", []):
         cycles = movement_cycle(tick.get("events", []))
@@ -105,12 +182,99 @@ def analyze(path: Path) -> dict:
                        for enemy in turn["observation"].get("enemies", [])]
             seen: set[tuple[int, int, int]] = set()
             seen_movers: set[tuple[int, int, int]] = set()
+            seen_carriers: set[tuple[int, int, int]] = set()
             for command in turn.get("commands", []):
                 body_key = (command["unitId"], command["lifeId"])
                 body = bodies.get(body_key)
                 reason = command.get("debugMessage") or ""
                 move_match = MOVE_GOAL.search(reason)
                 actor_key = (team, *body_key)
+                denied_match = AVOID_DENIED.search(reason)
+                right_of_way_match = TRAFFIC_RIGHT_OF_WAY.search(reason)
+                if denied_match is not None and right_of_way_match is not None \
+                        and denied_match.groups() == right_of_way_match.groups():
+                    contradictory_traffic_traces.append({
+                        "tick": tick["tick"],
+                        "teamId": team,
+                        "unitId": command["unitId"],
+                        "lifeId": command["lifeId"],
+                        "tile": [int(denied_match.group(1)),
+                                 int(denied_match.group(2))],
+                        "reason": reason,
+                    })
+                if body is not None and "return-to-reactor" in reason:
+                    seen_carriers.add(actor_key)
+                    carrier_problem = None
+                    position = point(body["position"])
+                    motion = carrier_motion.get(actor_key)
+                    if motion is None:
+                        motion = {
+                            "prior": None,
+                            "last": position,
+                            "reversals": 0,
+                        }
+                    elif position != motion["last"]:
+                        adjacent = chebyshev(position, motion["last"]) == 1
+                        reversal = adjacent \
+                            and motion["prior"] is not None \
+                            and position == motion["prior"]
+                        motion["reversals"] = motion["reversals"] + 1 \
+                            if reversal else 0
+                        motion["prior"] = motion["last"] if adjacent else None
+                        motion["last"] = position
+                    carrier_motion[actor_key] = motion
+                    if motion["reversals"] >= CARRIER_PAIR_REVERSAL_BAR:
+                        carrier_problem = (
+                            "return repeatedly reversed across one tile pair")
+                    operation = re.search(r":op-([^:]+)", reason)
+                    if command.get("actionId") == "rotate" \
+                            and operation is not None \
+                            and "F" not in operation.group(1):
+                        carrier_problem = "rotation prepared no movement"
+                    if command.get("actionId") in {
+                            "move-eight-way", "strafe-eight-way"}:
+                        argument = next((value for value in
+                                         command.get("arguments", [])
+                                         if value.get("kind")
+                                         == "projectile-heading"), None)
+                        heading = None if argument is None else HEADINGS.get(
+                            argument.get("value"))
+                        if heading is None:
+                            carrier_problem = "movement has no known heading"
+                        elif move_match is not None:
+                            goal = (int(move_match.group(1)),
+                                    int(move_match.group(2)))
+                            destination = (position[0] + heading[0],
+                                           position[1] + heading[1])
+                            key = team, goal
+                            field = carrier_fields.setdefault(
+                                key, static_distance_field(replay, team, goal))
+                            before = field.get(position)
+                            after = field.get(destination)
+                            if before is None or after is None:
+                                carrier_problem = (
+                                    "movement left the static return graph")
+                            else:
+                                debt = max(
+                                    0,
+                                    carrier_regression_debt.get(actor_key, 0)
+                                    + after - before)
+                                carrier_regression_debt[actor_key] = debt
+                                if debt >= CARRIER_ROUTE_REGRESSION_BAR:
+                                    carrier_problem = (
+                                        "commanded return accumulated "
+                                        f"{debt} tiles of backward progress")
+                    if carrier_problem is not None \
+                            and actor_key not in tripped_carrier_routes:
+                        carrier_route_trips.append({
+                            "tick": tick["tick"],
+                            "teamId": team,
+                            "unitId": command["unitId"],
+                            "lifeId": command["lifeId"],
+                            "problem": carrier_problem,
+                            "reason": reason,
+                        })
+                        tripped_carrier_routes.add(actor_key)
                 if body is not None and move_match is not None \
                         and ":at-target:" not in reason \
                         and ":at-contribution:" not in reason \
@@ -119,6 +283,11 @@ def analyze(path: Path) -> dict:
                     seen_movers.add(actor_key)
                     goal = (int(move_match.group(1)), int(move_match.group(2)))
                     position = point(body["position"])
+                    field_key = team, goal
+                    field = move_fields.setdefault(
+                        field_key, static_distance_field(replay, team, goal))
+                    distance = field.get(
+                        position, 100_000 + chebyshev(position, goal))
                     prior_move = move_windows.get(actor_key)
                     new_episode = prior_move is None \
                         or prior_move["goal"] != goal \
@@ -129,12 +298,11 @@ def analyze(path: Path) -> dict:
                             "lastTick": tick["tick"],
                             "seenPositions": {position},
                             "repeatPositions": {position},
-                            "bestDistance": chebyshev(position, goal),
+                            "bestDistance": distance,
                             "repeatTicks": 0,
                         }
                     else:
                         state = prior_move
-                        distance = chebyshev(position, goal)
                         novel = position not in state["seenPositions"]
                         closer = distance < state["bestDistance"]
                         state["seenPositions"].add(position)
@@ -222,6 +390,12 @@ def analyze(path: Path) -> dict:
             for key in list(move_windows):
                 if key[0] == team and key not in seen_movers:
                     move_windows.pop(key)
+            for key in list(carrier_regression_debt):
+                if key[0] == team and key not in seen_carriers:
+                    carrier_regression_debt.pop(key)
+            for key in list(carrier_motion):
+                if key[0] == team and key not in seen_carriers:
+                    carrier_motion.pop(key)
 
     trips = [state for state in worst_recovery.values()
              if state["uncontestedTicks"] >= RECOVERY_NO_PROGRESS_BAR]
@@ -237,10 +411,14 @@ def analyze(path: Path) -> dict:
             key=lambda value: (-value["uncontestedTicks"],
                                value["teamId"], value["unitId"])),
         "falseMoveTracesOnWait": false_move_traces,
+        "contradictoryTrafficTraces": contradictory_traffic_traces,
         "localMoveOrbitBar": LOCAL_MOVE_ORBIT_BAR,
         "localMoveOrbits": local_move_orbits,
+        "carrierRouteTrips": carrier_route_trips,
         "mechanicallyClean": not cycle_ticks and not trips
-            and not false_move_traces and not local_move_orbits,
+            and not false_move_traces and not contradictory_traffic_traces
+            and not local_move_orbits
+            and not carrier_route_trips,
     }
 
 
@@ -262,7 +440,10 @@ def main() -> int:
             f"{len(result['recoveryNoProgressTrips'])}; "
             f"false move traces "
             f"{len(result['falseMoveTracesOnWait'])}; "
+            f"contradictory traffic traces "
+            f"{len(result['contradictoryTrafficTraces'])}; "
             f"local move orbits {len(result['localMoveOrbits'])}; "
+            f"carrier route trips {len(result['carrierRouteTrips'])}; "
             f"{'CLEAN' if result['mechanicallyClean'] else 'FAIL'}"
         )
         for trip in result["recoveryNoProgressTrips"]:
@@ -281,12 +462,24 @@ def main() -> int:
                 "planned movement but submitted wait: "
                 f"{trip['reason']}"
             )
+        for trip in result["contradictoryTrafficTraces"][:8]:
+            print(
+                f"  t{trip['tick']} t{trip['teamId']} u{trip['unitId']} "
+                f"l{trip['lifeId']} both avoids and claims right-of-way "
+                f"at {tuple(trip['tile'])}: {trip['reason']}"
+            )
         for trip in result["localMoveOrbits"][:8]:
             print(
                 f"  t{trip['fromTick']}-t{trip['toTick']} "
                 f"t{trip['teamId']} u{trip['unitId']} l{trip['lifeId']} "
                 f"remained in {trip['distinctTiles']} tiles while moving "
                 f"toward {tuple(trip['goal'])}: {trip['reason']}"
+            )
+        for trip in result["carrierRouteTrips"][:8]:
+            print(
+                f"  t{trip['tick']} t{trip['teamId']} u{trip['unitId']} "
+                f"l{trip['lifeId']} carrier route: {trip['problem']}: "
+                f"{trip['reason']}"
             )
     return 1 if args.fail and not result["mechanicallyClean"] else 0
 

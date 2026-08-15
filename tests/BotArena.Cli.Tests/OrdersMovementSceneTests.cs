@@ -18,6 +18,70 @@ namespace BotArena.Cli.Tests;
 public sealed class OrdersMovementSceneTests
 {
     [Fact]
+    public void LockboxAmbushLineHasOneLegalSlotPerInterceptor()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        using JsonDocument playbook = JsonDocument.Parse(
+            lockbox.NormalizedPlaybook);
+        int interceptorCount = playbook.RootElement.GetProperty("roles")
+            .EnumerateArray()
+            .Single(role => role.GetProperty("id").GetString()
+                == "return-lane-interceptors")
+            .GetProperty("classes")
+            .GetArrayLength();
+        using JsonDocument mapPlan = JsonDocument.Parse(
+            lockbox.NormalizedLayout);
+        JsonElement plan = mapPlan.RootElement;
+        int[] rect = plan.GetProperty("zones")
+            .GetProperty("enemy-return-ambush")
+            .GetProperty("rect")
+            .EnumerateArray()
+            .Select(value => value.GetInt32())
+            .ToArray();
+        Position[] authored = (from y in Enumerable.Range(
+                                   rect[1], rect[3] - rect[1] + 1)
+                               from x in Enumerable.Range(
+                                   rect[0], rect[2] - rect[0] + 1)
+                               select new Position(x, y)).ToArray();
+        int[] endpointValue = plan.GetProperty("routes")
+            .GetProperty("north-centre-bypass")
+            .GetProperty("waypoints")
+            .EnumerateArray()
+            .Last()
+            .EnumerateArray()
+            .Select(value => value.GetInt32())
+            .ToArray();
+        var endpoint = new Position(endpointValue[0], endpointValue[1]);
+
+        ActorMapDefinition map = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline6).Map;
+        Position[] mirrored = authored.Select(tile => new Position(
+            map.Width - 1 - tile.X,
+            map.Height - 1 - tile.Y)).ToArray();
+        var mirroredEndpoint = new Position(
+            map.Width - 1 - endpoint.X,
+            map.Height - 1 - endpoint.Y);
+        HashSet<Position> protectedHome = map.Regions
+            .Where(region => region.RegionId is "home-west" or "home-east")
+            .SelectMany(region => region.Tiles)
+            .ToHashSet();
+
+        // Four simultaneous interceptors used to target a wall-split box with
+        // only three open squares. A later attempted repair accidentally put
+        // the zone inside the enemy's unenterable home region. Keep the four
+        // legal staging slots beyond, rather than on, the via endpoint.
+        Assert.Equal(interceptorCount, authored.Length);
+        Assert.All(authored.Concat(mirrored), tile =>
+        {
+            Assert.False(map.IsWall(tile));
+            Assert.DoesNotContain(tile, protectedHome);
+        });
+        Assert.DoesNotContain(endpoint, authored);
+        Assert.DoesNotContain(mirroredEndpoint, mirrored);
+    }
+
+    [Fact]
     public void LockboxCentreScreenPocketIsOpenOnBothTeamBindings()
     {
         string root = FindRepoRoot();
@@ -149,7 +213,8 @@ public sealed class OrdersMovementSceneTests
                         && candidate.Command.LifeId == 0);
                 string reason = command?.Command.DebugMessage ?? "";
                 bool staging = life is not null && reason.Contains(
-                    "stage-return-lane-ambush", StringComparison.Ordinal);
+                        "stage-return-lane-ambush", StringComparison.Ordinal)
+                    && !reason.Contains(":at-target:", StringComparison.Ordinal);
                 if (!staging)
                 {
                     stationary[unit] = 0;
@@ -175,11 +240,233 @@ public sealed class OrdersMovementSceneTests
         // mouth. EPIBT generated a valid north/west detour, but WWW ranked
         // ahead because that first step temporarily increased goal distance.
         // Proven allied-block debt must open the already-generated detour.
+        // Holding once the body reaches its authored ambush slot is success,
+        // not a stationary movement failure.
         Assert.True(sawDebtBackedDetour);
         Assert.All(watchedUnits, unit => Assert.True(
             worst[unit] < 18,
             $"Lockbox u{unit} remained stationary under its ambush move for "
             + $"{worst[unit]} ticks."));
+    }
+
+    [Fact]
+    public void UrgentCarrierKeepsCourseWhenLowerPriorityAllyMustYield()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            demolition.Composition,
+            lockbox.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline6);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, demolition), Participant(1, lockbox)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        int loadedReturnTicks = 0;
+        int trafficDetourTicks = 0;
+        int rightOfWayTicks = 0;
+        Position? priorDistinctPosition = null;
+        Position? lastDistinctPosition = null;
+        int consecutiveReversals = 0;
+        int worstConsecutiveReversals = 0;
+        int purposelessTurnTicks = 0;
+        while (!session.IsCompleted && session.Tick < 100)
+        {
+            GenericActorWorldSnapshot.LifeSnapshot? before =
+                session.ActiveLives.SingleOrDefault(candidate =>
+                    candidate.ActorId.TeamId == 0
+                    && candidate.ActorId.UnitId == 2);
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn west = Assert.Single(
+                step.MindTurns, candidate => candidate.TeamId == 0);
+            GenericMindCommandResolution? carrier = west.Commands
+                .SingleOrDefault(candidate => candidate.Command.UnitId == 2
+                    && (candidate.Command.DebugMessage ?? "").Contains(
+                        "return-to-reactor", StringComparison.Ordinal));
+            if (carrier is null)
+                continue;
+            if (before is null || before.ActorId.LifeId
+                != carrier.Command.LifeId)
+                continue;
+
+            loadedReturnTicks++;
+            string reason = carrier.Command.DebugMessage ?? "";
+            if (reason.Contains(":traffic-detour-", StringComparison.Ordinal))
+                trafficDetourTicks++;
+            if (reason.Contains(
+                    ":traffic-right-of-way-", StringComparison.Ordinal))
+            {
+                rightOfWayTicks++;
+            }
+            int operationAt = reason.IndexOf(":op-", StringComparison.Ordinal);
+            if (carrier.Command.ActionId == "rotate"
+                && operationAt >= 0
+                && !reason[(operationAt + 4)..].Split(':')[0]
+                    .Contains('F'))
+            {
+                purposelessTurnTicks++;
+            }
+            GenericActorWorldSnapshot.LifeSnapshot? after = step.PostState
+                .ActiveLives.SingleOrDefault(candidate =>
+                    candidate.ActorId == before.ActorId);
+            if (after is not null && after.Position != lastDistinctPosition)
+            {
+                bool reversal = priorDistinctPosition is Position prior
+                    && after.Position == prior;
+                consecutiveReversals = reversal
+                    ? consecutiveReversals + 1
+                    : 0;
+                worstConsecutiveReversals = Math.Max(
+                    worstConsecutiveReversals, consecutiveReversals);
+                priorDistinctPosition = lastDistinctPosition;
+                lastDistinctPosition = after.Position;
+            }
+        }
+
+        // Tapline-6 owner catch: allied occupants became a migrating series of
+        // route walls and walked a loaded body back toward its Well. This
+        // current scene exercises the generic replacement: the urgent mover
+        // is p0 because of authored urgency, keeps its course, and makes the
+        // lower-ranked ally yield. Nothing in traffic ordering names carrier.
+        Assert.True(loadedReturnTicks > 0);
+        Assert.True(rightOfWayTicks > 0);
+        Assert.Equal(0, trafficDetourTicks);
+        Assert.Equal(0, purposelessTurnTicks);
+        Assert.True(worstConsecutiveReversals <= 1,
+            $"The loaded route reversed between one tile pair "
+            + $"{worstConsecutiveReversals} consecutive times.");
+    }
+
+    [Fact]
+    public void AlliedTrafficWithoutAnAlternateRouteWaitsInsteadOfOrbiting()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            demolition.Composition,
+            lockbox.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline6);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, demolition), Participant(1, lockbox)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        Position? previous = null;
+        Position? current = null;
+        int pairReversals = 0;
+        int worstPairReversals = 0;
+        while (!session.IsCompleted && session.Tick < 140)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn east = Assert.Single(
+                step.MindTurns, candidate => candidate.TeamId == 1);
+            GenericMindCommandResolution? command = east.Commands
+                .SingleOrDefault(candidate => candidate.Command.UnitId == 5
+                    && (candidate.Command.DebugMessage ?? "").Contains(
+                        "stage-return-lane-ambush", StringComparison.Ordinal));
+            GenericActorWorldSnapshot.LifeSnapshot? life = step.PostState
+                .ActiveLives.SingleOrDefault(candidate =>
+                    candidate.ActorId.TeamId == 1
+                    && candidate.ActorId.UnitId == 5
+                    && candidate.ActorId.LifeId == 0);
+            if (command is null || life is null || life.Position == current)
+                continue;
+            bool reversal = previous is Position prior
+                && life.Position == prior;
+            pairReversals = reversal ? pairReversals + 1 : 0;
+            worstPairReversals = Math.Max(worstPairReversals, pairReversals);
+            previous = current;
+            current = life.Position;
+        }
+
+        // Same G1 after the carrier-right-of-way correction: u5 was in a
+        // one-tile corridor with an ally on the only forward exit. Treating
+        // that occupant as a static obstacle made the goal unreachable; all
+        // operation distances tied at infinity, so the action tie-break chose
+        // A-B movement over waiting forever. A traffic obstacle is a detour
+        // input only when a real alternate route exists.
+        Assert.True(worstPairReversals < 4,
+            $"The blocked body reversed across one tile "
+            + $"{worstPairReversals} consecutive times.");
+    }
+
+    [Fact]
+    public void LockboxViaIngressDoesNotBecomeAStationaryTurnLoop()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            demolition.Composition,
+            lockbox.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline6);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, demolition), Participant(1, lockbox)],
+            matchSeed: 9002,
+            recordChronology: false);
+
+        Position? stationaryTile = null;
+        int stationaryTurnTicks = 0;
+        int worstStationaryTurnTicks = 0;
+        while (!session.IsCompleted && session.Tick < 160)
+        {
+            GenericActorWorldSnapshot.LifeSnapshot? before =
+                session.ActiveLives.SingleOrDefault(candidate =>
+                    candidate.ActorId.TeamId == 1
+                    && candidate.ActorId.UnitId == 7);
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn east = Assert.Single(
+                step.MindTurns, candidate => candidate.TeamId == 1);
+            GenericMindCommandResolution? command = east.Commands
+                .SingleOrDefault(candidate => candidate.Command.UnitId == 7);
+            string reason = command?.Command.DebugMessage ?? "";
+            bool preparingSameMove = before is not null
+                && command?.Command.ActionId == "rotate"
+                && reason.Contains(
+                    "stage-return-lane-ambush", StringComparison.Ordinal);
+            if (preparingSameMove && stationaryTile == before!.Position)
+            {
+                stationaryTurnTicks++;
+            }
+            else if (preparingSameMove)
+            {
+                stationaryTile = before!.Position;
+                stationaryTurnTicks = 1;
+            }
+            else
+            {
+                stationaryTile = null;
+                stationaryTurnTicks = 0;
+            }
+            worstStationaryTurnTicks = Math.Max(
+                worstStationaryTurnTicks, stationaryTurnTicks);
+        }
+
+        // Tapline-6 review w-9002 exposed two faults in one visible scene.
+        // The sheet sent four interceptors through a via endpoint into a
+        // three-open-tile zone split by walls; that layout now provides four
+        // open staging tiles beyond (not on) the via endpoint. Separately,
+        // a facing-locked body must not keep selecting a new preparation turn
+        // while its queue clears.
+        // A three-action plan may spend at most its horizon preparing at one
+        // tile; after that it must move, wait honestly, or choose a new goal.
+        const int publishedOperationLength = 3;
+        Assert.True(
+            worstStationaryTurnTicks <= publishedOperationLength,
+            $"The body prepared turns at one tile for "
+            + $"{worstStationaryTurnTicks} consecutive ticks.");
     }
 
     [Fact]
@@ -239,8 +526,10 @@ public sealed class OrdersMovementSceneTests
     public void CrownedRailIngressDoesNotOrbitTheEastDeploymentRow()
     {
         string root = FindRepoRoot();
-        TacticalPlaybookCompilation relay = Compile(root, "relay-circuit-v1.json");
-        TacticalPlaybookCompilation rail = Compile(root, "crowned-rail-v1.json");
+        TacticalPlaybookCompilation relay = CompileHistoricalTapline4(
+            root, "relay-circuit-v1.json");
+        TacticalPlaybookCompilation rail = CompileHistoricalTapline4(
+            root, "crowned-rail-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             relay.Composition,
             rail.Composition,
@@ -1168,6 +1457,24 @@ public sealed class OrdersMovementSceneTests
             "tactical-playbook-v1-2026-08-03",
             "playbooks",
             fileName));
+
+    private static TacticalPlaybookCompilation CompileHistoricalTapline4(
+        string root,
+        string fileName)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string playbook = Path.Combine(package, "playbooks", fileName);
+        string mapPlan = Path.Combine(package, "map-plans", fileName);
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            File.ReadAllBytes(playbook),
+            File.ReadAllBytes(mapPlan),
+            playbook,
+            mapPlan);
+    }
 
     private static TacticalPlaybookCompilation CompileLockboxWithPocket(
         string root,

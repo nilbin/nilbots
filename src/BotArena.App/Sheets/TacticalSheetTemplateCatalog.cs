@@ -62,11 +62,11 @@ public sealed class TacticalSheetTemplateCatalog
                 Resource("BotArena.Sheets.idle-field-v1.sheet.json"),
                 Resource("BotArena.Sheets.idle-field-v1.map-plan.json")),
             Resolve(
-                ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
+                "tempered-standard-v2",
                 "Tempered Standard",
                 "A balanced eight-class line: guns contest centre, support keeps the line alive, and couriers convert loose Cores.",
-                Resource("BotArena.Sheets.tempered-standard-v1.sheet.json"),
-                Resource("BotArena.Sheets.tempered-standard-v1.map-plan.json")),
+                Resource("BotArena.Sheets.tempered-standard-v2.sheet.json"),
+                Resource("BotArena.Sheets.tempered-standard-v2.map-plan.json")),
             Resolve(
                 "relay-circuit-v1",
                 "Relay Circuit",

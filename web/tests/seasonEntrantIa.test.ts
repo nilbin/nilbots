@@ -130,7 +130,7 @@ test('primary and practice actions use the established forge controls', () => {
 
 test('the controlled browser review opens the current Orders v2 Tapline workshop', () => {
   assert.match(siteReview, /starter-tapline-v2\.json/);
-  assert.match(siteReview, /map-plans\/starter-tapline-v2\.json/);
+  assert.match(siteReview, /map-plans\/tapline-6\/starter-tapline-v2\.json/);
   assert.match(siteReview, /\/api\/sheets\/catalog/);
   assert.match(siteShots, /\['sheet-workshop', '\/entrants\/sheets\/new'\]/);
 });

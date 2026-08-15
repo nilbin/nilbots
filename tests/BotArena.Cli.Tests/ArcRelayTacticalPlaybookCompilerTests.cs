@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using BotArena.Engine;
 
 namespace BotArena.Cli.Tests;
 
@@ -9,13 +10,14 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     private static readonly string[] CurrentSheets =
     [
         "starter-tapline-v2",
-        "tempered-standard-v1",
+        "tempered-standard-v2",
         "relay-circuit-v1",
         "crowned-rail-v1",
         "lockbox-v1",
         "demolition-march-v1",
         "rising-standard-v1",
         "wavebreak-v1",
+        "idle-field-v1",
     ];
 
     [Fact]
@@ -23,6 +25,12 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     {
         foreach (string name in CurrentSheets)
         {
+            using JsonDocument source = JsonDocument.Parse(
+                File.ReadAllBytes(Playbook(name)));
+            Assert.Equal(
+                $"../map-plans/tapline-6/{name}.json",
+                source.RootElement.GetProperty("mapPlan").GetString());
+
             TacticalPlaybookCompilation compilation =
                 ArcRelayTacticalPlaybookCompiler.Compile(Playbook(name));
 
@@ -32,6 +40,11 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 BitConverter.ToInt32(compilation.LinkedData));
             Assert.InRange(compilation.LinkedData.Length, 1, 65_535);
             Assert.Equal(8, compilation.Composition.Length);
+            using JsonDocument layout = JsonDocument.Parse(
+                compilation.NormalizedLayout);
+            Assert.Equal(
+                ArcRelayLoopProfile.Current.MapId,
+                layout.RootElement.GetProperty("mapId").GetString());
             using JsonDocument normalized = JsonDocument.Parse(
                 compilation.NormalizedPlaybook);
             Assert.Equal(
@@ -571,11 +584,17 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     private static JsonObject Source(string name) => JsonNode.Parse(
         File.ReadAllBytes(Playbook(name)))!.AsObject();
 
-    private static JsonObject MapPlan(string name) => JsonNode.Parse(
-        File.ReadAllBytes(Path.Combine(
+    private static JsonObject MapPlan(string name)
+    {
+        string directory = Path.Combine(
             Root(), "arena-bots", "arc-relay",
-            "tactical-playbook-v1-2026-08-03", "map-plans",
-            $"{name}.json")))!.AsObject();
+            "tactical-playbook-v1-2026-08-03", "map-plans");
+        string current = Path.Combine(directory, "tapline-6", $"{name}.json");
+        string path = File.Exists(current)
+            ? current
+            : Path.Combine(directory, $"{name}.json");
+        return JsonNode.Parse(File.ReadAllBytes(path))!.AsObject();
+    }
 
     private static string Playbook(string name) => Path.Combine(
         Root(), "arena-bots", "arc-relay",

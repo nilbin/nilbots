@@ -260,6 +260,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 PrefersHold: true,
                 CanStage: false,
                 LeaderUnitId: null,
+                RouteClass: SquadRouteClass.Ordinary,
                 trace);
 
             if (arcTossCatchers.TryGetValue(
@@ -295,6 +296,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     PrefersHold: false,
                     CanStage: false,
                     LeaderUnitId: null,
+                    RouteClass: SquadRouteClass.Ordinary,
                     "projectile-evasion"));
                 continue;
             }
@@ -331,6 +333,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         CanStage: IsSingleServiceMoveTarget(
                             move, proposal.Target.Key),
                         LeaderUnitId: leader,
+                        RouteClass: carried.ContainsKey(body.ActorId)
+                            && move.Kind == "to"
+                            && string.Equals(
+                                proposal.Target.Key,
+                                "reactor:own",
+                                StringComparison.Ordinal)
+                                ? SquadRouteClass.LoadedReturn
+                                : SquadRouteClass.Ordinary,
                         $"move:{proposal.Target.Key}"));
                     break;
                 }
@@ -372,6 +382,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                 PrefersHold: false,
                                 CanStage: false,
                                 LeaderUnitId: null,
+                                RouteClass: SquadRouteClass.Ordinary,
                                 $"kite:{targetKey}"));
                             break;
                         }
@@ -419,6 +430,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         PrefersHold: false,
                         CanStage: true,
                         LeaderUnitId: null,
+                        RouteClass: SquadRouteClass.Ordinary,
                         $"fight-close:{targetKey}"));
                     break;
                 }

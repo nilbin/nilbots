@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "rising-standard-v1",
-  "mapPlan": "../map-plans/rising-standard-v1.json",
+  "mapPlan": "../map-plans/tapline-6/rising-standard-v1.json",
   "roles": [
     {
       "id": "first-contact",

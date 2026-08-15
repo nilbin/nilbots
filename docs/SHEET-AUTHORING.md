@@ -49,7 +49,7 @@ The Orders root has exactly seven keys:
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "starter-tapline-v2",
-  "mapPlan": "../map-plans/starter-tapline-v2.json",
+  "mapPlan": "../map-plans/tapline-6/starter-tapline-v2.json",
   "roles": [],
   "sharedOrders": {},
   "capacities": {},
@@ -477,7 +477,11 @@ the Orders document.
 
 The current hosted map is Tapline: `arc-relay-tapline-02`, 31×27. Runtime
 binding validates bounds and traversable terrain against the engine-generated
-map. Geometry is never projected between maps.
+map. Route waypoints cannot occupy a reserved spawn or an opponent-only home
+tile. A movement zone must provide, in both team bindings, a corner-strict
+connected set of legal staging tiles at least as large as the bodies its order
+tree can send there; authored capacity is how a smaller zone limits entrants.
+Geometry is never projected between maps.
 
 The workshop draws the exact map export from `GET /api/sheets/catalog`,
 including walls, Wells, heal tiles, delivery shoulders, reactor pads, and

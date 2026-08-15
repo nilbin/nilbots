@@ -1,0 +1,62 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "tempered-standard-v2",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {},
+  "routes": {
+    "north-tempered-ingress": {
+      "waypoints": [
+        [
+          3,
+          3
+        ],
+        [
+          8,
+          3
+        ],
+        [
+          12,
+          11
+        ]
+      ]
+    },
+    "tempered-firing-loop": {
+      "waypoints": [
+        [
+          12,
+          11
+        ],
+        [
+          15,
+          11
+        ],
+        [
+          18,
+          11
+        ],
+        [
+          18,
+          12
+        ],
+        [
+          15,
+          12
+        ],
+        [
+          12,
+          12
+        ],
+        [
+          12,
+          11
+        ]
+      ]
+    }
+  },
+  "anchors": {
+    "tempered-cover": [
+      13,
+      12
+    ]
+  }
+}

@@ -666,13 +666,13 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
-    public void PersistentRoutineDenialEventuallyOutranksFreshUrgentTraffic()
+    public void PersistentRoutineDenialNeverOverridesAuthoredUrgency()
     {
         var governor = new TacticalTrafficGovernor();
         ActorIdentity routine = new(0, 7, 0);
         ActorIdentity urgent = new(0, 0, 0);
 
-        for (int tick = 0; tick <= TacticalTrafficGovernor.DebtPerUrgencyTier * 2;
+        for (int tick = 0; tick <= TacticalTrafficGovernor.DebtBandSize * 2;
              tick++)
         {
             governor.Observe(tick,
@@ -685,39 +685,39 @@ public sealed class TacticalMovementGovernorTests
             ]);
         }
 
-        Assert.True(governor.Priority(routine.UnitId).Rank
-            < governor.Priority(urgent.UnitId).Rank);
+        Assert.True(governor.Priority(urgent.UnitId).Rank
+            < governor.Priority(routine.UnitId).Rank);
     }
 
     [Fact]
-    public void RoutineGetsTheNextOpeningAfterUrgentTrafficMakesProgress()
+    public void OlderDeniedPeerGetsNextOpeningWithinOneUrgencyTier()
     {
         var governor = new TacticalTrafficGovernor();
-        ActorIdentity routine = new(0, 7, 0);
-        ActorIdentity urgent = new(0, 0, 0);
+        ActorIdentity older = new(0, 7, 0);
+        ActorIdentity recent = new(0, 0, 0);
 
-        for (int tick = 0; tick <= TacticalTrafficGovernor.DebtPerUrgencyTier * 2;
+        for (int tick = 0; tick <= TacticalTrafficGovernor.DebtBandSize * 2;
              tick++)
         {
             governor.Observe(tick,
             [
-                Sample(routine, 5, blocked: true,
-                    urgency: TacticalMovementUrgency.Routine),
-                Sample(urgent, 5, blocked: true,
-                    urgency: TacticalMovementUrgency.Urgent),
+                Sample(older, 5, blocked: true,
+                    urgency: TacticalMovementUrgency.Normal),
+                Sample(recent, 5, blocked: true,
+                    urgency: TacticalMovementUrgency.Normal),
             ]);
         }
 
-        governor.Observe(TacticalTrafficGovernor.DebtPerUrgencyTier * 2 + 1,
+        governor.Observe(TacticalTrafficGovernor.DebtBandSize * 2 + 1,
         [
-            Sample(routine, 5, blocked: true,
-                urgency: TacticalMovementUrgency.Routine),
-            Sample(urgent, 4, blocked: false,
-                urgency: TacticalMovementUrgency.Urgent),
+            Sample(older, 5, blocked: true,
+                urgency: TacticalMovementUrgency.Normal),
+            Sample(recent, 4, blocked: false,
+                urgency: TacticalMovementUrgency.Normal),
         ]);
 
-        Assert.True(governor.Priority(routine.UnitId).Rank
-            < governor.Priority(urgent.UnitId).Rank);
+        Assert.True(governor.Priority(older.UnitId).Rank
+            < governor.Priority(recent.UnitId).Rank);
     }
 
     [Fact]
@@ -776,6 +776,55 @@ public sealed class TacticalMovementGovernorTests
             3 + TacticalOscillationGovernor.YieldTicks,
             a,
             TacticalMovementAuthority.Tactical).Admitted);
+    }
+
+    [Fact]
+    public void MovementCadenceWaitDoesNotErasePairReversalEvidence()
+    {
+        var governor = new TacticalOscillationGovernor();
+        ActorIdentity actor = new(0, 2, 0);
+        var a = new Position(10, 10);
+        var b = new Position(11, 10);
+
+        governor.Observe(0, [Motion(actor, a)]);
+        governor.Observe(1, [Motion(actor, b, a)]);
+        governor.Observe(2, [Motion(actor, b)]);
+        governor.Observe(3, [Motion(actor, a, b)]);
+        governor.Observe(4, [Motion(actor, a)]);
+        governor.Observe(5, [Motion(actor, b, a)]);
+
+        TacticalOscillationGovernor.Admission returnToA = governor.Admit(
+            actor, 5, a, TacticalMovementAuthority.Tactical);
+        Assert.False(returnToA.Admitted);
+        Assert.Contains("oscillation-yield", returnToA.Reason);
+    }
+
+    [Fact]
+    public void LongIdleExpiresPairReversalEvidence()
+    {
+        var governor = new TacticalOscillationGovernor();
+        ActorIdentity actor = new(0, 2, 0);
+        var a = new Position(10, 10);
+        var b = new Position(11, 10);
+
+        governor.Observe(0, [Motion(actor, a)]);
+        governor.Observe(1, [Motion(actor, b, a)]);
+        for (int tick = 2;
+             tick <= TacticalOscillationGovernor.ReversalMemoryTicks + 2;
+             tick++)
+        {
+            governor.Observe(tick, [Motion(actor, b)]);
+        }
+        governor.Observe(
+            TacticalOscillationGovernor.ReversalMemoryTicks + 3,
+            [Motion(actor, a, b)]);
+
+        TacticalOscillationGovernor.Admission returnToB = governor.Admit(
+            actor,
+            TacticalOscillationGovernor.ReversalMemoryTicks + 3,
+            b,
+            TacticalMovementAuthority.Tactical);
+        Assert.True(returnToB.Admitted);
     }
 
     [Fact]

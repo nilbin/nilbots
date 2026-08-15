@@ -365,21 +365,22 @@ test('the player validator accepts every tracked Orders v2 Tapline sheet', async
   const root = new URL('../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/', import.meta.url);
   for (const name of [
     'starter-tapline-v2',
-    'tempered-standard-v1',
+    'tempered-standard-v2',
     'relay-circuit-v1',
     'crowned-rail-v1',
     'lockbox-v1',
     'demolition-march-v1',
     'rising-standard-v1',
     'wavebreak-v1',
+    'idle-field-v1',
   ]) {
     const playbookJson = readFileSync(new URL(`playbooks/${name}.json`, root), 'utf8');
     const source = JSON.parse(playbookJson) as OrdersDocument;
-    const mapPlanJson = readFileSync(new URL(`map-plans/${name}.json`, root), 'utf8');
+    const mapPlanJson = readFileSync(new URL(`map-plans/tapline-6/${name}.json`, root), 'utf8');
     const ids = [...new Set(compositionOf(source))];
     const taplineCatalog: TacticalSheetCatalog = {
       ...catalog,
-      map: { ...catalog.map, id: 'arc-relay-tapline-01', width: 31, height: 27, tileRows: Array.from({ length: 27 }, () => '.'.repeat(31)) },
+      map: { ...catalog.map, id: 'arc-relay-tapline-02', width: 31, height: 27, tileRows: Array.from({ length: 27 }, () => '.'.repeat(31)) },
       classes: ids.map(testClass),
     };
     const draft = parseDraft(name, null, null, playbookJson, mapPlanJson);

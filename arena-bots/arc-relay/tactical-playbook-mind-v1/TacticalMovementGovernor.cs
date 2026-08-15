@@ -78,7 +78,6 @@ public sealed record TacticalMovementPriority(
     int UnitId,
     int Rank,
     TacticalMovementUrgency AuthoredUrgency,
-    TacticalMovementUrgency EffectiveUrgency,
     int AlliedBlockDebt,
     int PassageLeaseTicksRemaining,
     int ActivatedTick,
@@ -90,10 +89,7 @@ public sealed record TacticalMovementPriority(
         + $"+b{AlliedBlockDebt}"
         + (PassageLeaseTicksRemaining > 0
             ? $"+passage{PassageLeaseTicksRemaining}"
-            : "")
-        + (EffectiveUrgency == AuthoredUrgency
-            ? ""
-            : $"=>{EffectiveUrgency.ToString().ToLowerInvariant()}");
+            : "");
 }
 
 /// <summary>
@@ -754,18 +750,19 @@ public sealed class RecoveryEpisodeGovernor
 /// chooses the intent, destination and authored urgency. This governor
 /// observes only whether the body makes strict map progress toward that stable
 /// destination. A visible ally on the intended step is traffic denial;
-/// repeated denial accrues debt, which eventually lets even routine traffic
-/// pass a stream of fresh urgent traffic. It never invents participation,
-/// destinations, or tactics.
+/// repeated denial accrues debt and orders peers within the same authored
+/// urgency. Debt never crosses a tier: urgency is the sheet author's tactical
+/// contract, not a hint the executor may silently promote past. It never
+/// invents participation, destinations, or tactics.
 /// </summary>
 public sealed class TacticalTrafficGovernor
 {
     /// <summary>
-    /// Twelve denied ticks promote effective urgency by one tier. At the
-    /// urgent ceiling the oldest denial wins, so a routine mover denied for 24
-    /// ticks competes as urgent rather than remaining permanently subordinate.
+    /// Debt is grouped into stable bands within one authored urgency tier.
+    /// This lets a substantially older peer win before a short passage lease,
+    /// without ever overriding a higher player-authored urgency.
     /// </summary>
-    public const int DebtPerUrgencyTier = 12;
+    public const int DebtBandSize = 12;
 
     /// <summary>Strict progress pays traffic debt down quickly without making
     /// one incidental step erase a long wait.</summary>
@@ -889,16 +886,16 @@ public sealed class TacticalTrafficGovernor
     }
 
     /// <summary>
-    /// Resolve the complete precedence list. Strength is authored tier plus
-    /// allied-block debt; an earlier denial, then order activation, then unit
-    /// id breaks exact ties. Every body receives a distinct rank so a contested
-    /// tile always has one deterministic winner.
+    /// Resolve the complete precedence list. Authored urgency is absolute;
+    /// allied-block debt, an earlier denial, order activation and unit id break
+    /// ties inside that tier. Every body receives a distinct rank so a
+    /// contested tile always has one deterministic winner.
     /// </summary>
     public TacticalMovementPriority Priority(int unitId)
     {
         State state = _states[unitId];
         State[] ordered = _states.Values
-            .OrderByDescending(EffectiveUrgency)
+            .OrderByDescending(value => value.Urgency)
             // A full debt tier is starvation evidence and remains stronger
             // than a short passage lease. Within one tier, however, the body
             // that just broke through keeps the opening instead of being
@@ -916,7 +913,6 @@ public sealed class TacticalTrafficGovernor
             unitId,
             rank,
             state.Urgency,
-            (TacticalMovementUrgency)EffectiveUrgency(state),
             state.AlliedBlockDebt,
             PassageLeaseRemaining(state),
             state.ActivatedTick,
@@ -927,12 +923,8 @@ public sealed class TacticalTrafficGovernor
     public Position? AlliedBlockTile(int unitId) =>
         _states.GetValueOrDefault(unitId)?.AlliedBlockTile;
 
-    private static int EffectiveUrgency(State state) => Math.Min(
-        (int)TacticalMovementUrgency.Urgent,
-        (int)state.Urgency + state.AlliedBlockDebt / DebtPerUrgencyTier);
-
     private static int DebtTier(State state) =>
-        state.AlliedBlockDebt / DebtPerUrgencyTier;
+        state.AlliedBlockDebt / DebtBandSize;
 
     private static bool PassageLeaseActive(State state) =>
         PassageLeaseRemaining(state) > 0;
@@ -948,7 +940,7 @@ public sealed class TacticalTrafficGovernor
             string[] active = _states.Values
                 .Where(state => state.AlliedBlockDebt > 0
                     || PassageLeaseActive(state))
-                .OrderByDescending(EffectiveUrgency)
+                .OrderByDescending(state => state.Urgency)
                 .ThenByDescending(DebtTier)
                 .ThenByDescending(PassageLeaseActive)
                 .ThenByDescending(state => state.AlliedBlockDebt)
@@ -1026,6 +1018,7 @@ public sealed class TacticalOscillationGovernor
 {
     public const int ReversalsBeforeYield = 2;
     public const int YieldTicks = 3;
+    public const int ReversalMemoryTicks = 8;
 
     private readonly Dictionary<int, State> _states = [];
     private readonly List<string> _denials = [];
@@ -1052,7 +1045,10 @@ public sealed class TacticalOscillationGovernor
                 && sample.PreviousPosition is Position from
                 && from != sample.Position)
             {
-                bool reversal = state.LastFrom == sample.Position
+                bool recentMovement = state.LastMovementTick >= 0
+                    && tick - state.LastMovementTick <= ReversalMemoryTicks;
+                bool reversal = recentMovement
+                    && state.LastFrom == sample.Position
                     && state.LastTo == from;
                 int reversals = reversal ? state.Reversals + 1 : 0;
                 Position? hardBlockedReturn = state.HardBlockedReturn;
@@ -1067,14 +1063,25 @@ public sealed class TacticalOscillationGovernor
                 {
                     LastFrom = from,
                     LastTo = sample.Position,
+                    LastMovementTick = tick,
                     Reversals = reversals,
                     HardBlockedReturn = hardBlockedReturn,
                     HardBlockedUntil = hardBlockedUntil,
                 };
             }
-            else
+            else if (state.LastMovementTick >= 0
+                && tick - state.LastMovementTick > ReversalMemoryTicks)
             {
-                state = state with { Reversals = 0 };
+                // Cadence holds and preparation turns are not movement and
+                // therefore cannot prove that an A-B circuit ended. A long
+                // idle period does make the old direction irrelevant.
+                state = state with
+                {
+                    LastFrom = null,
+                    LastTo = null,
+                    LastMovementTick = -1,
+                    Reversals = 0,
+                };
             }
 
             if (tick >= state.SoftBlockedUntil)
@@ -1216,6 +1223,7 @@ public sealed class TacticalOscillationGovernor
         ActorIdentity Actor,
         Position? LastFrom,
         Position? LastTo,
+        int LastMovementTick,
         int Reversals,
         Position? SoftBlockedReturn,
         int SoftBlockedUntil,
@@ -1223,6 +1231,6 @@ public sealed class TacticalOscillationGovernor
         int HardBlockedUntil)
     {
         internal static State For(ActorIdentity actor) =>
-            new(actor, null, null, 0, null, 0, null, 0);
+            new(actor, null, null, -1, 0, null, 0, null, 0);
     }
 }

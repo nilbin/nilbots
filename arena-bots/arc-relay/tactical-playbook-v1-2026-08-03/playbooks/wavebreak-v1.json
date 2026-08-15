@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "wavebreak-v1",
-  "mapPlan": "../map-plans/wavebreak-v1.json",
+  "mapPlan": "../map-plans/tapline-6/wavebreak-v1.json",
   "roles": [
     {
       "id": "exchange-guard",

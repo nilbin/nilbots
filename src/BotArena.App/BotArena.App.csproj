@@ -48,10 +48,10 @@
       LogicalName="BotArena.Sheets.starter-v2.sheet.json" />
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/starter-tapline-v2.json"
       LogicalName="BotArena.Sheets.starter-v2.map-plan.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/tempered-standard-v1.json"
-      LogicalName="BotArena.Sheets.tempered-standard-v1.sheet.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/tempered-standard-v1.json"
-      LogicalName="BotArena.Sheets.tempered-standard-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/tempered-standard-v2.json"
+      LogicalName="BotArena.Sheets.tempered-standard-v2.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/tempered-standard-v2.json"
+      LogicalName="BotArena.Sheets.tempered-standard-v2.map-plan.json" />
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/relay-circuit-v1.json"
       LogicalName="BotArena.Sheets.relay-circuit-v1.sheet.json" />
     <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/relay-circuit-v1.json"

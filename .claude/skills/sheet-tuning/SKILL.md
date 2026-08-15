@@ -170,6 +170,46 @@ In the viewer, select the body under investigation. Its follow camera, order
 and action chip, cyan destination lens, next step, and crossed-blades engaged
 mark should agree with the trace.
 
+## Decide whether the sheet or movement owns a fault
+
+Classify the scene before editing either side of the seam:
+
+1. Read the selected order path, semantic destination, and authored urgency
+   from `debugMessage`. A wrong order, goal, condition, capacity, urgency, or
+   posture is a sheet defect.
+2. Read the `epibt-*`, `goal-*`, `next-*`, traffic, and avoidance clauses. A
+   correct authored intent that produces no plausible physical action, repeats
+   a local circuit, or contradicts its own right-of-way is a planner defect.
+3. Read the authoritative movement event and tile state. A plausible command
+   rejected by terrain, an enemy home region, a construct, a projectile, or an
+   occupied tile is engine/world evidence; decide whether the sheet chose an
+   impossible place or the planner failed to react.
+
+Authored urgency is absolute. Queue debt, passage lease, blocked age,
+activation time, and unit id may order peers only inside one urgency tier. Do
+not add carrier-, class-, role-, objective-, map-, or coordinate-specific
+traffic precedence. Carrying may affect route safety, but never who wins a
+contested allied tile. A trace that both claims
+`traffic-right-of-way-X-Y` and retains `avoid-denied-X-Y` is contradictory and
+must fail the motion gate.
+
+Treat scene tests as evidence, not snapshots to silence. Preserve the sheet and
+fix the executor when its selected intent is sound. Update the sheet and its
+scene only after the trace proves an authored fault, such as fewer connected
+legal zone tiles than simultaneous bodies, a via endpoint inside or behind an
+unenterable region, or the wrong urgency. Keep the scene test and rewrite its
+comment to name the caught behavior and ownership decision; do not merely
+relax its threshold. Then run the exact scene, the full movement-scene gate,
+`scripts/arc-relay-motion-sanity.py`, and finally the standard six-cell exhibit.
+
+Every product sheet must resolve its own `mapPlan` directly into the current
+map's native directory. Do not rely on the App embedding a newer layout than
+the path used by the CLI or browser fixture, and never project old geometry.
+For every movement zone, count its largest corner-strict connected set of
+legal, non-spawn-protected tiles against the bodies its order tree can send.
+Audit both team bindings; a rectangle that merely contains some floor is not
+a viable staging area.
+
 ## Curated cards
 
 Write cards before building; do not build, inspect outcomes, and then choose

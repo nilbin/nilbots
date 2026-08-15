@@ -13,7 +13,7 @@
       "rect": [12, 11, 18, 15]
     },
     "enemy-return-ambush": {
-      "rect": [18, 16, 22, 17]
+      "rect": [24, 17, 27, 17]
     }
   },
   "routes": {

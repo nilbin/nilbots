@@ -1,0 +1,353 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "tempered-standard-v2",
+  "mapPlan": "../map-plans/tapline-6/tempered-standard-v2.json",
+  "roles": [
+    {
+      "id": "tempered-gun",
+      "classes": [
+        "longshot",
+        "mortar"
+      ],
+      "upgradePath": [
+        "damage",
+        "damage",
+        "vitality",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "fire-tempered-rail",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "rail-line",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "id": "drop-tempered-star",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "falling-star",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "cycle-tempered-firing-line",
+          "move": {
+            "patrol": "tempered-firing-loop",
+            "via": "north-tempered-ingress",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tempered-support",
+      "classes": [
+        "patchbay",
+        "sunder"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality",
+        "damage",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "restore-ten-hull",
+          "when": "signature-ready",
+          "use": {
+            "skill": "repair-beam",
+            "target": "weakest-ally"
+          }
+        },
+        {
+          "id": "paint-ten-more",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "target-paint",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "support-tempered-line",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "line"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tempered-screen",
+      "classes": [
+        "mason",
+        "palisade"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "raise-thirty-hull-cover",
+          "when": "signature-ready",
+          "use": {
+            "skill": "hardlight-block",
+            "target": "nearest-ally",
+            "at": "tempered-cover"
+          }
+        },
+        {
+          "id": "screen-tempered-line",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "prism-wall",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "hold-tempered-centre",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "tempered-courier",
+      "classes": [
+        "relay",
+        "kestrel"
+      ],
+      "upgradePath": [
+        "vitality",
+        "reach",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "pass-tempered-core",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "dash-tempered-gap",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "vector-dash",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "id": "work-tempered-home",
+          "move": {
+            "to": {
+              "well": "own"
+            },
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "marked",
+          "weakest",
+          "carrier",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    }
+  }
+}

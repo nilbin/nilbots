@@ -39,7 +39,7 @@ The orders document has exactly seven root keys:
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "starter-tapline-v2",
-  "mapPlan": "../map-plans/starter-tapline-v2.json",
+  "mapPlan": "../map-plans/tapline-6/starter-tapline-v2.json",
   "roles": [],
   "sharedOrders": {},
   "capacities": {},
@@ -428,9 +428,13 @@ Rects are inclusive `[x1,y1,x2,y2]` and normalized. Routes contain 2–32
 waypoints. The pure shared compiler checks structure and references. Runtime
 binding checks that coordinates are in bounds and on traversable terrain against
 the resolved engine-generated map; the App and CLI surface that binding failure
-before a trial starts. The compiler rejects duplicate geometry under different
-ids and rejects map-plan objects with no sheet consumer. There are no aliases,
-bindings, corridor widths, formation anchors, fingerprints, or authored hashes.
+before a trial starts. Route waypoints cannot occupy a reserved spawn or an
+opponent-only home tile. A movement zone needs a corner-strict connected legal
+component, in both bindings, large enough for the bodies its order tree may send
+there; an authored capacity can deliberately lower that count. The compiler
+rejects duplicate geometry under different ids and rejects map-plan objects with
+no sheet consumer. There are no aliases, bindings, corridor widths, formation
+anchors, fingerprints, or authored hashes.
 
 The editor plots these objects on the actual `contract.map` export for
 `mapId`. Text coordinates are an import/export detail, never the primary UI.

@@ -15,7 +15,19 @@ internal sealed record SquadMovementIntent(
     bool PrefersHold,
     bool CanStage,
     int? LeaderUnitId,
+    SquadRouteClass RouteClass,
     string Trace);
+
+/// <summary>
+/// Physical route semantics supplied by the executor. This never grants
+/// traffic precedence; authored urgency plus bounded queue aging alone decide
+/// who owns a contested tile.
+/// </summary>
+internal enum SquadRouteClass
+{
+    Ordinary,
+    LoadedReturn,
+}
 
 /// <summary>
 /// Enhanced Priority Inheritance with Backtracking (EPIBT) for Arc Relay's
@@ -77,10 +89,14 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             intent => intent.Body.UnitId);
         Dictionary<int, Position> assignments = AssignContributions(
             contract, intents);
-        Dictionary<int, Position?> trafficObstacles = intents.ToDictionary(
+        Dictionary<int, TrafficResolution> traffic = intents.ToDictionary(
             intent => intent.Body.UnitId,
-            intent => ResolveTrafficObstacle(
-                mind, intent, assignments[intent.Body.UnitId]));
+            intent => ResolveTraffic(
+                contract,
+                mind,
+                intent,
+                assignments[intent.Body.UnitId],
+                byUnit));
         Dictionary<int, Position[]> courses = intents.ToDictionary(
             intent => intent.Body.UnitId,
             intent => ResolveCourse(
@@ -88,7 +104,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 mind,
                 intent,
                 assignments[intent.Body.UnitId],
-                trafficObstacles[intent.Body.UnitId]));
+                traffic[intent.Body.UnitId].Obstacle));
 
         var inherited = new Dictionary<int, Operation>();
         var candidates = new Dictionary<int, Operation[]>();
@@ -100,7 +116,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 claims,
                 intent,
                 assignments[intent.Body.UnitId],
-                trafficObstacles[intent.Body.UnitId]);
+                traffic[intent.Body.UnitId].Obstacle);
             // An EPIBT revisit changes only the collision set and inherited
             // priority. This body's map, legality, authored goal, assignment
             // and course are all frozen for the tick, so regenerating the
@@ -113,7 +129,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 intent,
                 assignments[intent.Body.UnitId],
                 courses[intent.Body.UnitId],
-                trafficObstacles[intent.Body.UnitId]);
+                traffic[intent.Body.UnitId].Obstacle,
+                traffic[intent.Body.UnitId].RightOfWay);
         }
         var selected = inherited.ToDictionary(pair => pair.Key, pair => pair.Value);
         var visits = intents.ToDictionary(intent => intent.Body.UnitId, _ => 0);
@@ -200,7 +217,10 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 + (tile is Position next
                     ? $":next-{next.X}-{next.Y}"
                     : $":{intent.Trace}");
-            if (ActiveDeniedStep(intent.Body) is DeniedStep denied)
+            TrafficResolution trafficResolution =
+                traffic[intent.Body.UnitId];
+            if (ActiveDeniedStep(intent.Body) is DeniedStep denied
+                && denied.Tile != trafficResolution.RightOfWay)
             {
                 reason += $":avoid-denied-{denied.Tile.X}-{denied.Tile.Y}"
                     + $"@{denied.UntilTick}";
@@ -210,8 +230,12 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             {
                 reason += $":planner-{avoidance.Reason}";
             }
-            if (trafficObstacles[intent.Body.UnitId] is Position traffic)
-                reason += $":traffic-detour-{traffic.X}-{traffic.Y}";
+            if (trafficResolution.Obstacle is Position obstacle)
+                reason += $":traffic-detour-{obstacle.X}-{obstacle.Y}";
+            else if (trafficResolution.NoDetour is Position blocked)
+                reason += $":traffic-wait-no-detour-{blocked.X}-{blocked.Y}";
+            else if (trafficResolution.RightOfWay is Position yielded)
+                reason += $":traffic-right-of-way-{yielded.X}-{yielded.Y}";
             if (jointSafetyFallback)
                 reason += ":joint-plan-safety-fallback";
             // A facing-locked resting body may need to rotate before its
@@ -234,7 +258,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 assignments[intent.Body.UnitId],
                 operation,
                 courses[intent.Body.UnitId],
-                trafficObstacles[intent.Body.UnitId]);
+                trafficResolution.Obstacle);
         }
         return;
 
@@ -402,14 +426,15 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         SquadMovementIntent intent,
         Position assignment,
         Position[] course,
-        Position? trafficObstacle)
+        Position? trafficObstacle,
+        Position? trafficRightOfWay)
     {
         if (intent.Pinned)
             return [WaitOperation(intent.Body)];
 
         HashSet<Position> durable = DurableObstacles(
             contract, mind, intent.Body, claims);
-        if (IsCarrierReturn(intent))
+        if (IsLoadedReturnRoute(intent))
             durable.UnionWith(CarrierReturnSpawnTiles(
                 contract.LifecycleAssignments,
                 contract.Map.SpawnAnchors,
@@ -431,6 +456,16 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         // This is physical collision memory only: it does not change the
         // authored goal, assignment, route commitment, or route direction.
         DeniedStep? activeDenied = ActiveDeniedStep(intent.Body);
+        if (activeDenied?.Tile == trafficRightOfWay)
+        {
+            // An engine rejection caused by a visible ally is governed by
+            // authored urgency and queue order, not by hostile/terrain detour
+            // memory. Keeping the same tile in both the right-of-way claim and
+            // the durable obstacle set makes the higher-priority mover yield
+            // to the lower-priority blocker despite the trace saying the
+            // opposite.
+            activeDenied = null;
+        }
         if (activeDenied is DeniedStep denied)
             durable.Add(denied.Tile);
         int[]? distanceField = null;
@@ -438,7 +473,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             && GoalDistance(contract.Map, course[1], assignment)
                 >= GoalDistance(
                     contract.Map, intent.Body.Position, assignment);
-        if (IsCarrierReturn(intent))
+        if (IsLoadedReturnRoute(intent))
         {
             HashSet<Position> distanceObstacles =
                 ArenaBasics.PersistentRouteObstacles(
@@ -520,6 +555,34 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             {
                 if (actions[^1].Kind == MicroActionKind.Rotate)
                     return;
+                if (actions.Zip(actions.Skip(1)).Any(pair =>
+                        pair.First.Kind == MicroActionKind.Rotate
+                        && pair.Second.Kind == MicroActionKind.Rotate))
+                {
+                    // A rotation directly selects any cardinal heading. Two
+                    // consecutive rotations before a move occupy exactly the
+                    // same cells as waiting then taking the final rotation,
+                    // while exposing an irrelevant intermediate heading to
+                    // next-tick replanning. Equal alternatives can therefore
+                    // alternate R0-R2-F / R1-R2-F forever without moving.
+                    return;
+                }
+                bool physicallySatisfied = intent.PrefersHold
+                    || intent.Body.Position == assignment;
+                bool hasMove = actions.Any(action =>
+                    action.Kind == MicroActionKind.Move);
+                if (IsLoadedReturnRoute(intent)
+                    && !physicallySatisfied
+                    && !hasMove
+                    && actions.Any(action =>
+                        action.Kind == MicroActionKind.Rotate))
+                {
+                    // Turning is preparation for a concrete move, never a
+                    // substitute for one. Rotation-only candidates let EPIBT
+                    // spin a blocked body through headings while its actual
+                    // goal remains unchanged; WWW is the honest fallback.
+                    return;
+                }
                 Operation? operation = BuildOperation(
                     contract,
                     intent.Body,
@@ -532,8 +595,28 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                     intent.PrefersHold
                         || intent.Body.Position == assignment,
                     distanceField);
-                if (operation is not null)
-                    generated.Add(operation);
+                if (operation is null)
+                    return;
+                if (IsLoadedReturnRoute(intent)
+                    && distanceField is not null
+                    && operation.Actions.FirstOrDefault(action =>
+                        action.Kind == MicroActionKind.Move)
+                        .Destination is Position firstMove)
+                {
+                    int? before = ArenaBasics.DistanceFromField(
+                        contract.Map, distanceField, intent.Body.Position);
+                    int? after = ArenaBasics.DistanceFromField(
+                        contract.Map, distanceField, firstMove);
+                    if (before is null || after is null || after >= before)
+                    {
+                        // Allied occupancy is handled by priority inheritance,
+                        // not by walking the Core away from its reactor. A
+                        // true terrain/hostile detour is already represented
+                        // in this same field and therefore still decreases it.
+                        return;
+                    }
+                }
+                generated.Add(operation);
                 return;
             }
 
@@ -1027,7 +1110,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             return [intent.Body.Position];
         HashSet<Position> obstacles = ArenaBasics.PersistentRouteObstacles(
             contract, mind, intent.Body.ActorId.TeamId);
-        if (IsCarrierReturn(intent))
+        if (IsLoadedReturnRoute(intent))
             obstacles.UnionWith(CarrierReturnSpawnTiles(
                 contract.LifecycleAssignments,
                 contract.Map.SpawnAnchors,
@@ -1075,11 +1158,14 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         return course;
     }
 
-    private Position? ResolveTrafficObstacle(
+    private TrafficResolution ResolveTraffic(
+        GenericActorResolvedMatchContract contract,
         MindContext mind,
         SquadMovementIntent intent,
-        Position assignment)
+        Position assignment,
+        IReadOnlyDictionary<int, SquadMovementIntent> byUnit)
     {
+        Position? candidate = null;
         if (_states.TryGetValue(
                 intent.Body.UnitId, out PersistentState? prior)
             && prior.Actor == intent.Body.ActorId
@@ -1090,27 +1176,79 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             && mind.Bodies.Any(ally => ally.UnitId != intent.Body.UnitId
                 && ally.Position == held))
         {
-            return held;
+            candidate = held;
         }
-        return intent.Priority.AlliedBlockDebt >= 2
+        candidate ??= intent.Priority.AlliedBlockDebt >= 2
             && intent.Priority.AlliedBlockTile is Position blocked
             && blocked != assignment
                 ? blocked
                 : null;
+        if (candidate is not Position traffic)
+            return TrafficResolution.Clear;
+
+        SquadMovementIntent? blocker = mind.Bodies
+            .Where(ally => ally.UnitId != intent.Body.UnitId
+                && ally.Position == traffic)
+            .Select(ally => byUnit.GetValueOrDefault(ally.UnitId))
+            .FirstOrDefault(value => value is not null);
+        HashSet<Position> obstacles = ArenaBasics.PersistentRouteObstacles(
+            contract, mind, intent.Body.ActorId.TeamId);
+        obstacles.Add(traffic);
+        bool hasDetour = ArenaBasics.StaticRouteDistance(
+            contract,
+            intent.Body,
+            intent.Body.Position,
+            assignment,
+            obstacles) is not null;
+        AlliedTrafficDisposition disposition = blocker is null
+            ? hasDetour
+                ? AlliedTrafficDisposition.Detour
+                : AlliedTrafficDisposition.Wait
+            : ResolveAlliedTraffic(
+                intent.Priority, blocker.Priority, hasDetour);
+        return disposition switch
+        {
+            AlliedTrafficDisposition.RightOfWay =>
+                new TrafficResolution(null, null, traffic),
+            AlliedTrafficDisposition.Detour =>
+                new TrafficResolution(traffic, null, null),
+            _ => new TrafficResolution(null, traffic, null),
+        };
     }
 
-    private static bool IsCarrierReturn(SquadMovementIntent intent) =>
-        string.Equals(
-            intent.GroupKey, "move:to:reactor:own", StringComparison.Ordinal);
+    /// <summary>
+    /// Applies the already-resolved traffic ordering without inventing a
+    /// role/objective exception. A lower numeric rank owns the contested tile;
+    /// only the loser considers a real alternate route.
+    /// </summary>
+    internal static AlliedTrafficDisposition ResolveAlliedTraffic(
+        TacticalMovementPriority mover,
+        TacticalMovementPriority blocker,
+        bool alternateRouteExists)
+    {
+        if (mover.Rank < blocker.Rank)
+            return AlliedTrafficDisposition.RightOfWay;
+        return alternateRouteExists
+            ? AlliedTrafficDisposition.Detour
+            : AlliedTrafficDisposition.Wait;
+    }
+
+    private static bool IsLoadedReturnRoute(
+        SquadMovementIntent intent) =>
+        intent.RouteClass == SquadRouteClass.LoadedReturn;
 
     private void RememberDeniedSteps(MindContext mind)
     {
         foreach (MindBody body in mind.Bodies)
         {
+            // Taking the first step of a detour does not prove the denied
+            // tile cleared. Forgetting it on any movement lets the new route
+            // immediately step back, reselect the blocked square, and form an
+            // A-B loop. Keep the bounded witness until expiry (or a new life);
+            // a fresh denial below deterministically refreshes the window.
             if (_deniedSteps.TryGetValue(body.UnitId, out DeniedStep? prior)
                 && (prior.Actor != body.ActorId
-                    || mind.Tick >= prior.UntilTick
-                    || body.MovedLastTick))
+                    || mind.Tick >= prior.UntilTick))
             {
                 _deniedSteps.Remove(body.UnitId);
             }
@@ -1482,6 +1620,12 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         string GroupKey,
         bool CanStage,
         int Distance);
+    internal enum AlliedTrafficDisposition
+    {
+        RightOfWay,
+        Detour,
+        Wait,
+    }
     private sealed record Decision(
         Position? Tile,
         string Trace,
@@ -1494,6 +1638,13 @@ internal sealed class SquadArenaPlanner : IArenaStepper
         Operation Operation,
         Position[] Course,
         Position? TrafficObstacle);
+    private readonly record struct TrafficResolution(
+        Position? Obstacle,
+        Position? NoDetour,
+        Position? RightOfWay)
+    {
+        public static TrafficResolution Clear => new(null, null, null);
+    }
     private sealed record DeniedStep(
         ActorIdentity Actor,
         Position Tile,

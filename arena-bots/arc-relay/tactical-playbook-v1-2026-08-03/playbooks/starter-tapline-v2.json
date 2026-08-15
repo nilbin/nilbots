@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "starter-tapline-v2",
-  "mapPlan": "../map-plans/starter-tapline-v2.json",
+  "mapPlan": "../map-plans/tapline-6/starter-tapline-v2.json",
   "roles": [
     {
       "id": "home-team",
