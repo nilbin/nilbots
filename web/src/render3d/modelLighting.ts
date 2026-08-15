@@ -2,9 +2,11 @@ import * as THREE from 'three';
 
 const OUTGOING_LIGHT =
   'vec3 outgoingLight = totalDiffuse + totalSpecular + totalEmissiveRadiance;';
-const PROFILE_KEY = 'nilbots-model-lighting-v3';
+const PROFILE_KEY = 'nilbots-model-lighting-v4';
+const APEX_OUTLINE_PROFILE_KEY = 'nilbots-apex-outline-v1';
 const POINT_LIGHT_ISOLATION_KEY = 'nilbots-point-light-isolation-v1';
 const LIGHTS_FRAGMENT_INCLUDE = '#include <lights_fragment_begin>';
+const BEGIN_VERTEX_INCLUDE = '#include <begin_vertex>';
 const POINT_LIGHTS_START =
   '#if ( NUM_POINT_LIGHTS > 0 ) && defined( RE_Direct )';
 const POINT_LIGHTS_END =
@@ -17,6 +19,18 @@ interface ModelLightingState {
   apexPhase: number;
   strengthUniform: { value: number } | null;
   phaseUniform: { value: number } | null;
+}
+
+interface ApexOutlineState {
+  width: number;
+  widthUniform: { value: number } | null;
+}
+
+export interface ModelApexOutline {
+  readonly material: THREE.MeshBasicMaterial;
+  attach: (source: THREE.Mesh) => THREE.Mesh | null;
+  set: (strength: number, phase: number, visibility: number) => void;
+  dispose: () => void;
 }
 
 /**
@@ -33,14 +47,16 @@ export const MODEL_LIGHTING_PROFILE = {
   facingFillMaximum: 0.2,
   rimStrength: 0.16,
   rimPower: 2.2,
-  apexCoatStrength: 0.3,
-  apexRimStrength: 0.48,
-  apexRimPower: 1.3,
-  apexSweepStrength: 0.58,
-  apexSweepPower: 5.5,
-  apexCounterSweepStrength: 0.38,
-  apexCounterSweepPower: 8,
+  apexRimStrength: 0.035,
+  apexRimPower: 3,
+  apexSweepStrength: 0.14,
+  apexSweepPower: 30,
+  apexOutlineWidth: 0.045,
+  apexOutlineOpacity: 0.9,
 } as const;
+
+const APEX_OUTLINE_LOW = new THREE.Color(0x7650c7);
+const APEX_OUTLINE_HIGH = new THREE.Color(0xa982ef);
 
 export function applyModelLighting(
   material: THREE.MeshStandardMaterial,
@@ -94,6 +110,84 @@ export function setModelApexTreatment(
   if (state.phaseUniform) state.phaseUniform.value = state.apexPhase;
 }
 
+/**
+ * Build one actor-owned outline material and attach it to any genuine static GLB meshes.
+ *
+ * The back-face shell expands along authored vertex normals, so it remains a crisp visible
+ * silhouette outside the model instead of bleaching the texture to make an internal
+ * Fresnel edge survive minification. One material is shared by every shell on the actor;
+ * geometry remains shared with the source model and no extra asset bytes are introduced.
+ */
+export function createModelApexOutline(): ModelApexOutline {
+  const material = new THREE.MeshBasicMaterial({
+    color: APEX_OUTLINE_LOW,
+    transparent: true,
+    opacity: 0,
+    side: THREE.BackSide,
+    depthWrite: false,
+    depthTest: true,
+    toneMapped: false,
+  });
+  const beforeCompile = material.onBeforeCompile.bind(material);
+  const beforeCacheKey = material.customProgramCacheKey.bind(material);
+  const state: ApexOutlineState = { width: 0, widthUniform: null };
+  const shells = new Set<THREE.Mesh>();
+
+  material.onBeforeCompile = (shader, renderer) => {
+    beforeCompile(shader, renderer);
+    state.widthUniform = { value: state.width };
+    shader.uniforms.nilbotsApexOutlineWidth = state.widthUniform;
+    if (!shader.vertexShader.includes(BEGIN_VERTEX_INCLUDE))
+      throw new Error('MeshBasicMaterial shader no longer exposes the Apex outline anchor.');
+    shader.vertexShader = `uniform float nilbotsApexOutlineWidth;\n${shader.vertexShader.replace(
+      BEGIN_VERTEX_INCLUDE,
+      `${BEGIN_VERTEX_INCLUDE}\n\ttransformed += normalize( normal ) * nilbotsApexOutlineWidth;`,
+    )}`;
+  };
+  material.customProgramCacheKey = () =>
+    `${beforeCacheKey()}|${APEX_OUTLINE_PROFILE_KEY}`;
+  material.userData.nilbotsApexOutline = APEX_OUTLINE_PROFILE_KEY;
+  material.userData.nilbotsApexOutlineState = state;
+  material.needsUpdate = true;
+
+  return {
+    material,
+    attach: (source) => {
+      // Meshy bots are deliberately unrigged. Fail soft if a future look introduces skinning
+      // rather than leaving a rigid outline behind while the authored body deforms.
+      if ((source as THREE.SkinnedMesh).isSkinnedMesh) return null;
+      const shell = new THREE.Mesh(source.geometry, material);
+      shell.name = `${source.name || 'mesh'}-apex-outline`;
+      shell.userData.kind = 'apex-outline';
+      shell.visible = false;
+      shell.castShadow = false;
+      shell.receiveShadow = false;
+      shell.renderOrder = source.renderOrder + 0.25;
+      source.add(shell);
+      shells.add(shell);
+      return shell;
+    },
+    set: (strength, phase, visibility) => {
+      const amount = THREE.MathUtils.clamp(strength, 0, 1);
+      const visibleAmount = amount * THREE.MathUtils.clamp(visibility, 0, 1);
+      const pulse = 0.5 + 0.5 * Math.sin(phase * 1.7);
+      state.width = MODEL_LIGHTING_PROFILE.apexOutlineWidth
+        * amount
+        * (0.9 + pulse * 0.1);
+      if (state.widthUniform) state.widthUniform.value = state.width;
+      material.opacity = MODEL_LIGHTING_PROFILE.apexOutlineOpacity
+        * visibleAmount
+        * (0.86 + pulse * 0.14);
+      material.color.copy(APEX_OUTLINE_LOW).lerp(
+        APEX_OUTLINE_HIGH,
+        0.28 + pulse * 0.34,
+      );
+      for (const shell of shells) shell.visible = material.opacity > 0.01;
+    },
+    dispose: () => material.dispose(),
+  };
+}
+
 export function injectModelLighting(fragmentShader: string): string {
   if (!fragmentShader.includes(OUTGOING_LIGHT))
     throw new Error('MeshStandardMaterial shader no longer exposes the model-lighting anchor.');
@@ -120,48 +214,28 @@ ${fragmentShader.replace(
     0.22
   ) * nilbotsModelRim;
 
-  // Apex phase coat: a persistent platinum lift, broad Fresnel edge, and two
-  // counter-crossing light bands. The broad terms survive phone-scale minification;
-  // authored diffuse colour remains in every term instead of being replaced by white.
-  float nilbotsApexBreath = 0.90 + 0.10 * sin( nilbotsApexPhase * 0.55 );
-  float nilbotsApexCoat =
-    ${MODEL_LIGHTING_PROFILE.apexCoatStrength.toFixed(2)} * nilbotsApexBreath;
+  // Apex surface scan: the separate back-face shell owns zoomed-out readability, so this
+  // term can stay narrow and coloured instead of lifting the entire texture toward white.
   float nilbotsApexRim = pow(
     1.0 - nilbotsModelFacing,
     ${MODEL_LIGHTING_PROFILE.apexRimPower.toFixed(1)}
   ) * ${MODEL_LIGHTING_PROFILE.apexRimStrength.toFixed(2)};
-  float nilbotsApexCos = cos( nilbotsApexPhase );
-  float nilbotsApexSin = sin( nilbotsApexPhase );
   vec3 nilbotsApexSweepDirection = normalize( vec3(
-    nilbotsApexCos * 0.72,
-    nilbotsApexSin * 0.64,
-    0.82
+    cos( nilbotsApexPhase ) * 0.58,
+    sin( nilbotsApexPhase ) * 0.5,
+    1.0
   ) );
   float nilbotsApexSweep = pow(
     saturate( dot( geometryNormal, nilbotsApexSweepDirection ) ),
     ${MODEL_LIGHTING_PROFILE.apexSweepPower.toFixed(1)}
   ) * ${MODEL_LIGHTING_PROFILE.apexSweepStrength.toFixed(2)};
-  vec3 nilbotsApexCounterDirection = normalize( vec3(
-    -nilbotsApexSin * 0.66,
-    nilbotsApexCos * 0.72,
-    0.56
-  ) );
-  float nilbotsApexCounterSweep = pow(
-    saturate( dot( geometryNormal, nilbotsApexCounterDirection ) ),
-    ${MODEL_LIGHTING_PROFILE.apexCounterSweepPower.toFixed(1)}
-  ) * ${MODEL_LIGHTING_PROFILE.apexCounterSweepStrength.toFixed(2)};
-  vec3 nilbotsApexPlatinum = mix(
-    vec3( 0.72, 0.76, 0.84 ),
+  vec3 nilbotsApexViolet = mix(
+    vec3( 0.38, 0.12, 0.72 ),
     material.diffuseColor,
-    0.34
+    0.58
   );
-  outgoingLight += nilbotsApexPlatinum
-    * (
-      nilbotsApexCoat
-      + nilbotsApexRim
-      + nilbotsApexSweep
-      + nilbotsApexCounterSweep
-    )
+  outgoingLight += nilbotsApexViolet
+    * ( nilbotsApexRim + nilbotsApexSweep )
     * nilbotsApexStrength;`,
   )}`;
 }

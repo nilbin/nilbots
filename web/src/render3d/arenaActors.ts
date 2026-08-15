@@ -71,7 +71,10 @@ import {
   createVeterancyRankRail,
   paintVeterancyRankRail,
 } from './veterancyRankRail';
-import { setModelApexTreatment } from './modelLighting';
+import {
+  createModelApexOutline,
+  setModelApexTreatment,
+} from './modelLighting';
 
 export { BOT_BODY_RENDER_ORDER } from './occlusionLayers';
 
@@ -761,13 +764,23 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     // on its first compiled frame. Sprite-derived fallbacks ignore the setter and keep their
     // established Canvas-compatible treatment.
     const apexMaterials = new Set<THREE.MeshStandardMaterial>();
+    const apexOutline = createModelApexOutline();
+    disposables.push(apexOutline);
     let currentApexStrength = 0;
     let currentApexPhase = 0;
+    const paintApex = () => {
+      for (const material of apexMaterials)
+        setModelApexTreatment(
+          material,
+          currentApexStrength,
+          currentApexPhase,
+        );
+      apexOutline.set(currentApexStrength, currentApexPhase, lastFactor);
+    };
     const apex = (strength: number, phase: number) => {
       currentApexStrength = strength;
       currentApexPhase = phase;
-      for (const material of apexMaterials)
-        setModelApexTreatment(material, strength, phase);
+      paintApex();
     };
 
     /**
@@ -781,6 +794,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     const registerModelMaterials = (solid: THREE.Object3D) => {
       const seen = new Set<THREE.Material>();
       const solidMeshes: THREE.Mesh[] = [];
+      const apexMeshes: THREE.Mesh[] = [];
       solid.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.isMesh) return;
@@ -793,7 +807,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         const materials = Array.isArray(mesh.material)
           ? mesh.material
           : [mesh.material];
+        let apexEligible = false;
         for (const material of materials) {
+          if (
+            material instanceof THREE.MeshStandardMaterial &&
+            material.userData.nilbotsModelLightingState !== undefined
+          ) apexEligible = true;
           if (seen.has(material)) continue;
           seen.add(material);
           fading.push({ material, base: 1 });
@@ -808,8 +827,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           }
           disposables.push(material);
         }
+        if (apexEligible) apexMeshes.push(mesh);
       });
       for (const mesh of solidMeshes) installActorMask(mesh);
+      for (const mesh of apexMeshes) apexOutline.attach(mesh);
+      paintApex();
       // A model that lands mid-highlight or mid-flash has to arrive wearing it, not plain.
       repaint();
     };
@@ -1523,6 +1545,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
           factor < 1 ||
           base < 1;
       }
+      apexOutline.set(currentApexStrength, currentApexPhase, lastFactor);
     };
 
     /**
@@ -2201,9 +2224,9 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         : promotion?.level === APEX_LEVEL
           ? easeOut(Math.min(1, promotion.age / APEX_ENGAGE_TICKS))
           : 1;
-      // Reduced-motion keeps the silver edge and freezes the satin lobe at this actor's
-      // stable phase. The normal path moves only reflected-looking light over the model;
-      // no geometry, floor cue, or scene light animates.
+      // Reduced-motion keeps the violet silhouette and freezes its narrow surface scan at
+      // this actor's stable phase. The normal path moves only renderer-owned material
+      // cues; no floor cue or scene light animates.
       bot.apex(
         apexStrength,
         bot.motionPhase +
