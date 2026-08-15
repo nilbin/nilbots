@@ -1090,8 +1090,7 @@ export function drawArena(
       (candidate) => candidate.unitKey === selectedUnitKey,
     );
     if (!unit || unit.status !== 'active') return;
-    if (unit.destination === null && unit.nextStep === null
-      && unit.facingTarget === null) return;
+    if (unit.destination === null && unit.nextStep === null) return;
     const pose = poses.find(
       (candidate) => candidate.unitKey === selectedUnitKey,
     );
@@ -1125,20 +1124,6 @@ export function drawArena(
       ctx.lineTo(stepX, stepY + reach);
       ctx.lineTo(stepX - reach, stepY);
       ctx.closePath();
-      ctx.stroke();
-    }
-    if (unit.facingTarget !== null) {
-      const faceX = px(unit.facingTarget.x) + tile / 2;
-      const faceY = py(unit.facingTarget.y) + tile / 2;
-      ctx.strokeStyle = hexWithAlpha('#f0a35e', 0.72);
-      ctx.setLineDash([tile * 0.16, tile * 0.1]);
-      ctx.beginPath();
-      ctx.moveTo(fromX, fromY);
-      ctx.lineTo(faceX, faceY);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      ctx.beginPath();
-      ctx.arc(faceX, faceY, tile * 0.22, 0, Math.PI * 2);
       ctx.stroke();
     }
     ctx.restore();

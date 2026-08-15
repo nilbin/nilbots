@@ -173,6 +173,38 @@ test('the pathing lens points at the published destination, for the selection on
   }
 });
 
+test('the pathing lens never presents a facing anchor as a movement target', () => {
+  const broadcast = fixture(2);
+  const { teamId, unitId, unitKey } = firstBody(broadcast);
+  broadcast.destinations = [[[teamId, unitId, 9, 4]], []];
+  broadcast.facings = [[[teamId, unitId, 19, 13]], []];
+  const { replay } = loadReplayObject(broadcast);
+
+  const overlays = buildOverlays(replay);
+  try {
+    overlays.update(1, unitKey, false);
+    const target = cue(overlays.group, 'pathing-lens-target');
+    assert.ok(target.visible);
+    assert.equal(target.position.x, 9.5);
+    assert.equal(target.position.z, 4.5);
+
+    const facingCues: string[] = [];
+    overlays.group.traverse((node) => {
+      const name = node.userData.cue;
+      if (typeof name === 'string' && name.startsWith('pathing-lens-facing')) {
+        facingCues.push(name);
+      }
+    });
+    assert.deepEqual(
+      facingCues,
+      [],
+      'facing remains model orientation; it is not another pathing destination',
+    );
+  } finally {
+    overlays.dispose();
+  }
+});
+
 test('a body that stops naming a destination loses its marker', () => {
   // A stale marker standing over a body that has moved on is worse than no
   // marker: it is the lens lying about the one thing it exists to answer.
