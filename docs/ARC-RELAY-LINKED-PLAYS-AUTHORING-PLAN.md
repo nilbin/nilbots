@@ -94,9 +94,9 @@ model is smaller:
 
 Recipes arrange those ingredients for a human problem. **Ambush** adds required
 slots, proximity readiness, arming, and commitment. **Relay chain** adds two
-partner roles, carrier/receiver tasks, a shared return route, and Arc Toss.
-Neither recipe introduces a runtime type, and an empty/custom Play remains
-possible.
+partner roles, carrier/receiver tasks, one editable corridor with derived
+bounded hop routes, and Arc Toss. Neither recipe introduces a runtime type, and
+an empty/custom Play remains possible.
 
 ### Four complementary workspaces
 
@@ -439,12 +439,13 @@ precisely that it makes a signature mechanic into an editable team strategy.
 
 ### Human construction
 
-1. Select the existing long enemy-to-home corridor route, or draw/name it from
-   the map. Place an ordered series of stations `R0, R1, R2...`, alternating
-   Relay A / Relay B ownership. Adjacent stations may be no farther apart than
-   current legal Arc Toss geometry allows. Give each station a small
-   role-qualified catch area; it is both the catch destination for one leg and
-   the launch/hold point for the next.
+1. Draw the long enemy-to-home corridor once in the Play workspace. Place an
+   ordered series of stations `R0, R1, R2...` along it, alternating Relay A /
+   Relay B ownership. Adjacent stations may be no farther apart than current
+   legal Arc Toss geometry allows. Give each station a small role-qualified
+   catch area; it is both the catch destination for one leg and the launch/hold
+   point for the next. The recipe derives the ordinary, used route segments
+   required by each hop from this one editable corridor gesture.
 2. Select two one-body Relay roles. The editor creates two linked projections
    and visibly pairs each role with the other; it does not collapse them into
    an opaque two-body unit.
@@ -455,11 +456,12 @@ precisely that it makes a signature mechanic into an editable team strategy.
    not continue toward the reactor and close or overshoot the rendezvous.
 4. Define a bounded empty task for the Relay that just tossed from `Ri`: enter
    while empty-handed in `Ri`, move to that same Relay's next assigned station
-   `Ri+2`, and remain in that active move until `self-carrying` becomes true.
-   `move.to Ri+2` therefore holds after arrival instead of continuing farther.
-   The next advance (`Ri+2` to `Ri+4`) is a later ordinary node and cannot win
-   while the earlier advance-and-wait node remains latched. Order these hop
-   nodes from enemy side to home side so this relationship is visible.
+   `Ri+2` **via a bounded route segment for that hop**, and remain in that
+   active move until `self-carrying` becomes true. `move.to Ri+2` therefore
+   holds after arrival instead of continuing farther. The next advance (`Ri+2`
+   to `Ri+4`) is a later ordinary node and cannot win while the earlier
+   advance-and-wait node remains latched. Order these hop nodes from enemy side
+   to home side so this relationship is visible.
 5. Use current capacity where a receiver anchor admits only one body. Current
    station zones, carrying state, `role-in-zone-count`, and lifecycle select the
    authored leaves; the editor does not create a turn counter. If the author
@@ -485,19 +487,36 @@ HOLD CARRIER AT Ri
 ADVANCE Ri-2 -> Ri, THEN WAIT
   when empty-handed AND self in Ri-2
   until carrying
-  move.to Ri
+  move.to Ri via bounded-hop-Ri-2-to-Ri
 ADVANCE Ri -> Ri+2, THEN WAIT
   when empty-handed AND self in Ri
   until carrying
-  move.to Ri+2
+  move.to Ri+2 via bounded-hop-Ri-to-Ri+2
 ```
 
-The earlier active advance-and-wait node is what prevents the empty receiver
-from immediately satisfying the next station's start condition and running a
-second hop. This is existing Orders latching plus `move.to` holding, not hidden
-Play state. The map overlay should mark the receiver as **waiting at the next
-post** and show a validation error if any adjacent launch/catch pair exceeds
-legal Toss range.
+`until` and `via` have different jobs. The earlier active advance-and-wait node
+prevents the empty receiver from immediately satisfying the next station's
+start condition and running a second hop. The per-hop `via` route keeps its run
+on the selected corridor course; the exact destination anchor stops it. This is
+existing Orders latching, route intent, and `move.to` holding, not hidden Play
+state.
+
+Do not attach every mid-corridor hop to one full non-looping `via` route. A
+current ingress begins at that route's first waypoint, so a later hop could
+backtrack toward the enemy side before coming home. Instead, materialize one
+ordinary route segment per advance node. Each segment begins at its launch
+station, follows the relevant slice of the corridor (including its turns), and
+ends at the next same-Relay receiver station. These generated segments may
+overlap and remain linked to the one corridor gesture in Play metadata; each is
+referenced by an ordinary move, so the map plan contains no decorative unused
+route.
+
+Routes remain authored intent rather than rails: normal collision detours and
+rejoin behavior still apply. The Idle Field proof should show that both bodies
+select the expected hop route and remain on its corridor course except for
+ordinary legal detour/rejoin. The map overlay should mark the receiver as
+**waiting at the next post**, display the active segment, and show a validation
+error if any adjacent launch/catch pair exceeds legal Toss range.
 
 The expected rhythm is concrete:
 
@@ -508,10 +527,10 @@ The expected rhythm is concrete:
 | after second Toss | carries/holds at `R2` | advances only to `R3`, then waits | A |
 | after third Toss | advances only to `R4`, then waits | carries/holds at `R3` | B |
 
-The linked edit test is to move or replace the long route, swap either Relay
-role, or change a receiver anchor once and see both partner projections update.
-Orders still shows the exact two local priority positions and each role's
-carrier/empty-handed fallthrough.
+The linked edit test is to move or replace the logical corridor, swap either
+Relay role, or change a receiver anchor once and see every affected bounded
+route and both partner projections update. Orders still shows the exact two
+local priority positions and each role's carrier/empty-handed fallthrough.
 
 Phase 0 must confirm the intended alternating catch geometry and bounded
 advance-and-wait lifecycle against current Arc Toss legality and movement
@@ -519,7 +538,9 @@ behavior before freezing this recipe. The gameplay proof target is one Core
 making at least two accepted alternating partner Tosses on the long corridor
 and then continuing toward a bank. During every wait, the empty Relay must stop
 at the immediately next receiver post; reaching or pathing toward a later post
-before catching the Core fails the proof.
+before catching the Core, taking a non-authored shortcut instead of the bounded
+hop route, or restarting a later hop from the corridor's first station fails
+the proof.
 
 ### Proof environment and Arc Toss timing dependency
 
@@ -616,6 +637,9 @@ The exact JSON shape should follow the UX prototype, but it needs at least:
 
 - stable Play id and human name;
 - selected/owned map-object ids and their purposes;
+- editor-level geometry groups and derivation links where one gesture owns
+  several ordinary objects—for example, a Relay chain's logical corridor and
+  the bounded map-route ids generated from its hops;
 - participating roles/bodies, linked role tasks, map objects, class skills, and
   shared editable values;
 - slot and capacity intent where the Play uses spatial staffing;
@@ -697,8 +721,8 @@ Prototype both the North corridor ambush and the dual Relay corridor chain
 against the real current editor layout, desktop and 390×844 touch, before
 freezing the sidecar shape. Resolve the generic participant/task/projection
 model first. Then resolve the Ambush panel's map multi-selection, required slot
-staffing/ranges and 5/5 gate, and the Relay panel's paired roles, shared route,
-carrier/receiver tasks and Toss inspection.
+staffing/ranges and 5/5 gate, and the Relay panel's paired roles, logical
+corridor/derived hop routes, carrier/receiver tasks, and Toss inspection.
 
 Confirm that both materialize under current Orders v2 without changing the
 compiler. If role-qualified readiness or alternating Relay movement exposes a
@@ -784,8 +808,9 @@ The feature is ready when all of the following are true:
    in one role. The dual Relay recipe edits both partner projections together
    and produces at least two accepted alternating Tosses followed by continued
    homeward progress in its focused Idle Field Practice proof. The empty Relay
-   holds at the immediately next receiver post and never paths toward a later
-   one before receiving the Core.
+   follows its derived bounded hop route, holds at the immediately next
+   receiver post, and never shortcuts or paths toward a later one before
+   receiving the Core.
 6. No generic Play field assumes assembly, formation readiness, engagement, or
    hostile contact; those concepts belong only to recipes that need them.
 7. Save/reload, another device, sheet duplication, undo/redo, and Practice
