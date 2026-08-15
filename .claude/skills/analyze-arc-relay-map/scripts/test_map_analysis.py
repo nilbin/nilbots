@@ -97,6 +97,10 @@ class TaplineCandidateTests(unittest.TestCase):
                 "own-direct": 12,
                 "centre-north": 19,
                 "centre-south": 19,
+                "centre-middle-north": 28,
+                "centre-middle-south": 44,
+                "centre-full-north": 47,
+                "centre-full-south": 65,
                 "enemy-direct": 25,
                 "enemy-via-centre-north": 26,
                 "enemy-via-centre-south": 26,
@@ -106,7 +110,9 @@ class TaplineCandidateTests(unittest.TestCase):
                 "enemy-full-south": 58,
             },
         )
-        self.assertEqual(result["topology"]["connectedComponents"], [527])
+        self.assertEqual(result["topology"]["connectedComponents"], [523])
+        for x, y in ((10, 9), (11, 9), (19, 17), (20, 17)):
+            self.assertEqual(result["rows"][y][x], "#")
         self.assertEqual(result["topology"]["falseCornerTouches"], [])
         self.assertEqual(result["topology"]["cutVertices"], [])
         self.assertEqual(result["topology"]["symmetryMismatches"], [])
@@ -126,6 +132,22 @@ class TaplineCandidateTests(unittest.TestCase):
         self.assertFalse(result["valid"])
         self.assertIn("expected 3 well landmarks, found 2", result["errors"])
         self.assertIn("missing required landmarks: own-well", result["errors"])
+
+    def test_required_route_family_cannot_be_silently_omitted(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["routes"] = [
+            route
+            for route in spec["routes"]
+            if route["id"] != "centre-full-south"
+        ]
+
+        result = map_analysis.analyze_spec(spec, EXAMPLE)
+
+        self.assertFalse(result["valid"])
+        self.assertIn(
+            "missing required routes: centre-full-south",
+            result["errors"],
+        )
 
     def test_html_names_all_wells_and_both_healing_tiles(self) -> None:
         result = map_analysis.analyze_spec(self.spec, EXAMPLE)

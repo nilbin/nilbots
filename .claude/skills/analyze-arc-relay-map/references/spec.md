@@ -24,6 +24,7 @@ terrain; declare gameplay objects as landmarks.
     "own-reactor", "enemy-reactor", "own-well", "centre-well",
     "enemy-well", "north-healing", "south-healing"
   ],
+  "requiredRouteIds": ["own-direct"],
   "landmarks": [
     {
       "id": "own-well",
@@ -99,6 +100,12 @@ route styles are `north`, `south`, `direct`, and `alternate`. The reported
 ratio compares each route with the unconstrained shortest path between that
 route's own endpoints.
 
+List the complete intended route inventory in `requiredRouteIds`. A declared
+ID that is absent from `routes` is a validation failure, just as a missing
+`requiredLandmarkIds` entry is. Build this inventory by origin and purposeful
+family before measuring; the analyzer cannot infer which tactical families the
+designer intended to include.
+
 A cyclic map has no finite unconstrained "longest route." Name the commitment
 that makes a long route finite, then express it with `via` or `authored`.
 
@@ -106,8 +113,10 @@ that makes a long route finite, then express it with `via` or `authored`.
 
 `--json-out` writes measurements and validation details. `--html-out` writes a
 self-contained interactive SVG atlas with every declared landmark and route
-group. Append `?theme=light` or `?theme=dark` while reviewing both palettes. A
-nonzero exit means the candidate failed validation.
+group. Use that generated file as the authoritative viewer rather than copying
+route data into a separate hand-authored page. Append `?theme=light` or
+`?theme=dark` while reviewing both palettes. A nonzero exit means the candidate
+failed validation.
 
 Steps are terrain-only lower bounds: one open tile per tick under corner-strict
 movement. They do not model bodies, combat, sight, deployments, or tactical

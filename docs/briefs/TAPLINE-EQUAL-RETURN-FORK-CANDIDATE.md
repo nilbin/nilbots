@@ -2,11 +2,8 @@
 
 Status: **owner-liked candidate; not implemented or approved for promotion**.
 
-Public 2D review:
-[Tapline equal-return fork](https://database-asset-dsc-ports.trycloudflare.com/tapline-equal-return-fork.html)
-
-Candidate-only route atlas:
-[Centre and enemy-Well return routes](https://database-asset-dsc-ports.trycloudflare.com/tapline-return-route-atlas.html)
+Public 2D review and authoritative candidate route atlas:
+[All 14 own-, centre-, and enemy-Well return routes](https://database-asset-dsc-ports.trycloudflare.com/tapline-return-route-atlas.html)
 
 ## Design intent
 
@@ -23,11 +20,13 @@ position (`ArcRelayActorMatchModeDriver.ApplyObjective`, around lines 696–708)
 
 ## Exact geometry delta
 
-Use the existing 31 x 27 Tapline terrain as the baseline. Add four wall tiles
+Use the existing 31 x 27 Tapline terrain as the baseline. Add six wall tiles
 on the west-authored half:
 
 ```text
 (9, 9)
+(10, 9)
+(11, 9)
 (9, 10)
 (5, 10)
 (10, 11)
@@ -38,10 +37,17 @@ Add their exact 180-degree partners, using
 
 ```text
 (21, 17)
+(20, 17)
+(19, 17)
 (21, 16)
 (25, 16)
 (20, 15)
 ```
+
+The additional `(10,9)` / `(11,9)` pair, and its rotated
+`(20,17)` / `(19,17)` pair, fills the complete otherwise-pointless interior
+dead-end branches created by the shortcut seal. Filling only each tip merely
+moves the dead end inward by one tile.
 
 No existing wall is removed. Wells, reactors, spawn areas, and all other
 landmarks stay fixed.
@@ -58,10 +64,15 @@ under the map's 180-degree rotation.
 | centre Well `(15,13)` -> reactor | 14 | **19** |
 | enemy Well `(19,20)` -> reactor | 21 | **25** |
 
-The two intended centre returns are both exactly 19 steps:
+The intended practical centre returns are both exactly 19 steps. The atlas
+also pins the longer centre-origin families so every purposeful return family
+is reviewable from every Well:
 
-- north: through the own-Well room;
-- south: through the lower wing.
+| Family | North | South | Definition |
+|---|---:|---:|---|
+| practical equal fork | **19** | **19** | Through the own-Well room or lower wing. |
+| middle-gate committed shadow route | **28** | **44** | Enter the outer shadow lane at its middle gate, traverse it to the own-side gate, then reach the reactor. |
+| full committed shadow route | **47** | **65** | Enter at the enemy-side far gate, traverse the outer lane to the own-side far gate, then reach the reactor. |
 
 For an enemy-Well Core, the useful route-family measurements are:
 
@@ -86,6 +97,8 @@ The candidate was checked with the same topology rules as
 - all floor remains connected;
 - no visually false diagonal corner-touch passages;
 - no meaningful cut vertex under the existing two-tile-stub allowance;
+- no candidate-created interior dead-end branch beside either own-side Well;
+- all 14 required own-, centre-, and enemy-Well route IDs are present;
 - both intended centre returns pin at 19 corner-strict steps.
 
 This is geometry validation, not balance evidence. It does not establish that

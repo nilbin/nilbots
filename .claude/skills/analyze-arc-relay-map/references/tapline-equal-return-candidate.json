@@ -6,10 +6,14 @@
     "function": "build",
     "addWalls": [
       [9, 9],
+      [10, 9],
+      [11, 9],
       [9, 10],
       [5, 10],
       [10, 11],
       [21, 17],
+      [20, 17],
+      [19, 17],
       [21, 16],
       [25, 16],
       [20, 15]
@@ -32,6 +36,22 @@
     "enemy-well",
     "north-healing",
     "south-healing"
+  ],
+  "requiredRouteIds": [
+    "own-direct",
+    "centre-north",
+    "centre-south",
+    "centre-middle-north",
+    "centre-middle-south",
+    "centre-full-north",
+    "centre-full-south",
+    "enemy-direct",
+    "enemy-via-centre-north",
+    "enemy-via-centre-south",
+    "enemy-middle-north",
+    "enemy-middle-south",
+    "enemy-full-north",
+    "enemy-full-south"
   ],
   "landmarks": [
     {
@@ -126,6 +146,58 @@
       "via": [[9, 11]],
       "expectedSteps": 19,
       "labelAt": [8, 12]
+    },
+    {
+      "id": "centre-middle-north",
+      "label": "Middle shadow · north",
+      "origin": "Centre Well",
+      "group": "Centre Well · middle shadow",
+      "style": "north",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[15, 3], [15, 2], [15, 1], [3, 1], [3, 2], [3, 3]],
+      "expectedSteps": 28,
+      "labelAt": [10, 1]
+    },
+    {
+      "id": "centre-middle-south",
+      "label": "Middle shadow · south",
+      "origin": "Centre Well",
+      "group": "Centre Well · middle shadow",
+      "style": "south",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[15, 23], [15, 24], [15, 25], [3, 25], [3, 24], [3, 23]],
+      "expectedSteps": 44,
+      "labelAt": [10, 25]
+    },
+    {
+      "id": "centre-full-north",
+      "label": "Full shadow · north",
+      "origin": "Centre Well",
+      "group": "Centre Well · full shadow",
+      "style": "north",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[27, 3], [27, 2], [27, 1], [3, 1], [3, 2], [3, 3]],
+      "expectedSteps": 47,
+      "labelAt": [22, 1]
+    },
+    {
+      "id": "centre-full-south",
+      "label": "Full shadow · south",
+      "origin": "Centre Well",
+      "group": "Centre Well · full shadow",
+      "style": "south",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [[27, 23], [27, 24], [27, 25], [3, 25], [3, 24], [3, 23]],
+      "expectedSteps": 65,
+      "labelAt": [22, 25]
     },
     {
       "id": "enemy-direct",

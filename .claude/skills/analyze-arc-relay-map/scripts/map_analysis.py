@@ -403,6 +403,14 @@ def analyze_routes(
             )
         except SpecError as error:
             errors.append(f"route {route_id}: {error}")
+    required_ids = spec.get("requiredRouteIds", [])
+    if not isinstance(required_ids, list) or not all(
+        isinstance(value, str) and value for value in required_ids
+    ):
+        raise SpecError("requiredRouteIds must be an array of non-empty strings")
+    missing_ids = sorted(set(required_ids) - ids)
+    if missing_ids:
+        errors.append(f"missing required routes: {', '.join(missing_ids)}")
     return routes, errors
 
 

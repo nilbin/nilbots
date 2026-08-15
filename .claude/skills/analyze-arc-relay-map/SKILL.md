@@ -17,8 +17,10 @@ scoring landmarks.
 2. Inventory every gameplay landmark from source. For a three-Well map, include
    both reactors, own-side Well, centre Well, enemy-side Well, and both healing
    tiles. Include spawn or delivery regions when they affect the question.
-3. State the team perspective so `own` and `enemy` are unambiguous. Use exact
-   landmark requirements and required IDs so omissions fail validation.
+3. State the team perspective so `own` and `enemy` are unambiguous. Inventory
+   every requested route family from every relevant origin before measuring.
+   Use exact landmark requirements, `requiredLandmarkIds`, and
+   `requiredRouteIds` so landmark or path omissions fail validation.
 4. Read [references/spec.md](references/spec.md), then create or adapt a JSON
    specification in `sandbox/` or a temporary directory. Start from
    [references/tapline-equal-return-candidate.json](references/tapline-equal-return-candidate.json)
@@ -32,7 +34,9 @@ scoring landmarks.
 
 6. Treat every validation error as a blocker. Pin accepted distances with
    `expectedSteps` so later geometry drift fails loudly.
-7. Open the HTML and inspect every route group at desktop and narrow-phone
+7. Publish the analyzer-generated HTML as the authoritative atlas; do not keep
+   a second hand-authored viewer whose route inventory can drift. Open the HTML
+   and inspect every route group at desktop and narrow-phone
    widths in light and dark themes. Check that walls, both reactors, all three
    Wells, both healing tiles, routes, badges, table values, and labels remain
    legible. Publish through the repository's normal owner-review path only when
