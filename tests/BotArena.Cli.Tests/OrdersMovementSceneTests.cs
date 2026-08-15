@@ -82,7 +82,7 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
-    public void LockboxInterceptorCarryUsesTheInnerCorridorForItsWholeEpisode()
+    public void LockboxInterceptorCarryUsesTheSafeSideCorridorForItsWholeEpisode()
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
@@ -122,7 +122,7 @@ public sealed class OrdersMovementSceneTests
             safeReturn.GetProperty("until").GetString());
         Assert.Equal("normal", stage.GetProperty("urgency").GetString());
         Assert.Equal(
-            "inner-corridor-extraction",
+            "safe-side-corridor-extraction",
             escape.GetProperty("move").GetProperty("via").GetString());
 
         using JsonDocument mapPlan = JsonDocument.Parse(
@@ -137,23 +137,68 @@ public sealed class OrdersMovementSceneTests
                 .ToArray());
         Position[] extraction = RoutePoints(
             mapPlan.RootElement.GetProperty("routes"),
-            "inner-corridor-extraction");
+            "safe-side-corridor-extraction");
 
         // Pickup can resolve one tile outside the narrow ambush rectangle, so
         // the return belongs to the interceptor's entire carrying episode,
-        // not to a coordinate snapshot. The safe return uses the nearby inner
-        // corridor so neither a centre shortcut nor a needless full-perimeter
-        // lap can silently replace the authored escape.
+        // not to a coordinate snapshot. These west-authored points bind to an
+        // immediate north turn for the east team: the nearby side corridor,
+        // neither the centre shortcut nor a needless full-perimeter lap.
         Assert.Equal(
             [
-                new Position(26, 15),
-                new Position(25, 13),
-                new Position(20, 13),
-                new Position(15, 10),
-                new Position(12, 7),
-                new Position(11, 7),
+                new Position(25, 23),
+                new Position(20, 23),
+                new Position(20, 21),
+                new Position(18, 19),
+                new Position(15, 19),
+                new Position(12, 17),
             ],
             extraction);
+
+        ActorMapDefinition map = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline6).Map;
+        Position[] eastBinding = extraction.Select(tile => new Position(
+            map.Width - 1 - tile.X,
+            map.Height - 1 - tile.Y)).ToArray();
+        HashSet<Position> routeWaypointForbidden = map.TileTags
+            .Where(tag => tag.Kind
+                == ActorMapTileTagDefinition.TileTagKind.SpawnProtected)
+            .SelectMany(tag => tag.Tiles)
+            .Concat(map.Regions
+                .Where(region => region.RegionId is "home-west" or "home-east")
+                .SelectMany(region => region.Tiles))
+            .ToHashSet();
+        Assert.All(
+            extraction.Concat(eastBinding),
+            tile => Assert.DoesNotContain(tile, routeWaypointForbidden));
+        HashSet<Position> enemyHome = map.Regions
+            .Single(region => region.RegionId == "home-west")
+            .Tiles
+            .ToHashSet();
+        var pickup = new Position(4, 11);
+        var reactor = new Position(28, 21);
+        var traversed = new List<Position> { pickup };
+        Position from = pickup;
+        foreach (Position destination in eastBinding.Append(reactor))
+        {
+            Position[] segment = ShortestCornerStrictTerrainPath(
+                map,
+                from,
+                destination,
+                enemyHome);
+            Assert.NotEmpty(segment);
+            traversed.AddRange(segment.Skip(1));
+            from = destination;
+        }
+
+        Assert.Equal(new Position(5, 3), eastBinding[0]);
+        Assert.Equal(47, traversed.Count - 1);
+        Assert.DoesNotContain(traversed, enemyHome.Contains);
+        Assert.DoesNotContain(
+            traversed,
+            tile => tile.X is >= 12 and <= 18
+                && tile.Y is >= 11 and <= 15);
+        Assert.DoesNotContain(traversed, tile => tile.Y <= 2);
     }
 
     [Fact]
@@ -1542,6 +1587,69 @@ public sealed class OrdersMovementSceneTests
             .Select(value => value.GetInt32()).ToArray())
         .Select(point => new Position(point[0], point[1]))
         .ToArray();
+
+    private static Position[] ShortestCornerStrictTerrainPath(
+        ActorMapDefinition map,
+        Position start,
+        Position destination,
+        IReadOnlySet<Position> forbidden)
+    {
+        var frontier = new Queue<Position>();
+        var previous = new Dictionary<Position, Position?>
+        {
+            [start] = null,
+        };
+        frontier.Enqueue(start);
+
+        while (frontier.Count > 0)
+        {
+            Position current = frontier.Dequeue();
+            if (current == destination)
+                break;
+
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                for (int dx = -1; dx <= 1; dx++)
+                {
+                    if (dx == 0 && dy == 0)
+                        continue;
+
+                    var next = new Position(current.X + dx, current.Y + dy);
+                    if (!Open(next) || previous.ContainsKey(next))
+                        continue;
+                    if (dx != 0 && dy != 0
+                        && (!Open(new Position(current.X + dx, current.Y))
+                            || !Open(new Position(current.X, current.Y + dy))))
+                    {
+                        continue;
+                    }
+
+                    previous[next] = current;
+                    frontier.Enqueue(next);
+                }
+            }
+        }
+
+        if (!previous.ContainsKey(destination))
+            return [];
+
+        var reverse = new List<Position>();
+        for (Position? cursor = destination;
+             cursor is Position tile;
+             cursor = previous[tile])
+        {
+            reverse.Add(tile);
+        }
+        reverse.Reverse();
+        return [.. reverse];
+
+        bool Open(Position tile) => tile.X >= 0
+            && tile.X < map.Width
+            && tile.Y >= 0
+            && tile.Y < map.Height
+            && !map.IsWall(tile)
+            && !forbidden.Contains(tile);
+    }
 
     private static TacticalPlaybookCompilation CompileHistoricalTapline4(
         string root,

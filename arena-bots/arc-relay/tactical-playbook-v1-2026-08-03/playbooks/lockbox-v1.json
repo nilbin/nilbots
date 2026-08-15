@@ -343,7 +343,7 @@
               "id": "escape-with-stolen-core",
               "move": {
                 "to": "own-reactor",
-                "via": "inner-corridor-extraction"
+                "via": "safe-side-corridor-extraction"
               }
             }
           ]
