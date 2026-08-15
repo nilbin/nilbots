@@ -87,7 +87,8 @@ public static class ArcRelayH0Definition
             return CreateCrucibleMap(loopProfile);
         if (loopProfile.Geometry == ArcRelayMapGeometry.DrawbenchHorizontal)
             return CreateDrawbenchMap(loopProfile);
-        if (loopProfile.Geometry == ArcRelayMapGeometry.TaplineWellLine)
+        if (loopProfile.Geometry is ArcRelayMapGeometry.TaplineWellLine
+            or ArcRelayMapGeometry.TaplineEqualReturn)
             return CreateTaplineMap(loopProfile);
         ImmutableArray<string> rows = loopProfile.Geometry
             == ArcRelayMapGeometry.DepthLarger
@@ -522,6 +523,29 @@ public static class ArcRelayH0Definition
             "#.............................#",
             "###############################",
         ];
+        if (loopProfile.Geometry == ArcRelayMapGeometry.TaplineEqualReturn)
+        {
+            // Tapline-6 closes the single centre-to-reactor shortcut without
+            // changing any landmark. These twelve tiles are the complete,
+            // owner-approved equal-return fork delta: six authored on the
+            // west half and their exact 180-degree partners. Keeping the
+            // delta here (rather than replacing TaplineWellLine's rows)
+            // makes the immutability boundary auditable at a glance.
+            (int X, int Y)[] addedWalls =
+            [
+                (9, 9), (10, 9), (11, 9), (9, 10), (5, 10), (10, 11),
+                (21, 17), (20, 17), (19, 17), (21, 16), (25, 16), (20, 15),
+            ];
+            char[][] changed = rows.Select(row => row.ToCharArray()).ToArray();
+            foreach ((int x, int y) in addedWalls)
+            {
+                if (changed[y][x] == '#')
+                    throw new InvalidOperationException(
+                        $"Tapline equal-return wall ({x},{y}) was already closed.");
+                changed[y][x] = '#';
+            }
+            rows = [.. changed.Select(row => new string(row))];
+        }
         int maximumX = rows[0].Length - 1;
         int maximumY = rows.Length - 1;
         Position Rotate(Position value) =>

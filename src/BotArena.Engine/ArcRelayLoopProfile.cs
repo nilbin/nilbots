@@ -1115,11 +1115,46 @@ public sealed record ArcRelayLoopProfile
         centreOpeningDelayTicks: 25);
 
     /// <summary>
+    /// The owner-approved equal-return Tapline. It keeps Tapline-5's complete
+    /// rules stack and landmark positions, but closes the centre shortcut so
+    /// the two practical centre-Core returns are both 19 terrain steps. The
+    /// new map identity preserves every Tapline-5 replay and fingerprint.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline6 { get; } = new(
+        "tapline-6",
+        "arc-relay-tapline-06",
+        "arc-relay-tapline-02",
+        ArcRelayMapGeometry.TaplineEqualReturn,
+        30, 65, 25, 9,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline5;
+    public static ArcRelayLoopProfile Current => Tapline6;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1195,6 +1230,7 @@ public sealed record ArcRelayLoopProfile
         Tapline3,
         Tapline4,
         Tapline5,
+        Tapline6,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,
@@ -1236,4 +1272,5 @@ internal enum ArcRelayMapGeometry
     CrucibleDiagonal,
     DrawbenchHorizontal,
     TaplineWellLine,
+    TaplineEqualReturn,
 }
