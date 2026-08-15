@@ -82,7 +82,7 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
-    public void LockboxStolenCoreExtractionUsesTheNorthInnerCorridor()
+    public void LockboxInterceptorCarryUsesTheInnerCorridorForItsWholeEpisode()
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
@@ -95,27 +95,55 @@ public sealed class OrdersMovementSceneTests
         JsonElement safeReturn = interceptor.GetProperty("orders")
             .EnumerateArray()
             .Single(order => order.TryGetProperty("id", out JsonElement id)
-                && id.GetString() == "return-ambush-steal-safely");
+                && id.GetString() == "return-intercepted-core-safely");
         JsonElement escape = safeReturn.GetProperty("orders")
             .EnumerateArray()
             .Single(order => order.GetProperty("id").GetString()
                 == "escape-with-stolen-core");
+        JsonElement stage = interceptor.GetProperty("orders")
+            .EnumerateArray()
+            .Single(order => order.TryGetProperty("id", out JsonElement id)
+                && id.GetString() == "ambush-centre-carriers")
+            .GetProperty("orders")
+            .EnumerateArray()
+            .Single(order => order.GetProperty("id").GetString()
+                == "stage-return-lane-ambush");
 
+        string[] startConditions = safeReturn.GetProperty("when")
+            .GetProperty("all")
+            .EnumerateArray()
+            .Select(value => value.GetString()!)
+            .ToArray();
         Assert.Equal(
-            "north-centre-extraction",
+            ["carrying-core", "inside-enemy-return-pickup"],
+            startConditions);
+        Assert.Equal(
+            "empty-handed",
+            safeReturn.GetProperty("until").GetString());
+        Assert.Equal("normal", stage.GetProperty("urgency").GetString());
+        Assert.Equal(
+            "inner-corridor-extraction",
             escape.GetProperty("move").GetProperty("via").GetString());
 
         using JsonDocument mapPlan = JsonDocument.Parse(
             lockbox.NormalizedLayout);
+        Assert.Equal(
+            [24, 14, 27, 18],
+            mapPlan.RootElement.GetProperty("zones")
+                .GetProperty("enemy-return-pickup")
+                .GetProperty("rect")
+                .EnumerateArray()
+                .Select(value => value.GetInt32())
+                .ToArray());
         Position[] extraction = RoutePoints(
             mapPlan.RootElement.GetProperty("routes"),
-            "north-centre-extraction");
+            "inner-corridor-extraction");
 
-        // A carrier leaving any of the four ambush slots must first take the
-        // open mouth immediately north of the pocket, then cross the inner
-        // corridor above centre. The old unconstrained move chose the shorter
-        // southern return from the pocket's inner edge; the deleted historical
-        // route over-corrected with a full outer-perimeter lap.
+        // Pickup can resolve one tile outside the narrow ambush rectangle, so
+        // the return belongs to the interceptor's entire carrying episode,
+        // not to a coordinate snapshot. The safe return uses the nearby inner
+        // corridor so neither a centre shortcut nor a needless full-perimeter
+        // lap can silently replace the authored escape.
         Assert.Equal(
             [
                 new Position(26, 15),

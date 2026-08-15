@@ -14,6 +14,9 @@
     },
     "enemy-return-ambush": {
       "rect": [24, 17, 27, 17]
+    },
+    "enemy-return-pickup": {
+      "rect": [24, 14, 27, 18]
     }
   },
   "routes": {
@@ -31,7 +34,7 @@
         [23, 17]
       ]
     },
-    "north-centre-extraction": {
+    "inner-corridor-extraction": {
       "waypoints": [
         [26, 15],
         [25, 13],

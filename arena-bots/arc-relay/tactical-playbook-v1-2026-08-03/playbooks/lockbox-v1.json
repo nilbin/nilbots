@@ -327,11 +327,11 @@
       ],
       "orders": [
         {
-          "id": "return-ambush-steal-safely",
+          "id": "return-intercepted-core-safely",
           "when": {
             "all": [
-              "carrying-high-value-core",
-              "inside-enemy-return-ambush"
+              "carrying-core",
+              "inside-enemy-return-pickup"
             ]
           },
           "until": "empty-handed",
@@ -343,7 +343,7 @@
               "id": "escape-with-stolen-core",
               "move": {
                 "to": "own-reactor",
-                "via": "north-centre-extraction"
+                "via": "inner-corridor-extraction"
               }
             }
           ]
@@ -366,7 +366,7 @@
               "when": {
                 "all": [
                   "empty-handed",
-                  "loose-core-in-enemy-return-ambush"
+                  "loose-core-in-enemy-return-pickup"
                 ]
               },
               "capacity": 1,
@@ -482,6 +482,7 @@
             {
               "id": "stage-return-lane-ambush",
               "when": "empty-handed",
+              "urgency": "normal",
               "move": {
                 "to": {
                   "zone": "enemy-return-ambush"
@@ -695,11 +696,6 @@
       "operator": "equals",
       "value": 0
     },
-    "carrying-high-value-core": {
-      "fact": "self-carried-core-bank-value",
-      "operator": "at-least",
-      "value": 2
-    },
     "loose-core-known": {
       "fact": "known-loose-cores",
       "operator": "at-least",
@@ -738,9 +734,15 @@
       "value": 1,
       "zone": "enemy-return-ambush"
     },
-    "loose-core-in-enemy-return-ambush": {
+    "inside-enemy-return-pickup": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "enemy-return-pickup"
+    },
+    "loose-core-in-enemy-return-pickup": {
       "fact": "known-loose-cores-in-zone",
-      "zone": "enemy-return-ambush",
+      "zone": "enemy-return-pickup",
       "operator": "at-least",
       "value": 1
     },
