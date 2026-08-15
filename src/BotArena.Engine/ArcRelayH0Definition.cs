@@ -825,9 +825,11 @@ public static class ArcRelayH0Definition
             [
                 new ArcRelayWellScheduleDefinition(
                     "centre",
-                    loopProfile.FirstGlobalBeatTicks,
+                    loopProfile.FirstGlobalBeatTicks
+                        + loopProfile.CentreOpeningDelayTicks,
                     loopProfile.WellCadenceTicks,
                     loopProfile.FirstGlobalBeatTicks
+                        + loopProfile.CentreOpeningDelayTicks
                         + (loopProfile.ScheduledBirthRounds - 1)
                             * loopProfile.WellCadenceTicks),
                 new ArcRelayWellScheduleDefinition(

@@ -3,14 +3,49 @@
   "mapPlanId": "lockbox-v1",
   "mapId": "arc-relay-tapline-01",
   "zones": {
+    "centre-throat": {
+      "rect": [11, 7, 13, 10]
+    },
+    "centre-screen-pocket": {
+      "rect": [10, 11, 12, 13]
+    },
     "centre-pressure-gate": {
       "rect": [12, 11, 18, 15]
     },
-    "centre-killbox": {
-      "rect": [12, 10, 16, 16]
+    "enemy-return-ambush": {
+      "rect": [18, 16, 22, 17]
     }
   },
-  "routes": {},
+  "routes": {
+    "north-centre-bypass": {
+      "waypoints": [
+        [11, 7],
+        [15, 3],
+        [15, 1],
+        [27, 1],
+        [27, 3],
+        [27, 7],
+        [25, 10],
+        [24, 13],
+        [24, 15],
+        [23, 17]
+      ]
+    },
+    "north-safe-return": {
+      "waypoints": [
+        [23, 17],
+        [24, 15],
+        [24, 13],
+        [25, 10],
+        [27, 7],
+        [27, 3],
+        [27, 1],
+        [15, 1],
+        [15, 3],
+        [11, 7]
+      ]
+    }
+  },
   "anchors": {
     "own-well-lock": [
       12,
@@ -18,6 +53,10 @@
     ],
     "centre-threat-axis": [
       19,
+      13
+    ],
+    "centre-core-axis": [
+      15,
       13
     ]
   }

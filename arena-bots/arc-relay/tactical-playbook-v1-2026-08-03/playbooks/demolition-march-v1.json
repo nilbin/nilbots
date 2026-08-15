@@ -85,7 +85,7 @@
         },
         {
           "id": "march-to-defended-well",
-          "capacity": 2,
+          "capacity": 1,
           "move": {
             "to": {
               "well": "enemy"
@@ -271,11 +271,24 @@
         },
         {
           "id": "convert-demolition-to-raid",
+          "capacity": 1,
           "move": {
             "to": {
               "well": "enemy"
             },
             "posture": "front"
+          }
+        },
+        {
+          "id": "hold-raid-reserve-at-centre",
+          "move": {
+            "to": {
+              "zone": "centre-overwatch"
+            },
+            "posture": "front",
+            "face": {
+              "anchor": "enemy-centre-approach"
+            }
           }
         }
       ]

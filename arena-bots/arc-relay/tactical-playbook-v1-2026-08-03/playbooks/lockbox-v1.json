@@ -54,9 +54,6 @@
           ]
         },
         {
-          "shared": "answer-centre-column"
-        },
-        {
           "shared": "collect-loose-core"
         },
         {
@@ -76,8 +73,7 @@
     {
       "id": "centre-screen",
       "classes": [
-        "palisade",
-        "mortar"
+        "palisade"
       ],
       "upgradePath": [
         "vitality",
@@ -92,30 +88,85 @@
           "shared": "recover-health"
         },
         {
+          "id": "punish-centre-mass",
+          "when": {
+            "all": [
+              "centre-overload-visible",
+              "centre-overload-outnumbered"
+            ]
+          },
+          "until": {
+            "any": [
+              "centre-overload-cleared",
+              "centre-screen-window-finished"
+            ]
+          },
+          "timeout": 55,
+          "cooldown": 10,
+          "urgency": "urgent",
+          "orders": [
+            {
+              "id": "wall-centre-mass",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-centre-screen",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "prism-wall",
+                "target": "nearest-enemy"
+              }
+            },
+            {
+              "id": "hold-centre-screen-fire",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-centre-screen",
+                  "enemy-nearby"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "veteran",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 0
+              }
+            },
+            {
+              "id": "form-centre-screen",
+              "when": "empty-handed",
+              "move": {
+                "to": {
+                  "zone": "centre-screen-pocket"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "centre-threat-axis"
+                }
+              }
+            }
+          ]
+        },
+        {
           "id": "wall-centre-column",
           "when": {
             "all": [
               "empty-handed",
               "enemy-nearby",
+              "clear-of-centre-throat",
               "signature-ready"
             ]
           },
           "use": {
             "skill": "prism-wall",
-            "target": "nearest-enemy"
-          }
-        },
-        {
-          "id": "lob-centre-column",
-          "when": {
-            "all": [
-              "empty-handed",
-              "enemy-nearby",
-              "signature-ready"
-            ]
-          },
-          "use": {
-            "skill": "falling-star",
             "target": "nearest-enemy"
           }
         },
@@ -158,11 +209,80 @@
           "shared": "recover-health"
         },
         {
+          "id": "shatter-centre-mass",
+          "when": {
+            "all": [
+              "centre-overload-visible",
+              "centre-overload-outnumbered"
+            ]
+          },
+          "until": {
+            "any": [
+              "centre-overload-cleared",
+              "centre-screen-window-finished"
+            ]
+          },
+          "timeout": 55,
+          "cooldown": 10,
+          "urgency": "urgent",
+          "orders": [
+            {
+              "id": "repulse-centre-mass",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-centre-screen",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "kinetic-burst",
+                "target": "self"
+              }
+            },
+            {
+              "id": "hold-breaker-screen-fire",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-centre-screen",
+                  "enemy-nearby"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "veteran",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 0
+              }
+            },
+            {
+              "id": "form-breaker-screen",
+              "when": "empty-handed",
+              "move": {
+                "to": {
+                  "zone": "centre-screen-pocket"
+                },
+                "posture": "front",
+                "face": {
+                  "anchor": "centre-threat-axis"
+                }
+              }
+            }
+          ]
+        },
+        {
           "id": "repulse-centre-column",
           "when": {
             "all": [
               "empty-handed",
               "enemy-nearby",
+              "clear-of-centre-throat",
               "signature-ready"
             ]
           },
@@ -192,11 +312,12 @@
       ]
     },
     {
-      "id": "lockbox-support",
+      "id": "return-lane-interceptors",
       "classes": [
         "hush",
-        "patchbay",
-        "longshot"
+        "towline",
+        "sunder",
+        "mortar"
       ],
       "upgradePath": [
         "vitality",
@@ -206,10 +327,154 @@
       ],
       "orders": [
         {
+          "id": "return-ambush-steal-safely",
+          "when": {
+            "all": [
+              "carrying-high-value-core",
+              "inside-enemy-return-ambush"
+            ]
+          },
+          "until": "empty-handed",
+          "timeout": 240,
+          "cooldown": 2,
+          "urgency": "urgent",
+          "orders": [
+            {
+              "id": "take-stolen-core-home-around-north",
+              "move": {
+                "to": "own-reactor",
+                "via": "north-safe-return"
+              }
+            }
+          ]
+        },
+        {
           "shared": "score-a-core"
         },
         {
           "shared": "recover-health"
+        },
+        {
+          "id": "ambush-centre-carriers",
+          "until": "ambush-window-finished",
+          "timeout": 100,
+          "cooldown": 20,
+          "urgency": "urgent",
+          "orders": [
+            {
+              "id": "secure-core-dropped-in-ambush",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "loose-core-in-enemy-return-ambush"
+                ]
+              },
+              "capacity": "two-per-core",
+              "move": {
+                "to": "nearest-known-loose-core"
+              }
+            },
+            {
+              "id": "hook-ambushed-carrier",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-enemy-return-ambush",
+                  "centre-column-seen",
+                  "enemy-carrier-visible",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "tractor-hook",
+                "target": "enemy-carrier"
+              }
+            },
+            {
+              "id": "paint-ambushed-carrier",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-enemy-return-ambush",
+                  "centre-column-seen",
+                  "enemy-carrier-visible",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "target-paint",
+                "target": "enemy-carrier"
+              }
+            },
+            {
+              "id": "silence-ambushed-support",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-enemy-return-ambush",
+                  "centre-column-seen",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "null-field",
+                "target": "self"
+              }
+            },
+            {
+              "id": "lob-return-lane-column",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-enemy-return-ambush",
+                  "centre-column-seen",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "falling-star",
+                "target": "nearest-enemy"
+              }
+            },
+            {
+              "id": "spring-return-lane-ambush",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "inside-enemy-return-ambush",
+                  "centre-column-seen",
+                  "enemy-carrier-visible",
+                  "enemy-nearby"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "marked",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 3
+              }
+            },
+            {
+              "id": "stage-return-lane-ambush",
+              "when": "empty-handed",
+              "move": {
+                "to": {
+                  "zone": "enemy-return-ambush"
+                },
+                "via": "north-centre-bypass",
+                "posture": "line",
+                "face": {
+                  "anchor": "centre-core-axis"
+                }
+              }
+            }
+          ]
         },
         {
           "id": "silence-lockbox",
@@ -226,15 +491,7 @@
           }
         },
         {
-          "id": "repair-lockbox",
-          "when": "signature-ready",
-          "use": {
-            "skill": "repair-beam",
-            "target": "weakest-ally"
-          }
-        },
-        {
-          "id": "rail-centre-column",
+          "id": "hook-visible-carrier",
           "when": {
             "all": [
               "empty-handed",
@@ -243,12 +500,37 @@
             ]
           },
           "use": {
-            "skill": "rail-line",
-            "target": "weakest-enemy"
+            "skill": "tractor-hook",
+            "target": "enemy-carrier"
           }
         },
         {
-          "shared": "answer-centre-column"
+          "id": "paint-visible-carrier",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "target-paint",
+            "target": "enemy-carrier"
+          }
+        },
+        {
+          "id": "lob-visible-column",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "falling-star",
+            "target": "nearest-enemy"
+          }
         },
         {
           "shared": "collect-loose-core"
@@ -329,7 +611,8 @@
           "when": {
             "all": [
               "empty-handed",
-              "enemy-nearby"
+              "enemy-nearby",
+              "clear-of-centre-throat"
             ]
           },
           "fight": {
@@ -344,12 +627,12 @@
           }
         },
         {
-          "id": "form-centre-killbox",
+          "id": "form-centre-screen-line",
           "when": "empty-handed",
-          "capacity": "centre-response-six",
+          "capacity": "centre-screen-three",
           "move": {
             "to": {
-              "zone": "centre-killbox"
+              "zone": "centre-screen-pocket"
             },
             "posture": "line",
             "face": {
@@ -363,7 +646,8 @@
       "when": {
         "all": [
           "empty-handed",
-          "enemy-nearby"
+          "enemy-nearby",
+          "clear-of-centre-throat"
         ]
       },
       "fight": {
@@ -379,7 +663,7 @@
   },
   "capacities": {
     "two-per-core": 2,
-    "centre-response-six": 6
+    "centre-screen-three": 3
   },
   "conditions": {
     "carrying-core": {
@@ -391,6 +675,11 @@
       "fact": "self-carrying",
       "operator": "equals",
       "value": 0
+    },
+    "carrying-high-value-core": {
+      "fact": "self-carried-core-bank-value",
+      "operator": "at-least",
+      "value": 2
     },
     "loose-core-known": {
       "fact": "known-loose-cores",
@@ -411,6 +700,30 @@
       "fact": "self-nearest-visible-enemy-distance",
       "operator": "at-most",
       "value": 7
+    },
+    "clear-of-centre-throat": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 0,
+      "zone": "centre-throat"
+    },
+    "inside-centre-screen": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "centre-screen-pocket"
+    },
+    "inside-enemy-return-ambush": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "enemy-return-ambush"
+    },
+    "loose-core-in-enemy-return-ambush": {
+      "fact": "known-loose-cores-in-zone",
+      "zone": "enemy-return-ambush",
+      "operator": "at-least",
+      "value": 1
     },
     "signature-ready": {
       "fact": "signature-ready",
@@ -445,6 +758,40 @@
       "windowTicks": 75,
       "operator": "at-least",
       "value": 4
+    },
+    "centre-overload-visible": {
+      "fact": "visible-enemies-in-zone",
+      "zone": "centre-pressure-gate",
+      "operator": "at-least",
+      "value": 4
+    },
+    "centre-overload-outnumbered": {
+      "fact": "friendlies-in-zone",
+      "zone": "centre-pressure-gate",
+      "operator": "at-most",
+      "value": 2
+    },
+    "centre-overload-cleared": {
+      "fact": "remembered-enemies-in-zone",
+      "zone": "centre-pressure-gate",
+      "freshnessTicks": 30,
+      "operator": "at-most",
+      "value": 2
+    },
+    "centre-screen-window-finished": {
+      "fact": "self-order-ticks",
+      "operator": "at-least",
+      "value": 45
+    },
+    "ambush-window-finished": {
+      "fact": "self-order-ticks",
+      "operator": "at-least",
+      "value": 90
+    },
+    "enemy-carrier-visible": {
+      "fact": "visible-enemy-carriers",
+      "operator": "at-least",
+      "value": 1
     },
     "centre-response-earned": {
       "fact": "confirmed-enemy-destructions-in-zone",

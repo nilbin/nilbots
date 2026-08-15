@@ -366,6 +366,37 @@ public sealed class ArcRelayTaplineDepthTests
         Assert.Equal(4, parsedMode.EnemyWellCoreCharge);
     }
 
+    [Fact]
+    public void Tapline5DelaysOnlyTheCentreOpeningScheduleToTheOuterBeat()
+    {
+        ActorResolvedMatchDefinition previous = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline4);
+        ActorResolvedMatchDefinition candidate = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline5);
+        var previousMode = Assert.IsType<ArcRelayGameModeDefinition>(
+            previous.Rules.GameMode);
+        var candidateMode = Assert.IsType<ArcRelayGameModeDefinition>(
+            candidate.Rules.GameMode);
+
+        Assert.Equal(
+            [(25, 65, 545), (50, 65, 570), (50, 65, 570)],
+            previousMode.Wells.Select(well => (
+                well.FirstBirthTick,
+                well.CadenceTicks,
+                well.FinalBirthTick)));
+        Assert.Equal(
+            [(50, 65, 570), (50, 65, 570), (50, 65, 570)],
+            candidateMode.Wells.Select(well => (
+                well.FirstBirthTick,
+                well.CadenceTicks,
+                well.FinalBirthTick)));
+        Assert.Equal(previousMode.WellBirthJitterTicks,
+            candidateMode.WellBirthJitterTicks);
+        Assert.Equal(previousMode.CentreWellCoreCharge,
+            candidateMode.CentreWellCoreCharge);
+        Assert.Equal(previousMode.Wells.Count(), candidateMode.Wells.Count());
+    }
+
     [Theory]
     [InlineData(0, "north", 1)]
     [InlineData(0, "centre", 2)]

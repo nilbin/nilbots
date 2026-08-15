@@ -44,14 +44,18 @@ public sealed record ArcRelayLoopProfile
         int minimumDistinctClasses = 0,
         bool durableDeployments = false,
         int combatMagnitudeScale = 1,
-        int bodyHullBonus = 0)
+        int bodyHullBonus = 0,
+        int centreOpeningDelayTicks = 0)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
         if (bodyHullBonus < 0)
             throw new ArgumentOutOfRangeException(nameof(bodyHullBonus));
+        if (centreOpeningDelayTicks < 0)
+            throw new ArgumentOutOfRangeException(nameof(centreOpeningDelayTicks));
         CombatMagnitudeScale = combatMagnitudeScale;
         BodyHullBonus = bodyHullBonus;
+        CentreOpeningDelayTicks = centreOpeningDelayTicks;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -141,6 +145,7 @@ public sealed record ArcRelayLoopProfile
     internal bool DurableDeployments { get; }
     internal int CombatMagnitudeScale { get; }
     internal int BodyHullBonus { get; }
+    internal int CentreOpeningDelayTicks { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -1075,6 +1080,41 @@ public sealed record ArcRelayLoopProfile
         combatMagnitudeScale: 10);
 
     /// <summary>
+    /// Tapline-4 with a readable opening phase. The centre Well joins the two
+    /// outer Wells on the second global beat, giving both teams time to scout
+    /// and establish counter-position before the first two-charge Core exists.
+    /// Later births keep the promoted 65-tick cadence and nine-round supply.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline5 { get; } = new(
+        "tapline-5",
+        "arc-relay-tapline-05",
+        "arc-relay-tapline-01",
+        ArcRelayMapGeometry.TaplineWellLine,
+        30, 65, 25, 9,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
@@ -1154,6 +1194,7 @@ public sealed record ArcRelayLoopProfile
         Tapline2,
         Tapline3,
         Tapline4,
+        Tapline5,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,
