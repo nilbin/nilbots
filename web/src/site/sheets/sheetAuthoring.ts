@@ -319,9 +319,9 @@ export function signatureTargets(skill: string): string[] {
   return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
 }
 
-export function identifierFromName(value: string, fallback = 'untitled-sheet'): string {
+export function identifierFromName(value: string, fallback = 'untitled-sheet', maximumLength = 48): string {
   const id = value.toLowerCase().normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, maximumLength);
   return id || fallback;
 }
 

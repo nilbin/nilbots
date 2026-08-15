@@ -13,6 +13,7 @@ import type {
   SheetIssue,
 } from './sheetAuthoring';
 import type { UnitTrack } from './sheetTrials';
+import IdentifierInput from './IdentifierInput';
 import {
   mapRegionPresentation,
   nearestSpawnTeam,
@@ -251,10 +252,10 @@ export default function MapPlanEditor({
         {selected && <>
           <label className="mt-3 block">
             <span className="t-micro mb-1 block">Tactical name</span>
-            <input className="field min-h-11" value={selected}
-              onChange={(event) => {
-                const next = identifier(event.target.value);
-                if (next && next !== selected && !ids.includes(next)) {
+            <IdentifierInput value={selected}
+              isTaken={(next) => next !== selected && ids.includes(next)}
+              onCommit={(next) => {
+                if (next !== selected) {
                   onRename(kind, selected, next);
                   setSelectedId(next);
                 }
@@ -501,10 +502,6 @@ function objectIds(mapPlan: MapPlanDocument, kind: PlotKind): string[] {
 
 function relationColor(relation: MapTeamRelation) {
   return relation === 'own' ? OWN : relation === 'enemy' ? ENEMY : NEUTRAL;
-}
-
-function identifier(value: string) {
-  return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 48);
 }
 
 function uniqueId(prefix: string, ids: string[]) {

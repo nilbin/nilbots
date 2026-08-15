@@ -11,7 +11,6 @@ import {
   conditionExpressionNames,
   conditionSubjectKind,
   freshOrder,
-  identifierFromName,
   moveIntentKind,
   moveRole,
   renameCondition,
@@ -34,6 +33,7 @@ import {
   type UseTarget,
 } from './sheetAuthoring';
 import { MapTargetPreview } from './MapPlanEditor';
+import IdentifierInput from './IdentifierInput';
 
 type LibraryTool = 'conditions' | 'capacities' | 'shared' | null;
 type PlotKind = 'route' | 'zone' | 'anchor';
@@ -109,10 +109,9 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
             {open && <div className="border-t border-arena-edge p-3">
               <label className="block">
                 <span className="lab mb-1 block">Role call sign</span>
-                <input className="field min-h-11" value={role.id} maxLength={24}
-                  onChange={(event) => {
-                    const nextId = identifierFromName(event.target.value, role.id);
-                    if (nextId === role.id || orders.roles.some((entry) => entry.id === nextId)) return;
+                <IdentifierInput value={role.id} maxLength={24}
+                  isTaken={(nextId) => orders.roles.some((entry) => entry.id === nextId && entry.id !== role.id)}
+                  onCommit={(nextId) => {
                     commit((next) => renameRole(next, role.id, nextId));
                     setOpenRole(nextId);
                   }} />
@@ -388,8 +387,8 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
     {open && <div className="border-t border-arena-edge p-3">
       {action === 'shared' ? <SharedReference node={node} allOrders={allOrders} onChange={onChange} /> : <>
         {!externalId && <label className="block"><span className="lab mb-1 block">Authored order name</span>
-          <input className="field min-h-11" value={node.id ?? ''} maxLength={48}
-            onChange={(event) => change((next) => { next.id = identifierFromName(event.target.value, next.id ?? 'order'); })} /></label>}
+          <IdentifierInput value={node.id ?? ''} fallback="order"
+            onCommit={(id) => change((next) => { next.id = id; })} /></label>}
         <LifecycleEditor node={node} allOrders={allOrders} onChange={onChange} />
         {action === 'branch' && node.orders && <>
           <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-2">
@@ -749,10 +748,9 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap, initia
       }}>{humanize(id)}</button>)}</div>
       <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" onClick={add}>＋ New condition</button></div>
     {current ? <div className="min-w-0 rounded-sm border border-arena-edge p-3" data-sheet-path={`orders.conditions.${selected}`}>
-      <label><span className="lab mb-1 block">Condition name</span><input className="field min-h-11" value={selected}
-        onChange={(event) => {
-          const id = identifierFromName(event.target.value, selected);
-          if (id === selected || orders.conditions[id]) return;
+      <label><span className="lab mb-1 block">Condition name</span><IdentifierInput value={selected}
+        isTaken={(id) => id !== selected && Boolean(orders.conditions[id])}
+        onCommit={(id) => {
           commit((next) => { next.conditions[id] = next.conditions[selected]; delete next.conditions[selected]; renameCondition(next, selected, id); }); setSelected(id);
         }} /></label>
       <p className="lab mb-2 mt-4">What can trigger this?</p>
@@ -860,8 +858,9 @@ function CapacitiesEditor({ orders, issues, onChange }: { orders: OrdersDocument
   const ids = Object.keys(orders.capacities);
   const commit = (change: (next: OrdersDocument) => void) => { const next = structuredClone(orders); change(next); onChange(next); };
   return <div className="grid gap-2 sm:grid-cols-2">{ids.map((id) => <article key={id} className="rounded-sm border border-arena-edge p-3" data-sheet-path={`orders.capacities.${id}`}>
-    <label><span className="lab mb-1 block">Capacity name</span><input className="field min-h-11" value={id} onChange={(event) => {
-      const nextId = identifierFromName(event.target.value, id); if (nextId === id || orders.capacities[nextId]) return;
+    <label><span className="lab mb-1 block">Capacity name</span><IdentifierInput value={id}
+      isTaken={(nextId) => nextId !== id && Boolean(orders.capacities[nextId])}
+      onCommit={(nextId) => {
       commit((next) => { next.capacities[nextId] = next.capacities[id]; delete next.capacities[id]; rewriteCapacity(next, id, nextId); });
     }} /></label>
     <label className="mt-3 block"><span className="t-micro mb-1 block">Bodies per resolved target</span><input type="number" className="field min-h-11" min={1} max={8} value={orders.capacities[id]}
@@ -907,8 +906,9 @@ function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpen
         </button>
       </div>}
     </div>
-    {definition && exampleRole ? <div><label className="mb-2 block"><span className="lab mb-1 block">Shared order name</span><input className="field min-h-11" value={selected}
-      onChange={(event) => { const id = identifierFromName(event.target.value, selected); if (id === selected || orders.sharedOrders[id]) return; commit((next) => { next.sharedOrders[id] = next.sharedOrders[selected]; delete next.sharedOrders[selected]; rewriteShared(next, selected, id); }); setSelected(id); }} /></label>
+    {definition && exampleRole ? <div><label className="mb-2 block"><span className="lab mb-1 block">Shared order name</span><IdentifierInput value={selected}
+      isTaken={(id) => id !== selected && Boolean(orders.sharedOrders[id])}
+      onCommit={(id) => { commit((next) => { next.sharedOrders[id] = next.sharedOrders[selected]; delete next.sharedOrders[selected]; rewriteShared(next, selected, id); }); setSelected(id); }} /></label>
       <OrderCard node={definition} externalId={selected} path={`orders.sharedOrders.${selected}`} role={exampleRole}
         allOrders={orders} mapPlan={mapPlan} catalog={catalog} issues={issues} depth={0} open
         openPath={null}

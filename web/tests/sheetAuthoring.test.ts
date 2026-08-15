@@ -10,6 +10,7 @@ import {
   actionOf,
   compositionOf,
   freshOrder,
+  identifierFromName,
   moveIntentKind,
   parseDraft,
   pinDraft,
@@ -209,6 +210,12 @@ test('condition categories expose every current fact exactly once', () => {
       'zone-fully-observed-throughout-interval',
     ],
   );
+});
+
+test('player-entered tactical names normalize only at the identifier boundary', () => {
+  assert.equal(identifierFromName('North  Ambush - Gate'), 'north-ambush-gate');
+  assert.equal(identifierFromName('Rear Guard', 'role', 8), 'rear-gua');
+  assert.equal(identifierFromName('---', 'existing-name'), 'existing-name');
 });
 
 test('order action detection has only the five physical verbs plus branch and exact sharing', () => {
