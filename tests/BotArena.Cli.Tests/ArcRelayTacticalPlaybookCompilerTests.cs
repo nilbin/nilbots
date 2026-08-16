@@ -600,6 +600,132 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void PlayerReadyProgramFactsAndTargetsCompileWithNarrowQualifiers()
+    {
+        JsonObject source = Source("lockbox-v1");
+        JsonObject map = MapPlan("lockbox-v1");
+        JsonArray masonOrders = source["roles"]![0]!["orders"]!.AsArray();
+        JsonArray screenOrders = source["roles"]![1]!["orders"]!.AsArray();
+        source["conditions"]!["own-wall-missing"] = new JsonObject
+        {
+            ["fact"] = "self-deployment-in-zone",
+            ["operator"] = "equals",
+            ["value"] = 0,
+            ["zone"] = "centre-throat",
+        };
+        source["conditions"]!["mason-wall-ready"] = new JsonObject
+        {
+            ["fact"] = "role-deployments-in-zone-count",
+            ["operator"] = "at-least",
+            ["value"] = 1,
+            ["role"] = "own-well-mason",
+            ["zone"] = "centre-throat",
+            ["signature"] = "hardlight-block",
+        };
+        source["conditions"]!["high-core-nearby"] = new JsonObject
+        {
+            ["fact"] = "self-nearest-visible-loose-core-distance",
+            ["operator"] = "at-most",
+            ["value"] = 7,
+            ["coreBankValue"] = new JsonObject
+            {
+                ["operator"] = "at-least",
+                ["value"] = 2,
+            },
+        };
+        source["conditions"]!["friendly-pickup-this-response"] = new JsonObject
+        {
+            ["fact"] = "friendly-core-pickups",
+            ["operator"] = "at-least",
+            ["value"] = 1,
+            ["since"] = "node-entry",
+        };
+        masonOrders.Insert(0, new JsonObject
+        {
+            ["id"] = "recover-high-core",
+            ["when"] = "high-core-nearby",
+            ["until"] = "friendly-pickup-this-response",
+            ["move"] = new JsonObject
+            {
+                ["to"] = "highest-bank-value-visible-loose-core",
+                ["withinWalkingSteps"] = 7,
+                ["coreBankValue"] = new JsonObject
+                {
+                    ["operator"] = "at-least",
+                    ["value"] = 2,
+                },
+            },
+        });
+        masonOrders.Insert(1, new JsonObject
+        {
+            ["id"] = "maintain-own-wall",
+            ["when"] = "own-wall-missing",
+            ["move"] = new JsonObject
+            {
+                ["to"] = "current-position",
+            },
+        });
+        screenOrders.Insert(0, new JsonObject
+        {
+            ["id"] = "wait-for-mason-wall",
+            ["when"] = "mason-wall-ready",
+            ["fight"] = new JsonObject
+            {
+                ["targets"] = new JsonArray("carrier", "nearest"),
+                ["style"] = "hold",
+                ["chaseLimit"] = 3,
+                ["zone"] = "enemy-return-ambush",
+            },
+        });
+
+        TacticalPlaybookCompilation compilation = Compile(source, map);
+
+        Assert.True(compilation.UsesOrderTree);
+    }
+
+    [Fact]
+    public void CarrierFollowAndBoundedHealingUseOnlyTheirPublishedShapes()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonArray homeOrders = source["roles"]![0]!["orders"]!.AsArray();
+        homeOrders.Insert(0, new JsonObject
+        {
+            ["id"] = "escort-high-value-carrier",
+            ["move"] = new JsonObject
+            {
+                ["follow"] = new JsonObject
+                {
+                    ["selector"] = "nearest-friendly-core-carrier",
+                    ["coreBankValue"] = new JsonObject
+                    {
+                        ["operator"] = "equals",
+                        ["value"] = 4,
+                    },
+                },
+                ["posture"] = "rear",
+            },
+        });
+        homeOrders.Insert(1, new JsonObject
+        {
+            ["id"] = "bounded-heal",
+            ["move"] = new JsonObject
+            {
+                ["to"] = "nearest-heal-zone",
+                ["withinWalkingSteps"] = 8,
+            },
+        });
+
+        Assert.True(Compile(
+            source, MapPlan("starter-tapline-v2")).UsesOrderTree);
+
+        JsonObject follow = homeOrders[0]!["move"]!["follow"]!.AsObject();
+        follow["selector"] = "most-experienced-ally";
+        InvalidDataException invalid = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+        Assert.Contains("coreBankValue is legal only", invalid.Message);
+    }
+
+    [Fact]
     public void DestinationFacingIsNarrowAndConsumesItsAnchor()
     {
         JsonObject source = Source("lockbox-v1");

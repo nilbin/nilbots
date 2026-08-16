@@ -232,8 +232,67 @@ test('condition categories expose every current fact exactly once', () => {
       'distinct-enemy-lives-observed-in-zone',
       'confirmed-enemy-destructions-in-zone',
       'zone-fully-observed-throughout-interval',
+      'friendly-core-pickups',
     ],
   );
+});
+
+test('player-ready Program facts and targets survive editor validation', () => {
+  const source = structuredClone(orders);
+  source.conditions['valuable-core-nearby'] = {
+    fact: 'self-nearest-visible-loose-core-distance', operator: 'at-most', value: 7,
+    coreBankValue: { operator: 'at-least', value: 2 },
+  };
+  source.conditions['wall-in-post'] = {
+    fact: 'self-deployment-in-zone', operator: 'equals', value: 1,
+    zone: 'centre-post',
+  };
+  source.conditions['whole-wall-line-ready'] = {
+    fact: 'role-deployments-in-zone-count', operator: 'at-least', value: 2,
+    role: 'support', zone: 'centre-post', signature: 'prism-wall',
+  };
+  source.conditions['enemy-in-post'] = {
+    fact: 'self-nearest-visible-enemy-distance', operator: 'at-most', value: 6,
+    zone: 'centre-post',
+  };
+  source.conditions['pickup-seen'] = {
+    fact: 'friendly-core-pickups', operator: 'at-least', value: 1,
+    since: 'match-start',
+  };
+  source.roles[0].orders.unshift(
+    {
+      id: 'recover-valuable-core', when: 'valuable-core-nearby',
+      move: {
+        to: 'highest-bank-value-visible-loose-core', posture: 'front',
+        withinWalkingSteps: 7,
+        coreBankValue: { operator: 'at-least', value: 2 },
+      },
+    },
+    {
+      id: 'follow-valuable-carrier', when: 'pickup-seen',
+      move: {
+        follow: {
+          selector: 'nearest-friendly-core-carrier',
+          coreBankValue: { operator: 'at-least', value: 2 },
+        },
+        posture: 'rear',
+      },
+    },
+    {
+      id: 'fight-in-post', when: { all: ['enemy-in-post', 'whole-wall-line-ready'] },
+      fight: { targets: ['nearest'], style: 'hold', chaseLimit: 3, zone: 'centre-post' },
+    },
+    {
+      id: 'maintain-post', when: 'wall-in-post',
+      move: { to: { zone: 'centre-post' }, posture: 'rear' },
+    },
+  );
+  const plan = structuredClone(mapPlan);
+  plan.zones['centre-post'] = { rect: [1, 1, 3, 3] };
+
+  const draft = parseDraft('Program primitives', null, null,
+    stringifyDocument(source), stringifyDocument(plan));
+  assert.deepEqual(validateDraft(draft, catalog), []);
 });
 
 test('player-entered tactical names normalize only at the identifier boundary', () => {

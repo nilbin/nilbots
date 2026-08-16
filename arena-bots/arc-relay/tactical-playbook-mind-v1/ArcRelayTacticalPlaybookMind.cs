@@ -29,7 +29,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         new(StringComparer.Ordinal);
     private readonly Dictionary<ActorIdentity, RememberedEnemy> _rememberedEnemies = [];
     private readonly HashSet<string> _processedEvents = new(StringComparer.Ordinal);
-    private readonly Dictionary<ActorIdentity, int?> _firingApproachDistances = [];
+    private readonly Dictionary<(ActorIdentity Actor, string? Zone), int?>
+        _firingApproachDistances = [];
+    private readonly Dictionary<ActorIdentity, int[]> _walkingDistanceFields = [];
     private readonly Dictionary<FiringEpisodeKey, int[]> _firingEpisodeFields = [];
     private readonly Dictionary<FiringGroundKey, Position[]> _firingGround = [];
     private readonly OrdersEvidenceLedger _evidence = new();
@@ -111,6 +113,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         // ask the same exact path question several times in one Think. The
         // observation is frozen for the tick, so calculate each answer once.
         _firingApproachDistances.Clear();
+        _walkingDistanceFields.Clear();
         _firingEpisodeFields.Clear();
         _firingGround.Clear();
 
@@ -500,6 +503,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 int distance = ArenaBasics.StaticDistance(
                         contract.Map, body.Position, target.Position)
                     ?? int.MaxValue;
+                distance = target.WalkingDistance ?? distance;
                 result.Add(new Proposal(
                     body, role, leaf, priority, target, scope, limit, distance,
                     skippedFight));
@@ -532,13 +536,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && move.Kind == "follow"
                     && move.TargetKind == "selector")
                 {
-                    decline = $"after-{node.Id}-no-experienced-ally";
+                    decline = move.Target == "nearest-friendly-core-carrier"
+                        ? $"after-{node.Id}-no-qualifying-friendly-core-carrier"
+                        : $"after-{node.Id}-no-experienced-ally";
                 }
                 return targets;
             }
             case OrdersPackage.FightAction fight:
                 return ResolveEnemyTargets(
-                    contract, mind, arc, body, leaf, fight, out decline);
+                    contract, mind, arc, package, body, leaf, fight, out decline);
             case OrdersPackage.UseAction use:
             {
                 ResolvedTarget[] targets = ResolveUseTargets(
@@ -645,6 +651,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         ?? int.MaxValue)
                     .ThenBy(candidate => candidate.UnitId);
             }
+            else if (move.Target == "nearest-friendly-core-carrier")
+            {
+                int[] distances = WalkingDistanceField(contract, mind, body);
+                candidates = livingAllies
+                    .Where(candidate => carried.TryGetValue(
+                        candidate.ActorId, out var core)
+                        && (move.CoreBankValue is null
+                            || move.CoreBankValue.Matches(CoreBankValue(
+                                contract, arc, core.CoreId.SourceWellId))))
+                    .OrderBy(candidate => ArenaBasics.DistanceFromField(
+                            contract.Map, distances, candidate.Position)
+                        ?? int.MaxValue)
+                    .ThenBy(candidate => candidate.UnitId);
+            }
             else
             {
                 if (ArenaBasics.ArcRules(contract)?.VeteranCommand != true)
@@ -668,8 +688,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     candidate.ActorId,
                     null,
                     move.TargetKind == "selector"
-                        ? $"most-experienced-level-{CurrentLevel(candidate)}"
-                        : $"role-target-{move.Target}"))
+                        ? move.Target == "nearest-friendly-core-carrier"
+                            ? $"friendly-core-carrier-value-"
+                                + CoreBankValue(
+                                    contract,
+                                    arc,
+                                    carried[candidate.ActorId]
+                                        .CoreId.SourceWellId)
+                            : $"most-experienced-level-{CurrentLevel(candidate)}"
+                        : $"role-target-{move.Target}",
+                    move.Target == "nearest-friendly-core-carrier"
+                        ? ArenaBasics.DistanceFromField(
+                            contract.Map,
+                            WalkingDistanceField(contract, mind, body),
+                            candidate.Position)
+                        : null))
                 .Where(target => target.Goals.Length > 0)
                 .ToArray();
         }
@@ -684,14 +717,58 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     [body.Position], null, null,
                     "signature-commitment-hold")];
             if (move.Target == "nearest-heal-zone")
+            {
+                int[] distances = WalkingDistanceField(contract, mind, body);
                 return _healTiles
-                    .OrderBy(tile => ArenaBasics.StaticDistance(
-                            contract.Map, body.Position, tile) ?? int.MaxValue)
-                    .ThenBy(tile => tile.Y)
-                    .ThenBy(tile => tile.X)
-                    .Select(tile => new ResolvedTarget(
-                        $"heal:{tile.X}:{tile.Y}", tile, [tile], null, null))
+                    .Select(tile => new
+                    {
+                        Tile = tile,
+                        Distance = ArenaBasics.DistanceFromField(
+                            contract.Map, distances, tile),
+                    })
+                    .Where(candidate => candidate.Distance is int steps
+                        && (move.WithinWalkingSteps is null
+                            || steps <= move.WithinWalkingSteps))
+                    .OrderBy(candidate => candidate.Distance)
+                    .ThenBy(candidate => candidate.Tile.Y)
+                    .ThenBy(candidate => candidate.Tile.X)
+                    .Select(candidate => new ResolvedTarget(
+                        $"heal:{candidate.Tile.X}:{candidate.Tile.Y}",
+                        candidate.Tile,
+                        [candidate.Tile],
+                        null,
+                        null,
+                        WalkingDistance: candidate.Distance))
                     .ToArray();
+            }
+            if (move.Target is "nearest-visible-loose-core"
+                    or "highest-bank-value-visible-loose-core")
+            {
+                if (carried.ContainsKey(body.ActorId))
+                    return [];
+                VisibleCoreCandidate[] candidates = VisibleLooseCoreCandidates(
+                    contract, mind, arc, body, move.CoreBankValue,
+                    move.WithinWalkingSteps);
+                IOrderedEnumerable<VisibleCoreCandidate> ordered = move.Target
+                    == "highest-bank-value-visible-loose-core"
+                        ? candidates
+                            .OrderByDescending(candidate => candidate.BankValue)
+                            .ThenBy(candidate => candidate.Distance)
+                        : candidates
+                            .OrderBy(candidate => candidate.Distance);
+                return ordered
+                    .ThenBy(candidate => candidate.Key, StringComparer.Ordinal)
+                    .Select(candidate => new ResolvedTarget(
+                        $"core:{candidate.Key}",
+                        candidate.Core.Position,
+                        [candidate.Core.Position],
+                        null,
+                        candidate.Key,
+                        $"visible-core-value-{candidate.BankValue}-distance-"
+                            + candidate.Distance,
+                        candidate.Distance))
+                    .ToArray();
+            }
             if (move.Target is "nearest-known-loose-core"
                     or "highest-bank-value-known-loose-core")
             {
@@ -820,6 +897,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
+        OrdersPackage package,
         MindBody body,
         OrderTreeRuntime.EligibleLeaf leaf,
         OrdersPackage.FightAction fight,
@@ -851,6 +929,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                      && value.Phase == GenericActorContext
                                          .ArcRelaySignaturePhase.Active
                                      && IsDeploymentKind(value.Kind)
+                                     && (fight.Zone is null
+                                         || value.Positions.Any(position =>
+                                             package.Contains(
+                                                 fight.Zone, position)))
                                      && ArenaBasics.CanAimAtPosition(
                                          contract, body, value.Positions[0]))
                                  .OrderBy(value => ArenaBasics.StaticDistance(
@@ -904,7 +986,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     _ => [],
                 };
             GenericActorContext.ObservedEnemyState[] selectedCandidates =
-                candidates.ToArray();
+                candidates
+                    .Where(candidate => fight.Zone is null
+                        || package.Contains(fight.Zone, candidate.Position))
+                    .ToArray();
             if (selector == "veteran" && selectedCandidates.Length == 0)
                 veteranUnavailable = true;
             foreach (var candidate in selectedCandidates)
@@ -2323,7 +2408,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // known blockers count; allied and hostile bodies are traffic.
             // No reachable firing tile must fail every authored upper bound.
             return NearestFiringApproachDistance(
-                contract, mind, body) ?? 32;
+                contract, mind, package, body, condition.Zone) ?? 32;
+        }
+        if (fact == "self-nearest-visible-loose-core-distance")
+        {
+            VisibleCoreCandidate[] candidates = VisibleLooseCoreCandidates(
+                contract,
+                mind,
+                arc,
+                body,
+                condition.CoreBankValue,
+                maximumWalkingSteps: null);
+            return candidates.Length == 0
+                ? 32
+                : candidates.Min(candidate => candidate.Distance);
+        }
+        if (fact == "self-nearest-heal-zone-distance")
+        {
+            int[] distances = WalkingDistanceField(contract, mind, body);
+            int[] reachable = _healTiles
+                .Select(tile => ArenaBasics.DistanceFromField(
+                    contract.Map, distances, tile))
+                .Where(distance => distance is not null)
+                .Select(distance => distance!.Value)
+                .ToArray();
+            return reachable.Length == 0 ? 32 : reachable.Min();
         }
         if (fact == "signature-ready")
         {
@@ -2344,12 +2453,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : 0;
         }
         if (fact is "deployment-active" or "deployment-lifetime-percent"
-                or "deployment-durability-percent")
+                or "deployment-durability-percent"
+                or "self-deployment-in-zone")
         {
             GenericActorContext.ArcRelaySignatureState? deployment =
                 OwnedDeployment(arc, body);
             if (deployment is null)
                 return 0;
+            if (fact == "self-deployment-in-zone")
+            {
+                return deployment.Positions.Any(position =>
+                    package.Contains(condition.Zone!, position)) ? 1 : 0;
+            }
             if (fact == "deployment-active")
                 return 1;
             if (fact == "deployment-durability-percent")
@@ -2383,6 +2498,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return members.Length == 0 ? 100 : members.Min(candidate =>
                     candidate.Health * 100
                     / Math.Max(1, MaxHealth(contract, candidate)));
+            if (fact == "role-deployments-in-zone-count")
+            {
+                HashSet<int> memberSlots = package.RolesByUnit
+                    .Where(pair => pair.Value.Id == condition.Role)
+                    .Select(pair => pair.Key)
+                    .ToHashSet();
+                return arc.VisibleSignatures.Count(deployment =>
+                    deployment.OwnerTeamId == _teamId
+                    && memberSlots.Contains(deployment.OwnerActorId.UnitId)
+                    && deployment.Phase == GenericActorContext
+                        .ArcRelaySignaturePhase.Active
+                    && string.Equals(
+                        deployment.SignatureId,
+                        condition.Signature,
+                        StringComparison.Ordinal)
+                    && deployment.Positions.Any(position =>
+                        package.Contains(condition.Zone!, position)));
+            }
             return members.Count(candidate =>
                 package.Contains(condition.Zone!, candidate.Position));
         }
@@ -2673,15 +2806,78 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private int? NearestFiringApproachDistance(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
-        MindBody body)
+        OrdersPackage package,
+        MindBody body,
+        string? zone)
     {
+        var key = (body.ActorId, zone);
         if (_firingApproachDistances.TryGetValue(
-                body.ActorId, out int? cached))
+                key, out int? cached))
             return cached;
         int? distance = ArenaBasics.NearestFiringApproachDistance(
-            contract, mind, body);
-        _firingApproachDistances[body.ActorId] = distance;
+            contract,
+            mind,
+            body,
+            zone is null
+                ? null
+                : enemy => package.Contains(zone, enemy.Position));
+        _firingApproachDistances[key] = distance;
         return distance;
+    }
+
+    private int[] WalkingDistanceField(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body)
+    {
+        if (_walkingDistanceFields.TryGetValue(
+                body.ActorId, out int[]? cached))
+            return cached;
+        HashSet<Position> obstacles = ArenaBasics.PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        obstacles.Remove(body.Position);
+        int[] field = ArenaBasics.StaticRouteDistanceField(
+            contract, body, body.Position, obstacles);
+        _walkingDistanceFields[body.ActorId] = field;
+        return field;
+    }
+
+    private VisibleCoreCandidate[] VisibleLooseCoreCandidates(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        OrdersPackage.CoreBankValueFilter? valueFilter,
+        int? maximumWalkingSteps)
+    {
+        int[] distances = WalkingDistanceField(contract, mind, body);
+        return arc.VisibleCores
+            .Where(core => core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Loose)
+            .Select(core =>
+            {
+                int bankValue = CoreBankValue(
+                    contract, arc, core.CoreId.SourceWellId);
+                return new
+                {
+                    Core = core,
+                    Key = CoreKey(core.CoreId),
+                    BankValue = bankValue,
+                    Distance = ArenaBasics.DistanceFromField(
+                        contract.Map, distances, core.Position),
+                };
+            })
+            .Where(candidate => candidate.Distance is int distance
+                && (maximumWalkingSteps is null
+                    || distance <= maximumWalkingSteps)
+                && (valueFilter is null
+                    || valueFilter.Matches(candidate.BankValue)))
+            .Select(candidate => new VisibleCoreCandidate(
+                candidate.Core,
+                candidate.Key,
+                candidate.BankValue,
+                candidate.Distance!.Value))
+            .ToArray();
     }
 
     private Position[] FiringContributionGoals(
@@ -2895,7 +3091,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position[] Goals,
         ActorIdentity? Actor,
         string? CoreKey,
-        string? Trace = null);
+        string? Trace = null,
+        int? WalkingDistance = null);
 
     private sealed record MovePlan(
         string Path,
@@ -2948,5 +3145,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorContext.ArcRelayCoreId CoreId,
         Position Position,
         int SeenTick);
+    private sealed record VisibleCoreCandidate(
+        GenericActorContext.ArcRelayCoreState Core,
+        string Key,
+        int BankValue,
+        int Distance);
     private sealed record RememberedEnemy(Position Position, int Tick, bool Carrier);
 }

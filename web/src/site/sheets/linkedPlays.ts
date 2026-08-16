@@ -512,6 +512,7 @@ function referencedGeometry(orders: OrdersDocument): Record<PlayGeometryKind, Se
       if ('adjacentTo' in order.move.to) result.anchor.add(order.move.to.adjacentTo);
     }
     if (order.move?.face) result.anchor.add(order.move.face.anchor);
+    if (order.fight?.zone) result.zone.add(order.fight.zone);
     if (order.use?.at) result.anchor.add(order.use.at);
   });
   Object.values(orders.conditions).forEach((condition) => {

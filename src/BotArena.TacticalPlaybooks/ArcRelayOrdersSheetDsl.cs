@@ -19,12 +19,15 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "self-carried-core-bank-value",
             "self-stuck-ticks", "self-order-ticks", "self-in-zone",
             "self-nearest-visible-enemy-distance",
+            "self-nearest-visible-loose-core-distance",
+            "self-nearest-heal-zone-distance",
             "self-ticks-since-signature-use", "signature-ready",
             "signature-commitment-active",
             "deployment-active", "deployment-lifetime-percent",
-            "deployment-durability-percent",
+            "deployment-durability-percent", "self-deployment-in-zone",
             "role-live-count", "role-lowest-health-percent",
-            "role-highest-level", "role-in-zone-count", "live-friendlies",
+            "role-highest-level", "role-in-zone-count",
+            "role-deployments-in-zone-count", "live-friendlies",
             "friendly-carriers", "live-enemies",
             "friendly-respawns-next-wave", "enemy-respawns-next-wave",
             "ticks-until-respawn-wave",
@@ -40,6 +43,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "distinct-enemy-lives-observed-in-zone",
             "confirmed-enemy-destructions-in-zone",
             "zone-fully-observed-throughout-interval",
+            "friendly-core-pickups",
         };
 
     private static readonly HashSet<string> RoleFacts =
@@ -47,12 +51,15 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             "role-live-count", "role-lowest-health-percent",
             "role-highest-level", "role-in-zone-count",
+            "role-deployments-in-zone-count",
         };
 
     private static readonly HashSet<string> ZoneFacts =
         new(StringComparer.Ordinal)
         {
-            "self-in-zone", "role-in-zone-count", "friendlies-in-zone",
+            "self-in-zone", "self-deployment-in-zone",
+            "role-in-zone-count", "role-deployments-in-zone-count",
+            "friendlies-in-zone",
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
             "known-loose-cores-in-zone", "observed-enemy-entries-in-zone",
             "distinct-enemy-lives-observed-in-zone",
@@ -67,6 +74,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "distinct-enemy-lives-observed-in-zone",
             "confirmed-enemy-destructions-in-zone",
             "zone-fully-observed-throughout-interval",
+            "friendly-core-pickups",
         };
 
     private static readonly HashSet<string> WellFacts =
@@ -239,7 +247,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 ["fact", "operator", "value"],
                 [
                     "role", "zone", "well", "freshnessTicks",
-                    "windowTicks", "since",
+                    "windowTicks", "since", "signature", "coreBankValue",
                 ]);
             string fact = RequiredString(property.Value, "fact", at);
             if (!ConditionFacts.Contains(fact))
@@ -255,7 +263,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(at, "health percentages must be in [0, 100].");
             }
-            if (fact == "self-nearest-visible-enemy-distance"
+            if (fact is "self-nearest-visible-enemy-distance"
+                    or "self-nearest-visible-loose-core-distance"
+                    or "self-nearest-heal-zone-distance"
                 && comparison is < 0 or > 31)
             {
                 throw Error(at,
@@ -268,6 +278,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "signature-use age must be in [0, 1200].");
             }
             if ((fact is "self-carrying" or "self-in-zone" or
+                    "self-deployment-in-zone" or
                     "signature-ready" or "signature-commitment-active"
                     or "deployment-active")
                 && comparison is not (0 or 1))
@@ -295,6 +306,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "windowTicks", out JsonElement window);
             bool hasSince = property.Value.TryGetProperty(
                 "since", out JsonElement since);
+            bool hasSignature = property.Value.TryGetProperty(
+                "signature", out JsonElement signature);
+            bool hasCoreBankValue = property.Value.TryGetProperty(
+                "coreBankValue", out JsonElement coreBankValue);
             if (RoleFacts.Contains(fact))
             {
                 if (!hasRole || role.ValueKind != JsonValueKind.String
@@ -312,7 +327,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 IdentifierValue(zone.GetString()!, at, "zone");
             }
             else if (hasZone)
-                throw Error(at, $"'{fact}' does not take zone.");
+            {
+                if (fact != "self-nearest-visible-enemy-distance")
+                    throw Error(at, $"'{fact}' does not take zone.");
+                if (zone.ValueKind != JsonValueKind.String)
+                    throw Error(at, $"'{fact}' needs a valid zone when supplied.");
+                IdentifierValue(zone.GetString()!, at, "zone");
+            }
             if (WellFacts.Contains(fact))
             {
                 if (!hasWell || well.ValueKind != JsonValueKind.String
@@ -336,6 +357,28 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             else if (hasFreshness)
                 throw Error(at, $"'{fact}' does not take freshnessTicks.");
+
+            if (fact == "role-deployments-in-zone-count")
+            {
+                if (!hasSignature || signature.ValueKind != JsonValueKind.String
+                    || !ArcRelaySignatureAuthoringCatalog.TryForSkill(
+                        signature.GetString()!, out _))
+                {
+                    throw Error(at,
+                        "'role-deployments-in-zone-count' needs a current signature id.");
+                }
+            }
+            else if (hasSignature)
+            {
+                throw Error(at, $"'{fact}' does not take signature.");
+            }
+
+            if (hasCoreBankValue)
+            {
+                if (fact != "self-nearest-visible-loose-core-distance")
+                    throw Error(at, $"'{fact}' does not take coreBankValue.");
+                ValidateCoreBankValue(coreBankValue, $"{at}.coreBankValue");
+            }
 
             if (HistoricalFacts.Contains(fact))
             {
@@ -496,7 +539,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 ValidateMove(value.GetProperty("move"), path, role, roles, consumers);
                 break;
             case "fight":
-                ValidateFight(value.GetProperty("fight"), path);
+                ValidateFight(value.GetProperty("fight"), path, consumers);
                 break;
             case "use":
                 ValidateUse(
@@ -627,7 +670,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             .ToArray();
         if (found.Length != 1)
             throw Error($"{path}.move", "move needs exactly one of to/patrol/follow.");
-        Object(value, $"{path}.move", [found[0]], ["via", "posture", "face"]);
+        Object(value, $"{path}.move", [found[0]],
+            ["via", "posture", "face", "withinWalkingSteps", "coreBankValue"]);
         if (value.TryGetProperty("posture", out _))
             OneOf(value, "posture", $"{path}.move", "front", "line", "rear");
         if (value.TryGetProperty("via", out JsonElement via))
@@ -640,6 +684,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (found[0] == "patrol")
         {
+            if (value.TryGetProperty("withinWalkingSteps", out _)
+                || value.TryGetProperty("coreBankValue", out _))
+                throw Error($"{path}.move", "patrol has no bounded dynamic target.");
             if (value.TryGetProperty("face", out _))
                 throw Error($"{path}.move.face", "face is legal only on move.to.");
             string route = StringValue(value.GetProperty("patrol"),
@@ -655,6 +702,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             JsonElement follow = value.GetProperty("follow");
             if (follow.ValueKind == JsonValueKind.String)
             {
+                if (value.TryGetProperty("withinWalkingSteps", out _)
+                    || value.TryGetProperty("coreBankValue", out _))
+                    throw Error($"{path}.move", "role follow has no dynamic target qualifier.");
                 string targetRole = StringValue(
                     follow, $"{path}.move.follow");
                 if (!roles.ContainsKey(targetRole) || targetRole == role.Id)
@@ -666,17 +716,50 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             else
             {
-                Object(follow, $"{path}.move.follow", ["selector"]);
-                Exact(
-                    follow,
-                    "selector",
-                    "most-experienced-ally",
-                    $"{path}.move.follow");
+                Object(follow, $"{path}.move.follow", ["selector"], ["coreBankValue"]);
+                OneOf(follow, "selector", $"{path}.move.follow",
+                    "most-experienced-ally", "nearest-friendly-core-carrier");
+                if (follow.TryGetProperty("coreBankValue", out JsonElement followValue))
+                {
+                    if (follow.GetProperty("selector").GetString()
+                        != "nearest-friendly-core-carrier")
+                        throw Error($"{path}.move.follow",
+                            "coreBankValue is legal only for nearest-friendly-core-carrier.");
+                    ValidateCoreBankValue(
+                        followValue, $"{path}.move.follow.coreBankValue");
+                }
+                if (value.TryGetProperty("withinWalkingSteps", out _)
+                    || value.TryGetProperty("coreBankValue", out _))
+                    throw Error($"{path}.move",
+                        "follow qualifiers belong inside the follow selector.");
             }
             return;
         }
         JsonElement to = value.GetProperty("to");
         ValidateMoveTarget(to, $"{path}.move.to", consumers);
+        string? dynamicTarget = to.ValueKind == JsonValueKind.String
+            ? to.GetString()
+            : null;
+        if (value.TryGetProperty("withinWalkingSteps", out JsonElement within))
+        {
+            if (dynamicTarget is not ("nearest-visible-loose-core"
+                    or "highest-bank-value-visible-loose-core"
+                    or "nearest-heal-zone"))
+                throw Error($"{path}.move.withinWalkingSteps",
+                    "walking bounds are legal only for visible-Core and healing targets.");
+            if (within.ValueKind != JsonValueKind.Number
+                || !within.TryGetInt32(out int steps) || steps is < 0 or > 31)
+                throw Error($"{path}.move.withinWalkingSteps",
+                    "walking bound must be in [0, 31].");
+        }
+        if (value.TryGetProperty("coreBankValue", out JsonElement targetValue))
+        {
+            if (dynamicTarget is not ("nearest-visible-loose-core"
+                    or "highest-bank-value-visible-loose-core"))
+                throw Error($"{path}.move.coreBankValue",
+                    "Core value filters are legal only for visible-Core targets.");
+            ValidateCoreBankValue(targetValue, $"{path}.move.coreBankValue");
+        }
         if (!value.TryGetProperty("face", out JsonElement face))
             return;
         if (to.ValueKind != JsonValueKind.Object
@@ -704,6 +787,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 ("own-reactor" or "nearest-heal-zone" or
                  "nearest-known-loose-core" or
                  "highest-bank-value-known-loose-core" or
+                 "nearest-visible-loose-core" or
+                 "highest-bank-value-visible-loose-core" or
                  "current-position"))
             {
                 throw Error(path, "unknown dynamic move target.");
@@ -735,9 +820,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             consumers.ReferenceAnchor(id, path);
     }
 
-    private static void ValidateFight(JsonElement value, string path)
+    private static void ValidateFight(
+        JsonElement value,
+        string path,
+        ConsumerLedger consumers)
     {
-        Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"]);
+        Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"], ["zone"]);
         string[] targets = StringArray(
             value.GetProperty("targets"), $"{path}.fight.targets", 1, 5);
         foreach (string target in targets)
@@ -748,6 +836,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         OneOf(value, "style", $"{path}.fight", "advance", "hold", "kite");
         Range(value, "chaseLimit", $"{path}.fight", 0, 12);
+        if (value.TryGetProperty("zone", out JsonElement zone))
+        {
+            string zoneId = StringValue(zone, $"{path}.fight.zone");
+            IdentifierValue(zoneId, $"{path}.fight.zone", "zone");
+            consumers.ReferenceZone(zoneId, path);
+        }
+    }
+
+    private static void ValidateCoreBankValue(JsonElement value, string path)
+    {
+        Object(value, path, ["operator", "value"]);
+        OneOf(value, "operator", path, "equals", "at-least", "at-most");
+        Range(value, "value", path, 1, 4);
     }
 
     private static void ValidateUse(

@@ -11,6 +11,7 @@ internal sealed class OrdersEvidenceLedger
     private readonly List<EnemySample> _enemySamples = [];
     private readonly List<EnemyEntry> _entries = [];
     private readonly List<EnemyDestruction> _destructions = [];
+    private readonly List<FriendlyCorePickup> _friendlyCorePickups = [];
     private readonly HashSet<string> _processedEvents = new(StringComparer.Ordinal);
 
     public void Reset()
@@ -20,6 +21,7 @@ internal sealed class OrdersEvidenceLedger
         _enemySamples.Clear();
         _entries.Clear();
         _destructions.Clear();
+        _friendlyCorePickups.Clear();
         _processedEvents.Clear();
     }
 
@@ -82,6 +84,15 @@ internal sealed class OrdersEvidenceLedger
                         destruction.ActorId,
                         destruction.Position));
                     break;
+                case GenericActorContext.EventPayload.ArcRelay mode
+                    when mode.Fact is GenericActorContext.ArcRelayEvent
+                        .CorePickedUp pickup
+                        && pickup.CarrierActorId.TeamId == teamId:
+                    _friendlyCorePickups.Add(new FriendlyCorePickup(
+                        observed.SourceTick,
+                        pickup.CoreId,
+                        pickup.CarrierActorId));
+                    break;
             }
         }
     }
@@ -92,12 +103,27 @@ internal sealed class OrdersEvidenceLedger
         OrdersPackage.Condition condition,
         int decisionTick,
         int orderTicks)
-        => Read(
+    {
+        if (condition.Fact == "friendly-core-pickups")
+        {
+            (int start, int end) = Interval(
+                condition, decisionTick, orderTicks);
+            int count = _friendlyCorePickups.Count(value =>
+                value.Tick >= start && value.Tick < end);
+            string interval = end <= start
+                ? $"{start}..empty"
+                : $"{start}..{end - 1}";
+            return new EvidenceRead(
+                count,
+                $"{condition.Id}={count}-friendly-core-pickups@{interval}");
+        }
+        return Read(
             condition,
             decisionTick,
             orderTicks,
             position => package.Contains(condition.Zone!, position),
             package.ZoneTiles(condition.Zone!, map));
+    }
 
     internal EvidenceRead Read(
         OrdersPackage.Condition condition,
@@ -110,6 +136,14 @@ internal sealed class OrdersEvidenceLedger
         string interval = end <= start
             ? $"{start}..empty"
             : $"{start}..{end - 1}";
+        if (condition.Fact == "friendly-core-pickups")
+        {
+            int count = _friendlyCorePickups.Count(value =>
+                value.Tick >= start && value.Tick < end);
+            return new EvidenceRead(
+                count,
+                $"{condition.Id}={count}-friendly-core-pickups@{interval}");
+        }
         if (condition.Fact == "observed-enemy-entries-in-zone")
         {
             EnemyEntry[] values = _entries.Where(value =>
@@ -183,4 +217,8 @@ internal sealed class OrdersEvidenceLedger
         int Tick, ActorIdentity Actor, Position From, Position To);
     private sealed record EnemyDestruction(
         int Tick, ActorIdentity Actor, Position Position);
+    private sealed record FriendlyCorePickup(
+        int Tick,
+        GenericActorContext.ArcRelayCoreId Core,
+        ActorIdentity Carrier);
 }

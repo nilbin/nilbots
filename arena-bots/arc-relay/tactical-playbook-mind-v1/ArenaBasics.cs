@@ -1616,9 +1616,13 @@ internal static class ArenaBasics
     internal static int? NearestFiringApproachDistance(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
-        MindBody body)
+        MindBody body,
+        Func<GenericActorContext.ObservedEnemyState, bool>? qualifies = null)
     {
-        if (mind.Enemies.Length == 0)
+        GenericActorContext.ObservedEnemyState[] enemies = qualifies is null
+            ? mind.Enemies.ToArray()
+            : mind.Enemies.Where(qualifies).ToArray();
+        if (enemies.Length == 0)
             return null;
         HashSet<Position> obstacles = PersistentRouteObstacles(
             contract, mind, body.ActorId.TeamId);
@@ -1627,7 +1631,7 @@ internal static class ArenaBasics
             contract, body, body.Position, obstacles);
         int reach = AttackRange(contract, body.FormId);
         int? best = null;
-        foreach (GenericActorContext.ObservedEnemyState enemy in mind.Enemies)
+        foreach (GenericActorContext.ObservedEnemyState enemy in enemies)
         {
             int minimumY = Math.Max(0, enemy.Position.Y - reach);
             int maximumY = Math.Min(

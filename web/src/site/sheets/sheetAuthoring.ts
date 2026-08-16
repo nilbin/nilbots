@@ -22,6 +22,13 @@ export interface ConditionDefinition {
   freshnessTicks?: number;
   windowTicks?: number;
   since?: 'match-start' | 'node-entry';
+  signature?: string;
+  coreBankValue?: CoreBankValueFilter;
+}
+
+export interface CoreBankValueFilter {
+  operator: 'equals' | 'at-least' | 'at-most';
+  value: number;
 }
 
 export type MoveTarget =
@@ -30,6 +37,8 @@ export type MoveTarget =
   | 'nearest-heal-zone'
   | 'nearest-known-loose-core'
   | 'highest-bank-value-known-loose-core'
+  | 'nearest-visible-loose-core'
+  | 'highest-bank-value-visible-loose-core'
   | { zone: string }
   | { anchor: string }
   | { adjacentTo: string }
@@ -38,10 +47,15 @@ export type MoveTarget =
 export interface MoveOrder {
   to?: MoveTarget;
   patrol?: string;
-  follow?: string | { selector: 'most-experienced-ally' };
+  follow?: string | {
+    selector: 'most-experienced-ally' | 'nearest-friendly-core-carrier';
+    coreBankValue?: CoreBankValueFilter;
+  };
   via?: string;
   posture?: 'front' | 'line' | 'rear';
   face?: { anchor: string };
+  withinWalkingSteps?: number;
+  coreBankValue?: CoreBankValueFilter;
 }
 
 export type MoveIntentKind = 'to' | 'patrol' | 'follow';
@@ -61,6 +75,7 @@ export interface FightOrder {
   targets: Array<'carrier' | 'weakest' | 'nearest' | 'medic' | 'marked' | 'veteran' | 'deployment'>;
   style: 'advance' | 'hold' | 'kite';
   chaseLimit: number;
+  zone?: string;
 }
 
 export type UseTarget = string
@@ -148,11 +163,14 @@ export const CONDITION_OPERATORS: readonly ConditionOperator[] =
 export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
   'self-order-ticks', 'self-in-zone', 'self-nearest-visible-enemy-distance',
+  'self-nearest-visible-loose-core-distance', 'self-nearest-heal-zone-distance',
   'self-carried-core-bank-value', 'self-ticks-since-signature-use',
   'signature-ready', 'signature-commitment-active', 'deployment-active',
+  'self-deployment-in-zone',
   'deployment-lifetime-percent', 'deployment-durability-percent',
   'role-live-count', 'role-highest-level',
   'role-lowest-health-percent', 'role-in-zone-count', 'live-friendlies',
+  'role-deployments-in-zone-count',
   'live-enemies',
   'friendly-carriers', 'known-enemy-carriers', 'visible-enemy-carriers',
   'known-loose-cores', 'visible-loose-cores', 'secured-cores',
@@ -166,6 +184,7 @@ export const CONDITION_FACTS = [
   'distinct-enemy-lives-observed-in-zone',
   'confirmed-enemy-destructions-in-zone',
   'zone-fully-observed-throughout-interval',
+  'friendly-core-pickups',
 ] as const;
 export type ConditionFactGroupId = 'body' | 'squad' | 'match' | 'ground' | 'history';
 export const CONDITION_FACT_GROUPS: ReadonlyArray<{
@@ -204,6 +223,7 @@ export const CONDITION_FACT_GROUPS: ReadonlyArray<{
         'distinct-enemy-lives-observed-in-zone',
         'confirmed-enemy-destructions-in-zone',
         'zone-fully-observed-throughout-interval',
+        'friendly-core-pickups',
       ].includes(fact)),
   },
   {
@@ -231,6 +251,7 @@ export const CONDITION_FACT_GROUPS: ReadonlyArray<{
       'distinct-enemy-lives-observed-in-zone',
       'confirmed-enemy-destructions-in-zone',
       'zone-fully-observed-throughout-interval',
+      'friendly-core-pickups',
     ],
   },
 ];
@@ -241,9 +262,11 @@ export const UI_STATE_KEY = 'nilbots-sheet-map-ui-v2';
 const IDENTIFIER = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const ROLE_FACTS = new Set([
   'role-live-count', 'role-highest-level', 'role-lowest-health-percent', 'role-in-zone-count',
+  'role-deployments-in-zone-count',
 ]);
 const ZONE_FACTS = new Set([
-  'self-in-zone', 'role-in-zone-count', 'friendlies-in-zone', 'visible-enemies-in-zone',
+  'self-in-zone', 'self-deployment-in-zone', 'role-in-zone-count',
+  'role-deployments-in-zone-count', 'friendlies-in-zone', 'visible-enemies-in-zone',
   'remembered-enemies-in-zone', 'known-loose-cores-in-zone',
   'observed-enemy-entries-in-zone',
   'distinct-enemy-lives-observed-in-zone',
@@ -257,6 +280,7 @@ const HISTORICAL_FACTS = new Set([
   'distinct-enemy-lives-observed-in-zone',
   'confirmed-enemy-destructions-in-zone',
   'zone-fully-observed-throughout-interval',
+  'friendly-core-pickups',
 ]);
 const PERCENT_FACTS = new Set([
   'self-health-percent', 'role-lowest-health-percent',
@@ -264,6 +288,7 @@ const PERCENT_FACTS = new Set([
 ]);
 const BOOLEAN_FACTS = new Set([
   'self-carrying', 'self-in-zone', 'signature-ready',
+  'self-deployment-in-zone',
   'signature-commitment-active', 'deployment-active',
   'zone-fully-observed-throughout-interval',
 ]);
@@ -580,7 +605,8 @@ export function validateDraft(
     const path = `orders.conditions.${id}`;
     exactKeys(condition as unknown as JsonObject,
       ['fact', 'operator', 'value'], path, error,
-      ['role', 'zone', 'well', 'freshnessTicks', 'windowTicks', 'since']);
+      ['role', 'zone', 'well', 'freshnessTicks', 'windowTicks', 'since',
+        'signature', 'coreBankValue']);
     if (!validId(id)) error(path, 'Condition id must be kebab-case.');
     if (!(CONDITION_FACTS as readonly string[]).includes(condition.fact)) error(`${path}.fact`, 'Choose a published fact.');
     if (!CONDITION_OPERATORS.includes(condition.operator)) error(`${path}.operator`, 'Choose a comparison.');
@@ -595,9 +621,11 @@ export function validateDraft(
     if (['friendly-respawns-next-wave', 'enemy-respawns-next-wave', 'live-enemies']
       .includes(condition.fact) && (condition.value < 0 || condition.value > 8))
       error(`${path}.value`, 'Body counts are 0 to 8.');
-    if (condition.fact === 'self-nearest-visible-enemy-distance'
+    if (['self-nearest-visible-enemy-distance',
+      'self-nearest-visible-loose-core-distance',
+      'self-nearest-heal-zone-distance'].includes(condition.fact)
       && (condition.value < 0 || condition.value > 31))
-      error(`${path}.value`, 'Firing-approach distance is zero to 31 steps.');
+      error(`${path}.value`, 'Walking distance is zero to 31 steps.');
     if (condition.fact === 'self-ticks-since-signature-use'
       && (condition.value < 0 || condition.value > 1200))
       error(`${path}.value`, 'Signature-use age is zero to 1200 ticks.');
@@ -606,6 +634,21 @@ export function validateDraft(
     if (ZONE_FACTS.has(condition.fact)) {
       if (!condition.zone) error(`${path}.zone`, 'This fact needs a map zone.');
       else usedZones.add(condition.zone);
+    } else if (condition.fact === 'self-nearest-visible-enemy-distance'
+      && condition.zone) {
+      usedZones.add(condition.zone);
+    }
+    if (condition.fact === 'role-deployments-in-zone-count') {
+      if (!condition.signature
+        || !catalog.classes.some((entry) => entry.signatureId === condition.signature))
+        error(`${path}.signature`, 'Choose a current deployment signature.');
+    } else if (condition.signature !== undefined) {
+      error(`${path}.signature`, 'This fact does not take a signature.');
+    }
+    if (condition.coreBankValue !== undefined) {
+      if (condition.fact !== 'self-nearest-visible-loose-core-distance')
+        error(`${path}.coreBankValue`, 'Only visible-Core distance takes this value filter.');
+      validateCoreBankValue(condition.coreBankValue, `${path}.coreBankValue`, error);
     }
     if (WELL_FACTS.has(condition.fact) && !condition.well)
       error(`${path}.well`, 'This fact needs a Well selector.');
@@ -724,13 +767,42 @@ function validateOrder(
     const requiredMoveKey = move.to !== undefined ? 'to'
       : move.patrol !== undefined ? 'patrol' : 'follow';
     exactKeys(move as unknown as JsonObject, [requiredMoveKey],
-      `${path}.move`, error, ['via', 'posture', 'face']);
+      `${path}.move`, error,
+      ['via', 'posture', 'face', 'withinWalkingSteps', 'coreBankValue']);
     if (move.patrol) usedRoutes.add(move.patrol);
     if (move.via) usedRoutes.add(move.via);
     // The complete role set is checked after every role has been walked. At
     // this point a valid forward reference may not have been visited yet.
     if (typeof move.follow === 'string' && move.follow === role.id)
       error(`${path}.move.follow`, 'Follow another declared role.');
+    if (typeof move.follow === 'object') {
+      exactKeys(move.follow as unknown as JsonObject, ['selector'],
+        `${path}.move.follow`, error, ['coreBankValue']);
+      if (!['most-experienced-ally', 'nearest-friendly-core-carrier']
+        .includes(move.follow.selector))
+        error(`${path}.move.follow.selector`, 'Choose a published friendly selector.');
+      if (move.follow.coreBankValue !== undefined) {
+        if (move.follow.selector !== 'nearest-friendly-core-carrier')
+          error(`${path}.move.follow.coreBankValue`, 'Only Core-carrier follow takes a value filter.');
+        validateCoreBankValue(move.follow.coreBankValue,
+          `${path}.move.follow.coreBankValue`, error);
+      }
+    }
+    const dynamicTarget = typeof move.to === 'string' ? move.to : undefined;
+    if (move.withinWalkingSteps !== undefined) {
+      if (!['nearest-visible-loose-core', 'highest-bank-value-visible-loose-core',
+        'nearest-heal-zone'].includes(dynamicTarget ?? ''))
+        error(`${path}.move.withinWalkingSteps`, 'Only visible-Core and healing targets take a walking bound.');
+      if (!Number.isInteger(move.withinWalkingSteps)
+        || move.withinWalkingSteps < 0 || move.withinWalkingSteps > 31)
+        error(`${path}.move.withinWalkingSteps`, 'Walking bound is zero to 31 steps.');
+    }
+    if (move.coreBankValue !== undefined) {
+      if (!['nearest-visible-loose-core', 'highest-bank-value-visible-loose-core']
+        .includes(dynamicTarget ?? ''))
+        error(`${path}.move.coreBankValue`, 'Only visible-Core targets take a value filter.');
+      validateCoreBankValue(move.coreBankValue, `${path}.move.coreBankValue`, error);
+    }
     if (typeof move.to === 'object') {
       if ('zone' in move.to) usedZones.add(move.to.zone);
       if ('anchor' in move.to) usedAnchors.add(move.to.anchor);
@@ -747,9 +819,12 @@ function validateOrder(
     }
   }
   if (action === 'fight') {
+    exactKeys(node.fight! as unknown as JsonObject,
+      ['targets', 'style', 'chaseLimit'], `${path}.fight`, error, ['zone']);
     if (!node.fight!.targets.length) error(`${path}.fight.targets`, 'Choose at least one target priority.');
     if (!Number.isInteger(node.fight!.chaseLimit) || node.fight!.chaseLimit < 0 || node.fight!.chaseLimit > 12)
       error(`${path}.fight.chaseLimit`, 'Chase limit is 0–12 tiles.');
+    if (node.fight!.zone) usedZones.add(node.fight!.zone);
   }
   if (action === 'use') {
     exactKeys(node.use! as unknown as JsonObject, ['skill', 'target'],
@@ -818,6 +893,17 @@ function validateOrder(
 
 function samePoint(left: [number, number], right: [number, number]) {
   return left[0] === right[0] && left[1] === right[1];
+}
+
+function validateCoreBankValue(
+  value: CoreBankValueFilter,
+  path: string,
+  error: (path: string, message: string) => void,
+) {
+  if (!['equals', 'at-least', 'at-most'].includes(value.operator))
+    error(`${path}.operator`, 'Choose exactly, at least, or at most.');
+  if (!Number.isInteger(value.value) || value.value < 1 || value.value > 4)
+    error(`${path}.value`, 'Core value is one to four points.');
 }
 
 function validateExpression(
@@ -1033,7 +1119,8 @@ export function sheetIssueFromCompilerError(cause: unknown): SheetIssue {
 }
 
 export function conditionSubjectKind(fact: string): 'zone' | 'role-zone' | 'role' | 'well' | null {
-  if (fact === 'role-in-zone-count') return 'role-zone';
+  if (fact === 'role-in-zone-count' || fact === 'role-deployments-in-zone-count')
+    return 'role-zone';
   if (ZONE_FACTS.has(fact)) return 'zone';
   if (ROLE_FACTS.has(fact)) return 'role';
   if (WELL_FACTS.has(fact)) return 'well';

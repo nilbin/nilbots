@@ -137,6 +137,35 @@ public sealed class OrdersEvidenceLedgerTests
         Assert.Equal(0, entries.Actual);
     }
 
+    [Fact]
+    public void FriendlyPickupHistoryCountsOnlyCompletedPickupEvents()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        var core = new GenericActorContext.ArcRelayCoreId("centre", 1);
+        ActorIdentity friendly = new(0, 2, 0);
+        ledger.ObserveSnapshot(0, 0, ZoneTiles, [], []);
+        ledger.ObserveSnapshot(
+            0,
+            1,
+            ZoneTiles,
+            [],
+            [ArcEvent(
+                "pickup",
+                0,
+                new GenericActorContext.ArcRelayEvent.CorePickedUp(
+                    core, friendly, new Position(1, 0), 2))]);
+
+        OrdersEvidenceLedger.EvidenceRead read = ledger.Read(
+            Condition("friendly-core-pickups", windowTicks: 10),
+            1,
+            0,
+            _ => false,
+            []);
+
+        Assert.Equal(1, read.Actual);
+        Assert.Contains("1-friendly-core-pickups@0..0", read.Trace);
+    }
+
     [Theory]
     [InlineData(Direction.North, 1, -1, Direction.North)]
     [InlineData(Direction.East, 1, -1, Direction.East)]
@@ -173,7 +202,9 @@ public sealed class OrdersEvidenceLedgerTests
             null,
             null,
             windowTicks,
-            since);
+            since,
+            null,
+            null);
 
     private static GenericActorContext.ObservedEnemyState Enemy(
         ActorIdentity actor,
@@ -221,5 +252,16 @@ public sealed class OrdersEvidenceLedgerTests
                 0,
                 "body",
                 position),
+            [Observer]);
+
+    private static GenericActorContext.ObservedEvent ArcEvent(
+        string handle,
+        int tick,
+        GenericActorContext.ArcRelayEvent fact) => new(
+            handle,
+            tick,
+            0,
+            GenericActorContext.EventKind.ArcRelay,
+            new GenericActorContext.EventPayload.ArcRelay(fact),
             [Observer]);
 }

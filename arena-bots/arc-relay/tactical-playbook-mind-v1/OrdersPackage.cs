@@ -324,35 +324,52 @@ internal sealed class OrdersPackage
         string? faceAnchor = value.TryGetProperty("face", out JsonElement faceValue)
             ? faceValue.GetProperty("anchor").GetString()
             : null;
+        int? withinWalkingSteps = value.TryGetProperty(
+            "withinWalkingSteps", out JsonElement withinValue)
+                ? withinValue.GetInt32()
+                : null;
+        CoreBankValueFilter? coreBankValue = value.TryGetProperty(
+            "coreBankValue", out JsonElement bankValue)
+                ? ParseCoreBankValue(bankValue)
+                : null;
         if (value.TryGetProperty("patrol", out JsonElement patrol))
             return new MoveAction(
-                "patrol", "route", patrol.GetString()!, via, posture, null);
+                "patrol", "route", patrol.GetString()!, via, posture, null,
+                null, null);
         if (value.TryGetProperty("follow", out JsonElement follow))
             return follow.ValueKind == JsonValueKind.String
                 ? new MoveAction(
-                    "follow", "role", follow.GetString()!, null, posture, null)
+                    "follow", "role", follow.GetString()!, null, posture, null,
+                    null, null)
                 : new MoveAction(
                     "follow",
                     "selector",
                     follow.GetProperty("selector").GetString()!,
                     null,
                     posture,
-                    null);
+                    null,
+                    null,
+                    follow.TryGetProperty(
+                        "coreBankValue", out JsonElement followBankValue)
+                            ? ParseCoreBankValue(followBankValue)
+                            : null);
         JsonElement to = value.GetProperty("to");
         if (to.ValueKind == JsonValueKind.String)
             return new MoveAction(
-                "to", "dynamic", to.GetString()!, via, posture, null);
+                "to", "dynamic", to.GetString()!, via, posture, null,
+                withinWalkingSteps, coreBankValue);
         JsonProperty target = to.EnumerateObject().Single();
         return new MoveAction(
             "to", target.Name, target.Value.GetString()!, via, posture,
-            faceAnchor);
+            faceAnchor, withinWalkingSteps, coreBankValue);
     }
 
     private static FightAction ParseFight(JsonElement value) => new(
         value.GetProperty("targets").EnumerateArray()
             .Select(target => target.GetString()!).ToArray(),
         value.GetProperty("style").GetString()!,
-        value.GetProperty("chaseLimit").GetInt32());
+        value.GetProperty("chaseLimit").GetInt32(),
+        Optional(value, "zone"));
 
     private static UseAction ParseUse(JsonElement value)
     {
@@ -430,7 +447,16 @@ internal sealed class OrdersPackage
         value.TryGetProperty("windowTicks", out JsonElement window)
             ? window.GetInt32()
             : null,
-        Optional(value, "since"));
+        Optional(value, "since"),
+        Optional(value, "signature"),
+        value.TryGetProperty("coreBankValue", out JsonElement bankValue)
+            ? ParseCoreBankValue(bankValue)
+            : null);
+
+    private static CoreBankValueFilter ParseCoreBankValue(JsonElement value) =>
+        new(
+            value.GetProperty("operator").GetString()!,
+            value.GetProperty("value").GetInt32());
 
     private static string? Optional(JsonElement value, string name) =>
         value.TryGetProperty(name, out JsonElement property)
@@ -537,7 +563,18 @@ internal sealed class OrdersPackage
         string? Well,
         int? FreshnessTicks,
         int? WindowTicks,
-        string? Since);
+        string? Since,
+        string? Signature,
+        CoreBankValueFilter? CoreBankValue);
+    internal sealed record CoreBankValueFilter(string Operator, int Value)
+    {
+        public bool Matches(int actual) => Operator switch
+        {
+            "at-least" => actual >= Value,
+            "at-most" => actual <= Value,
+            _ => actual == Value,
+        };
+    }
     internal sealed record Capacity(string Id, int? InlineValue);
 
     internal abstract record OrderAction;
@@ -547,11 +584,14 @@ internal sealed class OrdersPackage
         string Target,
         string? Via,
         string? Posture,
-        string? FaceAnchor) : OrderAction;
+        string? FaceAnchor,
+        int? WithinWalkingSteps,
+        CoreBankValueFilter? CoreBankValue) : OrderAction;
     internal sealed record FightAction(
         string[] Targets,
         string Style,
-        int ChaseLimit) : OrderAction;
+        int ChaseLimit,
+        string? Zone) : OrderAction;
     internal sealed record UseAction(
         string Skill,
         string TargetKind,
