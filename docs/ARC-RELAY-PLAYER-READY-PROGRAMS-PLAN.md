@@ -423,6 +423,8 @@ Surface a compact set of common tactical triggers directly:
 - observed enemy entries in an area over a window or since match start;
 - confirmed destructions in an area since Program/response entry;
 - role/body count in an area;
+- self health and lowest health in a selected role;
+- this body's nearest reachable visible-enemy distance;
 - Core carried/value/source state;
 - respawn-wave timing;
 - veteran level;
@@ -447,21 +449,28 @@ The complete normal authoring flow should read approximately:
 
 ```text
 Kestrel corridor run
-While inside Raid Dash Window
+Move to Enemy Well via Long Corridor
+While traversing that route inside Raid Dash Window
 Dash at least 2 tiles forward along Long Corridor when legal
-Otherwise continue along Long Corridor
+Otherwise continue to Enemy Well via Long Corridor
 ```
 
 From the map-first Program surface the player must be able to:
 
 1. select the Kestrel role (a one-body role in the proof, resolved through
    ordinary role allocation rather than a fixed unit id);
-2. draw or select the terminal movement route;
-3. draw the tile/zone/corridor span in which Dash may be attempted;
-4. choose the minimum useful forward gain;
-5. preview the eligible straight spans and understand that one Dash cannot
+2. choose the ordinary final destination—a zone, anchor, Well, reactor, Core,
+   or other existing `move.to` target;
+3. draw or select a terminal route used as that movement's `via`, or select an
+   existing terminal patrol route;
+4. attach Dash to **this movement's route** by default, so the route is chosen
+   once rather than copied independently into two normal controls;
+5. draw the tile/zone/corridor span in which Dash may be attempted;
+6. choose the minimum useful forward gain;
+7. preview the eligible straight spans and understand that one Dash cannot
    turn a corner; and
-6. choose ordinary movement along that same route as the same-tick fallback.
+8. keep ordinary movement to the destination through that same `via` route as
+   the same-tick fallback.
 
 Materialize the existing ordinary shape, with the activation zone included in
 the opportunity's normal `when` clauses:
@@ -478,6 +487,14 @@ the opportunity's normal `when` clauses:
 ```
 
 The use leaf remains immediately above the ordinary route-movement sibling.
+For the recommended destination flow, that sibling is an ordinary
+`move.to = destination` with `move.via = long-corridor`. A patrol continuation
+remains valid when patrol is genuinely the player's intent. The workshop link
+must derive the use target's route reference from the continuation by default:
+changing, renaming, or removing the movement `via` updates or diagnoses the
+linked Dash in the same undoable edit. Do not add `dashVia`, overload
+`aheadVia`, or make the player maintain two route selectors that can drift.
+
 The existing route-forward resolver must choose only a legal, heading-aligned,
 unoccupied straight destination that advances sufficiently along the current
 course. At a bend, outside the activation window, on cooldown, without enough
@@ -486,10 +503,58 @@ same route movement is considered in that same tick. It must never manufacture
 an off-route shortcut, reverse progress, or require hard-coded waypoint
 anchors. Existing signature commitment/tell handling remains authoritative.
 
+Pin both continuation forms. In particular, a `move.to` episode traversing a
+held `via` route must expose that same governed forward course to Dash. Once
+the ingress route is complete, the Dash opportunity naturally becomes
+ineligible and the ordinary move continues from the route endpoint to the
+final zone/anchor/Well/etc. The first tick before a route course exists must
+fall through to movement and establish it; it must not wait for Dash.
+
 This workflow must be descriptor-driven: another future movement signature
 that publishes `RouteForward` receives the same controls without a skill-id
 switch. Kestrel supplies the required proof because it is the current class
 with that capability.
+
+### Alpha signature breadth without bespoke skill editors
+
+The existing descriptor catalog already covers all sixteen current classes.
+Preserve that breadth and make it usable through the new Post/Program surface;
+do not replace it with sixteen recipes or skill-id branches. The alpha needs
+one honest normal authoring path for each of these generic families:
+
+| family | current classes | normal Program composition |
+| --- | --- | --- |
+| route movement and custody | Kestrel, Relay | attempt Dash/Toss along an authored movement episode, then continue that exact movement |
+| exact point or area effect | Lantern, Mortar, Minesmith, Mason, Veil, Nest | use from a Post/zone at one map anchor; maintain only durable deployments, otherwise rely on trigger/cooldown |
+| watched lane or hostile target | Palisade, Towline, Longshot, Sunder | stand/face or move through an authored area, choose a legal hostile priority, attempt contextually, then hold/fight/move |
+| protected friendly | Patchbay, Switchback | name a role or veteran, use health/location/threat Conditions, preserve the public channel/tell, then resume escort/formation behavior |
+| self-centred local response | Hush, Repulsor | occupy or enter an authored local area, trigger on enemy pressure, use on self, then continue the response |
+
+The Program summary must distinguish **what caused the opportunity to start**
+from **how its target is selected**. For example, “enemies entered North Lane”
+does not silently mean “nearest enemy is restricted to North Lane” if the
+ordinary target grammar does not express that restriction. Show both clauses
+accurately rather than implying hidden target intelligence.
+
+In addition to the Mason, Kestrel, and Relay headline proofs, retain or add
+small deterministic Program-authored scenes for the mechanically distinct
+seams:
+
+- Patchbay repairs a damaged named one-body role or veteran and its ordinary
+  continuation does not cancel the authoritative channel;
+- Palisade aims Prism Wall from a Post toward its authored lane, and Longshot
+  completes a rooted Rail Line tell before returning to its Post continuation;
+- Mortar uses Falling Star at an exact watched anchor when its area trigger is
+  true, preserves the tell, and falls through when the shot is illegal; and
+- Hush or Repulsor triggers its self-centred effect from the intended defended
+  area and otherwise continues its ordinary hold/fight response.
+
+These are focused mechanism/usability scenes, not four additional starter
+doctrines, galleries, or balance samples. Every other current signature still
+needs automated create/edit/regenerate/save/reload/detach/compile coverage
+through the same descriptor-driven UI. A future seventeenth signature using an
+existing family must acquire its normal controls without changing the Post,
+Program, or map components.
 
 ## 6. Make Practice explain Programs well enough to iterate
 
@@ -686,14 +751,24 @@ Implement trace-first and pin the smallest scenes before broad UI work.
 13. An exact source-zone + exact one-body receiver-Post Arc Toss resolves and
     advances through an ordinary role target with no `aheadVia`; displacement
     from either Post makes it fall through to corridor movement.
-14. A Kestrel inside its activation zone accepts a legal route-forward Dash;
-    outside the zone, at a bend, on cooldown, obstructed, or below minimum gain
-    it selects the ordinary same-route movement sibling in the same tick.
-15. Route-forward Dash never chooses an off-route/reverse destination and
-    resumes the same terminal route after its authoritative commitment.
-16. A successful Toss changes ordinary carrying state so the two one-body
+14. A Kestrel moving to a zone/anchor/Well through `move.via` exposes that held
+    route to its linked route-forward opportunity: the first unavailable use
+    falls through and establishes movement, then a legal in-window Dash is
+    accepted on a later straight span.
+15. Outside the activation zone, at a bend, on cooldown, obstructed, or below
+    minimum gain, route-forward Dash selects the ordinary same-destination,
+    same-`via` movement sibling in the same tick. After ingress completion it
+    continues from the route endpoint to the final destination.
+16. Route-forward Dash works with both `move.via` and terminal patrol, never
+    chooses an off-route/reverse destination, and resumes the same route after
+    its authoritative commitment.
+17. A successful Toss changes ordinary carrying state so the two one-body
     Relay roles exchange carrier/receiver behavior without Program state; an
     unavailable Toss creates no wait, reversal, backtrack, or local orbit.
+18. Patchbay's generated continuation preserves a real Repair Beam channel;
+    Palisade/Longshot preserve their authored direction/rooted tell; Mortar
+    preserves its exact-target tell; and the chosen Hush/Repulsor local scene
+    activates only under its authored area pressure.
 
 ### Materializer/editor tests
 
@@ -720,9 +795,16 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     tolerance envelopes cannot be materialized; the editor highlights the
     overlap and offers spatial/role repairs. Disjoint body pools remain legal.
 11. A blank Program can create the complete Kestrel corridor sentence by
-    selecting a route, activation zone, and minimum gain; it generates the
-    descriptor-driven route-forward use plus same-route continuation without
-    Advanced edits or hard-coded anchors.
+    selecting a final destination, one shared movement `via`, activation zone,
+    and minimum gain; it generates the descriptor-driven route-forward use
+    plus `move.to`/`move.via` continuation without Advanced edits, duplicate
+    route selectors, or hard-coded anchors. Changing the continuation route
+    updates the linked use reference atomically.
+12. All sixteen current signature descriptors can create, edit, regenerate,
+    save, reload, detach, and compile at least one honest Program opportunity;
+    the five generic families render without skill-id switches.
+13. A fixture seventeenth signature using each existing family/target shape
+    requires only descriptor data, not a Post, Program, or map component edit.
 
 ### Browser acceptance
 
@@ -743,12 +825,16 @@ starter sheet, without opening Advanced:
 In a second normal-surface flow, without opening Advanced:
 
 1. select the Kestrel raid participant;
-2. draw/select its long terminal corridor and Dash activation span;
-3. change the minimum forward gain;
-4. inspect the straight-span preview and same-route fallback summary;
-5. run the Mid Overload drill and observe a contextual Dash; and
-6. drag the activation span or route and regenerate/save/reload without
-   breaking linkage.
+2. choose the enemy Well/anchor/zone as its final destination and draw/select
+   Long Corridor once as the movement `via`;
+3. attach Dash to **this movement's route** and draw its activation span;
+4. change the minimum forward gain;
+5. inspect the straight-span preview and same-destination/same-`via` fallback
+   summary;
+6. run the Mid Overload drill and observe a contextual Dash; and
+7. drag or replace the shared `via`, activation span, or destination and
+   regenerate/save/reload without breaking linkage or exposing two route
+   selectors.
 
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
@@ -783,6 +869,13 @@ It is complete only when all of the following are true:
     deterministic gameplay scenes pass.
 12. Documentation describes Posts as authoring sugar, the new Condition fact,
     commitment/fallthrough, capacity, and the two starter doctrines accurately.
+13. All sixteen current signatures remain normally authorable and persistent
+    through Programs; Patchbay channel, Palisade/Longshot lane/tell, Mortar
+    exact tell, and Hush/Repulsor self-local scenes prove the distinct families
+    without introducing bespoke recipe/runtime behavior.
+14. Kestrel can Dash along the same single-authored `via` used by a move to a
+    zone, anchor, Well, or other ordinary destination, with honest same-tick
+    fallback and no `dashVia`/`aheadVia` field.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -810,12 +903,15 @@ an explicit release checkpoint.
    undo/redo tests.
 4. **Map-first UX** — build the Post inspector, facing arrow, target/activation
    distinction, overlap prevention, descriptor-driven route-forward Dash
-   controls/preview, legality preview, normal trigger/outcome controls, and
-   mobile editing flow.
+   controls/preview with shared movement-`via` linkage, all-signature family
+   coverage, legality preview, normal trigger/outcome controls, and mobile
+   editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
    and replay evidence; add the selected-body why/timeline views.
-6. **Starter doctrines** — finish Mid Overload and Running Relay as two legal,
-   fully fallback-equipped sheets and add the deterministic drills/controls.
+6. **Starter doctrines and signature seams** — finish Mid Overload and Running
+   Relay as two legal, fully fallback-equipped sheets; add their deterministic
+   drills/controls plus the focused Patchbay, Palisade/Longshot, Mortar, and
+   Hush/Repulsor family scenes.
 7. **Validation and delivery** — run focused and full relevant tests, browser
    QA, exact mechanical proofs, standard exhibit, docs/Decision update, public
    tunnel verification, report, commit, and clean-status check.
