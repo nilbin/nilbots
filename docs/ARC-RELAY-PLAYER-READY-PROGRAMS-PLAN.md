@@ -78,6 +78,11 @@ Preserve these constraints throughout:
   is the actual order of direct-child Instruction leaves inside that Program
   participant behavior, followed by the exact continuation. Dragging it
   changes that one real order.
+- **Fight is one behavior, not an Ambush mechanic plus an Opportunity
+  mechanic.** Target order, style, chase limit, capacity, lifecycle, summary,
+  and generated `fight` leaf use one editor/materializer. Ambush readiness and
+  trigger may activate that behavior from its parent Program; ambient contact
+  may activate it with a local distance Condition.
 - Combined readiness means every participant sees the same ordinary gate; it
   does not promise simultaneous actions. A higher Program, death, displacement,
   or dynamic illegality may still affect one participant independently, and
@@ -707,7 +712,8 @@ behavior with an ordinary durable continuation must be able to combine four
 normal opportunity kinds in one visibly ordered list:
 
 1. **Use a skill** at an authored source station, Post, or activation area;
-2. **Fight on contact** under an authored body-local encounter range;
+2. **Fight**, activated by the host Program response or an authored body-local
+   contact range;
 3. **Recover a nearby Core** when empty-handed and a currently visible loose
    Core is within an authored walking distance; and
 4. **Recover health** by diverting to an in-range healing tile at low health,
@@ -778,27 +784,57 @@ fight hosts. Do not add an “autonomy mode,” interrupt scheduler, route-local
 state machine, or opaque behavior policy. The workshop sidecar owns only the
 link between each human card and its ordinary Condition/action leaf.
 
-#### Fight on contact
+#### One Fight behavior: Program response or contact
 
-This card needs no new executor primitive. Materialize the existing
-`self-nearest-visible-enemy-distance` Condition above an ordinary `fight` leaf
-and expose:
+There is exactly one player-facing Fight behavior editor and materializer. It
+always exposes:
 
-- encounter distance, labelled accurately as the legal walking steps this body
-  needs to reach a firing tile—not geometric distance to the enemy;
 - ordered target preferences;
 - advance/hold/kite style;
 - chase limit from the fight-entry position; and
 - the visible **Attackers per enemy** capacity policy.
 
+Its activation source is orthogonal and explicit:
+
+- **When this Program responds** inherits the owning Program branch's shared
+  trigger, all-Posts-ready relationship, minimum commitment, success, timeout,
+  and cooldown. This is how an ambush springs;
+- **On contact** adds the existing
+  `self-nearest-visible-enemy-distance` Condition, labelled accurately as the
+  legal walking steps this body needs to reach a firing tile—not geometric
+  distance to the enemy; or
+- **Additional Conditions** refine either form through the same ordinary flat
+  Condition controls.
+
+These are activation bindings on the same Fight behavior, not separate
+`AmbushFight`, `OpportunityFight`, engagement, or runtime concepts. Switching
+from inherited response to On contact must preserve the target/style/chase/
+capacity configuration and change only the ordinary Condition/lifecycle
+linkage. A recipe may prefill those values but may not own another Fight model
+or editor.
+
+For a multi-role ambush, each participant role may share the Fight behavior or
+refine its ordinary target/style/chase choices. Cross-role **Attackers per
+enemy** uses the existing named-capacity linkage. No role receives a hidden
+combat policy merely because another participant fights.
+
+In the Mid Overload ambush, the shared enemy-in-mid trigger plus exact Post and
+deployment readiness activates the committed response. Its Fight behavior
+inherits that activation; it must not redundantly require the original enemy
+count or a fresh per-body sighting every tick. Momentary visibility/readiness
+loss therefore does not cancel the response. If a participant currently has no
+actionable Fight target, the ordinary `fight` leaf yields to that response's
+authored hold/continuation while the parent commitment remains active.
+
 If no legal target is actionable, the leaf yields to the next opportunity or
-continuation that tick. When the encounter Condition/lifecycle exits, the exact
+continuation that tick. When the Fight activation/lifecycle exits, the exact
 host continuation resumes: the same patrol cursor, held `move.via` course,
 current follow target selection, or Post/hold destination. Entering combat must
 not silently restart a route or convert the chase limit into distance from a
 waypoint. Existing minimum-commitment and maximum-attempt controls remain
-available when the player wants the fight to survive a momentary sighting loss,
-but an ambient encounter card does not create its own latch.
+available when the player wants an On-contact fight to survive a momentary
+sighting loss, but the card does not create its own latch. An inherited ambush
+response uses the parent Program commitment instead.
 
 #### Recover a nearby visible Core
 
@@ -1044,6 +1080,8 @@ For a selected Program and body, Practice must answer:
   yielded, including encounter distance, Core visibility/walking distance,
   health start/recovered thresholds, healing-tile detour, carrying policy, and
   target-capacity loss;
+- whether Fight inherited a Program response or used On-contact activation,
+  shown separately from its target/style/chase configuration;
 - capacities in their player-facing terms—such as “one pursuer already owns
   this Core this tick” or “nearest healing tile already has a patient”—rather
   than only a generated capacity id;
@@ -1116,6 +1154,10 @@ Acceptance behavior:
 - each ambush has multiple roles and capacity-1 exact slots;
 - it reports every slot and required deployment separately;
 - neither ambush arms until all its required setup is ready;
+- the shared Program trigger/readiness springs each committed response, then
+  every participating role fights through the same ordinary Fight behavior,
+  editor, capacity policy, and generated `fight` leaf used by On-contact
+  behavior elsewhere;
 - both staged groups use **Hold these Posts** and remain stable while waiting,
   without preparation-node re-entry churn;
 - the response stays committed for its configured minimum even when an enemy
@@ -1325,6 +1367,12 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     the response resumes if still active. Selecting **Core acquired** as the
     ordinary success exits according to the authored minimum/end semantics
     instead. No lower carrier Program or hidden transition is assumed to win.
+32. Mid Overload's shared trigger/readiness springs its response and the same
+    ordinary Fight behavior used by On-contact opportunities executes beneath
+    it. Losing the original enemy count, Post readiness, or one body's current
+    sighting does not cancel parent commitment; no actionable target yields to
+    the authored response hold, and a later target resumes Fight without a
+    second activation mechanism.
 
 ### Materializer/editor tests
 
@@ -1416,6 +1464,13 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     finite failed attempt that immediately re-arms without acknowledgement. A
     carrier-only host cannot silently receive a never-eligible nearby-Core
     card or a health card whose carrier policy makes it impossible.
+26. Ambush response Fight and On-contact Fight use the same editor linkage and
+    generated `fight` leaf shape. Switching activation preserves target order,
+    style, chase, and capacity while adding/removing only the inherited/local
+    Condition relationship.
+27. Ambush and other recipes may prefill that common Fight behavior but cannot
+    persist an `AmbushFight`/engagement configuration, invoke another
+    materializer, or add a runtime combat mode.
 
 ### Browser acceptance
 
@@ -1428,10 +1483,15 @@ starter sheet, without opening Advanced:
 4. move the Hardlight target one step;
 5. toggle “rebuild when missing” and “required before arming”;
 6. change its capacity/readiness relationship;
-7. run the deterministic drill;
-8. click the Mason and explain whether/why it moved, faced, cast, held,
+7. open the ambush response's ordinary Fight behavior, confirm activation says
+   **When this Program responds**, and edit target order, style, chase, and
+   Attackers-per-enemy without entering a recipe-specific editor;
+8. switch that same behavior to **On contact** and back, confirming its Fight
+   configuration survives while only activation linkage changes;
+9. run the deterministic drill;
+10. click the Mason and explain whether/why it moved, faced, cast, fought, held,
    committed, and exited;
-9. save, reload, and rerun the same scenario/seed.
+11. save, reload, and rerun the same scenario/seed.
 
 In a second normal-surface flow, without opening Advanced:
 
@@ -1456,8 +1516,9 @@ In a third normal-surface flow, without opening Advanced:
 4. add **Recover health**, choose different start/recovered thresholds, maximum
    walking detour, retry lifecycle, carrier policy, see the healing tiles/bound
    on the map, and observe **Patients per healing tile: 1 · across this sheet**;
-5. add **Fight on contact**, choose its encounter distance, target order,
-   style, chase limit, and visible Attackers-per-enemy policy;
+5. add **Fight on contact** through the same Fight editor used by the ambush,
+   choose its encounter distance, target order, style, chase limit, and visible
+   Attackers-per-enemy policy;
 6. add **Recover a nearby Core**, set five walking steps, observe the visible
    default **Pursuers per Core: 1 · across this sheet**, and confirm **On
    pickup: Bank carried Core takes priority** names a real higher Program and
@@ -1555,6 +1616,13 @@ It is complete only when all of the following are true:
     the sheet, makes healing tiles and the authored bound legible on the map,
     and cannot create oscillation, route restart, hidden recovery state, or an
     indefinite unreachable-heal diversion.
+20. Ambush response and ambient contact use one Fight behavior editor,
+    materializer, configuration shape, capacity policy, and generated `fight`
+    leaf. The ambush springs because its parent Program response activates and
+    commits—not because Fight has an ambush-only trigger or mode. Switching the
+    same Fight behavior between **When this Program responds** and **On
+    contact** preserves target order, style, chase, and attacker capacity, and
+    no `AmbushFight`, engagement scheduler, or second combat state is added.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -1589,8 +1657,9 @@ an explicit release checkpoint.
    distinction, overlap prevention, descriptor-driven route-forward Dash
    controls/preview with shared movement-`via` linkage, route-linked patrol
    opportunity markers, one generic Opportunity component for all supported
-   host continuations/phases, Fight-on-contact, nearby-Core, and health-recovery
-   cards in the one real local order, higher carrier-Program preview/repair,
+   host continuations/phases, one shared Fight editor with explicit inherited-
+   response versus On-contact activation, nearby-Core and health-recovery cards
+   in the one real local order, higher carrier-Program preview/repair,
    all-signature family coverage, legality preview, normal trigger/outcome
    controls, and mobile editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
@@ -1599,8 +1668,9 @@ an explicit release checkpoint.
    capacity loss, resumed continuation, and post-pickup takeover.
 6. **Starter doctrines and signature seams** — finish Mid Overload and Running
    Relay as two legal, fully fallback-equipped sheets; add their deterministic
-   drills/controls plus the focused Patchbay, Palisade/Longshot, Mortar, and
-   Hush/Repulsor family scenes and the integrated
+   drills/controls, including proof that Mid Overload and ambient contact share
+   the same Fight editor/materializer, plus the focused Patchbay,
+   Palisade/Longshot, Mortar, and Hush/Repulsor family scenes and the integrated
    skill/Fight/Core/Health/Flare/Sentinel patrol scene plus non-patrol host
    matrix.
 7. **Validation and delivery** — run focused and full relevant tests, browser
@@ -1620,6 +1690,8 @@ Do not expand this goal into:
 - arbitrary nested Conditions or a visual programming language;
 - waypoint action scripts, patrol queues, hidden visit/lap state, or a second
   route-local priority system;
+- `AmbushFight`, recipe-specific engagement/Fight configuration, a combat
+  scheduler, or any second runtime combat mode;
 - simultaneous move-and-use actions;
 - fixed unit-id assignments in place of roles and capacities;
 - backup rosters or between-match substitutions;
