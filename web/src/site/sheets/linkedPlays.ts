@@ -23,8 +23,7 @@ export interface PlayDrift {
   roleId: string;
   orderId?: string;
   kind: 'role-missing' | 'order-missing' | 'order-changed' | 'order-collision'
-    | 'priority-neighbor-missing' | 'opportunity-binding-invalid'
-    | 'formation-binding-invalid';
+    | 'opportunity-binding-invalid' | 'formation-binding-invalid';
   message: string;
 }
 
@@ -218,18 +217,6 @@ export function inspectWorkshop(
           }
         }
       }
-      const before = projection.placement.beforeOrderKey;
-      if (before && !role.orders.some((entry, index) => orderKey(entry, index) === before)
-        && !generated.some((entry, index) => orderKey(entry, index) === before)) {
-        drifts.push({
-          playId: play.id,
-          projectionId: projection.id,
-          roleId: projection.roleId,
-          orderId: before,
-          kind: 'priority-neighbor-missing',
-          message: `Priority neighbor '${before}' no longer exists in '${projection.roleId}'.`,
-        });
-      }
     }
   }
   return drifts;
@@ -272,19 +259,24 @@ export function materializeWorkshop(
     if (owned) role.orders = role.orders.filter((order) => !order.id || !owned.has(order.id));
   }
 
-  for (const play of workshop.plays) for (const projection of play.projections) {
-    const role = orders.roles.find((entry) => entry.id === projection.roleId);
-    if (!role) continue;
-    const generated = resolveProjectionOrders(play, projection);
-    const before = projection.placement.beforeOrderKey;
-    const index = before
-      ? role.orders.findIndex((entry, orderIndex) => orderKey(entry, orderIndex) === before)
-      : role.orders.length;
-    role.orders.splice(index < 0 ? role.orders.length : index, 0, ...generated);
-    projection.lastGenerated = generated.map((order) => ({
-      orderId: requireOrderId(order),
-      fingerprint: fingerprintOrder(order),
-    }));
+  // Programs are authoring sugar over the one runtime Instruction list. For
+  // each role, filter the global Program list to participating Programs and
+  // flatten their participant blocks in exactly that order. Advanced unlinked
+  // Instructions remain after the Program band as a compatibility fallback.
+  for (const role of orders.roles) {
+    const generatedBand: OrderNode[] = [];
+    for (const play of workshop.plays) {
+      for (const projection of play.projections.filter((entry) =>
+        entry.roleId === role.id)) {
+        const generated = resolveProjectionOrders(play, projection);
+        generatedBand.push(...generated);
+        projection.lastGenerated = generated.map((order) => ({
+          orderId: requireOrderId(order),
+          fingerprint: fingerprintOrder(order),
+        }));
+      }
+    }
+    role.orders.unshift(...generatedBand);
   }
 
   return { orders, workshop, drifts: force ? [] : drifts };
@@ -381,22 +373,6 @@ export function playDrifts(
   playId: string,
 ): PlayDrift[] {
   return inspectWorkshop(orders, workshop).filter((entry) => entry.playId === playId);
-}
-
-export function projectionPriorityOptions(
-  orders: OrdersDocument,
-  projection: PlayProjection,
-): Array<{ value: string | null; label: string }> {
-  const role = orders.roles.find((entry) => entry.id === projection.roleId);
-  const owned = new Set(projection.lastGenerated.map((entry) => entry.orderId));
-  const ordinary = role?.orders.filter((entry) => !entry.id || !owned.has(entry.id)) ?? [];
-  return [
-    ...ordinary.map((order, index) => ({
-      value: orderKey(order, index),
-      label: `before ${humanize(order.id ?? order.shared ?? `order-${index + 1}`)}`,
-    })),
-    { value: null, label: 'after every existing Order' },
-  ];
 }
 
 export function fingerprintOrder(order: OrderNode): string {
@@ -499,12 +475,6 @@ function requireOrderId(order: OrderNode): string {
   return order.id;
 }
 
-function orderKey(order: OrderNode, index: number): string {
-  if (order.id) return `id:${order.id}`;
-  if (order.shared) return `shared:${order.shared}`;
-  return `index:${index}`;
-}
-
 function findOrder(orders: OrderNode[], orderId: string): OrderNode | undefined {
   for (const order of orders) {
     if (order.id === orderId) return order;
@@ -567,8 +537,4 @@ function canonical(value: unknown): unknown {
   return Object.fromEntries(Object.entries(value as Record<string, unknown>)
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([key, entry]) => [key, canonical(entry)]));
-}
-
-function humanize(value: string) {
-  return value.replace(/[-_]+/g, ' ');
 }

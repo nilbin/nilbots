@@ -66,9 +66,9 @@ const RANDOM_SEED_STORAGE_KEY = 'nilbots-sheet-practice-random-seed-v1';
 
 const SECTIONS: ReadonlyArray<{ id: Section; label: string; description: string }> = [
   { id: 'squad', label: 'Squad', description: 'Cast eight bodies into roles' },
-  { id: 'orders', label: 'Orders', description: 'Write each role’s priorities' },
+  { id: 'plays', label: 'Programs', description: 'Build responses on the map' },
   { id: 'map', label: 'Map plan', description: 'Plot the named ground' },
-  { id: 'plays', label: 'Plays', description: 'Link Orders across the map' },
+  { id: 'orders', label: 'Instructions', description: 'Advanced generated source' },
 ];
 
 export default function TacticalSheetEditor({ catalog, initialSheetId = null }: TacticalSheetEditorProps) {
@@ -85,7 +85,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [section, setSection] = useState<Section>(() => {
     const stored = window.sessionStorage.getItem(SECTION_STORAGE_KEY);
     return stored === 'squad' || stored === 'orders' || stored === 'map' || stored === 'plays'
-      ? stored : 'orders';
+      ? stored : 'plays';
   });
   const [selectedPlayId, setSelectedPlayId] = useState<string | null>(() =>
     window.sessionStorage.getItem('nilbots-sheet-selected-play'));
@@ -159,7 +159,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       setCompilerIssue({
         path: 'orders',
         severity: 'error',
-        message: 'That saved revision uses the retired sheet grammar. Start from this Orders v2 draft instead; old documents are not translated.',
+        message: 'That saved revision uses the retired sheet grammar. Start from this current Instructions draft instead; old documents are not translated.',
       });
       return;
     }
@@ -238,7 +238,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       unitId += role.classes.length;
     }
     // Hosted Practice always places the edited sheet in team 0. Preserve only
-    // authoritative occupied tiles for the selected Play's participants.
+    // authoritative occupied tiles for the selected Program's participants.
     return selectedTracks.filter((track) => track.teamId === 0 && unitIds.has(track.unitId));
   }, [draft, selectedPlayId, selectedTracks]);
 
@@ -278,7 +278,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       const issue: SheetIssue = {
         path: `workshop.plays.${first.playId}`,
         severity: 'error',
-        message: `${first.message} Regenerate from Play or detach it before saving.`,
+        message: `${first.message} Regenerate from the Program or detach it before saving.`,
       };
       setCompilerIssue(issue);
       setSection('plays');

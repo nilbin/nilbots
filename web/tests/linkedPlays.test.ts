@@ -27,6 +27,7 @@ import {
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
+  moveProgram,
   movePlayAnchor,
   moveSignatureOpportunity,
   renamePlayGeometry,
@@ -472,6 +473,54 @@ test('a blank Play authors ordinary Orders through the generic projection path',
   if (timeout) linked = setPlayLinkedValue(linked, playId, timeout.id, 30);
   assert.ok(linked.orders.roles.find((entry) => entry.id === 'support')!.orders
     .some((order) => order.id?.startsWith(`${playId}-support-move`)));
+});
+
+test('one Program reorder moves every participant Instruction block together', () => {
+  let linked = addBlankPlay(draft(), 'First response');
+  const firstId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, firstId, 'support');
+  linked = addBlankPlayProjection(linked, firstId, 'reserve');
+  linked = addBlankPlay(linked, 'Second response');
+  const secondId = linked.workshop.plays[1].id;
+  linked = addBlankPlayProjection(linked, secondId, 'support');
+  linked = addBlankPlayProjection(linked, secondId, 'reserve');
+
+  const roots = (roleId: string) => linked.orders.roles
+    .find((entry) => entry.id === roleId)!.orders.map((entry) => entry.id);
+  assert.deepEqual(roots('support'), [
+    `${firstId}-support-move`, `${secondId}-support-move`, 'support-baseline',
+  ]);
+  assert.deepEqual(roots('reserve'), [
+    `${firstId}-reserve-move`, `${secondId}-reserve-move`, 'reserve-baseline',
+  ]);
+
+  linked = moveProgram(linked, secondId, -1);
+  assert.deepEqual(linked.workshop.plays.map((entry) => entry.id), [secondId, firstId]);
+  assert.deepEqual(roots('support'), [
+    `${secondId}-support-move`, `${firstId}-support-move`, 'support-baseline',
+  ]);
+  assert.deepEqual(roots('reserve'), [
+    `${secondId}-reserve-move`, `${firstId}-reserve-move`, 'reserve-baseline',
+  ]);
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+});
+
+test('Program materialization filters by participant and ignores legacy insertion points', () => {
+  let linked = addBlankPlay(draft(), 'Support only');
+  const firstId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, firstId, 'support');
+  linked.workshop.plays[0].projections[0].placement = {
+    beforeOrderKey: 'id:support-baseline',
+  };
+  linked = addBlankPlay(linked, 'Reserve only');
+  const secondId = linked.workshop.plays[1].id;
+  linked = addBlankPlayProjection(linked, secondId, 'reserve');
+  const result = materializeWorkshop(linked.orders, linked.workshop);
+  assert.equal(result.drifts.length, 0);
+  assert.deepEqual(result.orders.roles.find((entry) => entry.id === 'support')!
+    .orders.map((entry) => entry.id), [`${firstId}-support-move`, 'support-baseline']);
+  assert.deepEqual(result.orders.roles.find((entry) => entry.id === 'reserve')!
+    .orders.map((entry) => entry.id), [`${secondId}-reserve-move`, 'reserve-baseline']);
 });
 
 test('a blank Play refines shared-trigger contingents without rebuilding their Orders', () => {

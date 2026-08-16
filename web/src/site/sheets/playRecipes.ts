@@ -82,7 +82,6 @@ export function addBlankPlayProjection(
       id: orderId,
       move: { to: { well: 'centre' }, posture: 'line' },
     }],
-    placement: { beforeOrderKey: defaultPriorityNeighbor(role) },
     lastGenerated: [],
   });
   return applyMaterialization(next);
@@ -164,10 +163,10 @@ export function addNorthAmbushPlay(
   const engageUntil: ConditionExpression = { all: [names.minimum, names.success] };
   const linkedValues: PlayLinkedValueDefinition[] = [];
   const projections = [
-    ambushProjection(id, roles.masonRoleId, 'mason', names, next),
-    ambushProjection(id, roles.longshotRoleId, 'longshot', names, next),
-    ambushProjection(id, roles.hushRoleId, 'hush', names, next),
-    ambushProjection(id, roles.reserveRoleId, 'reserve', names, next),
+    ambushProjection(id, roles.masonRoleId, 'mason', names),
+    ambushProjection(id, roles.longshotRoleId, 'longshot', names),
+    ambushProjection(id, roles.hushRoleId, 'hush', names),
+    ambushProjection(id, roles.reserveRoleId, 'reserve', names),
   ];
   linkedValues.push(
     linkedLifecycle(`${id}-engage-when`, 'when', engageWhen, projections, 'engage'),
@@ -371,7 +370,6 @@ export function addRelayChainPlay(
     receiverStagesFor(roles.relayARoleId),
     tossStagesFor(roles.relayBRoleId),
     conditionIds,
-    next,
   );
   const bProjection = relayProjection(
     id, 'b', roles.relayBRoleId, roles.relayARoleId,
@@ -381,7 +379,6 @@ export function addRelayChainPlay(
     receiverStagesFor(roles.relayBRoleId),
     tossStagesFor(roles.relayARoleId),
     conditionIds,
-    next,
   );
   const projections = [aProjection, bProjection];
   const play: LinkedPlay = {
@@ -489,7 +486,7 @@ export function addVeteranEscortPlay(
   next.orders.capacities[capacityId] = 1;
   const leaderProjection: PlayProjection = {
     id: `${id}-veteran`, roleId: roles.veteranRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(veteran) }, lastGenerated: [],
+    lastGenerated: [],
     orders: [{
       id: `${id}-veteran-route`, when: conditionIds.active,
       move: { patrol: routeId, posture: 'front' },
@@ -497,7 +494,7 @@ export function addVeteranEscortPlay(
   };
   const escortProjection: PlayProjection = {
     id: `${id}-escort`, roleId: roles.escortRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(escort) }, lastGenerated: [],
+    lastGenerated: [],
     orders: [
       { id: `${id}-escort-recover`, when: conditionIds.hurt, urgency: 'urgent', move: { to: 'nearest-heal-zone' } },
       { id: `${id}-escort-fight`, when: conditionIds.contact, fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'hold', chaseLimit: 4 } },
@@ -551,7 +548,7 @@ export function addSafeReturnPlay(
 ): SheetDraft {
   const next = structuredClone(draft);
   const carrier = requireRole(next, roles.carrierRoleId);
-  const relay = requireRole(next, roles.relayRoleId);
+  requireRole(next, roles.relayRoleId);
   if (roles.carrierRoleId === roles.relayRoleId)
     throw new Error('Choose a carrier role and a different Relay role.');
   assertOneBodyClass(next, roles.relayRoleId, 'relay');
@@ -586,7 +583,7 @@ export function addSafeReturnPlay(
   } satisfies Record<string, ConditionDefinition>);
   const carrierProjection: PlayProjection = {
     id: `${id}-carrier`, roleId: roles.carrierRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(carrier) }, lastGenerated: [],
+    lastGenerated: [],
     orders: [{
       id: `${id}-carrier-return`, when: { all: [conditions.carrying, conditions.pickup] },
       until: conditions.empty, urgency: 'urgent', orders: [
@@ -597,7 +594,7 @@ export function addSafeReturnPlay(
   };
   const relayProjection: PlayProjection = {
     id: `${id}-relay`, roleId: roles.relayRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(relay) }, lastGenerated: [],
+    lastGenerated: [],
     orders: [
       { id: `${id}-relay-bank`, when: conditions.carrying, until: conditions.empty, urgency: 'urgent', move: { to: 'own-reactor', via: homeRoute } },
       { id: `${id}-relay-stage`, when: conditions.empty, move: { to: { anchor: exchange }, posture: 'rear' } },
@@ -639,7 +636,6 @@ export function addLaneClosurePlay(
   const guard = requireRole(next, roles.guardRoleId);
   if (roles.masonRoleId === roles.guardRoleId || guard.classes.length < 2)
     throw new Error('Lane closure needs a Mason role and a different role with at least two guards.');
-  const mason = requireRole(next, roles.masonRoleId);
   const id = uniquePlayId('lane-closure', next.workshop);
   const hardlight = `${id}-hardlight`;
   const facing = `${id}-open-lane`;
@@ -658,7 +654,7 @@ export function addLaneClosurePlay(
   next.orders.capacities[capacityId] = 1;
   const masonProjection: PlayProjection = {
     id: `${id}-mason`, roleId: roles.masonRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(mason) }, lastGenerated: [],
+    lastGenerated: [],
     orders: [{ id: `${id}-mason-closure`, orders: [
       { id: `${id}-place-hardlight`, when: conditions.signature, use: { skill: 'hardlight-block', target: 'nearest-ally', at: hardlight } },
       { id: `${id}-stage-mason`, urgency: 'normal', move: { to: { adjacentTo: hardlight } } },
@@ -666,7 +662,7 @@ export function addLaneClosurePlay(
   };
   const guardProjection: PlayProjection = {
     id: `${id}-guards`, roleId: roles.guardRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(guard) }, lastGenerated: [],
+    lastGenerated: [],
     orders: [
       { id: `${id}-guard-fight`, when: conditions.contact, fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'hold', chaseLimit: 3 } },
       { id: `${id}-guard-a`, capacity: capacityId, move: { to: { anchor: guardA }, face: { anchor: facing }, posture: 'front' } },
@@ -701,7 +697,6 @@ function ambushProjection(
   roleId: string,
   kind: 'mason' | 'longshot' | 'hush' | 'reserve',
   names: ReturnType<typeof ambushNames>,
-  draft: SheetDraft,
 ): PlayProjection {
   const suffix = kind;
   const engageId = `${playId}-${suffix}-engage`;
@@ -754,7 +749,6 @@ function ambushProjection(
     id: `${playId}-${suffix}`,
     roleId,
     orders: [engage, assembly],
-    placement: { beforeOrderKey: defaultPriorityNeighbor(requireRole(draft, roleId)) },
     lastGenerated: [],
   };
 }
@@ -783,12 +777,10 @@ function relayProjection(
   receiverStages: RelayReceiverStage[],
   tossStages: RelayTossStage[],
   conditions: Record<string, string>,
-  draft: SheetDraft,
 ): PlayProjection {
   return {
     id: `${playId}-relay-${label}`,
     roleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(requireRole(draft, roleId)) },
     lastGenerated: [],
     orders: [
       ...receiverStages.map((stage, index): OrderNode => ({
@@ -940,14 +932,6 @@ function requireRole(draft: SheetDraft, roleId: string): RoleDefinition {
   const role = draft.orders.roles.find((entry) => entry.id === roleId);
   if (!role) throw new Error(`Unknown role '${roleId}'.`);
   return role;
-}
-
-function defaultPriorityNeighbor(role: RoleDefinition): string | null {
-  const order = role.orders.at(-1);
-  if (!order) return null;
-  if (order.id) return `id:${order.id}`;
-  if (order.shared) return `shared:${order.shared}`;
-  return null;
 }
 
 function applyMaterialization(draft: SheetDraft): SheetDraft {

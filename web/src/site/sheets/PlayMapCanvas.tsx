@@ -202,10 +202,10 @@ export default function PlayMapCanvas({
       })}
     </svg>
     <div className="flex flex-wrap gap-3 border-t border-arena-edge px-2 py-2 t-micro">
-      <span className="text-arena-material">● Play anchor</span>
+      <span className="text-arena-material">● Program point</span>
       <span className="text-[#b49cff]">□ derived readiness zone</span>
       <span className="text-[#39d7f2]">— linked route</span>
-      <span className="ml-auto">{side === 'west' ? 'Drag a Play anchor to move it.' : 'East is a read-only rotated preview.'}</span>
+      <span className="ml-auto">{side === 'west' ? 'Drag a Program point to move it.' : 'East is a read-only rotated preview.'}</span>
     </div>
   </div>;
 }

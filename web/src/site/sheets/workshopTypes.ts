@@ -59,7 +59,11 @@ export interface PlayFormationBinding {
 }
 
 export interface PlayProjectionPlacement {
-  /** Null means after every ordinary top-level Order. */
+  /**
+   * Retained only so an older workshop sidecar can still be read. Program
+   * materialization deliberately ignores this legacy per-role insertion point:
+   * the ordered Program list is the only author-facing priority model.
+   */
   beforeOrderKey: string | null;
 }
 
@@ -84,7 +88,8 @@ export interface PlayProjection {
    * and applied deterministically while materializing the projection.
    */
   orders: OrderNode[];
-  placement: PlayProjectionPlacement;
+  /** @deprecated Program order supersedes projection-local placement. */
+  placement?: PlayProjectionPlacement;
   lastGenerated: PlayGeneratedOrderFingerprint[];
   /** Editor linkage only; all executable fields remain in orders. */
   signatureOpportunities?: PlaySignatureOpportunityBinding[];

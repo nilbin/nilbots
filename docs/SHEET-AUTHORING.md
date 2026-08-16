@@ -612,51 +612,70 @@ The primary workshop is card-and-map based:
 Raw JSON import/export is an advanced utility. Authored hashes are not shown or
 edited. The workshop never exposes retired vocabulary.
 
-### Linked Plays are editor ownership, not a gameplay document
+### Tactical Programs are editor ownership, not a gameplay document
 
 The optional `arc-relay-workshop-v1` sidecar lets the web editor link several
-ordinary Orders and map objects into one editable **Play**. It is stored with
-the owning sheet so linkage survives refresh, another device, and duplication.
-It is deliberately excluded from the compiler, ATL2, content hash, match
-identity, and replay. Orders plus map plan remain complete standalone gameplay
-sources.
+ordinary **Instructions** and map objects into one editable **Program**. The
+persisted implementation names remain `plays`, `PlayProjection`, `OrderNode`
+and `arc-relay-orders-v2` for compatibility; those are not player vocabulary.
+The sidecar is stored with the owning sheet so linkage survives refresh,
+another device, and duplication. It is deliberately excluded from the
+compiler, ATL2, content hash, match identity, and replay. Instructions plus map
+plan remain complete standalone gameplay sources.
 
-The editor currently offers one blank Play and five guided lenses: Ambush,
+Programs are the normal map-first authoring surface. The Program list is read
+top-to-bottom and is the sole user-facing priority order. Materialization is
+deterministic authoring sugar:
+
+1. for each role, filter the ordered Program list to Programs containing that
+   role;
+2. flatten that participant's generated Instruction block in the same Program
+   order; and
+3. place advanced unlinked compatibility Instructions after the Program band.
+
+If a participant has no executable Instruction in one Program, ordinary
+first-executable-leaf selection falls through to that role's next Program.
+Reordering one Program therefore moves every participant block together. There
+is no participant-specific insertion point, runtime Program state, atomic team
+activation, reservation, or second scheduler.
+
+The editor currently offers one blank Program and five guided lenses: Ambush,
 Running Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
-authoring convenience. Its projection uses the same five action names and the
-same `when`, `until`, `timeout`, `cooldown`, `urgency`, and `capacity` fields as
-the Orders workspace. No `play`, phase, global priority, roster reservation, or
-second runtime state machine is added.
+authoring convenience. Its generated Instructions use the same five action
+names and the same `when`, `until`, `timeout`, `cooldown`, `urgency`, and
+`capacity` fields as the advanced Instructions workspace.
 
-Each Play records stable ownership ids and fingerprints for the Orders,
-conditions, capacities, anchors, zones, and routes it generated. A normal edit
-regenerates only those owned values deterministically. If their materialized
-source no longer matches the recorded fingerprint, save stops and asks the
-author to choose:
+Each Program records stable ownership ids and fingerprints for the
+Instructions, conditions, capacities, anchors, zones, and routes it generated.
+A normal edit regenerates only those owned values deterministically. Generated
+Instructions are an advanced read-only explanation; completing ordinary
+Program authoring never requires visiting them. If materialized source no
+longer matches the recorded fingerprint, save stops and asks the author to
+choose:
 
-- **Regenerate from Play** replaces only the owned projection.
-- **Detach to ordinary Orders** preserves the materialized Orders and map
-  objects, removes the linkage, and makes those sources ordinary editor input.
+- **Regenerate Instructions** replaces only the Program-owned blocks.
+- **Detach to unlinked Instructions** preserves the materialized Instructions
+  and map objects, removes the linkage, and makes that advanced source editable.
 
-Deleting a Play previews its owned sources and can retain geometry. Atomic
+Deleting a Program previews its owned sources and can retain geometry. Atomic
 multi-object edits use the editor's normal undo/redo transaction. Stale clients
 that omit workshop fields preserve existing metadata; an explicit replace flag
 is required to clear or change it.
 
-Practice restores the active workspace, selected Play, opponent, and seed.
-The map can overlay actual tracks for only that Play's participating roles; an
-Ambush-style Play also reports the best observed required-slot readiness frame.
-These diagnostics interpret the replay for the author and never feed back into
-the match.
+Practice restores the active workspace, selected Program, opponent, and seed.
+The map can overlay actual tracks for only that Program's participating roles;
+an Ambush-style Program also reports the best observed required-slot readiness
+frame. These diagnostics interpret the replay for the author and never feed
+back into the match.
 
-### Signature opportunities remain ordinary `use` Orders
+### Signature opportunities remain ordinary `use` Instructions
 
-A Play projection may link a durable plan branch to one or more **signature
-opportunities**. The focused Play view calls this list **Along the way**. Each
-binding points at a real direct-child `use` leaf under that branch; it stores no
-second copy of the skill, target, conditions, capacity, lifecycle, or order.
-The use leaf's actual sibling position is its priority. The first following
-ordinary sibling is its continuation.
+A participant block may link a durable plan branch to one or more **signature
+opportunities**. The focused Program view calls this list **Along the way**.
+Each binding points at a real direct-child `use` leaf under that branch; it
+stores no second copy of the skill, target, conditions, capacity, lifecycle, or
+Instruction. The use leaf's actual sibling position is its local priority. The
+first following ordinary sibling is its continuation.
 
 If a durable movement/fight leaf needs an opportunity, the editor may scaffold
 one parent branch atomically: opportunity `use` leaves first, one optional
@@ -668,8 +687,8 @@ There is no compound move-and-use action.
 The map-first editor can link an opportunity to a visible activation zone,
 exact anchor, named role/selector, or descriptor-authorized route relation. It
 uses the same map objects and the same reusable signature control as direct
-Orders. Removing a binding removes only the linked use leaf; detaching the Play
-keeps the exact materialized Orders editable. Opportunity ids and Play ids
+Instructions. Removing a binding removes only the linked use leaf; detaching
+the Program keeps the exact materialized Instructions editable. Opportunity ids and internal Play ids
 remain in the workshop sidecar and never enter ATL2, execution, match state, or
 replay.
 

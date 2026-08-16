@@ -9,6 +9,7 @@ const season = read('../src/site/pages/SeasonPage.tsx');
 const entrants = read('../src/site/pages/ArcRelayPage.tsx');
 const workshop = read('../src/site/sheets/TacticalSheetEditor.tsx');
 const orders = read('../src/site/sheets/OrdersWorkspace.tsx');
+const programs = read('../src/site/sheets/PlaysWorkspace.tsx');
 const map = read('../src/site/sheets/MapPlanEditor.tsx');
 const docs = read('../src/site/pages/DocsPage.tsx');
 const styles = read('../src/index.css');
@@ -53,13 +54,15 @@ test('responsive practice docks never render two visible actions at one breakpoi
   assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/i);
 });
 
-test('the workshop speaks the consolidated Orders v2 language only', () => {
-  assert.match(workshop, /id: 'squad'.*id: 'orders'.*id: 'map'/s);
+test('the workshop presents Programs first and Instructions as advanced source', () => {
+  assert.match(workshop, /id: 'squad'.*id: 'plays'.*id: 'map'.*id: 'orders'/s);
+  assert.match(workshop, /label: 'Programs'/);
+  assert.match(workshop, /label: 'Instructions'/);
   assert.match(orders, /What this role tries, in order/);
   assert.match(orders, /first executable leaf wins/i);
   assert.match(orders, /Named conditions/);
   assert.match(orders, /Shared capacity rules/);
-  assert.match(orders, /Shared exact orders/);
+  assert.match(orders, /Shared exact Instructions/);
   assert.match(orders, /Move/);
   assert.match(orders, /Fight/);
   assert.match(orders, /Use skill/);
@@ -67,6 +70,14 @@ test('the workshop speaks the consolidated Orders v2 language only', () => {
   assert.match(orders, /Handoff/);
   assert.match(orders, /Drop Core/);
   assert.doesNotMatch(`${workshop}\n${orders}`, /custodyPolicies|doctrines|muster|escort|assignment order/i);
+});
+
+test('Programs expose one top-to-bottom priority and generated Instructions stay read-only', () => {
+  assert.match(programs, /Priority runs top to bottom/);
+  assert.match(programs, /moveProgram\(draft, entry\.id/);
+  assert.match(programs, /Generated Instructions/);
+  assert.match(programs, /advanced · read-only/);
+  assert.doesNotMatch(programs, /Insert projection|There is no Play priority|setPlayProjectionPlacement|projectionPriorityOptions/);
 });
 
 test('conditions, lifecycle and capacities are explicit game controls rather than opaque strings', () => {
@@ -79,10 +90,10 @@ test('conditions, lifecycle and capacities are explicit game controls rather tha
   assert.doesNotMatch(orders, /advanced settings/i);
 });
 
-test('the shared-order library can author every physical action and a nested play', () => {
+test('the shared-Instruction library can author every physical action and a nested sequence', () => {
   assert.match(orders, /ACTIONS\.map\(\(action\)/);
   assert.match(orders, /add\(\{ orders: \[freshOrder\('move', 'opening-move'\)\] \}\)/);
-  for (const label of ['Move', 'Fight', 'Use skill', 'Handoff', 'Drop Core', 'Nested play'])
+  for (const label of ['Move', 'Fight', 'Use skill', 'Handoff', 'Drop Core', 'Nested sequence'])
     assert.match(orders, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
 });
 

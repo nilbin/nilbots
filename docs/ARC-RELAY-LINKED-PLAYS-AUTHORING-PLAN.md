@@ -18,6 +18,28 @@ ordinary nested `use` leaves, descriptor-driven all-class authoring,
 route-forward targeting, and authoritative commitment continuation without
 changing this plan's runtime boundary.
 
+## Owner amendment — Tactical Programs, 2026-08-16
+
+This amendment supersedes the original player-facing Play/Order vocabulary and
+every projection-placement proposal later in this historical plan. Internal
+`Play`, `PlayProjection`, `OrderNode`, `plays`, and `arc-relay-orders-v2` names
+remain for compatibility.
+
+- Player-facing objects are **Programs** containing generated
+  **Instructions**.
+- Programs are the normal map-first surface. Generated Instructions are an
+  advanced read-only explanation and are never a prerequisite for ordinary
+  Program authoring.
+- The Program list is the one top-to-bottom authoring priority. For each role,
+  materialization filters that list to Programs containing the role and
+  flattens its participant Instruction blocks in the same order.
+- A participant with no executable Instruction falls through to the next
+  Program. Reordering one Program moves all participant blocks together.
+- Per-projection insertion points are removed. Advanced unlinked Instructions
+  remain a compatibility fallback after the Program-generated band.
+- This remains authoring sugar only: no runtime Program state, atomic team
+  activation, reservation, or second scheduler.
+
 ## Owner amendments — 2026-08-16
 
 These amendments change the implementation order and proof posture of this
@@ -51,11 +73,11 @@ The production path now follows this plan:
   with it, but is excluded from the sheet content hash, compiler input, ATL2,
   matches, and replays. An old client that omits workshop fields preserves the
   existing sidecar.
-- The editor has the fourth `Plays` workspace on desktop and phone. It uses the
-  real Tapline map, exact Orders names, west/east binding, drag and atomic group
-  movement, role projections, linked values, readiness ranges, capacity,
-  priority neighbors, generated-Orders inspection, drift recovery, detach,
-  delete, and undo/redo.
+- The editor has a primary `Programs` workspace on desktop and phone. It uses
+  the real Tapline map, exact Instruction fields, west/east binding, drag and
+  atomic group movement, participants, linked values, readiness ranges,
+  capacity, one top-to-bottom Program list, generated-Instruction inspection,
+  drift recovery, detach, delete, and undo/redo.
 - Six editor lenses use one deterministic projection path: blank, Ambush,
   Running Relay, Veteran escort, Safe return, and Lane closure. They materialize
   only ordinary `move`, `fight`, `use`, `handoff`, and `drop` Orders plus
@@ -116,14 +138,18 @@ without hunting through generated leaves.
 The existing authoring paths remain first-class:
 
 - **Squad** continues to cast the eight bodies into roles.
-- **Orders** continues to author and reorder ordinary role priorities.
+- **Instructions** is the advanced role-source compatibility surface.
 - **Map plan** continues to create, name, and edit zones, routes, and anchors.
-- A new additive **Plays** workspace offers map-first coordinated authoring.
+- **Programs** offers normal map-first coordinated authoring.
 
 The feature succeeds only if it improves both first creation and later
 iteration. Generating a pile of disconnected Orders once is not success.
 
-## Product decision: call the sugar layer “Plays”
+## Superseded product decision: the implementation called the sugar layer “Plays”
+
+The Tactical Programs amendment above replaces this player-facing name. The
+following text remains only as implementation history for why runtime stayed
+unaware of the sidecar.
 
 Use **Play** in the workshop because that is the player's natural description
 of “these bodies coordinate around this place when this situation occurs.” In

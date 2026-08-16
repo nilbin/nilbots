@@ -253,8 +253,8 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
   return <section className="grid min-w-0 gap-3">
     <aside className="panel h-fit overflow-hidden">
       <div className="border-b border-arena-edge p-3">
-        <p className="lab text-arena-material">Role plans</p>
-        <p className="t-micro mt-1">Read top to bottom. The first executable leaf wins.</p>
+        <p className="lab text-arena-material">Advanced Instructions</p>
+        <p className="t-micro mt-1">Programs generate the leading blocks. Read top to bottom; the first executable leaf wins.</p>
       </div>
       <div className="flex gap-1 overflow-x-auto p-2">{orders.roles.map((entry) => <button key={entry.id}
         type="button" className={clsx(
@@ -262,12 +262,12 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
           entry.id === role.id ? 'border-arena-material/65 bg-arena-material/10' : 'border-transparent bg-arena-deep/25',
         )} onClick={() => { setRoleId(entry.id); setOpenPath(null); }}>
         <span className="flex items-center gap-2"><span className="flex -space-x-1">{entry.classes.map((classId, index) => <ClassIcon key={`${classId}:${index}`} classId={classId} size={28} decorative />)}</span><b className="t-body truncate">{humanize(entry.id)}</b></span>
-        <span className="t-micro mt-1 block">{entry.orders.length} top-level orders</span>
+        <span className="t-micro mt-1 block">{entry.orders.length} top-level Instructions</span>
       </button>)}</div>
       <div className="grid gap-1 border-t border-arena-edge p-2 sm:grid-cols-3">
         <button type="button" className="btn min-h-11 justify-start" onClick={() => { setConditionSelection(null); setLibrary('conditions'); }}>◇ Conditions <span className="pill ml-auto">{Object.keys(orders.conditions).length}</span></button>
         <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('capacities')}>⫶ Capacities <span className="pill ml-auto">{Object.keys(orders.capacities).length}</span></button>
-        <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('shared')}>⧉ Shared orders <span className="pill ml-auto">{Object.keys(orders.sharedOrders).length}</span></button>
+        <button type="button" className="btn min-h-11 justify-start" onClick={() => setLibrary('shared')}>⧉ Shared Instructions <span className="pill ml-auto">{Object.keys(orders.sharedOrders).length}</span></button>
       </div>
     </aside>
 
@@ -276,7 +276,7 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
         <div className="mr-auto">
           <p className="lab text-arena-material">{humanize(role.id)}</p>
           <h2 className="type-display mt-1 text-[22px]">What this role tries, in order</h2>
-          <p className="t-meta mt-1">Conditions choose the moment. Nesting groups a short local plan. Combat and Core handling are ordinary orders.</p>
+          <p className="t-meta mt-1">This is the advanced explanation. Program-generated blocks are read-only; conditions choose the moment and nesting groups a short local sequence.</p>
         </div>
         <span className="flex -space-x-1">{role.classes.map((classId, index) => <ClassIcon key={`${classId}:${index}`} classId={classId} size={42} />)}</span>
       </div>
@@ -299,12 +299,12 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
       <IssueList issues={issues.filter((issue) => issue.path.startsWith(`orders.roles.${roleIndex}`))} />
     </div>
 
-    {library && <Modal title={library === 'conditions' ? 'Named conditions' : library === 'capacities' ? 'Shared capacity rules' : 'Shared exact orders'}
+    {library && <Modal title={library === 'conditions' ? 'Named conditions' : library === 'capacities' ? 'Shared capacity rules' : 'Shared exact Instructions'}
       description={library === 'conditions'
         ? 'Name a fact once, then combine those names explicitly with AND or OR on any order.'
         : library === 'capacities'
           ? 'One number limits bodies claiming the same resolved target. A shared name needs at least two consumers.'
-          : 'Reuse an exact order tree. Shared orders have no parameters or per-role overrides.'}
+          : 'Reuse an exact Instruction tree. Shared Instructions have no parameters or per-role overrides.'}
       onClose={() => { setLibrary(null); setConditionSelection(null); }}>
       {library === 'conditions' && <ConditionsEditor orders={orders} mapPlan={mapPlan} issues={issues} onChange={onChange}
         initialSelected={conditionSelection}
@@ -516,20 +516,20 @@ function LinkedOrderCard({ node, path, depth, info, open, onToggle, onEditPlay }
           {action === 'branch' ? '⌘' : meta?.glyph ?? '⧉'}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="lab text-arena-material">Play · {info.playName}</span>
+          <span className="lab text-arena-material">Program · {info.playName}</span>
           <b className="type-display mt-0.5 block truncate text-[16px]">{humanize(node.id ?? 'linked-order')}</b>
-          <span className="t-micro mt-0.5 block truncate">Read-only while linked · {action ?? 'Order'}</span>
+          <span className="t-micro mt-0.5 block truncate">Generated · read-only · {action ?? 'Instruction'}</span>
         </span>
         <span className="disclosure-chevron shrink-0">›</span>
       </button>
       {onEditPlay && <button type="button" className="btn btn-secondary hidden min-h-10 sm:inline-flex"
-        onClick={() => onEditPlay(info.playId)}>Edit Play</button>}
+        onClick={() => onEditPlay(info.playId)}>Edit Program</button>}
     </div>
     {open && <div className="border-t border-arena-material/25 p-3">
-      <p className="t-meta">This is ordinary Orders source generated by <b>{info.playName}</b>. Edit linked values, geometry and priority in Plays, or detach it to edit here.</p>
+      <p className="t-meta">This Instruction was generated by <b>{info.playName}</b>. Refine the Program’s map, trigger and participants there, or detach it to make this advanced source editable.</p>
       <pre className="mt-3 max-h-72 overflow-auto rounded-sm border border-arena-edge bg-[#080c10] p-3 text-[11px] leading-relaxed text-arena-muted">{JSON.stringify(node, null, 2)}</pre>
       {onEditPlay && <button type="button" className="btn btn-secondary mt-3 min-h-11 w-full sm:hidden"
-        onClick={() => onEditPlay(info.playId)}>Edit Play</button>}
+        onClick={() => onEditPlay(info.playId)}>Edit Program</button>}
     </div>}
   </article>;
 }
@@ -546,7 +546,7 @@ function AddOrder({ depth, allOrders, role, catalog, onAdd }: {
   const signatureSkill = skillForClass(catalog, role.classes[0] ?? '') ?? 'vector-dash';
   return <div>
     <button type="button" className="btn btn-secondary min-h-11 w-full" onClick={() => setOpen((value) => !value)}>
-      ＋ Add {depth === 0 ? 'priority order' : 'nested order'}
+      ＋ Add {depth === 0 ? 'priority Instruction' : 'nested Instruction'}
     </button>
     {open && <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
       {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[76px]"
@@ -557,9 +557,9 @@ function AddOrder({ depth, allOrders, role, catalog, onAdd }: {
       </button>)}
       {depth < 2 && <button type="button" className="choice-card min-h-[76px]" onClick={() => {
         onAdd({ id: uniqueId('new-play', ids), orders: [freshOrder('move', uniqueId('opening-move', ids))] }); setOpen(false);
-      }}><b className="type-display block text-[15px]">⌘ Nested play</b><span className="t-micro mt-1 block">One lifecycle around a short local priority list.</span></button>}
+      }}><b className="type-display block text-[15px]">⌘ Nested sequence</b><span className="t-micro mt-1 block">One lifecycle around a short local priority list.</span></button>}
       {Object.keys(allOrders.sharedOrders).map((id) => <button key={id} type="button" className="choice-card min-h-[76px]"
-        onClick={() => { onAdd({ shared: id }); setOpen(false); }}><b className="type-display block text-[15px]">⧉ {humanize(id)}</b><span className="t-micro mt-1 block">Exact shared order</span></button>)}
+        onClick={() => { onAdd({ shared: id }); setOpen(false); }}><b className="type-display block text-[15px]">⧉ {humanize(id)}</b><span className="t-micro mt-1 block">Exact shared Instruction</span></button>)}
     </div>}
   </div>;
 }
@@ -567,7 +567,7 @@ function AddOrder({ depth, allOrders, role, catalog, onAdd }: {
 function LifecycleEditor({ node, allOrders, onChange }: { node: OrderNode; allOrders: OrdersDocument; onChange: (next: OrderNode) => void }) {
   const change = (mutate: (next: OrderNode) => void) => { const next = structuredClone(node); mutate(next); onChange(next); };
   return <div className="mt-4 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">
-    <p className="lab">When this order owns the body</p>
+    <p className="lab">When this Instruction owns the body</p>
     <UrgencyEditor value={node.urgency} onChange={(value) => change((next) => {
       if (value === undefined) delete next.urgency; else next.urgency = value;
     })} />
@@ -583,12 +583,12 @@ function LifecycleEditor({ node, allOrders, onChange }: { node: OrderNode; allOr
       <OptionalTicks label="Cooldown after exit" value={node.cooldown} placeholder="No cooldown" min={0} max={1200}
         onChange={(value) => change((next) => { if (value === undefined) delete next.cooldown; else next.cooldown = value; })} />
     </div>
-    <p className="t-micro mt-2">Without “until”, the entry condition stays live. With it, the order latches until that exit condition, timeout, success or death.</p>
+    <p className="t-micro mt-2">Without “until”, the entry condition stays live. With it, the Instruction latches until that exit condition, timeout, success or death.</p>
   </div>;
 }
 
 const URGENCY_COPY: Array<{ value: OrderUrgency | undefined; label: string; description: string }> = [
-  { value: undefined, label: 'Inherit', description: 'Use the parent play; Normal at the top level.' },
+  { value: undefined, label: 'Inherit', description: 'Use the parent Instruction; Normal at the top level.' },
   { value: 'routine', label: 'Routine', description: 'Yields readily during ordinary positioning.' },
   { value: 'normal', label: 'Normal', description: 'The default weight for squad traffic.' },
   { value: 'urgent', label: 'Urgent', description: 'Gets scarce allied movement space first.' },
@@ -956,7 +956,7 @@ function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpen
   return <div className="grid gap-3 lg:grid-cols-[220px_minmax(0,1fr)]">
     <div><div className="flex gap-1 overflow-x-auto lg:flex-col">{ids.map((id) => <button key={id} type="button" className="choice-card min-h-12 min-w-[170px] lg:min-w-0" data-selected={id === selected} onClick={() => setSelected(id)}>{humanize(id)}</button>)}</div>
       <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full" aria-expanded={adding}
-        onClick={() => setAdding((value) => !value)}>＋ New shared order</button>
+        onClick={() => setAdding((value) => !value)}>＋ New shared Instruction</button>
       {adding && <div className="mt-2 grid gap-1.5">
         {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[68px] text-left"
           onClick={() => {
@@ -970,11 +970,11 @@ function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpen
           <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
         </button>)}
         <button type="button" className="choice-card min-h-[68px] text-left" onClick={() => add({ orders: [freshOrder('move', 'opening-move')] })}>
-          <b className="type-display block text-[14px]">⌘ Nested play</b><span className="t-micro mt-1 block">One lifecycle around a short local priority list.</span>
+          <b className="type-display block text-[14px]">⌘ Nested sequence</b><span className="t-micro mt-1 block">One lifecycle around a short local priority list.</span>
         </button>
       </div>}
     </div>
-    {definition && exampleRole ? <div><label className="mb-2 block"><span className="lab mb-1 block">Shared order name</span><IdentifierInput value={selected}
+    {definition && exampleRole ? <div><label className="mb-2 block"><span className="lab mb-1 block">Shared Instruction name</span><IdentifierInput value={selected}
       isTaken={(id) => id !== selected && Boolean(orders.sharedOrders[id])}
       onCommit={(id) => { commit((next) => { next.sharedOrders[id] = next.sharedOrders[selected]; delete next.sharedOrders[selected]; rewriteShared(next, selected, id); }); setSelected(id); }} /></label>
       <OrderCard node={definition} externalId={selected} path={`orders.sharedOrders.${selected}`} role={exampleRole}
@@ -983,14 +983,14 @@ function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpen
         onToggle={() => undefined} onOpenPath={() => undefined} onOpenMap={onOpenMap}
         onChange={(node) => commit((next) => { next.sharedOrders[selected] = node; })}
         onMove={() => undefined} onDuplicate={() => undefined} onDelete={() => undefined} first last />
-      <button type="button" className="btn mt-3 min-h-11 text-arena-hot" onClick={() => { commit((next) => { delete next.sharedOrders[selected]; }); setSelected(ids.find((id) => id !== selected) ?? ''); }}>Delete shared order</button>
-    </div> : <p className="t-meta">Create an exact reusable order.</p>}
+      <button type="button" className="btn mt-3 min-h-11 text-arena-hot" onClick={() => { commit((next) => { delete next.sharedOrders[selected]; }); setSelected(ids.find((id) => id !== selected) ?? ''); }}>Delete shared Instruction</button>
+    </div> : <p className="t-meta">Create an exact reusable Instruction.</p>}
   </div>;
 }
 
 function SharedReference({ node, allOrders, onChange }: { node: OrderNode; allOrders: OrdersDocument; onChange: (next: OrderNode) => void }) {
-  return <div><p className="t-meta">This priority slot expands one exact shared definition. Edit the definition from Shared orders; this reference has no overrides.</p>
-    <CardPicker label="Shared order" value={node.shared ?? ''} values={Object.keys(allOrders.sharedOrders)} onChange={(shared) => onChange({ shared })} />
+  return <div><p className="t-meta">This priority slot expands one exact shared definition. Edit it from Shared Instructions; this reference has no overrides.</p>
+    <CardPicker label="Shared Instruction" value={node.shared ?? ''} values={Object.keys(allOrders.sharedOrders)} onChange={(shared) => onChange({ shared })} />
   </div>;
 }
 

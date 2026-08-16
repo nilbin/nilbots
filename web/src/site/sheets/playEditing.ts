@@ -312,6 +312,25 @@ export function setPlayName(
 }
 
 /**
+ * Move one Program in the sole author-facing priority list. Rematerialization
+ * moves every participating role's generated Instruction block together.
+ */
+export function moveProgram(
+  draft: SheetDraft,
+  playId: string,
+  direction: -1 | 1,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const index = next.workshop.plays.findIndex((entry) => entry.id === playId);
+  const target = index + direction;
+  if (index < 0) throw new Error(`Unknown Program '${playId}'.`);
+  if (target < 0 || target >= next.workshop.plays.length) return next;
+  [next.workshop.plays[index], next.workshop.plays[target]] =
+    [next.workshop.plays[target], next.workshop.plays[index]];
+  return requireMaterialized(next);
+}
+
+/**
  * Add one ordinary map-plan object and mark it as Play-owned. The object has
  * no behavior until a projected Order or Condition references it.
  */
@@ -548,19 +567,6 @@ export function setPlayLinkedValue(
   return requireMaterialized(next);
 }
 
-export function setPlayProjectionPlacement(
-  draft: SheetDraft,
-  playId: string,
-  projectionId: string,
-  beforeOrderKey: string | null,
-): SheetDraft {
-  const next = structuredClone(draft);
-  const projection = requirePlay(next, playId).projections.find((entry) => entry.id === projectionId);
-  if (!projection) throw new Error(`Unknown projection '${projectionId}'.`);
-  projection.placement.beforeOrderKey = beforeOrderKey;
-  return requireMaterialized(next);
-}
-
 export function updatePlayProjectionOrders(
   draft: SheetDraft,
   playId: string,
@@ -604,15 +610,6 @@ export function replacePlayRole(
 
   projection.roleId = nextRoleId;
   projection.lastGenerated = [];
-  const targetRole = next.orders.roles.find((role) => role.id === nextRoleId)!;
-  if (projection.placement.beforeOrderKey
-    && !targetRole.orders.some((order, index) =>
-      orderKey(order, index) === projection.placement.beforeOrderKey)) {
-    const fallback = targetRole.orders.at(-1);
-    projection.placement.beforeOrderKey = fallback
-      ? orderKey(fallback, targetRole.orders.length - 1)
-      : null;
-  }
   for (const slot of play.slots)
     if (slot.roleId === previousRoleId) slot.roleId = nextRoleId;
   for (const conditionId of play.ownedConditionIds) {
@@ -906,12 +903,6 @@ function replaceRoleReference(order: OrderNode, previous: string, nextId: string
     order.use.target.role = nextId;
   if (typeof order.handoff?.target === 'object' && order.handoff.target.role === previous)
     order.handoff.target.role = nextId;
-}
-
-function orderKey(order: OrderNode, index: number): string {
-  if (order.id) return `id:${order.id}`;
-  if (order.shared) return `shared:${order.shared}`;
-  return `index:${index}`;
 }
 
 function updateOpportunityNode(

@@ -8715,3 +8715,28 @@ not rebuild WASM, mint artifacts or bump playlists. The tracked WASM mirror is
 reconciled only at an explicit release/deployment checkpoint or when the
 custom-mind sandbox, SDK/Guest ABI, controlled compiler, or WASM runtime
 changes.
+
+## 326. Tactical Programs provide the one user-facing priority order
+
+Owner amendment (2026-08-16). The linked workshop sugar is presented to
+players as **Programs** containing generated **Instructions**. Internal `Play`,
+`PlayProjection`, `OrderNode`, `plays`, and `arc-relay-orders-v2` identifiers
+remain unchanged for compatibility. Programs are the normal map-first
+authoring surface; generated Instructions are an advanced read-only explanation
+and completing ordinary Program authoring never requires opening them.
+
+The Program list is evaluated top-to-bottom and is the sole user-facing
+priority. For each role, materialization filters that ordered list to Programs
+containing the role, then flattens the participant's Instruction blocks in the
+same order. If one participant block has no executable Instruction, normal
+first-executable-leaf selection reaches that role's next Program. Reordering
+one Program moves every participant block together. Normal per-projection
+insertion-point controls are removed; advanced unlinked Instructions remain
+after the Program band as a compatibility fallback.
+
+This is authoring sugar over the existing Instruction order. It adds no runtime
+Program state, atomic team activation, reservations, or second scheduler. Mid
+Overload Fork remains the primary UX proof: one shared trigger, independently
+armed 2/2 home defense and 5/5 return ambush, immediate Kestrel raid,
+contextual signature opportunities, explicit continuations, and in-place
+refinement. It is not a bespoke recipe and carries no balance verdict.

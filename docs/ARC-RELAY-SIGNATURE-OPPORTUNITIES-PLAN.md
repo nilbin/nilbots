@@ -1,4 +1,4 @@
-# Arc Relay signature opportunities in linked Plays
+# Arc Relay signature opportunities in Tactical Programs
 
 Status: **implemented on `main` on 2026-08-16; owner review pending.**
 
@@ -6,14 +6,39 @@ Date: 2026-08-16
 
 ## Owner acceptance amendment — Mid Overload Fork
 
+### Tactical Programs ruling — 2026-08-16
+
+This ruling supersedes every conflicting use of player-facing **Play**,
+**Order**, projection insertion points, or “no Play priority” below. Internal
+`Play`, `PlayProjection`, `OrderNode`, `plays`, and `arc-relay-orders-v2`
+identifiers remain unchanged for compatibility.
+
+- Player-facing terms are **Program** and **Instruction**.
+- Programs are the normal map-first authoring surface. Generated Instructions
+  are an advanced, read-only explanation; ordinary Program authoring never
+  requires opening them.
+- The Program list is evaluated top-to-bottom and is the sole user-facing
+  priority order.
+- For each role, materialization filters that ordered list to Programs
+  containing the role, then flattens its participant Instruction blocks in the
+  same order. A participant with no executable Instruction falls through to
+  the next Program.
+- Reordering one Program moves every participant block together. Normal
+  per-projection insertion controls are deleted.
+- Programs remain authoring sugar over the existing Instruction order. They
+  add no runtime Program state, atomic team activation, reservation, or second
+  scheduler.
+- Existing unlinked Instructions remain an advanced compatibility surface;
+  historical sheet migration does not block this goal.
+
 The primary UX acceptance scenario is **Mid Overload Fork**, authored through
-the generic blank-Play surface rather than a recipe. A player draws two ambush
+the generic blank-Program surface rather than a recipe. A player draws two ambush
 locations and a Kestrel route, assigns 2/5/1 contingents, defines one shared
 mid-overload condition, configures each contingent's own readiness and
-continuation, and places its signature opportunities. The Play editor must
+continuation, and places its signature opportunities. The Program editor must
 show the shared start, immediate contingent, 2/2 and 5/5 readiness, each
-Mason's exact wall, Kestrel's route and Dash, every projection's real role
-priority, and the ordinary outcomes after success, failure, timeout, or Core
+Mason's exact wall, Kestrel's route and Dash, the Program's one global priority,
+and the ordinary outcomes after success, failure, timeout, or Core
 pickup.
 
 Refinement is part of acceptance: changing the enemy threshold, moving an
@@ -107,25 +132,27 @@ fallback to refine. It deliberately does not let the editor choose an opaque
 
 ### One execution priority system
 
-- Role root order remains the only global tactical priority.
-- A Play projection retains its one explicit insertion point among ordinary
-  role Orders.
+- The ordered Program list is the sole user-facing tactical priority.
+- For each role, materialization filters that list to participating Programs
+  and flattens each participant Instruction block in the same order.
+- A non-executable participant block falls through to that role's next Program.
 - Within an active parent branch, existing child source order remains the only
   local priority.
-- There is no Play priority, signature priority number, opportunity score,
-  scheduler, reservation queue, or cross-role arbitration layer.
-- Multiple Plays affecting one role remain separate ordinary root projections.
-  The earlier eligible source Order wins exactly as it does today.
-- Opportunity ordering shown in Plays must be the actual child order in the
-  materialized Orders tree. The sidecar must not store another authoritative
-  order list.
+- Reordering a Program moves all participant blocks together. There is no
+  per-projection insertion point, signature priority number, opportunity score,
+  runtime scheduler, reservation queue, or cross-role arbitration layer.
+- Advanced unlinked Instructions remain after the Program band as compatibility
+  fallback.
+- Opportunity ordering shown in Programs must be the actual child order in the
+  materialized Instructions tree. The sidecar must not store another
+  authoritative order list.
 
 The UI should explain the model in one sentence:
 
-> If this plan wins the role ladder, try these Orders from top to bottom;
-> otherwise continue through the role's normal ladder.
+> Try Programs from top to bottom. Inside one Program, try this participant's
+> Instructions from top to bottom; otherwise continue to the next Program.
 
-### Plays remain editor-only linkage
+### Programs remain editor-only linkage
 
 - Do not add `plays`, opportunity ids, Play phases, participant reservations,
   or Play state to `arc-relay-orders-v2`, ATL2, the executor, match state,
@@ -177,12 +204,14 @@ semantics as every other Order.
 
 Use these terms consistently in code, docs, and UI:
 
-- **Play** — existing linked workshop object spanning geometry and one or more
-  role projections.
-- **projection** — existing editor-owned Orders inserted at one point in one
-  role's root list.
+- **Program** — player-facing linked workshop object spanning geometry and one
+  or more participating roles. Internal source may continue to call it Play.
+- **participant Instruction block** — editor-owned Instructions contributed by
+  one Program to one role at the Program's global position. Internal source may
+  continue to call it a projection.
 - **plan** or **episode** — an ordinary branch with current `when`, `until`,
   `timeout`, `cooldown`, and `urgency` semantics.
+- **Instruction** — player-facing name for one existing Order/OrderNode.
 - **signature opportunity** — editor linkage to one ordinary `use` leaf inside
   a plan. User-facing copy may call the group **Along the way**.
 - **continuation** — the following ordinary siblings in the same branch, or
@@ -193,7 +222,7 @@ Use these terms consistently in code, docs, and UI:
 - **preset** — optional editor defaults for a recognizable use of a signature.
   It creates editable ordinary source and has no identity after generation.
 
-Do not introduce synonyms such as task priority, Play priority, ability AI,
+Do not introduce synonyms such as task priority, projection priority, ability AI,
 sequence state, or move callback.
 
 ## Current foundation and the seams to fix
@@ -204,8 +233,8 @@ recreating it:
 - `web/src/site/sheets/workshopTypes.ts` owns the versioned linked Play sidecar.
 - `web/src/site/sheets/linkedPlays.ts` performs deterministic projection,
   fingerprint drift detection, detach, and ordinary root insertion.
-- `web/src/site/sheets/PlaysWorkspace.tsx` already presents projection priority
-  and continuation without a Play priority.
+- `web/src/site/sheets/PlaysWorkspace.tsx` presents the single top-to-bottom
+  Program priority plus participant continuation.
 - `web/src/site/sheets/sheetAuthoring.ts` defines the direct Orders/map-plan
   authoring types.
 - `src/BotArena.TacticalPlaybooks/ArcRelayOrdersSheetDsl.cs` is the strict,
@@ -268,9 +297,10 @@ one host, their `use` nodes are shown in the exact order in which those nodes
 occur in `host.orders`. The first non-opportunity sibling is shown as the first
 continuation; further siblings remain visible in advanced inspection.
 
-This gives the existing materializer almost nothing new to do. It still clones
-the projection Orders, resolves linked values, removes prior owned roots, and
-inserts the resulting roots at the projection's existing placement. Drift
+The materializer still clones participant Instructions, resolves linked values,
+and removes prior owned roots. It then walks the Program list once per role,
+filters to participating Programs, and prepends those blocks in the same global
+order ahead of advanced unlinked Instructions. Drift
 fingerprints already cover the nested `use` nodes because they fingerprint the
 owned root.
 
@@ -727,11 +757,11 @@ Shared readiness/trigger conditions may link their `when` fields. They do not
 make the actions simultaneous. Every role still resolves independently through
 the same Orders tree and current information.
 
-## Plays UX
+## Tactical Programs UX
 
 ### Primary map-first flow
 
-1. Select a Play and one role projection.
+1. Select a Program and one participant.
 2. Select an existing durable branch/movement/fight continuation, or choose
    **Add signature along this plan**.
 3. If needed, let the editor scaffold the ordinary parent branch described
@@ -742,8 +772,8 @@ the same Orders tree and current information.
 6. Choose a descriptor-valid target policy and ordinary conditions.
 7. See the signature above its exact continuation immediately.
 8. Drag/reorder multiple opportunities inside that local child list.
-9. Review the role's separate root insertion point and higher-priority
-   pre-emptors.
+9. Review the Program's one top-to-bottom position. Moving it moves every
+   participant block together.
 10. Save, Practice, return, and inspect why the opportunity fired or did not.
 
 Do not build a second map. Reuse the current Tapline editor, west/east binding,
@@ -767,8 +797,8 @@ ALONG THE WAY
 OTHERWISE
    Continue safe-return route
 
-ROLE PRIORITY
-   after Recover · before generic scoring
+PROGRAM PRIORITY
+   2 of 4 · every participant moves together
 ```
 
 The numbered list is not a second priority system; it is a focused rendering
@@ -785,14 +815,15 @@ The first view should ask only:
 
 Advanced controls expose the exact `when`, `until`, timeout, cooldown, urgency,
 capacity, selector, minimum progress, linked values, source ids, and generated
-Orders. Do not hide those values; simply keep them out of the first decision.
+Instructions. Do not hide those values; keep them advanced and read-only.
 
 Every generated/linked use card has:
 
-- **Inspect in Orders** — read-only while linked;
+- **Inspect Instructions** — advanced and read-only while linked;
 - **Edit on map** — focuses owned/referenced geometry;
 - **Move up/down** — changes real sibling order;
-- **Detach Play** — existing whole-Play behavior; and
+- **Detach Program** — preserves generated Instructions as unlinked advanced
+  source; and
 - **Remove opportunity** — removes only the owned use leaf and previews any
   now-unused helper condition/geometry cleanup.
 
@@ -1120,10 +1151,10 @@ surfaces.
 ### Browser tests
 
 - create every mandatory proof through visible controls, not JSON;
-- direct Orders and Plays use the same descriptor-driven editor;
+- direct Instructions and Programs use the same descriptor-driven editor;
 - map selection creates/focuses the real source zone/route/anchor;
-- generated Orders inspection shows exact sibling priority and continuation;
-- priority copy never implies a separate Play/signature priority;
+- generated Instructions inspection shows exact sibling priority and continuation;
+- the Program list is top-to-bottom and no participant insertion controls exist;
 - save -> Practice -> return restores exact context and diagnostics;
 - detach yields editable normal Orders that compile to the same gameplay;
 - desktop and 390×844 touch layouts work without hover or overflow; and
@@ -1135,10 +1166,10 @@ The goal is complete only when every item below is true:
 
 1. A linked signature opportunity is editor linkage to an ordinary `use` leaf;
    no opportunity or Play identity reaches ATL2/runtime/replay.
-2. There is exactly one tactical priority model. Root projection placement and
-   child source order fully explain every competition.
-3. The Plays UI always shows the opportunity's actual continuation and higher
-   root pre-emptors.
+2. There is exactly one tactical priority model. Program order and child source
+   order fully explain every competition; one reorder moves all participants.
+3. The Programs UI always shows the opportunity's actual continuation and the
+   Program's global position.
 4. A failed or unavailable signature falls through in the same tick without a
    hidden wait, alternate target policy, or movement rewrite.
 5. A successful signature consumes the action and later resumes through the
