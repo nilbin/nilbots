@@ -243,7 +243,7 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-ticks-since-signature-use`, `signature-ready`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count` |
 | team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
@@ -287,6 +287,11 @@ range. Before the body has used its signature it fails every upper-bound
 comparison. This is a local transition latch; it does not create shared Play
 state or imply another body's behavior.
 
+`signature-commitment-active` is `1` only while this body's own authoritative
+signature operation is in its public tell/acquisition or channel phase. It is
+`0` for independent in-flight effects and persistent deployments after the
+caster is free. This observes engine state; it is not an authored duration.
+
 ## 6. Five actions
 
 ### `move`
@@ -304,6 +309,7 @@ state or imply another body's behavior.
 
 - `own-reactor`, `nearest-heal-zone`, `nearest-known-loose-core`, or
   `highest-bank-value-known-loose-core`;
+- `current-position`, an intentional hold at the body's already-resolved tile;
 - `{ "zone": "id" }`;
 - `{ "anchor": "id" }`; or
 - `{ "adjacentTo": "anchor-id" }`; or
@@ -346,6 +352,12 @@ Walking onto a legal loose Core picks it up. Walking a carried Core into the
 owner's reactor banks it. Those are physical rules, not hidden action verbs.
 Holding (`Wait`) on a heal-zone tile channels healing. No separate `activate`
 action is authored; contention for the tile remains executor movement micro.
+
+`current-position` also emits an intentional `Wait`. A signature opportunity
+uses it with `signature-commitment-active` to keep a public tell or channel
+from being cancelled by its own movement continuation. A higher-priority
+authored order may still pre-empt the parent and move, accepting the engine's
+normal cancellation consequence.
 
 ### `fight`
 
@@ -416,19 +428,45 @@ only when the receiver is at least the stated number of tiles ahead. It also
 requires the requested receiver tile to be the exact unobstructed Arc Toss
 landing, rather than accepting an engine-clipped landing before a wall.
 
+A descriptor-authorized movement signature may instead aim its own body
+forward on one terminal route:
+
+```json
+{
+  "use": {
+    "skill": "vector-dash",
+    "target": {
+      "route": "safe-return",
+      "progress": "forward",
+      "minimumForwardTiles": 2
+    }
+  }
+}
+```
+
+All three fields are required and `progress` is exactly `forward`. The route
+must be terminal and the body must already own one unambiguous held forward
+course on it. The executor chooses the furthest legal straight relocation up
+to the signature's contract-defined extent. A bend before that extent, an
+ambiguous folded projection, dynamic obstruction, an illegal heading, or less
+than the authored minimum makes the leaf unavailable; its next sibling runs
+that tick. A successful relocation advances the same route cursor
+monotonically, so continuation cannot restart behind the body.
+
 Geographic intent stays compositional rather than hidden inside `use`:
 `self-in-zone` can guard a skill leaf, while a lower-priority `move` leaf in the
 same parent play gets the body into that authored zone. If the skill is not
 currently legal, the skill leaf has no target and ordinary priority falls
 through to movement.
 
-Placeable constructs (`hardlight-block`, `trip-node`, and `sentinel-seed`) may
-also pin their exact placement with `"at": "anchor-id"`. The anchor must be an
-adjacent legal placement tile when the order runs; otherwise the leaf falls
-through. `at` does not imply travel. Pair it with a lower move order targeting
-`{ "adjacentTo": "anchor-id" }` when the author wants the body to stage beside
-that exact point. Both leaves reuse one semantic anchor; no companion staging
-anchor or duplicate zone is needed.
+Descriptor-authorized position signatures may pin exact aim/placement with
+`"at": "anchor-id"`. The current band is `survey-flare`, `falling-star`,
+`trip-node`, `hardlight-block`, `smoke-canister`, and `sentinel-seed`. For a
+construct, the anchor must be an adjacent legal placement tile when the order
+runs; otherwise the leaf falls through. `at` does not imply travel. Pair it
+with a lower move order targeting `{ "adjacentTo": "anchor-id" }` when the
+author wants the body to stage beside that exact point. Both leaves reuse one
+semantic anchor; no companion staging anchor or duplicate zone is needed.
 
 ### `handoff`
 
@@ -539,9 +577,10 @@ on an order.
 The product loop is **change → practice → watch → change**.
 
 - `GET /api/sheets/catalog` supplies the Tapline map, class/signature catalog,
-  stable `signatureId`/`actionId` ownership, unlocks, starter pair, and stock
-  opponents. The workshop consumes those stable IDs; it does not maintain a
-  second class-to-signature table.
+  stable `signatureId`/`actionId` ownership, resolved timing/mechanics,
+  signature-authoring descriptors, unlocks, starter pair, and stock opponents.
+  The workshop consumes that catalog; it does not maintain another
+  class-to-signature or target-capability table.
 - `GET/POST/PUT/DELETE /api/sheets` persists owner-scoped source pairs and
   optimistic revisions. Every save compiles on the server through the shared
   compiler. The stored source-size ceilings are 192 KiB for Orders and 96 KiB
@@ -609,6 +648,30 @@ The map can overlay actual tracks for only that Play's participating roles; an
 Ambush-style Play also reports the best observed required-slot readiness frame.
 These diagnostics interpret the replay for the author and never feed back into
 the match.
+
+### Signature opportunities remain ordinary `use` Orders
+
+A Play projection may link a durable plan branch to one or more **signature
+opportunities**. The focused Play view calls this list **Along the way**. Each
+binding points at a real direct-child `use` leaf under that branch; it stores no
+second copy of the skill, target, conditions, capacity, lifecycle, or order.
+The use leaf's actual sibling position is its priority. The first following
+ordinary sibling is its continuation.
+
+If a durable movement/fight leaf needs an opportunity, the editor may scaffold
+one parent branch atomically: opportunity `use` leaves first, one optional
+commitment hold when the catalog calls for it, then the original continuation.
+If a use is unavailable, selection reaches that continuation in the same tick.
+If accepted, it consumes that tick's action and the same parent resumes later.
+There is no compound move-and-use action.
+
+The map-first editor can link an opportunity to a visible activation zone,
+exact anchor, named role/selector, or descriptor-authorized route relation. It
+uses the same map objects and the same reusable signature control as direct
+Orders. Removing a binding removes only the linked use leaf; detaching the Play
+keeps the exact materialized Orders editable. Opportunity ids and Play ids
+remain in the workshop sidecar and never enter ATL2, execution, match state, or
+replay.
 
 ## 11. Runtime and determinism
 

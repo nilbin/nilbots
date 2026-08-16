@@ -1,6 +1,6 @@
 # Arc Relay signature opportunities in linked Plays
 
-Status: **approved implementation plan; not yet implemented.**
+Status: **implemented on `main` on 2026-08-16; owner review pending.**
 
 Date: 2026-08-16
 

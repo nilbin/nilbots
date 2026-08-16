@@ -12,6 +12,12 @@ one direct positional-priority Orders tree, current capacity/lifecycle words,
 destination facing and observed history, and no named-play runtime or second
 state machine.
 
+The implemented signature-opportunity follow-on is specified in
+`docs/ARC-RELAY-SIGNATURE-OPPORTUNITIES-PLAN.md`. It adds editor linkage to
+ordinary nested `use` leaves, descriptor-driven all-class authoring,
+route-forward targeting, and authoritative commitment continuation without
+changing this plan's runtime boundary.
+
 ## Owner amendments — 2026-08-16
 
 These amendments change the implementation order and proof posture of this

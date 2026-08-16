@@ -8676,3 +8676,42 @@ Tapline-7 becomes the local CLI and exhibit default on the unchanged
 `arc-relay-tapline-02` map. This fast design checkpoint does not rebuild WASM,
 mint stock artifacts, advance the hosted playlist or alter a rating book;
 hosted v24 remains Tapline-6 until a separate promotion gate.
+
+## 325. Signature opportunities are linked ordinary Orders, not ability AI
+
+Owner-approved authoring architecture (2026-08-16). A linked Play may present
+one or more **signature opportunities** under **Along the way**, but each is
+only editor linkage to a real direct-child `use` leaf inside one projection's
+ordinary plan branch. Actual sibling source order is local priority; the first
+following ordinary sibling is continuation. A failed/unavailable use reaches
+that continuation in the same tick. An accepted use consumes the action and
+the same parent episode later resumes. Play/opportunity identity remains in
+`arc-relay-workshop-v1` and never enters Orders, ATL2, runtime, match state,
+replay, content hash, or ladder identity.
+
+One typed TacticalPlaybooks authoring catalog covers all sixteen launch
+class/signature pairs. The App combines that vocabulary with resolved Engine
+mechanics and the web's shared direct-Orders/Plays control renders it. Exact
+anchors, friendly roles, most-experienced targets, route-ahead receivers and
+route-forward relocation are descriptor capabilities rather than skill-id
+switches in each client.
+
+Orders v2 admits generic terminal-route targeting
+`{ route, progress: "forward", minimumForwardTiles }` for descriptor-authorized
+self relocation. The executor reads the movement governor's held forward
+course, refuses bends, obstruction and ambiguous folds, and reconciles a
+successful relocation monotonically without route restart. It also admits the
+body fact `signature-commitment-active` and move target `current-position`.
+Generated commitment holds therefore observe authoritative tell/channel state
+rather than copying duration; higher-priority authored work may still pre-empt
+and pay the normal cancellation cost.
+
+The visible-UI acceptance sheet is **Mid Overload Fork**: one shared hostile
+trigger, editable 2/5/1 contingents with independent readiness/continuation,
+two exact Mason walls, and a Kestrel route-forward Dash. It is a generic blank
+Play, not a recipe or runtime object. Ordinary editor/gameplay/exhibit
+iteration runs the registered first-party tactical mind in-process and does
+not rebuild WASM, mint artifacts or bump playlists. The tracked WASM mirror is
+reconciled only at an explicit release/deployment checkpoint or when the
+custom-mind sandbox, SDK/Guest ABI, controlled compiler, or WASM runtime
+changes.

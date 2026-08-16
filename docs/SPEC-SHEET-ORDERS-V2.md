@@ -1,11 +1,6 @@
 # SPEC — Arc Relay Orders DSL v2
 
-Status: normative implementation contract for this branch.
-
-Branch posture: this work belongs to
-`/Users/sebastian.lind/hobby-projects/nilbots-wt/no-carrier-deadlock` on
-`codex/editor-sweep-followup`, based on `main` at `5de215fa`. The main checkout
-is not a work area for this goal.
+Status: normative implementation contract on current `main`.
 
 This format replaces `arc-relay-tactical-playbook-v1`. There is deliberately no
 compatibility layer. The compiler does not desugar v2 back into doctrines,
@@ -239,10 +234,10 @@ The v2 fact catalog is intentionally finite:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `signature-ready` |
-| role | `role-live-count`, `role-lowest-health-percent`, `role-in-zone-count` |
-| team | `live-friendlies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `ticks-without-objective-progress` |
-| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
+| role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count` |
+| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
+| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 
 `self-order-ticks` is legal in a node's `when`/`until` only. Remembered facts
@@ -255,6 +250,11 @@ does not forget a Core merely because it left current vision.
 body needs to reach a tile from which it can attack a team-visible enemy. Known
 durable blockers count; body occupancy is transient traffic and does not. No
 reachable firing tile fails every authored upper-bound comparison.
+
+`signature-commitment-active` is a body-local boolean view of the engine's
+public tell/acquisition and channel phases. It excludes independent in-flight
+effects and persistent deployments after the caster is free. It exists so an
+ordinary sibling may intentionally hold without copying a signature duration.
 
 ## 6. Five actions
 
@@ -272,8 +272,9 @@ Only leaves act. Their action key is exactly one of `move`, `fight`, `use`,
 ```
 
 - `to` accepts `own-reactor`, `nearest-heal-zone`,
-  `nearest-known-loose-core`, `{ "zone": id }`, `{ "anchor": id }`, or
-  `{ "well": "north|centre|south|own|enemy" }`.
+  `nearest-known-loose-core`, `highest-bank-value-known-loose-core`,
+  `current-position`, `{ "zone": id }`, `{ "anchor": id }`,
+  `{ "adjacentTo": id }`, or `{ "well": "north|centre|south|own|enemy" }`.
 - `patrol` names a route and repeats it.
 - `follow` names a role and resolves the nearest live body by terrain path
   distance, then unit id. It tracks the body from a legal adjacent standoff
@@ -294,6 +295,11 @@ Holding (`Wait`) on a heal-zone tile activates its healing channel. No separate
 `activate` verb exists; contention for the tile remains executor movement micro.
 Walking a carried Core into the owner's reactor automatically banks it. Those
 are physical game rules, not hidden `move` subverbs.
+
+`current-position` submits an intentional hold. The normal generated use is a
+child before it and the movement/fight continuation is a child after it. A
+condition on `signature-commitment-active` therefore protects only the
+authoritative commitment; a higher root priority can still pre-empt and move.
 
 ### 6.2 `fight`
 
@@ -333,18 +339,43 @@ an explicit empty-handed condition on combat orders.
 
 At least one class in the role must own `skill`. In a mixed-class role, only a
 body that owns the named skill can take that leaf; other bodies continue down
-the same ordered list. `target` is one of `self`, `own-reactor`,
-`nearest-enemy`, `weakest-enemy`, `enemy-carrier`, `nearest-ally`,
-`weakest-ally`, `healthiest-ally`, or
-`nearest-ally-toward-own-reactor`. The compiler validates the selector against
-the signature's parameter kind. The executor deterministically converts the
-resolved target to the engine's unit, position, heading, or parameterless
+the same ordered list. `target` may be a descriptor-admitted named selector, a
+declared friendly role, the most-experienced ally, Arc Toss's named-role
+`aheadVia` relation, or the generic terminal-route forward relation below. A
+descriptor-authorized position signature may also state `at: "anchor-id"`.
+The compiler consumes the one typed signature-authoring catalog; it does not
+maintain a second per-skill switch. The executor deterministically converts
+the resolved target to the engine's unit, position, heading, or parameterless
 argument.
 
 `use` never implies travel, target search outside known information, or another
 order. If the skill is unavailable or the selector cannot resolve, lower
 priority continues. Geographic use is composed from a `self-in-zone` condition
 on the skill leaf and an independently authored move to that zone.
+
+Arc Toss's paired route qualifier remains:
+
+```json
+{ "role": "relay-b", "aheadVia": "return-route",
+  "minimumForwardTiles": 3 }
+```
+
+Both qualifiers are required and mean the named receiver has unique authored
+route progress at least the stated distance ahead.
+
+The generic self-relocation relation is:
+
+```json
+{ "route": "safe-return", "progress": "forward",
+  "minimumForwardTiles": 2 }
+```
+
+All fields are required; only `forward` exists. The route is terminal. The
+executor reads its already-governed forward course and selects the furthest
+legal straight relocation within authoritative mechanics. It declines bends,
+ambiguous folded projection, illegal/blocked headings, or insufficient gain.
+The following ordinary sibling runs in that same tick. A successful relocation
+rejoins monotonically and cannot reset route progress behind the body.
 
 ### 6.4 `handoff`
 
