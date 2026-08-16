@@ -1255,87 +1255,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             decline = $"route-{use.Target}-signature-heading-unavailable";
             return null;
         }
-        if (!TrySingleStepHeading(
-                body.Position, read.Tiles[1], out ProjectileHeading heading)
-            || !headings.AllowedValues.Contains(heading))
-        {
-            decline = $"route-{use.Target}-course-heading-unavailable";
-            return null;
-        }
-
         int maximum = Math.Max(1, signature.MaxTiles ?? signature.Range ?? 1);
-        int straight = 0;
-        for (int index = 1;
-             index < read.Tiles.Length && straight < maximum;
-             index++)
-        {
-            if (!TrySingleStepHeading(
-                    read.Tiles[index - 1], read.Tiles[index],
-                    out ProjectileHeading candidate)
-                || candidate != heading)
-            {
-                break;
-            }
-            straight++;
-        }
         bool finalWaypoint = read.Waypoint == points.Length - 1;
-        if (straight < maximum && !finalWaypoint)
-        {
-            decline = $"route-{use.Target}-course-bends-after-{straight}";
-            return null;
-        }
-
         HashSet<Position> occupied = mind.Bodies
             .Where(candidate => candidate.ActorId != body.ActorId)
             .Select(candidate => candidate.Position)
             .Concat(mind.Enemies.Select(candidate => candidate.Position))
             .ToHashSet();
-        int predicted = 0;
-        int allowed = Math.Min(maximum, straight);
-        for (int index = 1; index <= allowed; index++)
+        TacticalRouteForwardPlanner.Resolution resolution =
+            TacticalRouteForwardPlanner.Resolve(
+                read.Tiles,
+                maximum,
+                use.MinimumForwardTiles,
+                finalWaypoint,
+                headings.AllowedValues.ToHashSet(),
+                occupied.Contains);
+        if (!resolution.Accepted)
         {
-            Position tile = read.Tiles[index];
-            if (occupied.Contains(tile))
-                break;
-            predicted = index;
-        }
-        if (predicted < use.MinimumForwardTiles)
-        {
-            decline = $"route-{use.Target}-forward-gain-{predicted}"
-                + $"-below-{use.MinimumForwardTiles}";
+            decline = $"route-{use.Target}-{resolution.Trace}";
             return null;
         }
-        Position destination = read.Tiles[predicted];
+        Position destination = resolution.Destination!.Value;
         var target = new ResolvedTarget(
             $"route-forward:{use.Target}:{destination.X},{destination.Y}",
             destination,
             [destination],
             null,
             null,
-            $"route-{use.Target}-forward-gain-{predicted}"
-                + $"-heading-{heading.ToString().ToLowerInvariant()}");
+            $"route-{use.Target}-{resolution.Trace}");
         if (!CanExecuteUse(contract, body, target, use))
         {
             decline = $"route-{use.Target}-signature-legality-declined";
             return null;
         }
         return target;
-    }
-
-    private static bool TrySingleStepHeading(
-        Position from,
-        Position to,
-        out ProjectileHeading heading)
-    {
-        int dx = to.X - from.X;
-        int dy = to.Y - from.Y;
-        if (Math.Abs(dx) > 1 || Math.Abs(dy) > 1 || dx == 0 && dy == 0)
-        {
-            heading = default;
-            return false;
-        }
-        heading = ArenaBasics.FromVector(dx, dy);
-        return true;
     }
 
     /// <summary>

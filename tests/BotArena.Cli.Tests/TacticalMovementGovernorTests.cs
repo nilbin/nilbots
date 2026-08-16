@@ -198,6 +198,87 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void ForwardCourseReadRefusesAnAmbiguousFoldAfterRelocation()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(0, 1, 0);
+        var start = new Position(5, 5);
+        var repeated = new Position(7, 5);
+        governor.Resolve(
+            actor, "move", "folded-route", 0, 1, start, new Position(9, 5),
+            () =>
+            [
+                start,
+                new Position(6, 5),
+                repeated,
+                new Position(8, 5),
+                repeated,
+                new Position(9, 5),
+            ],
+            _ => false);
+
+        TacticalRouteGovernor.ForwardCourseRead read =
+            governor.ReadForwardCourse(actor, "folded-route", repeated);
+
+        Assert.Empty(read.Tiles);
+        Assert.Equal("route-projection-off-course", read.Trace);
+    }
+
+    [Fact]
+    public void RouteForwardSelectsTheFarthestSafeStraightProgress()
+    {
+        Position[] course =
+        [
+            new(2, 6),
+            new(3, 6),
+            new(4, 6),
+            new(5, 6),
+            new(6, 6),
+        ];
+        TacticalRouteForwardPlanner.Resolution result =
+            TacticalRouteForwardPlanner.Resolve(
+                course,
+                maximumTravelTiles: 3,
+                minimumForwardTiles: 2,
+                atFinalWaypoint: false,
+                new HashSet<ProjectileHeading> { ProjectileHeading.East },
+                occupied: _ => false);
+
+        Assert.True(result.Accepted);
+        Assert.Equal(new Position(5, 6), result.Destination);
+        Assert.Equal(3, result.ForwardTiles);
+        Assert.Equal(ProjectileHeading.East, result.Heading);
+        Assert.Equal("forward-gain-3-heading-east", result.Trace);
+    }
+
+    [Fact]
+    public void RouteForwardDeclinesBendsAndInsufficientUnblockedProgress()
+    {
+        Position[] bent =
+        [
+            new(2, 6),
+            new(3, 6),
+            new(4, 6),
+            new(4, 7),
+        ];
+        HashSet<ProjectileHeading> east = [ProjectileHeading.East];
+
+        TacticalRouteForwardPlanner.Resolution bend =
+            TacticalRouteForwardPlanner.Resolve(
+                bent, 3, 2, atFinalWaypoint: false, east, _ => false);
+        TacticalRouteForwardPlanner.Resolution blocked =
+            TacticalRouteForwardPlanner.Resolve(
+                [new(2, 6), new(3, 6), new(4, 6), new(5, 6)],
+                3, 2, atFinalWaypoint: false, east,
+                tile => tile == new Position(4, 6));
+
+        Assert.False(bend.Accepted);
+        Assert.Equal("course-bends-after-2", bend.Trace);
+        Assert.False(blocked.Accepted);
+        Assert.Equal("forward-gain-1-below-2", blocked.Trace);
+    }
+
+    [Fact]
     public void RouteCourseResetsOnRungLapAndImpossibleStep()
     {
         var governor = new TacticalRouteGovernor();

@@ -536,7 +536,12 @@ public sealed class TacticalRouteGovernor
         {
             return nextIndex;
         }
-        return Array.IndexOf(course, position);
+        int[] matches = course
+            .Select((tile, index) => (tile, index))
+            .Where(value => value.tile == position)
+            .Select(value => value.index)
+            .ToArray();
+        return matches.Length == 1 ? matches[0] : -1;
     }
 
     private static Position? Next(State state) =>
@@ -621,6 +626,100 @@ public sealed class TacticalRouteGovernor
         Position[] Detour,
         int DetourNextIndex,
         int DetourRejoinIndex);
+}
+
+/// <summary>
+/// Resolves one descriptor-authorized relocation against the movement
+/// governor's already-held forward course. It does not plan a route, mutate
+/// route progress, or know which signature is asking. The caller supplies the
+/// authoritative travel extent and legal headings from the action mask.
+/// </summary>
+public static class TacticalRouteForwardPlanner
+{
+    public static Resolution Resolve(
+        IReadOnlyList<Position> forwardCourse,
+        int maximumTravelTiles,
+        int minimumForwardTiles,
+        bool atFinalWaypoint,
+        IReadOnlySet<ProjectileHeading> allowedHeadings,
+        Func<Position, bool> occupied)
+    {
+        if (forwardCourse.Count < 2)
+            return Resolution.Declined("course-ended");
+        if (!TryHeading(
+                forwardCourse[0], forwardCourse[1], out ProjectileHeading heading)
+            || !allowedHeadings.Contains(heading))
+        {
+            return Resolution.Declined("course-heading-unavailable");
+        }
+
+        int maximum = Math.Max(1, maximumTravelTiles);
+        int straight = 0;
+        for (int index = 1;
+             index < forwardCourse.Count && straight < maximum;
+             index++)
+        {
+            if (!TryHeading(
+                    forwardCourse[index - 1], forwardCourse[index],
+                    out ProjectileHeading candidate)
+                || candidate != heading)
+            {
+                break;
+            }
+            straight++;
+        }
+        if (straight < maximum && !atFinalWaypoint)
+            return Resolution.Declined($"course-bends-after-{straight}");
+
+        int predicted = 0;
+        int allowed = Math.Min(maximum, straight);
+        for (int index = 1; index <= allowed; index++)
+        {
+            if (occupied(forwardCourse[index]))
+                break;
+            predicted = index;
+        }
+        if (predicted < minimumForwardTiles)
+        {
+            return Resolution.Declined(
+                $"forward-gain-{predicted}-below-{minimumForwardTiles}");
+        }
+
+        return new Resolution(
+            forwardCourse[predicted],
+            heading,
+            predicted,
+            $"forward-gain-{predicted}"
+                + $"-heading-{heading.ToString().ToLowerInvariant()}");
+    }
+
+    private static bool TryHeading(
+        Position from,
+        Position to,
+        out ProjectileHeading heading)
+    {
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+        if (Math.Abs(dx) > 1 || Math.Abs(dy) > 1 || dx == 0 && dy == 0)
+        {
+            heading = default;
+            return false;
+        }
+        heading = ArenaBasics.FromVector(dx, dy);
+        return true;
+    }
+
+    public sealed record Resolution(
+        Position? Destination,
+        ProjectileHeading? Heading,
+        int ForwardTiles,
+        string Trace)
+    {
+        public bool Accepted => Destination is not null;
+
+        public static Resolution Declined(string trace) =>
+            new(null, null, 0, trace);
+    }
 }
 
 /// <summary>
