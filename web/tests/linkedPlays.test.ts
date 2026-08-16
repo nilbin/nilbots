@@ -248,14 +248,14 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(generated.filter((order) => order.id?.includes('-hop-')).length, 0);
   const corridor = play.ownedGeometry.find((entry) => entry.kind === 'route')!.id;
   const tossLinks = play.geometryGroups[0].tossLinks!;
-  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [6, 12, 21]);
+  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [5, 9, 13]);
+  assert.deepEqual(tossLinks.map((link) => link.forwardRouteTiles), [3, 5, 4]);
   for (const projection of play.projections) {
     const children = projection.orders.find((order) => order.id?.endsWith('-running-return'))!.orders!;
     const toss = children.find((order) => order.use?.skill === 'arc-toss')!;
-    assert.equal(typeof toss.use!.target === 'object' && 'role' in toss.use!.target
-      ? toss.use!.target.aheadVia : undefined, corridor);
-    assert.equal(typeof toss.use!.target === 'object' && 'role' in toss.use!.target
-      ? Number.isInteger(toss.use!.target.minimumForwardTiles) : false, true);
+    assert.deepEqual(toss.use!.target, {
+      role: projection.roleId === 'relay-a' ? 'relay-b' : 'relay-a',
+    });
     assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.urgency, 'normal');
     assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.move?.patrol, corridor);
     for (const receive of projection.orders.filter((order) => order.id?.includes('-receive-'))) {
@@ -270,6 +270,8 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
       assert.equal(run.move?.patrol, corridor);
     }
   }
+  assert.equal(JSON.stringify(linked.orders).includes('aheadVia'), false);
+  assert.equal(JSON.stringify(linked.orders).includes('minimumForwardTiles'), false);
 
   const firstReceiver = tossLinks[0].receiverAnchorId;
   const moved = movePlayAnchor(linked, play.id, firstReceiver, [28, 24]);

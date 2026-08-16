@@ -34,6 +34,8 @@ export interface PlayGeometryGroup {
     routeId: string;
     sourceWaypointIndex: number;
     receiverAnchorId: string;
+    /** Static authored route progress; never sent to the executor. */
+    forwardRouteTiles?: number;
   }>;
 }
 

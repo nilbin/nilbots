@@ -250,8 +250,7 @@ export function addRelayChainPlay(
   const corridorWaypoints: Array<[number, number]> = [
     [19, 20], [22, 23], [22, 22], [23, 21], [24, 22],
     [24, 23], [25, 23], [27, 23], [27, 25],
-    [16, 25], [15, 25], [14, 25], [5, 25], [3, 25], [3, 24],
-    [3, 23], [2, 22], [1, 21], [2, 20], [3, 19],
+    [16, 25], [11, 25], [5, 25], [3, 25], [3, 23], [3, 19],
     [4, 17], [4, 16], [4, 15], [5, 14], [5, 12], [4, 11],
     [4, 9], [3, 8], [2, 7], [2, 5],
   ];
@@ -260,11 +259,11 @@ export function addRelayChainPlay(
   const homeAnchor = `${id}-home-reactor`;
   const homeZone = `${homeAnchor}-approach`;
   const rendezvousPoints: Array<[number, number]> = [
-    [28, 23], [2, 25], [4, 14],
+    [28, 23], [11, 25], [3, 19],
   ];
-  const approachWaypointIndices = [7, 13, 22];
-  const tossSourceWaypointIndices = [6, 12, 21];
-  const minimumForwardTiles = [2, 2, 2];
+  const approachWaypointIndices = [7, 8, 12];
+  const tossSourceWaypointIndices = [5, 9, 13];
+  const forwardRouteTiles = [3, 5, 4];
   const rendezvous = rendezvousPoints.map((point, index) => ({
     index,
     id: `${id}-receiver-${index + 1}`,
@@ -275,7 +274,7 @@ export function addRelayChainPlay(
     roleId: index % 2 === 0 ? roles.relayBRoleId : roles.relayARoleId,
     approachWaypointIndex: approachWaypointIndices[index],
     sourceWaypointIndex: tossSourceWaypointIndices[index],
-    minimumForwardTiles: minimumForwardTiles[index],
+    forwardRouteTiles: forwardRouteTiles[index],
   }));
   next.mapPlan.routes[corridorRoute] = { waypoints: corridorWaypoints };
   next.mapPlan.anchors[pickupAnchor] = [19, 20];
@@ -360,7 +359,6 @@ export function addRelayChainPlay(
       ? [{
         receiverReadyCondition: conditionIds[`receiver${index + 1}`],
         sourceCondition: conditionIds[`source${index + 1}`],
-        minimumForwardTiles: station.minimumForwardTiles,
       }]
       : []);
   const aProjection = relayProjection(
@@ -387,7 +385,7 @@ export function addRelayChainPlay(
     name,
     recipe: 'relay-chain',
     ownedGeometry: [
-      { kind: 'route', id: corridorRoute, purpose: 'move.patrol and use.target.aheadVia' },
+      { kind: 'route', id: corridorRoute, purpose: 'shared movement continuation and staged Toss progress' },
       { kind: 'anchor', id: pickupAnchor, purpose: 'move.to' },
       { kind: 'anchor', id: homeAnchor, purpose: 'move.to' },
       ...rendezvous.map((station) => ({
@@ -431,6 +429,7 @@ export function addRelayChainPlay(
         routeId: corridorRoute,
         sourceWaypointIndex: station.sourceWaypointIndex,
         receiverAnchorId: station.id,
+        forwardRouteTiles: station.forwardRouteTiles,
       })),
     }],
     slots: [],
@@ -764,7 +763,6 @@ interface RelayReceiverStage {
 interface RelayTossStage {
   receiverReadyCondition: string;
   sourceCondition: string;
-  minimumForwardTiles: number;
 }
 
 function relayProjection(
@@ -833,11 +831,11 @@ function relayProjection(
             },
             use: {
               skill: 'arc-toss',
-              target: {
-                role: partnerRoleId,
-                aheadVia: corridorRoute,
-                minimumForwardTiles: stage.minimumForwardTiles,
-              },
+              // Exact source and receiver Posts already prove the staged
+              // relationship. Keep the executable target an ordinary named
+              // role; route progress is authoring-time geometry, not a
+              // hidden race selector.
+              target: { role: partnerRoleId },
             },
           })),
           {
