@@ -39,6 +39,14 @@ participant card. Its displayed local order must be the exact generated
 Instruction sibling order, with no hidden priority between the skill, fight,
 Core-recovery, and patrol choices.
 
+Patrol is the required integrated proof, not the feature boundary. The same
+Fight, nearby-Core, and health-recovery opportunity cards must be available on
+any Program participant behavior with an ordinary durable continuation—moving
+to a destination with or without `via`, patrolling, following, holding a Post,
+or responding/fighting. The player chooses the exact continuation they may
+interrupt; adding one must never make it silently active during every setup,
+waiting, and response phase of a Program.
+
 ## Product boundary
 
 Preserve these constraints throughout:
@@ -48,25 +56,28 @@ Preserve these constraints throughout:
 - **Instructions remain the only executable strategy language.** Program
   authoring materializes ordinary Conditions, capacities, map geometry, and
   Instructions.
-- A Program, Post, formation, signature opportunity, or maintenance policy
-  adds no runtime identity, phase, reservation, atomic activation, state
-  machine, replay field, or competing priority system.
-- One body still takes at most one action per tick. A signature shown “inside”
-  a movement or Post card remains an ordinary `use` sibling above the ordinary
-  movement/fight continuation. If it cannot execute, continuation is considered
-  in the same tick.
+- A Program, Post, formation, Opportunity, or maintenance policy adds no
+  runtime identity, phase, reservation, atomic activation, state machine,
+  replay field, or competing priority system.
+- One body still takes at most one action per tick. An Opportunity shown
+  “inside” a movement, Post, or response card remains an ordinary action sibling
+  above the ordinary continuation. If it cannot execute, the next sibling is
+  considered in the same tick.
 - Capacity remains the existing generic “how many bodies may resolve this
   target” primitive. Do not invent fixed unit assignments or a hidden formation
   allocator.
 - Intent-aware capacity defaults are allowed only as visible Program-authoring
   sugar that materializes the ordinary capacity field. In particular, nearby
   Core recovery defaults to **One bot per Core across this sheet's default
-  recovery group**. Do not change the executor's generic default or silently
-  reinterpret an existing sheet with no capacity.
-- An **Along the way** list is not a second priority system. Its displayed
-  top-to-bottom order is the actual order of direct-child Instruction leaves
-  inside that Program participant, followed by the exact movement/fight
-  continuation. Dragging it changes that one real order.
+  recovery group**, and health recovery defaults to **One patient per healing
+  tile across this sheet's default healing group**. Do not change the
+  executor's generic default or silently reinterpret an existing sheet with no
+  capacity.
+- An **Opportunities** list—contextually labelled **Along the way** for
+  movement—is not a second priority system. Its displayed top-to-bottom order
+  is the actual order of direct-child Instruction leaves inside that Program
+  participant behavior, followed by the exact continuation. Dragging it
+  changes that one real order.
 - Combined readiness means every participant sees the same ordinary gate; it
   does not promise simultaneous actions. A higher Program, death, displacement,
   or dynamic illegality may still affect one participant independently, and
@@ -206,6 +217,7 @@ Do not make a player translate every tactic into the abstract word
 
 - **Bodies at this Post** for spatial occupation;
 - **Pursuers per Core** for Core recovery;
+- **Patients per healing tile** for health recovery;
 - **Attackers per enemy** for fight focus; and
 - **Casters per target** where several eligible bodies share a signature
   opportunity.
@@ -237,6 +249,12 @@ capacity. Normalize back to an inline capacity if only one consumer remains,
 without changing behavior or exposing that storage detail in the compact UI.
 The summary still says whether the policy coordinates across the sheet or only
 within a deliberately separate group.
+
+Health recovery uses a separate visible sheet-wide **Healing** coordination
+group and defaults to one patient per resolved healing tile. It follows the
+same inline-versus-shared materialization and override rules as Core recovery.
+Never share one named capacity between different target kinds merely because
+both controls happen to show `1`.
 
 Capacity is per resolved Core, not one collector for the whole map. With three
 eligible visible Cores, three bodies may each pursue a different Core under the
@@ -500,6 +518,7 @@ Surface a compact set of common tactical triggers directly:
 - self health and lowest health in a selected role;
 - this body's nearest reachable visible-enemy distance;
 - this body's nearest reachable visible-loose-Core walking distance;
+- this body's nearest reachable healing-tile walking distance;
 - Core carried/value/source state;
 - respawn-wave timing;
 - veteran level;
@@ -681,22 +700,32 @@ descriptor/grammar contract: in particular, loop-forward Vector Dash remains
 separate from the generic “use near this patrol station” composition unless it
 is deliberately admitted and pinned by route-forward tests.
 
-### Encounter and nearby-objective opportunities
+### Generic participant opportunities
 
-Do not stop at signature-only **Along the way** cards. A role with an ordinary
-movement continuation must be able to combine three normal opportunity kinds
-in one visibly ordered list:
+Do not stop at signature-only **Along the way** cards. Any Program participant
+behavior with an ordinary durable continuation must be able to combine four
+normal opportunity kinds in one visibly ordered list:
 
-1. **Use a skill** at an authored source station or activation area;
-2. **Fight on contact** under an authored body-local encounter range; and
+1. **Use a skill** at an authored source station, Post, or activation area;
+2. **Fight on contact** under an authored body-local encounter range;
 3. **Recover a nearby Core** when empty-handed and a currently visible loose
-   Core is within an authored walking distance.
+   Core is within an authored walking distance; and
+4. **Recover health** by diverting to an in-range healing tile at low health,
+   remaining until an authored higher-health threshold or maximum attempt.
 
-Location-bound signature cards use their authored route stations. Fight and
-Core recovery default to **Anywhere along this movement** because their source
-is the moving body; do not force the player to draw fake Posts for them. The
-player may add an ordinary activation area if the tactic should apply only on
-one part of the route.
+Availability is generic; behavior is not automatic. A new participant keeps
+only its authored base continuation until the player adds a card. Do not seed
+Fight, Core pursuit, or health recovery invisibly into every Program. The
+player's opt-in, order, scope, thresholds, and capacity policy are the strategy.
+
+Use one underlying **Opportunities** component. Label it **Along the way** on a
+movement continuation and **While assigned here** on a Post/hold when that reads
+better, but do not implement separate priority or materialization systems.
+Location-bound signature cards use their authored route stations or Posts.
+Fight, Core recovery, and health recovery default to **Anywhere during this
+behavior** because their source is the body; do not force the player to draw
+fake Posts for them. The player may add an ordinary activation area if the
+tactic should apply only in one spatial part of the behavior.
 
 The patrol proof must be readable approximately as:
 
@@ -705,27 +734,47 @@ North watch · Scout role
 Patrol North Loop
 
 Along the way · top to bottom
-1. At Flare Overlook, Survey Flare the North Approach when enemies are known
-2. Fight when this body can join a visible enemy within 4 steps
+1. Below 30% health, seek a healing tile within 8 steps until 70% health
+   Patients per healing tile: 1 · across this sheet
+2. At Flare Overlook, Survey Flare the North Approach when enemies are known
+3. Fight when this body can join a visible enemy within 4 steps
    Advance · chase at most 3 tiles · Attackers per enemy: All eligible
-3. When empty-handed, recover a visible loose Core within 5 walking steps
+4. When empty-handed, recover a visible loose Core within 5 walking steps
    Pursuers per Core: 1 · across this sheet
 
 Otherwise continue North Loop
-After pickup: leave this patrol → Core Return
+On pickup: Bank carried Core takes priority
+After banking: resume North watch if still active
 ```
 
 The player may drag these cards into a different order. This is a consequential
 strategy decision: if Fight is above Core recovery, contact wins that tick; if
-Core recovery is above Fight, the objective diversion wins while it remains
-eligible. The numbered list must be the actual direct-child Instruction order,
-not advisory metadata. The ordinary movement continuation is visibly pinned
-last. A false Condition, missing target, lost capacity claim, illegal action,
-or cooldown proceeds to the next sibling in the same tick.
+Core recovery is above Fight, the objective diversion wins; if health recovery
+is higher, survival wins while that episode remains active. The numbered list
+must be the actual direct-child Instruction order, not advisory metadata. The
+ordinary continuation is visibly pinned last. A false Condition, missing
+target, lost capacity claim, illegal action, or cooldown proceeds to the next
+sibling in the same tick.
 
-Allow Fight and Core-recovery opportunities on any durable ordinary movement
-continuation where their fallback is well-defined; require the complete proof
-on a patrol. Do not add an “autonomy mode,” interrupt scheduler, route-local
+Make the same opt-in cards available on these ordinary continuation shapes:
+
+- `move.to` for a map or dynamic destination, with or without `move.via`;
+- `move.patrol`;
+- `move.follow`;
+- a Post or `current-position` hold; and
+- a durable fight/response continuation, where adding a second redundant
+  Fight-on-contact card is replaced by editing the existing Fight behavior.
+
+If one participant has distinct setup, waiting, response, and aftermath
+continuations, the player selects which one owns the opportunity list. Adding
+health recovery to “while waiting at these Posts,” for example, must not
+silently let it interrupt the committed response too. A one-shot `use`,
+`handoff`, or `drop` with no durable fallback is not a valid host; prompt the
+player to choose or add the continuation instead of manufacturing one.
+
+Require the complete integrated proof on a patrol, then pin the same
+materializer and fallback semantics on `move.to`/`via`, follow, Post/hold, and
+fight hosts. Do not add an “autonomy mode,” interrupt scheduler, route-local
 state machine, or opaque behavior policy. The workshop sidecar owns only the
 link between each human card and its ordinary Condition/action leaf.
 
@@ -743,12 +792,13 @@ and expose:
 - the visible **Attackers per enemy** capacity policy.
 
 If no legal target is actionable, the leaf yields to the next opportunity or
-movement that tick. When the encounter Condition/lifecycle exits, the same
-patrol cursor resumes; entering combat must not silently restart the route or
-convert the chase limit into distance from a waypoint. Existing minimum
-commitment and maximum-attempt controls remain available when the player wants
-the fight to survive a momentary sighting loss, but an ambient encounter card
-does not create its own latch.
+continuation that tick. When the encounter Condition/lifecycle exits, the exact
+host continuation resumes: the same patrol cursor, held `move.via` course,
+current follow target selection, or Post/hold destination. Entering combat must
+not silently restart a route or convert the chase limit into distance from a
+waypoint. Existing minimum-commitment and maximum-attempt controls remain
+available when the player wants the fight to survive a momentary sighting loss,
+but an ambient encounter card does not create its own latch.
 
 #### Recover a nearby visible Core
 
@@ -767,7 +817,7 @@ upper-bound convention as visible-enemy approach distance. With no reachable
 currently visible loose Core, every finite upper bound is false. This fact is
 current perception, not the persistent known-Core ledger.
 
-Add the matching dynamic move target and bounded qualifier:
+Add the matching dynamic move target and a reusable bounded-target qualifier:
 
 ```json
 {
@@ -778,13 +828,26 @@ Add the matching dynamic move target and bounded qualifier:
 }
 ```
 
-`withinWalkingSteps` is `0..31`. It filters **every** candidate before target
-capacity allocation, not merely the first candidate. This matters when the
-nearest Core has already reached its one-pursuer capacity: the losing body may
-try another visible Core only if that Core is also within its authored bound.
-The target orders the remaining candidates by this body's legal walking
-distance and then stable Core identity. No reachable in-bound candidate means
-the move yields to the next sibling in the same tick.
+`withinWalkingSteps` is optional in `0..31`; **Any distance** omits it. It is a
+generic filter for dynamic move targets that publish an ordered set of exact
+terrain destinations. In this goal, support it for
+`nearest-visible-loose-core` and the existing `nearest-heal-zone`; reject it on
+targets without that capability rather than silently ignoring it. It filters
+**every** candidate before target-capacity allocation, not merely the first
+candidate.
+
+The optional qualifier must not silently change historical unqualified target
+resolution. Existing Orders using bare `nearest-heal-zone` retain their exact
+behavior; the bounded form opts into the shared legal-walking candidate helper.
+Program documents remain behavior-preserving until the player adds/edits this
+Opportunity.
+
+For a Core, this matters when the nearest candidate has already reached its
+one-pursuer capacity: the losing body may try another visible Core only if that
+Core is also within its authored bound. The target orders the remaining
+candidates by this body's legal walking distance and then stable Core identity.
+No reachable in-bound candidate means the move yields to the next sibling in
+the same tick.
 
 The normal recovery card materializes both
 `self-nearest-visible-loose-core-distance <= N` and `self-carrying = 0`, plus
@@ -795,30 +858,130 @@ existing physical pickup rule; do not add a `pickup` action.
 
 Use **Pursuers per Core: 1** by default according to the player-friendly
 capacity rules above. A body that loses the claim tries another visible,
-reachable, in-bound Core and then the next Along-the-way card. Claims remain
+reachable, in-bound Core and then the next Opportunity card. Claims remain
 tick-local and target-local. Do not reserve a Core, latch its identity, or
 silently fall back to `nearest-known-loose-core`. A player who wants persistent
 recovery after vision is lost can author the existing known-Core recovery as a
 separate Program with explicit lifecycle consequences.
 
-Adding nearby recovery must also make the post-pickup continuation explicit.
+Adding nearby recovery must also make the post-pickup consequence explicit.
 The recommended normal choice is:
 
 ```text
-After pickup · leave this patrol
-Expected next Program · Core Return
+On pickup · Bank carried Core (Program 1) takes priority
+After banking · resume this behavior if still active
 ```
 
-This visibly gates the patrol participant branch to empty-handed bodies, so a
-loaded body is handled on the next tick by the highest eligible ordinary
-Program after the whole top-to-bottom list is evaluated again. Preview that
-actual Program and its list position: a newly eligible higher Core Return
-pre-empts normally, while a lower one receives ordinary fallthrough. If no
-Program can return a loaded body to the reactor, show a blocking diagnostic
-with a one-click option to add the ordinary Core Return fallback. Allow **Keep
-this Program while carrying** only as an explicit alternative and warn if its
-patrol continuation would retain a Core indefinitely. This is ordinary
-top-to-bottom Program eligibility, not a transition or Program-to-Program call.
+Only the Core-recovery leaf is intrinsically empty-handed. On the next tick,
+the whole Program list re-evaluates and the visible higher-priority carrier
+Program wins normally, even if the interrupted behavior has an active
+lifecycle. After banking, ordinary evaluation returns to that behavior if it
+is still active/eligible, preserving its existing route/Post state and clocks.
+
+Preview the actual carrier Program and list position. A lower carrier Program
+is not a safe default beneath an always-actionable host because it may never
+win. Check coverage for every role/body pool eligible for this recovery card;
+a carrier Program that covers only another role is not a valid handoff. If no
+higher Program can bank every possible loaded participant, show a blocking
+diagnostic with one-click options to add/extend the ordinary **Bank carried
+Core** Program or move an existing one above the host. Allow **Keep carrying in
+this behavior** only as an explicit alternative and warn if the continuation
+can retain a Core indefinitely.
+
+If pickup should end the tactic rather than merely interrupt it for banking,
+the player chooses **Core acquired** through the Program's normal success/end
+controls. Do not encode that as a hidden Opportunity transition. If an existing
+minimum commitment or success expression cannot represent the requested exit
+honestly within flat Conditions, diagnose it and require the player to refine
+that ordinary lifecycle rather than inventing nested Opportunity state.
+
+#### Recover health
+
+This card uses existing health truth and physical healing. It is not a healing
+AI, a new `heal` action, or Patchbay's Repair Beam. Materialize an ordinary
+`move.to = nearest-heal-zone`; reaching the tile and waiting there invokes the
+existing healing rule.
+
+Add one matching body fact:
+
+```text
+self-nearest-heal-zone-distance
+```
+
+It is the fewest legal movement steps from this body to an exact healing tile,
+using the same durable-obstacle and transient-body treatment as the other
+body-local walking facts. It uses the `0..31` finite upper-bound convention. If
+no healing tile is reachable, the fact fails every finite upper-bound
+comparison. When a maximum detour is authored, this fact and the bounded target
+must share one canonical candidate implementation.
+
+Expose these direct controls:
+
+- **Start below** N% health;
+- **Recover until** M% health, where M must be greater than N to provide
+  visible hysteresis rather than heal/leave oscillation;
+- **Maximum walking detour**, using `withinWalkingSteps` or **Any distance**;
+- **Give up after** an optional maximum attempt and **Try again after** an
+  optional re-arm delay;
+- **Patients per healing tile**, defaulting visibly to `1 · across this sheet`;
+- optional activation area; and
+- **Allow Core carriers to divert**, shown explicitly rather than inferred.
+
+Healing tiles must be visible on the Program map at desktop and phone widths.
+Selecting this card highlights every candidate tile and, where the host has
+authored geometry, previews which route/Post areas lie within the static
+walking bound. Label occupancy and destructible-blocker effects as dynamic; do
+not imply the authoring preview can predict match-time traffic. In Practice,
+show the selected body's actual legal path distance and resolved tile.
+
+The ordinary materialization is:
+
+```text
+when     = self-health-percent <= start threshold
+           AND self-nearest-heal-zone-distance <= maximum detour (when bounded)
+           AND carrier policy
+until    = self-health-percent >= recovered threshold
+           OR became a carrier when carrier diversion is disabled
+timeout  = maximum attempt
+cooldown = re-arm delay
+action   = move to nearest-heal-zone withinWalkingSteps N
+capacity = shared Healing policy (default 1 per resolved tile)
+```
+
+Once entered, the existing `until` lifecycle keeps the recovery episode latched
+when health rises one point above the start threshold; it ends at the authored
+recovered threshold or maximum attempt. If the maximum expires while the start
+Condition remains true, a zero re-arm delay would immediately restart the same
+episode, so diagnose that combination and offer a positive retry delay. Do not
+add a recovery governor or hidden health state.
+
+The latch does not create a new priority rule. Opportunity cards above health
+recovery may still pre-empt it through their ordinary sibling order; cards
+below it run when its move has no legal/capacity-winning target or after its
+lifecycle exits. Show this plainly in the Program summary and Practice trace.
+
+`withinWalkingSteps` filters every healing tile before capacity allocation.
+The nearest tile being claimed may send a body to another tile only when that
+tile is also within its maximum detour. If every in-range tile is claimed,
+unreachable, or absent, the leaf yields to the next Opportunity or exact host
+continuation that tick while its ordinary lifecycle remains explainable.
+
+After success, carrier-abort when disabled, or timeout, resume the exact host
+behavior: the held `move.via` course, patrol cursor, current follow selection,
+Post/facing, or fight continuation. Ordinary higher-priority pre-emption does
+not rewrite the recovery lifecycle; when the higher behavior ends, the still
+active recovery episode resumes, otherwise the host does. Preserve the existing
+per-leaf movement progress through the interruption; do not restart a completed
+ingress or select a nearest patrol waypoint as a substitute for the authored
+cursor. This reuses existing lifecycle/movement state rather than creating an
+Opportunity state machine.
+
+Default **Allow Core carriers to divert** to off for a general-purpose card so
+healing does not silently outrank banking. If the selected host is already
+carrier-only, require a visible yes/no choice instead of generating an
+impossible card. As with every Opportunity, the player may reorder health
+recovery relative to Fight, Core recovery, and signatures and sees the exact
+consequence in the one local priority list.
 
 ### Alpha signature breadth without bespoke skill editors
 
@@ -877,17 +1040,21 @@ For a selected Program and body, Practice must answer:
   fallthrough in terms derivable from ordinary source;
 - signature attempted, accepted, or declined, with the exact reason (cooldown,
   range, blocked line, missing target, wrong route progress, etc.);
-- each Along-the-way card considered in its visible order and why it acted or
+- each Opportunity card considered in its visible order and why it acted or
   yielded, including encounter distance, Core visibility/walking distance,
-  carrying state, and target-capacity loss;
+  health start/recovered thresholds, healing-tile detour, carrying policy, and
+  target-capacity loss;
 - capacities in their player-facing terms—such as “one pursuer already owns
-  this Core this tick”—rather than only a generated capacity id;
-- the continuation chosen when the signature did not execute;
+  this Core this tick” or “nearest healing tile already has a patient”—rather
+  than only a generated capacity id;
+- the exact host continuation chosen when an Opportunity did not execute or
+  after its lifecycle ended;
 - the response’s minimum-commit and maximum-time clocks;
 - the exit/fallthrough cause.
 
 Clicking a body or status row should highlight its current Post, facing arrow,
-signature target/window, route, and relevant readiness group on the map.
+signature target/window, base route, resolved Core/healing target and authored
+walking bound, and relevant readiness group on the map.
 
 Add a compact post-run Program timeline/summary sufficient to answer:
 
@@ -896,6 +1063,8 @@ Add a compact post-run Program timeline/summary sufficient to answer:
 - Did the intended signature fire, and where?
 - Did contact or a nearby Core divert the body, and why did any closer-looking
   target fail the authored walking-distance or capacity test?
+- Did health recovery start, reach its recovered threshold, abort for cargo,
+  or time out, and which base behavior resumed?
 - What success/timeout/failure ended it?
 - Which Program took over next?
 
@@ -906,14 +1075,21 @@ and hold continues to require a non-empty debug reason.
 ## 7. Deliver two complete starter doctrines
 
 Do not force the first player to begin from a blank sheet. Deliver two complete,
-legal, editable starter sheets with sensible lower-priority scoring, loose-Core
-recovery, healing, and combat fallbacks so every body has useful behavior when
-its headline Program is inactive.
+legal, editable starter sheets with a visible high-priority carrier-banking
+Program plus sensible lower-priority loose-Core recovery, healing, and combat
+fallbacks so every body has useful behavior when its headline Program is
+inactive.
+
+The carrier-banking Program covers every role that any normal recovery card
+can load; do not demonstrate a global-looking fallback that silently omits one
+participant role.
 
 Their ordinary loose-Core recovery uses the player-facing **One bot per Core**
-default and an explicit post-pickup fallthrough to a carrier-return Program.
-This is not a doctrine-specific allocation rule; the starter sheets simply
-demonstrate the generic Program behavior described above.
+default and previews the higher **Bank carried Core** Program that will pre-empt
+after pickup. Their ordinary health recovery uses **One patient per healing
+tile**, visible start/recovered thresholds, a maximum detour, and a real base
+continuation. These are not doctrine-specific allocation rules; the starter
+sheets simply demonstrate the generic Program behaviors described above.
 
 They must be separate sheets: the one-duplicate-wildcard roster rule permits
 either twin Masons or twin Relays in one eight-body roster, not both.
@@ -1109,15 +1285,46 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     bodies across several Cores, recomputes after loss/death, and sends
     capacity losers to their next local behavior without waiting. A deliberately
     separate coordination group is independent and visible as such.
-24. One Program participant combining a route-station signature, encounter
-    Fight, nearby-Core recovery, and Patrol executes the first actionable leaf
-    in the displayed order. Reordering Fight and recovery reverses that
-    contested choice deterministically; unavailable leaves reach Patrol in the
-    same tick.
+24. One Program participant combining a route-station signature, health
+    recovery, encounter Fight, nearby-Core recovery, and Patrol executes the
+    first actionable leaf in the displayed order. Reordering the recovery and
+    Fight cards reverses their contested choice deterministically; unavailable
+    leaves reach Patrol in the same tick.
 25. Fight exit, a vanished Core, and a capacity loss each resume the same
     patrol cursor without restarting or reversing. Successful pickup makes the
-    empty-handed patrol branch ineligible on the next tick; the displayed Core
-    Return Program takes over and banks the Core.
+    displayed higher **Bank carried Core** Program take over on the next tick;
+    after banking, the still-active patrol resumes its same cursor.
+26. `self-nearest-heal-zone-distance` and bounded `nearest-heal-zone` use the
+    same legal-path candidates. The fact fails for no reachable/in-bound tile;
+    the target filters every tile before capacity allocation, may choose
+    another in-bound tile after a claim loss, and never sends the body to an
+    out-of-bound tile. An unqualified historical `nearest-heal-zone` fixture
+    remains gameplay-identical.
+27. Health recovery enters below its start threshold, remains latched while
+    travelling and healing through intermediate health, waits to invoke the
+    physical healing rule at the tile, and exits only at the higher recovered
+    threshold, carrier-abort when configured, or maximum attempt. A finite
+    timeout plus re-arm cannot churn every tick; ordinary higher pre-emption
+    neither resets nor pauses its authoritative lifecycle clock.
+28. The default shared one-patient capacity distributes injured bodies across
+    resolved healing tiles, keeps later bodies on their next Opportunity/base
+    behavior while all in-bound tiles are claimed, and admits another body
+    after a patient exits or dies without a reservation.
+29. The same Fight, nearby-Core, and health-recovery Opportunity materializes
+    and executes above `move.to` with and without `via`, Patrol, Follow,
+    Post/hold, and a durable fight continuation. False/declined opportunities
+    consider that exact host continuation in the same tick.
+30. An Opportunity that falls back or returns to its host preserves the host
+    leaf's existing movement state: held ingress course, patrol cursor, dynamic
+    follow selection, or Post destination/facing. Successful Core pickup uses
+    its explicit higher carrier-Program consequence instead. An Opportunity
+    attached only to a waiting continuation cannot activate during the
+    committed response.
+31. Core pickup inside an active committed response makes a higher carrier
+    Program pre-empt without resetting the response lifecycle; after banking,
+    the response resumes if still active. Selecting **Core acquired** as the
+    ordinary success exits according to the authored minimum/end semantics
+    instead. No lower carrier Program or hidden transition is assumed to win.
 
 ### Materializer/editor tests
 
@@ -1166,10 +1373,10 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     visit memory, action queue, or second order list. Save/reload/copy/detach,
     drift detection, undo/redo, route rename, and deletion remain
     non-destructive.
-17. Fight-on-contact and nearby-Core cards materialize as ordinary sibling
-    `fight`/`move` leaves in exactly the order displayed above the one Patrol
-    continuation. Drag reorder, undo/redo, save/reload, copy, detach, and drift
-    detection preserve that single order.
+17. Fight-on-contact, nearby-Core, and health-recovery cards materialize as
+    ordinary sibling `fight`/`move` leaves in exactly the order displayed above
+    the selected durable continuation. Drag reorder, undo/redo, save/reload,
+    copy, detach, and drift detection preserve that single order.
 18. A nearby-Core card generates the same authored bound in its body-local
     Condition and `withinWalkingSteps` target qualifier, plus the ordinary
     `self-carrying = 0` gate; editing the visible distance updates both
@@ -1180,13 +1387,35 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     normalizes storage without changing the policy. Choosing 2–8, All eligible,
     or a deliberately separate coordination group is one undoable
     normal-surface edit.
-20. The post-pickup default gates the participant branch to empty-handed
-    bodies and previews the real next eligible carrier Program. Removing every
-    carrier-return path creates a blocking diagnostic and the offered repair
-    creates an ordinary Program, not a hidden transition.
-21. Capacity controls use target-specific labels and summaries while retaining
-    the exact existing target-capacity semantics. Opening an older Program or
-    Orders-only sheet does not synthesize or change a missing capacity.
+20. The post-pickup default leaves only the recovery leaf empty-handed and
+    previews the real higher **Bank carried Core** Program plus the behavior
+    that resumes afterward. Missing, role-incomplete, or lower non-winning
+    carrier paths create a blocking diagnostic; the offered add/extend/reorder
+    repair changes ordinary Programs, not a hidden transition.
+21. Capacity controls use target-specific labels and summaries, including
+    **Patients per healing tile**, while retaining the exact existing
+    target-capacity semantics. Opening an older Program or Orders-only sheet
+    does not synthesize or change a missing capacity.
+22. A health-recovery card generates distinct start/recovered health
+    Conditions, the matching heal-zone-distance Condition, ordinary `until`
+    hysteresis, optional timeout/re-arm, `nearest-heal-zone` with the same
+    visible `withinWalkingSteps`, carrier policy, and the default sheet-wide
+    Healing capacity. Editing any human control updates every owned source
+    atomically.
+23. The one Opportunity component attaches to `move.to`, `move.to` + `via`,
+    Patrol, Follow, Post/hold, and fight hosts without host-specific copies of
+    Condition, lifecycle, capacity, or priority editing code. Unsupported
+    one-shot hosts offer a continuation repair rather than silently scaffolding
+    a hidden fallback.
+24. In a multi-phase participant, choosing setup, waiting, response, or
+    aftermath as the host links the generated leaves only into that ordinary
+    continuation. Moving or copying the cards to another phase is one visible
+    undoable edit.
+25. The editor rejects a recovered-health threshold at or below the start
+    threshold, unsupported bounded targets, missing healing tiles, and a
+    finite failed attempt that immediately re-arms without acknowledgement. A
+    carrier-only host cannot silently receive a never-eligible nearby-Core
+    card or a health card whose carrier policy makes it impossible.
 
 ### Browser acceptance
 
@@ -1224,20 +1453,41 @@ In a third normal-surface flow, without opening Advanced:
 2. tap **Add opportunity here** at one route station and configure Lantern to
    Flare a separate watched anchor under an enemy-memory trigger;
 3. add a Nest opportunity at another station with **maintain Sentinel here**;
-4. add **Fight on contact**, choose its encounter distance, target order,
+4. add **Recover health**, choose different start/recovered thresholds, maximum
+   walking detour, retry lifecycle, carrier policy, see the healing tiles/bound
+   on the map, and observe **Patients per healing tile: 1 · across this sheet**;
+5. add **Fight on contact**, choose its encounter distance, target order,
    style, chase limit, and visible Attackers-per-enemy policy;
-5. add **Recover a nearby Core**, set five walking steps, observe the visible
-   default **Pursuers per Core: 1 · across this sheet**, and confirm **After
-   pickup: leave this patrol → Core Return** names a real next Program;
-6. drag a source tolerance, route waypoint, and effect target independently;
-7. reorder Fight and recovery and inspect an exact generated-priority preview
-   without leaving Programs;
-8. run a deterministic patrol scene and observe accepted signature use,
+6. add **Recover a nearby Core**, set five walking steps, observe the visible
+   default **Pursuers per Core: 1 · across this sheet**, and confirm **On
+   pickup: Bank carried Core takes priority** names a real higher Program and
+   previews the post-bank return;
+7. drag a source tolerance, route waypoint, and effect target independently;
+8. reorder Fight, health, and Core recovery and inspect an exact
+   generated-priority preview without leaving Programs;
+9. run a deterministic patrol scene and observe accepted signature use,
    already-present deployment fallthrough, destruction/later rebuild,
-   encounter fighting, one-pursuer nearby-Core diversion, a farther Core being
-   ignored, same-route resumption, pickup, and Core Return takeover; and
-9. save/reload and refine the route, stations, local priorities, distances,
-   chase, and capacity without raw identifiers or generated Instruction edits.
+   health diversion/healing/re-entry, encounter fighting, one-pursuer
+   nearby-Core diversion, a farther Core being ignored, same-route resumption,
+   pickup, Bank-carried-Core takeover, banking, and patrol resumption; and
+10. save/reload and refine the route, stations, local priorities, thresholds,
+    distances, chase, and capacity without raw identifiers or generated
+    Instruction edits.
+
+In a fourth normal-surface flow, without opening Advanced:
+
+1. select a participant moving to a destination through a non-patrol `via`;
+2. add the same Fight, nearby-Core, and health-recovery cards to that movement
+   and confirm its exact destination/`via` remains the pinned fallback;
+3. move the Opportunity stack between that participant's setup, waiting, and
+   response continuations and verify only the selected phase owns it;
+4. run a deterministic scene in which a declined contact/Core option falls
+   through, health recovery diverts and completes, and the original held
+   ingress resumes without restarting;
+5. attach/copy the same cards to a Follow and a Post/hold continuation and
+   inspect the contextual fallback summaries; and
+6. save/reload/refine all three hosts through Programs with one consistent
+   Opportunity editor.
 
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
@@ -1270,9 +1520,9 @@ It is complete only when all of the following are true:
 10. The full create/refine/practice/save/reload flow works on desktop and phone.
 11. Focused tests, the full relevant web suite/build, compiler tests, and
     deterministic gameplay scenes pass.
-12. Documentation describes Posts as authoring sugar, the new Condition facts
-    and bounded visible-Core target, commitment/fallthrough, capacity, and the
-    two starter doctrines accurately.
+12. Documentation describes Posts as authoring sugar, the new Condition facts,
+    bounded visible-Core/healing targets, commitment/fallthrough, capacity,
+    and the two starter doctrines accurately.
 13. All sixteen current signatures remain normally authorable and persistent
     through Programs; Patchbay channel, Palisade/Longshot lane/tell, Mortar
     exact tell, and Hush/Repulsor self-local scenes prove the distinct families
@@ -1284,16 +1534,27 @@ It is complete only when all of the following are true:
     patrol from the map, including separate source and effect points, without
     creating patrol scripting state; accepted uses resume the same route and
     durable placement obeys honest one-deployment replacement/maintenance.
-16. The complete second canonical sentence—patrol, location-bound skills,
-    encounter Fight, visible-Core recovery within five legal walking steps,
-    and patrol fallback—is authorable, reorderable, explainable, and refinable
-    from one normal Program participant without Advanced edits or a second
-    priority system.
+16. The integrated patrol sentence—patrol, location-bound skills, health
+    recovery, encounter Fight, visible-Core recovery within five legal walking
+    steps, and patrol fallback—is authorable, reorderable, explainable, and
+    refinable from one normal Program participant without Advanced edits or a
+    second priority system.
 17. Nearby-Core recovery visibly defaults to one pursuer per resolved Core
     across the sheet's default recovery group, distributes several eligible
     bodies across several in-bound Cores, never diverts a capacity loser to an
-    out-of-bound Core, and hands a successful carrier to an ordinary Core
-    Return Program.
+    out-of-bound Core, and makes the visible higher **Bank carried Core**
+    Program pre-empt before the original behavior resumes.
+18. Fight, nearby-Core, and health-recovery cards are the same generic opt-ins
+    on destination moves, `via` moves, patrols, follows, Posts/holds, and
+    durable fight responses. Each is scoped to the selected participant phase,
+    and every decline/returning exit resumes the exact ordinary host
+    continuation; successful Core pickup follows its explicit higher
+    carrier-Program consequence.
+19. Health recovery has visible low/high hysteresis, bounded detour, retry and
+    carrier policy, defaults to one patient per resolved healing tile across
+    the sheet, makes healing tiles and the authored bound legible on the map,
+    and cannot create oscillation, route restart, hidden recovery state, or an
+    indefinite unreachable-heal diversion.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -1314,31 +1575,34 @@ an explicit release checkpoint.
 1. **Baseline and traces** — preserve current generated Program/Running Relay
    source and record the failing commitment, stage re-entry, and wrong-location
    deployment scenes; also preserve one current patrol cursor through signature
-   use, combat interruption, and target-loss fallthrough.
+   use, combat interruption, health recovery, and target-loss fallthrough.
 2. **Semantic foundation** — implement `deployment-in-zone`,
    `self-nearest-visible-loose-core-distance`, the matching
    `nearest-visible-loose-core`/`withinWalkingSteps` target contract,
-   commitment materialization, not-ready staging, and focused
-   runtime/compiler tests.
+   `self-nearest-heal-zone-distance` with bounded `nearest-heal-zone`,
+   commitment materialization, not-ready staging, and focused runtime/compiler
+   tests.
 3. **Post linkage** — add backward-compatible workshop linkage, derived
-   geometry synchronization, human-labelled/defaulted capacity policies,
-   readiness, maintenance, drift, and undo/redo tests.
+   geometry synchronization, human-labelled/defaulted Core and Healing
+   capacity groups, readiness, maintenance, drift, and undo/redo tests.
 4. **Map-first UX** — build the Post inspector, facing arrow, target/activation
    distinction, overlap prevention, descriptor-driven route-forward Dash
    controls/preview with shared movement-`via` linkage, route-linked patrol
-   opportunity markers, Fight-on-contact and nearby-Core cards in the one real
-   local order, post-pickup Program preview/repair, all-signature family
-   coverage, legality preview, normal trigger/outcome controls, and mobile
-   editing flow.
+   opportunity markers, one generic Opportunity component for all supported
+   host continuations/phases, Fight-on-contact, nearby-Core, and health-recovery
+   cards in the one real local order, higher carrier-Program preview/repair,
+   all-signature family coverage, legality preview, normal trigger/outcome
+   controls, and mobile editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
    and replay evidence; add selected-body why/timeline views including local
-   opportunity order, walking-distance rejection, capacity loss, and
-   post-pickup takeover.
+   Opportunity order, host/phase, health lifecycle, walking-distance rejection,
+   capacity loss, resumed continuation, and post-pickup takeover.
 6. **Starter doctrines and signature seams** — finish Mid Overload and Running
    Relay as two legal, fully fallback-equipped sheets; add their deterministic
    drills/controls plus the focused Patchbay, Palisade/Longshot, Mortar, and
    Hush/Repulsor family scenes and the integrated
-   skill/Fight/Core/Flare/Sentinel patrol scene.
+   skill/Fight/Core/Health/Flare/Sentinel patrol scene plus non-patrol host
+   matrix.
 7. **Validation and delivery** — run focused and full relevant tests, browser
    QA, exact mechanical proofs, standard exhibit, docs/Decision update, public
    tunnel verification, report, commit, and clean-status check.
@@ -1351,6 +1615,8 @@ Do not expand this goal into:
   state machine;
 - persistent Core claims, target-identity latches, a new `pickup` action, or a
   hidden transition to Core Return;
+- a recovery governor, automatic health triage, hidden healing priority, or a
+  new `heal` action;
 - arbitrary nested Conditions or a visual programming language;
 - waypoint action scripts, patrol queues, hidden visit/lap state, or a second
   route-local priority system;
