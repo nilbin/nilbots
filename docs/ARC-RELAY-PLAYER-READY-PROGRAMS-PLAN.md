@@ -515,6 +515,97 @@ that publishes `RouteForward` receives the same controls without a skill-id
 switch. Kestrel supplies the required proof because it is the current class
 with that capability.
 
+### Route-linked opportunities on patrols
+
+Patrol is an equally important continuation. A player must be able to select
+an existing patrol route, tap one or more places along it, and attach ordinary
+signature opportunities without turning the route into a waypoint script or
+adding patrol runtime state.
+
+The normal composition should read approximately:
+
+```text
+North watch patrol
+Patrol North Loop
+
+At Flare Overlook (within 1 tile)
+  when the North Approach has remembered enemies
+  use Survey Flare at North Approach
+
+At Gate Service Point
+  when the sentry at Gate Post is missing
+  use Sentinel Seed at Gate Post
+
+Otherwise continue North Loop
+```
+
+A route-linked opportunity reuses the same generic pieces already defined in
+this plan:
+
+- a route-linked source Post/anchor plus a derived `self-in-zone` tolerance;
+- a separate effect anchor, role/selector target, or self target authorized by
+  the signature descriptor;
+- ordinary trigger clauses, optional minimum ticks since last signature use,
+  or `deployment-in-zone` maintenance for durable deployments;
+- a visible local opportunity order when several source windows overlap; and
+- the original ordinary `move.patrol` as the final continuation.
+
+This is editor linkage only. Materialization remains a parent branch containing
+one or more conditional `use` leaves above one patrol-movement sibling. When a
+source window or trigger is false, the signature is cooling down, its target
+is illegal, or capacity is lost, patrol movement is considered in the same
+tick. After an accepted use and any authoritative tell/channel completes, the
+same patrol cursor resumes forward without restarting, reversing, skipping to
+the closest waypoint, or forgetting its lap.
+
+The map-first flow must let the player:
+
+1. select a patrol continuation and choose **Add opportunity here** on a route
+   point/segment;
+2. set the source tolerance by dragging its visible envelope;
+3. independently place or select the effect target;
+4. choose a meaningful trigger, maintenance policy, and optional minimum
+   interval rather than receiving an opaque “cast whenever possible” default;
+5. add and visibly order several opportunities along one patrol;
+6. drag a route station or target later without editing generated Conditions,
+   anchors, or Instructions; and
+7. inspect why an opportunity fired or why patrol continued past it.
+
+When a source station is attached to a route waypoint, moving that waypoint
+moves the source anchor/envelope in the same undoable edit. A station attached
+to a segment must retain a visible route relationship or become a blocking
+linkage diagnostic if route editing leaves it off the traversed corridor; do
+not silently snap it to an unrelated nearest tile. The effect target remains
+independently draggable.
+
+Repeat behavior must remain ordinary and honest:
+
+- engine readiness/cooldown always applies;
+- the player may add an existing `self-ticks-since-signature-use` minimum
+  interval;
+- a non-durable Flare/Smoke/artillery opportunity may fire again on a later
+  pass only when its authored trigger and readiness are true;
+- a durable Mine/Hardlight/Sentinel/Prism opportunity with **maintain here**
+  does not recast while the correct deployment is present at that target, and
+  may rebuild on a later pass after destruction/expiry; and
+- do not invent “once per lap,” waypoint callbacks, a patrol action queue, or
+  hidden visit memory. If a future design truly needs per-lap truth, that is a
+  separate explicit state/Condition decision.
+
+One stable unit slot can still own only the rules-authorized live deployment.
+If the same body has maintain/placement opportunities at several patrol sites,
+the UI must explain that casting at the next site relocates/replaces the prior
+deployment; it does not promise several simultaneous Sentries or Mines. Warn
+about likely unintended churn while allowing an explicitly acknowledged
+mobile-deployment patrol. Multiple eligible bodies remain governed by normal
+roles and capacities.
+
+Route-linked source windows work on valid closed patrols and on terminal route
+continuations. This feature does not silently relax a signature target's own
+descriptor/grammar contract: in particular, loop-forward Vector Dash remains
+separate from the generic “use near this patrol station” composition unless it
+is deliberately admitted and pinned by route-forward tests.
+
 ### Alpha signature breadth without bespoke skill editors
 
 The existing descriptor catalog already covers all sixteen current classes.
@@ -525,7 +616,7 @@ one honest normal authoring path for each of these generic families:
 | family | current classes | normal Program composition |
 | --- | --- | --- |
 | route movement and custody | Kestrel, Relay | attempt Dash/Toss along an authored movement episode, then continue that exact movement |
-| exact point or area effect | Lantern, Mortar, Minesmith, Mason, Veil, Nest | use from a Post/zone at one map anchor; maintain only durable deployments, otherwise rely on trigger/cooldown |
+| exact point or area effect | Lantern, Mortar, Minesmith, Mason, Veil, Nest | use from a Post/zone or route-linked patrol station at one map anchor; maintain only durable deployments, otherwise rely on trigger/cooldown |
 | watched lane or hostile target | Palisade, Towline, Longshot, Sunder | stand/face or move through an authored area, choose a legal hostile priority, attempt contextually, then hold/fight/move |
 | protected friendly | Patchbay, Switchback | name a role or veteran, use health/location/threat Conditions, preserve the public channel/tell, then resume escort/formation behavior |
 | self-centred local response | Hush, Repulsor | occupy or enter an authored local area, trigger on enemy pressure, use on self, then continue the response |
@@ -769,6 +860,14 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     Palisade/Longshot preserve their authored direction/rooted tell; Mortar
     preserves its exact-target tell; and the chosen Hush/Repulsor local scene
     activates only under its authored area pressure.
+19. A legal route-station Flare/Sentinel opportunity consumes its use tick and
+    then resumes the same patrol cursor forward; false trigger, cooldown,
+    illegal target, absent capacity, and already-maintained deployment each
+    choose the patrol sibling in the same tick with a non-empty reason.
+20. A durable deployment present at the intended patrol target prevents
+    recast; destruction permits rebuilding on a later pass. An explicitly
+    acknowledged second target replaces/relocates the first rather than
+    creating an extra deployment.
 
 ### Materializer/editor tests
 
@@ -805,6 +904,18 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     the five generic families render without skill-id switches.
 13. A fixture seventeenth signature using each existing family/target shape
     requires only descriptor data, not a Post, Program, or map component edit.
+14. Selecting **Add opportunity here** on a patrol creates one route-linked
+    source Post/envelope, independent effect target, ordinary trigger or
+    maintenance Conditions, and a `use` leaf above the existing patrol
+    continuation. Several markers preserve their visible local source order.
+15. Moving a linked waypoint carries its source marker atomically; editing a
+    segment away from a station creates a repairable blocking diagnostic rather
+    than silently snapping it. Moving an effect target does not move the source
+    station.
+16. Patrol opportunity generation creates no lap counter, waypoint callback,
+    visit memory, action queue, or second order list. Save/reload/copy/detach,
+    drift detection, undo/redo, route rename, and deletion remain
+    non-destructive.
 
 ### Browser acceptance
 
@@ -835,6 +946,20 @@ In a second normal-surface flow, without opening Advanced:
 7. drag or replace the shared `via`, activation span, or destination and
    regenerate/save/reload without breaking linkage or exposing two route
    selectors.
+
+In a third normal-surface flow, without opening Advanced:
+
+1. select or draw a valid patrol route;
+2. tap **Add opportunity here** at one route station and configure Lantern to
+   Flare a separate watched anchor under an enemy-memory trigger;
+3. add a Nest opportunity at another station with **maintain Sentinel here**;
+4. drag a source tolerance, route waypoint, and effect target independently;
+5. inspect the exact repeat/replacement summary and local opportunity order;
+6. run a deterministic patrol scene and observe accepted use, same-route
+   continuation, already-present fallthrough, destruction, and later rebuild;
+   and
+7. save/reload and refine both stations without raw identifiers or generated
+   Instruction edits.
 
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
@@ -876,6 +1001,10 @@ It is complete only when all of the following are true:
 14. Kestrel can Dash along the same single-authored `via` used by a move to a
     zone, anchor, Well, or other ordinary destination, with honest same-tick
     fallback and no `dashVia`/`aheadVia` field.
+15. A player can attach several intelligible signature opportunities to a
+    patrol from the map, including separate source and effect points, without
+    creating patrol scripting state; accepted uses resume the same route and
+    durable placement obeys honest one-deployment replacement/maintenance.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -903,15 +1032,15 @@ an explicit release checkpoint.
    undo/redo tests.
 4. **Map-first UX** — build the Post inspector, facing arrow, target/activation
    distinction, overlap prevention, descriptor-driven route-forward Dash
-   controls/preview with shared movement-`via` linkage, all-signature family
-   coverage, legality preview, normal trigger/outcome controls, and mobile
-   editing flow.
+   controls/preview with shared movement-`via` linkage, route-linked patrol
+   opportunity markers, all-signature family coverage, legality preview,
+   normal trigger/outcome controls, and mobile editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
    and replay evidence; add the selected-body why/timeline views.
 6. **Starter doctrines and signature seams** — finish Mid Overload and Running
    Relay as two legal, fully fallback-equipped sheets; add their deterministic
    drills/controls plus the focused Patchbay, Palisade/Longshot, Mortar, and
-   Hush/Repulsor family scenes.
+   Hush/Repulsor family scenes and the Flare/Sentinel patrol scene.
 7. **Validation and delivery** — run focused and full relevant tests, browser
    QA, exact mechanical proofs, standard exhibit, docs/Decision update, public
    tunnel verification, report, commit, and clean-status check.
@@ -923,6 +1052,8 @@ Do not expand this goal into:
 - runtime Programs, atomic multi-body activation, reservations, or a second
   state machine;
 - arbitrary nested Conditions or a visual programming language;
+- waypoint action scripts, patrol queues, hidden visit/lap state, or a second
+  route-local priority system;
 - simultaneous move-and-use actions;
 - fixed unit-id assignments in place of roles and capacities;
 - backup rosters or between-match substitutions;
