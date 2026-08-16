@@ -10,12 +10,12 @@ import {
   actionOf,
   conditionExpressionNames,
   conditionSubjectKind,
+  defaultSignatureTarget,
   freshOrder,
   moveIntentKind,
   moveRole,
   renameCondition,
   renameRole,
-  signatureTargets,
   skillForClass,
   uniqueId,
   type ConditionDefinition,
@@ -34,6 +34,7 @@ import {
 } from './sheetAuthoring';
 import { MapTargetPreview } from './MapPlanEditor';
 import IdentifierInput from './IdentifierInput';
+import SignatureUseEditor from './SignatureUseEditor';
 import type { WorkshopDocument } from './workshopTypes';
 
 type LibraryTool = 'conditions' | 'capacities' | 'shared' | null;
@@ -548,7 +549,8 @@ function AddOrder({ depth, allOrders, role, catalog, onAdd }: {
     </button>
     {open && <div className="mt-2 grid gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
       {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[76px]"
-        onClick={() => { onAdd(freshOrder(action, uniqueId(action, ids), signatureSkill)); setOpen(false); }}>
+        onClick={() => { onAdd(freshOrder(action, uniqueId(action, ids), signatureSkill,
+          defaultSignatureTarget(catalog, signatureSkill))); setOpen(false); }}>
         <span className="flex items-center gap-2"><span className="font-mono text-[19px] text-arena-material">{ACTION_COPY[action].glyph}</span><b className="type-display text-[15px]">{ACTION_COPY[action].label}</b></span>
         <span className="t-micro mt-1 block">{ACTION_COPY[action].description}</span>
       </button>)}
@@ -743,83 +745,9 @@ function UseEditor({ node, role, allOrders, catalog, mapPlan, onOpenMap, onChang
   mapPlan: MapPlanDocument; onOpenMap: (focus?: { kind: PlotKind; id: string }) => void;
   onChange: (next: NonNullable<OrderNode['use']>) => void;
 }) {
-  const skills = [...new Set(role.classes.map((classId) =>
-    skillForClass(catalog, classId))
-    .filter((value): value is string => Boolean(value)))];
-  const authoredSkill = node.use?.skill;
-  const skill = authoredSkill && skills.includes(authoredSkill)
-    ? authoredSkill
-    : skills[0] ?? '';
-  const classInfo = catalog.classes.find((entry) => entry.signatureId === skill);
-  const namedTargets = signatureTargets(skill);
-  const friendlySelectors = ['repair-beam', 'exchange', 'arc-toss'].includes(skill)
-    ? ['selector:most-experienced-ally', ...allOrders.roles.map((entry) => `role:${entry.id}`)]
-    : [];
-  const targets = [...namedTargets.map((target) => `named:${target}`), ...friendlySelectors];
-  const selectedTarget = encodeUseTarget(node.use?.target ?? namedTargets[0] ?? 'self');
-  const roleTarget = node.use?.target && typeof node.use.target === 'object'
-    && 'role' in node.use.target ? node.use.target : null;
-  const forwardOnly = skill === 'arc-toss' && Boolean(roleTarget?.aheadVia);
-  const routeIds = Object.keys(mapPlan.routes);
-  return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
-    <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
-    {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
-      labeler={(entry) => catalog.classes.find((candidate) => candidate.signatureId === entry)?.name ?? humanize(entry)}
-      descriptions={Object.fromEntries(skills.map((entry) => [entry,
-        catalog.classes.find((candidate) => candidate.signatureId === entry)?.signatureName ?? humanize(entry)]))}
-      onChange={(nextSkill) => onChange({ skill: nextSkill, target: signatureTargets(nextSkill)[0] ?? 'self' })} />}
-    <CardPicker label="Skill target" value={selectedTarget} values={targets}
-      labeler={(entry) => entry === 'selector:most-experienced-ally'
-        ? 'Most experienced ally'
-        : entry.startsWith('role:') ? `Role · ${humanize(entry.slice(5))}` : humanize(entry.slice(6))}
-      descriptions={{ 'selector:most-experienced-ally': 'Protect, repair, or relay through the live veteran.' }}
-      onChange={(target) => onChange({ ...node.use, skill, target: decodeUseTarget(target) })} />
-    {skill === 'arc-toss' && roleTarget && <div className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/55 p-3">
-      <label className="flex min-h-11 items-center gap-3">
-        <input type="checkbox" className="h-5 w-5 accent-[var(--color-arena-material)]"
-          checked={forwardOnly} disabled={routeIds.length === 0}
-          onChange={(event) => onChange({ ...node.use!, skill, target: event.target.checked
-            ? { role: roleTarget.role, aheadVia: routeIds[0], minimumForwardTiles: 4 }
-            : { role: roleTarget.role } })} />
-        <span><span className="lab block">Forward Toss only</span>
-          <span className="t-micro mt-1 block">Pass only when this role is measurably ahead on an authored route.</span></span>
-      </label>
-      {routeIds.length === 0 && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
-        onClick={() => onOpenMap()}>Draw the relay route first</button>}
-      {forwardOnly && <>
-        <CardPicker label="Progress route" value={roleTarget.aheadVia!} values={routeIds}
-          labeler={humanize}
-          descriptions={Object.fromEntries(routeIds.map((id) => [id,
-            'The receiver must be farther along this ordered route.']))}
-          onChange={(aheadVia) => onChange({ ...node.use!, skill, target: {
-            ...roleTarget, aheadVia,
-            minimumForwardTiles: roleTarget['minimumForwardTiles'] ?? 4,
-          } })} />
-        <label className="mt-3 block"><span className="lab mb-1 block">Minimum forward gain · {roleTarget['minimumForwardTiles'] ?? 4} tiles</span>
-          <input type="range" className="w-full accent-[var(--color-arena-material)]" min={1} max={5}
-            value={roleTarget['minimumForwardTiles'] ?? 4}
-            onChange={(event) => onChange({ ...node.use!, skill, target: {
-              ...roleTarget, minimumForwardTiles: Number(event.target.value),
-            } })} /></label>
-        <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
-          onClick={() => onOpenMap({ kind: 'route', id: roleTarget.aheadVia! })}>
-          Inspect {humanize(roleTarget.aheadVia!)}
-        </button>
-      </>}
-    </div>}
-    {['hardlight-block', 'trip-node', 'sentinel-seed'].includes(skill) && <div className="mt-3">
-      <CardPicker label="Exact placement · optional" value={node.use?.at ?? ''}
-        values={['', ...Object.keys(mapPlan.anchors)]} emptyLabel="Aim toward selected target"
-        descriptions={Object.fromEntries(Object.keys(mapPlan.anchors).map((id) => [id,
-          `Build exactly at ${humanize(id)}; pair with a Beside destination below this order.`]))}
-        onChange={(at) => onChange({ ...node.use, skill, target: node.use?.target ?? namedTargets[0] ?? 'self',
-          ...(at ? { at } : { at: undefined }) })} />
-      {node.use?.at && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
-        onClick={() => onOpenMap({ kind: 'anchor', id: node.use!.at! })}>Plot {humanize(node.use.at)} on map</button>}
-      <p className="t-micro mt-2">The body must be beside this point when the skill runs. Add a lower Go to → Beside order using the same anchor; no duplicate staging anchor is needed.</p>
-    </div>}
-    {skills.length > 1 && <p className="t-micro mt-2">Only bodies that own this skill take this order. Other classes in the role continue down the ladder.</p>}
-  </div>;
+  return <SignatureUseEditor value={node.use!} role={role}
+    roles={allOrders.roles} catalog={catalog} mapPlan={mapPlan}
+    onOpenMap={onOpenMap} onChange={onChange} />;
 }
 
 function HandoffEditor({ value, roles, onChange }: { value: NonNullable<OrderNode['handoff']>; roles: RoleDefinition[]; onChange: (next: NonNullable<OrderNode['handoff']>) => void }) {
@@ -1032,7 +960,8 @@ function SharedOrdersEditor({ catalog, orders, mapPlan, issues, onChange, onOpen
         {ACTIONS.map((action) => <button key={action} type="button" className="choice-card min-h-[68px] text-left"
           onClick={() => {
             const signatureSkill = skillForClass(catalog, exampleRole?.classes[0] ?? '') ?? 'vector-dash';
-            const definition = freshOrder(action, 'new-order', signatureSkill);
+            const definition = freshOrder(action, 'new-order', signatureSkill,
+              defaultSignatureTarget(catalog, signatureSkill));
             delete definition.id;
             add(definition);
           }}>
@@ -1176,17 +1105,6 @@ function decodeFollowTarget(value: string): NonNullable<MoveOrder['follow']> {
   return value.startsWith('role:')
     ? value.slice(5)
     : { selector: 'most-experienced-ally' };
-}
-
-function encodeUseTarget(value: UseTarget): string {
-  if (typeof value === 'string') return `named:${value}`;
-  return 'role' in value ? `role:${value.role}` : `selector:${value.selector}`;
-}
-
-function decodeUseTarget(value: string): UseTarget {
-  if (value.startsWith('named:')) return value.slice(6);
-  if (value.startsWith('role:')) return { role: value.slice(5) };
-  return { selector: 'most-experienced-ally' };
 }
 
 function useTargetLabel(value: UseTarget): string {

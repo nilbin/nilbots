@@ -5081,7 +5081,8 @@
           "signatureName",
           "fantasy",
           "starter",
-          "unlocked"
+          "unlocked",
+          "signatureAuthoring"
         ],
         "type": "object",
         "properties": {
@@ -5108,6 +5109,9 @@
           },
           "unlocked": {
             "type": "boolean"
+          },
+          "signatureAuthoring": {
+            "$ref": "#/components/schemas/TacticalSheetSignatureAuthoringResponse"
           }
         }
       },
@@ -5313,6 +5317,86 @@
           },
           "entrant": {
             "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+          }
+        }
+      },
+      "TacticalSheetSignatureAuthoringResponse": {
+        "required": [
+          "category",
+          "argumentKind",
+          "engagementRange",
+          "cooldownTicks",
+          "activationTiming",
+          "initialPhase",
+          "maturityPhase",
+          "cooldownAnchor",
+          "parameters",
+          "allowedSelectors",
+          "allowsFriendlyRole",
+          "allowsMostExperiencedAlly",
+          "allowsExactAnchor",
+          "allowsRouteAheadRole",
+          "allowsRouteForward",
+          "defaultCommitmentBehavior"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "argumentKind": {
+            "type": "string"
+          },
+          "engagementRange": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cooldownTicks": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "activationTiming": {
+            "type": "string"
+          },
+          "initialPhase": {
+            "type": "string"
+          },
+          "maturityPhase": {
+            "type": "string"
+          },
+          "cooldownAnchor": {
+            "type": "string"
+          },
+          "parameters": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "allowedSelectors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "allowsFriendlyRole": {
+            "type": "boolean"
+          },
+          "allowsMostExperiencedAlly": {
+            "type": "boolean"
+          },
+          "allowsExactAnchor": {
+            "type": "boolean"
+          },
+          "allowsRouteAheadRole": {
+            "type": "boolean"
+          },
+          "allowsRouteForward": {
+            "type": "boolean"
+          },
+          "defaultCommitmentBehavior": {
+            "type": "string"
           }
         }
       },

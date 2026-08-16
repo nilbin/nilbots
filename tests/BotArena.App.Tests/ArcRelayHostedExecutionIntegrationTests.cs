@@ -63,6 +63,22 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(8, catalog.StockOpponents.Count);
+        Assert.Equal(16, catalog.Classes.Count);
+        Assert.All(catalog.Classes, entry =>
+        {
+            Assert.NotEmpty(entry.SignatureAuthoring.AllowedSelectors);
+            Assert.True(entry.SignatureAuthoring.CooldownTicks > 0);
+            Assert.False(string.IsNullOrWhiteSpace(
+                entry.SignatureAuthoring.ArgumentKind));
+        });
+        TacticalSheetClassResponse kestrel = catalog.Classes.Single(value =>
+            value.Id == "kestrel");
+        Assert.True(kestrel.SignatureAuthoring.AllowsRouteForward);
+        Assert.Equal("heading", kestrel.SignatureAuthoring.ArgumentKind);
+        TacticalSheetClassResponse relay = catalog.Classes.Single(value =>
+            value.Id == "relay");
+        Assert.True(relay.SignatureAuthoring.AllowsRouteAheadRole);
+        Assert.True(relay.SignatureAuthoring.AllowsFriendlyRole);
         TacticalStockSheetResponse stock = catalog.StockOpponents[0];
         Assert.Equal("demolition-march-v1", stock.Id);
         Assert.Equal("lockbox-v1", catalog.StockOpponents[1].Id);

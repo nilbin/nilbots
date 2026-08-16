@@ -3256,6 +3256,10 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("unlocked")]
         public bool Unlocked { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("signatureAuthoring")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public TacticalSheetSignatureAuthoringResponse SignatureAuthoring { get; set; } = new TacticalSheetSignatureAuthoringResponse();
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]
@@ -3476,6 +3480,78 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("entrant")]
         [System.ComponentModel.DataAnnotations.Required]
         public ArcRelayEntrantCardResponse Entrant { get; set; } = new ArcRelayEntrantCardResponse();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TacticalSheetSignatureAuthoringResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("category")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Category { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("argumentKind")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ArgumentKind { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("engagementRange")]
+        public int EngagementRange { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("cooldownTicks")]
+        public int CooldownTicks { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("activationTiming")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ActivationTiming { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("initialPhase")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string InitialPhase { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("maturityPhase")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string MaturityPhase { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("cooldownAnchor")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string CooldownAnchor { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("parameters")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IDictionary<string, int> Parameters { get; set; } = new System.Collections.Generic.Dictionary<string, int>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("allowedSelectors")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<string> AllowedSelectors { get; set; } = new System.Collections.Generic.List<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("allowsFriendlyRole")]
+        public bool AllowsFriendlyRole { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allowsMostExperiencedAlly")]
+        public bool AllowsMostExperiencedAlly { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allowsExactAnchor")]
+        public bool AllowsExactAnchor { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allowsRouteAheadRole")]
+        public bool AllowsRouteAheadRole { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("allowsRouteForward")]
+        public bool AllowsRouteForward { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentBehavior")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string DefaultCommitmentBehavior { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

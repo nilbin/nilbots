@@ -3182,6 +3182,7 @@ export interface components {
             fantasy: string;
             starter: boolean;
             unlocked: boolean;
+            signatureAuthoring: components["schemas"]["TacticalSheetSignatureAuthoringResponse"];
         };
         TacticalSheetDeletedResponse: {
             /** Format: uuid */
@@ -3238,6 +3239,28 @@ export interface components {
             mapPlanJson: string;
             workshopJson: null | string;
             entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+        };
+        TacticalSheetSignatureAuthoringResponse: {
+            category: string;
+            argumentKind: string;
+            /** Format: int32 */
+            engagementRange: number;
+            /** Format: int32 */
+            cooldownTicks: number;
+            activationTiming: string;
+            initialPhase: string;
+            maturityPhase: string;
+            cooldownAnchor: string;
+            parameters: {
+                [key: string]: number;
+            };
+            allowedSelectors: string[];
+            allowsFriendlyRole: boolean;
+            allowsMostExperiencedAlly: boolean;
+            allowsExactAnchor: boolean;
+            allowsRouteAheadRole: boolean;
+            allowsRouteForward: boolean;
+            defaultCommitmentBehavior: string;
         };
         TacticalSheetSummaryResponse: {
             /** Format: uuid */

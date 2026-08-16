@@ -40,6 +40,21 @@ const signatures: Record<string, string> = {
   kestrel: 'vector-dash', palisade: 'prism-wall', relay: 'arc-toss',
   patchbay: 'repair-beam',
 };
+const authoring = (signatureId: string) => ({
+  category: 'support', argumentKind: 'unit', engagementRange: 6,
+  cooldownTicks: 30, activationTiming: 'before-combat', initialPhase: 'active',
+  maturityPhase: 'immediate', cooldownAnchor: 'start', parameters: {},
+  allowedSelectors: signatureId === 'null-field' ? ['self']
+    : signatureId === 'repair-beam' ? ['weakest-ally', 'nearest-ally']
+      : signatureId === 'arc-toss' ? ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor']
+        : ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'],
+  allowsFriendlyRole: ['repair-beam', 'arc-toss'].includes(signatureId),
+  allowsMostExperiencedAlly: ['repair-beam', 'arc-toss'].includes(signatureId),
+  allowsExactAnchor: signatureId === 'hardlight-block',
+  allowsRouteAheadRole: signatureId === 'arc-toss',
+  allowsRouteForward: signatureId === 'vector-dash',
+  defaultCommitmentBehavior: 'continue-normally',
+});
 
 // The Running Relay recipe is authored against Tapline's real terrain. Keep
 // its geometry test on that terrain so an apparently straight Toss cannot
@@ -104,6 +119,7 @@ const catalog: TacticalSheetCatalog = {
   classes: Object.entries(signatures).map(([id, signatureId]) => ({
     id, name: id, signatureId, actionId: signatureId, signatureName: signatureId,
     fantasy: id, starter: true, unlocked: true,
+    signatureAuthoring: authoring(signatureId),
   })),
   templateOrdersJson: '{}', templateMapPlanJson: '{}', stockOpponents: [],
 };

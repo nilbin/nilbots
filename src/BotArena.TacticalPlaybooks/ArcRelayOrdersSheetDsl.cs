@@ -9,37 +9,8 @@ namespace BotArena.TacticalPlaybooks;
 /// </summary>
 public static partial class ArcRelayTacticalPlaybookCompiler
 {
-    private static readonly HashSet<string> LaunchClasses =
-        new(StringComparer.Ordinal)
-        {
-            "kestrel", "palisade", "towline", "patchbay", "lantern",
-            "mortar", "minesmith", "hush", "relay", "switchback",
-            "longshot", "mason", "sunder", "repulsor", "veil", "nest",
-        };
-
     private static readonly HashSet<string> UpgradeTracks =
         new(StringComparer.Ordinal) { "damage", "vision", "reach", "vitality" };
-
-    private static readonly Dictionary<string, string> ClassSkills =
-        new(StringComparer.Ordinal)
-        {
-            ["kestrel"] = "vector-dash",
-            ["palisade"] = "prism-wall",
-            ["towline"] = "tractor-hook",
-            ["patchbay"] = "repair-beam",
-            ["lantern"] = "survey-flare",
-            ["mortar"] = "falling-star",
-            ["minesmith"] = "trip-node",
-            ["hush"] = "null-field",
-            ["relay"] = "arc-toss",
-            ["switchback"] = "exchange",
-            ["longshot"] = "rail-line",
-            ["mason"] = "hardlight-block",
-            ["sunder"] = "target-paint",
-            ["repulsor"] = "kinetic-burst",
-            ["veil"] = "smoke-canister",
-            ["nest"] = "sentinel-seed",
-        };
 
     private static readonly HashSet<string> ConditionFacts =
         new(StringComparer.Ordinal)
@@ -110,14 +81,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "known-enemy-carriers", "remembered-enemies-in-zone",
         };
 
-    private static readonly HashSet<string> UseTargets =
-        new(StringComparer.Ordinal)
-        {
-            "self", "own-reactor", "nearest-enemy", "weakest-enemy",
-            "enemy-carrier", "nearest-ally", "weakest-ally",
-            "healthiest-ally", "nearest-ally-toward-own-reactor", "veteran",
-        };
-
     private static SheetValidation ValidateOrdersSheet(
         JsonElement root,
         string path)
@@ -149,7 +112,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 role.GetProperty("classes"), $"{at}.classes", 1, 8);
             foreach (string classId in classes)
             {
-                if (!LaunchClasses.Contains(classId))
+                if (!ArcRelaySignatureAuthoringCatalog.All.Any(value =>
+                        string.Equals(value.ClassId, classId,
+                            StringComparison.Ordinal)))
                     throw Error($"{at}.classes", $"unknown class '{classId}'.");
                 composition.Add(classId);
             }
@@ -791,6 +756,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         Object(value, $"{path}.use", ["skill", "target"], ["at"]);
         string skill = RequiredString(value, "skill", $"{path}.use");
+        bool roleOwnsSkill = role.Classes.Any(classId => string.Equals(
+            ArcRelaySignatureAuthoringCatalog.ForClass(classId).SkillId,
+            skill,
+            StringComparison.Ordinal));
+        if (!roleOwnsSkill
+            || !ArcRelaySignatureAuthoringCatalog.TryForSkill(
+                skill, out ArcRelaySignatureAuthoringDescriptor descriptor))
+        {
+            throw Error($"{path}.use.skill",
+                $"no body in role '{role.Id}' owns '{skill}'.");
+        }
         JsonElement targetValue = value.GetProperty("target");
         string targetKind;
         string target;
@@ -798,10 +774,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             targetKind = "named";
             target = StringValue(targetValue, $"{path}.use.target");
-            if (!UseTargets.Contains(target))
+            if (!descriptor.AllowsNamedTarget(target))
             {
                 throw Error(
-                    $"{path}.use.target", $"unknown target '{target}'.");
+                    $"{path}.use.target",
+                    $"'{skill}' cannot use target '{target}'.");
             }
         }
         else
@@ -834,26 +811,32 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 if (!roles.ContainsKey(target))
                     throw Error($"{path}.use.target", "target an existing role.");
-            }
-            else if (target != "most-experienced-ally")
-            {
-                throw Error(
-                    $"{path}.use.target",
-                    "unknown friendly selector; expected most-experienced-ally.");
-            }
-            if (skill is not ("repair-beam" or "exchange" or "arc-toss"))
-            {
-                throw Error(
-                    $"{path}.use.target",
-                    $"'{skill}' cannot target a friendly role or selector.");
-            }
-            if (forwardRouteTarget)
-            {
-                if (skill != "arc-toss")
+                if (!descriptor.Allows(
+                        ArcRelaySignatureTargetCapability.FriendlyRole))
                 {
                     throw Error(
                         $"{path}.use.target",
-                        "only arc-toss can require a receiver ahead on a route.");
+                        $"'{skill}' cannot target a friendly role or selector.");
+                }
+            }
+            else if (target != "most-experienced-ally"
+                || !descriptor.Allows(
+                    ArcRelaySignatureTargetCapability.MostExperiencedAlly))
+            {
+                throw Error(
+                    $"{path}.use.target",
+                    target == "most-experienced-ally"
+                        ? $"'{skill}' cannot target a friendly role or selector."
+                        : "unknown friendly selector; expected most-experienced-ally.");
+            }
+            if (forwardRouteTarget)
+            {
+                if (!descriptor.Allows(
+                        ArcRelaySignatureTargetCapability.RouteAheadRole))
+                {
+                    throw Error(
+                        $"{path}.use.target",
+                        $"'{skill}' cannot require a receiver ahead on a route.");
                 }
                 if (!targetValue.TryGetProperty(
                         "aheadVia", out JsonElement aheadVia)
@@ -878,44 +861,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     5);
             }
         }
-        if (!role.Classes.Any(classId => string.Equals(
-                ClassSkills[classId], skill, StringComparison.Ordinal)))
-        {
-            throw Error($"{path}.use.skill",
-                $"no body in role '{role.Id}' owns '{skill}'.");
-        }
-        if (skill is "null-field" or "kinetic-burst")
-        {
-            if (targetKind != "named" || target != "self")
-                throw Error($"{path}.use.target", $"'{skill}' targets self.");
-        }
-        else if (skill == "repair-beam"
-            && targetKind == "named"
-            && target is not ("nearest-ally" or "weakest-ally"))
-        {
-            throw Error($"{path}.use.target", "repair-beam targets an ally.");
-        }
-        else if (skill == "exchange"
-            && targetKind == "named"
-            && target is not ("nearest-ally" or "weakest-ally" or
-                "healthiest-ally"))
-        {
-            throw Error($"{path}.use.target", "exchange targets an ally.");
-        }
-        else if (skill == "target-paint"
-            && (targetKind != "named"
-                || target is not ("nearest-enemy" or "weakest-enemy" or
-                    "enemy-carrier" or "veteran")))
-        {
-            throw Error($"{path}.use.target", "target-paint targets an enemy.");
-        }
         if (value.TryGetProperty("at", out JsonElement at))
         {
             string anchor = StringValue(at, $"{path}.use.at");
             IdentifierValue(anchor, $"{path}.use.at", "anchor");
             consumers.ReferenceAnchor(anchor, path);
-            if (skill is not ("hardlight-block" or "trip-node"
-                    or "sentinel-seed"))
+            if (!descriptor.Allows(
+                    ArcRelaySignatureTargetCapability.ExactAnchor))
             {
                 throw Error($"{path}.use.at",
                     $"'{skill}' does not place a construct at an anchor.");

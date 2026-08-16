@@ -38,6 +38,24 @@ const signatureIdForClass: Record<string, string> = {
   sunder: 'target-paint', repulsor: 'kinetic-burst', veil: 'smoke-canister',
   nest: 'sentinel-seed',
 };
+const testAuthoring = (signatureId: string) => ({
+  category: 'support', argumentKind: 'unit', engagementRange: 6,
+  cooldownTicks: 30, activationTiming: 'before-combat', initialPhase: 'active',
+  maturityPhase: 'immediate', cooldownAnchor: 'start', parameters: {},
+  allowedSelectors: signatureId === 'null-field' || signatureId === 'kinetic-burst'
+    ? ['self']
+    : signatureId === 'repair-beam' ? ['weakest-ally', 'nearest-ally']
+      : signatureId === 'exchange' ? ['healthiest-ally', 'nearest-ally', 'weakest-ally']
+        : signatureId === 'arc-toss' ? ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor']
+          : signatureId === 'target-paint' ? ['enemy-carrier', 'veteran', 'weakest-enemy', 'nearest-enemy']
+            : ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'],
+  allowsFriendlyRole: ['repair-beam', 'exchange', 'arc-toss'].includes(signatureId),
+  allowsMostExperiencedAlly: ['repair-beam', 'exchange', 'arc-toss'].includes(signatureId),
+  allowsExactAnchor: ['hardlight-block', 'trip-node', 'sentinel-seed'].includes(signatureId),
+  allowsRouteAheadRole: signatureId === 'arc-toss',
+  allowsRouteForward: signatureId === 'vector-dash',
+  defaultCommitmentBehavior: 'continue-normally',
+});
 const testClass = (id: string) => ({
   id,
   name: id,
@@ -47,6 +65,7 @@ const testClass = (id: string) => ({
   fantasy: id,
   starter: true,
   unlocked: true,
+  signatureAuthoring: testAuthoring(signatureIdForClass[id]!),
 });
 const mapPlan: MapPlanDocument = {
   schema: 'arc-relay-map-plan-v2',
@@ -148,12 +167,12 @@ test('signature ownership comes from the catalog contract', () => {
   assert.equal(skillForClass(catalog, 'unknown'), undefined);
 });
 
-test('new signature orders persist the selected role skill and its legal default target', () => {
-  assert.deepEqual(freshOrder('use', 'pass-core', 'arc-toss'), {
+test('new signature orders persist the catalog-selected skill and target', () => {
+  assert.deepEqual(freshOrder('use', 'pass-core', 'arc-toss', 'nearest-ally-toward-own-reactor'), {
     id: 'pass-core',
     use: { skill: 'arc-toss', target: 'nearest-ally-toward-own-reactor' },
   });
-  assert.deepEqual(freshOrder('use', 'repair', 'repair-beam'), {
+  assert.deepEqual(freshOrder('use', 'repair', 'repair-beam', 'weakest-ally'), {
     id: 'repair',
     use: { skill: 'repair-beam', target: 'weakest-ally' },
   });

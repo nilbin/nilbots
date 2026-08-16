@@ -36,6 +36,24 @@ public sealed record TrialTacticalSheetRequest(
     string StockSheetId,
     long? Seed);
 
+public sealed record TacticalSheetSignatureAuthoringResponse(
+    string Category,
+    string ArgumentKind,
+    int EngagementRange,
+    int CooldownTicks,
+    string ActivationTiming,
+    string InitialPhase,
+    string MaturityPhase,
+    string CooldownAnchor,
+    IReadOnlyDictionary<string, int> Parameters,
+    IReadOnlyList<string> AllowedSelectors,
+    bool AllowsFriendlyRole,
+    bool AllowsMostExperiencedAlly,
+    bool AllowsExactAnchor,
+    bool AllowsRouteAheadRole,
+    bool AllowsRouteForward,
+    string DefaultCommitmentBehavior);
+
 public sealed record TacticalSheetClassResponse(
     string Id,
     string Name,
@@ -44,7 +62,8 @@ public sealed record TacticalSheetClassResponse(
     string SignatureName,
     string Fantasy,
     bool Starter,
-    bool Unlocked);
+    bool Unlocked,
+    TacticalSheetSignatureAuthoringResponse SignatureAuthoring);
 
 public sealed record TacticalSheetPointResponse(int X, int Y);
 

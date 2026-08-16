@@ -48,6 +48,9 @@ public static class TacticalSheetEndpoints
             ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
                 ArcRelayLoopProfile.Current);
             var mode = AssertArcRelayMode();
+            IReadOnlyDictionary<string, ArcRelaySignatureDefinition>
+                signatures = mode.Signatures.ToDictionary(
+                    value => value.ClassId, StringComparer.Ordinal);
             return Results.Ok(new TacticalSheetCatalogResponse(
                 ArcRelayEntrantPlaylistDefinition.PlaylistKey,
                 playlistVersionId,
@@ -63,7 +66,9 @@ public static class TacticalSheetEndpoints
                     value.SignatureName,
                     value.Fantasy,
                     value.Starter,
-                    unlocked.Contains(value.Id))).ToArray(),
+                    unlocked.Contains(value.Id),
+                    TacticalSheetSignatureAuthoringProjection.Project(
+                        signatures[value.Id]))).ToArray(),
                 templates.Template.OrdersJson,
                 templates.Template.MapPlanJson,
                 templates.Stock.Select(value => new TacticalStockSheetResponse(

@@ -317,6 +317,7 @@ export function freshOrder(
   action: Exclude<OrderAction, 'branch' | 'shared'>,
   id = 'new-order',
   signatureSkill = 'vector-dash',
+  signatureTarget: UseTarget = 'self',
 ): OrderNode {
   if (action === 'move') return { id, move: { to: { well: 'centre' }, posture: 'line' } };
   if (action === 'fight') return {
@@ -325,19 +326,31 @@ export function freshOrder(
   };
   if (action === 'use') return {
     id,
-    use: { skill: signatureSkill, target: signatureTargets(signatureSkill)[0] ?? 'self' },
+    use: { skill: signatureSkill, target: signatureTarget },
   };
   if (action === 'handoff') return { id, handoff: { target: 'nearest-ally-toward-own-reactor' } };
   return { id, drop: true };
 }
 
-export function signatureTargets(skill: string): string[] {
-  if (skill === 'null-field' || skill === 'kinetic-burst') return ['self'];
-  if (skill === 'repair-beam') return ['weakest-ally', 'nearest-ally'];
-  if (skill === 'exchange') return ['healthiest-ally', 'nearest-ally', 'weakest-ally'];
-  if (skill === 'arc-toss') return ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor'];
-  if (skill === 'target-paint') return ['enemy-carrier', 'veteran', 'weakest-enemy', 'nearest-enemy'];
-  return ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally', 'weakest-ally', 'self', 'own-reactor'];
+export function signatureAuthoring(
+  catalog: Pick<TacticalSheetCatalog, 'classes'>,
+  skill: string,
+) {
+  return catalog.classes.find((entry) => entry.signatureId === skill)?.signatureAuthoring;
+}
+
+export function signatureTargets(
+  catalog: Pick<TacticalSheetCatalog, 'classes'>,
+  skill: string,
+): string[] {
+  return [...(signatureAuthoring(catalog, skill)?.allowedSelectors ?? [])];
+}
+
+export function defaultSignatureTarget(
+  catalog: Pick<TacticalSheetCatalog, 'classes'>,
+  skill: string,
+): UseTarget {
+  return signatureTargets(catalog, skill)[0] ?? 'self';
 }
 
 export function identifierFromName(value: string, fallback = 'untitled-sheet', maximumLength = 48): string {
@@ -699,6 +712,11 @@ function validateOrder(
     );
     if (!skills.has(node.use!.skill))
       error(`${path}.use.skill`, 'At least one body in this role must own this signature skill.');
+    const authoring = signatureAuthoring(catalog, node.use!.skill);
+    if (!authoring) error(`${path}.use.skill`, 'This signature has no published authoring descriptor.');
+    if (typeof node.use!.target === 'string'
+      && !authoring?.allowedSelectors.includes(node.use!.target))
+      error(`${path}.use.target`, 'Choose a target allowed by this signature.');
     if (typeof node.use!.target === 'object') {
       const target = node.use!.target;
       if ('role' in target) {
@@ -711,24 +729,24 @@ function validateOrder(
         if (hasRoute !== hasMinimum)
           error(`${path}.use.target`, 'Forward Toss targeting needs both a route and minimum gain.');
         if (hasRoute) {
-          if (node.use!.skill !== 'arc-toss')
-            error(`${path}.use.target`, 'Only Arc Toss can require a receiver ahead on a route.');
+          if (!authoring?.allowsRouteAheadRole)
+            error(`${path}.use.target`, 'This signature cannot require a receiver ahead on a route.');
           usedRoutes.add(target.aheadVia!);
           if (!Number.isInteger(target.minimumForwardTiles)
             || target.minimumForwardTiles! < 1 || target.minimumForwardTiles! > 5)
             error(`${path}.use.target.minimumForwardTiles`, 'Minimum forward gain is 1–5 tiles.');
         }
       }
-      if ('selector' in target && target.selector !== 'most-experienced-ally')
+      if ('selector' in target && (target.selector !== 'most-experienced-ally'
+        || !authoring?.allowsMostExperiencedAlly))
         error(`${path}.use.target`, 'Choose a published friendly selector.');
-      if (!['repair-beam', 'exchange', 'arc-toss'].includes(node.use!.skill))
-        error(`${path}.use.target`, 'Only friendly-target skills can name a role or selector.');
+      if ('role' in target && !authoring?.allowsFriendlyRole)
+        error(`${path}.use.target`, 'This signature cannot name a friendly role.');
     }
     if (node.use!.at) {
       usedAnchors.add(node.use!.at);
-      if (!['hardlight-block', 'trip-node', 'sentinel-seed']
-        .includes(node.use!.skill))
-        error(`${path}.use.at`, 'Only placeable constructs can use an exact map anchor.');
+      if (!authoring?.allowsExactAnchor)
+        error(`${path}.use.at`, 'This signature cannot use an exact map anchor.');
     }
   }
   if (!node.when && !node.until && hasLaterSibling)
