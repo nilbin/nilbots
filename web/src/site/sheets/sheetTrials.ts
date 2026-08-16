@@ -46,6 +46,12 @@ export interface PlayReadinessEvidence {
   readySlotIds: string[];
 }
 
+export interface PlayFormationEvidence {
+  ready: number;
+  required: number;
+  tick: number | null;
+}
+
 export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
   return {
     bodies: JSON.stringify(draft.orders.roles.map(({ id, classes, upgradePath }) => ({
@@ -179,6 +185,45 @@ export function bestPlayReadiness(
     }).map((slot) => slot.id);
     if (readySlotIds.length > best.ready)
       best = { ready: readySlotIds.length, total: required.length, tick, readySlotIds };
+  }
+  return best;
+}
+
+/** Best authoritative occupancy of one role-qualified formation Condition. */
+export function bestPlayFormationReadiness(
+  draft: SheetDraft,
+  conditionId: string,
+  tracks: UnitTrack[],
+): PlayFormationEvidence {
+  const condition = draft.orders.conditions[conditionId];
+  const rect = condition?.zone ? draft.mapPlan.zones[condition.zone]?.rect : undefined;
+  const required = condition?.fact === 'role-in-zone-count'
+    ? Math.max(0, condition.value) : 0;
+  if (!condition?.role || !rect || required === 0)
+    return { ready: 0, required, tick: null };
+  let firstUnit = 0;
+  const role = draft.orders.roles.find((entry) => {
+    if (entry.id === condition.role) return true;
+    firstUnit += entry.classes.length;
+    return false;
+  });
+  if (!role) return { ready: 0, required, tick: null };
+  const unitIds = new Set(role.classes.map((_, index) => firstUnit + index));
+  const byTick = new Map<number, Map<number, ReplayPosition>>();
+  for (const track of tracks) {
+    if (track.teamId !== 0 || !unitIds.has(track.unitId)) continue;
+    for (const sample of track.samples) {
+      const positions = byTick.get(sample.tick) ?? new Map<number, ReplayPosition>();
+      positions.set(track.unitId, sample.position);
+      byTick.set(sample.tick, positions);
+    }
+  }
+  let best: PlayFormationEvidence = { ready: 0, required, tick: null };
+  for (const [tick, positions] of [...byTick].sort(([a], [b]) => a - b)) {
+    const ready = [...positions.values()].filter((point) =>
+      point.x >= rect[0] && point.x <= rect[2]
+      && point.y >= rect[1] && point.y <= rect[3]).length;
+    if (ready > best.ready) best = { ready, required, tick };
   }
   return best;
 }

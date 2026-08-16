@@ -23,7 +23,8 @@ export interface PlayDrift {
   roleId: string;
   orderId?: string;
   kind: 'role-missing' | 'order-missing' | 'order-changed' | 'order-collision'
-    | 'priority-neighbor-missing' | 'opportunity-binding-invalid';
+    | 'priority-neighbor-missing' | 'opportunity-binding-invalid'
+    | 'formation-binding-invalid';
   message: string;
 }
 
@@ -96,6 +97,24 @@ export function inspectWorkshop(
   const drifts: PlayDrift[] = [];
   for (const play of workshop.plays) {
     const bindingIds = new Set<string>();
+    for (const formation of play.formations ?? []) {
+      const projection = play.projections.find((entry) =>
+        entry.id === formation.projectionId);
+      const condition = orders.conditions[formation.conditionId];
+      if (!projection || !condition
+        || condition.fact !== 'role-in-zone-count'
+        || condition.role !== projection.roleId
+        || !condition.zone)
+      {
+        drifts.push({
+          playId: play.id,
+          projectionId: formation.projectionId,
+          roleId: projection?.roleId ?? '',
+          kind: 'formation-binding-invalid',
+          message: `Formation '${formation.id}' must link its projection to one role-in-zone-count Condition.`,
+        });
+      }
+    }
     for (const projection of play.projections) {
       const role = orders.roles.find((entry) => entry.id === projection.roleId);
       const ownedSkills = new Set(role?.classes.map((classId) =>

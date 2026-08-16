@@ -4,6 +4,25 @@ Status: **approved implementation plan; not yet implemented.**
 
 Date: 2026-08-16
 
+## Owner acceptance amendment — Mid Overload Fork
+
+The primary UX acceptance scenario is **Mid Overload Fork**, authored through
+the generic blank-Play surface rather than a recipe. A player draws two ambush
+locations and a Kestrel route, assigns 2/5/1 contingents, defines one shared
+mid-overload condition, configures each contingent's own readiness and
+continuation, and places its signature opportunities. The Play editor must
+show the shared start, immediate contingent, 2/2 and 5/5 readiness, each
+Mason's exact wall, Kestrel's route and Dash, every projection's real role
+priority, and the ordinary outcomes after success, failure, timeout, or Core
+pickup.
+
+Refinement is part of acceptance: changing the enemy threshold, moving an
+ambush to the opposite corridor, changing 2/5/1 to 3/4/1, swapping a role, or
+changing commitment time must edit existing linked source in place. It must
+not require raw JSON, duplicated conditions, manual anchor bookkeeping,
+detachment, or another priority model. Implement missing affordances
+generically; do not add a Mid Overload runtime concept or hard-coded recipe.
+
 Implement this as a follow-on to
 `docs/ARC-RELAY-LINKED-PLAYS-AUTHORING-PLAN.md`. That plan remains authoritative
 together with Decisions `#294`, `#317`, `#323`, and `#324` wherever this

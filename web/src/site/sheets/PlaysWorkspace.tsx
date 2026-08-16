@@ -16,12 +16,17 @@ import {
   uniquePlayId,
 } from './linkedPlays';
 import {
+  addPlayCondition,
+  addPlayGeometry,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
   addAmbushReserveSlot,
+  appendPlayRouteWaypoint,
+  configurePlayContingent,
   movePlayAnchor,
   moveSignatureOpportunity,
   rematerializeDraft,
+  removeLastPlayRouteWaypoint,
   removeAmbushReserveSlot,
   removeSignatureOpportunity,
   renameSignatureOpportunity,
@@ -30,6 +35,8 @@ import {
   setPlayLinkedValue,
   setPlayName,
   setPlayProjectionPlacement,
+  setPlayContingentExit,
+  setPlayZoneRect,
   setSignatureOpportunityCapacity,
   setSignatureOpportunityCommitmentHold,
   setSignatureOpportunityWhen,
@@ -58,10 +65,17 @@ import type {
   SheetIssue,
 } from './sheetAuthoring';
 import {
+  CONDITION_FACTS,
+  conditionExpressionNames,
+  conditionSubjectKind,
   defaultSignatureTarget,
   skillForClass,
 } from './sheetAuthoring';
-import { bestPlayReadiness, type UnitTrack } from './sheetTrials';
+import {
+  bestPlayFormationReadiness,
+  bestPlayReadiness,
+  type UnitTrack,
+} from './sheetTrials';
 import type {
   LinkedPlay,
   PlayGeometryKind,
@@ -200,7 +214,10 @@ export default function PlaysWorkspace({
             <PlayMapCanvas catalog={catalog} mapPlan={draft.mapPlan} play={play} side={side}
               selectedId={selectedGeometry} tracks={tracks}
               onSelect={setSelectedGeometry}
-              onMoveAnchor={(anchorId, point) => commit(movePlayAnchor(draft, play.id, anchorId, point))} />
+              onMoveAnchor={(anchorId, point) => commit(movePlayAnchor(draft, play.id, anchorId, point))}
+              onSetZone={(zoneId, rect) => commit(setPlayZoneRect(draft, play.id, zoneId, rect))}
+              onAppendRoute={(routeId, point) => commit(appendPlayRouteWaypoint(
+                draft, play.id, routeId, point))} />
           </div>
           <GeometryControls catalog={catalog} draft={draft} play={play}
             selectedId={selectedGeometry} tracks={tracks}
@@ -231,6 +248,8 @@ export default function PlaysWorkspace({
 
           <ParticipantControls draft={draft} play={play} catalog={catalog} issues={issues}
             onSelectGeometry={setSelectedGeometry} onChange={commit} />
+          {play.recipe === 'blank' && <PlayResponseControls draft={draft} play={play} tracks={tracks}
+            onSelectGeometry={setSelectedGeometry} onChange={commit} />}
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
             onSelectGeometry={(id) => {
               setSelectedGeometry(id);
@@ -399,6 +418,14 @@ function GeometryControls({ catalog, draft, play, selectedId, tracks, onSelect, 
     <div className="flex gap-1.5 overflow-x-auto pb-1">{play.ownedGeometry.filter((entry) => !entry.derivedFrom).map((entry) => <button key={`${entry.kind}:${entry.id}`}
       type="button" className={clsx('btn min-h-11 min-w-[150px] justify-start', entry.id === selectedId && 'btn-on')}
       onClick={() => onSelect(entry.id)}>{geometrySymbol(entry.kind)} {humanize(entry.id)}</button>)}</div>
+    {play.recipe === 'blank' && <div className="flex flex-wrap gap-1.5 lg:col-span-2">
+      {(['zone', 'route', 'anchor'] as const).map((kind) => <button key={kind}
+        type="button" className="btn btn-secondary min-h-11" onClick={() => {
+          const result = addPlayGeometry(draft, play.id, kind);
+          onChange(result.draft);
+          onSelect(result.id);
+        }}>＋ {kind === 'zone' ? 'Draw area' : kind === 'route' ? 'Draw route' : 'Place point'}</button>)}
+    </div>}
     {play.geometryGroups[0] && <div className="flex gap-1" aria-label="Move linked geometry together">
       <button type="button" className="btn min-h-11 min-w-11" aria-label="Move Play left" onClick={() => onChange(movePlayGeometryGroup(draft, play.id, play.geometryGroups[0].id, -1, 0, catalog.map.width, catalog.map.height))}>←</button>
       <button type="button" className="btn min-h-11 min-w-11" aria-label="Move Play up" onClick={() => onChange(movePlayGeometryGroup(draft, play.id, play.geometryGroups[0].id, 0, -1, catalog.map.width, catalog.map.height))}>↑</button>
@@ -417,6 +444,14 @@ function GeometryControls({ catalog, draft, play, selectedId, tracks, onSelect, 
               onSelect(nextId);
             }} /></label>}
       </div>
+      {selected.kind === 'route' && !selected.derivedFrom && <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="t-micro mr-auto">{draft.mapPlan.routes[selected.id]?.waypoints.length ?? 0} ordered route points</span>
+        <button type="button" className="btn min-h-11"
+          disabled={(draft.mapPlan.routes[selected.id]?.waypoints.length ?? 0) === 0}
+          onClick={() => onChange(removeLastPlayRouteWaypoint(draft, play.id, selected.id))}>
+          Undo last point
+        </button>
+      </div>}
     </div>}
     {play.slots.length > 0 && <div className="grid gap-2 sm:grid-cols-2 lg:col-span-2">
       {readiness.total > 0 && <div className="rounded-sm border border-arena-material/45 bg-arena-material/10 p-3 sm:col-span-2">
@@ -507,6 +542,180 @@ function ParticipantControls({ draft, play, catalog, issues, onSelectGeometry, o
         onClick={() => onChange(addBlankPlayProjection(draft, play.id, selectedBlankRole))}>＋ Add role projection</button>
     </div>}
   </section>;
+}
+
+function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  tracks: UnitTrack[];
+  onSelectGeometry: (id: string) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const formationConditionIds = new Set((play.formations ?? [])
+    .map((entry) => entry.conditionId));
+  const responseConditionSets = play.projections.map((projection) => {
+    const response = findOrderById(projection.orders, `${projection.id}-respond`);
+    return new Set(conditionExpressionNames(response?.when)
+      .filter((id) => !formationConditionIds.has(id)));
+  }).filter((set) => set.size > 0);
+  const common = responseConditionSets.length === 0 ? []
+    : [...responseConditionSets[0]].filter((id) =>
+      responseConditionSets.every((set) => set.has(id)));
+  const candidates = play.ownedConditionIds.filter((id) =>
+    draft.orders.conditions[id]
+    && !formationConditionIds.has(id)
+    && draft.orders.conditions[id].fact !== 'signature-commitment-active');
+  const inferred = common[0] ?? candidates[0] ?? '';
+  const [selectedTrigger, setSelectedTrigger] = useState(inferred);
+  const triggerId = draft.orders.conditions[selectedTrigger]
+    ? selectedTrigger : inferred;
+  const zoneIds = play.ownedGeometry.filter((entry) =>
+    entry.kind === 'zone' && !entry.derivedFrom).map((entry) => entry.id);
+  const [newTriggerZone, setNewTriggerZone] = useState(zoneIds[0] ?? '');
+  const selectedZone = zoneIds.includes(newTriggerZone)
+    ? newTriggerZone : zoneIds[0] ?? '';
+
+  return <section className="panel pad" data-testid="play-response-design">
+    <p className="lab text-arena-material">Shared response</p>
+    <h3 className="type-display mt-1 text-[19px]">One start, independent contingents</h3>
+    <p className="t-micro mt-1">The shared start is one ordinary named Condition. Each role then adds its own readiness, timeout, exit and continuation in its real Orders projection.</p>
+    {candidates.length === 0 ? <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
+      <p className="type-display text-[16px]">What starts the response?</p>
+      <p className="t-micro mt-1">Start with enemies entering a drawn area. You can refine the exact fact and threshold after creation.</p>
+      {zoneIds.length > 0 ? <>
+        <label className="mt-3 block"><span className="lab mb-1 block">Watched area</span>
+          <select className="field min-h-11" value={selectedZone}
+            onChange={(event) => setNewTriggerZone(event.target.value)}>
+            {zoneIds.map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
+          </select></label>
+        <button type="button" className="btn btn-primary mt-3 min-h-11 w-full"
+          onClick={() => {
+            const result = addPlayCondition(draft, play.id,
+              `${play.id}-response-start`, {
+                fact: 'visible-enemies-in-zone', operator: 'at-least', value: 5,
+                zone: selectedZone,
+              });
+            onChange(result.draft);
+            setSelectedTrigger(result.id);
+          }}>Create shared start · 5 enemies in {humanize(selectedZone)}</button>
+      </> : <p className="t-meta mt-3">Draw either ambush area on the map above, then return here.</p>}
+    </div> : <div className="mt-3 rounded-sm border border-arena-material/40 bg-arena-material/8 p-3">
+      <div className="flex flex-wrap items-start gap-2">
+        <div className="mr-auto"><p className="lab">Overall response starts when</p>
+          <p className="type-display mt-1 text-[17px]">{conditionSummary(draft.orders.conditions[triggerId])}</p></div>
+        {common.includes(triggerId) && <span className="pill text-arena-cyan">shared by every configured contingent</span>}
+      </div>
+      {candidates.length > 1 && <label className="mt-3 block"><span className="t-micro mb-1 block">Condition used as the shared start</span>
+        <select className="field min-h-11" value={triggerId}
+          onChange={(event) => setSelectedTrigger(event.target.value)}>
+          {candidates.map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
+        </select></label>}
+      <ConditionCard id={triggerId} value={draft.orders.conditions[triggerId]}
+        zones={Object.keys(draft.mapPlan.zones)} roles={draft.orders.roles.map((role) => role.id)}
+        onSelectGeometry={onSelectGeometry}
+        onChange={(next) => onChange(updatePlayCondition(draft, play.id, triggerId, next))} />
+    </div>}
+    <div className="mt-3 grid gap-3">{play.projections.map((projection) =>
+      <ContingentCard key={projection.id} draft={draft} play={play}
+        projection={projection} triggerId={triggerId} tracks={tracks}
+        onSelectGeometry={onSelectGeometry} onChange={onChange} />)}</div>
+  </section>;
+}
+
+function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGeometry, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  projection: PlayProjection;
+  triggerId: string;
+  tracks: UnitTrack[];
+  onSelectGeometry: (id: string) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const role = draft.orders.roles.find((entry) => entry.id === projection.roleId)!;
+  const response = findOrderById(projection.orders, `${projection.id}-respond`);
+  const formation = (play.formations ?? []).find((entry) =>
+    entry.projectionId === projection.id);
+  const ready = formation ? draft.orders.conditions[formation.conditionId] : undefined;
+  const evidence = formation
+    ? bestPlayFormationReadiness(draft, formation.conditionId, tracks)
+    : null;
+  const continuation = response?.orders?.find((child) =>
+    child.move?.to !== 'current-position' && !child.use);
+  const currentRoute = continuation?.move?.patrol;
+  const currentZone = ready?.zone;
+  const zones = play.ownedGeometry.filter((entry) =>
+    entry.kind === 'zone' && !entry.derivedFrom).map((entry) => entry.id);
+  const routes = play.ownedGeometry.filter((entry) =>
+    entry.kind === 'route' && !entry.derivedFrom).map((entry) => entry.id);
+  const [kind, setKind] = useState<'zone' | 'route'>(currentRoute ? 'route' : 'zone');
+  const [destination, setDestination] = useState(currentRoute ?? currentZone
+    ?? (currentRoute ? routes[0] : zones[0]) ?? '');
+  const chosenIds = kind === 'route' ? routes : zones;
+  const chosen = chosenIds.includes(destination) ? destination : chosenIds[0] ?? '';
+  const [required, setRequired] = useState(ready?.value ?? role.classes.length);
+  const [timeout, setTimeout] = useState(response?.timeout ?? 90);
+  const configured = Boolean(response);
+  const exit = typeof response?.until === 'string' ? response.until : '';
+  const allConditions = Object.keys(draft.orders.conditions)
+    .filter((id) => id !== triggerId && id !== formation?.conditionId);
+  return <article className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex -space-x-1">{role.classes.map((classId, index) =>
+        <ClassIcon key={`${classId}:${index}`} classId={classId} size={34} decorative />)}</span>
+      <div className="mr-auto min-w-0"><b className="type-display block truncate text-[16px]">{humanize(role.id)}</b>
+        <span className="t-micro">{role.classes.length} {role.classes.length === 1 ? 'body' : 'bodies'}</span></div>
+      {configured && <span className="pill text-arena-cyan">{ready
+        ? tracks.length > 0
+          ? `${evidence?.ready ?? 0}/${ready.value} best in Practice`
+          : `${ready.value}/${role.classes.length} required`
+        : 'acts immediately'}</span>}
+    </div>
+    <div className="mt-3 grid grid-cols-2 gap-1.5">
+      <button type="button" className="choice-card min-h-14" data-selected={kind === 'zone'}
+        onClick={() => setKind('zone')}><b className="t-body block">Form in an area</b><span className="t-micro">Wait for this role’s own readiness.</span></button>
+      <button type="button" className="choice-card min-h-14" data-selected={kind === 'route'}
+        onClick={() => setKind('route')}><b className="t-body block">Take a route now</b><span className="t-micro">No formation gate after the shared start.</span></button>
+    </div>
+    {chosenIds.length > 0 ? <label className="mt-3 block"><span className="lab mb-1 block">{kind === 'zone' ? 'Formation area' : 'Travel route'}</span>
+      <select className="field min-h-11" value={chosen}
+        onChange={(event) => setDestination(event.target.value)}>
+        {chosenIds.map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
+      </select>
+      <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onSelectGeometry(chosen)}>Edit {humanize(chosen)} on map</button>
+    </label> : <p className="t-meta mt-3">Draw a Play-owned {kind} on the map first.</p>}
+    {kind === 'zone' && <label className="mt-3 block"><span className="lab mb-1 block">Bodies required · {required}/{role.classes.length}</span>
+      <input type="range" className="w-full accent-[var(--color-arena-material)]"
+        min={1} max={Math.max(1, role.classes.length)} value={Math.min(required, role.classes.length)}
+        onChange={(event) => setRequired(Number(event.target.value))} />
+      <span className="t-micro mt-1 block">One role-qualified `role-in-zone-count` Condition; no per-body anchors to maintain.</span>
+    </label>}
+    <label className="mt-3 block"><span className="lab mb-1 block">Commitment timeout · {timeout} ticks</span>
+      <input type="range" className="w-full accent-[var(--color-arena-material)]"
+        min={10} max={300} step={5} value={timeout}
+        onChange={(event) => setTimeout(Number(event.target.value))} />
+    </label>
+    <button type="button" className="btn btn-primary mt-3 min-h-11 w-full"
+      disabled={!triggerId || !chosen}
+      onClick={() => onChange(configurePlayContingent(draft, play.id, projection.id, {
+        triggerConditionId: triggerId,
+        destination: kind === 'zone' ? { zone: chosen } : { route: chosen },
+        requiredBodies: kind === 'zone' ? required : 0,
+        timeout,
+      }))}>{configured ? 'Apply refinement' : 'Scaffold ordinary Orders'}</button>
+    {configured && <div className="mt-3 grid gap-2 rounded-sm border border-arena-edge bg-arena-panel/45 p-3 sm:grid-cols-2">
+      <div><p className="lab">Starts</p><p className="t-micro mt-1">{conditionSummary(draft.orders.conditions[triggerId])}{ready ? ` AND ${conditionSummary(ready)}` : ''}</p></div>
+      <div><p className="lab">During</p><p className="t-micro mt-1">{currentRoute ? `Move on ${humanize(currentRoute)}` : 'Fight from the formed area'} · timeout {response?.timeout}</p></div>
+      <label className="sm:col-span-2"><span className="lab mb-1 block">Success / explicit exit Condition</span>
+        <select className="field min-h-11" value={exit}
+          onChange={(event) => onChange(setPlayContingentExit(
+            draft, play.id, projection.id, event.target.value || null))}>
+          <option value="">No explicit exit · timeout or pre-emption</option>
+          {allConditions.map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
+        </select></label>
+      <p className="t-micro sm:col-span-2">On failure or timeout, this projection exits and the role’s next eligible Order continues. A higher role Order—including Core work—can pre-empt it at any tick.</p>
+    </div>}
+  </article>;
 }
 
 function AlongTheWayControls({
@@ -773,16 +982,45 @@ function ConditionControls({ draft, play, onChange }: {
       const condition = draft.orders.conditions[conditionId];
       if (!condition) return <p key={conditionId} className="t-micro text-arena-hot">Missing {conditionId}</p>;
       return <ConditionCard key={conditionId} id={conditionId} value={condition}
+        zones={Object.keys(draft.mapPlan.zones)} roles={draft.orders.roles.map((role) => role.id)}
         onChange={(next) => onChange(updatePlayCondition(draft, play.id, conditionId, next))} />;
     })}</div>
   </details>;
 }
 
-function ConditionCard({ id, value, onChange }: {
-  id: string; value: ConditionDefinition; onChange: (next: ConditionDefinition) => void;
+function ConditionCard({
+  id,
+  value,
+  zones = [],
+  roles = [],
+  onSelectGeometry,
+  onChange,
+}: {
+  id: string;
+  value: ConditionDefinition;
+  zones?: string[];
+  roles?: string[];
+  onSelectGeometry?: (id: string) => void;
+  onChange: (next: ConditionDefinition) => void;
 }) {
+  const subject = conditionSubjectKind(value.fact);
+  const changeFact = (fact: string) => {
+    const next: ConditionDefinition = {
+      fact, operator: value.operator, value: value.value,
+    };
+    const kind = conditionSubjectKind(fact);
+    if (kind === 'zone' || kind === 'role-zone') next.zone = value.zone ?? zones[0] ?? '';
+    if (kind === 'role' || kind === 'role-zone') next.role = value.role ?? roles[0] ?? '';
+    if (kind === 'well') next.well = value.well ?? 'centre';
+    onChange(next);
+  };
   return <article className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
-    <b className="t-body block">{humanize(id)}</b><code className="t-micro mt-1 block text-arena-material">{value.fact}</code>
+    <b className="t-body block">{humanize(id)}</b>
+    <label className="mt-2 block"><span className="t-micro mb-1 block">Observed fact</span>
+      <select className="field min-h-11" value={value.fact}
+        onChange={(event) => changeFact(event.target.value)}>
+        {CONDITION_FACTS.map((fact) => <option key={fact} value={fact}>{humanize(fact)}</option>)}
+      </select></label>
     <div className="mt-2 grid grid-cols-[minmax(0,1fr)_100px] gap-2">
       <select className="field min-h-11" value={value.operator}
         onChange={(event) => onChange({ ...value, operator: event.target.value as ConditionDefinition['operator'] })}>
@@ -791,6 +1029,21 @@ function ConditionCard({ id, value, onChange }: {
       <input type="number" className="field min-h-11" value={value.value}
         onChange={(event) => onChange({ ...value, value: Number(event.target.value) })} />
     </div>
+    {(subject === 'zone' || subject === 'role-zone') && <label className="mt-2 block"><span className="t-micro mb-1 block">Zone</span>
+      <select className="field min-h-11" value={value.zone ?? ''}
+        onChange={(event) => onChange({ ...value, zone: event.target.value })}>
+        <option value="">Choose a zone</option>
+        {zones.map((zone) => <option key={zone} value={zone}>{humanize(zone)}</option>)}
+      </select>
+      {value.zone && onSelectGeometry && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onSelectGeometry(value.zone!)}>Edit {humanize(value.zone)} on map</button>}
+    </label>}
+    {(subject === 'role' || subject === 'role-zone') && <label className="mt-2 block"><span className="t-micro mb-1 block">Role</span>
+      <select className="field min-h-11" value={value.role ?? ''}
+        onChange={(event) => onChange({ ...value, role: event.target.value })}>
+        <option value="">Choose a role</option>
+        {roles.map((role) => <option key={role} value={role}>{humanize(role)}</option>)}
+      </select></label>}
     <p className="t-micro mt-2">{[
       value.role && `role ${value.role}`,
       value.zone && `zone ${value.zone}`,
@@ -872,6 +1125,16 @@ function geometrySymbol(kind: PlayGeometryKind) {
 
 function humanize(value: string) {
   return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function conditionSummary(condition: ConditionDefinition | undefined) {
+  if (!condition) return 'missing Condition';
+  return [
+    `${humanize(condition.fact)} ${humanize(condition.operator)} ${condition.value}`,
+    condition.role && `for ${humanize(condition.role)}`,
+    condition.zone && `in ${humanize(condition.zone)}`,
+    condition.well && `at ${humanize(condition.well)} Well`,
+  ].filter(Boolean).join(' ');
 }
 
 // Kept in this module so blank-Play projection authoring can use the same

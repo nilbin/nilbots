@@ -6,6 +6,7 @@ import {
 import { synchronizePlayGeometry } from './playGeometry';
 import type {
   ConditionDefinition,
+  ConditionExpression,
   OrderNode,
   SheetDraft,
   UseOrder,
@@ -273,6 +274,230 @@ export function setPlayName(
 ): SheetDraft {
   const next = structuredClone(draft);
   requirePlay(next, playId).name = name;
+  return next;
+}
+
+/**
+ * Add one ordinary map-plan object and mark it as Play-owned. The object has
+ * no behavior until a projected Order or Condition references it.
+ */
+export function addPlayGeometry(
+  draft: SheetDraft,
+  playId: string,
+  kind: PlayGeometryKind,
+): { draft: SheetDraft; id: string } {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const id = uniqueString(`${play.id}-${kind}`, new Set([
+    ...Object.keys(next.mapPlan.zones),
+    ...Object.keys(next.mapPlan.routes),
+    ...Object.keys(next.mapPlan.anchors),
+  ]));
+  if (kind === 'zone') next.mapPlan.zones[id] = { rect: [15, 13, 15, 13] };
+  else if (kind === 'route') next.mapPlan.routes[id] = { waypoints: [] };
+  else next.mapPlan.anchors[id] = [15, 13];
+  play.ownedGeometry.push({ kind, id, purpose: 'available to this Play' });
+  return { draft: next, id };
+}
+
+export function addPlayCondition(
+  draft: SheetDraft,
+  playId: string,
+  baseId: string,
+  condition: ConditionDefinition,
+): { draft: SheetDraft; id: string } {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const id = uniqueString(baseId, new Set(Object.keys(next.orders.conditions)));
+  next.orders.conditions[id] = structuredClone(condition);
+  play.ownedConditionIds.push(id);
+  return { draft: next, id };
+}
+
+export interface PlayContingentSetup {
+  triggerConditionId: string;
+  destination: { zone: string } | { route: string };
+  requiredBodies: number;
+  timeout: number;
+}
+
+/**
+ * Scaffold or refine one generic contingent as ordinary Orders. A zone-backed
+ * contingent stages until its role-qualified readiness Condition is true; a
+ * route-backed contingent acts immediately when the shared trigger is true.
+ * Re-running this edit preserves the existing response branch, including any
+ * signature opportunity children and explicit exit Condition.
+ */
+export function configurePlayContingent(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  setup: PlayContingentSetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (play.recipe !== 'blank')
+    throw new Error('Generic contingent setup belongs to a blank linked Play.');
+  const projection = requireProjection(play, projectionId);
+  const role = next.orders.roles.find((entry) => entry.id === projection.roleId);
+  if (!role) throw new Error(`Unknown role '${projection.roleId}'.`);
+  if (!next.orders.conditions[setup.triggerConditionId])
+    throw new Error(`Unknown shared trigger '${setup.triggerConditionId}'.`);
+  const required = Math.max(0, Math.min(role.classes.length,
+    Math.trunc(setup.requiredBodies)));
+  const responseId = `${projection.id}-respond`;
+  const stageId = `${projection.id}-stage`;
+  let response = findOrderLocation(projection.orders, responseId)?.node;
+  const previousFormation = (play.formations ?? []).find((entry) =>
+    entry.projectionId === projection.id);
+  const previousConditionId = previousFormation?.conditionId;
+
+  let readinessId: string | null = null;
+  if ('zone' in setup.destination && required > 0) {
+    if (!next.mapPlan.zones[setup.destination.zone])
+      throw new Error(`Unknown formation zone '${setup.destination.zone}'.`);
+    readinessId = previousConditionId ?? uniqueString(
+      `${projection.id}-ready`, new Set(Object.keys(next.orders.conditions)));
+    next.orders.conditions[readinessId] = {
+      fact: 'role-in-zone-count', operator: 'at-least', value: required,
+      role: projection.roleId, zone: setup.destination.zone,
+    };
+    if (!play.ownedConditionIds.includes(readinessId))
+      play.ownedConditionIds.push(readinessId);
+    play.formations = (play.formations ?? []).filter((entry) =>
+      entry.projectionId !== projection.id);
+    play.formations.push({
+      id: `${projection.id}-formation`,
+      projectionId: projection.id,
+      conditionId: readinessId,
+    });
+  } else {
+    play.formations = (play.formations ?? []).filter((entry) =>
+      entry.projectionId !== projection.id);
+    if (previousConditionId) {
+      delete next.orders.conditions[previousConditionId];
+      play.ownedConditionIds = play.ownedConditionIds.filter((id) =>
+        id !== previousConditionId);
+    }
+  }
+
+  const when = expressionOf([
+    setup.triggerConditionId,
+    ...(readinessId ? [readinessId] : []),
+  ]);
+  if (!response) {
+    response = {
+      id: responseId,
+      when,
+      timeout: clampTicks(setup.timeout),
+      cooldown: 20,
+      orders: ['route' in setup.destination
+        ? {
+          id: `${responseId}-continue`,
+          move: { patrol: setup.destination.route, posture: 'front' },
+        }
+        : {
+          id: `${responseId}-continue`,
+          fight: { targets: ['carrier', 'weakest', 'nearest'], style: 'hold', chaseLimit: 7 },
+        }],
+    };
+    projection.orders = [response, ...projection.orders.filter((order) =>
+      !order.id?.endsWith('-move'))];
+  } else {
+    response.when = when;
+    response.timeout = clampTicks(setup.timeout);
+    const continuation = response.orders?.find((child) =>
+      !(projection.signatureOpportunities ?? []).some((binding) =>
+        binding.hostOrderId === responseId && binding.useOrderId === child.id)
+      && child.move?.to !== 'current-position');
+    if (continuation && 'route' in setup.destination) {
+      delete continuation.fight;
+      continuation.move = { patrol: setup.destination.route, posture: 'front' };
+    } else if (continuation) {
+      delete continuation.move;
+      continuation.fight = {
+        targets: ['carrier', 'weakest', 'nearest'],
+        style: 'hold',
+        chaseLimit: 7,
+      };
+    }
+  }
+
+  projection.orders = projection.orders.filter((order) => order.id !== stageId);
+  if ('zone' in setup.destination && readinessId) {
+    projection.orders.splice(1, 0, {
+      id: stageId,
+      until: readinessId,
+      move: { to: { zone: setup.destination.zone }, posture: 'line' },
+    });
+  }
+  return requireMaterialized(next, true);
+}
+
+export function setPlayContingentExit(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  conditionId: string | null,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const response = findOrderLocation(
+    projection.orders, `${projection.id}-respond`)?.node;
+  if (!response) throw new Error('Configure this contingent before choosing its exit.');
+  if (conditionId && !next.orders.conditions[conditionId])
+    throw new Error(`Unknown exit Condition '${conditionId}'.`);
+  if (conditionId) response.until = conditionId;
+  else delete response.until;
+  return requireMaterialized(next);
+}
+
+export function setPlayZoneRect(
+  draft: SheetDraft,
+  playId: string,
+  zoneId: string,
+  rect: [number, number, number, number],
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (!play.ownedGeometry.some((entry) =>
+      entry.kind === 'zone' && entry.id === zoneId && !entry.derivedFrom))
+    throw new Error(`Zone '${zoneId}' is not directly owned by this Play.`);
+  next.mapPlan.zones[zoneId] = { rect: [...rect] };
+  return next;
+}
+
+export function appendPlayRouteWaypoint(
+  draft: SheetDraft,
+  playId: string,
+  routeId: string,
+  point: [number, number],
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (!play.ownedGeometry.some((entry) =>
+      entry.kind === 'route' && entry.id === routeId && !entry.derivedFrom))
+    throw new Error(`Route '${routeId}' is not directly owned by this Play.`);
+  const route = next.mapPlan.routes[routeId];
+  if (!route) throw new Error(`Route '${routeId}' is missing.`);
+  const previous = route.waypoints.at(-1);
+  if (!previous || previous[0] !== point[0] || previous[1] !== point[1])
+    route.waypoints.push([...point]);
+  return next;
+}
+
+export function removeLastPlayRouteWaypoint(
+  draft: SheetDraft,
+  playId: string,
+  routeId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (!play.ownedGeometry.some((entry) =>
+      entry.kind === 'route' && entry.id === routeId && !entry.derivedFrom))
+    throw new Error(`Route '${routeId}' is not directly owned by this Play.`);
+  next.mapPlan.routes[routeId]?.waypoints.pop();
   return next;
 }
 
@@ -791,6 +1016,15 @@ function uniqueString(base: string, used: ReadonlySet<string>): string {
   if (!used.has(base)) return base;
   for (let suffix = 2; ; suffix++)
     if (!used.has(`${base}-${suffix}`)) return `${base}-${suffix}`;
+}
+
+function expressionOf(ids: string[]): ConditionExpression {
+  if (ids.length === 0) return 'always';
+  return ids.length === 1 ? ids[0] : { all: ids };
+}
+
+function clampTicks(value: number): number {
+  return Math.max(1, Math.min(1200, Math.trunc(value)));
 }
 
 function requirePlay(draft: SheetDraft, playId: string): LinkedPlay {

@@ -24,6 +24,8 @@ export default function PlayMapCanvas({
   tracks = [],
   onSelect,
   onMoveAnchor,
+  onSetZone,
+  onAppendRoute,
 }: {
   catalog: TacticalSheetCatalog;
   mapPlan: MapPlanDocument;
@@ -33,10 +35,16 @@ export default function PlayMapCanvas({
   tracks?: UnitTrack[];
   onSelect: (id: string) => void;
   onMoveAnchor: (id: string, point: [number, number]) => void;
+  onSetZone: (id: string, rect: [number, number, number, number]) => void;
+  onAppendRoute: (id: string, point: [number, number]) => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
+  const [drawing, setDrawing] = useState(false);
+  const [zoneStart, setZoneStart] = useState<[number, number] | null>(null);
+  const [zonePreview, setZonePreview] = useState<[number, number, number, number] | null>(null);
   const owned = new Map(play.ownedGeometry.map((entry) => [entry.id, entry]));
+  const selected = selectedId ? owned.get(selectedId) : undefined;
   const transform = (point: Point): Point => side === 'east'
     ? { x: catalog.map.width - 1 - point.x, y: catalog.map.height - 1 - point.y }
     : point;
@@ -52,6 +60,11 @@ export default function PlayMapCanvas({
     return [x, y];
   };
   const finishDrag = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (zoneStart && zonePreview && selected?.kind === 'zone') {
+      onSetZone(selected.id, zonePreview);
+      setZoneStart(null);
+      setZonePreview(null);
+    }
     if (!dragging) return;
     const point = sourcePoint(event);
     if (point) onMoveAnchor(dragging, point);
@@ -60,17 +73,59 @@ export default function PlayMapCanvas({
     setDragging(null);
   };
 
+  const beginDraw = (event: ReactPointerEvent<SVGSVGElement>) => {
+    if (!drawing || side === 'east' || !selected || selected.derivedFrom)
+      return;
+    const point = sourcePoint(event);
+    if (!point) return;
+    event.preventDefault();
+    if (selected.kind === 'anchor') onMoveAnchor(selected.id, point);
+    else if (selected.kind === 'route') onAppendRoute(selected.id, point);
+    else {
+      event.currentTarget.setPointerCapture(event.pointerId);
+      setZoneStart(point);
+      setZonePreview([point[0], point[1], point[0], point[1]]);
+    }
+  };
+
   return <div className="overflow-hidden rounded-sm border border-arena-edge bg-[#06090c]">
+    <div className="flex flex-wrap items-center gap-2 border-b border-arena-edge p-2">
+      <button type="button" className={clsx('btn min-h-11', !drawing && 'btn-on')}
+        aria-pressed={!drawing} onClick={() => setDrawing(false)}>Select</button>
+      <button type="button" className={clsx('btn min-h-11', drawing && 'btn-secondary')}
+        aria-pressed={drawing} disabled={!selected || Boolean(selected.derivedFrom) || side === 'east'}
+        onClick={() => setDrawing(true)}>
+        {selected?.kind === 'zone' ? 'Draw rectangle'
+          : selected?.kind === 'route' ? 'Add route points'
+            : selected?.kind === 'anchor' ? 'Place point' : 'Choose an object'}
+      </button>
+      {drawing && selected?.kind === 'route' && <span className="t-micro">Tap in travel order. Each tap adds a visible waypoint.</span>}
+      {drawing && selected?.kind === 'zone' && <span className="t-micro">Drag over the area that matters.</span>}
+    </div>
     <svg ref={svg} viewBox={`0 0 ${catalog.map.width} ${catalog.map.height}`}
-      className={clsx('block w-full min-w-[580px] select-none', dragging && 'touch-none')}
+      className={clsx('block w-full min-w-[580px] select-none', (dragging || drawing) && 'touch-none')}
       style={{ aspectRatio: `${catalog.map.width}/${catalog.map.height}` }}
       role="img" aria-label={`${play.name} on the ${side} Tapline perspective`}
       onPointerMove={(event) => {
+        if (zoneStart && selected?.kind === 'zone') {
+          const point = sourcePoint(event);
+          if (point) setZonePreview([
+            Math.min(zoneStart[0], point[0]), Math.min(zoneStart[1], point[1]),
+            Math.max(zoneStart[0], point[0]), Math.max(zoneStart[1], point[1]),
+          ]);
+        }
         if (!dragging || side === 'east') return;
         event.preventDefault();
       }}
-      onPointerUp={finishDrag} onPointerCancel={finishDrag}>
+      onPointerDown={beginDraw} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
       <BaseMap catalog={catalog} side={side} transform={transform} />
+      {zonePreview && (() => {
+        const a = transform({ x: zonePreview[0], y: zonePreview[1] });
+        const b = transform({ x: zonePreview[2], y: zonePreview[3] });
+        return <rect x={Math.min(a.x, b.x)} y={Math.min(a.y, b.y)}
+          width={Math.abs(a.x - b.x) + 1} height={Math.abs(a.y - b.y) + 1}
+          fill="#f0a35e35" stroke="#fff1d8" strokeWidth={.18} pointerEvents="none" />;
+      })()}
       {Object.entries(mapPlan.zones).map(([id, zone]) => {
         const metadata = owned.get(id);
         const a = transform({ x: zone.rect[0], y: zone.rect[1] });
@@ -81,7 +136,7 @@ export default function PlayMapCanvas({
           stroke={selectedId === id ? '#fff1d8' : metadata?.derivedFrom ? DERIVED : metadata ? PLAY : '#7694a825'}
           strokeWidth={selectedId === id ? .18 : metadata ? .1 : .035}
           strokeDasharray={metadata?.derivedFrom ? '.2 .12' : undefined}
-          onPointerDown={() => { if (metadata) onSelect(id); }} />;
+          onPointerDown={(event) => { if (metadata && !drawing) { event.stopPropagation(); onSelect(id); } }} />;
       })}
       {tracks.map((track) => {
         const points = track.points.map(transform);
@@ -98,7 +153,7 @@ export default function PlayMapCanvas({
           fill="none" stroke={selectedId === id ? '#fff1d8' : metadata ? '#39d7f2' : '#7694a835'}
           strokeWidth={selectedId === id ? .22 : metadata ? .14 : .05}
           strokeLinejoin="round" strokeLinecap="round"
-          onPointerDown={() => { if (metadata) onSelect(id); }} />;
+          onPointerDown={(event) => { if (metadata && !drawing) { event.stopPropagation(); onSelect(id); } }} />;
       })}
       {Object.entries(mapPlan.anchors).map(([id, [x, y]]) => {
         const metadata = owned.get(id);
@@ -116,6 +171,8 @@ export default function PlayMapCanvas({
           </text>}
           <circle cx={point.x + .5} cy={point.y + .5} r={.72} fill="transparent"
             onPointerDown={(event) => {
+              if (drawing) return;
+              event.stopPropagation();
               onSelect(id);
               if (side === 'east') return;
               event.preventDefault();

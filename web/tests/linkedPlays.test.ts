@@ -18,9 +18,13 @@ import {
   signatureOpportunityViews,
 } from '../src/site/sheets/linkedPlays';
 import {
+  addPlayCondition,
+  addPlayGeometry,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
   addAmbushReserveSlot,
+  appendPlayRouteWaypoint,
+  configurePlayContingent,
   movePlayAnchor,
   moveSignatureOpportunity,
   renamePlayGeometry,
@@ -29,6 +33,7 @@ import {
   renameSignatureOpportunity,
   replacePlayRole,
   setPlayLinkedValue,
+  setPlayZoneRect,
   setSignatureOpportunityCommitmentHold,
   updateSignatureOpportunityUse,
 } from '../src/site/sheets/playEditing';
@@ -63,6 +68,11 @@ const authoring = (signatureId: string) => ({
   allowsRouteAheadRole: signatureId === 'arc-toss',
   allowsRouteForward: signatureId === 'vector-dash',
   defaultCommitmentBehavior: 'continue-normally',
+  preset: {
+    id: `use-${signatureId}`, title: signatureId, description: signatureId,
+    targetKind: 'named-selector', namedTarget: 'nearest-enemy',
+    suggestsActivationZone: true,
+  },
 });
 
 // The Running Relay recipe is authored against Tapline's real terrain. Keep
@@ -418,6 +428,72 @@ test('a blank Play authors ordinary Orders through the generic projection path',
   if (timeout) linked = setPlayLinkedValue(linked, playId, timeout.id, 30);
   assert.ok(linked.orders.roles.find((entry) => entry.id === 'support')!.orders
     .some((order) => order.id?.startsWith(`${playId}-support-move`)));
+});
+
+test('a blank Play refines shared-trigger contingents without rebuilding their Orders', () => {
+  let linked = addBlankPlay(draft(), 'Generic fork');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'reserve');
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  const north = addPlayGeometry(linked, playId, 'zone');
+  linked = setPlayZoneRect(north.draft, playId, north.id, [20, 5, 23, 8]);
+  const watch = addPlayGeometry(linked, playId, 'zone');
+  linked = setPlayZoneRect(watch.draft, playId, watch.id, [13, 10, 17, 16]);
+  const route = addPlayGeometry(linked, playId, 'route');
+  linked = appendPlayRouteWaypoint(route.draft, playId, route.id, [24, 13]);
+  linked = appendPlayRouteWaypoint(linked, playId, route.id, [18, 13]);
+  linked = appendPlayRouteWaypoint(linked, playId, route.id, [13, 13]);
+  const trigger = addPlayCondition(linked, playId, 'mid-overload', {
+    fact: 'visible-enemies-in-zone', operator: 'at-least', value: 5,
+    zone: watch.id,
+  });
+  linked = trigger.draft;
+  const play = linked.workshop.plays[0];
+  const reserveProjection = play.projections.find((entry) => entry.roleId === 'reserve')!;
+  const relayProjection = play.projections.find((entry) => entry.roleId === 'relay-a')!;
+  linked = configurePlayContingent(linked, playId, reserveProjection.id, {
+    triggerConditionId: trigger.id,
+    destination: { zone: north.id },
+    requiredBodies: 2,
+    timeout: 90,
+  });
+  linked = configurePlayContingent(linked, playId, relayProjection.id, {
+    triggerConditionId: trigger.id,
+    destination: { route: route.id },
+    requiredBodies: 0,
+    timeout: 45,
+  });
+
+  let current = linked.workshop.plays[0];
+  assert.equal(current.formations?.length, 1);
+  const readiness = linked.orders.conditions[current.formations![0].conditionId];
+  assert.deepEqual(readiness, {
+    fact: 'role-in-zone-count', operator: 'at-least', value: 2,
+    role: 'reserve', zone: north.id,
+  });
+  const reserveResponse = current.projections.find((entry) =>
+    entry.id === reserveProjection.id)!.orders[0];
+  assert.deepEqual(reserveResponse.when, { all: [trigger.id, current.formations![0].conditionId] });
+  assert.equal(reserveResponse.timeout, 90);
+  const relayResponse = current.projections.find((entry) =>
+    entry.id === relayProjection.id)!.orders[0];
+  assert.equal(relayResponse.when, trigger.id);
+  assert.equal(relayResponse.orders?.[0].move?.patrol, route.id);
+
+  // Refinement updates the existing source ids and retains nested authored work.
+  const responseId = reserveResponse.id!;
+  linked.orders.conditions[trigger.id].value = 4;
+  linked = configurePlayContingent(linked, playId, reserveProjection.id, {
+    triggerConditionId: trigger.id,
+    destination: { zone: north.id },
+    requiredBodies: 1,
+    timeout: 120,
+  });
+  current = linked.workshop.plays[0];
+  assert.equal(current.projections.find((entry) => entry.id === reserveProjection.id)!
+    .orders[0].id, responseId);
+  assert.equal(linked.orders.conditions[current.formations![0].conditionId].value, 1);
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
 });
 
 test('the remaining recipe lenses materialize only valid ordinary Orders', () => {

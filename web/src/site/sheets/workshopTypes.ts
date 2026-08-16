@@ -47,6 +47,17 @@ export interface PlaySlot {
   capacity?: number | string;
 }
 
+/**
+ * Editor linkage for one role-qualified readiness Condition over one authored
+ * zone. The condition definition remains the executable source of role, area,
+ * comparison and count; this record only lets Plays render it as a formation.
+ */
+export interface PlayFormationBinding {
+  id: string;
+  projectionId: string;
+  conditionId: string;
+}
+
 export interface PlayProjectionPlacement {
   /** Null means after every ordinary top-level Order. */
   beforeOrderKey: string | null;
@@ -110,6 +121,7 @@ export interface LinkedPlay {
   ownedGeometry: PlayOwnedGeometry[];
   geometryGroups: PlayGeometryGroup[];
   slots: PlaySlot[];
+  formations?: PlayFormationBinding[];
   ownedConditionIds: string[];
   ownedCapacityIds: string[];
   projections: PlayProjection[];
@@ -132,6 +144,7 @@ export function emptyWorkshop(): WorkshopDocument {
 export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
   const next = structuredClone(value);
   for (const play of next.plays) {
+    play.formations ??= [];
     const used = new Set<string>();
     for (const projection of play.projections) {
       const existing = projection.signatureOpportunities ?? [];

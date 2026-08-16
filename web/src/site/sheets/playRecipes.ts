@@ -49,6 +49,7 @@ export function addBlankPlay(draft: SheetDraft, name = 'Untitled Play'): SheetDr
     ownedGeometry: [],
     geometryGroups: [],
     slots: [],
+    formations: [],
     ownedConditionIds: [],
     ownedCapacityIds: [],
     projections: [],
