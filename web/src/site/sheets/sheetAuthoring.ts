@@ -26,6 +26,7 @@ export interface ConditionDefinition {
 
 export type MoveTarget =
   | 'own-reactor'
+  | 'current-position'
   | 'nearest-heal-zone'
   | 'nearest-known-loose-core'
   | 'highest-bank-value-known-loose-core'
@@ -68,7 +69,12 @@ export type UseTarget = string
       aheadVia?: string;
       minimumForwardTiles?: number;
     }
-  | { selector: 'most-experienced-ally' };
+  | { selector: 'most-experienced-ally' }
+  | {
+      route: string;
+      progress: 'forward';
+      minimumForwardTiles: number;
+    };
 export interface UseOrder { skill: string; target: UseTarget; at?: string }
 export interface HandoffOrder {
   target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
@@ -143,7 +149,7 @@ export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
   'self-order-ticks', 'self-in-zone', 'self-nearest-visible-enemy-distance',
   'self-carried-core-bank-value', 'self-ticks-since-signature-use',
-  'signature-ready', 'deployment-active',
+  'signature-ready', 'signature-commitment-active', 'deployment-active',
   'deployment-lifetime-percent', 'deployment-durability-percent',
   'role-live-count', 'role-highest-level',
   'role-lowest-health-percent', 'role-in-zone-count', 'live-friendlies',
@@ -173,7 +179,8 @@ export const CONDITION_FACT_GROUPS: ReadonlyArray<{
     label: 'Body',
     description: 'Health, cargo, movement, signature readiness and this body\'s deployment.',
     facts: CONDITION_FACTS.filter((fact) => fact.startsWith('self-')
-      || fact === 'signature-ready' || fact.startsWith('deployment-')),
+      || fact === 'signature-ready' || fact === 'signature-commitment-active'
+      || fact.startsWith('deployment-')),
   },
   {
     id: 'squad',
@@ -192,6 +199,7 @@ export const CONDITION_FACT_GROUPS: ReadonlyArray<{
       && !fact.includes('-in-zone')
       && ![
         'signature-ready',
+        'signature-commitment-active',
         'observed-enemy-entries-in-zone',
         'distinct-enemy-lives-observed-in-zone',
         'confirmed-enemy-destructions-in-zone',
@@ -255,7 +263,8 @@ const PERCENT_FACTS = new Set([
   'deployment-lifetime-percent', 'deployment-durability-percent',
 ]);
 const BOOLEAN_FACTS = new Set([
-  'self-carrying', 'self-in-zone', 'signature-ready', 'deployment-active',
+  'self-carrying', 'self-in-zone', 'signature-ready',
+  'signature-commitment-active', 'deployment-active',
   'zone-fully-observed-throughout-interval',
 ]);
 const DRAFT_DB = 'nilbots-sheet-drafts-v2';
@@ -501,7 +510,7 @@ export function validateDraft(
     if (role.orders.length < 1) error(`${base}.orders`, 'A role needs at least one order.');
     const ids = new Set<string>();
     role.orders.forEach((node, index) => validateOrder(
-      node, `${base}.orders.${index}`, role, orders, catalog, roles, ids, 0,
+      node, `${base}.orders.${index}`, role, orders, mapPlan, catalog, roles, ids, 0,
       sharedUse, capacityUse, conditionUse, usedZones, usedRoutes, usedAnchors,
       error, warning, index < role.orders.length - 1, undefined, true,
     ));
@@ -597,6 +606,7 @@ function validateOrder(
   path: string,
   role: RoleDefinition,
   orders: OrdersDocument,
+  mapPlan: MapPlanDocument,
   catalog: Pick<TacticalSheetCatalog, 'classes'>,
   roles: ReadonlySet<string>,
   ids: Set<string>,
@@ -624,7 +634,7 @@ function validateOrder(
     else {
       sharedUse.set(node.shared, (sharedUse.get(node.shared) ?? 0) + 1);
       validateOrder(
-        definition, `${path}.shared(${node.shared})`, role, orders, catalog,
+        definition, `${path}.shared(${node.shared})`, role, orders, mapPlan, catalog,
         roles, ids,
         depth, sharedUse, capacityUse, conditionUse, usedZones, usedRoutes,
         usedAnchors, error, warning, hasLaterSibling, node.shared, false,
@@ -664,7 +674,7 @@ function validateOrder(
     if (depth >= 2) error(path, 'Orders may nest through at most two branches.');
     if (!node.orders?.length) error(`${path}.orders`, 'A branch needs child orders.');
     node.orders?.forEach((child, index) => validateOrder(
-      child, `${path}.orders.${index}`, role, orders, catalog, roles, ids,
+      child, `${path}.orders.${index}`, role, orders, mapPlan, catalog, roles, ids,
       depth + 1,
       sharedUse, capacityUse, conditionUse, usedZones, usedRoutes, usedAnchors,
       error, warning, index < node.orders!.length - 1, undefined, true,
@@ -743,6 +753,22 @@ function validateOrder(
         error(`${path}.use.target`, 'Choose a published friendly selector.');
       if ('role' in target && !authoring?.allowsFriendlyRole)
         error(`${path}.use.target`, 'This signature cannot name a friendly role.');
+      if ('route' in target) {
+        exactKeys(target as unknown as JsonObject,
+          ['route', 'progress', 'minimumForwardTiles'], `${path}.use.target`, error);
+        if (!authoring?.allowsRouteForward)
+          error(`${path}.use.target`, 'This signature cannot aim forward on a route.');
+        if (target.progress !== 'forward')
+          error(`${path}.use.target.progress`, 'Route progress is forward only.');
+        usedRoutes.add(target.route);
+        const route = mapPlan.routes[target.route];
+        if (route && route.waypoints.length >= 2
+          && samePoint(route.waypoints[0], route.waypoints.at(-1)!))
+          error(`${path}.use.target.route`, 'Forward signature targeting needs a terminal route, not a loop.');
+        if (!Number.isInteger(target.minimumForwardTiles)
+          || target.minimumForwardTiles < 1 || target.minimumForwardTiles > 5)
+          error(`${path}.use.target.minimumForwardTiles`, 'Minimum forward gain is 1–5 tiles.');
+      }
     }
     if (node.use!.at) {
       usedAnchors.add(node.use!.at);
@@ -752,6 +778,10 @@ function validateOrder(
   }
   if (!node.when && !node.until && hasLaterSibling)
     warning(path, 'An unconditional order above later orders will always win when it has a target.');
+}
+
+function samePoint(left: [number, number], right: [number, number]) {
+  return left[0] === right[0] && left[1] === right[1];
 }
 
 function validateExpression(

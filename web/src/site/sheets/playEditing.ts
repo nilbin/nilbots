@@ -23,6 +23,7 @@ export function addSignatureOpportunity(
   projectionId: string,
   hostOrderId: string,
   use: UseOrder,
+  preserveCommitment = false,
 ): SheetDraft {
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
@@ -72,7 +73,27 @@ export function addSignatureOpportunity(
     hostOrderId,
     useOrderId,
   });
+  if (preserveCommitment)
+    ensureCommitmentHold(next, play, projection, host);
   return requireMaterialized(next);
+}
+
+export function setSignatureOpportunityCommitmentHold(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  enabled: boolean,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const host = findOrderLocation(projection.orders, binding.hostOrderId)?.node;
+  if (!host?.orders) throw new Error(`Opportunity host '${binding.hostOrderId}' is missing.`);
+  if (enabled) ensureCommitmentHold(next, play, projection, host);
+  else host.orders = host.orders.filter((child) => !isCommitmentHold(next, child));
+  return cleanupUnusedCommitmentConditions(requireMaterialized(next), play);
 }
 
 export function updateSignatureOpportunityUse(
@@ -182,7 +203,7 @@ export function moveSignatureOpportunity(
   const target = siblings[ordinal + direction];
   if (target === undefined) return next;
   [host.orders[current], host.orders[target]] = [host.orders[target], host.orders[current]];
-  return requireMaterialized(next);
+  return cleanupUnusedCommitmentConditions(requireMaterialized(next), play);
 }
 
 export function renameSignatureOpportunity(
@@ -224,11 +245,14 @@ export function removeSignatureOpportunity(
   host.orders = host.orders.filter((child) => child.id !== binding.useOrderId);
   projection.signatureOpportunities = (projection.signatureOpportunities ?? [])
     .filter((entry) => entry.id !== bindingId);
+  if (!(projection.signatureOpportunities ?? []).some((entry) =>
+      entry.hostOrderId === binding.hostOrderId))
+    host.orders = host.orders.filter((child) => !isCommitmentHold(next, child));
   for (const linked of play.linkedValues)
     linked.targets = linked.targets.filter((target) =>
       target.projectionId !== projectionId || target.orderId !== binding.useOrderId);
   play.linkedValues = play.linkedValues.filter((linked) => linked.targets.length > 0);
-  return requireMaterialized(next);
+  return cleanupUnusedCommitmentConditions(requireMaterialized(next), play);
 }
 
 export function rematerializeDraft(
@@ -595,6 +619,12 @@ function replaceGeometryReference(
   if (kind === 'route') {
     if (order.move?.patrol === previous) order.move.patrol = nextId;
     if (order.move?.via === previous) order.move.via = nextId;
+    if (typeof order.use?.target === 'object'
+      && 'role' in order.use.target && order.use.target.aheadVia === previous)
+      order.use.target.aheadVia = nextId;
+    if (typeof order.use?.target === 'object'
+      && 'route' in order.use.target && order.use.target.route === previous)
+      order.use.target.route = nextId;
   }
   if (kind === 'zone' && typeof order.move?.to === 'object'
     && 'zone' in order.move.to && order.move.to.zone === previous)
@@ -638,6 +668,73 @@ function updateOpportunityNode(
   const binding = requireBinding(projection, bindingId);
   mutate(requireOpportunityNode(projection, binding));
   return requireMaterialized(next);
+}
+
+function ensureCommitmentHold(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  projection: PlayProjection,
+  host: OrderNode,
+) {
+  if (!host.orders || host.orders.some((child) => isCommitmentHold(draft, child)))
+    return;
+  const existing = Object.entries(draft.orders.conditions).find(([, condition]) =>
+    condition.fact === 'signature-commitment-active'
+      && condition.operator === 'equals' && condition.value === 1);
+  const conditionId = existing?.[0] ?? uniqueString(
+    'signature-commitment-active', new Set(Object.keys(draft.orders.conditions)));
+  if (!existing) {
+    draft.orders.conditions[conditionId] = {
+      fact: 'signature-commitment-active', operator: 'equals', value: 1,
+    };
+    play.ownedConditionIds.push(conditionId);
+  }
+  const bindingIds = new Set((projection.signatureOpportunities ?? [])
+    .filter((entry) => entry.hostOrderId === host.id)
+    .map((entry) => entry.useOrderId));
+  const continuation = host.orders.findIndex((child) =>
+    !child.id || !bindingIds.has(child.id));
+  host.orders.splice(continuation < 0 ? host.orders.length : continuation, 0, {
+    id: uniqueOrderId(`${host.id}-maintain-signature`, projection.orders),
+    when: conditionId,
+    move: { to: 'current-position' },
+  });
+}
+
+function isCommitmentHold(draft: SheetDraft, node: OrderNode) {
+  if (node.move?.to !== 'current-position' || typeof node.when !== 'string')
+    return false;
+  const condition = draft.orders.conditions[node.when];
+  return condition?.fact === 'signature-commitment-active'
+    && condition.operator === 'equals' && condition.value === 1;
+}
+
+function cleanupUnusedCommitmentConditions(
+  draft: SheetDraft,
+  play: LinkedPlay,
+): SheetDraft {
+  const used = new Set<string>();
+  const inspect = (order: OrderNode) => {
+    for (const expression of [order.when, order.until]) {
+      if (typeof expression === 'string' && expression !== 'always')
+        used.add(expression);
+      else if (expression && typeof expression !== 'string')
+        ('all' in expression ? expression.all : expression.any)
+          .forEach((id) => used.add(id));
+    }
+  };
+  draft.orders.roles.forEach((role) => role.orders.forEach((order) =>
+    walkOrder(order, inspect)));
+  Object.values(draft.orders.sharedOrders).forEach((order) =>
+    walkOrder(order, inspect));
+  for (const id of [...play.ownedConditionIds]) {
+    const condition = draft.orders.conditions[id];
+    if (condition?.fact !== 'signature-commitment-active' || used.has(id))
+      continue;
+    delete draft.orders.conditions[id];
+    play.ownedConditionIds = play.ownedConditionIds.filter((entry) => entry !== id);
+  }
+  return draft;
 }
 
 function requireProjection(play: LinkedPlay, projectionId: string): PlayProjection {

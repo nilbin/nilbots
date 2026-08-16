@@ -53,12 +53,17 @@ export default function SignatureUseEditor({
   const targetChoices = [
     ...namedTargets.map((target) => `named:${target}`),
     ...friendlyTargets,
+    ...(descriptor?.allowsRouteForward && Object.keys(mapPlan.routes).length > 0
+      ? ['route-forward'] : []),
   ];
   const selectedTarget = encodeTarget(value.target);
   const roleTarget = typeof value.target === 'object' && 'role' in value.target
     ? value.target
     : null;
   const routeIds = Object.keys(mapPlan.routes);
+  const routeTarget = typeof value.target === 'object' && 'route' in value.target
+    ? value.target
+    : null;
   const forwardRole = Boolean(
     descriptor?.allowsRouteAheadRole && roleTarget?.aheadVia,
   );
@@ -97,12 +102,41 @@ export default function SignatureUseEditor({
           : humanize(entry.slice(6))}
       descriptions={{
         'selector:most-experienced-ally': 'Protect, repair, or relay through the live veteran.',
+        'route-forward': 'Aim only where the signature can safely advance along an authored terminal route.',
       }}
       onChange={(target) => onChange({
         ...value,
         skill,
-        target: decodeTarget(target),
+        target: target === 'route-forward'
+          ? { route: routeIds[0], progress: 'forward', minimumForwardTiles: 2 }
+          : decodeTarget(target),
       })} />
+    {descriptor.allowsRouteForward && routeIds.length === 0 && <button type="button"
+      className="btn btn-secondary mt-3 min-h-11 w-full" onClick={() => onOpenMap()}>
+      Draw a terminal progress route to unlock route-forward aim
+    </button>}
+    {descriptor.allowsRouteForward && routeTarget && <div className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/55 p-3">
+      <ChoiceCards label="Forward progress route" value={routeTarget.route} values={routeIds}
+        labeler={humanize}
+        descriptions={Object.fromEntries(routeIds.map((id) => [id,
+          'Dash only on a safe straight span and preserve forward route progress.']))}
+        onChange={(route) => onChange({ ...value, skill, target: {
+          route, progress: 'forward',
+          minimumForwardTiles: routeTarget.minimumForwardTiles,
+        } })} />
+      <label className="mt-3 block">
+        <span className="lab mb-1 block">Minimum forward gain · {routeTarget.minimumForwardTiles} tiles</span>
+        <input type="range" className="w-full accent-[var(--color-arena-material)]"
+          min={1} max={5} value={routeTarget.minimumForwardTiles}
+          onChange={(event) => onChange({ ...value, skill, target: {
+            ...routeTarget, minimumForwardTiles: Number(event.target.value),
+          } })} />
+      </label>
+      <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onOpenMap({ kind: 'route', id: routeTarget.route })}>
+        Inspect {humanize(routeTarget.route)}
+      </button>
+    </div>}
     {descriptor.allowsRouteAheadRole && roleTarget && <div className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/55 p-3">
       <label className="flex min-h-11 items-center gap-3">
         <input type="checkbox" className="h-5 w-5 accent-[var(--color-arena-material)]"
@@ -200,7 +234,9 @@ function ChoiceCards({
 
 function encodeTarget(value: UseTarget): string {
   if (typeof value === 'string') return `named:${value}`;
-  return 'role' in value ? `role:${value.role}` : `selector:${value.selector}`;
+  if ('role' in value) return `role:${value.role}`;
+  if ('route' in value) return 'route-forward';
+  return `selector:${value.selector}`;
 }
 
 function decodeTarget(value: string): UseTarget {

@@ -29,6 +29,7 @@ import {
   renameSignatureOpportunity,
   replacePlayRole,
   setPlayLinkedValue,
+  setSignatureOpportunityCommitmentHold,
   updateSignatureOpportunityUse,
 } from '../src/site/sheets/playEditing';
 import {
@@ -297,10 +298,10 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
   projection.orders[0].urgency = 'urgent';
   linked = addSignatureOpportunity(linked, playId, projection.id, hostId, {
     skill: 'repair-beam', target: { role: 'longshot' },
-  });
+  }, true);
 
   let current = linked.workshop.plays[0].projections[0];
-  let view = signatureOpportunityViews(current)[0];
+  let view = signatureOpportunityViews(current, linked.orders.conditions)[0];
   assert.equal(view.host.id, hostId);
   assert.equal(view.host.when, 'always');
   assert.equal(view.host.timeout, 55);
@@ -308,17 +309,22 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
   assert.equal(view.host.urgency, 'urgent');
   assert.deepEqual(view.continuation?.move?.to, originalTarget);
   assert.equal(view.continuation?.capacity, undefined);
+  const hold = view.host.orders?.find((order) => order.move?.to === 'current-position');
+  assert.equal(typeof hold?.when, 'string');
+  assert.equal(linked.orders.conditions[hold!.when as string]?.fact,
+    'signature-commitment-active');
+  assert.ok(view.host.orders!.indexOf(hold!) < view.host.orders!.indexOf(view.continuation!));
   assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
 
   linked = updateSignatureOpportunityUse(linked, playId, current.id, view.binding.id, {
     skill: 'repair-beam', target: 'weakest-ally',
   });
   current = linked.workshop.plays[0].projections[0];
-  view = signatureOpportunityViews(current)[0];
+  view = signatureOpportunityViews(current, linked.orders.conditions)[0];
   linked = renameSignatureOpportunity(linked, playId, current.id,
     view.binding.id, 'protect-wounded');
   current = linked.workshop.plays[0].projections[0];
-  view = signatureOpportunityViews(current)[0];
+  view = signatureOpportunityViews(current, linked.orders.conditions)[0];
   assert.equal(view.use.id, 'protect-wounded');
   assert.equal(view.use.use?.target, 'weakest-ally');
 
@@ -330,7 +336,16 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
     entry.kind === 'zone' && entry.id === activation.zoneId), true);
 
   current = linked.workshop.plays[0].projections[0];
-  view = signatureOpportunityViews(current)[0];
+  view = signatureOpportunityViews(current, linked.orders.conditions)[0];
+  linked = setSignatureOpportunityCommitmentHold(
+    linked, playId, current.id, view.binding.id, false);
+  assert.equal(linked.workshop.plays[0].projections[0].orders[0].orders
+    ?.some((order) => order.move?.to === 'current-position'), false);
+  assert.equal(Object.values(linked.orders.conditions)
+    .some((condition) => condition.fact === 'signature-commitment-active'), false);
+
+  current = linked.workshop.plays[0].projections[0];
+  view = signatureOpportunityViews(current, linked.orders.conditions)[0];
   linked = removeSignatureOpportunity(linked, playId, current.id, view.binding.id);
   current = linked.workshop.plays[0].projections[0];
   assert.equal(signatureOpportunityViews(current).length, 0);

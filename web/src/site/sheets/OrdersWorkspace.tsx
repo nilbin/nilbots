@@ -42,6 +42,7 @@ type PlotKind = 'route' | 'zone' | 'anchor';
 
 const CONDITION_FACT_COPY: Readonly<Record<string, string>> = {
   'self-nearest-visible-enemy-distance': 'Legal path steps this body needs to reach a firing tile',
+  'signature-commitment-active': 'This body is inside its authoritative signature tell or channel',
   'deployment-active': 'Whether this body still owns a live deployment',
   'deployment-lifetime-percent': 'Remaining lifetime of this body\'s deployment',
   'deployment-durability-percent': 'Remaining durability of this body\'s deployment',
@@ -703,7 +704,7 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
 function MoveDestination({ value, mapPlan, onChange }: { value: MoveTarget; mapPlan: MapPlanDocument; onChange: (value: MoveTarget) => void }) {
   const encoded = encodeMoveTarget(value);
   const values = [
-    'dynamic:own-reactor', 'dynamic:nearest-heal-zone', 'dynamic:nearest-known-loose-core',
+    'dynamic:own-reactor', 'dynamic:current-position', 'dynamic:nearest-heal-zone', 'dynamic:nearest-known-loose-core',
     'dynamic:highest-bank-value-known-loose-core',
     'well:north', 'well:centre', 'well:south', 'well:own', 'well:enemy',
     ...Object.keys(mapPlan.zones).map((id) => `zone:${id}`),
@@ -1109,9 +1110,11 @@ function decodeFollowTarget(value: string): NonNullable<MoveOrder['follow']> {
 
 function useTargetLabel(value: UseTarget): string {
   if (typeof value === 'string') return humanize(value);
-  return 'role' in value
-    ? `role ${humanize(value.role)}${value.aheadVia ? ` ahead on ${humanize(value.aheadVia)}` : ''}`
-    : 'most experienced ally';
+  if ('role' in value)
+    return `role ${humanize(value.role)}${value.aheadVia ? ` ahead on ${humanize(value.aheadVia)}` : ''}`;
+  if ('route' in value)
+    return `forward on ${humanize(value.route)} by ${value.minimumForwardTiles}+`;
+  return 'most experienced ally';
 }
 
 function mapHighlight(move: MoveOrder): { kind: PlotKind; id: string } | null {
@@ -1144,6 +1147,7 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
     next.value = previous.fact === fact ? previous.value : 12;
   }
   if (['self-carrying', 'self-in-zone', 'signature-ready',
+    'signature-commitment-active',
     'deployment-active', 'well-has-outstanding-core', 'well-socket-filled',
     'zone-fully-observed-throughout-interval'].includes(fact)) {
     next.operator = 'equals';
@@ -1172,7 +1176,8 @@ function factScope(fact: string) {
   if (fact === 'known-enemy-carriers') return 'Team memory';
   if (fact === 'remembered-enemies-in-zone'
     || fact === 'zone-fully-observed-throughout-interval') return 'Team memory · plotted zone';
-  if (fact.startsWith('self-') || fact === 'signature-ready') return 'This body';
+  if (fact.startsWith('self-') || fact === 'signature-ready'
+    || fact === 'signature-commitment-active') return 'This body';
   if (fact.startsWith('role-')) return 'A named role';
   if (fact.includes('-in-zone')) return 'A plotted zone';
   if (fact.startsWith('well-')) return 'A Core Well';
@@ -1185,6 +1190,7 @@ function conditionFactGroup(fact: string | undefined): ConditionFactGroupId {
 
 function isBooleanConditionFact(fact: string) {
   return ['self-carrying', 'self-in-zone', 'signature-ready',
+    'signature-commitment-active',
     'deployment-active', 'well-has-outstanding-core', 'well-socket-filled',
     'zone-fully-observed-throughout-interval'].includes(fact);
 }
@@ -1201,6 +1207,7 @@ function conditionFactLabel(fact: string) {
     'self-carried-core-bank-value': 'Value of my carried Core',
     'self-ticks-since-signature-use': 'Ticks since I used my signature',
     'signature-ready': 'My signature skill is ready',
+    'signature-commitment-active': 'My signature tell or channel is active',
     'deployment-active': 'My deployment is active',
     'deployment-lifetime-percent': 'My deployment lifetime',
     'deployment-durability-percent': 'My deployment durability',

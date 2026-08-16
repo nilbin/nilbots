@@ -241,6 +241,88 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void RouteForwardTargetIsKestrelOwnedCompleteAndTerminal()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        map["routes"]!["safe-return"] = new JsonObject
+        {
+            ["waypoints"] = new JsonArray
+            {
+                new JsonArray(24, 22),
+                new JsonArray(20, 22),
+                new JsonArray(16, 22),
+            },
+        };
+        JsonObject far = source["roles"]!.AsArray()
+            .Select(value => value!.AsObject())
+            .Single(role => role["id"]!.GetValue<string>() == "far-team");
+        JsonObject dash = new()
+        {
+            ["id"] = "forward-route-dash",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "vector-dash",
+                ["target"] = new JsonObject
+                {
+                    ["route"] = "safe-return",
+                    ["progress"] = "forward",
+                    ["minimumForwardTiles"] = 2,
+                },
+            },
+        };
+        far["orders"]!.AsArray().Insert(0, dash);
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        dash["use"]!["target"]!.AsObject().Remove("progress");
+        Assert.Contains("missing required field 'progress'",
+            Assert.Throws<InvalidDataException>(() => Compile(source, map)).Message);
+        dash["use"]!["target"]!["progress"] = "reverse";
+        Assert.Contains("forward",
+            Assert.Throws<InvalidDataException>(() => Compile(source, map)).Message);
+        dash["use"]!["target"]!["progress"] = "forward";
+        dash["use"]!["skill"] = "tractor-hook";
+        Assert.Contains("cannot aim forward on a route",
+            Assert.Throws<InvalidDataException>(() => Compile(source, map)).Message);
+        dash["use"]!["skill"] = "vector-dash";
+        map["routes"]!["safe-return"]!["waypoints"] = new JsonArray
+        {
+            new JsonArray(24, 22),
+            new JsonArray(20, 22),
+            new JsonArray(24, 22),
+        };
+        Assert.Contains("must name a terminal route",
+            Assert.Throws<InvalidDataException>(() => Compile(source, map)).Message);
+    }
+
+    [Fact]
+    public void SignatureCommitmentFactAndIntentionalHoldAreBodyLocalWords()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject home = source["roles"]![0]!.AsObject();
+        source["conditions"]!["own-signature-committed"] = new JsonObject
+        {
+            ["fact"] = "signature-commitment-active",
+            ["operator"] = "equals",
+            ["value"] = 1,
+        };
+        home["orders"]!.AsArray().Insert(0, new JsonObject
+        {
+            ["id"] = "preserve-signature-commitment",
+            ["when"] = "own-signature-committed",
+            ["move"] = new JsonObject { ["to"] = "current-position" },
+        });
+
+        Assert.True(Compile(source, MapPlan("starter-tapline-v2")).UsesOrderTree);
+
+        source["conditions"]!["own-signature-committed"]!["value"] = 2;
+        Assert.Contains("compares against 0 or 1",
+            Assert.Throws<InvalidDataException>(() =>
+                Compile(source, MapPlan("starter-tapline-v2"))).Message);
+    }
+
+    [Fact]
     public void PlaceableConstructMayTargetAnExactConsumedAnchor()
     {
         JsonObject source = Source("hunter-tapline-v2");

@@ -368,13 +368,20 @@ internal sealed class OrdersPackage
         }
         else
         {
-            targetKind = target.TryGetProperty("role", out JsonElement role)
+            targetKind = target.TryGetProperty("role", out _)
                 ? "role"
-                : "selector";
+                : target.TryGetProperty("route", out _)
+                    ? "route"
+                    : "selector";
             targetValue = target.GetProperty(targetKind).GetString()!;
             if (target.TryGetProperty("aheadVia", out JsonElement route))
             {
                 aheadVia = route.GetString();
+                minimumForwardTiles = target.GetProperty(
+                    "minimumForwardTiles").GetInt32();
+            }
+            else if (targetKind == "route")
+            {
                 minimumForwardTiles = target.GetProperty(
                     "minimumForwardTiles").GetInt32();
             }

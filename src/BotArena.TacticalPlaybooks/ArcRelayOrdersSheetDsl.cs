@@ -20,6 +20,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "self-stuck-ticks", "self-order-ticks", "self-in-zone",
             "self-nearest-visible-enemy-distance",
             "self-ticks-since-signature-use", "signature-ready",
+            "signature-commitment-active",
             "deployment-active", "deployment-lifetime-percent",
             "deployment-durability-percent",
             "role-live-count", "role-lowest-health-percent",
@@ -193,7 +194,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
         return new SheetValidation(
             [.. composition], consumers.Zones, consumers.Routes,
-            consumers.Anchors);
+            consumers.Anchors, consumers.ForwardRoutes);
     }
 
     private static Dictionary<string, int> ValidateCapacities(
@@ -267,7 +268,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "signature-use age must be in [0, 1200].");
             }
             if ((fact is "self-carrying" or "self-in-zone" or
-                    "signature-ready" or "deployment-active")
+                    "signature-ready" or "signature-commitment-active"
+                    or "deployment-active")
                 && comparison is not (0 or 1))
             {
                 throw Error(at, $"'{fact}' compares against 0 or 1.");
@@ -701,7 +703,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             if (value.GetString() is not
                 ("own-reactor" or "nearest-heal-zone" or
                  "nearest-known-loose-core" or
-                 "highest-bank-value-known-loose-core"))
+                 "highest-bank-value-known-loose-core" or
+                 "current-position"))
             {
                 throw Error(path, "unknown dynamic move target.");
             }
@@ -785,14 +788,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             if (targetValue.ValueKind != JsonValueKind.Object)
                 throw Error($"{path}.use.target", "expected target name or object.");
-            string[] kinds = ["role", "selector"];
+            string[] kinds = ["role", "selector", "route"];
             string[] found = kinds.Where(name =>
                 targetValue.TryGetProperty(name, out _)).ToArray();
             if (found.Length != 1)
             {
                 throw Error(
                     $"{path}.use.target",
-                    "target object needs exactly one of role/selector.");
+                    "target object needs exactly one of role/selector/route.");
             }
             bool forwardRouteTarget = found[0] == "role"
                 && (targetValue.TryGetProperty("aheadVia", out _)
@@ -800,14 +803,40 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(
                 targetValue,
                 $"{path}.use.target",
-                [found[0]],
+                found[0] == "route"
+                    ? ["route", "progress", "minimumForwardTiles"]
+                    : [found[0]],
                 found[0] == "role"
                     ? ["aheadVia", "minimumForwardTiles"]
                     : []);
             targetKind = found[0];
             target = RequiredString(
                 targetValue, found[0], $"{path}.use.target");
-            if (targetKind == "role")
+            if (targetKind == "route")
+            {
+                if (!descriptor.Allows(
+                        ArcRelaySignatureTargetCapability.RouteForward))
+                {
+                    throw Error(
+                        $"{path}.use.target",
+                        $"'{skill}' cannot aim forward on a route.");
+                }
+                Exact(
+                    targetValue,
+                    "progress",
+                    "forward",
+                    $"{path}.use.target");
+                IdentifierValue(
+                    target, $"{path}.use.target.route", "route");
+                consumers.ReferenceForwardRoute(target, path);
+                Range(
+                    targetValue,
+                    "minimumForwardTiles",
+                    $"{path}.use.target",
+                    1,
+                    5);
+            }
+            else if (targetKind == "role")
             {
                 if (!roles.ContainsKey(target))
                     throw Error($"{path}.use.target", "target an existing role.");
@@ -956,7 +985,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         return new MapPlanValidation(
             zones.Keys.ToHashSet(StringComparer.Ordinal),
             routes.Keys.ToHashSet(StringComparer.Ordinal),
-            anchors.Keys.ToHashSet(StringComparer.Ordinal));
+            anchors.Keys.ToHashSet(StringComparer.Ordinal),
+            routes.Where(pair =>
+                {
+                    JsonElement[] points = pair.Value.GetProperty("waypoints")
+                        .EnumerateArray().ToArray();
+                    return !points[0].EnumerateArray().Select(value => value.GetInt32())
+                        .SequenceEqual(points[^1].EnumerateArray().Select(value => value.GetInt32()));
+                })
+                .Select(pair => pair.Key)
+                .ToHashSet(StringComparer.Ordinal));
     }
 
     private static void ValidateMapReferences(
@@ -971,6 +1009,15 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             sheetPath, mapPlanPath, "route");
         ValidateReferenceSet(sheet.Anchors, mapPlan.Anchors,
             sheetPath, mapPlanPath, "anchor");
+        foreach (string route in sheet.ForwardRoutes)
+        {
+            if (mapPlan.Routes.Contains(route)
+                && !mapPlan.TerminalRoutes.Contains(route))
+            {
+                throw Error(sheetPath,
+                    $"route-forward target '{route}' must name a terminal route, not a loop.");
+            }
+        }
     }
 
     private static void ValidateReferenceSet(
@@ -1022,12 +1069,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string[] Composition,
         IReadOnlyDictionary<string, int> Zones,
         IReadOnlyDictionary<string, int> Routes,
-        IReadOnlyDictionary<string, int> Anchors);
+        IReadOnlyDictionary<string, int> Anchors,
+        IReadOnlySet<string> ForwardRoutes);
 
     private sealed record MapPlanValidation(
         IReadOnlySet<string> Zones,
         IReadOnlySet<string> Routes,
-        IReadOnlySet<string> Anchors);
+        IReadOnlySet<string> Anchors,
+        IReadOnlySet<string> TerminalRoutes);
 
     private sealed class ConsumerLedger
     {
@@ -1050,12 +1099,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         public Dictionary<string, int> Zones { get; } = new(StringComparer.Ordinal);
         public Dictionary<string, int> Routes { get; } = new(StringComparer.Ordinal);
         public Dictionary<string, int> Anchors { get; } = new(StringComparer.Ordinal);
+        public HashSet<string> ForwardRoutes { get; } = new(StringComparer.Ordinal);
 
         public void ReferenceZone(string id, string path) =>
             Reference(Zones, id, path, "zone");
 
         public void ReferenceRoute(string id, string path) =>
             Reference(Routes, id, path, "route");
+
+        public void ReferenceForwardRoute(string id, string path)
+        {
+            ReferenceRoute(id, path);
+            ForwardRoutes.Add(id);
+        }
 
         public void ReferenceAnchor(string id, string path) =>
             Reference(Anchors, id, path, "anchor");

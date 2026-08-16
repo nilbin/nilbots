@@ -142,6 +142,62 @@ public sealed class TacticalMovementGovernorTests
     }
 
     [Fact]
+    public void SignatureMayReadHeldForwardCourseWithoutResettingIt()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(1, 0, 0);
+        var start = new Position(10, 10);
+        var first = new Position(11, 10);
+        var second = new Position(12, 10);
+        var goal = new Position(13, 10);
+        int plans = 0;
+
+        governor.Resolve(
+            actor, "return-continue", "safe-return", 0, 2, start, goal,
+            () => { plans++; return [start, first, second, goal]; },
+            _ => false);
+        TacticalRouteGovernor.ForwardCourseRead read =
+            governor.ReadForwardCourse(actor, "safe-return", start);
+
+        Assert.Equal([start, first, second, goal], read.Tiles);
+        Assert.Equal("route-course-held", read.Trace);
+
+        TacticalRouteGovernor.CourseStep resumed = governor.Resolve(
+            actor, "return-continue", "safe-return", 0, 2, second, goal,
+            () => throw new InvalidOperationException(
+                "a non-movement sibling must not re-plan the held course"),
+            _ => false);
+        Assert.Equal(goal, resumed.Next);
+        Assert.Equal(1, plans);
+    }
+
+    [Fact]
+    public void ForwardCourseReadRefusesWrongRouteLifeAndActiveDetour()
+    {
+        var governor = new TacticalRouteGovernor();
+        ActorIdentity actor = new(0, 1, 0);
+        var start = new Position(5, 5);
+        var next = new Position(6, 5);
+        var rejoin = new Position(7, 5);
+        var goal = new Position(8, 5);
+        governor.Resolve(actor, "move", "route-a", 0, 1, start, goal,
+            () => [start, next, rejoin, goal], _ => false);
+
+        Assert.Equal("route-projection-absent",
+            governor.ReadForwardCourse(actor, "route-b", start).Trace);
+        Assert.Equal("route-projection-absent",
+            governor.ReadForwardCourse(new ActorIdentity(0, 1, 1),
+                "route-a", start).Trace);
+
+        governor.TryTrafficDetour(actor, start, 1, candidate =>
+            candidate == rejoin
+                ? [start, new Position(5, 4), new Position(6, 4), rejoin]
+                : null);
+        Assert.Equal("route-course-detouring",
+            governor.ReadForwardCourse(actor, "route-a", start).Trace);
+    }
+
+    [Fact]
     public void RouteCourseResetsOnRungLapAndImpossibleStep()
     {
         var governor = new TacticalRouteGovernor();

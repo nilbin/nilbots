@@ -31,6 +31,7 @@ import {
   setPlayName,
   setPlayProjectionPlacement,
   setSignatureOpportunityCapacity,
+  setSignatureOpportunityCommitmentHold,
   setSignatureOpportunityWhen,
   updatePlayCondition,
   updatePlayProjectionOrders,
@@ -557,7 +558,7 @@ function OpportunityProjection({
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
-  const views = signatureOpportunityViews(projection);
+  const views = signatureOpportunityViews(projection, draft.orders.conditions);
   const hosts = opportunityHosts(projection.orders);
   const skills = [...new Set(role.classes.map((classId) =>
     skillForClass(catalog, classId)).filter((entry): entry is string => Boolean(entry)))];
@@ -596,9 +597,13 @@ function OpportunityProjection({
       <button type="button" className="btn btn-primary mt-3 min-h-11 w-full"
         disabled={!selectedHost || !selectedSkill}
         onClick={() => {
+          const preserveCommitment = catalog.classes.find((entry) =>
+            entry.signatureId === selectedSkill)?.signatureAuthoring
+            .defaultCommitmentBehavior === 'preserve-by-default';
           onChange(addSignatureOpportunity(draft, play.id, projection.id,
             selectedHost, { skill: selectedSkill,
-              target: defaultSignatureTarget(catalog, selectedSkill) }));
+              target: defaultSignatureTarget(catalog, selectedSkill) },
+            preserveCommitment));
           setAdding(false);
         }}>Add along this plan</button>
     </div>}
@@ -606,6 +611,9 @@ function OpportunityProjection({
       const use = view.use.use!;
       const when = view.use.when;
       const simpleWhen = typeof when === 'string' ? when : '';
+      const commitmentCondition = view.commitment;
+      const descriptor = catalog.classes.find((entry) =>
+        entry.signatureId === use.skill)?.signatureAuthoring;
       return <details key={view.binding.id} className="rounded-sm border border-arena-material/30 bg-arena-panel/35" open={views.length === 1}>
         <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
           <span className="pill">{view.ordinal + 1}</span>
@@ -625,6 +633,15 @@ function OpportunityProjection({
             onOpenMap={(focus) => { if (focus?.id) onSelectGeometry(focus.id); }}
             onChange={(nextUse) => onChange(updateSignatureOpportunityUse(
               draft, play.id, projection.id, view.binding.id, nextUse))} />
+          {(descriptor?.defaultCommitmentBehavior === 'preserve-by-default'
+            || commitmentCondition) && <label className="mt-3 flex min-h-12 items-start gap-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-3">
+            <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[var(--color-arena-material)]"
+              checked={Boolean(commitmentCondition)}
+              onChange={(event) => onChange(setSignatureOpportunityCommitmentHold(
+                draft, play.id, projection.id, view.binding.id, event.target.checked))} />
+            <span><span className="lab block">Preserve the public tell or channel</span>
+              <span className="t-micro mt-1 block">Adds one visible ordinary hold after all opportunities in this plan. Turn it off only when cancelling through movement is intentional.</span></span>
+          </label>}
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             <label><span className="lab mb-1 block">When</span>
               <select className="field min-h-11" value={simpleWhen}

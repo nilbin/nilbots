@@ -311,6 +311,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             {
                 case OrdersPackage.MoveAction move:
                 {
+                    if (move.Kind == "to"
+                        && move.TargetKind == "dynamic"
+                        && move.Target == "current-position")
+                    {
+                        result.Add(Hold(
+                            "signature-commitment-hold", pinned: true));
+                        break;
+                    }
                     MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
                     if (plan is null)
                     {
@@ -534,8 +542,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             case OrdersPackage.UseAction use:
             {
                 ResolvedTarget[] targets = ResolveUseTargets(
-                    contract, mind, package, body, use, carried);
+                    contract, mind, package, body, use, carried,
+                    out string? useDecline);
+                if (targets.Length == 0 && useDecline is not null)
+                    decline = $"after-{node.Id}-{useDecline}";
                 if (targets.Length == 0
+                    && decline is null
                     && (use.TargetKind is "role" or "selector"
                         || use.Target == "veteran"))
                 {
@@ -666,6 +678,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (move.Target == "own-reactor")
                 return [new ResolvedTarget(
                     "reactor:own", _ownReactor, [_ownReactor], null, null)];
+            if (move.Target == "current-position")
+                return [new ResolvedTarget(
+                    "hold:current-position", body.Position,
+                    [body.Position], null, null,
+                    "signature-commitment-hold")];
             if (move.Target == "nearest-heal-zone")
                 return _healTiles
                     .OrderBy(tile => ArenaBasics.StaticDistance(
@@ -1021,19 +1038,36 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         MindBody body,
         OrdersPackage.UseAction use,
         IReadOnlyDictionary<ActorIdentity,
-            GenericActorContext.ArcRelayCoreState> carried)
+            GenericActorContext.ArcRelayCoreState> carried,
+        out string? decline)
     {
+        decline = null;
         GenericActorRulesContract.ArcRelaySignature? signature =
             ArenaBasics.ArcRules(contract)?.Signatures.FirstOrDefault(value =>
                 value.SignatureId == use.Skill || value.Kind == use.Skill);
         if (signature is null
             || body.Action(signature.ActionId) is not { Available: true })
+        {
+            decline = signature is null
+                ? $"signature-{use.Skill}-unknown"
+                : $"signature-{use.Skill}-unavailable";
             return [];
+        }
         // A mixed-class role may state one skill order for each class it casts.
         // Applicability belongs to the body: an unrelated class falls through
         // to its next authored order instead of forcing an artificial role split.
         if (signature.ClassId != body.ClassId)
+        {
+            decline = $"signature-{use.Skill}-not-owned-by-{body.ClassId}";
             return [];
+        }
+        if (use.TargetKind == "route")
+        {
+            ResolvedTarget? forward = ResolveForwardRouteUse(
+                contract, mind, package, body, signature, use,
+                out decline);
+            return forward is null ? [] : [forward];
+        }
         if (use.TargetKind == "named" && use.Target == "self")
         {
             var self = new ResolvedTarget(
@@ -1186,6 +1220,122 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Where(target => CanExecuteUse(
                 contract, body, target, use, exactPlacement))
             .ToArray();
+    }
+
+    private ResolvedTarget? ResolveForwardRouteUse(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        OrdersPackage package,
+        MindBody body,
+        GenericActorRulesContract.ArcRelaySignature signature,
+        OrdersPackage.UseAction use,
+        out string? decline)
+    {
+        decline = null;
+        Position[] points = package.RoutePoints(use.Target);
+        if (points.Length < 2 || points[0] == points[^1])
+        {
+            decline = $"route-{use.Target}-not-terminal";
+            return null;
+        }
+        TacticalRouteGovernor.ForwardCourseRead read = _routes.ReadForwardCourse(
+            body.ActorId, use.Target, body.Position);
+        if (read.Tiles.Length < 2)
+        {
+            decline = $"route-{use.Target}-{read.Trace}";
+            return null;
+        }
+        GenericActorActionLegality? action = body.Action(signature.ActionId);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints.OfType<GenericActorActionLegality
+                .ArgumentConstraint.ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        if (action is not { Available: true } || headings is null)
+        {
+            decline = $"route-{use.Target}-signature-heading-unavailable";
+            return null;
+        }
+        if (!TrySingleStepHeading(
+                body.Position, read.Tiles[1], out ProjectileHeading heading)
+            || !headings.AllowedValues.Contains(heading))
+        {
+            decline = $"route-{use.Target}-course-heading-unavailable";
+            return null;
+        }
+
+        int maximum = Math.Max(1, signature.MaxTiles ?? signature.Range ?? 1);
+        int straight = 0;
+        for (int index = 1;
+             index < read.Tiles.Length && straight < maximum;
+             index++)
+        {
+            if (!TrySingleStepHeading(
+                    read.Tiles[index - 1], read.Tiles[index],
+                    out ProjectileHeading candidate)
+                || candidate != heading)
+            {
+                break;
+            }
+            straight++;
+        }
+        bool finalWaypoint = read.Waypoint == points.Length - 1;
+        if (straight < maximum && !finalWaypoint)
+        {
+            decline = $"route-{use.Target}-course-bends-after-{straight}";
+            return null;
+        }
+
+        HashSet<Position> occupied = mind.Bodies
+            .Where(candidate => candidate.ActorId != body.ActorId)
+            .Select(candidate => candidate.Position)
+            .Concat(mind.Enemies.Select(candidate => candidate.Position))
+            .ToHashSet();
+        int predicted = 0;
+        int allowed = Math.Min(maximum, straight);
+        for (int index = 1; index <= allowed; index++)
+        {
+            Position tile = read.Tiles[index];
+            if (occupied.Contains(tile))
+                break;
+            predicted = index;
+        }
+        if (predicted < use.MinimumForwardTiles)
+        {
+            decline = $"route-{use.Target}-forward-gain-{predicted}"
+                + $"-below-{use.MinimumForwardTiles}";
+            return null;
+        }
+        Position destination = read.Tiles[predicted];
+        var target = new ResolvedTarget(
+            $"route-forward:{use.Target}:{destination.X},{destination.Y}",
+            destination,
+            [destination],
+            null,
+            null,
+            $"route-{use.Target}-forward-gain-{predicted}"
+                + $"-heading-{heading.ToString().ToLowerInvariant()}");
+        if (!CanExecuteUse(contract, body, target, use))
+        {
+            decline = $"route-{use.Target}-signature-legality-declined";
+            return null;
+        }
+        return target;
+    }
+
+    private static bool TrySingleStepHeading(
+        Position from,
+        Position to,
+        out ProjectileHeading heading)
+    {
+        int dx = to.X - from.X;
+        int dy = to.Y - from.Y;
+        if (Math.Abs(dx) > 1 || Math.Abs(dy) > 1 || dx == 0 && dy == 0)
+        {
+            heading = default;
+            return false;
+        }
+        heading = ArenaBasics.FromVector(dx, dy);
+        return true;
     }
 
     /// <summary>
@@ -1618,6 +1768,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             state = RouteCursor.For(body.ActorId, stateId, routeId);
         }
+        else if (state.Initialized && state.Lap == 0)
+        {
+            // A public signature or other authoritative relocation may place
+            // the body farther down its same terminal route. Only an exact,
+            // unique later waypoint is strong enough evidence to advance the
+            // durable cursor; ambiguous/folded projections retain it.
+            int[] exactForward = points
+                .Select((point, index) => (point, index))
+                .Where(value => value.index >= state.Index
+                    && value.point == body.Position)
+                .Select(value => value.index)
+                .ToArray();
+            if (exactForward.Length == 1 && exactForward[0] > state.Index)
+            {
+                state.Index = exactForward[0];
+                state.BestDistance = int.MaxValue;
+            }
+        }
         if (!state.Initialized)
         {
             state.Index = loop
@@ -1851,13 +2019,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         string movement = $"{reason}:march@{plan.Goal.X},{plan.Goal.Y}"
             + $":{urgency}:{_stepper.Trace(body.UnitId)}";
+        OrdersPackage.MoveAction authoredMove =
+            (OrdersPackage.MoveAction)proposal.Leaf.Node.Action!;
+        if (authoredMove.Kind == "to"
+            && authoredMove.TargetKind == "dynamic"
+            && authoredMove.Target == "current-position")
+        {
+            body.Hold($"{reason}:signature-commitment-hold-active");
+            return;
+        }
         if (plan.Arrived || plan.Goals.Contains(body.Position))
         {
             if (TryRestingYield(contract, mind, body, claims, movement))
                 return;
-            OrdersPackage.MoveAction move =
-                (OrdersPackage.MoveAction)proposal.Leaf.Node.Action!;
-            if (move.FaceAnchor is string anchorId)
+            if (authoredMove.FaceAnchor is string anchorId)
             {
                 Position anchor = package.AnchorPosition(anchorId);
                 string facing = $"{movement}:at-target:face-anchor:{anchorId}"
@@ -2205,6 +2380,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return signature is not null
                 && body.Action(signature.ActionId) is { Available: true } ? 1 : 0;
         }
+        if (fact == "signature-commitment-active")
+        {
+            return arc.VisibleSignatures.Any(signature =>
+                    signature.OwnerActorId == body.ActorId
+                    && signature.Phase is GenericActorContext
+                            .ArcRelaySignaturePhase.Tell
+                        or GenericActorContext.ArcRelaySignaturePhase.Channel)
+                ? 1
+                : 0;
+        }
         if (fact is "deployment-active" or "deployment-lifetime-percent"
                 or "deployment-durability-percent")
         {
@@ -2488,12 +2673,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             string path = selected.GetValueOrDefault(body.UnitId)?.Leaf.Node.Path
                 ?? "";
-            if (!_selectedPaths.TryGetValue(body.UnitId, out string? prior)
-                || prior != path)
+            if (_routeCursors.TryGetValue(
+                    body.UnitId, out RouteCursor? routeCursor)
+                && routeCursor.Actor != body.ActorId)
             {
                 _routeCursors.Remove(body.UnitId);
                 _routes.Reset(body.UnitId);
             }
+            if (_ingressCursors.TryGetValue(
+                    body.UnitId, out RouteCursor? ingressCursor)
+                && ingressCursor.Actor != body.ActorId)
+            {
+                _ingressCursors.Remove(body.UnitId);
+                _ingress.Reset(body.UnitId);
+            }
+            // Child use/fight/hold leaves are temporary pre-emption inside
+            // the same ordinary episode. RoutePlan itself replaces a cursor
+            // when a genuinely different route/state next asks to move.
             _selectedPaths[body.UnitId] = path;
         }
     }

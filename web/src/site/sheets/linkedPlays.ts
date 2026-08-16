@@ -37,6 +37,7 @@ export interface SignatureOpportunityView {
   binding: NonNullable<PlayProjection['signatureOpportunities']>[number];
   host: OrderNode;
   use: OrderNode;
+  commitment: OrderNode | null;
   continuation: OrderNode | null;
   ordinal: number;
   count: number;
@@ -44,6 +45,7 @@ export interface SignatureOpportunityView {
 
 export function signatureOpportunityViews(
   projection: PlayProjection,
+  conditions: OrdersDocument['conditions'] = {},
 ): SignatureOpportunityView[] {
   const bindings = projection.signatureOpportunities ?? [];
   const result: SignatureOpportunityView[] = [];
@@ -56,12 +58,17 @@ export function signatureOpportunityViews(
     const boundIds = new Set(hostBindings.map((entry) => entry.useOrderId));
     const ordered = host.orders.filter((entry) => entry.id && boundIds.has(entry.id));
     const index = host.orders.indexOf(use);
+    const remaining = host.orders.slice(index + 1)
+      .filter((entry) => !entry.id || !boundIds.has(entry.id));
+    const commitment = remaining.find((entry) =>
+      entry.move?.to === 'current-position' && typeof entry.when === 'string'
+      && conditions[entry.when]?.fact === 'signature-commitment-active') ?? null;
     result.push({
       binding,
       host,
       use,
-      continuation: host.orders.slice(index + 1)
-        .find((entry) => !entry.id || !boundIds.has(entry.id)) ?? null,
+      commitment,
+      continuation: remaining.find((entry) => entry !== commitment) ?? null,
       ordinal: ordered.indexOf(use),
       count: ordered.length,
     });
@@ -432,6 +439,10 @@ function referencedGeometry(orders: OrdersDocument): Record<PlayGeometryKind, Se
   walkOrders(orders, (order) => {
     if (order.move?.patrol) result.route.add(order.move.patrol);
     if (order.move?.via) result.route.add(order.move.via);
+    if (typeof order.use?.target === 'object' && 'role' in order.use.target
+      && order.use.target.aheadVia) result.route.add(order.use.target.aheadVia);
+    if (typeof order.use?.target === 'object' && 'route' in order.use.target)
+      result.route.add(order.use.target.route);
     if (typeof order.move?.to === 'object') {
       if ('zone' in order.move.to) result.zone.add(order.move.to.zone);
       if ('anchor' in order.move.to) result.anchor.add(order.move.to.anchor);

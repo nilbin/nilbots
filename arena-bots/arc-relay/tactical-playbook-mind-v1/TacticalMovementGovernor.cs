@@ -443,6 +443,42 @@ public sealed class TacticalRouteGovernor
     }
 
     /// <summary>
+    /// Reads the already-governed forward course without re-planning it. A
+    /// signature may use this as spatial evidence, but cannot mutate the
+    /// route commitment or silently invent a second geometric path.
+    /// </summary>
+    public ForwardCourseRead ReadForwardCourse(
+        ActorIdentity actor,
+        string routeId,
+        Position position)
+    {
+        State? state = _states.GetValueOrDefault(actor.UnitId);
+        if (state is null || state.Actor != actor
+            || !string.Equals(state.RouteId, routeId, StringComparison.Ordinal))
+        {
+            return new ForwardCourseRead([], false, -1,
+                "route-projection-absent");
+        }
+        if (state.Detour.Length > 0)
+        {
+            return new ForwardCourseRead([], false, state.Waypoint,
+                "route-course-detouring");
+        }
+        int current = CourseIndex(state, position);
+        if (current < 0)
+        {
+            return new ForwardCourseRead([], false, state.Waypoint,
+                "route-projection-off-course");
+        }
+        Position[] remaining = state.Course.Skip(current).ToArray();
+        return new ForwardCourseRead(
+            remaining,
+            state.NextIndex >= state.Course.Length,
+            state.Waypoint,
+            remaining.Length > 1 ? "route-course-held" : "route-course-ended");
+    }
+
+    /// <summary>
     /// Bounds a waypoint's arrival ring below the length of the next leg. A
     /// route corridor controls reflow around the line; it is not permission
     /// to swallow the whole leg and consume the next point without moving.
@@ -559,6 +595,12 @@ public sealed class TacticalRouteGovernor
         Position? Next,
         string Trace,
         CourseDisposition Disposition);
+
+    public sealed record ForwardCourseRead(
+        Position[] Tiles,
+        bool Arrived,
+        int Waypoint,
+        string Trace);
 
     public enum CourseDisposition
     {
