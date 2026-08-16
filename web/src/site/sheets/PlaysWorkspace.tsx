@@ -86,6 +86,11 @@ import {
 import {
   bestPlayFormationReadiness,
   bestPlayReadiness,
+  playReadinessAtTick,
+  practiceActionLabel,
+  practiceProgramAttributionAt,
+  practiceProgramBodies,
+  practiceProgramTimeline,
   signatureOpportunityPracticeSummary,
   type UnitTrack,
 } from './sheetTrials';
@@ -218,6 +223,14 @@ export default function PlaysWorkspace({
       {plays.length > 0 && <p className="t-micro mt-2">Priority runs top to bottom. Reordering one Program moves every participant’s Instruction block together.</p>}
     </header>
 
+    {practiceReplay && practiceDraft && <PracticeProgramLens replay={practiceReplay}
+      draft={practiceDraft} onOpenProgram={(programId) => {
+        if (!draft.workshop.plays.some((entry) => entry.id === programId)) return;
+        onSelectPlay(programId);
+        document.querySelector('[data-sheet-path="workshop.plays"]')
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }} />}
+
     {creating && <CreatePlayPanel recipe={creating} draft={draft}
       error={createError} onRecipe={setCreating} onOpenSquad={onOpenSquad}
       onCancel={() => { setCreating(null); setCreateError(null); }}
@@ -325,6 +338,124 @@ export default function PlaysWorkspace({
         </div>
       </div>
     </>}
+  </section>;
+}
+
+function PracticeProgramLens({ replay, draft, onOpenProgram }: {
+  replay: ReplayModel;
+  draft: SheetDraft;
+  onOpenProgram: (programId: string) => void;
+}) {
+  const bodies = useMemo(() => practiceProgramBodies(draft), [draft]);
+  const maximumTick = replay.ticks.at(-1)?.tick ?? 0;
+  const [unitId, setUnitId] = useState(bodies[0]?.unitId ?? 0);
+  const [tick, setTick] = useState(maximumTick);
+
+  useEffect(() => {
+    if (!bodies.some((body) => body.unitId === unitId))
+      setUnitId(bodies[0]?.unitId ?? 0);
+  }, [bodies, unitId]);
+  useEffect(() => setTick(maximumTick), [maximumTick, replay]);
+
+  const point = useMemo(() => practiceProgramAttributionAt(
+    replay, draft, unitId, tick), [draft, replay, tick, unitId]);
+  const timeline = useMemo(() => practiceProgramTimeline(
+    replay, draft, unitId), [draft, replay, unitId]);
+  const selectedIndex = timeline.findIndex((segment) =>
+    tick >= segment.fromTick && tick <= segment.toTick);
+  const nearbyTimeline = timeline.slice(
+    Math.max(0, selectedIndex - 4),
+    Math.min(timeline.length, Math.max(0, selectedIndex) + 6),
+  );
+  const program = point?.programId
+    ? draft.workshop.plays.find((entry) => entry.id === point.programId) : undefined;
+  const readiness = program
+    ? playReadinessAtTick(replay, draft, program, tick) : null;
+  const exactCurrentProgram = point?.programId
+    && draft.workshop.plays.some((entry) => entry.id === point.programId);
+
+  return <section className="panel panel-feature pad" aria-label="Practice Program lens">
+    <div className="flex flex-wrap items-start gap-3">
+      <div className="mr-auto max-w-2xl">
+        <p className="lab text-arena-cyan">Practice · immutable run revision</p>
+        <h3 className="type-display mt-1 text-[21px]">Which Program owns this body?</h3>
+        <p className="t-micro mt-1">Choose a body and tick. This explanation uses the Program snapshot captured when the match started, never the draft you edited afterward.</p>
+      </div>
+      <span className="pill">{draft.name}</span>
+    </div>
+
+    <div className="mt-4 flex gap-2 overflow-x-auto pb-1" aria-label="Practice bodies">
+      {bodies.map((body) => <button key={body.unitId} type="button"
+        className={clsx('choice-card flex min-h-14 min-w-[150px] items-center gap-2 p-2 text-left',
+          body.unitId === unitId && 'border-arena-cyan/75 bg-arena-cyan/10')}
+        aria-pressed={body.unitId === unitId} onClick={() => setUnitId(body.unitId)}>
+        <ClassIcon classId={body.classId} size={36} decorative />
+        <span className="min-w-0"><b className="block truncate t-body">{humanize(body.roleId)}</b>
+          <span className="t-micro">Body {body.unitId + 1} · {humanize(body.classId)}</span></span>
+      </button>)}
+    </div>
+
+    <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,.95fr)]">
+      <article className="rounded-sm border border-arena-cyan/35 bg-arena-cyan/5 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="lab text-arena-cyan">Tick {point?.tick ?? tick}</span>
+          <span className="pill">{point ? practiceActionLabel(point.action) : 'No evidence'}</span>
+          {exactCurrentProgram && <button type="button" className="btn ml-auto min-h-10"
+            onClick={() => onOpenProgram(point!.programId!)}>Open Program</button>}
+        </div>
+        <h4 className="type-display mt-2 text-[20px]">{point?.programName ?? (point?.orderId
+          ? 'Advanced unlinked Instruction' : 'No eligible Program')}</h4>
+        <p className="t-meta mt-1">{point?.programName
+          ? `${humanize(point.body.roleId)} accepted this Program’s generated Instruction.`
+          : point?.orderId
+            ? 'This action came from an advanced Instruction that is not linked to a Program.'
+            : 'No Program or advanced Instruction supplied an action at this tick.'}</p>
+        {readiness && readiness.total > 0 && <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-2.5">
+          <div className="flex items-center gap-2"><span className="t-body mr-auto">Required Posts now</span>
+            <strong>{readiness.ready}/{readiness.total}</strong></div>
+          <p className="t-micro mt-1">{readiness.readySlotIds.length
+            ? `Filled: ${readiness.readySlotIds.map(humanize).join(', ')}`
+            : 'No required Post is filled at this tick.'}</p>
+        </div>}
+        {point && point.higherPrograms.length > 0 && <div className="mt-3">
+          <p className="lab">Higher Programs that yielded</p>
+          <ul className="mt-2 space-y-1.5">{point.higherPrograms.map((gate) => <li key={gate.programId}
+            className="rounded-sm border border-arena-edge bg-arena-deep/25 p-2.5">
+            <b className="t-body">{gate.programName}</b>
+            <span className={clsx('pill ml-2', gate.status === 'ineligible' && 'text-arena-material')}>{gate.status}</span>
+            <p className="t-micro mt-1">{gate.reason}</p>
+          </li>)}</ul>
+        </div>}
+        {point?.reason && <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/25">
+          <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3"><span className="t-body mr-auto">Exact executor evidence</span><span className="pill">advanced</span><span className="disclosure-chevron">›</span></summary>
+          <p className="break-words border-t border-arena-edge p-3 font-mono text-[11px] leading-relaxed text-arena-muted">{point.reason}</p>
+        </details>}
+      </article>
+
+      <article className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
+        <div className="flex items-center gap-2"><p className="lab mr-auto">Program timeline</p><span className="pill">{timeline.length} changes</span></div>
+        <input type="range" className="mt-3 w-full accent-[var(--color-arena-material)]" min={0}
+          max={maximumTick} value={Math.min(tick, maximumTick)} aria-label="Practice tick"
+          onChange={(event) => setTick(Number(event.target.value))} />
+        <div className="mt-2 flex items-center gap-2">
+          <button type="button" className="btn min-h-10" disabled={tick <= 0}
+            onClick={() => setTick(Math.max(0, tick - 1))}>−1</button>
+          <span className="t-body mr-auto">Tick {tick} / {maximumTick}</span>
+          <button type="button" className="btn min-h-10" disabled={tick >= maximumTick}
+            onClick={() => setTick(Math.min(maximumTick, tick + 1))}>+1</button>
+        </div>
+        <div className="mt-3 max-h-72 space-y-1.5 overflow-y-auto">{nearbyTimeline.map((segment) => {
+          const selected = tick >= segment.fromTick && tick <= segment.toTick;
+          return <button key={`${segment.fromTick}:${segment.toTick}:${segment.orderId ?? 'none'}`}
+            type="button" className={clsx('choice-card grid min-h-12 w-full grid-cols-[74px_minmax(0,1fr)] items-center gap-2 p-2 text-left',
+              selected && 'border-arena-cyan/75 bg-arena-cyan/10')}
+            onClick={() => setTick(segment.fromTick)}>
+            <span className="t-micro">{segment.fromTick === segment.toTick ? `t${segment.fromTick}` : `t${segment.fromTick}–${segment.toTick}`}</span>
+            <span className="min-w-0"><b className="block truncate t-body">{segment.programName ?? 'Advanced / none'}</b><span className="t-micro block truncate">{segment.action}</span></span>
+          </button>;
+        })}</div>
+      </article>
+    </div>
   </section>;
 }
 

@@ -62,6 +62,9 @@ import {
 import { playGeometryIssues, setPlaySlotTolerance } from '../src/site/sheets/playGeometry';
 import {
   bestPlayReadiness,
+  practiceActionLabel,
+  practiceProgramAttributionAt,
+  practiceProgramTimeline,
   signatureOpportunityPracticeSummary,
   type UnitTrack,
 } from '../src/site/sheets/sheetTrials';
@@ -822,6 +825,59 @@ test('Practice diagnostics correlate ordinary Order reasons without replay Play 
   assert.deepEqual(summary?.routeContinuity, {
     before: { x: 9, y: 9 }, after: { x: 10, y: 9 }, tick: 10,
   });
+});
+
+test('Practice maps accepted and rejected Instructions to the immutable Program list', () => {
+  let linked = addBlankPlay(draft(), 'First response');
+  const firstId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, firstId, 'support');
+  linked = addBlankPlay(linked, 'Second response');
+  const secondId = linked.workshop.plays[1].id;
+  linked = addBlankPlayProjection(linked, secondId, 'support');
+  const firstRoot = linked.workshop.plays[0].projections[0].lastGenerated[0].orderId;
+  const secondProjection = linked.workshop.plays[1].projections[0];
+  const secondLeaf = secondProjection.orders[0].id!;
+  const actor = {
+    identity: { teamId: 0, unitId: 7, lifeId: 0 },
+    position: { x: 4, y: 4 },
+  };
+  const reason = `orders:support > ${secondLeaf}`
+    + `:eligibility[${firstRoot}~when-enemy-near-0-at-least-1]:march@9,9`;
+  const replay = {
+    initialWorld: { actors: [actor] },
+    ticks: [10, 11].map((tick) => ({
+      tick,
+      before: { actors: [actor] },
+      after: { actors: [actor] },
+      actorTurns: [{
+        actor: actor.identity,
+        runtimeReply: { debugMessage: reason },
+        acceptedDecision: { debugMessage: null },
+      }],
+      events: [],
+    })),
+  } as unknown as ReplayModel;
+
+  const point = practiceProgramAttributionAt(replay, linked, 7, 10);
+  assert.equal(point?.programId, secondId);
+  assert.equal(point?.programName, 'Second response');
+  assert.equal(point?.orderId, secondLeaf);
+  assert.equal(practiceActionLabel(point!.action), 'Move');
+  assert.deepEqual(point?.higherPrograms.map((entry) => ({
+    id: entry.programId, status: entry.status, reason: entry.reason,
+  })), [{
+    id: firstId,
+    status: 'ineligible',
+    reason: 'Gate not met: Enemy Near 0 At Least 1',
+  }]);
+  assert.deepEqual(practiceProgramTimeline(replay, linked, 7), [{
+    fromTick: 10,
+    toTick: 11,
+    programId: secondId,
+    programName: 'Second response',
+    orderId: secondLeaf,
+    action: 'Move',
+  }]);
 });
 
 test('the remaining recipe lenses materialize only valid ordinary Orders', () => {

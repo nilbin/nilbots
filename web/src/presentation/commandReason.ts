@@ -49,7 +49,10 @@ export interface CommandReason {
 /** Structured map coordinates deliberately embedded in executor diagnostics. */
 const DESTINATION = /\b((?!face\b)[a-z][a-z0-9-]*)@(\d+),(\d+)(?=:|$)/;
 const FACING_TARGET = /face@(\d+),(\d+)(?=:|$)/;
-const LEADING_EVIDENCE = /^evidence\[[^\]]*\]:?/;
+// Owner-only canonical Practice reasons may also carry a compact list of
+// rejected root Instructions. Both clauses are explanation metadata, not the
+// body's current action; compact public broadcasts never carry either.
+const LEADING_EVIDENCE = /^(?:(?:evidence|eligibility)\[[^\]]*\]:?)+/;
 
 function finishReason(
   text: string,

@@ -133,11 +133,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 .ToDictionary(core => core.CarrierActorId!, core => core);
 
         var proposalsByBody = new Dictionary<int, IReadOnlyList<Proposal>>();
+        var eligibilityByBody = new Dictionary<int, string?>();
         foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
         {
             OrdersPackage.Role role = package.RolesByUnit[body.UnitId];
             body.SetRole(role.Id.Length <= 24 ? role.Id : role.Id[..24]);
-            IReadOnlyList<OrderTreeRuntime.EligibleLeaf> leaves = _orders.Eligible(
+            OrderTreeRuntime.EligibilityResult eligibility = _orders.Eligible(
                 body.ActorId,
                 role,
                 mind.Tick,
@@ -145,7 +146,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     contract, mind, arc, package, body, role,
                     expression, orderTicks, carried));
             List<Proposal> proposals = BuildProposals(
-                contract, mind, arc, package, body, role, leaves, carried);
+                contract, mind, arc, package, body, role,
+                eligibility.Leaves, carried);
+            string? eligibilityTrace = EligibilityTrace(
+                eligibility.IneligibleRoots);
+            eligibilityByBody[body.UnitId] = eligibilityTrace;
+            if (eligibilityTrace is not null)
+            {
+                proposals = proposals.Select(proposal => proposal with
+                    {
+                        EligibilityTrace = eligibilityTrace,
+                    }).ToList();
+            }
             proposalsByBody.Add(body.UnitId, proposals);
         }
         Dictionary<int, Proposal> selected = Allocate(proposalsByBody);
@@ -206,6 +218,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string prefix = selected.TryGetValue(body.UnitId, out Proposal? proposal)
                 ? $"orders:{proposal.Leaf.Node.Path}"
                 : $"orders:{role.Id}";
+            if ((proposal?.EligibilityTrace
+                    ?? eligibilityByBody.GetValueOrDefault(body.UnitId))
+                is string eligibilityTrace)
+                prefix += $":eligibility[{eligibilityTrace}]";
             string movementPrefix = $"{prefix}"
                 + $":urgency-{claims.PriorityTrace(body.UnitId)}";
             if (_squadPlanner is null && ArenaBasics.TryMakeWay(
@@ -1947,6 +1963,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             claims.Rank(_traffic.Priority(body.UnitId));
     }
 
+    private static string? EligibilityTrace(
+        IReadOnlyList<OrderTreeRuntime.IneligibleRoot> roots)
+    {
+        if (roots.Count == 0) return null;
+        return string.Join(
+            "|",
+            roots.Select(root => $"{root.RootId}~{root.Reason}"));
+    }
+
     private static void PublishTrafficRequests(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -1982,6 +2007,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             GenericActorContext.ArcRelayCoreState> carried)
     {
         string reason = $"orders:{proposal.Leaf.Node.Path}";
+        if (proposal.EligibilityTrace is string eligibilityTrace)
+            reason += $":eligibility[{eligibilityTrace}]";
         if (proposal.Leaf.EvidenceTrace is string evidenceTrace)
             reason += $":evidence[{evidenceTrace}]";
         if (proposal.SelectionTrace is string selectionTrace)
@@ -2330,7 +2357,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         var results = expression.Names.Select(name =>
         {
             if (name == "always")
-                return OrderTreeRuntime.ConditionEvaluation.True;
+                return (Name: name, Evaluation: OrderTreeRuntime.ConditionEvaluation.True);
             OrdersPackage.Condition condition = package.Conditions[name];
             int actual;
             string? trace = null;
@@ -2347,19 +2374,29 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     contract, mind, arc, package, body, role, condition,
                     orderTicks, carried);
             }
-            return new OrderTreeRuntime.ConditionEvaluation(
-                Compare(actual, condition.Operator, condition.Value), trace);
+            bool matches = Compare(actual, condition.Operator, condition.Value);
+            return (Name: name, Evaluation: new OrderTreeRuntime.ConditionEvaluation(
+                matches,
+                trace,
+                $"{name}-{actual}-{condition.Operator}-{condition.Value}"));
         }).ToArray();
         bool value = expression.Kind == "any"
-            ? results.Any(result => result.Value)
-            : results.All(result => result.Value);
+            ? results.Any(result => result.Evaluation.Value)
+            : results.All(result => result.Evaluation.Value);
         string? evidence = string.Join(
             "+",
-            results.Where(result => result.Trace is not null)
-                .Select(result => result.Trace));
+            results.Where(result => result.Evaluation.Trace is not null)
+                .Select(result => result.Evaluation.Trace));
+        string? explanation = string.Join(
+            "+",
+            results.Where(result => !result.Evaluation.Value)
+                .Select(result => result.Evaluation.Explanation ?? $"{result.Name}-false"));
         return new OrderTreeRuntime.ConditionEvaluation(
             value,
-            string.IsNullOrEmpty(evidence) ? null : evidence);
+            string.IsNullOrEmpty(evidence) ? null : evidence,
+            string.IsNullOrEmpty(explanation)
+                ? value ? "condition-true" : "condition-false"
+                : explanation);
     }
 
     private int Fact(
@@ -3083,7 +3120,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         string? CapacityScope,
         int CapacityLimit,
         int Distance,
-        string? SelectionTrace);
+        string? SelectionTrace,
+        string? EligibilityTrace = null);
 
     private sealed record ResolvedTarget(
         string Key,

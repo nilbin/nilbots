@@ -89,6 +89,17 @@ test('a mind diagnostic splits into the order it names and what it is doing', ()
   );
   assert.deepEqual(
     parseCommandReason(
+      'orders:guard > lower-response:eligibility[higher-response~when-enemies-2-at-least-5]:evidence[surge=4]:march@12,7 via East',
+    ),
+    {
+      orderId: 'lower-response',
+      action: 'march',
+      destination: { x: 12, y: 7 },
+      facingTarget: null,
+    },
+  );
+  assert.deepEqual(
+    parseCommandReason(
       'turn for orders:builder > score-a-core > return-to-reactor:move@12,7 via West',
     ),
     {

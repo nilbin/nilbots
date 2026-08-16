@@ -18,6 +18,41 @@ namespace BotArena.Cli.Tests;
 public sealed class OrdersMovementSceneTests
 {
     [Fact]
+    public void PracticeReasonNamesRejectedHigherInstructionGates()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation program = Compile(
+            root, "mid-overload-fork-v1.json");
+        TacticalPlaybookCompilation drill = Compile(
+            root, "mid-overload-drill-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            program.Composition,
+            drill.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline8);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, program), Participant(1, drill)],
+            matchSeed: 9001,
+            recordChronology: false);
+        GenericActorMatchStepResult step = session.Step();
+        string reason = step.MindTurns.Single(turn => turn.TeamId == 0)
+            .Commands.Single(command => command.Command.UnitId == 0)
+            .Command.DebugMessage ?? "";
+
+        Assert.Contains(":eligibility[", reason, StringComparison.Ordinal);
+        Assert.Contains(
+            "bank-core-home-mason-bank~when-bank-core-carrying-0-equals-1",
+            reason,
+            StringComparison.Ordinal);
+        Assert.Contains(
+            "mid-fork-home-mason-respond~when-",
+            reason,
+            StringComparison.Ordinal);
+        Assert.Contains(":march@", reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LockboxAmbushLineHasOneLegalSlotPerInterceptor()
     {
         string root = FindRepoRoot();

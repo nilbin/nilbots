@@ -9,16 +9,27 @@ internal sealed class OrderTreeRuntime
 {
     private readonly Dictionary<(ActorIdentity Actor, string Path), State> _states = [];
 
-    public IReadOnlyList<EligibleLeaf> Eligible(
+    public EligibilityResult Eligible(
         ActorIdentity actor,
         OrdersPackage.Role role,
         int tick,
         Func<OrdersPackage.ConditionExpression, int, ConditionEvaluation> evaluate)
     {
         var result = new List<EligibleLeaf>();
+        var rejected = new List<IneligibleRoot>();
         foreach (OrdersPackage.OrderNode node in role.Orders)
-            Visit(actor, node, tick, evaluate, result, inheritedEvidence: null);
-        return result;
+        {
+            int before = result.Count;
+            string? rootRejection = Visit(
+                actor, node, tick, evaluate, result, inheritedEvidence: null);
+            if (result.Count == before)
+            {
+                rejected.Add(new IneligibleRoot(
+                    node.Id,
+                    rootRejection ?? "no-child-eligible"));
+            }
+        }
+        return new EligibilityResult(result, rejected);
     }
 
     public void Prune(IReadOnlySet<ActorIdentity> live)
@@ -39,7 +50,7 @@ internal sealed class OrderTreeRuntime
         _states[key] = Exit(state, node, tick);
     }
 
-    private void Visit(
+    private string? Visit(
         ActorIdentity actor,
         OrdersPackage.OrderNode node,
         int tick,
@@ -53,6 +64,7 @@ internal sealed class OrderTreeRuntime
         int elapsed = state.Active ? tick - state.StartedTick : 0;
         string? currentEvidence = state.EvidenceTrace;
         bool left = false;
+        string? rejection = null;
         if (state.Active)
         {
             bool timedOut = node.Timeout is int timeout && elapsed >= timeout;
@@ -72,6 +84,11 @@ internal sealed class OrderTreeRuntime
             {
                 state = Exit(state, node, tick);
                 left = true;
+                rejection = timedOut
+                    ? "timeout"
+                    : until
+                        ? $"until-{SafeReason(untilEvaluation?.Explanation)}"
+                        : $"when-ended-{SafeReason(whenEvaluation?.Explanation)}";
             }
         }
         ConditionEvaluation entry = !state.Active
@@ -93,7 +110,9 @@ internal sealed class OrderTreeRuntime
         if (!state.Active)
         {
             DeactivateChildren(actor, node.Children, tick);
-            return;
+            if (rejection is not null) return rejection;
+            if (tick < state.ReadyTick) return $"cooldown-until-{state.ReadyTick}";
+            return $"when-{SafeReason(entry.Explanation)}";
         }
         int orderTicks = tick - state.StartedTick;
         string? evidence = MergeEvidence(inheritedEvidence, currentEvidence);
@@ -101,10 +120,18 @@ internal sealed class OrderTreeRuntime
         {
             result.Add(new EligibleLeaf(
                 node, orderTicks, state.StartedTick, evidence));
-            return;
+            return null;
         }
+        int beforeChildren = result.Count;
+        string? childRejection = null;
         foreach (OrdersPackage.OrderNode child in node.Children)
-            Visit(actor, child, tick, evaluate, result, evidence);
+        {
+            string? candidate = Visit(actor, child, tick, evaluate, result, evidence);
+            childRejection ??= candidate;
+        }
+        return result.Count == beforeChildren
+            ? childRejection ?? "no-child-eligible"
+            : null;
     }
 
     private void DeactivateChildren(
@@ -140,11 +167,24 @@ internal sealed class OrderTreeRuntime
         return $"{first}+{second}";
     }
 
-    internal readonly record struct ConditionEvaluation(bool Value, string? Trace)
+    private static string SafeReason(string? reason) => string.IsNullOrWhiteSpace(reason)
+        ? "condition-false"
+        : reason.Replace('|', '-').Replace('~', '-').Replace(']', '-');
+
+    internal readonly record struct ConditionEvaluation(
+        bool Value,
+        string? Trace,
+        string? Explanation = null)
     {
-        public static ConditionEvaluation True => new(true, null);
-        public static ConditionEvaluation False => new(false, null);
+        public static ConditionEvaluation True => new(true, null, "always-true");
+        public static ConditionEvaluation False => new(false, null, "condition-false");
     }
+
+    internal sealed record EligibilityResult(
+        IReadOnlyList<EligibleLeaf> Leaves,
+        IReadOnlyList<IneligibleRoot> IneligibleRoots);
+
+    internal sealed record IneligibleRoot(string RootId, string Reason);
 
     internal sealed record EligibleLeaf(
         OrdersPackage.OrderNode Node,

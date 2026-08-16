@@ -3,6 +3,7 @@ import type {
   ReplayCausalEvent,
   ReplayModel,
   ReplayPosition,
+  ReplayTick,
 } from '../../replayModel';
 import { parseCommandReason } from '../../presentation/commandReason';
 import {
@@ -10,6 +11,7 @@ import {
   type OrderNode,
   type SheetDraft,
 } from './sheetAuthoring';
+import { resolveProjectionOrders } from './linkedPlays';
 import type {
   LinkedPlay,
   PlayOpportunityBinding,
@@ -76,6 +78,39 @@ export interface SignatureOpportunityPracticeSummary {
     after: ReplayPosition;
     tick: number;
   } | null;
+}
+
+export interface PracticeProgramBody {
+  unitId: number;
+  roleId: string;
+  classId: string;
+}
+
+export interface PracticeProgramGate {
+  programId: string;
+  programName: string;
+  status: 'accepted' | 'ineligible' | 'yielded' | 'not-participating';
+  reason: string;
+}
+
+export interface PracticeProgramAttribution {
+  tick: number;
+  body: PracticeProgramBody;
+  programId: string | null;
+  programName: string | null;
+  orderId: string | null;
+  action: string;
+  reason: string | null;
+  higherPrograms: PracticeProgramGate[];
+}
+
+export interface PracticeProgramTimelineSegment {
+  fromTick: number;
+  toTick: number;
+  programId: string | null;
+  programName: string | null;
+  orderId: string | null;
+  action: string;
 }
 
 export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
@@ -167,6 +202,140 @@ export function replayUnitTracks(replay: ReplayModel | undefined): UnitTrack[] {
     .sort((a, b) => a.teamId - b.teamId || a.unitId - b.unitId || a.key.localeCompare(b.key));
 }
 
+/** The exact deterministic role-to-body assignment used by the compiler. */
+export function practiceProgramBodies(draft: SheetDraft): PracticeProgramBody[] {
+  const result: PracticeProgramBody[] = [];
+  let unitId = 0;
+  for (const role of draft.orders.roles) {
+    for (const classId of role.classes)
+      result.push({ unitId: unitId++, roleId: role.id, classId });
+  }
+  return result;
+}
+
+/**
+ * Explain one authored body's accepted Instruction through the immutable
+ * Program sidecar captured with the Practice run. No Program state is inferred:
+ * the accepted order path and any rejection clauses come from the mind's own
+ * authoritative reason string, then map back to generated source ids.
+ */
+export function practiceProgramAttributionAt(
+  replay: ReplayModel | undefined,
+  draft: SheetDraft,
+  unitId: number,
+  requestedTick: number,
+): PracticeProgramAttribution | null {
+  const body = practiceProgramBodies(draft).find((entry) => entry.unitId === unitId);
+  if (!body || !replay) return null;
+  const frame = closestReplayFrame(replay, requestedTick);
+  if (!frame) return null;
+  return practiceProgramAttributionForFrame(draft, body, frame);
+}
+
+function practiceProgramAttributionForFrame(
+  draft: SheetDraft,
+  body: PracticeProgramBody,
+  frame: ReplayTick,
+): PracticeProgramAttribution {
+  const turn = frame.actorTurns.find((candidate) =>
+    candidate.actor.teamId === 0 && candidate.actor.unitId === body.unitId);
+  const published = frame.publishedUnitOrders?.find((candidate) =>
+    candidate.teamId === 0 && candidate.unitId === body.unitId);
+  const reason = turn?.runtimeReply.debugMessage
+    ?? turn?.acceptedDecision.debugMessage
+    ?? null;
+  const parsed = reason ? parseCommandReason(reason) : null;
+  const orderId = parsed?.orderId ?? published?.orderId ?? null;
+  const action = parsed?.action ?? published?.action ?? 'No body action recorded';
+  const matched = findProgramForOrder(draft, body.roleId, orderId, reason);
+  const acceptedIndex = matched
+    ? draft.workshop.plays.findIndex((entry) => entry.id === matched.id)
+    : draft.workshop.plays.length;
+  const rejections = parseEligibilityReasons(reason);
+
+  const higherPrograms = draft.workshop.plays
+    .slice(0, Math.max(0, acceptedIndex))
+    .filter((program) => program.projections.some((projection) =>
+      projection.roleId === body.roleId))
+    .map((program): PracticeProgramGate => {
+      const recorded = rejectionForProgram(draft, program, body.roleId, reason, rejections);
+      return {
+        programId: program.id,
+        programName: program.name,
+        status: recorded ? 'ineligible' : 'yielded',
+        reason: recorded ?? 'No accepted Instruction from this Program at this tick; the replay records no more specific gate result.',
+      };
+    });
+
+  return {
+    tick: frame.tick,
+    body,
+    programId: matched?.id ?? null,
+    programName: matched?.name ?? null,
+    orderId,
+    action,
+    reason,
+    higherPrograms,
+  };
+}
+
+/** Group consecutive ticks so a player can scan Program handoffs, not 600 rows. */
+export function practiceProgramTimeline(
+  replay: ReplayModel | undefined,
+  draft: SheetDraft,
+  unitId: number,
+): PracticeProgramTimelineSegment[] {
+  if (!replay) return [];
+  const body = practiceProgramBodies(draft).find((entry) => entry.unitId === unitId);
+  if (!body) return [];
+  const result: PracticeProgramTimelineSegment[] = [];
+  for (const frame of replay.ticks) {
+    const point = practiceProgramAttributionForFrame(draft, body, frame);
+    const action = practiceActionLabel(point.action);
+    const previous = result.at(-1);
+    if (previous
+      && previous.programId === point.programId
+      && previous.orderId === point.orderId
+      && previous.action === action
+      && previous.toTick + 1 === point.tick) {
+      previous.toTick = point.tick;
+      continue;
+    }
+    result.push({
+      fromTick: point.tick,
+      toTick: point.tick,
+      programId: point.programId,
+      programName: point.programName,
+      orderId: point.orderId,
+      action,
+    });
+  }
+  return result;
+}
+
+/** Reduce executor diagnostics to the player-facing action clause. */
+export function practiceActionLabel(action: string): string {
+  const withoutPlanner = action.split(':urgency-')[0] ?? action;
+  const semantic = /(?:^|:)(march|use|handoff|drop|repair|focus|prepare focus|duel-stand|close-on-focus|flank-approach|hold|wait|no-eligible-order)(?::|$)/
+    .exec(withoutPlanner);
+  if (!semantic) return humanizeReason(withoutPlanner.split(':')[0] ?? withoutPlanner);
+  const verb = semantic[1]!;
+  if (verb === 'march') return 'Move';
+  if (verb === 'use') {
+    const skill = withoutPlanner.slice(semantic.index + semantic[0].length)
+      .split(':')[0];
+    return skill ? `Use ${humanizeReason(skill)}` : 'Use signature';
+  }
+  if (verb === 'focus' || verb === 'prepare focus'
+    || verb === 'duel-stand' || verb === 'close-on-focus'
+    || verb === 'flank-approach') return 'Fight';
+  if (verb === 'handoff') return 'Handoff Core';
+  if (verb === 'drop') return 'Drop Core';
+  if (verb === 'repair') return 'Repair';
+  if (verb === 'hold' || verb === 'wait') return 'Hold';
+  return humanizeReason(verb);
+}
+
 /**
  * Find the authoritative replay frame that filled the most required slots.
  * Roles are resolved to unit ids with the same ordered composition mapping as
@@ -213,6 +382,37 @@ export function bestPlayReadiness(
       best = { ready: readySlotIds.length, total: required.length, tick, readySlotIds };
   }
   return best;
+}
+
+/** Required Post occupancy at one authoritative Practice frame. */
+export function playReadinessAtTick(
+  replay: ReplayModel | undefined,
+  draft: SheetDraft,
+  play: LinkedPlay,
+  requestedTick: number,
+): PlayReadinessEvidence {
+  const required = play.slots.filter((slot) => slot.required);
+  const frame = replay ? closestReplayFrame(replay, requestedTick) : undefined;
+  if (!frame || required.length === 0)
+    return { ready: 0, total: required.length, tick: frame?.tick ?? null, readySlotIds: [] };
+  const positions = new Map(frame.after.actors
+    .filter((actor) => actor.identity.teamId === 0)
+    .map((actor) => [actor.identity.unitId, actor.position] as const));
+  const readySlotIds = required.filter((slot) => {
+    const rect = draft.mapPlan.zones[slot.readinessZoneId]?.rect;
+    if (!rect) return false;
+    return [...unitIdsForRole(draft, slot.roleId)].some((unitId) => {
+      const point = positions.get(unitId);
+      return point && point.x >= rect[0] && point.x <= rect[2]
+        && point.y >= rect[1] && point.y <= rect[3];
+    });
+  }).map((slot) => slot.id);
+  return {
+    ready: readySlotIds.length,
+    total: required.length,
+    tick: frame.tick,
+    readySlotIds,
+  };
 }
 
 /** Best authoritative occupancy of one role-qualified formation Condition. */
@@ -410,6 +610,108 @@ function unitIdsForRole(draft: SheetDraft, roleId: string): Set<number> {
     unitId += role.classes.length;
   }
   return result;
+}
+
+function closestReplayFrame(replay: ReplayModel, requestedTick: number) {
+  let result = replay.ticks[0];
+  for (const frame of replay.ticks) {
+    if (frame.tick > requestedTick) break;
+    result = frame;
+  }
+  return result;
+}
+
+function findProgramForOrder(
+  draft: SheetDraft,
+  roleId: string,
+  orderId: string | null,
+  reason: string | null,
+): LinkedPlay | null {
+  if (!orderId && !reason) return null;
+  for (const program of draft.workshop.plays) {
+    for (const projection of program.projections) {
+      if (projection.roleId !== roleId) continue;
+      const orders = resolveProjectionOrders(program, projection);
+      if (orderId && findOrderById(orders, orderId)) return program;
+      if (reason && projection.lastGenerated.some((root) =>
+        reason.includes(`> ${root.orderId}`))) return program;
+    }
+  }
+  return null;
+}
+
+function parseEligibilityReasons(reason: string | null): Map<string, string> {
+  const result = new Map<string, string>();
+  if (!reason) return result;
+  const match = /(?:^|:)eligibility\[([^\]]+)\]/.exec(reason);
+  if (!match?.[1]) return result;
+  for (const clause of match[1].split('|')) {
+    const separator = clause.indexOf('~');
+    if (separator <= 0) continue;
+    result.set(clause.slice(0, separator), clause.slice(separator + 1));
+  }
+  return result;
+}
+
+function rejectionForProgram(
+  draft: SheetDraft,
+  program: LinkedPlay,
+  roleId: string,
+  reason: string | null,
+  eligibility: ReadonlyMap<string, string>,
+): string | null {
+  const projection = program.projections.find((entry) => entry.roleId === roleId);
+  if (!projection) return null;
+  for (const root of projection.lastGenerated) {
+    const direct = eligibility.get(root.orderId);
+    if (direct) return describeEligibilityReason(draft, direct);
+  }
+  if (!reason) return null;
+  for (const order of flattenOrders(resolveProjectionOrders(program, projection))) {
+    const marker = `after-${order.id}-`;
+    const index = reason.indexOf(marker);
+    if (index < 0) continue;
+    const cause = reason.slice(index + marker.length).split(':')[0] ?? 'yielded';
+    return humanizeReason(cause);
+  }
+  return null;
+}
+
+function describeEligibilityReason(draft: SheetDraft, reason: string): string {
+  if (reason.startsWith('cooldown-until-'))
+    return `Cooling down until tick ${reason.slice('cooldown-until-'.length)}`;
+  if (reason === 'timeout') return 'Its authored timeout ended this response.';
+  if (reason === 'no-child-eligible') return 'No child Instruction was eligible.';
+  const prefix = ['when-ended-', 'condition-', 'when-', 'until-']
+    .find((candidate) => reason.startsWith(candidate));
+  const expression = prefix ? reason.slice(prefix.length) : reason;
+  const clauses = expression.split('+').map((clause) => {
+    const conditionId = Object.keys(draft.orders.conditions)
+      .filter((id) => clause.startsWith(`${id}-`))
+      .sort((left, right) => right.length - left.length)[0];
+    if (!conditionId) return humanizeReason(clause);
+    const condition = draft.orders.conditions[conditionId];
+    const suffix = `-${condition.operator}-${condition.value}`;
+    const actualPart = clause.slice(conditionId.length + 1);
+    const actual = actualPart.endsWith(suffix)
+      ? actualPart.slice(0, -suffix.length) : '?';
+    return `${humanizeReason(conditionId)} was ${actual}; needs ${humanizeReason(condition.operator)} ${condition.value}`;
+  });
+  const lead = prefix?.startsWith('until') ? 'Exit condition met' : 'Gate not met';
+  return `${lead}: ${clauses.join('; ')}`;
+}
+
+function flattenOrders(orders: OrderNode[]): OrderNode[] {
+  const result: OrderNode[] = [];
+  for (const order of orders) {
+    result.push(order);
+    if (order.orders) result.push(...flattenOrders(order.orders));
+  }
+  return result;
+}
+
+function humanizeReason(value: string): string {
+  return value.replace(/[-_]+/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function findOrderById(orders: OrderNode[], id: string): OrderNode | undefined {

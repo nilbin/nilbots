@@ -496,7 +496,10 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
             : selectedAuthoring.isLoading
               ? <span className="t-micro">Loading revision-safe attribution…</span>
               : <span className="t-micro text-arena-hot">This legacy run has raw Instructions only; Program attribution is unavailable.</span>}
-          {practiceDraft && <button type="button" className="btn ml-auto min-h-10"
+          <button type="button" className="btn btn-secondary ml-auto min-h-10"
+            disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId}
+            onClick={() => void runTrial()}>{trial.isPending ? 'Starting…' : 'Rerun current draft'}</button>
+          {practiceDraft && <button type="button" className="btn min-h-10"
             onClick={() => {
               const source = selectedAuthoring.data!;
               const restored = parseDraft(
