@@ -3261,6 +3261,15 @@ export interface components {
             allowsRouteAheadRole: boolean;
             allowsRouteForward: boolean;
             defaultCommitmentBehavior: string;
+            preset: components["schemas"]["TacticalSheetSignatureOpportunityPresetResponse"];
+        };
+        TacticalSheetSignatureOpportunityPresetResponse: {
+            id: string;
+            title: string;
+            description: string;
+            targetKind: string;
+            namedTarget: null | string;
+            suggestsActivationZone: boolean;
         };
         TacticalSheetSummaryResponse: {
             /** Format: uuid */

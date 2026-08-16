@@ -356,6 +356,41 @@ export function signatureTargets(
   return [...(signatureAuthoring(catalog, skill)?.allowedSelectors ?? [])];
 }
 
+/** Data-only discovery defaults shared by direct Orders and linked Plays. */
+export function signaturePresetOrder(
+  catalog: Pick<TacticalSheetCatalog, 'classes'>,
+  skill: string,
+  role: RoleDefinition,
+  roles: RoleDefinition[],
+  mapPlan: MapPlanDocument,
+): UseOrder | null {
+  const descriptor = signatureAuthoring(catalog, skill);
+  if (!descriptor) return null;
+  const preset = descriptor.preset;
+  const routes = Object.keys(mapPlan.routes);
+  const anchors = Object.keys(mapPlan.anchors);
+  const partner = roles.find((entry) => entry.id !== role.id) ?? roles[0];
+  let target: UseTarget = preset.namedTarget
+    ?? defaultSignatureTarget(catalog, skill);
+  let at: string | undefined;
+  if (preset.targetKind === 'friendly-role') {
+    if (!partner) return null;
+    target = { role: partner.id };
+  } else if (preset.targetKind === 'most-experienced-ally') {
+    target = { selector: 'most-experienced-ally' };
+  } else if (preset.targetKind === 'route-ahead-role') {
+    if (!partner || routes.length === 0) return null;
+    target = { role: partner.id, aheadVia: routes[0], minimumForwardTiles: 2 };
+  } else if (preset.targetKind === 'route-forward') {
+    if (routes.length === 0) return null;
+    target = { route: routes[0], progress: 'forward', minimumForwardTiles: 2 };
+  } else if (preset.targetKind === 'exact-anchor') {
+    if (anchors.length === 0) return null;
+    at = anchors[0];
+  }
+  return { skill, target, ...(at ? { at } : {}) };
+}
+
 export function defaultSignatureTarget(
   catalog: Pick<TacticalSheetCatalog, 'classes'>,
   skill: string,

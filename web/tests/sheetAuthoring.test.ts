@@ -55,6 +55,11 @@ const testAuthoring = (signatureId: string) => ({
   allowsRouteAheadRole: signatureId === 'arc-toss',
   allowsRouteForward: signatureId === 'vector-dash',
   defaultCommitmentBehavior: 'continue-normally',
+  preset: {
+    id: `use-${signatureId}`, title: signatureId, description: signatureId,
+    targetKind: 'named-selector', namedTarget: 'nearest-enemy',
+    suggestsActivationZone: true,
+  },
 });
 const testClass = (id: string) => ({
   id,

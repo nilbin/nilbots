@@ -323,6 +323,93 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void EverySignaturePresetBuildsOneDescriptorValidOrdinaryUse()
+    {
+        foreach (ArcRelaySignatureAuthoringDescriptor descriptor in
+                 ArcRelaySignatureAuthoringCatalog.All)
+        {
+            JsonObject source = Source("starter-tapline-v2");
+            JsonObject map = MapPlan("starter-tapline-v2");
+            string[] classes = [descriptor.ClassId, ..
+                ArcRelaySignatureAuthoringCatalog.All
+                    .Select(value => value.ClassId)
+                    .Where(value => value != descriptor.ClassId)
+                    .Take(7)];
+            int classIndex = 0;
+            foreach (JsonObject role in source["roles"]!.AsArray()
+                         .Select(value => value!.AsObject()))
+            {
+                JsonArray roleClasses = role["classes"]!.AsArray();
+                for (int index = 0; index < roleClasses.Count; index++)
+                    roleClasses[index] = classes[classIndex++];
+            }
+            JsonObject owner = source["roles"]![0]!.AsObject();
+            string partnerRole = source["roles"]![1]!["id"]!.GetValue<string>();
+            if (descriptor.Preset.TargetKind is
+                ArcRelaySignaturePresetTargetKind.RouteAheadRole or
+                ArcRelaySignaturePresetTargetKind.RouteForward)
+            {
+                map["routes"]!["preset-route"] = new JsonObject
+                {
+                    ["waypoints"] = new JsonArray
+                    {
+                        new JsonArray(24, 22),
+                        new JsonArray(20, 22),
+                        new JsonArray(16, 22),
+                    },
+                };
+            }
+            if (descriptor.Preset.TargetKind ==
+                ArcRelaySignaturePresetTargetKind.ExactAnchor)
+            {
+                map["anchors"]!["preset-anchor"] = new JsonArray(20, 22);
+            }
+            JsonNode target = descriptor.Preset.TargetKind switch
+            {
+                ArcRelaySignaturePresetTargetKind.FriendlyRole =>
+                    new JsonObject { ["role"] = partnerRole },
+                ArcRelaySignaturePresetTargetKind.MostExperiencedAlly =>
+                    new JsonObject { ["selector"] = "most-experienced-ally" },
+                ArcRelaySignaturePresetTargetKind.RouteAheadRole =>
+                    new JsonObject
+                    {
+                        ["role"] = partnerRole,
+                        ["aheadVia"] = "preset-route",
+                        ["minimumForwardTiles"] = 2,
+                    },
+                ArcRelaySignaturePresetTargetKind.RouteForward =>
+                    new JsonObject
+                    {
+                        ["route"] = "preset-route",
+                        ["progress"] = "forward",
+                        ["minimumForwardTiles"] = 2,
+                    },
+                _ => JsonValue.Create(
+                    ArcRelaySignatureAuthoringCatalog.StableId(
+                        descriptor.Preset.NamedTarget
+                        ?? descriptor.AllowedNamedTargets[0]))!,
+            };
+            var use = new JsonObject
+            {
+                ["skill"] = descriptor.SkillId,
+                ["target"] = target,
+            };
+            if (descriptor.Preset.TargetKind ==
+                ArcRelaySignaturePresetTargetKind.ExactAnchor)
+            {
+                use["at"] = "preset-anchor";
+            }
+            owner["orders"]!.AsArray().Insert(0, new JsonObject
+            {
+                ["id"] = $"preset-{descriptor.Preset.Id}",
+                ["use"] = use,
+            });
+
+            Assert.True(Compile(source, map).UsesOrderTree);
+        }
+    }
+
+    [Fact]
     public void PlaceableConstructMayTargetAnExactConsumedAnchor()
     {
         JsonObject source = Source("hunter-tapline-v2");

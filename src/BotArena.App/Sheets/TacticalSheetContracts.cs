@@ -36,6 +36,14 @@ public sealed record TrialTacticalSheetRequest(
     string StockSheetId,
     long? Seed);
 
+public sealed record TacticalSheetSignatureOpportunityPresetResponse(
+    string Id,
+    string Title,
+    string Description,
+    string TargetKind,
+    string? NamedTarget,
+    bool SuggestsActivationZone);
+
 public sealed record TacticalSheetSignatureAuthoringResponse(
     string Category,
     string ArgumentKind,
@@ -52,7 +60,8 @@ public sealed record TacticalSheetSignatureAuthoringResponse(
     bool AllowsExactAnchor,
     bool AllowsRouteAheadRole,
     bool AllowsRouteForward,
-    string DefaultCommitmentBehavior);
+    string DefaultCommitmentBehavior,
+    TacticalSheetSignatureOpportunityPresetResponse Preset);
 
 public sealed record TacticalSheetClassResponse(
     string Id,

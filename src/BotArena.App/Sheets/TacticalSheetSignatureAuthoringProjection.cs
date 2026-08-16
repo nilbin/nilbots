@@ -64,7 +64,16 @@ internal static class TacticalSheetSignatureAuthoringProjection
             vocabulary.DefaultCommitment ==
                 ArcRelaySignatureCommitmentBehavior.PreserveByDefault
                     ? "preserve-by-default"
-                    : "continue-normally");
+                    : "continue-normally",
+            new TacticalSheetSignatureOpportunityPresetResponse(
+                vocabulary.Preset.Id,
+                vocabulary.Preset.Title,
+                vocabulary.Preset.Description,
+                Kebab(vocabulary.Preset.TargetKind.ToString()),
+                vocabulary.Preset.NamedTarget is ArcRelaySignatureNamedTarget named
+                    ? ArcRelaySignatureAuthoringCatalog.StableId(named)
+                    : null,
+                vocabulary.Preset.SuggestsActivationZone));
     }
 
     private static string Kebab(string value) => string.Concat(

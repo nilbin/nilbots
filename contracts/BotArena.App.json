@@ -5337,7 +5337,8 @@
           "allowsExactAnchor",
           "allowsRouteAheadRole",
           "allowsRouteForward",
-          "defaultCommitmentBehavior"
+          "defaultCommitmentBehavior",
+          "preset"
         ],
         "type": "object",
         "properties": {
@@ -5397,6 +5398,43 @@
           },
           "defaultCommitmentBehavior": {
             "type": "string"
+          },
+          "preset": {
+            "$ref": "#/components/schemas/TacticalSheetSignatureOpportunityPresetResponse"
+          }
+        }
+      },
+      "TacticalSheetSignatureOpportunityPresetResponse": {
+        "required": [
+          "id",
+          "title",
+          "description",
+          "targetKind",
+          "namedTarget",
+          "suggestsActivationZone"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "targetKind": {
+            "type": "string"
+          },
+          "namedTarget": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suggestsActivationZone": {
+            "type": "boolean"
           }
         }
       },

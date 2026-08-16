@@ -2,6 +2,7 @@ import ClassIcon from '../../components/ClassIcon';
 import type { TacticalSheetCatalog } from '../api';
 import {
   defaultSignatureTarget,
+  signaturePresetOrder,
   signatureTargets,
   skillForClass,
   type MapPlanDocument,
@@ -74,6 +75,13 @@ export default function SignatureUseEditor({
       <p className="t-meta mt-1">This role has no catalog-backed signature authoring descriptor.</p>
     </div>;
   }
+  const preset = descriptor.preset;
+  const presetOrder = signaturePresetOrder(
+    catalog, skill, role, roles, mapPlan);
+  const presetNeeds = presetOrder ? null
+    : preset.targetKind === 'route-forward'
+        || preset.targetKind === 'route-ahead-role' ? 'route'
+      : preset.targetKind === 'exact-anchor' ? 'anchor' : 'role';
 
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
     <div className="flex items-center gap-3">
@@ -85,6 +93,16 @@ export default function SignatureUseEditor({
           {humanize(descriptor.category)} · {humanize(descriptor.argumentKind)} · range {descriptor.engagementRange} · cooldown {descriptor.cooldownTicks}
         </p>
       </div>
+    </div>
+    <div className="mt-3 rounded-sm border border-arena-material/40 bg-arena-material/8 p-3">
+      <p className="lab text-arena-material">Suggested opportunity</p>
+      <b className="type-display mt-1 block text-[16px]">{preset.title}</b>
+      <p className="t-micro mt-1">{preset.description}</p>
+      {presetNeeds ? <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onOpenMap()}>
+        Add a Play {presetNeeds} on the map first
+      </button> : <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onChange(presetOrder!)}>Use these editable defaults</button>}
     </div>
     {skills.length > 1 && <ChoiceCards label="Which class acts?" value={skill} values={skills}
       labeler={(entry) => catalog.classes.find((candidate) => candidate.signatureId === entry)?.name ?? humanize(entry)}

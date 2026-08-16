@@ -36,6 +36,25 @@ public enum ArcRelaySignatureCommitmentBehavior
     PreserveByDefault,
 }
 
+public enum ArcRelaySignaturePresetTargetKind
+{
+    NamedSelector,
+    FriendlyRole,
+    MostExperiencedAlly,
+    ExactAnchor,
+    RouteAheadRole,
+    RouteForward,
+}
+
+/// <summary>Editable discovery defaults; never compiler or runtime identity.</summary>
+public sealed record ArcRelaySignatureOpportunityPreset(
+    string Id,
+    string Title,
+    string Description,
+    ArcRelaySignaturePresetTargetKind TargetKind,
+    ArcRelaySignatureNamedTarget? NamedTarget = null,
+    bool SuggestsActivationZone = true);
+
 /// <summary>
 /// The complete engine-independent authoring shape for one launch signature.
 /// Every compiler and editor capability must originate here rather than from a
@@ -46,7 +65,8 @@ public sealed record ArcRelaySignatureAuthoringDescriptor(
     string SkillId,
     IReadOnlyList<ArcRelaySignatureNamedTarget> AllowedNamedTargets,
     ArcRelaySignatureTargetCapability Capabilities,
-    ArcRelaySignatureCommitmentBehavior DefaultCommitment)
+    ArcRelaySignatureCommitmentBehavior DefaultCommitment,
+    ArcRelaySignatureOpportunityPreset Preset)
 {
     public bool Allows(ArcRelaySignatureTargetCapability capability) =>
         (Capabilities & capability) == capability;
@@ -103,58 +123,115 @@ public static class ArcRelaySignatureAuthoringCatalog
         [
             Entry("kestrel", "vector-dash", BroadTargets,
                 ArcRelaySignatureTargetCapability.RouteForward,
-                ArcRelaySignatureCommitmentBehavior.PreserveByDefault),
-            Entry("palisade", "prism-wall", BroadTargets),
+                ArcRelaySignatureCommitmentBehavior.PreserveByDefault,
+                Preset("straight-route-dash", "Dash a straight route window",
+                    "Advance only when a selected terminal route offers safe forward progress.",
+                    ArcRelaySignaturePresetTargetKind.RouteForward)),
+            Entry("palisade", "prism-wall", BroadTargets,
+                preset: Preset("guard-lane-wall", "Face the pressured lane",
+                    "Raise Prism Wall from a guard area against the nearest hostile approach.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.NearestEnemy)),
             Entry("towline", "tractor-hook", BroadTargets,
                 commitment: ArcRelaySignatureCommitmentBehavior
-                    .PreserveByDefault),
+                    .PreserveByDefault,
+                preset: Preset("hook-carrier", "Hook the carrier through a sightline",
+                    "Pull the enemy carrier when it enters this watched line.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.EnemyCarrier)),
             Entry("patchbay", "repair-beam",
                 [ArcRelaySignatureNamedTarget.WeakestAlly,
                     ArcRelaySignatureNamedTarget.NearestAlly],
                 ArcRelaySignatureTargetCapability.FriendlyRole
                     | ArcRelaySignatureTargetCapability.MostExperiencedAlly,
-                ArcRelaySignatureCommitmentBehavior.PreserveByDefault),
-            Entry("lantern", "survey-flare", BroadTargets),
+                ArcRelaySignatureCommitmentBehavior.PreserveByDefault,
+                Preset("protect-role", "Protect a named role",
+                    "Maintain Repair Beam on the role this plan is protecting.",
+                    ArcRelaySignaturePresetTargetKind.FriendlyRole)),
+            Entry("lantern", "survey-flare", BroadTargets,
+                ArcRelaySignatureTargetCapability.ExactAnchor,
+                preset: Preset("reveal-approach", "Reveal an exact approach",
+                    "Launch a Survey Flare at a plotted approach before commitment.",
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("mortar", "falling-star", BroadTargets,
+                ArcRelaySignatureTargetCapability.ExactAnchor,
                 commitment: ArcRelaySignatureCommitmentBehavior
-                    .PreserveByDefault),
+                    .PreserveByDefault,
+                preset: Preset("punish-staging-area", "Punish a staged area",
+                    "Call Falling Star onto an exact watched hostile position.",
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("minesmith", "trip-node", BroadTargets,
-                ArcRelaySignatureTargetCapability.ExactAnchor),
+                ArcRelaySignatureTargetCapability.ExactAnchor,
+                preset: Preset("mine-alternate-route", "Mine an alternate route",
+                    "Place a Trip Node at one exact route point before continuing.",
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("hush", "null-field",
                 [ArcRelaySignatureNamedTarget.Self],
                 commitment: ArcRelaySignatureCommitmentBehavior
-                    .PreserveByDefault),
+                    .PreserveByDefault,
+                preset: Preset("null-local-overload", "Null a local overload",
+                    "Trigger Null Field after enough enemies enter this defended area.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.Self)),
             Entry("relay", "arc-toss", ArcTossTargets,
                 ArcRelaySignatureTargetCapability.FriendlyRole
                     | ArcRelaySignatureTargetCapability.MostExperiencedAlly
-                    | ArcRelaySignatureTargetCapability.RouteAheadRole),
+                    | ArcRelaySignatureTargetCapability.RouteAheadRole,
+                preset: Preset("toss-forward-receiver", "Toss to a forward receiver",
+                    "Pass to a named Relay only after it earns useful progress on a route.",
+                    ArcRelaySignaturePresetTargetKind.RouteAheadRole)),
             Entry("switchback", "exchange",
                 [ArcRelaySignatureNamedTarget.HealthiestAlly,
                     ArcRelaySignatureNamedTarget.NearestAlly,
                     ArcRelaySignatureNamedTarget.WeakestAlly],
                 ArcRelaySignatureTargetCapability.FriendlyRole
                     | ArcRelaySignatureTargetCapability.MostExperiencedAlly,
-                ArcRelaySignatureCommitmentBehavior.PreserveByDefault),
+                ArcRelaySignatureCommitmentBehavior.PreserveByDefault,
+                Preset("exchange-endangered-role", "Exchange with an endangered role",
+                    "Swap with the named role this plan is meant to rescue.",
+                    ArcRelaySignaturePresetTargetKind.FriendlyRole)),
             Entry("longshot", "rail-line", BroadTargets,
                 commitment: ArcRelaySignatureCommitmentBehavior
-                    .PreserveByDefault),
+                    .PreserveByDefault,
+                preset: Preset("rail-carrier-lane", "Rail the carrier lane",
+                    "Hold a selected firing area against the enemy carrier.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.EnemyCarrier)),
             Entry("mason", "hardlight-block", BroadTargets,
-                ArcRelaySignatureTargetCapability.ExactAnchor),
+                ArcRelaySignatureTargetCapability.ExactAnchor,
+                preset: Preset("block-exact-choke", "Block an exact choke",
+                    "Place Hardlight at one plotted choke while the plan continues elsewhere.",
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("sunder", "target-paint",
                 [ArcRelaySignatureNamedTarget.EnemyCarrier,
                     ArcRelaySignatureNamedTarget.Veteran,
                     ArcRelaySignatureNamedTarget.WeakestEnemy,
                     ArcRelaySignatureNamedTarget.NearestEnemy],
                 commitment: ArcRelaySignatureCommitmentBehavior
-                    .PreserveByDefault),
+                    .PreserveByDefault,
+                preset: Preset("paint-carrier", "Paint the enemy carrier",
+                    "Mark the carrier inside this committed fight.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.EnemyCarrier)),
             Entry("repulsor", "kinetic-burst",
                 [ArcRelaySignatureNamedTarget.Self],
                 commitment: ArcRelaySignatureCommitmentBehavior
-                    .PreserveByDefault),
-            Entry("veil", "smoke-canister", BroadTargets),
+                    .PreserveByDefault,
+                preset: Preset("burst-surrounded", "Burst when surrounded",
+                    "Push outward after enemies crowd this defended area.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.Self)),
+            Entry("veil", "smoke-canister", BroadTargets,
+                ArcRelaySignatureTargetCapability.ExactAnchor,
+                preset: Preset("smoke-crossing", "Smoke an exact crossing",
+                    "Cover a plotted crossing before this transit episode continues.",
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("nest", "sentinel-seed", BroadTargets,
                 ArcRelaySignatureTargetCapability.ExactAnchor,
-                ArcRelaySignatureCommitmentBehavior.PreserveByDefault),
+                ArcRelaySignatureCommitmentBehavior.PreserveByDefault,
+                Preset("seed-guard-post", "Seed an exact guard post",
+                    "Deploy Sentinel Seed at a plotted post before holding the lane.",
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
         ];
 
         ByClass = All.ToDictionary(value => value.ClassId,
@@ -232,6 +309,21 @@ public static class ArcRelaySignatureAuthoringCatalog
         ArcRelaySignatureTargetCapability capabilities =
             ArcRelaySignatureTargetCapability.None,
         ArcRelaySignatureCommitmentBehavior commitment =
-            ArcRelaySignatureCommitmentBehavior.ContinueNormally) =>
-        new(classId, skillId, namedTargets, capabilities, commitment);
+            ArcRelaySignatureCommitmentBehavior.ContinueNormally,
+        ArcRelaySignatureOpportunityPreset? preset = null) =>
+        new(classId, skillId, namedTargets, capabilities, commitment,
+            preset ?? Preset($"use-{skillId}", $"Use {skillId}",
+                "Try this signature when its parent plan is active.",
+                ArcRelaySignaturePresetTargetKind.NamedSelector,
+                namedTargets.FirstOrDefault()));
+
+    private static ArcRelaySignatureOpportunityPreset Preset(
+        string id,
+        string title,
+        string description,
+        ArcRelaySignaturePresetTargetKind targetKind,
+        ArcRelaySignatureNamedTarget? namedTarget = null,
+        bool suggestsActivationZone = true) =>
+        new(id, title, description, targetKind, namedTarget,
+            suggestsActivationZone);
 }

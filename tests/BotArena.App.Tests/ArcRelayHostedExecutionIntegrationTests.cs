@@ -70,7 +70,11 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             Assert.True(entry.SignatureAuthoring.CooldownTicks > 0);
             Assert.False(string.IsNullOrWhiteSpace(
                 entry.SignatureAuthoring.ArgumentKind));
+            Assert.False(string.IsNullOrWhiteSpace(
+                entry.SignatureAuthoring.Preset.Title));
         });
+        Assert.Equal(16, catalog.Classes.Select(entry =>
+            entry.SignatureAuthoring.Preset.Id).Distinct().Count());
         TacticalSheetClassResponse kestrel = catalog.Classes.Single(value =>
             value.Id == "kestrel");
         Assert.True(kestrel.SignatureAuthoring.AllowsRouteForward);
