@@ -544,6 +544,43 @@ The primary workshop is card-and-map based:
 Raw JSON import/export is an advanced utility. Authored hashes are not shown or
 edited. The workshop never exposes retired vocabulary.
 
+### Linked Plays are editor ownership, not a gameplay document
+
+The optional `arc-relay-workshop-v1` sidecar lets the web editor link several
+ordinary Orders and map objects into one editable **Play**. It is stored with
+the owning sheet so linkage survives refresh, another device, and duplication.
+It is deliberately excluded from the compiler, ATL2, content hash, match
+identity, and replay. Orders plus map plan remain complete standalone gameplay
+sources.
+
+The editor currently offers one blank Play and five guided lenses: Ambush,
+Relay chain, Veteran escort, Safe return, and Lane closure. A lens is only an
+authoring convenience. Its projection uses the same five action names and the
+same `when`, `until`, `timeout`, `cooldown`, `urgency`, and `capacity` fields as
+the Orders workspace. No `play`, phase, global priority, roster reservation, or
+second runtime state machine is added.
+
+Each Play records stable ownership ids and fingerprints for the Orders,
+conditions, capacities, anchors, zones, and routes it generated. A normal edit
+regenerates only those owned values deterministically. If their materialized
+source no longer matches the recorded fingerprint, save stops and asks the
+author to choose:
+
+- **Regenerate from Play** replaces only the owned projection.
+- **Detach to ordinary Orders** preserves the materialized Orders and map
+  objects, removes the linkage, and makes those sources ordinary editor input.
+
+Deleting a Play previews its owned sources and can retain geometry. Atomic
+multi-object edits use the editor's normal undo/redo transaction. Stale clients
+that omit workshop fields preserve existing metadata; an explicit replace flag
+is required to clear or change it.
+
+Practice restores the active workspace, selected Play, opponent, and seed.
+The map can overlay actual tracks for only that Play's participating roles; an
+Ambush-style Play also reports the best observed required-slot readiness frame.
+These diagnostics interpret the replay for the author and never feed back into
+the match.
+
 ## 11. Runtime and determinism
 
 ATL2 contains the exact role/class/upgrade assignment, expanded order tree

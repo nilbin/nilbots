@@ -125,7 +125,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         Assert.Equal(2, revised.Revision);
         Assert.Equal(BotRating.DefaultRating, revised.Entrant.Rating);
         Assert.Equal(sheets[0].ContentHash, revised.ContentHash);
-        Assert.Equal(
+        AssertJsonEquivalent(
             "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[]}",
             revised.WorkshopJson);
         HttpResponseMessage staleUpdate = await client.PutAsJsonAsync(
@@ -152,7 +152,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         legacyClientUpdate.EnsureSuccessStatusCode();
         TacticalSheetResponse preserved = (await legacyClientUpdate.Content
             .ReadFromJsonAsync<TacticalSheetResponse>())!;
-        Assert.Equal(revised.WorkshopJson, preserved.WorkshopJson);
+        AssertJsonEquivalent(revised.WorkshopJson, preserved.WorkshopJson);
         Assert.Equal(revised.ContentHash, preserved.ContentHash);
 
         HttpResponseMessage scrimmage = await client.PostAsJsonAsync("/api/arc-relay/scrimmages",
@@ -1005,5 +1005,14 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 enterLadder));
         response.EnsureSuccessStatusCode();
         return (await response.Content.ReadFromJsonAsync<TacticalSheetResponse>())!;
+    }
+
+    private static void AssertJsonEquivalent(string? expected, string? actual)
+    {
+        Assert.NotNull(expected);
+        Assert.NotNull(actual);
+        Assert.True(
+            JsonNode.DeepEquals(JsonNode.Parse(expected), JsonNode.Parse(actual)),
+            $"Expected JSON equivalent to {expected}, but received {actual}.");
     }
 }

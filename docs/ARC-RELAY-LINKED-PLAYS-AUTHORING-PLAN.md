@@ -1,7 +1,7 @@
 # Arc Relay linked Plays authoring plan
 
-Status: **implementation-facing UX plan; no Orders, compiler, executor, or
-gameplay-language expansion is proposed here.**
+Status: **implemented on `main` on 2026-08-16. No Orders, compiler, executor,
+or gameplay-language expansion was required.**
 
 Implement against `docs/SHEET-AUTHORING.md` and
 `docs/SPEC-SHEET-ORDERS-V2.md`. Decisions #294 and #317 remain authoritative:
@@ -33,6 +33,42 @@ plan:
   sequence, not whether either Play beats a competent sheet. Compilation,
   persistence, deterministic projection, editing, detach, desktop/phone UX,
   and generated-Orders inspection remain required.
+
+## Implementation result — 2026-08-16
+
+The production path now follows this plan:
+
+- `arc-relay-workshop-v1` is persisted with a sheet in PostgreSQL and copied
+  with it, but is excluded from the sheet content hash, compiler input, ATL2,
+  matches, and replays. An old client that omits workshop fields preserves the
+  existing sidecar.
+- The editor has the fourth `Plays` workspace on desktop and phone. It uses the
+  real Tapline map, exact Orders names, west/east binding, drag and atomic group
+  movement, role projections, linked values, readiness ranges, capacity,
+  priority neighbors, generated-Orders inspection, drift recovery, detach,
+  delete, and undo/redo.
+- Six editor lenses use one deterministic projection path: blank, Ambush,
+  Relay chain, Veteran escort, Safe return, and Lane closure. They materialize
+  only ordinary `move`, `fight`, `use`, `handoff`, and `drop` Orders plus
+  ordinary map-plan objects.
+- Practice return restores the selected Play, opponent, seed, and workspace.
+  Its map overlay filters actual unit tracks to the selected participants and,
+  for a required-slot Play, reports the best observed readiness frame.
+
+The acceptance sources were authored through visible UI controls and persisted
+as sheet `e058bbd2-8443-4e0a-97b6-3338225a5698` (`Linked Plays Fieldbook`).
+Against Idle Field, the North ambush reached all five required posts at tick 40.
+The Relay chain selected `relay-chain-a-toss-r0-r1` at tick 54 and
+`relay-chain-b-toss-r1-r2` at tick 64, then continued homeward; the match ended
+at tick 257. Because Idle Field has no enemies, the Ambush proof deliberately
+proves staging/readiness rather than hostile engagement. Its authored northern
+traffic threshold was restored after that focused staging run.
+
+Sheet `b5dcabcc-37f0-4c40-ab78-3433aa8f0d23` is the visible-UI detach proof:
+both Plays were detached, the sidecar contains no Plays, and the materialized
+Orders/map plan still compile server-side. The focused implementation record,
+test matrix, limitations, and screenshots are in
+`docs/reports/LINKED-PLAYS-AUTHORING-REPORT.md`.
 
 ## Outcome
 

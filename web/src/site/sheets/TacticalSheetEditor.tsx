@@ -442,12 +442,12 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       <nav className="panel sticky top-0 z-30 flex items-center gap-1 overflow-x-auto p-1.5" aria-label="Sheet workshop">
         {SECTIONS.map((entry) => {
           const count = sectionIssues(entry.id, issues).length;
-          return <button key={entry.id} type="button" className={clsx('btn min-h-12 min-w-[110px] flex-1', section === entry.id && 'btn-on')}
+          return <button key={entry.id} type="button" className={clsx('btn min-h-12 min-w-[82px] flex-1 sm:min-w-[110px]', section === entry.id && 'btn-on')}
             aria-current={section === entry.id ? 'step' : undefined} onClick={() => { setSection(entry.id); setMapFocus(null); }}>
             <span><b className="block">{entry.label}{count ? ` · ${count}` : ''}</b><span className="t-micro mt-0.5 hidden md:block">{entry.description}</span></span>
           </button>;
         })}
-        <button type="button" className="btn min-h-12 shrink-0" onClick={() => setPracticeOpen(true)}>Scenario</button>
+        <button type="button" className="btn hidden min-h-12 shrink-0 sm:inline-flex" onClick={() => setPracticeOpen(true)}>Scenario</button>
         <button type="button" className="btn btn-secondary hidden min-h-12 shrink-0 gap-2 sm:inline-flex"
           disabled={blocking.length > 0 || save.isPending || trial.isPending || !stockId} onClick={() => void runTrial()}>
           <span className="btn-secondary-symbol">▶</span>{practiceLabel}

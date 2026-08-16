@@ -8589,3 +8589,30 @@ eight bodies have no eligible order and therefore only expose movement, timing
 and signature behavior initiated by the author's draft. The other established
 practice opponents remain available. These catalog roles are authoring tools,
 not ranked entrants and not evidence of balance.
+
+## 322. Linked Plays own editor projections, never runtime behavior
+
+Owner product ruling (2026-08-16). The sheet workshop gains an additive
+**Plays** workspace for authoring spatially coordinated tactics across several
+role trees. A linked editor Play owns deterministic projections into ordinary
+Orders plus ordinary map-plan geometry. Matches, the compiler and the executor
+do not receive a Play, Play phase, global Play priority, sticky reservation, or
+second state machine. The five current action names and their existing
+conditions, lifecycle, urgency and capacity semantics remain the complete
+gameplay language.
+
+Play linkage persists as optional versioned `arc-relay-workshop-v1` JSONB with
+the sheet. It is excluded from the sheet content hash, ATL2, match identity and
+replay identity; Orders and map plan remain the only standalone gameplay
+sources. Sheet copies retain linkage. Clients that omit the sidecar preserve it,
+while replacement requires an explicit request. Fingerprints stop silent
+overwrite after external drift: the author must regenerate owned projections
+or detach them into ordinary editable Orders. Delete previews owned sources and
+may preserve geometry; group edits and projection moves are one undoable
+transaction.
+
+The initial lenses are blank, Ambush, Relay chain, Veteran escort, Safe return
+and Lane closure. These names are editor recipes only. The first browser proof
+authored and persisted a five-post North ambush and a two-Relay corridor chain
+through visible controls against Idle Field. This is an expressiveness and
+iteration proof, not a balance verdict.
