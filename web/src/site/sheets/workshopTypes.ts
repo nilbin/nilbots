@@ -148,6 +148,11 @@ export interface PlayProjection {
   id: string;
   roleId: string;
   /**
+   * Editor-only activation choice for a configured response. The ordinary
+   * generated `when` expression remains the sole runtime gate.
+   */
+  responseActivation?: 'program-trigger' | 'immediate';
+  /**
    * Editor-owned source Orders. Fields owned by linkedValues are omitted here
    * and applied deterministically while materializing the projection.
    */
@@ -237,6 +242,7 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
     }
     const used = new Set<string>();
     for (const projection of play.projections) {
+      projection.responseActivation ??= 'program-trigger';
       const existing = projection.signatureOpportunities ?? [];
       projection.signatureOpportunities = existing.map((binding) => ({
         ...binding,

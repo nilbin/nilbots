@@ -1,0 +1,2580 @@
+{
+  "schema": "arc-relay-workshop-v1",
+  "plays": [
+    {
+      "id": "bank-core",
+      "name": "Bank carried Core",
+      "recipe": "blank",
+      "ownedGeometry": [],
+      "geometryGroups": [],
+      "slots": [],
+      "formations": [],
+      "readinessGroups": [],
+      "ownedConditionIds": [
+        "bank-core-carrying",
+        "bank-core-empty"
+      ],
+      "ownedCapacityIds": [],
+      "projections": [
+        {
+          "id": "bank-core-home-mason",
+          "roleId": "home-mason",
+          "orders": [
+            {
+              "id": "bank-core-home-mason-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-home-mason-bank",
+              "fingerprint": "fnv1a64:60f215485b4fe53d"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-home-lantern",
+          "roleId": "home-lantern",
+          "orders": [
+            {
+              "id": "bank-core-home-lantern-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-home-lantern-bank",
+              "fingerprint": "fnv1a64:047219ed0e88495b"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-return-mason",
+          "roleId": "return-mason",
+          "orders": [
+            {
+              "id": "bank-core-return-mason-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-return-mason-bank",
+              "fingerprint": "fnv1a64:2a00e0812e3d7dbc"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-return-rail",
+          "roleId": "return-rail",
+          "orders": [
+            {
+              "id": "bank-core-return-rail-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-return-rail-bank",
+              "fingerprint": "fnv1a64:6e3f79949ae2b704"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-return-hush",
+          "roleId": "return-hush",
+          "orders": [
+            {
+              "id": "bank-core-return-hush-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-return-hush-bank",
+              "fingerprint": "fnv1a64:e6d5992aeab728a0"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-return-medic",
+          "roleId": "return-medic",
+          "orders": [
+            {
+              "id": "bank-core-return-medic-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-return-medic-bank",
+              "fingerprint": "fnv1a64:8e76d8fcd3b6ef64"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-return-breaker",
+          "roleId": "return-breaker",
+          "orders": [
+            {
+              "id": "bank-core-return-breaker-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-return-breaker-bank",
+              "fingerprint": "fnv1a64:8622f81eebfdc5f6"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "bank-core-raider",
+          "roleId": "raider",
+          "orders": [
+            {
+              "id": "bank-core-raider-bank",
+              "when": "bank-core-carrying",
+              "until": "bank-core-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "bank-core-raider-bank",
+              "fingerprint": "fnv1a64:e81c3912323897e2"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        }
+      ],
+      "linkedValues": []
+    },
+    {
+      "id": "mid-fork",
+      "name": "Mid Overload Fork",
+      "recipe": "blank",
+      "ownedGeometry": [
+        {
+          "kind": "zone",
+          "id": "mid-fork-zone",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-zone-2",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-zone-3",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "route",
+          "id": "mid-fork-route",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-home-mason",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-home-mason-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-home-mason",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-home-mason-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-home-mason"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-home-lantern",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-home-lantern-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-home-lantern",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-home-lantern-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-home-lantern"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-mason",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-return-mason-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-return-mason",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-mason-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-return-mason"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-rail",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-return-rail-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-return-rail",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-rail-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-return-rail"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-hush",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-return-hush-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-return-hush",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-hush-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-return-hush"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-medic",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-return-medic-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-return-medic",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-medic-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-return-medic"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-breaker",
+          "purpose": "Post stand position"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-return-breaker-ready",
+          "purpose": "Post readiness",
+          "derivedFrom": "mid-fork-return-breaker",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-breaker-facing",
+          "purpose": "Post cardinal facing",
+          "derivedFrom": "mid-fork-return-breaker"
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-home-mason-effect",
+          "purpose": "Post signature effect target"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-home-mason-effect-footprint",
+          "purpose": "Post deployment presence",
+          "derivedFrom": "mid-fork-home-mason-effect",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-return-mason-effect",
+          "purpose": "Post signature effect target"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-return-mason-effect-footprint",
+          "purpose": "Post deployment presence",
+          "derivedFrom": "mid-fork-return-mason-effect",
+          "tolerance": 0
+        },
+        {
+          "kind": "anchor",
+          "id": "mid-fork-anchor",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "zone",
+          "id": "mid-fork-raider-respond-vector-dash-window",
+          "purpose": "self-in-zone signature activation"
+        }
+      ],
+      "geometryGroups": [
+        {
+          "id": "mid-fork-home-mason-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-home-mason",
+            "mid-fork-home-mason-facing",
+            "mid-fork-home-mason-effect"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-home-mason-ready"
+          ]
+        },
+        {
+          "id": "mid-fork-home-lantern-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-home-lantern",
+            "mid-fork-home-lantern-facing"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-home-lantern-ready"
+          ]
+        },
+        {
+          "id": "mid-fork-return-mason-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-return-mason",
+            "mid-fork-return-mason-facing",
+            "mid-fork-return-mason-effect"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-return-mason-ready"
+          ]
+        },
+        {
+          "id": "mid-fork-return-rail-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-return-rail",
+            "mid-fork-return-rail-facing"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-return-rail-ready"
+          ]
+        },
+        {
+          "id": "mid-fork-return-hush-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-return-hush",
+            "mid-fork-return-hush-facing"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-return-hush-ready"
+          ]
+        },
+        {
+          "id": "mid-fork-return-medic-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-return-medic",
+            "mid-fork-return-medic-facing"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-return-medic-ready"
+          ]
+        },
+        {
+          "id": "mid-fork-return-breaker-slot-geometry",
+          "kind": "selection",
+          "objectIds": [
+            "mid-fork-return-breaker",
+            "mid-fork-return-breaker-facing"
+          ],
+          "derivedObjectIds": [
+            "mid-fork-return-breaker-ready"
+          ]
+        }
+      ],
+      "slots": [
+        {
+          "id": "mid-fork-home-mason-slot",
+          "name": "home mason",
+          "roleId": "home-mason",
+          "anchorId": "mid-fork-home-mason",
+          "readinessZoneId": "mid-fork-home-mason-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-home-mason-facing",
+          "facing": "north",
+          "hostOrderId": "mid-fork-home-mason-duty",
+          "moveOrderId": "mid-fork-home-mason-stand",
+          "readinessConditionId": "mid-fork-home-mason-ready",
+          "deployment": {
+            "skill": "hardlight-block",
+            "targetAnchorId": "mid-fork-home-mason-effect",
+            "targetZoneId": "mid-fork-home-mason-effect-footprint",
+            "rebuildWhenMissing": true,
+            "refreshDurabilityAtMost": 25,
+            "requiredForReadiness": true,
+            "presenceConditionId": "mid-fork-home-mason-effect-role-deployment-r",
+            "sourceConditionId": "mid-fork-home-mason-occupied-by-self",
+            "ownedConditionIds": [
+              "mid-fork-home-mason-occupied-by-self",
+              "mid-fork-home-mason-effect-missing",
+              "mid-fork-home-mason-effect-present",
+              "mid-fork-home-mason-effect-role-deployment-r",
+              "mid-fork-home-mason-effect-damaged"
+            ],
+            "useOrderIds": [
+              "mid-fork-home-mason-rebuild",
+              "mid-fork-home-mason-refresh-durability"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-home-lantern-slot",
+          "name": "home lantern",
+          "roleId": "home-lantern",
+          "anchorId": "mid-fork-home-lantern",
+          "readinessZoneId": "mid-fork-home-lantern-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-home-lantern-facing",
+          "facing": "north",
+          "hostOrderId": "mid-fork-home-lantern-duty",
+          "moveOrderId": "mid-fork-home-lantern-stand",
+          "readinessConditionId": "mid-fork-home-lantern-ready"
+        },
+        {
+          "id": "mid-fork-return-mason-slot",
+          "name": "return mason",
+          "roleId": "return-mason",
+          "anchorId": "mid-fork-return-mason",
+          "readinessZoneId": "mid-fork-return-mason-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-return-mason-facing",
+          "facing": "north",
+          "hostOrderId": "mid-fork-return-mason-duty",
+          "moveOrderId": "mid-fork-return-mason-stand",
+          "readinessConditionId": "mid-fork-return-mason-ready",
+          "deployment": {
+            "skill": "hardlight-block",
+            "targetAnchorId": "mid-fork-return-mason-effect",
+            "targetZoneId": "mid-fork-return-mason-effect-footprint",
+            "rebuildWhenMissing": true,
+            "refreshDurabilityAtMost": 25,
+            "requiredForReadiness": true,
+            "presenceConditionId": "mid-fork-return-mason-effect-role-deployment",
+            "sourceConditionId": "mid-fork-return-mason-occupied-by-self",
+            "ownedConditionIds": [
+              "mid-fork-return-mason-occupied-by-self",
+              "mid-fork-return-mason-effect-missing",
+              "mid-fork-return-mason-effect-present",
+              "mid-fork-return-mason-effect-role-deployment",
+              "mid-fork-return-mason-effect-damaged"
+            ],
+            "useOrderIds": [
+              "mid-fork-return-mason-rebuild",
+              "mid-fork-return-mason-refresh-durability"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-return-rail-slot",
+          "name": "return rail",
+          "roleId": "return-rail",
+          "anchorId": "mid-fork-return-rail",
+          "readinessZoneId": "mid-fork-return-rail-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-return-rail-facing",
+          "facing": "west",
+          "hostOrderId": "mid-fork-return-rail-duty",
+          "moveOrderId": "mid-fork-return-rail-stand",
+          "readinessConditionId": "mid-fork-return-rail-ready"
+        },
+        {
+          "id": "mid-fork-return-hush-slot",
+          "name": "return hush",
+          "roleId": "return-hush",
+          "anchorId": "mid-fork-return-hush",
+          "readinessZoneId": "mid-fork-return-hush-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-return-hush-facing",
+          "facing": "north",
+          "hostOrderId": "mid-fork-return-hush-duty",
+          "moveOrderId": "mid-fork-return-hush-stand",
+          "readinessConditionId": "mid-fork-return-hush-ready"
+        },
+        {
+          "id": "mid-fork-return-medic-slot",
+          "name": "return medic",
+          "roleId": "return-medic",
+          "anchorId": "mid-fork-return-medic",
+          "readinessZoneId": "mid-fork-return-medic-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-return-medic-facing",
+          "facing": "north",
+          "hostOrderId": "mid-fork-return-medic-duty",
+          "moveOrderId": "mid-fork-return-medic-stand",
+          "readinessConditionId": "mid-fork-return-medic-ready"
+        },
+        {
+          "id": "mid-fork-return-breaker-slot",
+          "name": "return breaker",
+          "roleId": "return-breaker",
+          "anchorId": "mid-fork-return-breaker",
+          "readinessZoneId": "mid-fork-return-breaker-ready",
+          "required": true,
+          "tolerance": 0,
+          "capacity": 1,
+          "facingAnchorId": "mid-fork-return-breaker-facing",
+          "facing": "east",
+          "hostOrderId": "mid-fork-return-breaker-duty",
+          "moveOrderId": "mid-fork-return-breaker-stand",
+          "readinessConditionId": "mid-fork-return-breaker-ready"
+        }
+      ],
+      "formations": [
+        {
+          "id": "mid-fork-home-mason-slot-formation",
+          "projectionId": "mid-fork-home-mason",
+          "conditionId": "mid-fork-home-mason-ready"
+        },
+        {
+          "id": "mid-fork-home-lantern-slot-formation",
+          "projectionId": "mid-fork-home-lantern",
+          "conditionId": "mid-fork-home-lantern-ready"
+        },
+        {
+          "id": "mid-fork-return-mason-slot-formation",
+          "projectionId": "mid-fork-return-mason",
+          "conditionId": "mid-fork-return-mason-ready"
+        },
+        {
+          "id": "mid-fork-return-rail-slot-formation",
+          "projectionId": "mid-fork-return-rail",
+          "conditionId": "mid-fork-return-rail-ready"
+        },
+        {
+          "id": "mid-fork-return-hush-slot-formation",
+          "projectionId": "mid-fork-return-hush",
+          "conditionId": "mid-fork-return-hush-ready"
+        },
+        {
+          "id": "mid-fork-return-medic-slot-formation",
+          "projectionId": "mid-fork-return-medic",
+          "conditionId": "mid-fork-return-medic-ready"
+        },
+        {
+          "id": "mid-fork-return-breaker-slot-formation",
+          "projectionId": "mid-fork-return-breaker",
+          "conditionId": "mid-fork-return-breaker-ready"
+        }
+      ],
+      "readinessGroups": [
+        {
+          "id": "home-defence-ready",
+          "name": "Home defence ready",
+          "projectionIds": [
+            "mid-fork-home-mason",
+            "mid-fork-home-lantern"
+          ],
+          "maximumSpread": 3
+        },
+        {
+          "id": "return-ambush-ready",
+          "name": "Return ambush ready",
+          "projectionIds": [
+            "mid-fork-return-mason",
+            "mid-fork-return-rail",
+            "mid-fork-return-hush",
+            "mid-fork-return-medic",
+            "mid-fork-return-breaker"
+          ],
+          "maximumSpread": 6
+        }
+      ],
+      "ownedConditionIds": [
+        "mid-fork-response-start",
+        "mid-fork-home-mason-ready",
+        "mid-fork-home-lantern-ready",
+        "mid-fork-return-mason-ready",
+        "mid-fork-return-rail-ready",
+        "mid-fork-return-hush-ready",
+        "mid-fork-return-medic-ready",
+        "mid-fork-return-breaker-ready",
+        "mid-fork-home-mason-occupied-by-self",
+        "mid-fork-home-mason-effect-missing",
+        "mid-fork-home-mason-effect-present",
+        "mid-fork-home-mason-effect-role-deployment-r",
+        "mid-fork-home-mason-effect-damaged",
+        "mid-fork-return-mason-occupied-by-self",
+        "mid-fork-return-mason-effect-missing",
+        "mid-fork-return-mason-effect-present",
+        "mid-fork-return-mason-effect-role-deployment",
+        "mid-fork-return-mason-effect-damaged",
+        "home-lantern-at-post",
+        "mid-fork-response-success",
+        "mid-fork-minimum-commitment",
+        "mid-fork-raider-respond-vector-dash-window-activ"
+      ],
+      "ownedCapacityIds": [],
+      "projections": [
+        {
+          "id": "mid-fork-home-mason",
+          "roleId": "home-mason",
+          "orders": [
+            {
+              "id": "mid-fork-home-mason-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-home-mason-effect-role-deployment-r",
+                  "mid-fork-home-mason-ready",
+                  "mid-fork-home-lantern-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-home-mason-respond-hardlight-block",
+                  "use": {
+                    "skill": "hardlight-block",
+                    "target": "self",
+                    "at": "mid-fork-home-mason-effect"
+                  },
+                  "when": {
+                    "all": [
+                      "mid-fork-home-mason-occupied-by-self",
+                      "mid-fork-home-mason-effect-missing"
+                    ]
+                  }
+                },
+                {
+                  "id": "mid-fork-home-mason-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-2"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-home-mason-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-home-mason-rebuild",
+                  "when": {
+                    "all": [
+                      "mid-fork-home-mason-occupied-by-self",
+                      "mid-fork-home-mason-effect-missing"
+                    ]
+                  },
+                  "capacity": 1,
+                  "use": {
+                    "skill": "hardlight-block",
+                    "target": "self",
+                    "at": "mid-fork-home-mason-effect"
+                  }
+                },
+                {
+                  "id": "mid-fork-home-mason-refresh-durability",
+                  "when": {
+                    "all": [
+                      "mid-fork-home-mason-occupied-by-self",
+                      "mid-fork-home-mason-effect-present",
+                      "mid-fork-home-mason-effect-damaged"
+                    ]
+                  },
+                  "capacity": 1,
+                  "use": {
+                    "skill": "hardlight-block",
+                    "target": "self",
+                    "at": "mid-fork-home-mason-effect"
+                  }
+                },
+                {
+                  "id": "mid-fork-home-mason-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-home-mason"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-home-mason-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-home-mason-respond",
+              "fingerprint": "fnv1a64:7b095cb97819ec2e"
+            },
+            {
+              "orderId": "mid-fork-home-mason-duty",
+              "fingerprint": "fnv1a64:ae58f567e9ecbea4"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "mid-fork-home-mason-duty-mid-fork-home-mason-rebuild-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-home-mason-duty",
+              "useOrderId": "mid-fork-home-mason-rebuild",
+              "ownedConditionIds": [],
+              "capacityPolicy": {
+                "target": "signature-target",
+                "limit": 1,
+                "scope": "local"
+              }
+            },
+            {
+              "id": "mid-fork-home-mason-duty-mid-fork-home-mason-refresh-durability-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-home-mason-duty",
+              "useOrderId": "mid-fork-home-mason-refresh-durability",
+              "ownedConditionIds": [],
+              "capacityPolicy": {
+                "target": "signature-target",
+                "limit": 1,
+                "scope": "local"
+              }
+            },
+            {
+              "id": "mid-fork-home-mason-respond-mid-fork-home-mason-respond-hardlight-block-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-home-mason-respond",
+              "useOrderId": "mid-fork-home-mason-respond-hardlight-block",
+              "ownedConditionIds": []
+            }
+          ]
+        },
+        {
+          "id": "mid-fork-home-lantern",
+          "roleId": "home-lantern",
+          "orders": [
+            {
+              "id": "mid-fork-home-lantern-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-home-mason-effect-role-deployment-r",
+                  "mid-fork-home-mason-ready",
+                  "mid-fork-home-lantern-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-home-lantern-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-2"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-home-lantern-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-home-lantern-duty-survey-flare",
+                  "use": {
+                    "skill": "survey-flare",
+                    "target": "self",
+                    "at": "mid-fork-anchor"
+                  },
+                  "when": "home-lantern-at-post"
+                },
+                {
+                  "id": "mid-fork-home-lantern-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-home-lantern"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-home-lantern-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-home-lantern-respond",
+              "fingerprint": "fnv1a64:69406b6d5bd02d38"
+            },
+            {
+              "orderId": "mid-fork-home-lantern-duty",
+              "fingerprint": "fnv1a64:ecc5dc477b611abc"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "mid-fork-home-lantern-duty-mid-fork-home-lantern-duty-survey-flare-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-home-lantern-duty",
+              "useOrderId": "mid-fork-home-lantern-duty-survey-flare",
+              "ownedConditionIds": []
+            }
+          ]
+        },
+        {
+          "id": "mid-fork-return-mason",
+          "roleId": "return-mason",
+          "orders": [
+            {
+              "id": "mid-fork-return-mason-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-return-mason-effect-role-deployment",
+                  "mid-fork-return-mason-ready",
+                  "mid-fork-return-rail-ready",
+                  "mid-fork-return-hush-ready",
+                  "mid-fork-return-medic-ready",
+                  "mid-fork-return-breaker-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-return-mason-respond-hardlight-block",
+                  "use": {
+                    "skill": "hardlight-block",
+                    "target": "self",
+                    "at": "mid-fork-return-mason-effect"
+                  },
+                  "when": {
+                    "all": [
+                      "mid-fork-return-mason-occupied-by-self",
+                      "mid-fork-return-mason-effect-missing"
+                    ]
+                  }
+                },
+                {
+                  "id": "mid-fork-return-mason-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-3"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-return-mason-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-return-mason-rebuild",
+                  "when": {
+                    "all": [
+                      "mid-fork-return-mason-occupied-by-self",
+                      "mid-fork-return-mason-effect-missing"
+                    ]
+                  },
+                  "capacity": 1,
+                  "use": {
+                    "skill": "hardlight-block",
+                    "target": "self",
+                    "at": "mid-fork-return-mason-effect"
+                  }
+                },
+                {
+                  "id": "mid-fork-return-mason-refresh-durability",
+                  "when": {
+                    "all": [
+                      "mid-fork-return-mason-occupied-by-self",
+                      "mid-fork-return-mason-effect-present",
+                      "mid-fork-return-mason-effect-damaged"
+                    ]
+                  },
+                  "capacity": 1,
+                  "use": {
+                    "skill": "hardlight-block",
+                    "target": "self",
+                    "at": "mid-fork-return-mason-effect"
+                  }
+                },
+                {
+                  "id": "mid-fork-return-mason-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-return-mason"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-return-mason-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-return-mason-respond",
+              "fingerprint": "fnv1a64:372adf46bb04eddc"
+            },
+            {
+              "orderId": "mid-fork-return-mason-duty",
+              "fingerprint": "fnv1a64:92e3e8baff7129bb"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "mid-fork-return-mason-duty-mid-fork-return-mason-rebuild-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-return-mason-duty",
+              "useOrderId": "mid-fork-return-mason-rebuild",
+              "ownedConditionIds": [],
+              "capacityPolicy": {
+                "target": "signature-target",
+                "limit": 1,
+                "scope": "local"
+              }
+            },
+            {
+              "id": "mid-fork-return-mason-duty-mid-fork-return-mason-refresh-durability-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-return-mason-duty",
+              "useOrderId": "mid-fork-return-mason-refresh-durability",
+              "ownedConditionIds": [],
+              "capacityPolicy": {
+                "target": "signature-target",
+                "limit": 1,
+                "scope": "local"
+              }
+            },
+            {
+              "id": "mid-fork-return-mason-respond-mid-fork-return-mason-respond-hardlight-block-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-return-mason-respond",
+              "useOrderId": "mid-fork-return-mason-respond-hardlight-block",
+              "ownedConditionIds": []
+            }
+          ]
+        },
+        {
+          "id": "mid-fork-return-rail",
+          "roleId": "return-rail",
+          "orders": [
+            {
+              "id": "mid-fork-return-rail-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-return-mason-effect-role-deployment",
+                  "mid-fork-return-mason-ready",
+                  "mid-fork-return-rail-ready",
+                  "mid-fork-return-hush-ready",
+                  "mid-fork-return-medic-ready",
+                  "mid-fork-return-breaker-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-return-rail-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-3"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-return-rail-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-return-rail-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-return-rail"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-return-rail-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-return-rail-respond",
+              "fingerprint": "fnv1a64:771479b33c607e36"
+            },
+            {
+              "orderId": "mid-fork-return-rail-duty",
+              "fingerprint": "fnv1a64:4855f8196e7364e9"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "mid-fork-return-hush",
+          "roleId": "return-hush",
+          "orders": [
+            {
+              "id": "mid-fork-return-hush-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-return-mason-effect-role-deployment",
+                  "mid-fork-return-mason-ready",
+                  "mid-fork-return-rail-ready",
+                  "mid-fork-return-hush-ready",
+                  "mid-fork-return-medic-ready",
+                  "mid-fork-return-breaker-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-return-hush-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-3"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-return-hush-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-return-hush-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-return-hush"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-return-hush-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-return-hush-respond",
+              "fingerprint": "fnv1a64:19cc2784823b96be"
+            },
+            {
+              "orderId": "mid-fork-return-hush-duty",
+              "fingerprint": "fnv1a64:c8fd65d84e104569"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "mid-fork-return-medic",
+          "roleId": "return-medic",
+          "orders": [
+            {
+              "id": "mid-fork-return-medic-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-return-mason-effect-role-deployment",
+                  "mid-fork-return-mason-ready",
+                  "mid-fork-return-rail-ready",
+                  "mid-fork-return-hush-ready",
+                  "mid-fork-return-medic-ready",
+                  "mid-fork-return-breaker-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-return-medic-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-3"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-return-medic-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-return-medic-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-return-medic"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-return-medic-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-return-medic-respond",
+              "fingerprint": "fnv1a64:207c11e9260faf50"
+            },
+            {
+              "orderId": "mid-fork-return-medic-duty",
+              "fingerprint": "fnv1a64:00b19a8a4490272f"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "mid-fork-return-breaker",
+          "roleId": "return-breaker",
+          "orders": [
+            {
+              "id": "mid-fork-return-breaker-respond",
+              "when": {
+                "all": [
+                  "mid-fork-response-start",
+                  "mid-fork-return-mason-effect-role-deployment",
+                  "mid-fork-return-mason-ready",
+                  "mid-fork-return-rail-ready",
+                  "mid-fork-return-hush-ready",
+                  "mid-fork-return-medic-ready",
+                  "mid-fork-return-breaker-ready"
+                ]
+              },
+              "timeout": 110,
+              "cooldown": 20,
+              "orders": [
+                {
+                  "id": "mid-fork-return-breaker-respond-continue",
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5,
+                    "zone": "mid-fork-zone-3"
+                  },
+                  "capacity": 2
+                }
+              ],
+              "until": {
+                "all": [
+                  "mid-fork-minimum-commitment",
+                  "mid-fork-response-success"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-return-breaker-duty",
+              "orders": [
+                {
+                  "id": "mid-fork-return-breaker-stand",
+                  "capacity": 1,
+                  "move": {
+                    "to": {
+                      "anchor": "mid-fork-return-breaker"
+                    },
+                    "posture": "line",
+                    "face": {
+                      "anchor": "mid-fork-return-breaker-facing"
+                    }
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-return-breaker-respond",
+              "fingerprint": "fnv1a64:a2e47ccc3b11599c"
+            },
+            {
+              "orderId": "mid-fork-return-breaker-duty",
+              "fingerprint": "fnv1a64:ae7a97e9b1525c03"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "mid-fork-raider",
+          "roleId": "raider",
+          "orders": [
+            {
+              "id": "mid-fork-raider-respond",
+              "when": "always",
+              "timeout": 220,
+              "cooldown": 0,
+              "orders": [
+                {
+                  "id": "mid-fork-raider-respond-vector-dash",
+                  "use": {
+                    "skill": "vector-dash",
+                    "target": {
+                      "route": "mid-fork-route",
+                      "progress": "forward",
+                      "minimumForwardTiles": 2
+                    }
+                  },
+                  "when": "mid-fork-raider-respond-vector-dash-window-activ"
+                },
+                {
+                  "id": "mid-fork-raider-respond-continue",
+                  "move": {
+                    "to": {
+                      "well": "enemy"
+                    },
+                    "via": "mid-fork-route",
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "mid-fork-raider-respond",
+              "fingerprint": "fnv1a64:886de0c365b8ccf0"
+            }
+          ],
+          "responseActivation": "immediate",
+          "signatureOpportunities": [
+            {
+              "id": "mid-fork-raider-respond-mid-fork-raider-respond-vector-dash-use",
+              "kind": "use",
+              "hostOrderId": "mid-fork-raider-respond",
+              "useOrderId": "mid-fork-raider-respond-vector-dash",
+              "ownedConditionIds": []
+            }
+          ]
+        }
+      ],
+      "linkedValues": [],
+      "responseTriggerConditionId": "mid-fork-response-start",
+      "lifecycle": {
+        "minimumCommitmentTicks": 25,
+        "maximumTicks": 110,
+        "cooldownTicks": 20,
+        "waiting": "hold-posts",
+        "successConditionIds": [
+          "mid-fork-response-success"
+        ]
+      }
+    },
+    {
+      "id": "field-work",
+      "name": "Field work",
+      "recipe": "blank",
+      "ownedGeometry": [],
+      "geometryGroups": [],
+      "slots": [],
+      "formations": [],
+      "readinessGroups": [],
+      "ownedConditionIds": [
+        "field-work-home-mason-field-work-empty-handed",
+        "field-work-home-mason-field-work-core-nearby",
+        "field-work-home-mason-field-work-health-low",
+        "field-work-home-mason-field-work-healing-nearby",
+        "field-work-home-mason-field-work-not-carrying",
+        "field-work-home-mason-field-work-health-recovere",
+        "field-work-home-mason-field-work-became-carrier",
+        "field-work-home-mason-field-work-contact",
+        "field-work-home-lantern-field-work-empty-handed",
+        "field-work-home-lantern-field-work-core-nearby",
+        "field-work-home-lantern-field-work-health-low",
+        "field-work-home-lantern-field-work-healing-nearb",
+        "field-work-home-lantern-field-work-not-carrying",
+        "field-work-home-lantern-field-work-health-recove",
+        "field-work-home-lantern-field-work-became-carrie",
+        "field-work-home-lantern-field-work-contact",
+        "field-work-return-mason-field-work-empty-handed",
+        "field-work-return-mason-field-work-core-nearby",
+        "field-work-return-mason-field-work-health-low",
+        "field-work-return-mason-field-work-healing-nearb",
+        "field-work-return-mason-field-work-not-carrying",
+        "field-work-return-mason-field-work-health-recove",
+        "field-work-return-mason-field-work-became-carrie",
+        "field-work-return-mason-field-work-contact",
+        "field-work-return-rail-field-work-empty-handed",
+        "field-work-return-rail-field-work-core-nearby",
+        "field-work-return-rail-field-work-health-low",
+        "field-work-return-rail-field-work-healing-nearby",
+        "field-work-return-rail-field-work-not-carrying",
+        "field-work-return-rail-field-work-health-recover",
+        "field-work-return-rail-field-work-became-carrier",
+        "field-work-return-rail-field-work-contact",
+        "field-work-return-hush-field-work-empty-handed",
+        "field-work-return-hush-field-work-core-nearby",
+        "field-work-return-hush-field-work-health-low",
+        "field-work-return-hush-field-work-healing-nearby",
+        "field-work-return-hush-field-work-not-carrying",
+        "field-work-return-hush-field-work-health-recover",
+        "field-work-return-hush-field-work-became-carrier",
+        "field-work-return-hush-field-work-contact",
+        "field-work-return-medic-field-work-empty-handed",
+        "field-work-return-medic-field-work-core-nearby",
+        "field-work-return-medic-field-work-health-low",
+        "field-work-return-medic-field-work-healing-nearb",
+        "field-work-return-medic-field-work-not-carrying",
+        "field-work-return-medic-field-work-health-recove",
+        "field-work-return-medic-field-work-became-carrie",
+        "field-work-return-medic-field-work-contact",
+        "field-work-return-breaker-field-work-empty-hande",
+        "field-work-return-breaker-field-work-core-nearby",
+        "field-work-return-breaker-field-work-health-low",
+        "field-work-return-breaker-field-work-healing-nea",
+        "field-work-return-breaker-field-work-not-carryin",
+        "field-work-return-breaker-field-work-health-reco",
+        "field-work-return-breaker-field-work-became-carr",
+        "field-work-return-breaker-field-work-contact",
+        "field-work-raider-field-work-empty-handed",
+        "field-work-raider-field-work-core-nearby",
+        "field-work-raider-field-work-health-low",
+        "field-work-raider-field-work-healing-nearby",
+        "field-work-raider-field-work-not-carrying",
+        "field-work-raider-field-work-health-recovered",
+        "field-work-raider-field-work-became-carrier",
+        "field-work-raider-field-work-contact"
+      ],
+      "ownedCapacityIds": [
+        "core-recovery",
+        "healing"
+      ],
+      "projections": [
+        {
+          "id": "field-work-home-mason",
+          "roleId": "home-mason",
+          "orders": [
+            {
+              "id": "field-work-home-mason-field-work",
+              "orders": [
+                {
+                  "id": "field-work-home-mason-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-home-mason-field-work-empty-handed",
+                      "field-work-home-mason-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-home-mason-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "field-work-home-mason-field-work-health-low",
+                      "field-work-home-mason-field-work-healing-nearby",
+                      "field-work-home-mason-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-home-mason-field-work-health-recovere",
+                      "field-work-home-mason-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-home-mason-field-work-fight",
+                  "when": "field-work-home-mason-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-home-mason-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "own"
+                    },
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-home-mason-field-work",
+              "fingerprint": "fnv1a64:647cbba6f297871b"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-home-mason-field-work-field-work-home-mason-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-home-mason-field-work",
+              "useOrderId": "field-work-home-mason-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-home-mason-field-work-empty-handed",
+                "field-work-home-mason-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-home-mason-field-work-field-work-home-mason-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-home-mason-field-work",
+              "useOrderId": "field-work-home-mason-field-work-recover-health",
+              "ownedConditionIds": [
+                "field-work-home-mason-field-work-health-low",
+                "field-work-home-mason-field-work-healing-nearby",
+                "field-work-home-mason-field-work-not-carrying",
+                "field-work-home-mason-field-work-health-recovere",
+                "field-work-home-mason-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-home-mason-field-work-field-work-home-mason-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-home-mason-field-work",
+              "useOrderId": "field-work-home-mason-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-home-mason-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-home-lantern",
+          "roleId": "home-lantern",
+          "orders": [
+            {
+              "id": "field-work-home-lantern-field-work",
+              "orders": [
+                {
+                  "id": "field-work-home-lantern-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-home-lantern-field-work-empty-handed",
+                      "field-work-home-lantern-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-home-lantern-field-work-recover-healt",
+                  "when": {
+                    "all": [
+                      "field-work-home-lantern-field-work-health-low",
+                      "field-work-home-lantern-field-work-healing-nearb",
+                      "field-work-home-lantern-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-home-lantern-field-work-health-recove",
+                      "field-work-home-lantern-field-work-became-carrie"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-home-lantern-field-work-fight",
+                  "when": "field-work-home-lantern-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-home-lantern-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "centre"
+                    },
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-home-lantern-field-work",
+              "fingerprint": "fnv1a64:b80777abcf213f73"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-home-lantern-field-work-field-work-home-lantern-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-home-lantern-field-work",
+              "useOrderId": "field-work-home-lantern-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-home-lantern-field-work-empty-handed",
+                "field-work-home-lantern-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-home-lantern-field-work-field-work-home-lantern-field-work-recover-healt-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-home-lantern-field-work",
+              "useOrderId": "field-work-home-lantern-field-work-recover-healt",
+              "ownedConditionIds": [
+                "field-work-home-lantern-field-work-health-low",
+                "field-work-home-lantern-field-work-healing-nearb",
+                "field-work-home-lantern-field-work-not-carrying",
+                "field-work-home-lantern-field-work-health-recove",
+                "field-work-home-lantern-field-work-became-carrie"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-home-lantern-field-work-field-work-home-lantern-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-home-lantern-field-work",
+              "useOrderId": "field-work-home-lantern-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-home-lantern-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-mason",
+          "roleId": "return-mason",
+          "orders": [
+            {
+              "id": "field-work-return-mason-field-work",
+              "orders": [
+                {
+                  "id": "field-work-return-mason-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-return-mason-field-work-empty-handed",
+                      "field-work-return-mason-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-mason-field-work-recover-healt",
+                  "when": {
+                    "all": [
+                      "field-work-return-mason-field-work-health-low",
+                      "field-work-return-mason-field-work-healing-nearb",
+                      "field-work-return-mason-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-return-mason-field-work-health-recove",
+                      "field-work-return-mason-field-work-became-carrie"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-return-mason-field-work-fight",
+                  "when": "field-work-return-mason-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-mason-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "enemy"
+                    },
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-return-mason-field-work",
+              "fingerprint": "fnv1a64:4f94afb148e69c9b"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-return-mason-field-work-field-work-return-mason-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-return-mason-field-work",
+              "useOrderId": "field-work-return-mason-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-return-mason-field-work-empty-handed",
+                "field-work-return-mason-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-return-mason-field-work-field-work-return-mason-field-work-recover-healt-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-return-mason-field-work",
+              "useOrderId": "field-work-return-mason-field-work-recover-healt",
+              "ownedConditionIds": [
+                "field-work-return-mason-field-work-health-low",
+                "field-work-return-mason-field-work-healing-nearb",
+                "field-work-return-mason-field-work-not-carrying",
+                "field-work-return-mason-field-work-health-recove",
+                "field-work-return-mason-field-work-became-carrie"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-return-mason-field-work-field-work-return-mason-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-return-mason-field-work",
+              "useOrderId": "field-work-return-mason-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-return-mason-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-rail",
+          "roleId": "return-rail",
+          "orders": [
+            {
+              "id": "field-work-return-rail-field-work",
+              "orders": [
+                {
+                  "id": "field-work-return-rail-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-return-rail-field-work-empty-handed",
+                      "field-work-return-rail-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-rail-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "field-work-return-rail-field-work-health-low",
+                      "field-work-return-rail-field-work-healing-nearby",
+                      "field-work-return-rail-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-return-rail-field-work-health-recover",
+                      "field-work-return-rail-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-return-rail-field-work-fight",
+                  "when": "field-work-return-rail-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-rail-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "own"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-return-rail-field-work",
+              "fingerprint": "fnv1a64:722e1cd0bc736f8e"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-return-rail-field-work-field-work-return-rail-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-return-rail-field-work",
+              "useOrderId": "field-work-return-rail-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-return-rail-field-work-empty-handed",
+                "field-work-return-rail-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-return-rail-field-work-field-work-return-rail-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-return-rail-field-work",
+              "useOrderId": "field-work-return-rail-field-work-recover-health",
+              "ownedConditionIds": [
+                "field-work-return-rail-field-work-health-low",
+                "field-work-return-rail-field-work-healing-nearby",
+                "field-work-return-rail-field-work-not-carrying",
+                "field-work-return-rail-field-work-health-recover",
+                "field-work-return-rail-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-return-rail-field-work-field-work-return-rail-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-return-rail-field-work",
+              "useOrderId": "field-work-return-rail-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-return-rail-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-hush",
+          "roleId": "return-hush",
+          "orders": [
+            {
+              "id": "field-work-return-hush-field-work",
+              "orders": [
+                {
+                  "id": "field-work-return-hush-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-return-hush-field-work-empty-handed",
+                      "field-work-return-hush-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-hush-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "field-work-return-hush-field-work-health-low",
+                      "field-work-return-hush-field-work-healing-nearby",
+                      "field-work-return-hush-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-return-hush-field-work-health-recover",
+                      "field-work-return-hush-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-return-hush-field-work-fight",
+                  "when": "field-work-return-hush-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-hush-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "centre"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-return-hush-field-work",
+              "fingerprint": "fnv1a64:b53296ae123b9994"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-return-hush-field-work-field-work-return-hush-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-return-hush-field-work",
+              "useOrderId": "field-work-return-hush-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-return-hush-field-work-empty-handed",
+                "field-work-return-hush-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-return-hush-field-work-field-work-return-hush-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-return-hush-field-work",
+              "useOrderId": "field-work-return-hush-field-work-recover-health",
+              "ownedConditionIds": [
+                "field-work-return-hush-field-work-health-low",
+                "field-work-return-hush-field-work-healing-nearby",
+                "field-work-return-hush-field-work-not-carrying",
+                "field-work-return-hush-field-work-health-recover",
+                "field-work-return-hush-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-return-hush-field-work-field-work-return-hush-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-return-hush-field-work",
+              "useOrderId": "field-work-return-hush-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-return-hush-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-medic",
+          "roleId": "return-medic",
+          "orders": [
+            {
+              "id": "field-work-return-medic-field-work",
+              "orders": [
+                {
+                  "id": "field-work-return-medic-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-return-medic-field-work-empty-handed",
+                      "field-work-return-medic-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-medic-field-work-recover-healt",
+                  "when": {
+                    "all": [
+                      "field-work-return-medic-field-work-health-low",
+                      "field-work-return-medic-field-work-healing-nearb",
+                      "field-work-return-medic-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-return-medic-field-work-health-recove",
+                      "field-work-return-medic-field-work-became-carrie"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-return-medic-field-work-fight",
+                  "when": "field-work-return-medic-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-medic-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "enemy"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-return-medic-field-work",
+              "fingerprint": "fnv1a64:1de9d8d1d24915d6"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-return-medic-field-work-field-work-return-medic-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-return-medic-field-work",
+              "useOrderId": "field-work-return-medic-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-return-medic-field-work-empty-handed",
+                "field-work-return-medic-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-return-medic-field-work-field-work-return-medic-field-work-recover-healt-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-return-medic-field-work",
+              "useOrderId": "field-work-return-medic-field-work-recover-healt",
+              "ownedConditionIds": [
+                "field-work-return-medic-field-work-health-low",
+                "field-work-return-medic-field-work-healing-nearb",
+                "field-work-return-medic-field-work-not-carrying",
+                "field-work-return-medic-field-work-health-recove",
+                "field-work-return-medic-field-work-became-carrie"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-return-medic-field-work-field-work-return-medic-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-return-medic-field-work",
+              "useOrderId": "field-work-return-medic-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-return-medic-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-breaker",
+          "roleId": "return-breaker",
+          "orders": [
+            {
+              "id": "field-work-return-breaker-field-work",
+              "orders": [
+                {
+                  "id": "field-work-return-breaker-field-work-recover-cor",
+                  "when": {
+                    "all": [
+                      "field-work-return-breaker-field-work-empty-hande",
+                      "field-work-return-breaker-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-breaker-field-work-recover-hea",
+                  "when": {
+                    "all": [
+                      "field-work-return-breaker-field-work-health-low",
+                      "field-work-return-breaker-field-work-healing-nea",
+                      "field-work-return-breaker-field-work-not-carryin"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-return-breaker-field-work-health-reco",
+                      "field-work-return-breaker-field-work-became-carr"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-return-breaker-field-work-fight",
+                  "when": "field-work-return-breaker-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-return-breaker-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "own"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-return-breaker-field-work",
+              "fingerprint": "fnv1a64:a732cfe9a8d140ac"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-return-breaker-field-work-field-work-return-breaker-field-work-recover-cor-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-return-breaker-field-work",
+              "useOrderId": "field-work-return-breaker-field-work-recover-cor",
+              "ownedConditionIds": [
+                "field-work-return-breaker-field-work-empty-hande",
+                "field-work-return-breaker-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-return-breaker-field-work-field-work-return-breaker-field-work-recover-hea-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-return-breaker-field-work",
+              "useOrderId": "field-work-return-breaker-field-work-recover-hea",
+              "ownedConditionIds": [
+                "field-work-return-breaker-field-work-health-low",
+                "field-work-return-breaker-field-work-healing-nea",
+                "field-work-return-breaker-field-work-not-carryin",
+                "field-work-return-breaker-field-work-health-reco",
+                "field-work-return-breaker-field-work-became-carr"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-return-breaker-field-work-field-work-return-breaker-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-return-breaker-field-work",
+              "useOrderId": "field-work-return-breaker-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-return-breaker-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-raider",
+          "roleId": "raider",
+          "orders": [
+            {
+              "id": "field-work-raider-field-work",
+              "orders": [
+                {
+                  "id": "field-work-raider-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "field-work-raider-field-work-empty-handed",
+                      "field-work-raider-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "field-work-raider-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "field-work-raider-field-work-health-low",
+                      "field-work-raider-field-work-healing-nearby",
+                      "field-work-raider-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "field-work-raider-field-work-health-recovered",
+                      "field-work-raider-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "field-work-raider-field-work-fight",
+                  "when": "field-work-raider-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "field-work-raider-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "centre"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "field-work-raider-field-work",
+              "fingerprint": "fnv1a64:91a3bf95782dbd55"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "signatureOpportunities": [
+            {
+              "id": "field-work-raider-field-work-field-work-raider-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "field-work-raider-field-work",
+              "useOrderId": "field-work-raider-field-work-recover-core",
+              "ownedConditionIds": [
+                "field-work-raider-field-work-empty-handed",
+                "field-work-raider-field-work-core-nearby"
+              ],
+              "linkedBankProgramId": "bank-core",
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "field-work-raider-field-work-field-work-raider-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "field-work-raider-field-work",
+              "useOrderId": "field-work-raider-field-work-recover-health",
+              "ownedConditionIds": [
+                "field-work-raider-field-work-health-low",
+                "field-work-raider-field-work-healing-nearby",
+                "field-work-raider-field-work-not-carrying",
+                "field-work-raider-field-work-health-recovered",
+                "field-work-raider-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "field-work-raider-field-work-field-work-raider-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "field-work-raider-field-work",
+              "useOrderId": "field-work-raider-field-work-fight",
+              "ownedConditionIds": [
+                "field-work-raider-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        }
+      ],
+      "linkedValues": []
+    }
+  ]
+}

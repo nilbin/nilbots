@@ -135,6 +135,7 @@ export function inspectWorkshop(
       for (const projection of play.projections) {
         const response = findOrder(projection.orders, `${projection.id}-respond`);
         if (!response) continue;
+        if (projection.responseActivation === 'immediate') continue;
         const names = response.when === undefined ? []
           : typeof response.when === 'string' ? [response.when]
             : expressionNames(response.when);

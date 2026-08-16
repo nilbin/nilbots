@@ -249,7 +249,7 @@ export function addRelayChainPlay(
   // source and pocket are an authored, terrain-clear pair.
   const corridorWaypoints: Array<[number, number]> = [
     [19, 20], [22, 23], [22, 22], [23, 21], [24, 22],
-    [24, 23], [25, 23], [27, 23], [27, 25],
+    [24, 23], [25, 23], [25, 25],
     [16, 25], [11, 25], [5, 25], [3, 25], [3, 23], [3, 19],
     [4, 17], [4, 16], [4, 15], [5, 14], [5, 12], [4, 11],
     [4, 9], [3, 8], [2, 7], [2, 5],
@@ -259,20 +259,17 @@ export function addRelayChainPlay(
   const homeAnchor = `${id}-home-reactor`;
   const homeZone = `${homeAnchor}-approach`;
   const rendezvousPoints: Array<[number, number]> = [
-    [28, 23], [11, 25], [3, 19],
+    [25, 23], [11, 25], [5, 12],
   ];
-  const approachWaypointIndices = [7, 8, 12];
-  const tossSourceWaypointIndices = [5, 9, 13];
-  const forwardRouteTiles = [3, 5, 4];
+  const tossSourceWaypointIndices = [3, 8, 17];
+  const forwardRouteTiles = [2, 5, 2];
   const rendezvous = rendezvousPoints.map((point, index) => ({
     index,
     id: `${id}-receiver-${index + 1}`,
     zone: `${id}-receiver-${index + 1}-ready`,
-    approachZone: `${id}-receiver-${index + 1}-approach`,
     sourceZone: `${id}-toss-${index + 1}-source`,
     point,
     roleId: index % 2 === 0 ? roles.relayBRoleId : roles.relayARoleId,
-    approachWaypointIndex: approachWaypointIndices[index],
     sourceWaypointIndex: tossSourceWaypointIndices[index],
     forwardRouteTiles: forwardRouteTiles[index],
   }));
@@ -283,10 +280,7 @@ export function addRelayChainPlay(
     next.mapPlan.anchors[station.id] = station.point;
   for (const station of rendezvous) {
     next.mapPlan.zones[station.zone] = { rect: [...station.point, ...station.point] };
-    const approach = corridorWaypoints[station.approachWaypointIndex];
     const source = corridorWaypoints[station.sourceWaypointIndex];
-    if (station.index > 0)
-      next.mapPlan.zones[station.approachZone] = { rect: [...approach, ...approach] };
     next.mapPlan.zones[station.sourceZone] = { rect: [...source, ...source] };
   }
   // Entering this small terminal approach switches both roles off the
@@ -305,8 +299,6 @@ export function addRelayChainPlay(
   };
   for (let index = 0; index < rendezvous.length; index += 1) {
     conditionIds[`receiver${index + 1}`] = `${id}-receiver-${index + 1}-occupied`;
-    if (index > 0)
-      conditionIds[`approach${index + 1}`] = `${id}-receiver-${index + 1}-at-approach`;
     conditionIds[`source${index + 1}`] = `${id}-carrier-${index + 1}-at-source`;
   }
   const conditions: Record<string, ConditionDefinition> = {
@@ -332,12 +324,6 @@ export function addRelayChainPlay(
       role: station.roleId,
       zone: station.zone,
     };
-    if (index > 0) {
-      conditions[conditionIds[`approach${index + 1}`]] = {
-        fact: 'self-in-zone', operator: 'equals', value: 1,
-        zone: station.approachZone,
-      };
-    }
     conditions[conditionIds[`source${index + 1}`]] = {
       fact: 'self-in-zone', operator: 'equals', value: 1,
       zone: station.sourceZone,
@@ -350,7 +336,6 @@ export function addRelayChainPlay(
       ? [{
         anchorId: station.id,
         previousReadyCondition: conditionIds[`receiver${index + 1}`],
-        approachCondition: conditionIds[`approach${index + 2}`],
         readyCondition: conditionIds[`receiver${index + 2}`],
       }]
       : []);
@@ -400,18 +385,11 @@ export function addRelayChainPlay(
         derivedFrom: station.id,
         tolerance: 0,
       })),
-      ...rendezvous.flatMap((station) => ([
-        ...(station.index > 0 ? [{
-          kind: 'zone' as const,
-          id: station.approachZone,
-          purpose: 'self-in-zone receiver approach',
-        }] : []),
-        {
-          kind: 'zone' as const,
-          id: station.sourceZone,
-          purpose: 'self-in-zone toss source',
-        },
-      ])),
+      ...rendezvous.map((station) => ({
+        kind: 'zone' as const,
+        id: station.sourceZone,
+        purpose: 'self-in-zone toss source',
+      })),
       { kind: 'zone', id: homeZone, purpose: 'self-in-zone' },
     ],
     geometryGroups: [{
@@ -756,7 +734,6 @@ function ambushProjection(
 interface RelayReceiverStage {
   anchorId: string;
   previousReadyCondition: string;
-  approachCondition: string;
   readyCondition: string;
 }
 
@@ -798,22 +775,14 @@ function relayProjection(
         // combat or pathing failure.
         timeout: 80,
         urgency: 'urgent',
-        orders: [
-          {
-            id: `${playId}-${label}-receive-${index + 1}-hold`,
-            when: stage.readyCondition,
-            move: { to: { anchor: stage.anchorId } },
-          },
-          {
-            id: `${playId}-${label}-receive-${index + 1}-enter-pocket`,
-            when: stage.approachCondition,
-            move: { to: { anchor: stage.anchorId } },
-          },
-          {
-            id: `${playId}-${label}-receive-${index + 1}-run-corridor`,
-            move: { patrol: corridorRoute },
-          },
-        ],
+        // The empty runner has one legible job: reach the next passing
+        // pocket. The pocket lies on the same terrain corridor as the
+        // carrier, while direct point-to-point planning lets the unladen
+        // runner use its cadence advantage instead of replaying the whole
+        // route prefix behind the Core.
+        move: {
+          to: { anchor: stage.anchorId },
+        },
       })),
       {
         id: `${playId}-${label}-running-return`,

@@ -71,6 +71,17 @@ public static class TacticalSheetEndpoints
                         signatures[value.Id]))).ToArray(),
                 templates.Template.OrdersJson,
                 templates.Template.MapPlanJson,
+                templates.Starters.Select(value => new TacticalStarterSheetResponse(
+                    value.Id,
+                    value.Name,
+                    value.Description,
+                    value.Composition,
+                    value.OrdersJson,
+                    value.MapPlanJson,
+                    value.WorkshopJson
+                        ?? throw new InvalidOperationException(
+                            $"Starter '{value.Id}' has no editable workshop source.")))
+                    .ToArray(),
                 templates.Stock.Select(value => new TacticalStockSheetResponse(
                     value.Id,
                     value.Name,

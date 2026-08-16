@@ -1,0 +1,187 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "running-relay-v1",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {
+    "relay-chain-receiver-1-ready": {
+      "rect": [
+        25,
+        23,
+        25,
+        23
+      ]
+    },
+    "relay-chain-toss-1-source": {
+      "rect": [
+        23,
+        21,
+        23,
+        21
+      ]
+    },
+    "relay-chain-receiver-2-ready": {
+      "rect": [
+        11,
+        25,
+        11,
+        25
+      ]
+    },
+    "relay-chain-toss-2-source": {
+      "rect": [
+        16,
+        25,
+        16,
+        25
+      ]
+    },
+    "relay-chain-receiver-3-ready": {
+      "rect": [
+        5,
+        12,
+        5,
+        12
+      ]
+    },
+    "relay-chain-toss-3-source": {
+      "rect": [
+        5,
+        14,
+        5,
+        14
+      ]
+    },
+    "relay-chain-home-reactor-approach": {
+      "rect": [
+        3,
+        6,
+        5,
+        8
+      ]
+    }
+  },
+  "routes": {
+    "relay-chain-return-corridor": {
+      "waypoints": [
+        [
+          19,
+          20
+        ],
+        [
+          22,
+          23
+        ],
+        [
+          22,
+          22
+        ],
+        [
+          23,
+          21
+        ],
+        [
+          24,
+          22
+        ],
+        [
+          24,
+          23
+        ],
+        [
+          25,
+          23
+        ],
+        [
+          25,
+          25
+        ],
+        [
+          16,
+          25
+        ],
+        [
+          11,
+          25
+        ],
+        [
+          5,
+          25
+        ],
+        [
+          3,
+          25
+        ],
+        [
+          3,
+          23
+        ],
+        [
+          3,
+          19
+        ],
+        [
+          4,
+          17
+        ],
+        [
+          4,
+          16
+        ],
+        [
+          4,
+          15
+        ],
+        [
+          5,
+          14
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          4,
+          11
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          3,
+          8
+        ],
+        [
+          2,
+          7
+        ],
+        [
+          2,
+          5
+        ]
+      ]
+    }
+  },
+  "anchors": {
+    "relay-chain-enemy-well-pickup": [
+      19,
+      20
+    ],
+    "relay-chain-home-reactor": [
+      2,
+      5
+    ],
+    "relay-chain-receiver-1": [
+      25,
+      23
+    ],
+    "relay-chain-receiver-2": [
+      11,
+      25
+    ],
+    "relay-chain-receiver-3": [
+      5,
+      12
+    ]
+  }
+}

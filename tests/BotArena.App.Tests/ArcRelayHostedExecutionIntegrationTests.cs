@@ -63,7 +63,15 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(ArcRelayLoopProfile.Tapline6.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
-        Assert.Equal(8, catalog.StockOpponents.Count);
+        Assert.Equal(10, catalog.StockOpponents.Count);
+        Assert.Equal(
+            ["running-relay-v1", "mid-overload-fork-v1"],
+            catalog.StarterSheets.Select(value => value.Id));
+        Assert.All(catalog.StarterSheets, starter =>
+        {
+            Assert.Equal(8, starter.Composition.Count);
+            Assert.Contains("arc-relay-workshop-v1", starter.WorkshopJson);
+        });
         Assert.Equal(16, catalog.Classes.Count);
         Assert.All(catalog.Classes, entry =>
         {
@@ -88,6 +96,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal("demolition-march-v1", stock.Id);
         Assert.Equal("lockbox-v1", catalog.StockOpponents[1].Id);
         Assert.Equal("idle-field-v1", catalog.StockOpponents[2].Id);
+        Assert.Equal("mid-overload-drill-v1", catalog.StockOpponents[3].Id);
+        Assert.Equal("running-relay-solo-v1", catalog.StockOpponents[4].Id);
 
         TacticalSheetResponse first = await SaveAsync(
             client,

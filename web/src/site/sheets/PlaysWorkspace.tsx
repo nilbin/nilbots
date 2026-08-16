@@ -846,6 +846,8 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
   const chosen = chosenIds.includes(destination) ? destination : chosenIds[0] ?? '';
   const [required, setRequired] = useState(ready?.value ?? role.classes.length);
   const [timeout, setTimeout] = useState(response?.timeout ?? 90);
+  const [activation, setActivation] = useState<'program-trigger' | 'immediate'>(
+    projection.responseActivation ?? 'program-trigger');
   const configured = Boolean(response);
   const exit = typeof response?.until === 'string' ? response.until : '';
   const allConditions = Object.keys(draft.orders.conditions)
@@ -876,6 +878,16 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
       <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
         onClick={() => onSelectGeometry(chosen)}>Edit {humanize(chosen)} on map</button>
     </label> : <p className="t-meta mt-3">Draw a Program-owned {kind} on the map first.</p>}
+    <div className="mt-3"><span className="lab mb-1 block">Participant starts</span>
+      <div className="grid grid-cols-2 gap-1.5">
+        <button type="button" className="choice-card min-h-14" data-selected={activation === 'program-trigger'}
+          aria-pressed={activation === 'program-trigger'} onClick={() => setActivation('program-trigger')}>
+          <b className="t-body block">With Program</b><span className="t-micro">Wait for the shared start.</span></button>
+        <button type="button" className="choice-card min-h-14" data-selected={activation === 'immediate'}
+          aria-pressed={activation === 'immediate'} onClick={() => setActivation('immediate')}>
+          <b className="t-body block">Immediately</b><span className="t-micro">Begin independently now.</span></button>
+      </div>
+    </div>
     {kind === 'zone' && <label className="mt-3 block"><span className="lab mb-1 block">Bodies required · {required}/{role.classes.length}</span>
       <input type="range" className="w-full accent-[var(--color-arena-material)]"
         min={1} max={Math.max(1, role.classes.length)} value={Math.min(required, role.classes.length)}
@@ -891,12 +903,15 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
       disabled={!triggerId || !chosen}
       onClick={() => onChange(configurePlayContingent(draft, play.id, projection.id, {
         triggerConditionId: triggerId,
+        activation,
         destination: kind === 'zone' ? { zone: chosen } : { route: chosen },
         requiredBodies: kind === 'zone' ? required : 0,
         timeout,
       }))}>{configured ? 'Apply refinement' : 'Build participant Instructions'}</button>
     {configured && <div className="mt-3 grid gap-2 rounded-sm border border-arena-edge bg-arena-panel/45 p-3 sm:grid-cols-2">
-      <div><p className="lab">Starts</p><p className="t-micro mt-1">{conditionSummary(draft.orders.conditions[triggerId])}{ready ? ` AND ${conditionSummary(ready)}` : ''}</p></div>
+      <div><p className="lab">Starts</p><p className="t-micro mt-1">{projection.responseActivation === 'immediate'
+        ? 'Immediately, independent of the shared Program trigger'
+        : conditionSummary(draft.orders.conditions[triggerId])}{ready ? ` AND ${conditionSummary(ready)}` : ''}</p></div>
       <div><p className="lab">During</p><p className="t-micro mt-1">{currentRoute ? `Move on ${humanize(currentRoute)}` : 'Fight from the formed area'} · timeout {response?.timeout}</p></div>
       <p className="t-micro sm:col-span-2">On failure, timeout, or no executable Instruction, this role falls through to its next participating Program. After all Programs, advanced unlinked Instructions remain the compatibility fallback.</p>
       <details className="sm:col-span-2 rounded-sm border border-arena-edge bg-arena-deep/30">

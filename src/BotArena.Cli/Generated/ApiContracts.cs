@@ -3259,6 +3259,10 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string TemplateMapPlanJson { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("starterSheets")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<TacticalStarterSheetResponse> StarterSheets { get; set; } = new System.Collections.Generic.List<TacticalStarterSheetResponse>();
+
         [System.Text.Json.Serialization.JsonPropertyName("stockOpponents")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<TacticalStockSheetResponse> StockOpponents { get; set; } = new System.Collections.Generic.List<TacticalStockSheetResponse>();
@@ -3690,6 +3694,49 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("entrant")]
         [System.ComponentModel.DataAnnotations.Required]
         public ArcRelayEntrantCardResponse Entrant { get; set; } = new ArcRelayEntrantCardResponse();
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class TacticalStarterSheetResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("id")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Id { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("name")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Name { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("description")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Description { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("composition")]
+        [System.ComponentModel.DataAnnotations.Required]
+        public System.Collections.Generic.IReadOnlyList<string> Composition { get; set; } = new System.Collections.Generic.List<string>();
+
+        [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string OrdersJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string MapPlanJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string WorkshopJson { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 

@@ -1,0 +1,1737 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "mid-overload-fork-v1",
+  "mapPlan": "../map-plans/tapline-6/mid-overload-fork-v1.json",
+  "roles": [
+    {
+      "id": "home-mason",
+      "classes": [
+        "mason"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-home-mason-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-home-mason-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-home-mason-effect-role-deployment-r",
+              "mid-fork-home-mason-ready",
+              "mid-fork-home-lantern-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-home-mason-respond-hardlight-block",
+              "use": {
+                "skill": "hardlight-block",
+                "target": "self",
+                "at": "mid-fork-home-mason-effect"
+              },
+              "when": {
+                "all": [
+                  "mid-fork-home-mason-occupied-by-self",
+                  "mid-fork-home-mason-effect-missing"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-home-mason-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-2"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-home-mason-duty",
+          "orders": [
+            {
+              "id": "mid-fork-home-mason-rebuild",
+              "when": {
+                "all": [
+                  "mid-fork-home-mason-occupied-by-self",
+                  "mid-fork-home-mason-effect-missing"
+                ]
+              },
+              "capacity": 1,
+              "use": {
+                "skill": "hardlight-block",
+                "target": "self",
+                "at": "mid-fork-home-mason-effect"
+              }
+            },
+            {
+              "id": "mid-fork-home-mason-refresh-durability",
+              "when": {
+                "all": [
+                  "mid-fork-home-mason-occupied-by-self",
+                  "mid-fork-home-mason-effect-present",
+                  "mid-fork-home-mason-effect-damaged"
+                ]
+              },
+              "capacity": 1,
+              "use": {
+                "skill": "hardlight-block",
+                "target": "self",
+                "at": "mid-fork-home-mason-effect"
+              }
+            },
+            {
+              "id": "mid-fork-home-mason-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-home-mason"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-home-mason-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-home-mason-field-work",
+          "orders": [
+            {
+              "id": "field-work-home-mason-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-home-mason-field-work-empty-handed",
+                  "field-work-home-mason-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-home-mason-field-work-recover-health",
+              "when": {
+                "all": [
+                  "field-work-home-mason-field-work-health-low",
+                  "field-work-home-mason-field-work-healing-nearby",
+                  "field-work-home-mason-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-home-mason-field-work-health-recovere",
+                  "field-work-home-mason-field-work-became-carrier"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-home-mason-field-work-fight",
+              "when": "field-work-home-mason-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-home-mason-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "own"
+                },
+                "posture": "front"
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-mason-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "home-lantern",
+      "classes": [
+        "lantern"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-home-lantern-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-home-lantern-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-home-mason-effect-role-deployment-r",
+              "mid-fork-home-mason-ready",
+              "mid-fork-home-lantern-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-home-lantern-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-2"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-home-lantern-duty",
+          "orders": [
+            {
+              "id": "mid-fork-home-lantern-duty-survey-flare",
+              "use": {
+                "skill": "survey-flare",
+                "target": "self",
+                "at": "mid-fork-anchor"
+              },
+              "when": "home-lantern-at-post"
+            },
+            {
+              "id": "mid-fork-home-lantern-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-home-lantern"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-home-lantern-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-home-lantern-field-work",
+          "orders": [
+            {
+              "id": "field-work-home-lantern-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-home-lantern-field-work-empty-handed",
+                  "field-work-home-lantern-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-home-lantern-field-work-recover-healt",
+              "when": {
+                "all": [
+                  "field-work-home-lantern-field-work-health-low",
+                  "field-work-home-lantern-field-work-healing-nearb",
+                  "field-work-home-lantern-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-home-lantern-field-work-health-recove",
+                  "field-work-home-lantern-field-work-became-carrie"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-home-lantern-field-work-fight",
+              "when": "field-work-home-lantern-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-home-lantern-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "centre"
+                },
+                "posture": "front"
+              }
+            }
+          ]
+        },
+        {
+          "id": "home-lantern-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "return-mason",
+      "classes": [
+        "mason"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-return-mason-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-return-mason-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-return-mason-effect-role-deployment",
+              "mid-fork-return-mason-ready",
+              "mid-fork-return-rail-ready",
+              "mid-fork-return-hush-ready",
+              "mid-fork-return-medic-ready",
+              "mid-fork-return-breaker-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-return-mason-respond-hardlight-block",
+              "use": {
+                "skill": "hardlight-block",
+                "target": "self",
+                "at": "mid-fork-return-mason-effect"
+              },
+              "when": {
+                "all": [
+                  "mid-fork-return-mason-occupied-by-self",
+                  "mid-fork-return-mason-effect-missing"
+                ]
+              }
+            },
+            {
+              "id": "mid-fork-return-mason-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-3"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-return-mason-duty",
+          "orders": [
+            {
+              "id": "mid-fork-return-mason-rebuild",
+              "when": {
+                "all": [
+                  "mid-fork-return-mason-occupied-by-self",
+                  "mid-fork-return-mason-effect-missing"
+                ]
+              },
+              "capacity": 1,
+              "use": {
+                "skill": "hardlight-block",
+                "target": "self",
+                "at": "mid-fork-return-mason-effect"
+              }
+            },
+            {
+              "id": "mid-fork-return-mason-refresh-durability",
+              "when": {
+                "all": [
+                  "mid-fork-return-mason-occupied-by-self",
+                  "mid-fork-return-mason-effect-present",
+                  "mid-fork-return-mason-effect-damaged"
+                ]
+              },
+              "capacity": 1,
+              "use": {
+                "skill": "hardlight-block",
+                "target": "self",
+                "at": "mid-fork-return-mason-effect"
+              }
+            },
+            {
+              "id": "mid-fork-return-mason-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-return-mason"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-return-mason-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-mason-field-work",
+          "orders": [
+            {
+              "id": "field-work-return-mason-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-return-mason-field-work-empty-handed",
+                  "field-work-return-mason-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-return-mason-field-work-recover-healt",
+              "when": {
+                "all": [
+                  "field-work-return-mason-field-work-health-low",
+                  "field-work-return-mason-field-work-healing-nearb",
+                  "field-work-return-mason-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-return-mason-field-work-health-recove",
+                  "field-work-return-mason-field-work-became-carrie"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-return-mason-field-work-fight",
+              "when": "field-work-return-mason-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-return-mason-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "enemy"
+                },
+                "posture": "front"
+              }
+            }
+          ]
+        },
+        {
+          "id": "return-mason-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "return-rail",
+      "classes": [
+        "longshot"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-return-rail-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-return-rail-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-return-mason-effect-role-deployment",
+              "mid-fork-return-mason-ready",
+              "mid-fork-return-rail-ready",
+              "mid-fork-return-hush-ready",
+              "mid-fork-return-medic-ready",
+              "mid-fork-return-breaker-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-return-rail-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-3"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-return-rail-duty",
+          "orders": [
+            {
+              "id": "mid-fork-return-rail-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-return-rail"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-return-rail-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-rail-field-work",
+          "orders": [
+            {
+              "id": "field-work-return-rail-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-return-rail-field-work-empty-handed",
+                  "field-work-return-rail-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-return-rail-field-work-recover-health",
+              "when": {
+                "all": [
+                  "field-work-return-rail-field-work-health-low",
+                  "field-work-return-rail-field-work-healing-nearby",
+                  "field-work-return-rail-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-return-rail-field-work-health-recover",
+                  "field-work-return-rail-field-work-became-carrier"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-return-rail-field-work-fight",
+              "when": "field-work-return-rail-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-return-rail-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "own"
+                },
+                "posture": "line"
+              }
+            }
+          ]
+        },
+        {
+          "id": "return-rail-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "return-hush",
+      "classes": [
+        "hush"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-return-hush-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-return-hush-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-return-mason-effect-role-deployment",
+              "mid-fork-return-mason-ready",
+              "mid-fork-return-rail-ready",
+              "mid-fork-return-hush-ready",
+              "mid-fork-return-medic-ready",
+              "mid-fork-return-breaker-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-return-hush-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-3"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-return-hush-duty",
+          "orders": [
+            {
+              "id": "mid-fork-return-hush-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-return-hush"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-return-hush-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-hush-field-work",
+          "orders": [
+            {
+              "id": "field-work-return-hush-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-return-hush-field-work-empty-handed",
+                  "field-work-return-hush-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-return-hush-field-work-recover-health",
+              "when": {
+                "all": [
+                  "field-work-return-hush-field-work-health-low",
+                  "field-work-return-hush-field-work-healing-nearby",
+                  "field-work-return-hush-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-return-hush-field-work-health-recover",
+                  "field-work-return-hush-field-work-became-carrier"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-return-hush-field-work-fight",
+              "when": "field-work-return-hush-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-return-hush-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "centre"
+                },
+                "posture": "line"
+              }
+            }
+          ]
+        },
+        {
+          "id": "return-hush-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "return-medic",
+      "classes": [
+        "patchbay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-return-medic-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-return-medic-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-return-mason-effect-role-deployment",
+              "mid-fork-return-mason-ready",
+              "mid-fork-return-rail-ready",
+              "mid-fork-return-hush-ready",
+              "mid-fork-return-medic-ready",
+              "mid-fork-return-breaker-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-return-medic-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-3"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-return-medic-duty",
+          "orders": [
+            {
+              "id": "mid-fork-return-medic-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-return-medic"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-return-medic-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-medic-field-work",
+          "orders": [
+            {
+              "id": "field-work-return-medic-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-return-medic-field-work-empty-handed",
+                  "field-work-return-medic-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-return-medic-field-work-recover-healt",
+              "when": {
+                "all": [
+                  "field-work-return-medic-field-work-health-low",
+                  "field-work-return-medic-field-work-healing-nearb",
+                  "field-work-return-medic-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-return-medic-field-work-health-recove",
+                  "field-work-return-medic-field-work-became-carrie"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-return-medic-field-work-fight",
+              "when": "field-work-return-medic-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-return-medic-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "enemy"
+                },
+                "posture": "line"
+              }
+            }
+          ]
+        },
+        {
+          "id": "return-medic-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "return-breaker",
+      "classes": [
+        "repulsor"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-return-breaker-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-return-breaker-respond",
+          "when": {
+            "all": [
+              "mid-fork-response-start",
+              "mid-fork-return-mason-effect-role-deployment",
+              "mid-fork-return-mason-ready",
+              "mid-fork-return-rail-ready",
+              "mid-fork-return-hush-ready",
+              "mid-fork-return-medic-ready",
+              "mid-fork-return-breaker-ready"
+            ]
+          },
+          "timeout": 110,
+          "cooldown": 20,
+          "orders": [
+            {
+              "id": "mid-fork-return-breaker-respond-continue",
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5,
+                "zone": "mid-fork-zone-3"
+              },
+              "capacity": 2
+            }
+          ],
+          "until": {
+            "all": [
+              "mid-fork-minimum-commitment",
+              "mid-fork-response-success"
+            ]
+          }
+        },
+        {
+          "id": "mid-fork-return-breaker-duty",
+          "orders": [
+            {
+              "id": "mid-fork-return-breaker-stand",
+              "capacity": 1,
+              "move": {
+                "to": {
+                  "anchor": "mid-fork-return-breaker"
+                },
+                "posture": "line",
+                "face": {
+                  "anchor": "mid-fork-return-breaker-facing"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-return-breaker-field-work",
+          "orders": [
+            {
+              "id": "field-work-return-breaker-field-work-recover-cor",
+              "when": {
+                "all": [
+                  "field-work-return-breaker-field-work-empty-hande",
+                  "field-work-return-breaker-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-return-breaker-field-work-recover-hea",
+              "when": {
+                "all": [
+                  "field-work-return-breaker-field-work-health-low",
+                  "field-work-return-breaker-field-work-healing-nea",
+                  "field-work-return-breaker-field-work-not-carryin"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-return-breaker-field-work-health-reco",
+                  "field-work-return-breaker-field-work-became-carr"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-return-breaker-field-work-fight",
+              "when": "field-work-return-breaker-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "hold",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-return-breaker-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "own"
+                },
+                "posture": "line"
+              }
+            }
+          ]
+        },
+        {
+          "id": "return-breaker-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "raider",
+      "classes": [
+        "kestrel"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "bank-core-raider-bank",
+          "when": "bank-core-carrying",
+          "until": "bank-core-empty",
+          "urgency": "urgent",
+          "move": {
+            "to": "own-reactor"
+          }
+        },
+        {
+          "id": "mid-fork-raider-respond",
+          "when": "always",
+          "timeout": 220,
+          "cooldown": 0,
+          "orders": [
+            {
+              "id": "mid-fork-raider-respond-vector-dash",
+              "use": {
+                "skill": "vector-dash",
+                "target": {
+                  "route": "mid-fork-route",
+                  "progress": "forward",
+                  "minimumForwardTiles": 2
+                }
+              },
+              "when": "mid-fork-raider-respond-vector-dash-window-activ"
+            },
+            {
+              "id": "mid-fork-raider-respond-continue",
+              "move": {
+                "to": {
+                  "well": "enemy"
+                },
+                "via": "mid-fork-route",
+                "posture": "front"
+              }
+            }
+          ]
+        },
+        {
+          "id": "field-work-raider-field-work",
+          "orders": [
+            {
+              "id": "field-work-raider-field-work-recover-core",
+              "when": {
+                "all": [
+                  "field-work-raider-field-work-empty-handed",
+                  "field-work-raider-field-work-core-nearby"
+                ]
+              },
+              "capacity": "core-recovery",
+              "move": {
+                "to": "highest-bank-value-visible-loose-core",
+                "withinWalkingSteps": 5
+              }
+            },
+            {
+              "id": "field-work-raider-field-work-recover-health",
+              "when": {
+                "all": [
+                  "field-work-raider-field-work-health-low",
+                  "field-work-raider-field-work-healing-nearby",
+                  "field-work-raider-field-work-not-carrying"
+                ]
+              },
+              "until": {
+                "any": [
+                  "field-work-raider-field-work-health-recovered",
+                  "field-work-raider-field-work-became-carrier"
+                ]
+              },
+              "timeout": 55,
+              "cooldown": 20,
+              "capacity": "healing",
+              "move": {
+                "to": "nearest-heal-zone",
+                "withinWalkingSteps": 8
+              }
+            },
+            {
+              "id": "field-work-raider-field-work-fight",
+              "when": "field-work-raider-field-work-contact",
+              "capacity": 3,
+              "fight": {
+                "targets": [
+                  "carrier",
+                  "weakest",
+                  "nearest"
+                ],
+                "style": "advance",
+                "chaseLimit": 5
+              }
+            },
+            {
+              "id": "field-work-raider-field-work-continue",
+              "move": {
+                "to": {
+                  "well": "centre"
+                },
+                "posture": "line"
+              }
+            }
+          ]
+        },
+        {
+          "id": "raider-park",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {},
+  "capacities": {
+    "core-recovery": 1,
+    "healing": 1
+  },
+  "conditions": {
+    "bank-core-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "bank-core-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-response-start": {
+      "fact": "remembered-enemies-in-zone",
+      "operator": "at-least",
+      "value": 5,
+      "zone": "mid-fork-zone",
+      "freshnessTicks": 45
+    },
+    "mid-fork-home-mason-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "home-mason",
+      "zone": "mid-fork-home-mason-ready"
+    },
+    "mid-fork-home-lantern-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "home-lantern",
+      "zone": "mid-fork-home-lantern-ready"
+    },
+    "mid-fork-return-mason-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "return-mason",
+      "zone": "mid-fork-return-mason-ready"
+    },
+    "mid-fork-return-rail-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "return-rail",
+      "zone": "mid-fork-return-rail-ready"
+    },
+    "mid-fork-return-hush-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "return-hush",
+      "zone": "mid-fork-return-hush-ready"
+    },
+    "mid-fork-return-medic-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "return-medic",
+      "zone": "mid-fork-return-medic-ready"
+    },
+    "mid-fork-return-breaker-ready": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "return-breaker",
+      "zone": "mid-fork-return-breaker-ready"
+    },
+    "mid-fork-home-mason-occupied-by-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "mid-fork-home-mason-ready"
+    },
+    "mid-fork-home-mason-effect-missing": {
+      "fact": "self-deployment-in-zone",
+      "operator": "equals",
+      "value": 0,
+      "zone": "mid-fork-home-mason-effect-footprint"
+    },
+    "mid-fork-home-mason-effect-present": {
+      "fact": "self-deployment-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "mid-fork-home-mason-effect-footprint"
+    },
+    "mid-fork-home-mason-effect-role-deployment-r": {
+      "fact": "role-deployments-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "home-mason",
+      "zone": "mid-fork-home-mason-effect-footprint",
+      "signature": "hardlight-block"
+    },
+    "mid-fork-home-mason-effect-damaged": {
+      "fact": "deployment-durability-percent",
+      "operator": "at-most",
+      "value": 25
+    },
+    "mid-fork-return-mason-occupied-by-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "mid-fork-return-mason-ready"
+    },
+    "mid-fork-return-mason-effect-missing": {
+      "fact": "self-deployment-in-zone",
+      "operator": "equals",
+      "value": 0,
+      "zone": "mid-fork-return-mason-effect-footprint"
+    },
+    "mid-fork-return-mason-effect-present": {
+      "fact": "self-deployment-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "mid-fork-return-mason-effect-footprint"
+    },
+    "mid-fork-return-mason-effect-role-deployment": {
+      "fact": "role-deployments-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "return-mason",
+      "zone": "mid-fork-return-mason-effect-footprint",
+      "signature": "hardlight-block"
+    },
+    "mid-fork-return-mason-effect-damaged": {
+      "fact": "deployment-durability-percent",
+      "operator": "at-most",
+      "value": 25
+    },
+    "home-lantern-at-post": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "mid-fork-home-lantern-ready"
+    },
+    "mid-fork-response-success": {
+      "fact": "confirmed-enemy-destructions-in-zone",
+      "operator": "at-least",
+      "value": 3,
+      "zone": "mid-fork-zone-3",
+      "since": "node-entry"
+    },
+    "mid-fork-minimum-commitment": {
+      "fact": "self-order-ticks",
+      "operator": "at-least",
+      "value": 25
+    },
+    "mid-fork-raider-respond-vector-dash-window-activ": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "mid-fork-raider-respond-vector-dash-window"
+    },
+    "field-work-home-mason-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-home-mason-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-home-mason-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-home-mason-field-work-health-recovere": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-home-mason-field-work-healing-nearby": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-home-mason-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-home-mason-field-work-became-carrier": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-home-mason-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-home-lantern-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-home-lantern-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-home-lantern-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-home-lantern-field-work-health-recove": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-home-lantern-field-work-healing-nearb": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-home-lantern-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-home-lantern-field-work-became-carrie": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-home-lantern-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-return-mason-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-mason-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-return-mason-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-return-mason-field-work-health-recove": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-return-mason-field-work-healing-nearb": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-return-mason-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-mason-field-work-became-carrie": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-return-mason-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-return-rail-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-rail-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-return-rail-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-return-rail-field-work-health-recover": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-return-rail-field-work-healing-nearby": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-return-rail-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-rail-field-work-became-carrier": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-return-rail-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-return-hush-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-hush-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-return-hush-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-return-hush-field-work-health-recover": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-return-hush-field-work-healing-nearby": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-return-hush-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-hush-field-work-became-carrier": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-return-hush-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-return-medic-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-medic-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-return-medic-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-return-medic-field-work-health-recove": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-return-medic-field-work-healing-nearb": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-return-medic-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-medic-field-work-became-carrie": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-return-medic-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-return-breaker-field-work-empty-hande": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-breaker-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-return-breaker-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-return-breaker-field-work-health-reco": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-return-breaker-field-work-healing-nea": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-return-breaker-field-work-not-carryin": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-return-breaker-field-work-became-carr": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-return-breaker-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    },
+    "field-work-raider-field-work-empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-raider-field-work-core-nearby": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 5
+    },
+    "field-work-raider-field-work-health-low": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "field-work-raider-field-work-health-recovered": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 70
+    },
+    "field-work-raider-field-work-healing-nearby": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 8
+    },
+    "field-work-raider-field-work-not-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "field-work-raider-field-work-became-carrier": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "field-work-raider-field-work-contact": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 6
+    }
+  }
+}

@@ -9,6 +9,7 @@ import {
 import { Link, useNavigate } from 'react-router-dom';
 import clsx from 'clsx';
 import type { TacticalSheet, TacticalSheetCatalog, TacticalSheetSummary } from '../api';
+import ClassIcon from '../../components/ClassIcon';
 import {
   useDeleteTacticalSheet,
   useMatchLive,
@@ -95,6 +96,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const [mapReturn, setMapReturn] = useState<MapReturn>(null);
   const [resumeConditionId, setResumeConditionId] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
+  const [starterOpen, setStarterOpen] = useState(false);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
   const [restored, setRestored] = useState(false);
@@ -122,10 +124,16 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     setDraft(next);
   }, []);
 
-  const templateDraft = useCallback(() => parseDraft(
-    'Untitled tactical sheet', null, null,
-    catalog.templateOrdersJson, catalog.templateMapPlanJson,
-  ), [catalog.templateMapPlanJson, catalog.templateOrdersJson]);
+  const starterDraft = useCallback((starterId?: string) => {
+    const starter = catalog.starterSheets.find((entry) => entry.id === starterId)
+      ?? catalog.starterSheets[0];
+    return starter
+      ? parseDraft(starter.name, null, null, starter.ordersJson,
+          starter.mapPlanJson, true, starter.workshopJson)
+      : parseDraft('Untitled tactical sheet', null, null,
+          catalog.templateOrdersJson, catalog.templateMapPlanJson);
+  }, [catalog.starterSheets, catalog.templateMapPlanJson,
+    catalog.templateOrdersJson]);
 
   useEffect(() => {
     if (initialSheetId) {
@@ -139,14 +147,14 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       const v2Locals = locals.filter(isOrdersDraft);
       setLocalDrafts(v2Locals);
       const usable = local && isOrdersDraft(local) && local.mapPlan.mapId === catalog.map.id ? local : null;
-      replaceDraft(usable ?? templateDraft());
+      replaceDraft(usable ?? starterDraft());
       setActiveId(null);
       setRestored(Boolean(usable));
     }).catch(() => {
-      if (live) replaceDraft(templateDraft());
+      if (live) replaceDraft(starterDraft());
     });
     return () => { live = false; };
-  }, [catalog.map.id, initialSheetId, replaceDraft, templateDraft]);
+  }, [catalog.map.id, initialSheetId, replaceDraft, starterDraft]);
 
   useEffect(() => {
     if (!sheetQuery.data) return;
@@ -155,7 +163,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       serverDraft = fromServer(sheetQuery.data);
       if (!isOrdersDraft(serverDraft)) throw new Error('retired sheet grammar');
     } catch {
-      replaceDraft(templateDraft());
+      replaceDraft(starterDraft());
       setActiveId(null);
       setCompilerIssue({
         path: 'orders',
@@ -173,7 +181,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
       setRestored(usable === local);
     }).catch(() => replaceDraft(serverDraft));
     return () => { live = false; };
-  }, [catalog.map.id, replaceDraft, sheetQuery.data, templateDraft]);
+  }, [catalog.map.id, replaceDraft, sheetQuery.data, starterDraft]);
 
   useEffect(() => {
     if (!draft) return;
@@ -372,11 +380,13 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     }
   };
 
-  const startNew = () => {
-    const next = templateDraft();
+  const startNew = (starterId?: string) => {
+    const next = starterDraft(starterId);
     setActiveId(null); replaceDraft(next); setCompilerIssue(null); setRestored(false);
+    setStarterOpen(false);
     void saveLocalDraft(next).then(() => navigate('/entrants/sheets/new'));
   };
+  const chooseStarter = () => setStarterOpen(true);
 
   const openSaved = (id: string) => {
     setActiveId(id); setLibraryOpen(false); setCompilerIssue(null);
@@ -417,7 +427,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
 
   if (initialSheetId && sheetQuery.isError) return <section className="panel pad" role="alert">
     <p className="lab text-arena-hot">Sheet unavailable</p><p className="t-meta mt-2">It may have been deleted or belongs to another account.</p>
-    <button type="button" className="btn btn-primary mt-3 min-h-11" onClick={startNew}>Start a new sheet</button>
+    <button type="button" className="btn btn-primary mt-3 min-h-11" onClick={chooseStarter}>Start a new sheet</button>
   </section>;
   if (!draft) return <section className="panel pad"><p className="t-meta">Restoring your workshop…</p></section>;
 
@@ -425,7 +435,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   return <div className="grid min-w-0 gap-4 lg:grid-cols-[248px_minmax(0,1fr)]">
     <SheetRail current={draft} restored={restored} localDrafts={localDrafts}
       saved={sheetsQuery.data ?? []} loading={sheetsQuery.isPending} runs={runsForSheet}
-      selectedRunId={selectedRun?.matchId ?? null} onNew={startNew} onOpenLocal={openLocal}
+      selectedRunId={selectedRun?.matchId ?? null} onNew={chooseStarter} onOpenLocal={openLocal}
       onOpenSaved={openSaved} onPlotRun={(id) => { setSelectedRunId(id); setSection('map'); }} />
 
     <main className="flex min-w-0 flex-col gap-3 pb-20 sm:pb-0" aria-label="Open tactical sheet">
@@ -558,8 +568,11 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
 
     {libraryOpen && <Modal title="Sheets and practice runs" onClose={() => setLibraryOpen(false)}>
       <SheetLibrary current={draft} localDrafts={localDrafts} saved={sheetsQuery.data ?? []} runs={runsForSheet}
-        selectedRunId={selectedRun?.matchId ?? null} onNew={startNew} onOpenLocal={openLocal} onOpenSaved={openSaved}
+        selectedRunId={selectedRun?.matchId ?? null} onNew={() => { setLibraryOpen(false); chooseStarter(); }} onOpenLocal={openLocal} onOpenSaved={openSaved}
         onPlotRun={(id) => { setSelectedRunId(id); setSection('map'); setLibraryOpen(false); }} />
+    </Modal>}
+    {starterOpen && <Modal title="Choose your starting strategy" onClose={() => setStarterOpen(false)}>
+      <StarterChooser catalog={catalog} onChoose={(id) => startNew(id)} />
     </Modal>}
     {practiceOpen && <Modal title="Practice scenario" onClose={() => setPracticeOpen(false)}>
       <PracticeSetup catalog={catalog} stockId={stockId} setStockId={setStockId} seed={seed} setSeed={setSeed}
@@ -622,6 +635,37 @@ function SheetLibrary({ current, localDrafts, saved, runs, selectedRunId, onNew,
       {saved.map((sheet) => <SheetButton key={sheet.id} name={sheet.name} detail={`Revision ${sheet.revision}`} selected={current.sheetId === sheet.id} onClick={() => onOpenSaved(sheet.id)} />)}</div></section>
     <section><p className="lab">Practice runs</p><div className="mt-2 space-y-2">{runs.map((run) => <RunCard key={run.matchId} run={run} selected={selectedRunId === run.matchId}
       onPlot={() => onPlotRun(run.matchId)} returnTo={current.sheetId ? `/entrants/sheets/${current.sheetId}/edit` : '/entrants/sheets/new'} />)}{runs.length === 0 && <p className="t-meta">No runs for this sheet yet.</p>}</div></section>
+  </div>;
+}
+
+function StarterChooser({ catalog, onChoose }: {
+  catalog: TacticalSheetCatalog;
+  onChoose: (id: string) => void;
+}) {
+  return <div>
+    <p className="t-meta max-w-3xl">Start with a complete strategy, then reshape its Programs directly on Tapline. Nothing here is a locked recipe: every Post, route, trigger, Opportunity and fallback stays editable.</p>
+    <div className="mt-4 grid gap-3 md:grid-cols-2">
+      {catalog.starterSheets.map((starter, index) => {
+        const locked = [...new Set(starter.composition.filter((classId) =>
+          !catalog.classes.find((entry) => entry.id === classId)?.unlocked))];
+        return <button key={starter.id} type="button"
+          className="choice-card min-h-52 text-left" onClick={() => onChoose(starter.id)}>
+          <span className="flex items-center gap-2">
+            <span className="flex -space-x-1.5">{starter.composition.map((classId, slot) =>
+              <ClassIcon key={`${classId}:${slot}`} classId={classId} size={34} decorative />)}</span>
+            {index === 0 && <span className="pill ml-auto">Recommended first</span>}
+          </span>
+          <b className="type-display mt-4 block text-[22px]">{starter.name}</b>
+          <span className="t-meta mt-2 block">{starter.description}</span>
+          <span className={clsx('t-micro mt-4 block', locked.length > 0
+            ? 'text-arena-material' : 'text-arena-ok')}>
+            {locked.length > 0
+              ? `Includes unlocks: ${locked.map(displayName).join(', ')}`
+              : 'Ready with your starting class set'}
+          </span>
+        </button>;
+      })}
+    </div>
   </div>;
 }
 

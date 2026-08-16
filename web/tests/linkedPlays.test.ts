@@ -248,8 +248,8 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(generated.filter((order) => order.id?.includes('-hop-')).length, 0);
   const corridor = play.ownedGeometry.find((entry) => entry.kind === 'route')!.id;
   const tossLinks = play.geometryGroups[0].tossLinks!;
-  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [5, 9, 13]);
-  assert.deepEqual(tossLinks.map((link) => link.forwardRouteTiles), [3, 5, 4]);
+  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [3, 8, 17]);
+  assert.deepEqual(tossLinks.map((link) => link.forwardRouteTiles), [2, 5, 2]);
   for (const projection of play.projections) {
     const children = projection.orders.find((order) => order.id?.endsWith('-running-return'))!.orders!;
     const toss = children.find((order) => order.use?.skill === 'arc-toss')!;
@@ -261,13 +261,10 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
     for (const receive of projection.orders.filter((order) => order.id?.includes('-receive-'))) {
       assert.equal(receive.urgency, 'urgent');
       assert.equal(receive.timeout, 80);
-      assert.equal(receive.move, undefined);
-      const hold = receive.orders!.find((order) => order.id?.endsWith('-hold'))!;
-      const enter = receive.orders!.find((order) => order.id?.endsWith('-enter-pocket'))!;
-      const run = receive.orders!.find((order) => order.id?.endsWith('-run-corridor'))!;
-      assert.equal(typeof hold.move?.to === 'object' && 'anchor' in hold.move.to, true);
-      assert.equal(typeof enter.move?.to === 'object' && 'anchor' in enter.move.to, true);
-      assert.equal(run.move?.patrol, corridor);
+      assert.equal(typeof receive.move?.to === 'object'
+        && 'anchor' in receive.move.to, true);
+      assert.equal(receive.move?.via, undefined);
+      assert.equal(receive.orders, undefined);
     }
   }
   assert.equal(JSON.stringify(linked.orders).includes('aheadVia'), false);
@@ -282,9 +279,9 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
     /not on a horizontal, vertical, or 45° line/);
 
   const blockedRows = [...taplineTileRows];
-  blockedRows[23] = `${blockedRows[23].slice(0, 26)}#${blockedRows[23].slice(27)}`;
+  blockedRows[22] = `${blockedRows[22].slice(0, 24)}#${blockedRows[22].slice(25)}`;
   assert.match(playGeometryIssues(linked, play.id, blockedRows)[0].message,
-    /blocked by terrain at 26,23/);
+    /blocked by terrain at 24,22/);
 
   const detached = detachPlay(linked.workshop, play.id);
   assert.equal(detached.plays.length, 0);
@@ -662,6 +659,7 @@ test('a blank Program derives its shared trigger and refines contingents without
   });
   linked = configurePlayContingent(linked, playId, relayProjection.id, {
     triggerConditionId: triggerId,
+    activation: 'immediate',
     destination: { route: route.id },
     requiredBodies: 0,
     timeout: 45,
@@ -680,7 +678,9 @@ test('a blank Program derives its shared trigger and refines contingents without
   assert.equal(reserveResponse.timeout, 90);
   const relayResponse = current.projections.find((entry) =>
     entry.id === relayProjection.id)!.orders[0];
-  assert.equal(relayResponse.when, triggerId);
+  assert.equal(relayResponse.when, 'always');
+  assert.equal(current.projections.find((entry) =>
+    entry.id === relayProjection.id)!.responseActivation, 'immediate');
   assert.equal(relayResponse.orders?.[0].move?.patrol, route.id);
 
   // Refinement updates the existing source ids and retains nested authored work.
@@ -698,6 +698,8 @@ test('a blank Program derives its shared trigger and refines contingents without
   assert.equal(current.projections.find((entry) => entry.id === reserveProjection.id)!
     .orders[0].id, responseId);
   assert.equal(linked.orders.conditions[current.formations![0].conditionId].value, 1);
+  assert.equal(Object.keys(linked.orders.conditions).length, 3,
+    'refining readiness reuses its complementary not-ready Condition');
   assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
 });
 

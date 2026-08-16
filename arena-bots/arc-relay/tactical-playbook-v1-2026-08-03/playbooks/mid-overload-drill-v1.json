@@ -1,0 +1,320 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "mid-overload-drill-v1",
+  "mapPlan": "../map-plans/tapline-6/mid-overload-drill-v1.json",
+  "roles": [
+    {
+      "id": "wave-a",
+      "classes": [
+        "palisade"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "wave-a-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "wave-a-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "wave-a-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "wave-b",
+      "classes": [
+        "palisade"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "wave-b-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "wave-b-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "wave-b-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "pressure",
+      "classes": [
+        "kestrel"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "pressure-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "pressure-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "pressure-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "line",
+      "classes": [
+        "hush"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "line-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "line-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "line-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "support",
+      "classes": [
+        "patchbay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "support-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "support-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "support-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "scout",
+      "classes": [
+        "lantern"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "scout-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "scout-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "scout-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hook",
+      "classes": [
+        "towline"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "hook-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "hook-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "hook-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "exchange",
+      "classes": [
+        "switchback"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "exchange-wait-for-posts",
+          "until": "posts-have-time",
+          "cooldown": 600,
+          "move": {
+            "to": "current-position"
+          }
+        },
+        {
+          "id": "exchange-enter-mid",
+          "timeout": 110,
+          "cooldown": 600,
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "front"
+          }
+        },
+        {
+          "id": "exchange-return-through-ambush",
+          "move": {
+            "to": "own-reactor",
+            "posture": "front"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {},
+  "capacities": {},
+  "conditions": {
+    "posts-have-time": {
+      "fact": "self-order-ticks",
+      "operator": "at-least",
+      "value": 50
+    }
+  }
+}

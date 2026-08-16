@@ -18,6 +18,10 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         "rising-standard-v1",
         "wavebreak-v1",
         "idle-field-v1",
+        "running-relay-v1",
+        "running-relay-solo-v1",
+        "mid-overload-fork-v1",
+        "mid-overload-drill-v1",
     ];
 
     [Fact]

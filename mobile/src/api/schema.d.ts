@@ -3224,6 +3224,7 @@ export interface components {
             classes: components["schemas"]["TacticalSheetClassResponse"][];
             templateOrdersJson: string;
             templateMapPlanJson: string;
+            starterSheets: components["schemas"]["TacticalStarterSheetResponse"][];
             stockOpponents: components["schemas"]["TacticalStockSheetResponse"][];
         };
         TacticalSheetClassResponse: {
@@ -3337,6 +3338,15 @@ export interface components {
             /** Format: date-time */
             updatedAt: string;
             entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
+        };
+        TacticalStarterSheetResponse: {
+            id: string;
+            name: string;
+            description: string;
+            composition: string[];
+            ordersJson: string;
+            mapPlanJson: string;
+            workshopJson: string;
         };
         TacticalStockSheetResponse: {
             id: string;

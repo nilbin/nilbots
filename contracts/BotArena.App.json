@@ -5110,6 +5110,7 @@
           "classes",
           "templateOrdersJson",
           "templateMapPlanJson",
+          "starterSheets",
           "stockOpponents"
         ],
         "type": "object",
@@ -5147,6 +5148,12 @@
           },
           "templateMapPlanJson": {
             "type": "string"
+          },
+          "starterSheets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TacticalStarterSheetResponse"
+            }
           },
           "stockOpponents": {
             "type": "array",
@@ -5562,6 +5569,44 @@
           },
           "entrant": {
             "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
+          }
+        }
+      },
+      "TacticalStarterSheetResponse": {
+        "required": [
+          "id",
+          "name",
+          "description",
+          "composition",
+          "ordersJson",
+          "mapPlanJson",
+          "workshopJson"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "composition": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "ordersJson": {
+            "type": "string"
+          },
+          "mapPlanJson": {
+            "type": "string"
+          },
+          "workshopJson": {
+            "type": "string"
           }
         }
       },

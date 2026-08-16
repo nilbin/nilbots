@@ -121,6 +121,15 @@ public sealed record TacticalStockSheetResponse(
     string Description,
     IReadOnlyList<string> Composition);
 
+public sealed record TacticalStarterSheetResponse(
+    string Id,
+    string Name,
+    string Description,
+    IReadOnlyList<string> Composition,
+    string OrdersJson,
+    string MapPlanJson,
+    string WorkshopJson);
+
 public sealed record TacticalSheetCatalogResponse(
     string PlaylistKey,
     Guid PlaylistVersionId,
@@ -131,6 +140,7 @@ public sealed record TacticalSheetCatalogResponse(
     IReadOnlyList<TacticalSheetClassResponse> Classes,
     string TemplateOrdersJson,
     string TemplateMapPlanJson,
+    IReadOnlyList<TacticalStarterSheetResponse> StarterSheets,
     IReadOnlyList<TacticalStockSheetResponse> StockOpponents);
 
 public sealed record TacticalSheetDeletedResponse(Guid Id);

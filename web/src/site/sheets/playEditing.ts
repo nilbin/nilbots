@@ -60,7 +60,7 @@ export function addFightOpportunity(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
-  const conditionId = uniqueString(`${hostOrderId}-contact`,
+  const conditionId = uniqueIdentifier(`${hostOrderId}-contact`,
     new Set(Object.keys(next.orders.conditions)));
   next.orders.conditions[conditionId] = {
     fact: 'self-nearest-visible-enemy-distance', operator: 'at-most',
@@ -107,9 +107,9 @@ export function addCoreRecoveryOpportunity(
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
   const ids = new Set(Object.keys(next.orders.conditions));
-  const emptyId = uniqueString(`${hostOrderId}-empty-handed`, ids);
+  const emptyId = uniqueIdentifier(`${hostOrderId}-empty-handed`, ids);
   ids.add(emptyId);
-  const nearbyId = uniqueString(`${hostOrderId}-core-nearby`, ids);
+  const nearbyId = uniqueIdentifier(`${hostOrderId}-core-nearby`, ids);
   next.orders.conditions[emptyId] = {
     fact: 'self-carrying', operator: 'equals', value: 0,
   };
@@ -172,9 +172,9 @@ export function addHealthRecoveryOpportunity(
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
   const ids = new Set(Object.keys(next.orders.conditions));
-  const lowId = uniqueString(`${hostOrderId}-health-low`, ids); ids.add(lowId);
-  const healedId = uniqueString(`${hostOrderId}-health-recovered`, ids); ids.add(healedId);
-  const nearId = uniqueString(`${hostOrderId}-healing-nearby`, ids); ids.add(nearId);
+  const lowId = uniqueIdentifier(`${hostOrderId}-health-low`, ids); ids.add(lowId);
+  const healedId = uniqueIdentifier(`${hostOrderId}-health-recovered`, ids); ids.add(healedId);
+  const nearId = uniqueIdentifier(`${hostOrderId}-healing-nearby`, ids); ids.add(nearId);
   next.orders.conditions[lowId] = {
     fact: 'self-health-percent', operator: 'at-most', value: start,
   };
@@ -188,8 +188,8 @@ export function addHealthRecoveryOpportunity(
   const whenIds = [lowId, nearId];
   const untilIds = [healedId];
   if (!setup.allowCoreCarriers) {
-    const emptyId = uniqueString(`${hostOrderId}-not-carrying`, ids); ids.add(emptyId);
-    const carryingId = uniqueString(`${hostOrderId}-became-carrier`, ids);
+    const emptyId = uniqueIdentifier(`${hostOrderId}-not-carrying`, ids); ids.add(emptyId);
+    const carryingId = uniqueIdentifier(`${hostOrderId}-became-carrier`, ids);
     next.orders.conditions[emptyId] = {
       fact: 'self-carrying', operator: 'equals', value: 0,
     };
@@ -200,7 +200,7 @@ export function addHealthRecoveryOpportunity(
     untilIds.push(carryingId);
   }
   if (setup.zone) {
-    const zoneId = uniqueString(`${hostOrderId}-healing-area`, ids);
+    const zoneId = uniqueIdentifier(`${hostOrderId}-healing-area`, ids);
     next.orders.conditions[zoneId] = {
       fact: 'self-in-zone', operator: 'equals', value: 1, zone: setup.zone,
     };
@@ -416,12 +416,12 @@ export function addSignatureOpportunityActivationZone(
   const projection = requireProjection(play, projectionId);
   const binding = requireBinding(projection, bindingId);
   const node = requireOpportunityNodeAny(projection, binding);
-  const zoneId = uniqueString(`${binding.useOrderId}-window`, new Set([
+  const zoneId = uniqueIdentifier(`${binding.useOrderId}-window`, new Set([
     ...Object.keys(next.mapPlan.zones),
     ...Object.keys(next.mapPlan.routes),
     ...Object.keys(next.mapPlan.anchors),
-  ]));
-  const conditionId = uniqueString(`${zoneId}-active`, new Set(
+  ]), 'zone');
+  const conditionId = uniqueIdentifier(`${zoneId}-active`, new Set(
     Object.keys(next.orders.conditions)));
   const routeId = play.ownedGeometry.find((entry) => entry.kind === 'route')?.id;
   const route = routeId ? next.mapPlan.routes[routeId] : undefined;
@@ -614,11 +614,11 @@ export function addPlayGeometry(
 ): { draft: SheetDraft; id: string } {
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
-  const id = uniqueString(`${play.id}-${kind}`, new Set([
+  const id = uniqueIdentifier(`${play.id}-${kind}`, new Set([
     ...Object.keys(next.mapPlan.zones),
     ...Object.keys(next.mapPlan.routes),
     ...Object.keys(next.mapPlan.anchors),
-  ]));
+  ]), kind);
   if (kind === 'zone') next.mapPlan.zones[id] = { rect: [15, 13, 15, 13] };
   else if (kind === 'route') next.mapPlan.routes[id] = { waypoints: [] };
   else next.mapPlan.anchors[id] = [15, 13];
@@ -654,9 +654,9 @@ export function addPlayPost(
     ...Object.keys(next.mapPlan.anchors), ...Object.keys(next.mapPlan.zones),
     ...Object.keys(next.mapPlan.routes),
   ]);
-  const anchorId = uniqueString(`${play.id}-${base}`, geometryIds); geometryIds.add(anchorId);
-  const readinessZoneId = uniqueString(`${anchorId}-ready`, geometryIds); geometryIds.add(readinessZoneId);
-  const facingAnchorId = uniqueString(`${anchorId}-facing`, geometryIds);
+  const anchorId = uniqueIdentifier(`${play.id}-${base}`, geometryIds, 'post'); geometryIds.add(anchorId);
+  const readinessZoneId = uniqueIdentifier(`${anchorId}-ready`, geometryIds, 'post-ready'); geometryIds.add(readinessZoneId);
+  const facingAnchorId = uniqueIdentifier(`${anchorId}-facing`, geometryIds, 'post-facing');
   const tolerance = Math.max(0, Math.min(3, Math.trunc(setup.tolerance ?? 0)));
   const [x, y] = setup.point;
   const facing = setup.facing ?? 'east';
@@ -683,7 +683,7 @@ export function addPlayPost(
   // plan below it.
   projection.orders = projection.orders.filter((order) =>
     order.id === hostOrderId || order.id !== `${projection.id}-move`);
-  const slotId = uniqueString(`${anchorId}-slot`, new Set(play.slots.map((slot) => slot.id)));
+  const slotId = uniqueIdentifier(`${anchorId}-slot`, new Set(play.slots.map((slot) => slot.id)), 'post-slot');
   const slot = {
     id: slotId,
     name: setup.name.trim() || 'Post',
@@ -779,8 +779,8 @@ export function configurePlayPostDeployment(
     ...Object.keys(next.mapPlan.anchors), ...Object.keys(next.mapPlan.zones),
     ...Object.keys(next.mapPlan.routes),
   ]);
-  const targetAnchorId = uniqueString(`${slot.anchorId}-effect`, ids); ids.add(targetAnchorId);
-  const targetZoneId = uniqueString(`${targetAnchorId}-footprint`, ids);
+  const targetAnchorId = uniqueIdentifier(`${slot.anchorId}-effect`, ids, 'effect'); ids.add(targetAnchorId);
+  const targetZoneId = uniqueIdentifier(`${targetAnchorId}-footprint`, ids, 'effect-zone');
   next.mapPlan.anchors[targetAnchorId] = [...setup.target];
   next.mapPlan.zones[targetZoneId] = { rect: [...setup.target, ...setup.target] };
   play.ownedGeometry.push(
@@ -897,7 +897,7 @@ export function addPlayCondition(
 ): { draft: SheetDraft; id: string } {
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
-  const id = uniqueString(baseId, new Set(Object.keys(next.orders.conditions)));
+  const id = uniqueIdentifier(baseId, new Set(Object.keys(next.orders.conditions)));
   next.orders.conditions[id] = structuredClone(condition);
   play.ownedConditionIds.push(id);
   return { draft: next, id };
@@ -925,7 +925,7 @@ export function configurePlaySharedTrigger(
   }).filter((ids) => ids.length > 0);
   const inferred = responseSets.length === 0 ? undefined
     : responseSets[0].find((id) => responseSets.every((ids) => ids.includes(id)));
-  const conditionId = play.responseTriggerConditionId ?? inferred ?? uniqueString(
+  const conditionId = play.responseTriggerConditionId ?? inferred ?? uniqueIdentifier(
     `${play.id}-response-start`, new Set(Object.keys(next.orders.conditions)));
   next.orders.conditions[conditionId] = structuredClone(condition);
   if (!play.ownedConditionIds.includes(conditionId))
@@ -937,6 +937,8 @@ export function configurePlaySharedTrigger(
 
 export interface PlayContingentSetup {
   triggerConditionId: string;
+  /** Whether this participant waits for the shared Program trigger. */
+  activation?: 'program-trigger' | 'immediate';
   destination: { zone: string } | { route: string };
   requiredBodies: number;
   timeout: number;
@@ -960,6 +962,7 @@ export function configurePlayContingent(
   if (play.recipe !== 'blank')
     throw new Error('Generic contingent setup belongs to a blank Program.');
   const projection = requireProjection(play, projectionId);
+  projection.responseActivation = setup.activation ?? 'program-trigger';
   const role = next.orders.roles.find((entry) => entry.id === projection.roleId);
   if (!role) throw new Error(`Unknown role '${projection.roleId}'.`);
   if (!next.orders.conditions[setup.triggerConditionId])
@@ -974,13 +977,25 @@ export function configurePlayContingent(
   const previousFormation = (play.formations ?? []).find((entry) =>
     entry.projectionId === projection.id);
   const previousConditionId = previousFormation?.conditionId;
+  const previousReadiness = previousConditionId
+    ? next.orders.conditions[previousConditionId] : undefined;
+  const previousNotReadyId = previousReadiness
+    ? play.ownedConditionIds.find((id) => {
+      const condition = next.orders.conditions[id];
+      return condition?.fact === 'role-in-zone-count'
+        && condition.operator === 'at-most'
+        && condition.value === Math.max(0, Number(previousReadiness.value) - 1)
+        && condition.role === previousReadiness.role
+        && condition.zone === previousReadiness.zone;
+    })
+    : undefined;
 
   let readinessId: string | null = null;
   let notReadyId: string | null = null;
   if ('zone' in setup.destination && required > 0) {
     if (!next.mapPlan.zones[setup.destination.zone])
       throw new Error(`Unknown formation zone '${setup.destination.zone}'.`);
-    readinessId = previousConditionId ?? uniqueString(
+    readinessId = previousConditionId ?? uniqueIdentifier(
       `${projection.id}-ready`, new Set(Object.keys(next.orders.conditions)));
     next.orders.conditions[readinessId] = {
       fact: 'role-in-zone-count', operator: 'at-least', value: required,
@@ -988,7 +1003,8 @@ export function configurePlayContingent(
     };
     if (!play.ownedConditionIds.includes(readinessId))
       play.ownedConditionIds.push(readinessId);
-    notReadyId = `${readinessId}-not`;
+    notReadyId = previousNotReadyId ?? uniqueIdentifier(`${readinessId}-not`, new Set(
+      Object.keys(next.orders.conditions)));
     next.orders.conditions[notReadyId] = {
       fact: 'role-in-zone-count', operator: 'at-most', value: required - 1,
       role: projection.roleId, zone: setup.destination.zone,
@@ -1007,15 +1023,16 @@ export function configurePlayContingent(
       entry.projectionId !== projection.id);
     if (previousConditionId) {
       delete next.orders.conditions[previousConditionId];
-      delete next.orders.conditions[`${previousConditionId}-not`];
+      if (previousNotReadyId) delete next.orders.conditions[previousNotReadyId];
       play.ownedConditionIds = play.ownedConditionIds.filter((id) =>
-        id !== previousConditionId && id !== `${previousConditionId}-not`);
+        id !== previousConditionId && id !== previousNotReadyId);
     }
     removeProjectionFromReadinessGroups(play, projection.id);
   }
 
   const when = expressionOf([
-    setup.triggerConditionId,
+    ...(projection.responseActivation === 'immediate'
+      ? [] : [setup.triggerConditionId]),
     ...(readinessId ? [readinessId] : []),
   ]);
   if (!response) {
@@ -1196,7 +1213,7 @@ export function configurePlayLifecycle(
       && id.startsWith(`${play.id}-minimum-commitment`));
   let minimumId: string | undefined;
   if (minimum > 0) {
-    minimumId = previousMinimum ?? uniqueString(`${play.id}-minimum-commitment`,
+    minimumId = previousMinimum ?? uniqueIdentifier(`${play.id}-minimum-commitment`,
       new Set(Object.keys(next.orders.conditions)));
     next.orders.conditions[minimumId] = {
       fact: 'self-order-ticks', operator: 'at-least', value: minimum,
@@ -1589,7 +1606,9 @@ function synchronizePlayResponseConditions(
       ...(deploymentByProjection.get(projectionId) ?? []),
     ]);
     const ids = [...new Set([
-      ...(play.responseTriggerConditionId ? [play.responseTriggerConditionId] : []),
+      ...(play.responseTriggerConditionId
+          && projection.responseActivation !== 'immediate'
+        ? [play.responseTriggerConditionId] : []),
       ...base,
       ...readiness,
     ])];
@@ -1607,7 +1626,7 @@ function ensurePostReadiness(
 ) {
   if (!findOrderLocation(projection.orders, `${projection.id}-respond`))
     throw new Error('Add the Program response before requiring a Post for readiness.');
-  const conditionId = slot.readinessConditionId ?? uniqueString(
+  const conditionId = slot.readinessConditionId ?? uniqueIdentifier(
     `${slot.anchorId}-ready`, new Set(Object.keys(draft.orders.conditions)));
   draft.orders.conditions[conditionId] = {
     fact: 'role-in-zone-count', operator: 'at-least', value: 1,
@@ -2031,6 +2050,20 @@ function uniqueString(base: string, used: ReadonlySet<string>): string {
   if (!used.has(base)) return base;
   for (let suffix = 2; ; suffix++)
     if (!used.has(`${base}-${suffix}`)) return `${base}-${suffix}`;
+}
+
+function uniqueIdentifier(
+  base: string,
+  used: ReadonlySet<string>,
+  fallback = 'condition',
+): string {
+  const normalized = identifierFromName(base, fallback, 48);
+  if (!used.has(normalized)) return normalized;
+  for (let suffix = 2; ; suffix++) {
+    const tail = `-${suffix}`;
+    const candidate = `${identifierFromName(base, fallback, 48 - tail.length)}${tail}`;
+    if (!used.has(candidate)) return candidate;
+  }
 }
 
 function expressionOf(ids: string[]): ConditionExpression {

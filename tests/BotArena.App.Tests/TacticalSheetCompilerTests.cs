@@ -24,6 +24,8 @@ public sealed class TacticalSheetCompilerTests
                 "demolition-march-v1",
                 "lockbox-v1",
                 "idle-field-v1",
+                "mid-overload-drill-v1",
+                "running-relay-solo-v1",
                 "tempered-standard-v2",
                 "relay-circuit-v1",
                 "crowned-rail-v1",
@@ -32,7 +34,7 @@ public sealed class TacticalSheetCompilerTests
             ],
             templates.Stock.Select(value => value.Id));
         foreach (TacticalSheetSource source in
-                 new[] { templates.Template }.Concat(templates.Stock))
+                 templates.Starters.Concat(templates.Stock))
         {
             ValidatedTacticalSheet compiled = compiler.Compile(
                 source.OrdersJson,
@@ -52,49 +54,38 @@ public sealed class TacticalSheetCompilerTests
     }
 
     [Fact]
-    public void Starter_is_a_small_readable_order_tree_on_current_tapline()
+    public void Starters_are_complete_editable_order_trees_on_current_tapline()
     {
         var templates = new TacticalSheetTemplateCatalog();
-        using JsonDocument sheet = JsonDocument.Parse(
-            templates.Template.OrdersJson);
-        using JsonDocument mapPlan = JsonDocument.Parse(
-            templates.Template.MapPlanJson);
-
-        Assert.Equal("starter-v2", templates.Template.Id);
         Assert.Equal(
-            [
-                "capacities", "conditions", "mapPlan", "roles", "schema",
-                "sharedOrders", "sheetId",
-            ],
-            sheet.RootElement.EnumerateObject().Select(value => value.Name)
-                .Order(StringComparer.Ordinal));
-        string[] composition = sheet.RootElement.GetProperty("roles")
-            .EnumerateArray()
-            .SelectMany(role => role.GetProperty("classes").EnumerateArray())
-            .Select(value => value.GetString()!)
-            .ToArray();
-        Assert.Equal(8, composition.Length);
-        Assert.Equal(
-            ArcRelayClassCatalog.Default.StarterIds.Order(StringComparer.Ordinal),
-            composition.Order(StringComparer.Ordinal));
-        Assert.Equal(
-            ["home-team", "centre-team", "far-team"],
-            sheet.RootElement.GetProperty("roles").EnumerateArray()
-                .Select(value => value.GetProperty("id").GetString()));
-
-        Assert.Empty(mapPlan.RootElement.GetProperty("zones")
-            .EnumerateObject());
-        Assert.Empty(mapPlan.RootElement.GetProperty("routes")
-            .EnumerateObject());
-        Assert.Empty(mapPlan.RootElement.GetProperty("anchors")
-            .EnumerateObject());
-        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
+            ["running-relay-v1", "mid-overload-fork-v1"],
+            templates.Starters.Select(value => value.Id));
+        Assert.Same(templates.Starters[0], templates.Template);
+        ActorMapDefinition current = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
-        Assert.Equal(map.Id,
-            mapPlan.RootElement.GetProperty("mapId").GetString());
-        Assert.Equal(composition,
-            TacticalSheetCompiler.ReadRoleClasses(
-                templates.Template.OrdersJson));
+
+        foreach (TacticalSheetSource starter in templates.Starters)
+        {
+            using JsonDocument sheet = JsonDocument.Parse(starter.OrdersJson);
+            using JsonDocument mapPlan = JsonDocument.Parse(starter.MapPlanJson);
+            using JsonDocument workshop = JsonDocument.Parse(
+                Assert.IsType<string>(starter.WorkshopJson));
+            Assert.Equal("arc-relay-orders-v2",
+                sheet.RootElement.GetProperty("schema").GetString());
+            Assert.Equal("arc-relay-workshop-v1",
+                workshop.RootElement.GetProperty("schema").GetString());
+            Assert.NotEmpty(workshop.RootElement.GetProperty("plays")
+                .EnumerateArray());
+            IReadOnlyList<string> composition = TacticalSheetCompiler.ReadRoleClasses(
+                starter.OrdersJson);
+            Assert.Equal(8, composition.Count);
+            Assert.Equal(7, composition.Distinct(StringComparer.Ordinal).Count());
+            Assert.Single(
+                composition.GroupBy(value => value, StringComparer.Ordinal),
+                group => group.Count() == 2);
+            Assert.Equal(current.Id,
+                mapPlan.RootElement.GetProperty("mapId").GetString());
+        }
     }
 
     [Fact]
@@ -126,8 +117,14 @@ public sealed class TacticalSheetCompilerTests
 
         JsonObject insufficientVariety = JsonNode.Parse(
             templates.Template.OrdersJson)!.AsObject();
-        insufficientVariety["roles"]![2]!["classes"] = new JsonArray(
-            "towline", "relay", "palisade");
+        string[] tooLittleVariety =
+        [
+            "relay", "relay", "kestrel", "kestrel",
+            "palisade", "towline", "patchbay", "hush",
+        ];
+        JsonArray roles = insufficientVariety["roles"]!.AsArray();
+        for (int index = 0; index < tooLittleVariety.Length; index++)
+            roles[index]!["classes"] = new JsonArray(tooLittleVariety[index]);
         InvalidDataException varietyError = Assert.Throws<InvalidDataException>(
             () => compiler.Compile(
                 insufficientVariety.ToJsonString(),
@@ -176,8 +173,7 @@ public sealed class TacticalSheetCompilerTests
                 new JsonArray(1, 1),
             },
         };
-        orders["roles"]![2]!["orders"]![3]!["move"]!["via"] =
-            "wall-route";
+        FirstMove(orders)["via"] = "wall-route";
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
@@ -210,8 +206,7 @@ public sealed class TacticalSheetCompilerTests
                 new JsonArray(8, 3),
             },
         };
-        orders["roles"]![2]!["orders"]![3]!["move"]!["via"] =
-            "spawn-route";
+        FirstMove(orders)["via"] = "spawn-route";
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
@@ -298,5 +293,47 @@ public sealed class TacticalSheetCompilerTests
 
         Assert.Contains("Movement zone 'centre-screen-pocket'", error.Message);
         Assert.Contains("can send 3 bodies", error.Message);
+    }
+
+    private static JsonObject FirstMove(JsonNode node)
+    {
+        if (node is JsonObject value)
+        {
+            if (value["move"] is JsonObject move)
+                return move;
+            foreach ((_, JsonNode? child) in value)
+                if (child is not null && TryFirstMove(child, out JsonObject? found))
+                    return found!;
+        }
+        else if (node is JsonArray array)
+        {
+            foreach (JsonNode? child in array)
+                if (child is not null && TryFirstMove(child, out JsonObject? found))
+                    return found!;
+        }
+        throw new InvalidOperationException("Fixture contains no movement Instruction.");
+    }
+
+    private static bool TryFirstMove(JsonNode node, out JsonObject? move)
+    {
+        if (node is JsonObject value)
+        {
+            if (value["move"] is JsonObject candidate)
+            {
+                move = candidate;
+                return true;
+            }
+            foreach ((_, JsonNode? child) in value)
+                if (child is not null && TryFirstMove(child, out move))
+                    return true;
+        }
+        else if (node is JsonArray array)
+        {
+            foreach (JsonNode? child in array)
+                if (child is not null && TryFirstMove(child, out move))
+                    return true;
+        }
+        move = null;
+        return false;
     }
 }

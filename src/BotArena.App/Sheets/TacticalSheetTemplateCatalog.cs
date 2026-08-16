@@ -18,7 +18,8 @@ public sealed record TacticalSheetSource(
     string MapPlanJson,
     string[] Composition,
     byte[] LinkedData,
-    string ContentHash);
+    string ContentHash,
+    string? WorkshopJson = null);
 
 /// <summary>
 /// Reproducible two-file product templates derived from tracked Orders v2
@@ -35,12 +36,25 @@ public sealed class TacticalSheetTemplateCatalog
 
     public TacticalSheetTemplateCatalog()
     {
-        Template = Resolve(
-            "starter-v2",
-            "Starter sheet",
-            "A readable Tapline plan: two bodies cover home, three take centre, and three contest far.",
-            Resource("BotArena.Sheets.starter-v2.sheet.json"),
-            Resource("BotArena.Sheets.starter-v2.map-plan.json"));
+        TacticalSheetSource[] starters =
+        [
+            Resolve(
+                "running-relay-v1",
+                "Running Relay",
+                "Two Relay runners carry a Core through a drawn corridor with forward Arc Tosses, while six bodies work the field.",
+                Resource("BotArena.Sheets.running-relay-v1.sheet.json"),
+                Resource("BotArena.Sheets.running-relay-v1.map-plan.json"),
+                Resource("BotArena.Sheets.running-relay-v1.workshop.json")),
+            Resolve(
+                "mid-overload-fork-v1",
+                "Mid Overload Fork",
+                "A complete map-first Program: two home defenders, a five-body return ambush, and an independent Kestrel raid.",
+                Resource("BotArena.Sheets.mid-overload-fork-v1.sheet.json"),
+                Resource("BotArena.Sheets.mid-overload-fork-v1.map-plan.json"),
+                Resource("BotArena.Sheets.mid-overload-fork-v1.workshop.json")),
+        ];
+        Starters = starters;
+        Template = starters[0];
         TacticalSheetSource[] opponents =
         [
             Resolve(
@@ -61,6 +75,18 @@ public sealed class TacticalSheetTemplateCatalog
                 "Eight stationary bodies that never act: a clean control for routes, timing, skills, and traffic checks.",
                 Resource("BotArena.Sheets.idle-field-v1.sheet.json"),
                 Resource("BotArena.Sheets.idle-field-v1.map-plan.json")),
+            Resolve(
+                "mid-overload-drill-v1",
+                "Mid Overload drill",
+                "A deterministic marching formation for checking Posts, readiness, walls, response commitment, and Kestrel route work.",
+                Resource("BotArena.Sheets.mid-overload-drill-v1.sheet.json"),
+                Resource("BotArena.Sheets.mid-overload-drill-v1.map-plan.json")),
+            Resolve(
+                "running-relay-solo-v1",
+                "Running Relay solo control",
+                "One Relay carries through the exact Running Relay corridor without Tosses, for a direct Practice timing comparison.",
+                Resource("BotArena.Sheets.running-relay-solo-v1.sheet.json"),
+                Resource("BotArena.Sheets.running-relay-solo-v1.map-plan.json")),
             Resolve(
                 "tempered-standard-v2",
                 "Tempered Standard",
@@ -97,6 +123,7 @@ public sealed class TacticalSheetTemplateCatalog
     }
 
     public TacticalSheetSource Template { get; }
+    public IReadOnlyList<TacticalSheetSource> Starters { get; }
     public IReadOnlyList<TacticalSheetSource> Stock { get; }
 
     public TacticalSheetSource GetStock(string id) =>
@@ -110,7 +137,8 @@ public sealed class TacticalSheetTemplateCatalog
         string name,
         string description,
         string ordersJson,
-        string mapPlanJson)
+        string mapPlanJson,
+        string? workshopJson = null)
     {
         JsonObject orders = JsonNode.Parse(ordersJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded Orders sheet '{id}' is empty.");
@@ -153,7 +181,8 @@ public sealed class TacticalSheetTemplateCatalog
             resolvedMapPlan,
             compilation.Composition,
             compilation.LinkedData,
-            Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)));
+            Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)),
+            TacticalSheetWorkshopValidator.Normalize(workshopJson));
     }
 
     private static string Resource(string name)
