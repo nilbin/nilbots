@@ -244,6 +244,22 @@ nine Tosses. Launches occurred at ticks `61/85/101`, `145/169/185`, and
 This is the same deliberately inert Idle Field diagnostic, so it proves the
 mechanical chronology and says nothing about balance.
 
+Owner replay review then exposed an authoring defect hidden by those aggregate
+timings: after each Toss, the empty runner used a direct `move.to` for the next
+receiver anchor. It therefore took a shortest path instead of running the
+authored corridor. The Relay recipe now expresses that receiver episode as an
+ordinary nested ladder: `move.patrol` on the shared corridor until the next
+receiver's readiness zone is occupied, then `move.to` the exact catch anchor.
+The carrier's route, route commitment and three forward-only Toss gates are
+unchanged. A linked-Play regression test pins both nested Orders so a future
+projection cannot silently bypass its route again.
+
+The corrected seed-9001 trace names `receive-*-run-corridor` and the shared
+`relay-chain-return-corridor` continuously between catches. It keeps the same
+launch ticks and bank ticks (`117/201/285`) and finishes at tick 285; replay
+hash `2eac8fd54c22737af029ddd183608309bf7a8a5a0ad375a0fad343349eaed784`.
+As above, this is mechanics evidence against Idle Field, not a balance claim.
+
 Presentation package `arc-relay-signatures-v3` removes the tell marker and
 aligns Relay body release, the one real Core's departure and launch audio at
 the late-tick combat boundary. Recorded V2/V1 replays keep their exact prior

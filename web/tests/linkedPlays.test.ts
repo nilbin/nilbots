@@ -154,8 +154,10 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
   assert.equal(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error').length, 0);
   const generated = play.projections.flatMap((projection) => allOrders(projection.orders));
+  const receiverBranches = play.projections.flatMap((projection) => projection.orders)
+    .filter((order) => order.id?.includes('-receive-'));
   assert.equal(generated.filter((order) => order.use?.skill === 'arc-toss').length, 3);
-  assert.equal(generated.filter((order) => order.id?.includes('-receive-')).length, 2);
+  assert.equal(receiverBranches.length, 2);
   assert.equal(generated.filter((order) => order.id?.endsWith('-carry-forward')).length, 2);
   assert.equal(generated.filter((order) => order.id?.endsWith('-take-start')).length, 2);
   assert.equal(generated.filter((order) => order.id?.includes('-hop-')).length, 0);
@@ -174,8 +176,11 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
     for (const receive of projection.orders.filter((order) => order.id?.includes('-receive-'))) {
       assert.equal(receive.urgency, 'urgent');
       assert.equal(receive.timeout, 40);
-      assert.equal(typeof receive.move?.to === 'object' && 'anchor' in receive.move.to, true);
-      assert.equal(receive.move?.via, undefined);
+      assert.equal(receive.move, undefined);
+      const hold = receive.orders!.find((order) => order.id?.endsWith('-hold'))!;
+      const run = receive.orders!.find((order) => order.id?.endsWith('-run-corridor'))!;
+      assert.equal(typeof hold.move?.to === 'object' && 'anchor' in hold.move.to, true);
+      assert.equal(run.move?.patrol, corridor);
     }
   }
 

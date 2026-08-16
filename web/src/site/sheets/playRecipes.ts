@@ -318,6 +318,7 @@ export function addRelayChainPlay(
       ? [{
         anchorId: station.id,
         previousReadyCondition: conditionIds[`receiver${index + 1}`],
+        readyCondition: conditionIds[`receiver${index + 2}`],
       }]
       : []);
   const tossStagesFor = (roleId: string): RelayTossStage[] =>
@@ -714,6 +715,7 @@ function ambushProjection(
 interface RelayReceiverStage {
   anchorId: string;
   previousReadyCondition: string;
+  readyCondition: string;
 }
 
 interface RelayTossStage {
@@ -755,9 +757,17 @@ function relayProjection(
         // ticks; 40 preserves that run while bounding combat/pathing failure.
         timeout: 40,
         urgency: 'urgent',
-        move: {
-          to: { anchor: stage.anchorId },
-        },
+        orders: [
+          {
+            id: `${playId}-${label}-receive-${index + 1}-hold`,
+            when: stage.readyCondition,
+            move: { to: { anchor: stage.anchorId } },
+          },
+          {
+            id: `${playId}-${label}-receive-${index + 1}-run-corridor`,
+            move: { patrol: corridorRoute },
+          },
+        ],
       })),
       {
         id: `${playId}-${label}-running-return`,

@@ -533,8 +533,12 @@ precisely that it makes a signature mechanic into an editable team strategy.
    four, and five tiles at authoring time; the observed throws advance the Core
    by five, four, and five route tiles.
 5. After a successful Toss, `self-ticks-since-signature-use` makes the now-empty
-   source run toward its next rendezvous. The fact is body-local and records a
-   successful signature use; it is not a shared turn or a Play phase.
+   source patrol the same corridor toward its next rendezvous. Once its partner
+   occupies the next readiness zone, a nested Order changes the final approach
+   to `move.to` the exact catch anchor. The fact is body-local and records a
+   successful signature use; it is not a shared turn or a Play phase. A direct
+   shortest-path move to the catch anchor is specifically wrong because it can
+   bypass the corridor the Play author drew.
 6. Place both projections relative to emergency recovery, generic scoring, and
    ordinary collection. The card shows which behavior wins if a Relay acquires
    a Core outside the long corridor.
@@ -550,7 +554,10 @@ RUN TO NEXT RENDEZVOUS
   when empty-handed AND I just successfully Tossed
   until carrying
   timeout 40
-  move.to receiver anchor
+  WHEN NEXT RECEIVER POST IS READY
+    move.to receiver anchor
+  OTHERWISE
+    move.patrol return corridor
 
 RUNNING RETURN
   when the team has a carrier
