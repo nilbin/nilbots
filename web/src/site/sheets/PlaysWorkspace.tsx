@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import clsx from 'clsx';
 import ClassIcon from '../../components/ClassIcon';
+import type { ReplayModel } from '../../replayModel';
 import type { TacticalSheetCatalog } from '../api';
 import IdentifierInput from './IdentifierInput';
 import { ProjectionOrdersComposer } from './OrdersWorkspace';
@@ -74,6 +75,7 @@ import {
 import {
   bestPlayFormationReadiness,
   bestPlayReadiness,
+  signatureOpportunityPracticeSummary,
   type UnitTrack,
 } from './sheetTrials';
 import type {
@@ -123,6 +125,7 @@ export default function PlaysWorkspace({
   draft,
   issues,
   tracks,
+  practiceReplay,
   selectedPlayId,
   onSelectPlay,
   onChange,
@@ -133,6 +136,7 @@ export default function PlaysWorkspace({
   draft: SheetDraft;
   issues: SheetIssue[];
   tracks: UnitTrack[];
+  practiceReplay?: ReplayModel;
   selectedPlayId: string | null;
   onSelectPlay: (playId: string | null) => void;
   onChange: (next: SheetDraft) => void;
@@ -251,6 +255,7 @@ export default function PlaysWorkspace({
           {play.recipe === 'blank' && <PlayResponseControls draft={draft} play={play} tracks={tracks}
             onSelectGeometry={setSelectedGeometry} onChange={commit} />}
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
+            practiceReplay={practiceReplay}
             onSelectGeometry={(id) => {
               setSelectedGeometry(id);
               document.querySelector('[data-sheet-path="workshop.plays"]')
@@ -722,6 +727,7 @@ function AlongTheWayControls({
   draft,
   play,
   catalog,
+  practiceReplay,
   onSelectGeometry,
   onOpenOrders,
   onChange,
@@ -729,6 +735,7 @@ function AlongTheWayControls({
   draft: SheetDraft;
   play: LinkedPlay;
   catalog: TacticalSheetCatalog;
+  practiceReplay?: ReplayModel;
   onSelectGeometry: (id: string) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
@@ -742,6 +749,7 @@ function AlongTheWayControls({
       if (!role) return null;
       return <OpportunityProjection key={projection.id} draft={draft} play={play}
         projection={projection} role={role} catalog={catalog}
+        practiceReplay={practiceReplay}
         onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
         onChange={onChange} />;
     })}</div>
@@ -754,6 +762,7 @@ function OpportunityProjection({
   projection,
   role,
   catalog,
+  practiceReplay,
   onSelectGeometry,
   onOpenOrders,
   onChange,
@@ -763,6 +772,7 @@ function OpportunityProjection({
   projection: PlayProjection;
   role: SheetDraft['orders']['roles'][number];
   catalog: TacticalSheetCatalog;
+  practiceReplay?: ReplayModel;
   onSelectGeometry: (id: string) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
@@ -823,6 +833,8 @@ function OpportunityProjection({
       const commitmentCondition = view.commitment;
       const descriptor = catalog.classes.find((entry) =>
         entry.signatureId === use.skill)?.signatureAuthoring;
+      const practice = signatureOpportunityPracticeSummary(
+        practiceReplay, draft, projection, view.binding);
       return <details key={view.binding.id} className="rounded-sm border border-arena-material/30 bg-arena-panel/35" open={views.length === 1}>
         <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
           <span className="pill">{view.ordinal + 1}</span>
@@ -885,6 +897,7 @@ function OpportunityProjection({
             <p className="lab">Otherwise</p>
             <p className="t-meta mt-1">{orderName(view.continuation)}</p>
           </div>
+          {practice && <OpportunityPracticeSummary summary={practice} />}
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
             <button type="button" className="btn min-h-11" disabled={view.ordinal === 0}
               onClick={() => onChange(moveSignatureOpportunity(draft, play.id, projection.id, view.binding.id, -1))}>↑ Earlier</button>
@@ -902,6 +915,32 @@ function OpportunityProjection({
       </details>;
     })}</div>
   </article>;
+}
+
+function OpportunityPracticeSummary({ summary }: {
+  summary: NonNullable<ReturnType<typeof signatureOpportunityPracticeSummary>>;
+}) {
+  const activation = summary.firstActivationTick === null
+    ? 'No authored activation area to measure'
+    : `inside area t${summary.firstActivationTick}–${summary.lastActivationTick}`;
+  return <section className="mt-3 rounded-sm border border-arena-cyan/35 bg-arena-cyan/5 p-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <p className="lab text-arena-cyan">Last Practice evidence</p>
+      <span className="pill ml-auto">{summary.acceptedUses} accepted / {summary.evaluations} evaluated</span>
+    </div>
+    <div className="mt-2 grid gap-2 sm:grid-cols-2">
+      <p className="t-micro"><b className="block text-arena-ink">Where</b>{activation}</p>
+      <p className="t-micro"><b className="block text-arena-ink">Authoritative events</b>{summary.signatureEvents}</p>
+      <p className="t-micro"><b className="block text-arena-ink">Latest resolution</b>{humanize(summary.lastResolution ?? 'not evaluated')}</p>
+      <p className="t-micro"><b className="block text-arena-ink">Then continued</b>{humanize(summary.continuation ?? 'not observed')}</p>
+    </div>
+    {summary.declineCauses.length > 0 && <div className="mt-2">
+      <p className="lab">Why it continued instead</p>
+      <div className="mt-1 flex flex-wrap gap-1">{summary.declineCauses.slice(0, 4).map((entry) =>
+        <span key={entry.cause} className="pill">{entry.count}× {humanize(entry.cause)}</span>)}</div>
+    </div>}
+    {summary.routeContinuity && <p className="t-micro mt-2">After the latest accepted use at t{summary.routeContinuity.tick}: ({summary.routeContinuity.before.x},{summary.routeContinuity.before.y}) → ({summary.routeContinuity.after.x},{summary.routeContinuity.after.y}). These are authoritative occupied tiles, not inferred movement.</p>}
+  </section>;
 }
 
 function opportunityHosts(orders: OrderNode[]) {

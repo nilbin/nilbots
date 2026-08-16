@@ -491,7 +491,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         onChange={(mapPlan) => mutate((next) => { next.mapPlan = mapPlan; })}
         onRename={(kind, previous, nextId) => mutate((next) => renameGeometryAware(next, kind, previous, nextId))} />}
       {section === 'plays' && <PlaysWorkspace catalog={catalog} draft={draft} issues={issues}
-        tracks={selectedPlayTracks} selectedPlayId={selectedPlayId} onSelectPlay={setSelectedPlayId}
+        tracks={selectedPlayTracks} practiceReplay={selectedRunReplay?.replay}
+        selectedPlayId={selectedPlayId} onSelectPlay={setSelectedPlayId}
         onChange={(changed) => mutate((next) => { Object.assign(next, changed); })}
         onOpenSquad={() => setSection('squad')}
         onOpenOrders={(playId, projectionId) => {

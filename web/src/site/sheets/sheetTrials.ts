@@ -1,10 +1,20 @@
 import type {
   ReplayActorState,
+  ReplayCausalEvent,
   ReplayModel,
   ReplayPosition,
 } from '../../replayModel';
-import type { SheetDraft } from './sheetAuthoring';
-import type { LinkedPlay } from './workshopTypes';
+import { parseCommandReason } from '../../presentation/commandReason';
+import {
+  conditionExpressionNames,
+  type OrderNode,
+  type SheetDraft,
+} from './sheetAuthoring';
+import type {
+  LinkedPlay,
+  PlayProjection,
+  PlaySignatureOpportunityBinding,
+} from './workshopTypes';
 
 export const TRIAL_HISTORY_KEY = 'nilbots-sheet-trial-history-v1';
 
@@ -50,6 +60,22 @@ export interface PlayFormationEvidence {
   ready: number;
   required: number;
   tick: number | null;
+}
+
+export interface SignatureOpportunityPracticeSummary {
+  evaluations: number;
+  acceptedUses: number;
+  signatureEvents: number;
+  firstActivationTick: number | null;
+  lastActivationTick: number | null;
+  declineCauses: Array<{ cause: string; count: number }>;
+  lastResolution: string | null;
+  continuation: string | null;
+  routeContinuity: {
+    before: ReplayPosition;
+    after: ReplayPosition;
+    tick: number;
+  } | null;
 }
 
 export function snapshotForTrial(draft: SheetDraft): TrialSnapshot {
@@ -226,6 +252,179 @@ export function bestPlayFormationReadiness(
     if (ready > best.ready) best = { ready, required, tick };
   }
   return best;
+}
+
+/**
+ * Correlate one linked opportunity back to canonical Practice evidence. The
+ * replay still knows only ordinary role/Order paths and signature events; the
+ * binding is applied here, after the match, and never becomes execution data.
+ */
+export function signatureOpportunityPracticeSummary(
+  replay: ReplayModel | undefined,
+  draft: SheetDraft,
+  projection: PlayProjection,
+  binding: PlaySignatureOpportunityBinding,
+): SignatureOpportunityPracticeSummary | null {
+  if (!replay?.initialWorld) return null;
+  const use = findOrderById(projection.orders, binding.useOrderId);
+  if (!use?.use) return null;
+  const unitIds = unitIdsForRole(draft, projection.roleId);
+  if (unitIds.size === 0) return null;
+  const acceptedPath = `> ${binding.useOrderId}:`;
+  const acceptedUse = `:use:${use.use.skill}:`;
+  const declineMarker = `after-${binding.useOrderId}-`;
+  const declines = new Map<string, number>();
+  const acceptedTicks: Array<{ tick: number; unitId: number; reason: string }> = [];
+  let evaluations = 0;
+  let continuation: string | null = null;
+  let lastResolution: string | null = null;
+
+  for (const tick of replay.ticks) {
+    for (const turn of tick.actorTurns) {
+      if (turn.actor.teamId !== 0 || !unitIds.has(turn.actor.unitId)) continue;
+      const reason = turn.runtimeReply.debugMessage
+        ?? turn.acceptedDecision.debugMessage ?? '';
+      if (reason.includes('orders:')
+        && reason.includes(acceptedPath)
+        && reason.includes(acceptedUse)) {
+        evaluations++;
+        acceptedTicks.push({ tick: tick.tick, unitId: turn.actor.unitId, reason });
+        lastResolution = reasonAfter(reason, `:use:${use.use.skill}:`)
+          ?? `accepted ${use.use.skill}`;
+        continue;
+      }
+      const declinedAt = reason.indexOf(declineMarker);
+      if (declinedAt < 0) continue;
+      evaluations++;
+      const cause = reason.slice(declinedAt + declineMarker.length)
+        .split(':')[0] || 'declined';
+      declines.set(cause, (declines.get(cause) ?? 0) + 1);
+      const parsed = parseCommandReason(reason);
+      if (parsed?.orderId) continuation = parsed.orderId;
+      lastResolution = cause;
+    }
+  }
+
+  const relevantEvents = replay.ticks.flatMap((tick) => tick.events)
+    .filter((event) => signatureEventMatches(event, use.use!.skill, unitIds));
+  const activation = opportunityActivationTicks(replay, draft, use, unitIds);
+  const routeContinuity = acceptedTicks.length > 0
+    ? continuityAround(replay, acceptedTicks.at(-1)!) : null;
+  if (acceptedTicks.length > 0) {
+    const last = acceptedTicks.at(-1)!;
+    const next = nextBodyReason(replay, last.tick, last.unitId);
+    if (next) continuation = parseCommandReason(next)?.orderId ?? continuation;
+  }
+
+  return {
+    evaluations,
+    acceptedUses: acceptedTicks.length,
+    signatureEvents: relevantEvents.length,
+    firstActivationTick: activation[0] ?? null,
+    lastActivationTick: activation.at(-1) ?? null,
+    declineCauses: [...declines]
+      .map(([cause, count]) => ({ cause, count }))
+      .sort((left, right) => right.count - left.count
+        || left.cause.localeCompare(right.cause)),
+    lastResolution,
+    continuation,
+    routeContinuity,
+  };
+}
+
+function opportunityActivationTicks(
+  replay: ReplayModel,
+  draft: SheetDraft,
+  use: OrderNode,
+  unitIds: ReadonlySet<number>,
+): number[] {
+  const zone = conditionExpressionNames(use.when)
+    .map((id) => draft.orders.conditions[id])
+    .find((condition) => condition?.fact === 'self-in-zone')?.zone;
+  const rect = zone ? draft.mapPlan.zones[zone]?.rect : undefined;
+  if (!rect) return [];
+  const result: number[] = [];
+  const inspect = (tick: number, actors: ReplayActorState[]) => {
+    if (actors.some((actor) => actor.identity.teamId === 0
+      && unitIds.has(actor.identity.unitId)
+      && actor.position.x >= rect[0] && actor.position.x <= rect[2]
+      && actor.position.y >= rect[1] && actor.position.y <= rect[3])) {
+      result.push(tick);
+    }
+  };
+  inspect(0, replay.initialWorld?.actors ?? []);
+  replay.ticks.forEach((tick) => inspect(tick.tick, tick.after.actors));
+  return result;
+}
+
+function signatureEventMatches(
+  event: ReplayCausalEvent,
+  skill: string,
+  unitIds: ReadonlySet<number>,
+): boolean {
+  const fact = event.arcRelayFact;
+  return fact?.kind === 'signature-changed'
+    && fact.signatureId === skill
+    && fact.ownerActor.teamId === 0
+    && unitIds.has(fact.ownerActor.unitId);
+}
+
+function continuityAround(
+  replay: ReplayModel,
+  accepted: { tick: number; unitId: number },
+): SignatureOpportunityPracticeSummary['routeContinuity'] {
+  const before = replay.ticks.find((tick) => tick.tick === accepted.tick)?.before
+    .actors.find((actor) => actor.identity.teamId === 0
+      && actor.identity.unitId === accepted.unitId)?.position;
+  const after = replay.ticks.find((tick) => tick.tick > accepted.tick)?.after
+    .actors.find((actor) => actor.identity.teamId === 0
+      && actor.identity.unitId === accepted.unitId)?.position;
+  return before && after
+    ? { before: { ...before }, after: { ...after }, tick: accepted.tick }
+    : null;
+}
+
+function nextBodyReason(
+  replay: ReplayModel,
+  tick: number,
+  unitId: number,
+): string | null {
+  for (const frame of replay.ticks) {
+    if (frame.tick <= tick) continue;
+    const turn = frame.actorTurns.find((candidate) =>
+      candidate.actor.teamId === 0 && candidate.actor.unitId === unitId);
+    const reason = turn?.runtimeReply.debugMessage
+      ?? turn?.acceptedDecision.debugMessage;
+    if (reason) return reason;
+  }
+  return null;
+}
+
+function unitIdsForRole(draft: SheetDraft, roleId: string): Set<number> {
+  const result = new Set<number>();
+  let unitId = 0;
+  for (const role of draft.orders.roles) {
+    for (let offset = 0; offset < role.classes.length; offset++) {
+      if (role.id === roleId) result.add(unitId + offset);
+    }
+    unitId += role.classes.length;
+  }
+  return result;
+}
+
+function findOrderById(orders: OrderNode[], id: string): OrderNode | undefined {
+  for (const node of orders) {
+    if (node.id === id) return node;
+    const nested = node.orders && findOrderById(node.orders, id);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
+function reasonAfter(reason: string, marker: string): string | null {
+  const index = reason.indexOf(marker);
+  if (index < 0) return null;
+  return reason.slice(index + marker.length).split(' via ')[0]?.trim() || null;
 }
 
 function browserStorage(): Storage | undefined {

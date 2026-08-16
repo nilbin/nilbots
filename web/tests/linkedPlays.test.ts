@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import type { ReplayModel } from '../src/replayModel';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
   parseDraft,
@@ -47,7 +48,11 @@ import {
   addVeteranEscortPlay,
 } from '../src/site/sheets/playRecipes';
 import { playGeometryIssues, setPlaySlotTolerance } from '../src/site/sheets/playGeometry';
-import { bestPlayReadiness, type UnitTrack } from '../src/site/sheets/sheetTrials';
+import {
+  bestPlayReadiness,
+  signatureOpportunityPracticeSummary,
+  type UnitTrack,
+} from '../src/site/sheets/sheetTrials';
 
 const signatures: Record<string, string> = {
   mason: 'hardlight-block', longshot: 'rail-line', hush: 'null-field',
@@ -494,6 +499,75 @@ test('a blank Play refines shared-trigger contingents without rebuilding their O
     .orders[0].id, responseId);
   assert.equal(linked.orders.conditions[current.formations![0].conditionId].value, 1);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+});
+
+test('Practice diagnostics correlate ordinary Order reasons without replay Play state', () => {
+  let linked = addBlankPlay(draft(), 'Evidence');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'support');
+  let projection = linked.workshop.plays[0].projections[0];
+  const hostId = projection.orders[0].id!;
+  linked = addSignatureOpportunity(linked, playId, projection.id, hostId,
+    { skill: 'repair-beam', target: { role: 'reserve' } });
+  projection = linked.workshop.plays[0].projections[0];
+  const binding = projection.signatureOpportunities![0];
+  const activation = addSignatureOpportunityActivationZone(
+    linked, playId, projection.id, binding.id);
+  linked = setPlayZoneRect(
+    activation.draft, playId, activation.zoneId, [8, 8, 10, 10]);
+  projection = linked.workshop.plays[0].projections[0];
+  const useId = projection.signatureOpportunities![0].useOrderId;
+  const continueId = signatureOpportunityViews(projection)[0].continuation!.id!;
+  const actor = (tickPosition: [number, number]) => ({
+    identity: { teamId: 0, unitId: 7, lifeId: 0 },
+    position: { x: tickPosition[0], y: tickPosition[1] },
+  });
+  const replay = {
+    initialWorld: { actors: [actor([9, 9])] },
+    ticks: [
+      {
+        tick: 10,
+        before: { actors: [actor([9, 9])] },
+        after: { actors: [actor([9, 9])] },
+        actorTurns: [{
+          actor: { teamId: 0, unitId: 7, lifeId: 0 },
+          runtimeReply: { debugMessage:
+            `orders:support > ${hostId} > ${useId}:use:repair-beam:body:0:1:0` },
+          acceptedDecision: { debugMessage: null },
+        }],
+        events: [{
+          arcRelayFact: {
+            kind: 'signature-changed', signatureId: 'repair-beam',
+            ownerActor: { teamId: 0, unitId: 7, lifeId: 0 },
+          },
+        }],
+      },
+      {
+        tick: 11,
+        before: { actors: [actor([9, 9])] },
+        after: { actors: [actor([10, 9])] },
+        actorTurns: [{
+          actor: { teamId: 0, unitId: 7, lifeId: 0 },
+          runtimeReply: { debugMessage:
+            `orders:support > ${hostId} > ${continueId}:march@12,9` },
+          acceptedDecision: { debugMessage: null },
+        }],
+        events: [],
+      },
+    ],
+  } as unknown as ReplayModel;
+
+  const summary = signatureOpportunityPracticeSummary(
+    replay, linked, projection, projection.signatureOpportunities![0]);
+  assert.equal(summary?.acceptedUses, 1);
+  assert.equal(summary?.evaluations, 1);
+  assert.equal(summary?.signatureEvents, 1);
+  assert.deepEqual(
+    [summary?.firstActivationTick, summary?.lastActivationTick], [0, 11]);
+  assert.equal(summary?.continuation, continueId);
+  assert.deepEqual(summary?.routeContinuity, {
+    before: { x: 9, y: 9 }, after: { x: 10, y: 9 }, tick: 10,
+  });
 });
 
 test('the remaining recipe lenses materialize only valid ordinary Orders', () => {
