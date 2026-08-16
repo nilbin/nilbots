@@ -219,7 +219,7 @@ export default function MapPlanEditor({
     <div className="flex flex-wrap items-start gap-2">
       <div className="mr-auto max-w-3xl">
         <p className="lab text-arena-material">Map plan</p>
-        <h2 className="type-display mt-1 text-[22px]">Draw the ground your orders name</h2>
+        <h2 className="type-display mt-1 text-[22px]">Draw the ground your Instructions name</h2>
         <p className="t-meta mt-1">Routes, zones and anchors live on Tapline itself. Social tiles and both spawn sides remain visible while you draw.</p>
       </div>
       <div className="flex rounded-sm border border-arena-edge p-1" aria-label="Team-side preview">

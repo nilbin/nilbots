@@ -507,8 +507,8 @@ export function validateDraft(
   exactKeys(mapPlan as unknown as JsonObject,
     ['schema', 'mapPlanId', 'mapId', 'zones', 'routes', 'anchors'],
     'mapPlan', error);
-  if (orders.schema !== 'arc-relay-orders-v2') error('orders.schema', 'Use the Orders v2 sheet schema.');
-  if (mapPlan.schema !== 'arc-relay-map-plan-v2') error('mapPlan.schema', 'Use the Orders v2 map-plan schema.');
+  if (orders.schema !== 'arc-relay-orders-v2') error('orders.schema', 'Use the current Instruction sheet schema.');
+  if (mapPlan.schema !== 'arc-relay-map-plan-v2') error('mapPlan.schema', 'Use the current Instruction map-plan schema.');
   if (mapPlan.mapId !== catalog.map.id) error('mapPlan.mapId', `This sheet must target ${catalog.map.id}.`);
 
   const roles = new Set(orders.roles.map((role) => role.id));
@@ -543,7 +543,7 @@ export function validateDraft(
     if (role.classes.length < 1) error(`${base}.classes`, 'A role needs at least one body.');
     if (role.upgradePath.length < 1 || role.upgradePath.length > 4)
       error(`${base}.upgradePath`, 'Choose one to four upgrade priorities.');
-    if (role.orders.length < 1) error(`${base}.orders`, 'A role needs at least one order.');
+    if (role.orders.length < 1) error(`${base}.orders`, 'A role needs at least one Instruction.');
     const ids = new Set<string>();
     role.orders.forEach((node, index) => validateOrder(
       node, `${base}.orders.${index}`, role, orders, mapPlan, catalog, roles, ids, 0,
@@ -563,9 +563,9 @@ export function validateDraft(
   });
 
   for (const [id, definition] of Object.entries(orders.sharedOrders)) {
-    if (!validId(id)) error(`orders.sharedOrders.${id}`, 'Shared order id must be kebab-case.');
+    if (!validId(id)) error(`orders.sharedOrders.${id}`, 'Shared Instruction id must be kebab-case.');
     if ((sharedUse.get(id) ?? 0) < 2)
-      error(`orders.sharedOrders.${id}`, 'A shared order needs at least two references; inline a one-off.');
+      error(`orders.sharedOrders.${id}`, 'A shared Instruction needs at least two references; inline a one-off.');
     if (definition.id || definition.shared)
       error(`orders.sharedOrders.${id}`, 'The map key is the id; shared definitions cannot chain.');
   }
@@ -574,7 +574,7 @@ export function validateDraft(
     if (!Number.isInteger(value) || value < 1 || value > 8)
       error(`orders.capacities.${id}`, 'Capacity is one to eight bodies.');
     if ((capacityUse.get(id) ?? 0) < 2)
-      error(`orders.capacities.${id}`, 'A named capacity needs at least two order consumers.');
+      error(`orders.capacities.${id}`, 'A named capacity needs at least two Instruction consumers.');
   }
   for (const [id, condition] of Object.entries(orders.conditions)) {
     const path = `orders.conditions.${id}`;
@@ -623,14 +623,14 @@ export function validateDraft(
         error(`${path}.windowTicks`, 'The rolling window is 1–1200 ticks.');
       if (condition.since !== undefined
         && !['match-start', 'node-entry'].includes(condition.since))
-        error(`${path}.since`, 'Choose match start or this order episode.');
+        error(`${path}.since`, 'Choose match start or this Instruction episode.');
       if (condition.value < 0)
         error(`${path}.value`, 'Historical evidence cannot compare below zero.');
     } else if (intervalCount > 0) {
       error(path, 'Only historical evidence facts take an interval.');
     }
     if ((conditionUse.get(id) ?? 0) === 0)
-      error(path, 'Delete this unused condition or use it in an order.');
+      error(path, 'Delete this unused condition or use it in an Instruction.');
   }
 
   validateGeometry(mapPlan, catalog, usedZones, usedRoutes, usedAnchors, error);
@@ -665,8 +665,8 @@ function validateOrder(
   if (action === 'shared') {
     exactKeys(node as unknown as JsonObject, ['shared'], path, error);
     const definition = node.shared ? orders.sharedOrders[node.shared] : undefined;
-    if (!allowShared) error(path, 'Shared orders cannot reference another shared order.');
-    else if (!node.shared || !definition) error(`${path}.shared`, `Unknown shared order '${node.shared ?? ''}'.`);
+    if (!allowShared) error(path, 'Shared Instructions cannot reference another shared Instruction.');
+    else if (!node.shared || !definition) error(`${path}.shared`, `Unknown shared Instruction '${node.shared ?? ''}'.`);
     else {
       sharedUse.set(node.shared, (sharedUse.get(node.shared) ?? 0) + 1);
       validateOrder(
@@ -679,12 +679,12 @@ function validateOrder(
     return;
   }
   if (!action || found.length !== 1) {
-    error(path, 'Choose exactly one order action.');
+    error(path, 'Choose exactly one Instruction action.');
     return;
   }
   const id = externalId ?? node.id;
-  if (!id || !validId(id)) error(`${path}.id`, 'Order id must be kebab-case.');
-  else if (ids.has(id)) error(`${path}.id`, `Order '${id}' is duplicated in ${role.id}.`);
+  if (!id || !validId(id)) error(`${path}.id`, 'Instruction id must be kebab-case.');
+  else if (ids.has(id)) error(`${path}.id`, `Instruction '${id}' is duplicated in ${role.id}.`);
   else ids.add(id);
   const expected = [...(externalId ? [] : ['id']), found[0]];
   exactKeys(node as unknown as JsonObject, expected,
@@ -707,8 +707,8 @@ function validateOrder(
   if (action === 'branch') {
     if (node.capacity !== undefined)
       error(`${path}.capacity`, 'Capacity belongs on an action leaf, not a branch.');
-    if (depth >= 2) error(path, 'Orders may nest through at most two branches.');
-    if (!node.orders?.length) error(`${path}.orders`, 'A branch needs child orders.');
+    if (depth >= 2) error(path, 'Instructions may nest through at most two branches.');
+    if (!node.orders?.length) error(`${path}.orders`, 'A branch needs child Instructions.');
     node.orders?.forEach((child, index) => validateOrder(
       child, `${path}.orders.${index}`, role, orders, mapPlan, catalog, roles, ids,
       depth + 1,
@@ -838,7 +838,7 @@ function validateExpression(
     if (!condition) error(path, `Unknown condition '${name}'.`);
     else {
       if (condition.since === 'node-entry' && !isUntil)
-        error(path, `'${name}' reads this order episode and is legal only in Until.`);
+        error(path, `'${name}' reads this Instruction episode and is legal only in Until.`);
       uses.set(name, (uses.get(name) ?? 0) + 1);
     }
   }
@@ -859,7 +859,7 @@ function validateGeometry(
     if (![x1, y1, x2, y2].every(Number.isInteger) || x1 > x2 || y1 > y2
       || !inside(x1, y1, catalog) || !inside(x2, y2, catalog))
       error(`${path}.rect`, 'Draw a normalized rectangle inside the map.');
-    if (!usedZones.has(id)) error(path, 'Delete this unused zone or target it from an order/condition.');
+    if (!usedZones.has(id)) error(path, 'Delete this unused zone or target it from an Instruction or condition.');
   }
   for (const [id, route] of Object.entries(mapPlan.routes)) {
     const path = `mapPlan.routes.${id}`;
@@ -873,7 +873,7 @@ function validateGeometry(
       else if (reservedSpawnForEitherSide(x, y, catalog))
         error(`${path}.waypoints.${index}`, 'Move this waypoint off the reserved body spawn so neither team is routed onto a permanently occupied tile.');
     });
-    if (!usedRoutes.has(id)) error(path, 'Delete this unused route or use it in a move order.');
+    if (!usedRoutes.has(id)) error(path, 'Delete this unused route or use it in a Move Instruction.');
   }
   for (const [id, [x, y]] of Object.entries(mapPlan.anchors)) {
     const path = `mapPlan.anchors.${id}`;
@@ -883,7 +883,7 @@ function validateGeometry(
       error(path, 'Move this anchor off the wall so both team-side previews can traverse it.');
     else if (reservedSpawnForEitherSide(x, y, catalog))
       error(path, 'Move this anchor off the reserved body spawn so neither team targets a permanently occupied tile.');
-    if (!usedAnchors.has(id)) error(path, 'Delete this unused anchor or target it from an order.');
+    if (!usedAnchors.has(id)) error(path, 'Delete this unused anchor or target it from an Instruction.');
   }
 }
 

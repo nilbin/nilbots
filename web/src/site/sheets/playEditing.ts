@@ -31,14 +31,14 @@ export function addSignatureOpportunity(
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
   const located = findOrderLocation(projection.orders, hostOrderId);
-  if (!located) throw new Error(`Unknown host Order '${hostOrderId}'.`);
+  if (!located) throw new Error(`Unknown host Instruction '${hostOrderId}'.`);
 
   let host = located.node;
   if (!host.orders) {
     if (!host.move && !host.fight)
       throw new Error('Choose a durable Move, Fight, or existing branch as the continuation.');
     if (located.depth >= 2)
-      throw new Error('This Order is already at the maximum branch depth. Choose its nearest parent branch.');
+      throw new Error('This Instruction is already at the maximum branch depth. Choose its nearest parent branch.');
     const continuationId = uniqueOrderId(`${hostOrderId}-continue`, projection.orders);
     const continuation: OrderNode = {
       id: continuationId,
@@ -253,7 +253,7 @@ export function renameSignatureOpportunity(
   const projection = requireProjection(play, projectionId);
   const binding = requireBinding(projection, bindingId);
   if (findOrderLocation(projection.orders, nextOrderId))
-    throw new Error(`Order '${nextOrderId}' already exists in this projection.`);
+    throw new Error(`Instruction '${nextOrderId}' already exists for this participant.`);
   const node = requireOpportunityNode(projection, binding);
   const previous = binding.useOrderId;
   node.id = nextOrderId;
@@ -349,7 +349,7 @@ export function addPlayGeometry(
   if (kind === 'zone') next.mapPlan.zones[id] = { rect: [15, 13, 15, 13] };
   else if (kind === 'route') next.mapPlan.routes[id] = { waypoints: [] };
   else next.mapPlan.anchors[id] = [15, 13];
-  play.ownedGeometry.push({ kind, id, purpose: 'available to this Play' });
+  play.ownedGeometry.push({ kind, id, purpose: 'available to this Program' });
   return { draft: next, id };
 }
 
@@ -390,7 +390,7 @@ export function configurePlayContingent(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   if (play.recipe !== 'blank')
-    throw new Error('Generic contingent setup belongs to a blank linked Play.');
+    throw new Error('Generic contingent setup belongs to a blank Program.');
   const projection = requireProjection(play, projectionId);
   const role = next.orders.roles.find((entry) => entry.id === projection.roleId);
   if (!role) throw new Error(`Unknown role '${projection.roleId}'.`);
@@ -516,7 +516,7 @@ export function setPlayZoneRect(
   const play = requirePlay(next, playId);
   if (!play.ownedGeometry.some((entry) =>
       entry.kind === 'zone' && entry.id === zoneId && !entry.derivedFrom))
-    throw new Error(`Zone '${zoneId}' is not directly owned by this Play.`);
+    throw new Error(`Zone '${zoneId}' is not directly owned by this Program.`);
   next.mapPlan.zones[zoneId] = { rect: [...rect] };
   return next;
 }
@@ -531,7 +531,7 @@ export function appendPlayRouteWaypoint(
   const play = requirePlay(next, playId);
   if (!play.ownedGeometry.some((entry) =>
       entry.kind === 'route' && entry.id === routeId && !entry.derivedFrom))
-    throw new Error(`Route '${routeId}' is not directly owned by this Play.`);
+    throw new Error(`Route '${routeId}' is not directly owned by this Program.`);
   const route = next.mapPlan.routes[routeId];
   if (!route) throw new Error(`Route '${routeId}' is missing.`);
   const previous = route.waypoints.at(-1);
@@ -549,7 +549,7 @@ export function removeLastPlayRouteWaypoint(
   const play = requirePlay(next, playId);
   if (!play.ownedGeometry.some((entry) =>
       entry.kind === 'route' && entry.id === routeId && !entry.derivedFrom))
-    throw new Error(`Route '${routeId}' is not directly owned by this Play.`);
+    throw new Error(`Route '${routeId}' is not directly owned by this Program.`);
   next.mapPlan.routes[routeId]?.waypoints.pop();
   return next;
 }
@@ -597,7 +597,7 @@ export function replacePlayRole(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   const projection = play.projections.find((entry) => entry.id === projectionId);
-  if (!projection) throw new Error(`Unknown projection '${projectionId}'.`);
+  if (!projection) throw new Error(`Unknown participant Instruction block '${projectionId}'.`);
   if (!next.orders.roles.some((role) => role.id === nextRoleId))
     throw new Error(`Unknown role '${nextRoleId}'.`);
   const previousRoleId = projection.roleId;
@@ -630,7 +630,7 @@ export function updatePlayCondition(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   if (!play.ownedConditionIds.includes(conditionId))
-    throw new Error(`Condition '${conditionId}' is not owned by this Play.`);
+    throw new Error(`Condition '${conditionId}' is not owned by this Program.`);
   next.orders.conditions[conditionId] = structuredClone(condition);
   return next;
 }
@@ -648,10 +648,10 @@ export function addAmbushReserveSlot(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   if (play.recipe !== 'ambush')
-    throw new Error('Pooled reserve posts are available only in the Ambush recipe.');
+    throw new Error('Pooled reserve posts are available only in an Ambush Program.');
   const reserveProjection = play.projections.find((entry) => entry.id.endsWith('-reserve'));
   if (!reserveProjection)
-    throw new Error('The Ambush has no reserve projection.');
+    throw new Error('The Ambush Program has no reserve participant.');
   const reserveSlots = play.slots.filter((slot) => slot.roleId === reserveProjection.roleId);
   const ordinal = reserveSlots.length;
   const suffix = String.fromCharCode('a'.charCodeAt(0) + ordinal);
@@ -720,7 +720,7 @@ export function removeAmbushReserveSlot(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   if (play.recipe !== 'ambush')
-    throw new Error('Pooled reserve posts are available only in the Ambush recipe.');
+    throw new Error('Pooled reserve posts are available only in an Ambush Program.');
   const slot = play.slots.find((entry) => entry.id === slotId);
   if (!slot) throw new Error(`Unknown Ambush slot '${slotId}'.`);
   const reserveProjection = play.projections.find((entry) => entry.id.endsWith('-reserve'));
@@ -765,7 +765,7 @@ export function movePlayAnchor(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   if (!play.ownedGeometry.some((entry) => entry.kind === 'anchor' && entry.id === anchorId))
-    throw new Error(`Anchor '${anchorId}' is not owned by this Play.`);
+    throw new Error(`Anchor '${anchorId}' is not owned by this Program.`);
   next.mapPlan.anchors[anchorId] = point;
   return synchronizePlayGeometry(next, playId);
 }
@@ -780,7 +780,7 @@ export function renamePlayGeometry(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   if (!play.ownedGeometry.some((entry) => entry.kind === kind && entry.id === previous))
-    throw new Error(`${kind} '${previous}' is not owned by this Play.`);
+    throw new Error(`${kind} '${previous}' is not owned by this Program.`);
   renameMapObject(next, kind, previous, nextId);
   for (const owned of play.ownedGeometry) {
     if (owned.kind === kind && owned.id === previous) owned.id = nextId;
@@ -989,7 +989,7 @@ function cleanupUnusedCommitmentConditions(
 
 function requireProjection(play: LinkedPlay, projectionId: string): PlayProjection {
   const projection = play.projections.find((entry) => entry.id === projectionId);
-  if (!projection) throw new Error(`Unknown projection '${projectionId}'.`);
+  if (!projection) throw new Error(`Unknown participant Instruction block '${projectionId}'.`);
   return projection;
 }
 
@@ -1060,6 +1060,6 @@ function clampTicks(value: number): number {
 
 function requirePlay(draft: SheetDraft, playId: string): LinkedPlay {
   const play = draft.workshop.plays.find((entry) => entry.id === playId);
-  if (!play) throw new Error(`Unknown Play '${playId}'.`);
+  if (!play) throw new Error(`Unknown Program '${playId}'.`);
   return play;
 }

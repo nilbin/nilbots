@@ -175,7 +175,7 @@ export function inspectWorkshop(
               roleId: projection.roleId,
               orderId,
               kind: 'order-collision',
-              message: `Order '${orderId}' already exists outside this Play.`,
+              message: `Instruction '${orderId}' already exists outside this Program.`,
             });
           }
         }
@@ -189,7 +189,7 @@ export function inspectWorkshop(
               roleId: projection.roleId,
               orderId: previous.orderId,
               kind: 'order-missing',
-              message: `Linked Order '${previous.orderId}' is missing from '${projection.roleId}'.`,
+              message: `Generated Instruction '${previous.orderId}' is missing from '${projection.roleId}'.`,
             });
           } else if (fingerprintOrder(materialized) !== previous.fingerprint) {
             drifts.push({
@@ -198,7 +198,7 @@ export function inspectWorkshop(
               roleId: projection.roleId,
               orderId: previous.orderId,
               kind: 'order-changed',
-              message: `Linked Order '${previous.orderId}' changed outside its Play.`,
+              message: `Generated Instruction '${previous.orderId}' changed outside its Program.`,
             });
           }
         }
@@ -212,7 +212,7 @@ export function inspectWorkshop(
               roleId: projection.roleId,
               orderId,
               kind: 'order-collision',
-              message: `New linked Order '${orderId}' collides with an ordinary Order.`,
+              message: `New generated Instruction '${orderId}' collides with an unlinked Instruction.`,
             });
           }
         }
@@ -460,18 +460,18 @@ function deleteGeometry(plan: MapPlanDocument, kind: PlayGeometryKind, id: strin
 
 function requirePlay(workshop: WorkshopDocument, playId: string): LinkedPlay {
   const play = workshop.plays.find((entry) => entry.id === playId);
-  if (!play) throw new Error(`Unknown Play '${playId}'.`);
+  if (!play) throw new Error(`Unknown Program '${playId}'.`);
   return play;
 }
 
 function requireProjection(play: LinkedPlay, projectionId: string): PlayProjection {
   const projection = play.projections.find((entry) => entry.id === projectionId);
-  if (!projection) throw new Error(`Unknown projection '${projectionId}'.`);
+  if (!projection) throw new Error(`Unknown participant Instruction block '${projectionId}'.`);
   return projection;
 }
 
 function requireOrderId(order: OrderNode): string {
-  if (!order.id) throw new Error('A linked root Order needs an authored id.');
+  if (!order.id) throw new Error('A generated root Instruction needs an authored id.');
   return order.id;
 }
 

@@ -106,7 +106,7 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
                 key={`${classId}:${index}`} classId={classId} size={36} label={`${humanize(role.id)} body ${index + 1}`} />)}</span>
               <span className="min-w-0 flex-1">
                 <span className="type-display block truncate text-[17px]">{humanize(role.id)}</span>
-                <span className="t-micro mt-0.5 block">{role.classes.length} {role.classes.length === 1 ? 'body' : 'bodies'} · {role.orders.length} top-level orders</span>
+                <span className="t-micro mt-0.5 block">{role.classes.length} {role.classes.length === 1 ? 'body' : 'bodies'} · {role.orders.length} top-level Instructions</span>
               </span>
               <span className="disclosure-chevron" aria-hidden="true">›</span>
             </button>
@@ -194,7 +194,7 @@ export function SquadEditor({ catalog, orders, issues, onChange }: {
         <ClassIcon classId={classId} size={46} label={`${humanize(role.id)} · ${humanize(classId)}`} />
         <span className="t-micro mt-1 block truncate">{humanize(role.id)}</span>
       </div>))}</div>
-      <p className="t-micro mt-3 border-t border-arena-edge pt-3">Unit ids follow this source order. A body keeps its role through death and respawn.</p>
+      <p className="t-micro mt-3 border-t border-arena-edge pt-3">Unit ids follow this listed position. A body keeps its role through death and respawn.</p>
       <IssueList issues={issues.filter((issue) => issue.path.startsWith('orders.roles'))} />
     </aside>
   </section>;
@@ -301,7 +301,7 @@ export function OrdersWorkspace({ catalog, orders, mapPlan, issues, onChange, on
 
     {library && <Modal title={library === 'conditions' ? 'Named conditions' : library === 'capacities' ? 'Shared capacity rules' : 'Shared exact Instructions'}
       description={library === 'conditions'
-        ? 'Name a fact once, then combine those names explicitly with AND or OR on any order.'
+        ? 'Name a fact once, then combine those names explicitly with AND or OR on any Instruction.'
         : library === 'capacities'
           ? 'One number limits bodies claiming the same resolved target. A shared name needs at least two consumers.'
           : 'Reuse an exact Instruction tree. Shared Instructions have no parameters or per-role overrides.'}
@@ -419,7 +419,7 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
 }) {
   const action = actionOf(node);
   const meta = action && action !== 'branch' && action !== 'shared' ? ACTION_COPY[action] : null;
-  const label = externalId ?? node.id ?? node.shared ?? 'Unnamed order';
+  const label = externalId ?? node.id ?? node.shared ?? 'Unnamed Instruction';
   const localIssues = issues.filter((issue) => issue.path.startsWith(path));
   const change = (mutate: (next: OrderNode) => void) => { const next = structuredClone(node); mutate(next); onChange(next); };
   if (linked) return <LinkedOrderCard node={node} path={path} depth={depth}
@@ -441,13 +441,13 @@ function OrderCard({ node, path, role, allOrders, mapPlan, catalog, issues, dept
         <span className="disclosure-chevron shrink-0">›</span>
       </button>
       {!externalId && <div className="hidden gap-1 sm:flex">
-        <button type="button" className="btn min-h-10 min-w-10 px-2" aria-label="Move order earlier" disabled={first} onClick={() => onMove(-1)}>↑</button>
-        <button type="button" className="btn min-h-10 min-w-10 px-2" aria-label="Move order later" disabled={last} onClick={() => onMove(1)}>↓</button>
+        <button type="button" className="btn min-h-10 min-w-10 px-2" aria-label="Move Instruction earlier" disabled={first} onClick={() => onMove(-1)}>↑</button>
+        <button type="button" className="btn min-h-10 min-w-10 px-2" aria-label="Move Instruction later" disabled={last} onClick={() => onMove(1)}>↓</button>
       </div>}
     </div>
     {open && <div className="border-t border-arena-edge p-3">
       {action === 'shared' ? <SharedReference node={node} allOrders={allOrders} onChange={onChange} /> : <>
-        {!externalId && <label className="block"><span className="lab mb-1 block">Authored order name</span>
+        {!externalId && <label className="block"><span className="lab mb-1 block">Authored Instruction name</span>
           <IdentifierInput value={node.id ?? ''} fallback="order"
             onCommit={(id) => change((next) => { next.id = id; })} /></label>}
         <LifecycleEditor node={node} allOrders={allOrders} onChange={onChange} />
@@ -517,7 +517,7 @@ function LinkedOrderCard({ node, path, depth, info, open, onToggle, onEditPlay }
         </span>
         <span className="min-w-0 flex-1">
           <span className="lab text-arena-material">Program · {info.playName}</span>
-          <b className="type-display mt-0.5 block truncate text-[16px]">{humanize(node.id ?? 'linked-order')}</b>
+          <b className="type-display mt-0.5 block truncate text-[16px]">{linkedInstructionName(node.id, info.projectionId)}</b>
           <span className="t-micro mt-0.5 block truncate">Generated · read-only · {action ?? 'Instruction'}</span>
         </span>
         <span className="disclosure-chevron shrink-0">›</span>
@@ -605,7 +605,7 @@ function UrgencyEditor({ value, onChange }: { value: OrderUrgency | undefined; o
         <span className="t-micro mt-1 block">{entry.description}</span>
       </button>)}
     </div>
-    <p className="t-micro mt-2">Urgency never changes which order wins. It only decides allied right-of-way after this order is already active; sustained blocking still earns a turn.</p>
+    <p className="t-micro mt-2">Urgency never changes which Instruction wins. It only decides allied right-of-way after this Instruction is already active; sustained blocking still earns a turn.</p>
   </fieldset>;
 }
 
@@ -761,7 +761,7 @@ function HandoffEditor({ value, roles, onChange }: { value: NonNullable<OrderNod
       'nearest-empty-handed-ally': 'Pass to the closest legal ally',
     }}
     onChange={(target) => onChange({ target: target.startsWith('role:') ? { role: target.slice(5) } : target as typeof value.target })} />
-    <p className="t-micro mt-2">The receiver does not need a matching order. Handoff never implies movement.</p>
+    <p className="t-micro mt-2">The receiver does not need a matching Instruction. Handoff never implies movement.</p>
   </div>;
 }
 
@@ -858,7 +858,7 @@ function ConditionsEditor({ orders, mapPlan, issues, onChange, onOpenMap, initia
         onChange={(condition) => commit((next) => { next.conditions[selected] = condition; })} />
       <IssueList issues={issues.filter((issue) => issue.path.startsWith(`orders.conditions.${selected}`))} />
       <button type="button" className="btn mt-4 min-h-11 text-arena-hot" onClick={() => { commit((next) => { delete next.conditions[selected]; }); setSelected(ids.find((id) => id !== selected) ?? ''); }}>Delete condition</button>
-    </div> : <p className="t-meta">Create a named condition to drive an order.</p>}
+    </div> : <p className="t-meta">Create a named condition to drive an Instruction.</p>}
   </div>;
 }
 
@@ -916,7 +916,7 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }:
       </div>
       {condition.windowTicks !== undefined && <OptionalTicks label="Look back" value={condition.windowTicks}
         min={1} max={1200} placeholder="ticks" onChange={(value) => change((next) => { next.windowTicks = value ?? 1; })} />}
-      {condition.since === 'node-entry' && <p className="t-micro mt-2 text-arena-material">Episode evidence belongs in an order’s Until trigger; each body gets its own entry tick.</p>}
+      {condition.since === 'node-entry' && <p className="t-micro mt-2 text-arena-material">Episode evidence belongs in an Instruction’s Until trigger; each body gets its own entry tick.</p>}
     </div>}
   </div>;
 }
@@ -1201,7 +1201,7 @@ function conditionFactLabel(fact: string) {
     'self-level': 'My veteran level',
     'self-carrying': 'I am carrying a Core',
     'self-stuck-ticks': 'Time I have been stuck',
-    'self-order-ticks': 'Time on this order',
+    'self-order-ticks': 'Time on this Instruction',
     'self-in-zone': 'I am inside a zone',
     'self-nearest-visible-enemy-distance': 'Steps to join a visible fight',
     'self-carried-core-bank-value': 'Value of my carried Core',
@@ -1258,6 +1258,13 @@ function priorityFromPath(path: string) {
 function swap<T>(values: T[], left: number, right: number) {
   if (left < 0 || right < 0 || left >= values.length || right >= values.length) return;
   [values[left], values[right]] = [values[right], values[left]];
+}
+
+function linkedInstructionName(id: string | undefined, projectionId: string) {
+  const source = id ?? 'linked-instruction';
+  return humanize(source.startsWith(`${projectionId}-`)
+    ? source.slice(projectionId.length + 1)
+    : source);
 }
 
 function humanize(value: string) {

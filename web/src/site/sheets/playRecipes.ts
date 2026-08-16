@@ -39,7 +39,7 @@ export interface LaneClosureRecipeRoles {
   guardRoleId: string;
 }
 
-export function addBlankPlay(draft: SheetDraft, name = 'Untitled Play'): SheetDraft {
+export function addBlankPlay(draft: SheetDraft, name = 'Untitled Program'): SheetDraft {
   const next = structuredClone(draft);
   const id = uniquePlayId('untitled-play', next.workshop);
   next.workshop.plays.push({

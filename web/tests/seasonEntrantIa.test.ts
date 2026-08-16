@@ -10,6 +10,7 @@ const entrants = read('../src/site/pages/ArcRelayPage.tsx');
 const workshop = read('../src/site/sheets/TacticalSheetEditor.tsx');
 const orders = read('../src/site/sheets/OrdersWorkspace.tsx');
 const programs = read('../src/site/sheets/PlaysWorkspace.tsx');
+const programRecipes = read('../src/site/sheets/playRecipes.ts');
 const map = read('../src/site/sheets/MapPlanEditor.tsx');
 const docs = read('../src/site/pages/DocsPage.tsx');
 const styles = read('../src/index.css');
@@ -77,6 +78,8 @@ test('Programs expose one top-to-bottom priority and generated Instructions stay
   assert.match(programs, /moveProgram\(draft, entry\.id/);
   assert.match(programs, /Generated Instructions/);
   assert.match(programs, /advanced · read-only/);
+  assert.match(programRecipes, /Untitled Program/);
+  assert.doesNotMatch(programRecipes, /Untitled Play/);
   assert.doesNotMatch(programs, /Insert projection|There is no Play priority|setPlayProjectionPlacement|projectionPriorityOptions/);
 });
 
@@ -115,7 +118,7 @@ test('map planning renders all authoritative social landmarks and opens inside m
   assert.match(map, /Skill blocked/);
   assert.match(map, /relationForSpawn/);
   assert.match(map, /nearestSpawnTeam/);
-  assert.match(map, /Draw the ground your orders name/);
+  assert.match(map, /Draw the ground your Instructions name/);
   assert.match(orders, /Plot a route before this patrol can run/);
   assert.match(orders, /Open map and add route/);
   assert.doesNotMatch(orders, /value=\{value\.to!\}/);

@@ -107,7 +107,7 @@ export default function SignatureUseEditor({
           ? onCreateAnchor() : onOpenMap()}>
         {presetNeeds === 'anchor' && onCreateAnchor
           ? 'Place and bind this target on the map'
-          : `Add a Play ${presetNeeds} on the map first`}
+          : `Add a Program ${presetNeeds} on the map first`}
       </button> : <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
         onClick={() => onChange(presetOrder!)}>Use these editable defaults</button>}
     </div>
@@ -225,9 +225,9 @@ export default function SignatureUseEditor({
       <p className="t-micro mt-2">Exact geometry remains an ordinary authored anchor. Placement skills must still stage within a legal use position.</p>
     </div>}
     {descriptor.defaultCommitmentBehavior === 'preserve-by-default' && <p className="t-micro mt-3 rounded-sm border border-arena-edge bg-arena-panel/50 p-2">
-      This signature normally preserves its authoritative tell or channel. A linked opportunity can scaffold an ordinary hold continuation; higher-priority Orders may still interrupt it.
+      This signature normally preserves its authoritative tell or channel. A linked opportunity can scaffold an ordinary hold continuation; higher-priority Instructions may still interrupt it.
     </p>}
-    {skills.length > 1 && <p className="t-micro mt-2">Only bodies that own this skill take this order. Other classes in the role continue down the ladder.</p>}
+    {skills.length > 1 && <p className="t-micro mt-2">Only bodies that own this skill take this Instruction. Other classes in the role continue down the list.</p>}
   </div>;
 }
 
