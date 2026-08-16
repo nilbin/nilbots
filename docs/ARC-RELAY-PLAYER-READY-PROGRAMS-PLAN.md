@@ -92,6 +92,11 @@ Preserve these constraints throughout:
   handoff/Toss, and voluntary drop all materialize through the same Conditions,
   target resolution, local Instruction order, and Program priority already in
   use elsewhere.
+- Core-recovery filters decide which Core a body deliberately pursues; they do
+  not veto the existing physical pickup rule. Any body that crosses a loose
+  Core can become its carrier, so normal authoring and starter sheets must audit
+  custody handling across the whole fielded roster, not only roles with a
+  recovery card.
 - Combined readiness means every participant sees the same ordinary gate; it
   does not promise simultaneous actions. A higher Program, death, displacement,
   or dynamic illegality may still affect one participant independently, and
@@ -124,8 +129,8 @@ one tactic while keeping their ordinary generated sources visible underneath.
    - an ordinary anchor plus a linked derived zone underneath.
 3. **Where it looks after arrival**
    - face toward another point; or
-   - draw an eight-way direction arrow from the Post, represented underneath by
-     a derived facing anchor.
+   - choose an exact cardinal direction with a snapping arrow, represented
+     underneath by a derived facing anchor on the same row or column.
 4. **What it does while posted**
    - hold and preserve vision/facing;
    - respond/fight under the Program’s trigger;
@@ -160,6 +165,10 @@ The complete Post must be authorable without leaving the map:
   wall or deployment footprint, and readiness tolerance before saving; label
   occupancy and other match-time legality as dynamic rather than pretending to
   predict it;
+- see the body's rules-derived starting vision footprint from the selected
+  Post and facing, plus an optional union overlay for the whole formation;
+  distinguish static terrain occlusion from dynamic smoke, deployments,
+  movement, and veteran vision upgrades;
 - select any marker to open the same compact Post inspector;
 - drag the Post, facing endpoint, or effect target independently;
 - move a selected formation group together without breaking derived zones,
@@ -173,7 +182,9 @@ into one ambiguous anchor.
 At phone width, use a map-preserving bottom sheet or equivalent compact
 inspector. The player must not have to scroll far enough that the selected Post
 and its map context disappear. Require touch targets of at least 44 px, no
-hover-only action, and no horizontal page overflow at 390×844.
+hover-only action, and no horizontal page overflow at 390×844. Every map-only
+gesture must also have a keyboard/list-inspector equivalent, and readiness,
+priority, target, and vision states may not rely on colour alone.
 
 ### Facing semantics
 
@@ -182,8 +193,17 @@ Reuse the existing `move.face.anchor` behavior:
 - facing is applied only after the body reaches an authored anchor/zone
   destination;
 - it does not alter patrol-route movement;
-- the direction-arrow affordance creates/moves a derived anchor rather than a
-  second facing mechanic;
+- bodies have four cardinal facings. The exact-direction affordance therefore
+  snaps north/east/south/west and creates or moves a cardinally aligned derived
+  anchor rather than promising an unsupported eight-way facing;
+- **Face toward this point** remains available as the existing anchor behavior,
+  but the map must preview the actual cardinal result. A diagonal point can
+  resolve to either adjacent cardinal direction depending on arrival facing,
+  so it must be labelled as non-exact (or rejected when exact facing is
+  required), never shown as a guaranteed diagonal;
+- for a tolerance area, exact facing is promised only when every legal standing
+  tile resolves to the same cardinal direction. Otherwise show the possible
+  facings and offer a cardinal arrow, a smaller tolerance, or a moved point;
 - a zero-length facing arrow is invalid and is explained before save;
 - a combat response may turn toward its combat target; when that response ends,
   the Post continuation restores the authored facing.
@@ -307,13 +327,15 @@ that a body owns a live deployment, but cannot distinguish “my wall is on this
 choke” from “my wall is somewhere else.” Using it for the canonical sentence
 would silently preserve the wrong wall.
 
-Add one generic zone-qualified body fact:
+Add two generic zone-qualified facts with deliberately different scopes:
 
 ```text
-deployment-in-zone
+self-deployment-in-zone
+role-deployments-in-zone-count
 ```
 
-Its exact contract is:
+`self-deployment-in-zone` is the owner-local maintenance truth. Its exact
+contract is:
 
 - integer `0 | 1`;
 - requires an authored `zone`;
@@ -328,22 +350,51 @@ Its exact contract is:
 - works for every durable deployment kind, not only Hardlight;
 - mirrors normally through the authored map plan.
 
+`role-deployments-in-zone-count` is the shared readiness truth. It:
+
+- requires an authored participant `role`, target `zone`, and expected
+  deployment signature/kind;
+- counts live Active deployments with the expected identity whose owner stable
+  slot belongs to that allied role and whose authoritative footprint intersects
+  the zone;
+- counts a suppressed deployment as present for the same anti-recast reason;
+- returns the same team-relative value no matter which participating body
+  evaluates the shared readiness gate; and
+- reads the existing authoritative signature-state owner, kind/id, phase, and
+  footprint. It creates no deployment registry or Program state.
+
+Do not use the owner-local fact as a shared multi-role readiness clause. A Guard
+or Kestrel evaluating “this body's deployment is at the choke” would otherwise
+keep the whole formation permanently unready even though the Mason's wall is
+correctly present. If several required deployment targets could be satisfied by
+one footprint from the same eligible owner pool, apply the same visible
+non-overlap/repair rule used for required Posts; do not count one construct as
+several required setup slots.
+
 For an exact target, the Program owns a derived one-tile zone linked to the
 effect anchor. Moving or renaming the target updates both in one edit. The
 normal maintain policy materializes:
 
 ```text
 wall-at-choke:
-  fact: deployment-in-zone
+  fact: self-deployment-in-zone
   operator: equals
   value: 1
   zone: wall-target-zone
 
 wall-missing-at-choke:
-  fact: deployment-in-zone
+  fact: self-deployment-in-zone
   operator: equals
   value: 0
   zone: wall-target-zone
+
+home-wall-ready:
+  fact: role-deployments-in-zone-count
+  operator: at-least
+  value: 1
+  role: home-mason
+  zone: wall-target-zone
+  signature: hardlight-block
 ```
 
 Update the shared Orders validator/compiler, `OrdersPackage`, tactical mind,
@@ -455,7 +506,8 @@ Support the common success choices in the normal Program UI, derived from
 existing facts rather than raw Condition ids:
 
 - N confirmed enemy destructions in this area since response entry;
-- Core acquired / carrier now loaded;
+- this body is currently carrying a Core;
+- an allied Core pickup/catch was observed since response entry;
 - required area currently has zero **visible** enemies, labelled “visibly
   clear” rather than “known empty”;
 - no observed entry during a fully observed interval, when the player chooses
@@ -463,6 +515,16 @@ existing facts rather than raw Condition ids:
 - required deployment present or gone;
 - minimum duration only;
 - maximum timeout only.
+
+Do not conflate current custody with a remembered event. The first Core choice
+uses existing `self-carrying` and can become false again after Handoff, Toss,
+Drop, or banking. The second adds one ordinary historical count fact,
+`friendly-core-pickups`, with the existing `windowTicks` / `since: node-entry`
+contract, derived from authoritative `CorePickedUp` events. Label it **Core was
+picked up/caught**, not the broader “acquired.” A successful Arc Toss catch
+emits that event and therefore counts; a Toss attempt/miss, Handoff, Drop, or
+bank does not. This is event evidence, not a Program success flag or mutable
+observation store.
 
 Validate that maximum timeout is not shorter than minimum commitment and make
 zero/no-success choices explicit rather than manufacturing contradictory
@@ -535,8 +597,12 @@ Surface a compact set of common tactical triggers directly:
 - this body's nearest reachable visible-loose-Core walking distance;
 - this body's nearest reachable healing-tile walking distance;
 - Core carried/value/source state;
-- respawn-wave timing;
-- veteran level;
+- friendly/enemy bodies queued for the next synchronized respawn wave and
+  ticks until that wave;
+- this body's level, highest level in a role, and the existing
+  most-experienced-ally selector;
+- own/enemy reactor charge, own pulses/integrity, and public Well outstanding-
+  Core, next-birth, and socket state;
 - deployment present/durability/lifetime.
 
 The underlying Condition remains visible in Advanced. This is guided
@@ -655,7 +721,7 @@ this plan:
 - a separate effect anchor, role/selector target, or self target authorized by
   the signature descriptor;
 - ordinary trigger clauses, optional minimum ticks since last signature use,
-  or `deployment-in-zone` maintenance for durable deployments;
+  or `self-deployment-in-zone` maintenance for durable deployments;
 - a visible local opportunity order when several source windows overlap; and
 - the original ordinary `move.patrol` as the final continuation.
 
@@ -800,6 +866,7 @@ There is exactly one player-facing Fight behavior editor and materializer. It
 always exposes:
 
 - ordered target preferences;
+- optional **Only fight targets in this area**;
 - advance/hold/kite style;
 - chase limit from the fight-entry position; and
 - the visible **Attackers per enemy** capacity policy.
@@ -816,25 +883,43 @@ Its activation source is orthogonal and explicit:
 - **Additional Conditions** refine either form through the same ordinary flat
   Condition controls.
 
+The optional target area is a generic filter on the ordinary Fight behavior,
+not an activation trigger and not an Ambush mode. Materialize it as an optional
+zone qualifier on the `fight` target selection. Filter hostile candidates by
+their current occupied tile (or current footprint for an attackable hostile
+deployment) before ordered target preference and capacity resolution. If no
+legal hostile remains in the area, Fight yields to its ordinary continuation;
+do not latch a target identity or chase it out of the authored area.
+
+Allow the same optional zone qualifier on
+`self-nearest-visible-enemy-distance` so **On contact in this area** measures
+the body's legal walking distance to a firing tile for a qualifying enemy, not
+one enemy for the Condition and another for the action. The Program trigger
+area, contact/activation area, and Fight target area are distinct map overlays
+and must never be silently inferred from one another.
+
 These are activation bindings on the same Fight behavior, not separate
 `AmbushFight`, `OpportunityFight`, engagement, or runtime concepts. Switching
-from inherited response to On contact must preserve the target/style/chase/
-capacity configuration and change only the ordinary Condition/lifecycle
-linkage. A recipe may prefill those values but may not own another Fight model
-or editor.
+from inherited response to On contact must preserve the target-area/order/
+style/chase/capacity configuration and change only the ordinary Condition/
+lifecycle linkage. A recipe may prefill those values but may not own another
+Fight model or editor.
 
 For a multi-role ambush, each participant role may share the Fight behavior or
-refine its ordinary target/style/chase choices. Cross-role **Attackers per
-enemy** uses the existing named-capacity linkage. No role receives a hidden
-combat policy merely because another participant fights.
+refine its ordinary target-area/order/style/chase choices. Cross-role
+**Attackers per enemy** uses the existing named-capacity linkage. No role
+receives a hidden combat policy merely because another participant fights.
 
 In the Mid Overload ambush, the shared enemy-in-mid trigger plus exact Post and
 deployment readiness activates the committed response. Its Fight behavior
-inherits that activation; it must not redundantly require the original enemy
-count or a fresh per-body sighting every tick. Momentary visibility/readiness
-loss therefore does not cancel the response. If a participant currently has no
-actionable Fight target, the ordinary `fight` leaf yields to that response's
-authored hold/continuation while the parent commitment remains active.
+inherits that activation and explicitly limits targets to the authored return
+killzone; it must not redundantly require the original enemy count or a fresh
+per-body sighting every tick. Momentary visibility/readiness loss therefore
+does not cancel the response. If a participant currently has no actionable
+Fight target inside that area, the ordinary `fight` leaf yields to that
+response's authored hold/continuation while the parent commitment remains
+active. An enemy leaving the area is not pursued merely because it originally
+sprang the trap.
 
 If no legal target is actionable, the leaf yields to the next opportunity or
 continuation that tick. When the Fight activation/lifecycle exits, the exact
@@ -901,6 +986,12 @@ the identically bounded target. Condition and target must share one canonical
 distance/candidate implementation so the UI cannot say “within five” while the
 action chases something farther away. Walking onto the Core remains the
 existing physical pickup rule; do not add a `pickup` action.
+
+Be explicit about the consequence: value/distance filters govern deliberate
+pursuit, not pickup permission. A patrol, ingress, retreat, displacement, or
+Toss landing can put any body onto a loose Core and the physical rule will load
+it. The normal UI calls these **pursuit filters**, explains incidental pickup,
+and never promises that a rejected Core is avoided.
 
 ##### Value-aware pickup and custody
 
@@ -1033,13 +1124,14 @@ is still active/eligible, preserving its existing route/Post state and clocks.
 
 Preview the actual carrier Program and list position. A lower carrier Program
 is not a safe default beneath an always-actionable host because it may never
-win. Check coverage for every role/body pool eligible for this recovery card;
-a carrier Program that covers only another role is not a valid handoff. If no
-higher Program can bank every possible loaded participant, show a blocking
-diagnostic with one-click options to add/extend the ordinary **Bank carried
-Core** Program or move an existing one above the host. Allow **Keep carrying in
-this behavior** only as an explicit alternative and warn if the continuation
-can retain a Core indefinitely.
+win. The source card requires coverage for every role/body pool it can
+deliberately load. In addition, run a roster-wide custody audit because every
+fielded body can pick up incidentally under the physical rule. Offer one-click
+extension of the same ordinary **Bank carried Core** Program to uncovered
+roles, or an explicit visible **Keep carrying in this behavior** / value-gated
+Drop handling choice. Starter sheets and the playable-alpha gate require a
+banking or explicit custody consequence for all eight bodies; do not describe a
+sheet as covered merely because its recovery cards are covered.
 
 ##### Reuse one linked banking tactic
 
@@ -1054,7 +1146,7 @@ action, for example:
 
 ```text
 On pickup → Safe bank · Program 1
-Carrier: every eligible picker · South Return → own reactor
+Carrier: all 8 fielded bodies · South Return → own reactor
 Escort: up to 2 per carrier · Guard + Medic · fight on contact
 After banking: resume North watch if still active
 ```
@@ -1077,9 +1169,10 @@ valid.
 
 The linked Program may be a complete multi-participant tactic:
 
-- every role that can collect through a linked recovery card gets an ordinary
-  `self-carrying` return branch to the own reactor, with its authored route and
-  opportunities;
+- every covered fielded role gets an ordinary `self-carrying` return branch to
+  the own reactor, with its authored route and opportunities; the recommended
+  generated coverage is all roster roles, including bodies that can only pick
+  up incidentally;
 - selected empty-handed escort roles become eligible while
   `friendly-carriers >= 1`, follow the resolved carrier, and use the same
   generic Fight/signature/health controls available on any Follow host; and
@@ -1110,11 +1203,14 @@ return branch remains above its empty-handed escort branch when one static
 role is eligible for both.
 
 If pickup should end the tactic rather than merely interrupt it for banking,
-the player chooses **Core acquired** through the Program's normal success/end
-controls. Do not encode that as a hidden Opportunity transition. If an existing
-minimum commitment or success expression cannot represent the requested exit
-honestly within flat Conditions, diagnose it and require the player to refine
-that ordinary lifecycle rather than inventing nested Opportunity state.
+the player chooses **Core was picked up/caught since response entry** through the
+Program's normal success/end controls. If the intent is instead current
+custody, choose **This body is carrying a Core** and accept that a later
+handoff/Toss/drop can make it false before the minimum duration elapses. Do not
+encode either as a hidden Opportunity transition. If a flat success expression
+cannot represent the requested exit honestly, diagnose it and require the
+player to refine that ordinary lifecycle rather than inventing nested
+Opportunity state.
 
 #### Recover health
 
@@ -1221,9 +1317,10 @@ one honest normal authoring path for each of these generic families:
 
 The Program summary must distinguish **what caused the opportunity to start**
 from **how its target is selected**. For example, “enemies entered North Lane”
-does not silently mean “nearest enemy is restricted to North Lane” if the
-ordinary target grammar does not express that restriction. Show both clauses
-accurately rather than implying hidden target intelligence.
+does not silently mean “nearest enemy is restricted to North Lane.” The player
+must choose **Only fight targets in North Lane** when that restriction is part
+of the tactic. Show both clauses and map overlays accurately rather than
+implying hidden target intelligence.
 
 In addition to the Mason, Kestrel, and Relay headline proofs, retain or add
 small deterministic Program-authored scenes for the mechanically distinct
@@ -1245,11 +1342,68 @@ through the same descriptor-driven UI. A future seventeenth signature using an
 existing family must acquire its normal controls without changing the Post,
 Program, or map components.
 
+### Prove veteran- and timing-centred strategy is authorable
+
+The alpha should expose the game's strategic clocks and veteran truth as normal
+Program clauses, not leave them technically available only in Advanced. Use
+the existing facts/selectors; add no scheduler or new team state.
+
+Pin two small deterministic authoring scenes:
+
+- **Veteran spearhead:** a level-gated veteran moves or holds the lead while a
+  capacity-bounded support group follows the existing most-experienced-ally
+  selector, fights/heals through ordinary opportunities, and cleanly selects a
+  new veteran or falls through after death/level change. The map and Practice
+  identify who currently satisfies “most experienced” and why.
+- **Wave/Well window:** survivors stage or continue lower work while ordinary
+  Conditions inspect friendly/enemy respawns queued for the next wave, ticks to
+  that wave, and a selected Well's outstanding-Core/next-birth state; they push
+  when the authored flat clauses become true. Reactor charge/pulse/integrity
+  truth is available in the same palette for score-aware variants.
+
+These are focused strategy-language proofs, not additional starter doctrines,
+automatic timing logic, or claims that the authored tactic is optimal.
+
 ## 6. Make Practice explain Programs well enough to iterate
 
 Because Programs remain editor-only, derive these views by correlating the
-current workshop sidecar with generated Instruction paths and authoritative
-replay/debug events. Do not add Program ids to ATL2 or replay.
+workshop sidecar with generated Instruction paths and authoritative replay/debug
+events. Do not add Program ids to ATL2 or replay.
+
+That correlation must be revision-safe. Starting a Practice match stores an
+immutable, owner-only **Practice authoring snapshot** beside its analysis
+metadata: sheet id/revision, normalized workshop JSON, and either the generated
+source-path mapping or enough normalized linkage to reproduce it. It is not
+part of executable Orders, ATL2, the match content/gameplay hash, opponent
+input, or public replay data. Editing, renaming, reordering, or deleting a
+Program after the run must never cause an old replay to be explained using the
+new draft.
+
+Practice labels the replay and draft revisions when they differ and offers
+**Open the revision used for this run** and **Rerun current draft**. A legacy
+run without a snapshot may explain raw Instructions but must say that Program
+attribution is unavailable rather than guessing from the current sidecar.
+
+### Make top-to-bottom reachability legible
+
+Before Practice, show a compact per-role coverage/fallthrough strip across the
+one Program list: which fielded bodies a Program can own, its visible gate, and
+the next Program they can reach when it yields. Run conservative structural
+diagnostics for facts the materializer can prove:
+
+- an unconditional durable continuation that makes lower Programs unreachable
+  for the same role;
+- a linked Bank carried Core Program shadowed by an earlier carrier-eligible
+  continuation;
+- a fielded role with no terminal useful behavior;
+- a participant phase whose promised fallback is absent; and
+- a required readiness/role/deployment relationship that cannot be filled.
+
+Block save only for proven invalid generated structure or a normal-surface
+promise such as a linked banking takeover that cannot occur. Warn for potential
+dynamic shadowing and direct the player to Practice; do not pretend to solve
+arbitrary Condition satisfiability. Reordering a Program updates this strip and
+all linked takeover summaries in the same edit.
 
 For a selected Program and body, Practice must answer:
 
@@ -1272,8 +1426,11 @@ For a selected Program and body, Practice must answer:
   the value/distance filter and preference that selected or rejected it, the
   carried-value branch that won, and the exact consequence of handoff, Toss, or
   Drop;
+- whether a Core pickup followed a selected recovery target or happened
+  incidentally while another movement crossed it, and which roster-wide
+  carrier branch then won;
 - whether Fight inherited a Program response or used On-contact activation,
-  shown separately from its target/style/chase configuration;
+  shown separately from its target-area/order/style/chase configuration;
 - capacities in their player-facing terms—such as “one pursuer already owns
   this Core this tick” or “nearest healing tile already has a patient”—rather
   than only a generated capacity id;
@@ -1282,9 +1439,10 @@ For a selected Program and body, Practice must answer:
 - the response’s minimum-commit and maximum-time clocks;
 - the exit/fallthrough cause.
 
-Clicking a body or status row should highlight its current Post, facing arrow,
-signature target/window, base route, resolved Core/healing target and authored
-walking bound, and relevant readiness group on the map.
+Clicking a body or status row should highlight its current Post, resolved
+cardinal facing and rules-derived visible footprint, signature target/window,
+separate Fight target area, base route, resolved Core/healing target and
+authored walking bound, and relevant readiness group on the map.
 
 Add a compact post-run Program timeline/summary sufficient to answer:
 
@@ -1310,9 +1468,10 @@ Program plus sensible lower-priority loose-Core recovery, healing, and combat
 fallbacks so every body has useful behavior when its headline Program is
 inactive.
 
-The carrier-banking Program covers every role that any normal recovery card
-can load; do not demonstrate a global-looking fallback that silently omits one
-participant role.
+The carrier-banking Program covers all eight fielded bodies, including roles
+with no normal recovery card, because ordinary movement can pick up a Core
+incidentally. Do not demonstrate a global-looking fallback that silently omits
+one participant role.
 
 Their ordinary loose-Core recovery uses the player-facing **One bot per Core**
 default and previews the higher **Bank carried Core** Program that will pre-empt
@@ -1350,6 +1509,9 @@ Acceptance behavior:
   every participating role fights through the same ordinary Fight behavior,
   editor, capacity policy, and generated `fight` leaf used by On-contact
   behavior elsewhere;
+- the return ambush's Fight target area is the authored return killzone, so the
+  mid trigger does not make posted bodies chase unrelated enemies or pursue a
+  target that leaves the trap;
 - both staged groups use **Hold these Posts** and remain stable while waiting,
   without preparation-node re-entry churn;
 - the response stays committed for its configured minimum even when an enemy
@@ -1454,8 +1616,11 @@ Implement trace-first and pin the smallest scenes before broad UI work.
 
 ### Runtime/compiler scenes
 
-1. `deployment-in-zone` is 1 at the intended tile and 0 for no deployment, a
-   deployment elsewhere, destruction, expiry, and replacement.
+1. `self-deployment-in-zone` is 1 at the intended tile and 0 for no deployment,
+   a deployment elsewhere, destruction, expiry, and replacement. The matching
+   `role-deployments-in-zone-count` gives every allied participant the same
+   result for the correct role/signature/zone, rejects the wrong role, kind, or
+   zone, and lets non-deployer participants arm from the Mason's wall.
 2. A suppressed deployment remains present while its public suppressed state
    remains separately observable.
 3. West/east map mirroring preserves exact target-zone truth.
@@ -1556,14 +1721,17 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     committed response.
 31. Core pickup inside an active committed response makes a higher carrier
     Program pre-empt without resetting the response lifecycle; after banking,
-    the response resumes if still active. Selecting **Core acquired** as the
-    ordinary success exits according to the authored minimum/end semantics
-    instead. No lower carrier Program or hidden transition is assumed to win.
+    the response resumes if still active. Selecting historical **Core was
+    picked up/caught** as the ordinary success survives later custody transfer and
+    exits according to the authored minimum/end semantics; selecting current
+    **This body is carrying** does not. No lower carrier Program or hidden
+    transition is assumed to win.
 32. Mid Overload's shared trigger/readiness springs its response and the same
     ordinary Fight behavior used by On-contact opportunities executes beneath
     it. Losing the original enemy count, Post readiness, or one body's current
     sighting does not cancel parent commitment; no actionable target yields to
-    the authored response hold, and a later target resumes Fight without a
+    the authored response hold, an enemy outside/leaving the return killzone is
+    not selected or chased, and a later in-zone target resumes Fight without a
     second activation mechanism.
 33. A body from each of two differently named recovery roles can pick up a
     Core and be handled by the same higher banking Program. Its carrying branch
@@ -1598,6 +1766,28 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     recharge, and enforces the existing source reclaim delay. The carrier
     falls through after custody ends, and a focused scene rejects an accidental
     repeatable pickup/drop cycle rather than treating Drop as discard.
+39. A Fight with a target area selects/capacitates only hostile bodies or
+    attackable deployment footprints currently in that area. Its matching
+    zone-qualified visible-enemy-distance fact uses the same candidates; an
+    enemy leaving the area is not chased, and the committed response holds
+    until a new in-area target or lifecycle exit.
+40. Exact multi-body Posts converge from crossed starting positions, recover
+    after displacement/death/respawn, and never let one body fill two required
+    Posts. Tick-local capacity may change winners, but it must not create an
+    endless two-Post swap or readiness flicker under the deterministic scene.
+41. A body whose ordinary patrol/move crosses a loose Core picks it up even
+    when no recovery filter selected that Core. The roster-wide higher banking
+    Program takes over next tick, banks it, and returns the survivor to the
+    lower continuation; Practice labels the pickup **incidental**.
+42. With two live carriers crossing, capacity-bounded escorts may recompute the
+    nearest carrier but do not repeatedly reverse, orbit, or stall the carriers.
+    Practice explains each target change. If ordinary tick-local Follow cannot
+    satisfy this scene, report the limitation rather than adding sticky escort
+    assignment or reservations inside this goal.
+43. **Veteran spearhead** and **Wave/Well window** execute using the existing
+    level/most-experienced selector, respawn-wave, Well, and reactor facts;
+    veteran death/reselection and a changed timing window produce ordinary
+    fallthrough with non-empty reasons.
 
 ### Materializer/editor tests
 
@@ -1616,7 +1806,11 @@ Implement trace-first and pin the smallest scenes before broad UI work.
    switch.
 8. The editor clearly warns about contradictory same-owner maintenance
    targets, impossible range/terrain, over-capacity roles, unfillable slots,
-   expression/depth limits, and missing fallback behavior.
+   expression/depth limits, map geometry/source/workshop size limits, and
+   missing fallback behavior. Preflight the complete atomic edit before
+   materialization so approaching a quota is visible and exceeding it cannot
+   leave partial Posts, routes, Conditions, or generated Instructions; suggest
+   reusing/splitting existing geometry where appropriate.
 9. Running Relay source/receiver Post geometry computes forward route gain in
    the editor, rejects insufficient or ambiguous station relationships, and
    generates an ordinary role-target Toss with no `aheadVia`.
@@ -1723,6 +1917,36 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     one-shot and fallback materializer as other opportunities. Drop's normal
     UI explains fixed landing, outstanding supply, no recharge, reclaim delay,
     and cycle risk, and offers no discard or landing-target control.
+34. Exact facing arrows snap to north/east/south/west and generate a cardinally
+    aligned face anchor. A diagonal watched point and a tolerance envelope show
+    every possible cardinal result and cannot be labelled exact when arrival
+    state could change it. The rules-derived vision footprint/formation union
+    updates as Posts, facing, terrain, and selected veteran preview change.
+35. A maintained deployment uses `self-deployment-in-zone`, while required
+    shared readiness uses `role-deployments-in-zone-count` with role,
+    signature/kind, and zone. Every participant receives the same gate; wrong
+    owner/kind/target and one footprint satisfying overlapping required targets
+    produce exact diagnostics.
+36. The common Fight editor owns one optional target-area field. Its generated
+    `fight` selector and optional zone-qualified contact-distance Condition
+    share the same zone, while trigger/contact/target overlays remain separately
+    editable. Switching inherited response/On contact preserves target area.
+37. The custody audit distinguishes deliberate recovery coverage from physical
+    pickup exposure, offers extension of one banking Program to every fielded
+    role, and never claims that a Core failing a pursuit filter is avoided.
+38. The per-role priority strip updates on add/reorder/gate edits, proves simple
+    unconditional shadowing and missing fallbacks, blocks a structurally
+    impossible linked banking takeover, and labels dynamic overlap as a warning
+    rather than claiming a complete Condition solver.
+39. **This body is carrying** materializes current `self-carrying`; **Core was
+    picked up/caught** materializes historical `friendly-core-pickups` with a visible
+    interval. Editing the minimum commitment does not silently change one into
+    the other.
+40. Starting Practice snapshots the normalized workshop/source mapping and
+    sheet revision. Editing/renaming/reordering Programs afterward leaves the
+    old run's attribution byte-stable, displays the revision mismatch, and
+    supports opening the run revision or rerunning the current draft. A legacy
+    run without linkage never guesses.
 
 ### Browser acceptance
 
@@ -1731,13 +1955,14 @@ starter sheet, without opening Advanced:
 
 1. select the defending Mason Post;
 2. move its standing tile one step;
-3. redraw its facing direction;
+3. redraw its cardinal facing direction and inspect the exact personal and
+   formation vision overlays;
 4. move the Hardlight target one step;
 5. toggle “rebuild when missing” and “required before arming”;
 6. change its capacity/readiness relationship;
 7. open the ambush response's ordinary Fight behavior, confirm activation says
-   **When this Program responds**, and edit target order, style, chase, and
-   Attackers-per-enemy without entering a recipe-specific editor;
+   **When this Program responds**, and edit target area, target order, style,
+   chase, and Attackers-per-enemy without entering a recipe-specific editor;
 8. switch that same behavior to **On contact** and back, confirming its Fight
    configuration survives while only activation linkage changes;
 9. run the deterministic drill;
@@ -1769,8 +1994,8 @@ In a third normal-surface flow, without opening Advanced:
    walking detour, retry lifecycle, carrier policy, see the healing tiles/bound
    on the map, and observe **Patients per healing tile: 1 · across this sheet**;
 5. add **Fight on contact** through the same Fight editor used by the ambush,
-   choose its encounter distance, target order, style, chase limit, and visible
-   Attackers-per-enemy policy;
+   choose its encounter/target areas, distance, target order, style, chase
+   limit, and visible Attackers-per-enemy policy;
 6. add **Recover a nearby Core**, set five walking steps, observe the visible
    default **Pursuers per Core: 1 · across this sheet**, and confirm **On
    pickup: Bank carried Core takes priority** names a real higher Program and
@@ -1809,14 +2034,17 @@ In a fifth normal-surface flow, without opening Advanced:
    return route, and see the new Program placed above both sources;
 3. from the second source card, reuse that same Program and extend missing
    carrier coverage rather than creating another return configuration;
-4. add two escort roles, choose **Escorts per carrier: 2**, attach ordinary
+4. use the roster custody audit to extend that same Program across all eight
+   fielded bodies, including roles with no deliberate recovery card;
+5. add two escort roles, choose **Escorts per carrier: 2**, attach ordinary
    Fight-on-contact to their Follow behavior, and inspect the linked summary
    from either source card;
-5. run a deterministic scene where either recovery role can become carrier,
+6. run a deterministic scene where either recovery role—and one unrelated body
+   crossing a Core incidentally—can become carrier,
    the carrier returns on the authored route, eligible escorts follow the
    actual carrier, and every survivor resumes its lower Program after banking;
    and
-6. rename, reorder, edit, save/reload, and delete/undo the banking Program while
+7. rename, reorder, edit, save/reload, and delete/undo the banking Program while
    every linked source updates or reports one actionable blocking repair—never
    duplicated hidden configuration.
 
@@ -1841,6 +2069,21 @@ In a sixth normal-surface flow, without opening Advanced:
    map highlight, generated-priority preview, and Practice reason stays in
    agreement.
 
+In a seventh normal-surface flow, without opening Advanced:
+
+1. gate a lead role by its visible veteran level and attach a
+   capacity-bounded support Follow to **most experienced ally**;
+2. add a lower Program that stages or works until the authored friendly/enemy
+   respawn-wave and selected-Well timing clauses become true;
+3. inspect the per-role priority/fallthrough strip, deliberately create one
+   provable shadow, apply its suggested repair, and distinguish one dynamic
+   overlap warning from a blocking error;
+4. run the Veteran spearhead and Wave/Well window scenes and explain veteran
+   reselection, waiting, activation, and fallthrough from Practice; and
+5. rename/reorder a Program after the run, reopen the old replay, observe its
+   immutable run-revision attribution and revision-mismatch label, then rerun
+   the current draft.
+
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
 
@@ -1853,7 +2096,8 @@ It is complete only when all of the following are true:
    normal map-first Program surface.
 2. The exact target is maintained correctly across cast, cooldown, damage,
    destruction, expiry, suppression, relocation, death, and respawn semantics.
-3. Exact Posts, multiple roles, capacity, all-slots-filled readiness, and
+3. Exact Posts, cardinal facing with honest vision preview, multiple roles,
+   capacity, all-slots-filled readiness, shared role/deployment truth, and
    maximum formation spread are visible and reliable.
 4. Tactical commitment survives transient trigger/readiness loss and exits for
    understandable reasons.
@@ -1868,7 +2112,9 @@ It is complete only when all of the following are true:
 8. Both starter sheets are legal eight-body, seven-class rosters with one
    duplicate and complete fallbacks.
 9. A player can identify the current Program and “why” for any selected body
-   from Practice without reading generated Instructions.
+   from Practice without reading generated Instructions, and an old run remains
+   attributed to its immutable authoring revision after the current draft is
+   edited.
 10. The full create/refine/practice/save/reload flow works on desktop and phone.
 11. Focused tests, the full relevant web suite/build, compiler tests, and
     deterministic gameplay scenes pass.
@@ -1895,7 +2141,9 @@ It is complete only when all of the following are true:
     across the sheet's default recovery group, distributes several eligible
     bodies across several in-bound Cores, never diverts a capacity loser to an
     out-of-bound Core, and makes the visible higher **Bank carried Core**
-    Program pre-empt before the original behavior resumes.
+    Program pre-empt before the original behavior resumes. Pursuit filtering is
+    clearly distinct from physical pickup, and the starter's carrier Program
+    handles incidental pickup by every fielded role.
 18. Fight, nearby-Core, and health-recovery cards are the same generic opt-ins
     on destination moves, `via` moves, patrols, follows, Posts/holds, and
     durable fight responses. Each is scoped to the selected participant phase,
@@ -1912,12 +2160,15 @@ It is complete only when all of the following are true:
     leaf. The ambush springs because its parent Program response activates and
     commits—not because Fight has an ambush-only trigger or mode. Switching the
     same Fight behavior between **When this Program responds** and **On
-    contact** preserves target order, style, chase, and attacker capacity, and
-    no `AmbushFight`, engagement scheduler, or second combat state is added.
+    contact** preserves target area/order, style, chase, and attacker capacity;
+    target area is distinct from activation and keeps the return ambush inside
+    its killzone. No `AmbushFight`, engagement scheduler, or second combat state
+    is added.
 21. Adding nearby-Core recovery makes its post-pickup consequence unavoidable
     in normal authoring: the player can create, choose, inspect, and edit one
     reusable higher banking Program from the source card. It covers every
-    eligible picker, may coordinate capacity-bounded escorts around the actual
+    fielded body unless an explicit custody consequence says otherwise, may
+    coordinate capacity-bounded escorts around the actual
     carrier, owns its configuration once, and resumes ordinary lower Programs
     after custody ends without a runtime Program reference or transition.
 22. A player can prefer/filter visible Cores by team-relative value and walking
@@ -1926,6 +2177,15 @@ It is complete only when all of the following are true:
     signature use, and explicit Drop—without Advanced edits or a separate Core
     policy system. Every value, candidate rejection, takeover, and Drop
     consequence is visible in the map editor and Practice.
+23. Veteran spearhead and synchronized-wave/Well-window tactics are authorable
+    from normal human-labelled facts/selectors, execute in focused deterministic
+    scenes, and need no scheduler or hidden team state.
+24. The per-role priority/fallthrough strip exposes provable shadowing, missing
+    fallback, and carrier-takeover failures without pretending to solve dynamic
+    Conditions; Practice handles the uncertain cases.
+25. Generated source, workshop, expression/depth, and map-geometry limits are
+    preflighted before an atomic map edit, so a complex tactic cannot fail late
+    with half-materialized Posts or Instructions.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -1947,20 +2207,25 @@ an explicit release checkpoint.
    source and record the failing commitment, stage re-entry, and wrong-location
    deployment scenes; also preserve one current patrol cursor through signature
    use, combat interruption, health recovery, and target-loss fallthrough.
-2. **Semantic foundation** — implement `deployment-in-zone`,
+2. **Semantic foundation** — implement `self-deployment-in-zone`,
+   `role-deployments-in-zone-count`,
    `self-nearest-visible-loose-core-distance`, the matching
    `nearest-visible-loose-core` and
    `highest-bank-value-visible-loose-core` targets, `withinWalkingSteps`, and
    their shared `coreBankValue` qualifier,
    `self-nearest-heal-zone-distance` with bounded `nearest-heal-zone`,
    value-filtered `nearest-friendly-core-carrier` Follow resolution,
-   commitment materialization, not-ready staging, and focused runtime/compiler
-   tests.
+   Fight target-area/zone-qualified contact resolution,
+   historical `friendly-core-pickups`, commitment materialization, not-ready
+   staging, and focused runtime/compiler tests.
 3. **Post linkage** — add backward-compatible workshop linkage, derived
    geometry synchronization, human-labelled/defaulted Core and Healing
-   capacity groups, readiness, maintenance, drift, and undo/redo tests.
-4. **Map-first UX** — build the Post inspector, facing arrow, target/activation
-   distinction, overlap prevention, descriptor-driven route-forward Dash
+   capacity groups, owner-local versus shared deployment readiness,
+   roster-wide custody and per-role priority audits, drift, quota preflight, and
+   undo/redo tests.
+4. **Map-first UX** — build the Post inspector, cardinal facing/vision preview,
+   separate trigger/contact/Fight-target overlays, overlap prevention,
+   descriptor-driven route-forward Dash
    controls/preview with shared movement-`via` linkage, route-linked patrol
    opportunity markers, one generic Opportunity component for all supported
    host continuations/phases, one shared Fight editor with explicit inherited-
@@ -1970,8 +2235,9 @@ an explicit release checkpoint.
    visible Core-value filters/preferences and carried-value return/transfer/drop
    controls, all-signature family coverage, legality preview, normal
    trigger/outcome controls, and mobile editing flow.
-5. **Practice explanation** — correlate Programs/Posts with ordinary source
-   and replay evidence; add selected-body why/timeline views including local
+5. **Practice explanation** — snapshot the owner-only authoring revision at
+   trial creation, correlate Programs/Posts with ordinary source and replay
+   evidence, and add selected-body why/timeline views including local
    Opportunity order, host/phase, health lifecycle, walking-distance rejection,
    capacity loss, resumed continuation, and post-pickup takeover.
 6. **Starter doctrines and signature seams** — finish Mid Overload and Running
@@ -1980,7 +2246,7 @@ an explicit release checkpoint.
    the same Fight editor/materializer, plus the focused Patchbay,
    Palisade/Longshot, Mortar, and Hush/Repulsor family scenes and the integrated
    skill/Fight/Core/Health/Flare/Sentinel patrol scene plus non-patrol host
-   matrix.
+   matrix, Veteran spearhead, and Wave/Well window.
 7. **Validation and delivery** — run focused and full relevant tests, browser
    QA, exact mechanical proofs, standard exhibit, docs/Decision update, public
    tunnel verification, report, commit, and clean-status check.
@@ -1993,8 +2259,9 @@ Do not expand this goal into:
   state machine;
 - executable cross-Program calls, return stacks, source-local overrides of a
   linked banking Program, or dynamic carrier/escort role assignment;
-- persistent Core claims, target-identity latches, a new `pickup` action, or a
-  hidden transition to Core Return;
+- persistent Core claims, target-identity latches, sticky escort/Post
+  assignment, a new `pickup`/pickup-veto action, automatic Core-avoidance
+  pathing, or a hidden transition to Core Return;
 - a recovery governor, automatic health triage, hidden healing priority, or a
   new `heal` action;
 - an automatic Core-utility score, custody-policy document, hidden
@@ -2007,6 +2274,7 @@ Do not expand this goal into:
 - simultaneous move-and-use actions;
 - fixed unit-id assignments in place of roles and capacities;
 - backup rosters or between-match substitutions;
+- cross-match observation memory or opponent-specific automatic adaptation;
 - new classes, signatures, maps, scoring, health/damage tuning, Core economy,
   or other balance changes;
 - a generic AI that decides “optimal” signature use for the author;
