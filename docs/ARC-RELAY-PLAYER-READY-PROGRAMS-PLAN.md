@@ -499,25 +499,66 @@ complete if the trigger never occurs.
 ### B. Running Relay — duplicate Relay
 
 Use an eight-body roster with seven distinct classes and one duplicate Relay.
-Keep the existing generic route-aware Arc Toss semantics and sparse passing
-pockets; do not add a runtime “Toss race” action or state.
+Keep the sparse passing pockets, but make this exact staged race prove that it
+does **not** need `aheadVia`, a race-specific Toss target, or any other hidden
+Relay coordination primitive. Do not add a runtime “Toss race” action or state.
+
+Each Toss in this starter/proof has enough ordinary evidence already:
+
+- the carrier is in an exact zero-tolerance source zone;
+- the named receiver is a one-body role in an exact zero-tolerance receiver
+  Post;
+- the source and receiver Posts are linked to known stations on the same
+  ordered movement route;
+- the editor validates that the receiver station is the configured minimum
+  route distance ahead; and
+- ordinary Arc Toss legality validates range, eight-way straight flight,
+  terrain, occupancy, and cargo at execution time.
+
+The generated use target is therefore just the ordinary partner role. The
+named route remains an ordinary movement continuation that keeps both Relays
+on the corridor; it is not a special `via` attached to Toss. If either body is
+displaced from its exact activation Post, the existing zone/readiness gate
+simply makes the Toss ineligible and movement continues.
+
+Keep the already-shipped `aheadVia` grammar readable for existing sheets and
+as an Advanced option for a genuinely dynamic tactic that passes to a moving
+receiver anywhere along a route. Do not generate it for this staged race, do
+not expose it in the normal race authoring flow, and do not destructively
+migrate historical source merely to remove it.
 
 Through normal Program controls the player must be able to:
 
 - select/draw the shared long return route;
-- place and drag rendezvous Posts/pockets;
+- place and drag exact Toss-source and receiver Posts/pockets;
 - see which Relay waits and which carries at each handoff;
-- set the Toss source window, named receiver, route, and minimum forward gain;
+- select the named receiver and set the minimum forward gain as a visible
+  authoring-time relationship between the two route stations;
 - prevent the non-carrier from outrunning its next rendezvous;
 - keep both bodies on the authored corridor through ordinary movement
   continuations;
 - change a rendezvous or minimum gain and regenerate linked Instructions
-  without editing `aheadVia`, source zones, or derived anchors manually.
+  without editing Conditions, source zones, or derived anchors manually.
 
 The focused proof only needs to succeed against Idle Field. Compare it with a
 solo carrier on the exact same route and current rules so the replay shows
 whether the Tosses actually accelerate delivery. This is a behavior/stress
-proof, not a balance claim.
+proof, not a balance claim. Inspect the generated Instructions and assert that
+the race contains no `aheadVia` or other race-only executable field.
+
+Design audit on 2026-08-16: the current generated exact-station race was copied
+to a temporary diagnostic and all three `aheadVia`/`minimumForwardTiles` pairs
+were removed, leaving ordinary partner-role targets. On Tapline-8 seed 9001
+against Idle Field, both versions accepted Tosses at
+`t73/126/149/240/385`, destroyed the reactor at `t462`, and produced the same
+gameplay-state digest
+`6dc664434a8f482a412cda2d107102d291694647698124bcd62169e688a87260`.
+This establishes redundancy for the exact-Post construction; it is not a
+general argument against the Advanced dynamic-route qualifier. The same-route
+solo control finished at `t359`, so this baseline succeeds mechanically but
+does not currently demonstrate acceleration. Preserve that honest comparison
+until the new authoring round produces and explains a better staged tactic;
+do not convert the diagnostic into a balance claim or silently omit it.
 
 ## 8. Acceptance scenes and tests
 
@@ -546,6 +587,9 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     Program.
 12. Signature opportunity failure still considers the exact continuation in
     the same tick.
+13. An exact source-zone + exact one-body receiver-Post Arc Toss resolves and
+    advances through an ordinary role target with no `aheadVia`; displacement
+    from either Post makes it fall through to corridor movement.
 
 ### Materializer/editor tests
 
@@ -565,6 +609,9 @@ Implement trace-first and pin the smallest scenes before broad UI work.
 8. The editor clearly warns about contradictory same-owner maintenance
    targets, impossible range/terrain, over-capacity roles, unfillable slots,
    expression/depth limits, and missing fallback behavior.
+9. Running Relay source/receiver Post geometry computes forward route gain in
+   the editor, rejects insufficient or ambiguous station relationships, and
+   generates an ordinary role-target Toss with no `aheadVia`.
 
 ### Browser acceptance
 
@@ -601,8 +648,9 @@ It is complete only when all of the following are true:
 5. Waiting/staging choices do not silently starve lower Programs.
 6. Mid Overload actually triggers in its deterministic drill and exposes its
    2/5/1 behavior in Practice.
-7. Running Relay advances and banks against Idle Field and remains editable
-   through Programs; the same-route solo control is linked beside the proof.
+7. Running Relay advances and banks against Idle Field, generates no
+   `aheadVia`/race-only executable field, and remains editable through
+   Programs; the same-route solo control is linked beside the proof.
 8. Both starter sheets are legal eight-body, seven-class rosters with one
    duplicate and complete fallbacks.
 9. A player can identify the current Program and “why” for any selected body
