@@ -61,6 +61,7 @@ internal static class TacticalSheetSignatureAuthoringProjection
                 ArcRelaySignatureTargetCapability.RouteAheadRole),
             vocabulary.Allows(
                 ArcRelaySignatureTargetCapability.RouteForward),
+            vocabulary.DurableDeployment,
             vocabulary.DefaultCommitment ==
                 ArcRelaySignatureCommitmentBehavior.PreserveByDefault
                     ? "preserve-by-default"

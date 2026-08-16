@@ -914,6 +914,12 @@ namespace BotArena.App.Migrations
                     b.Property<Guid?>("PlaylistVersionId")
                         .HasColumnType("uuid");
 
+                    b.Property<int?>("PracticeAuthoringSnapshotVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PracticeWorkshopJsonSnapshot")
+                        .HasColumnType("jsonb");
+
                     b.Property<double>("PresentationTicksPerSecond")
                         .HasPrecision(6, 3)
                         .HasColumnType("double precision");

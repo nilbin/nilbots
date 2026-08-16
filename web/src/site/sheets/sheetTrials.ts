@@ -12,8 +12,8 @@ import {
 } from './sheetAuthoring';
 import type {
   LinkedPlay,
+  PlayOpportunityBinding,
   PlayProjection,
-  PlaySignatureOpportunityBinding,
 } from './workshopTypes';
 
 export const TRIAL_HISTORY_KEY = 'nilbots-sheet-trial-history-v1';
@@ -263,7 +263,7 @@ export function signatureOpportunityPracticeSummary(
   replay: ReplayModel | undefined,
   draft: SheetDraft,
   projection: PlayProjection,
-  binding: PlaySignatureOpportunityBinding,
+  binding: PlayOpportunityBinding,
 ): SignatureOpportunityPracticeSummary | null {
   if (!replay?.initialWorld) return null;
   const use = findOrderById(projection.orders, binding.useOrderId);

@@ -17,6 +17,16 @@ export function synchronizePlayGeometry(
     const owned = play.ownedGeometry.find((entry) =>
       entry.kind === 'zone' && entry.id === slot.readinessZoneId);
     if (owned) owned.tolerance = slot.tolerance;
+    if (slot.facingAnchorId && slot.facing && slot.facing !== 'toward-point')
+      next.mapPlan.anchors[slot.facingAnchorId] = cardinalFacingPoint(anchor, slot.facing);
+    const deploymentTarget = slot.deployment
+      ? next.mapPlan.anchors[slot.deployment.targetAnchorId] : undefined;
+    if (slot.deployment && deploymentTarget) {
+      const [targetX, targetY] = deploymentTarget;
+      next.mapPlan.zones[slot.deployment.targetZoneId] = {
+        rect: [targetX, targetY, targetX, targetY],
+      };
+    }
   }
   // A recipe may own a readiness zone without calling it a required body
   // slot. Keep that ordinary zone attached to its semantic anchor too.
@@ -38,6 +48,16 @@ export function synchronizePlayGeometry(
   for (const group of play.geometryGroups)
     synchronizeGroup(next, group);
   return next;
+}
+
+function cardinalFacingPoint(
+  [x, y]: [number, number],
+  facing: 'north' | 'east' | 'south' | 'west',
+): [number, number] {
+  if (facing === 'north') return [x, y - 1];
+  if (facing === 'south') return [x, y + 1];
+  if (facing === 'west') return [x - 1, y];
+  return [x + 1, y];
 }
 
 export function setPlaySlotTolerance(
@@ -128,6 +148,25 @@ export function playGeometryIssues(
           message: `${a.id} and ${b.id} overlap. One ${a.roleId} body could falsely fill both required positions.`,
         });
       }
+    }
+  }
+  for (const group of play.readinessGroups ?? []) {
+    if (group.maximumSpread === undefined) continue;
+    const roleIds = new Set(group.projectionIds.map((projectionId) =>
+      play.projections.find((projection) => projection.id === projectionId)?.roleId)
+      .filter((id): id is string => Boolean(id)));
+    const slots = play.slots.filter((slot) => slot.required && roleIds.has(slot.roleId));
+    for (let left = 0; left < slots.length; left++) for (let right = left + 1; right < slots.length; right++) {
+      const a = draft.mapPlan.anchors[slots[left].anchorId];
+      const b = draft.mapPlan.anchors[slots[right].anchorId];
+      if (!a || !b) continue;
+      const furthest = Math.max(Math.abs(a[0] - b[0]), Math.abs(a[1] - b[1]))
+        + slots[left].tolerance + slots[right].tolerance;
+      if (furthest > group.maximumSpread) issues.push({
+        path: `workshop.plays.${playId}.readinessGroups.${group.id}`,
+        severity: 'error',
+        message: `${group.name} can spread ${furthest} tiles across its Post envelopes, above the authored maximum ${group.maximumSpread}. Move the Posts, reduce tolerance, or increase the maximum spread.`,
+      });
     }
   }
   for (const group of play.geometryGroups) {

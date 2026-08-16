@@ -44,21 +44,36 @@ export interface SignatureOpportunityView {
   count: number;
 }
 
-export function signatureOpportunityViews(
+export interface OpportunityView {
+  binding: NonNullable<PlayProjection['signatureOpportunities']>[number];
+  host: OrderNode;
+  action: OrderNode;
+  commitment: OrderNode | null;
+  continuation: OrderNode | null;
+  ordinal: number;
+  count: number;
+}
+
+/**
+ * One source of truth for every player-facing Opportunity. The sidecar keeps
+ * its historical field name, but the ordered children may be any supported
+ * physical action and remain ordinary Instructions.
+ */
+export function opportunityViews(
   projection: PlayProjection,
   conditions: OrdersDocument['conditions'] = {},
-): SignatureOpportunityView[] {
+): OpportunityView[] {
   const bindings = projection.signatureOpportunities ?? [];
-  const result: SignatureOpportunityView[] = [];
+  const result: OpportunityView[] = [];
   for (const binding of bindings) {
     const host = findOrder(projection.orders, binding.hostOrderId);
-    const use = host?.orders?.find((entry) => entry.id === binding.useOrderId);
-    if (!host?.orders || !use?.use) continue;
+    const action = host?.orders?.find((entry) => entry.id === binding.useOrderId);
+    if (!host?.orders || !action) continue;
     const hostBindings = bindings.filter((entry) =>
       entry.hostOrderId === binding.hostOrderId);
     const boundIds = new Set(hostBindings.map((entry) => entry.useOrderId));
     const ordered = host.orders.filter((entry) => entry.id && boundIds.has(entry.id));
-    const index = host.orders.indexOf(use);
+    const index = host.orders.indexOf(action);
     const remaining = host.orders.slice(index + 1)
       .filter((entry) => !entry.id || !boundIds.has(entry.id));
     const commitment = remaining.find((entry) =>
@@ -67,10 +82,10 @@ export function signatureOpportunityViews(
     result.push({
       binding,
       host,
-      use,
+      action,
       commitment,
       continuation: remaining.find((entry) => entry !== commitment) ?? null,
-      ordinal: ordered.indexOf(use),
+      ordinal: ordered.indexOf(action),
       count: ordered.length,
     });
   }
@@ -79,6 +94,15 @@ export function signatureOpportunityViews(
     const rightHost = projection.orders.findIndex((entry) => entry.id === right.host.id);
     return leftHost - rightHost || left.ordinal - right.ordinal;
   });
+}
+
+export function signatureOpportunityViews(
+  projection: PlayProjection,
+  conditions: OrdersDocument['conditions'] = {},
+): SignatureOpportunityView[] {
+  return opportunityViews(projection, conditions)
+    .filter((view) => (view.binding.kind ?? 'use') === 'use' && Boolean(view.action.use))
+    .map((view) => ({ ...view, use: view.action }));
 }
 
 export function parseWorkshop(workshopJson?: string | null): WorkshopDocument {
@@ -146,12 +170,22 @@ export function inspectWorkshop(
     const groupedProjections = new Set<string>();
     for (const group of play.readinessGroups ?? []) {
       const projectionIds = [...new Set(group.projectionIds)];
-      const formationByProjection = new Map((play.formations ?? []).map((entry) =>
-        [entry.projectionId, entry.conditionId]));
-      const conditionIds = projectionIds.map((id) => formationByProjection.get(id))
-        .filter((id): id is string => Boolean(id));
+      const formationByProjection = new Map<string, string[]>();
+      for (const formation of play.formations ?? []) {
+        const ids = formationByProjection.get(formation.projectionId) ?? [];
+        ids.push(formation.conditionId);
+        formationByProjection.set(formation.projectionId, ids);
+      }
+      const conditionIds = projectionIds.flatMap((id) =>
+        [
+          ...(formationByProjection.get(id) ?? []),
+          ...play.slots.filter((slot) => slot.deployment?.requiredForReadiness
+            && slot.deployment.presenceConditionId
+            && play.projections.find((projection) => projection.id === id)?.roleId === slot.roleId)
+            .map((slot) => slot.deployment!.presenceConditionId!),
+        ]);
       const invalid = projectionIds.length < 2
-        || conditionIds.length !== projectionIds.length
+        || projectionIds.some((id) => (formationByProjection.get(id)?.length ?? 0) === 0)
         || projectionIds.some((id) => groupedProjections.has(id));
       if (invalid) {
         drifts.push({
@@ -201,13 +235,21 @@ export function inspectWorkshop(
           entry.id === binding.useOrderId);
         const actionCount = child ? ['orders', 'move', 'fight', 'use', 'handoff', 'drop']
           .filter((key) => child[key as keyof OrderNode] !== undefined).length : 0;
+        const kind = binding.kind ?? 'use';
+        const matchesKind = child && (
+          kind === 'use' && Boolean(child.use)
+          || kind === 'fight' && Boolean(child.fight)
+          || (kind === 'core-recovery' || kind === 'health-recovery') && Boolean(child.move)
+          || kind === 'handoff' && Boolean(child.handoff)
+          || kind === 'drop' && Boolean(child.drop));
         if (!host?.orders) {
           drifts.push(opportunityDrift(play.id, projection,
             `${path} names missing branch '${binding.hostOrderId}'.`));
-        } else if (!child || actionCount !== 1 || !child.use) {
+        } else if (!child || actionCount !== 1 || !matchesKind) {
           drifts.push(opportunityDrift(play.id, projection,
-            `${path} must name one direct use child '${binding.useOrderId}'.`));
-        } else if (catalog && !ownedSkills.has(child.use.skill)) {
+            `${path} must name one direct ${kind} child '${binding.useOrderId}'.`));
+        } else if (kind === 'use' && catalog && child.use
+          && !ownedSkills.has(child.use.skill)) {
           drifts.push(opportunityDrift(play.id, projection,
             `${path} uses '${child.use.skill}', which role '${projection.roleId}' does not own.`));
         } else {

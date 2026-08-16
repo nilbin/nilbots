@@ -36,6 +36,18 @@ public sealed record TrialTacticalSheetRequest(
     string StockSheetId,
     long? Seed);
 
+public sealed record PracticeAuthoringSnapshotResponse(
+    Guid MatchId,
+    Guid SheetId,
+    string SheetName,
+    int Revision,
+    string ContentHash,
+    string OrdersJson,
+    string MapPlanJson,
+    string? WorkshopJson,
+    DateTime CreatedAt,
+    bool ProgramAttributionAvailable);
+
 public sealed record TacticalSheetSignatureOpportunityPresetResponse(
     string Id,
     string Title,
@@ -60,6 +72,7 @@ public sealed record TacticalSheetSignatureAuthoringResponse(
     bool AllowsExactAnchor,
     bool AllowsRouteAheadRole,
     bool AllowsRouteForward,
+    bool DurableDeployment,
     string DefaultCommitmentBehavior,
     TacticalSheetSignatureOpportunityPresetResponse Preset);
 

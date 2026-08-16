@@ -66,7 +66,8 @@ public sealed record ArcRelaySignatureAuthoringDescriptor(
     IReadOnlyList<ArcRelaySignatureNamedTarget> AllowedNamedTargets,
     ArcRelaySignatureTargetCapability Capabilities,
     ArcRelaySignatureCommitmentBehavior DefaultCommitment,
-    ArcRelaySignatureOpportunityPreset Preset)
+    ArcRelaySignatureOpportunityPreset Preset,
+    bool DurableDeployment)
 {
     public bool Allows(ArcRelaySignatureTargetCapability capability) =>
         (Capabilities & capability) == capability;
@@ -128,6 +129,7 @@ public static class ArcRelaySignatureAuthoringCatalog
                     "Advance only when a selected terminal route offers safe forward progress.",
                     ArcRelaySignaturePresetTargetKind.RouteForward)),
             Entry("palisade", "prism-wall", BroadTargets,
+                durableDeployment: true,
                 preset: Preset("guard-lane-wall", "Face the pressured lane",
                     "Raise Prism Wall from a guard area against the nearest hostile approach.",
                     ArcRelaySignaturePresetTargetKind.NamedSelector,
@@ -162,6 +164,7 @@ public static class ArcRelaySignatureAuthoringCatalog
                     ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("minesmith", "trip-node", BroadTargets,
                 ArcRelaySignatureTargetCapability.ExactAnchor,
+                durableDeployment: true,
                 preset: Preset("mine-alternate-route", "Mine an alternate route",
                     "Place a Trip Node at one exact route point before continuing.",
                     ArcRelaySignaturePresetTargetKind.ExactAnchor)),
@@ -199,6 +202,7 @@ public static class ArcRelaySignatureAuthoringCatalog
                     ArcRelaySignatureNamedTarget.EnemyCarrier)),
             Entry("mason", "hardlight-block", BroadTargets,
                 ArcRelaySignatureTargetCapability.ExactAnchor,
+                durableDeployment: true,
                 preset: Preset("block-exact-choke", "Block an exact choke",
                     "Place Hardlight at one plotted choke while the plan continues elsewhere.",
                     ArcRelaySignaturePresetTargetKind.ExactAnchor)),
@@ -231,7 +235,8 @@ public static class ArcRelaySignatureAuthoringCatalog
                 ArcRelaySignatureCommitmentBehavior.PreserveByDefault,
                 Preset("seed-guard-post", "Seed an exact guard post",
                     "Deploy Sentinel Seed at a plotted post before holding the lane.",
-                    ArcRelaySignaturePresetTargetKind.ExactAnchor)),
+                    ArcRelaySignaturePresetTargetKind.ExactAnchor),
+                durableDeployment: true),
         ];
 
         ByClass = All.ToDictionary(value => value.ClassId,
@@ -310,12 +315,13 @@ public static class ArcRelaySignatureAuthoringCatalog
             ArcRelaySignatureTargetCapability.None,
         ArcRelaySignatureCommitmentBehavior commitment =
             ArcRelaySignatureCommitmentBehavior.ContinueNormally,
-        ArcRelaySignatureOpportunityPreset? preset = null) =>
+        ArcRelaySignatureOpportunityPreset? preset = null,
+        bool durableDeployment = false) =>
         new(classId, skillId, namedTargets, capabilities, commitment,
             preset ?? Preset($"use-{skillId}", $"Use {skillId}",
                 "Try this signature when its parent plan is active.",
                 ArcRelaySignaturePresetTargetKind.NamedSelector,
-                namedTargets.FirstOrDefault()));
+                namedTargets.FirstOrDefault()), durableDeployment);
 
     private static ArcRelaySignatureOpportunityPreset Preset(
         string id,

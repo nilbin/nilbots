@@ -161,6 +161,7 @@ export type TacticalSheetMap = Schemas['TacticalSheetMapResponse'];
 export type TacticalSheet = Schemas['TacticalSheetResponse'];
 export type TacticalSheetSummary = Schemas['TacticalSheetSummaryResponse'];
 export type TacticalSheetDeleted = Schemas['TacticalSheetDeletedResponse'];
+export type PracticeAuthoringSnapshot = Schemas['PracticeAuthoringSnapshotResponse'];
 export type TacticalStockSheet = Schemas['TacticalStockSheetResponse'];
 export type ArcRelayEntrant = Schemas['ArcRelayEntrantCardResponse'];
 export type ArcRelayLadder = Schemas['ArcRelayLadderResponse'];
@@ -226,6 +227,8 @@ export const endpoints = {
   tacticalSheets: () => api.get<TacticalSheetSummary[]>('/api/sheets'),
   tacticalSheet: (sheetId: string) =>
     api.get<TacticalSheet>(`/api/sheets/${sheetId}`),
+  practiceAuthoringSnapshot: (matchId: string) =>
+    api.get<PracticeAuthoringSnapshot>(`/api/sheets/trials/${matchId}/authoring`),
   arcRelayEntrants: () => api.get<ArcRelayEntrant[]>('/api/arc-relay/entrants'),
   arcRelayLadder: () => api.get<ArcRelayLadder>('/api/arc-relay/ladder'),
   arcRelaySeason: () => api.get<ArcRelaySeason>('/api/arc-relay/seasons/current'),

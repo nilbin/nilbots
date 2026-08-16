@@ -30,53 +30,321 @@ export function addSignatureOpportunity(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
-  const located = findOrderLocation(projection.orders, hostOrderId);
-  if (!located) throw new Error(`Unknown host Instruction '${hostOrderId}'.`);
-
-  let host = located.node;
-  if (!host.orders) {
-    if (!host.move && !host.fight)
-      throw new Error('Choose a durable Move, Fight, or existing branch as the continuation.');
-    if (located.depth >= 2)
-      throw new Error('This Instruction is already at the maximum branch depth. Choose its nearest parent branch.');
-    const continuationId = uniqueOrderId(`${hostOrderId}-continue`, projection.orders);
-    const continuation: OrderNode = {
-      id: continuationId,
-      ...(host.move ? { move: structuredClone(host.move) } : {}),
-      ...(host.fight ? { fight: structuredClone(host.fight) } : {}),
-      ...(host.capacity !== undefined ? { capacity: host.capacity } : {}),
-    };
-    const parent: OrderNode = {
-      id: host.id,
-      ...(host.when !== undefined ? { when: structuredClone(host.when) } : {}),
-      ...(host.until !== undefined ? { until: structuredClone(host.until) } : {}),
-      ...(host.timeout !== undefined ? { timeout: host.timeout } : {}),
-      ...(host.cooldown !== undefined ? { cooldown: host.cooldown } : {}),
-      ...(host.urgency !== undefined ? { urgency: host.urgency } : {}),
-      orders: [continuation],
-    };
-    located.container[located.index] = parent;
-    host = parent;
-  }
-
   const useOrderId = uniqueOrderId(`${hostOrderId}-${use.skill}`, projection.orders);
-  const useNode: OrderNode = { id: useOrderId, use: structuredClone(use) };
-  const bindings = projection.signatureOpportunities ??= [];
-  const boundIds = new Set(bindings.map((entry) => entry.useOrderId));
-  const firstContinuation = host.orders!.findIndex((child) =>
-    !child.id || !boundIds.has(child.id));
-  host.orders!.splice(firstContinuation < 0 ? host.orders!.length : firstContinuation,
-    0, useNode);
-  const bindingBase = `${hostOrderId}-${useOrderId}-signature`;
-  const bindingIds = new Set(play.projections.flatMap((entry) =>
-    (entry.signatureOpportunities ?? []).map((binding) => binding.id)));
-  projection.signatureOpportunities.push({
-    id: uniqueString(bindingBase, bindingIds),
-    hostOrderId,
-    useOrderId,
-  });
+  insertOpportunity(play, projection, hostOrderId, {
+    id: useOrderId,
+    use: structuredClone(use),
+  }, 'use');
   if (preserveCommitment)
-    ensureCommitmentHold(next, play, projection, host);
+    ensureCommitmentHold(next, play, projection,
+      findOrderLocation(projection.orders, hostOrderId)!.node);
+  return requireMaterialized(next);
+}
+
+export interface FightOpportunitySetup {
+  withinWalkingSteps: number;
+  targets: NonNullable<OrderNode['fight']>['targets'];
+  style: NonNullable<OrderNode['fight']>['style'];
+  chaseLimit: number;
+  zone?: string;
+  capacity?: number | null;
+}
+
+export function addFightOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  hostOrderId: string,
+  setup: FightOpportunitySetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const conditionId = uniqueString(`${hostOrderId}-contact`,
+    new Set(Object.keys(next.orders.conditions)));
+  next.orders.conditions[conditionId] = {
+    fact: 'self-nearest-visible-enemy-distance', operator: 'at-most',
+    value: Math.max(0, Math.min(31, Math.trunc(setup.withinWalkingSteps))),
+    ...(setup.zone ? { zone: setup.zone } : {}),
+  };
+  play.ownedConditionIds.push(conditionId);
+  const orderId = uniqueOrderId(`${hostOrderId}-fight`, projection.orders);
+  const binding = insertOpportunity(play, projection, hostOrderId, {
+    id: orderId,
+    when: conditionId,
+    ...(setup.capacity === null || setup.capacity === undefined
+      ? {} : { capacity: Math.max(1, Math.min(8, Math.trunc(setup.capacity))) }),
+    fight: {
+      targets: [...setup.targets], style: setup.style,
+      chaseLimit: Math.max(0, Math.min(31, Math.trunc(setup.chaseLimit))),
+      ...(setup.zone ? { zone: setup.zone } : {}),
+    },
+  }, 'fight');
+  binding.ownedConditionIds = [conditionId];
+  binding.capacityPolicy = {
+    target: 'enemy', limit: setup.capacity ?? null, scope: 'local',
+  };
+  return requireMaterialized(next);
+}
+
+export interface CoreRecoveryOpportunitySetup {
+  withinWalkingSteps: number | null;
+  preference: 'closest' | 'highest-value';
+  coreBankValue?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
+  pursuersPerCore: number | null;
+  coordinateAcrossSheet: boolean;
+  linkedBankProgramId?: string;
+}
+
+export function addCoreRecoveryOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  hostOrderId: string,
+  setup: CoreRecoveryOpportunitySetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const ids = new Set(Object.keys(next.orders.conditions));
+  const emptyId = uniqueString(`${hostOrderId}-empty-handed`, ids);
+  ids.add(emptyId);
+  const nearbyId = uniqueString(`${hostOrderId}-core-nearby`, ids);
+  next.orders.conditions[emptyId] = {
+    fact: 'self-carrying', operator: 'equals', value: 0,
+  };
+  next.orders.conditions[nearbyId] = {
+    fact: 'self-nearest-visible-loose-core-distance', operator: 'at-most',
+    value: setup.withinWalkingSteps ?? 31,
+    ...(setup.coreBankValue
+      ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+  };
+  play.ownedConditionIds.push(emptyId, nearbyId);
+  const orderId = uniqueOrderId(`${hostOrderId}-recover-core`, projection.orders);
+  const binding = insertOpportunity(play, projection, hostOrderId, {
+    id: orderId,
+    when: { all: [emptyId, nearbyId] },
+    ...(setup.pursuersPerCore === null ? {} : { capacity: setup.pursuersPerCore }),
+    move: {
+      to: setup.preference === 'highest-value'
+        ? 'highest-bank-value-visible-loose-core'
+        : 'nearest-visible-loose-core',
+      ...(setup.withinWalkingSteps === null
+        ? {} : { withinWalkingSteps: setup.withinWalkingSteps }),
+      ...(setup.coreBankValue
+        ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+    },
+  }, 'core-recovery');
+  binding.ownedConditionIds = [emptyId, nearbyId];
+  binding.linkedBankProgramId = setup.linkedBankProgramId;
+  binding.capacityPolicy = {
+    target: 'core', limit: setup.pursuersPerCore,
+    scope: setup.coordinateAcrossSheet ? 'sheet' : 'local',
+  };
+  normalizeOpportunityCapacities(next);
+  return requireMaterialized(next);
+}
+
+export interface HealthRecoveryOpportunitySetup {
+  startBelow: number;
+  recoverUntil: number;
+  withinWalkingSteps: number | null;
+  timeout?: number;
+  cooldown?: number;
+  patientsPerTile: number | null;
+  coordinateAcrossSheet: boolean;
+  allowCoreCarriers: boolean;
+  zone?: string;
+}
+
+export function addHealthRecoveryOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  hostOrderId: string,
+  setup: HealthRecoveryOpportunitySetup,
+): SheetDraft {
+  const start = Math.max(0, Math.min(99, Math.trunc(setup.startBelow)));
+  const recovered = Math.max(start + 1, Math.min(100, Math.trunc(setup.recoverUntil)));
+  if ((setup.timeout ?? 0) > 0 && (setup.cooldown ?? 0) === 0)
+    throw new Error('A timed-out health recovery needs a positive retry delay.');
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const ids = new Set(Object.keys(next.orders.conditions));
+  const lowId = uniqueString(`${hostOrderId}-health-low`, ids); ids.add(lowId);
+  const healedId = uniqueString(`${hostOrderId}-health-recovered`, ids); ids.add(healedId);
+  const nearId = uniqueString(`${hostOrderId}-healing-nearby`, ids); ids.add(nearId);
+  next.orders.conditions[lowId] = {
+    fact: 'self-health-percent', operator: 'at-most', value: start,
+  };
+  next.orders.conditions[healedId] = {
+    fact: 'self-health-percent', operator: 'at-least', value: recovered,
+  };
+  next.orders.conditions[nearId] = {
+    fact: 'self-nearest-heal-zone-distance', operator: 'at-most',
+    value: setup.withinWalkingSteps ?? 31,
+  };
+  const whenIds = [lowId, nearId];
+  const untilIds = [healedId];
+  if (!setup.allowCoreCarriers) {
+    const emptyId = uniqueString(`${hostOrderId}-not-carrying`, ids); ids.add(emptyId);
+    const carryingId = uniqueString(`${hostOrderId}-became-carrier`, ids);
+    next.orders.conditions[emptyId] = {
+      fact: 'self-carrying', operator: 'equals', value: 0,
+    };
+    next.orders.conditions[carryingId] = {
+      fact: 'self-carrying', operator: 'equals', value: 1,
+    };
+    whenIds.push(emptyId);
+    untilIds.push(carryingId);
+  }
+  if (setup.zone) {
+    const zoneId = uniqueString(`${hostOrderId}-healing-area`, ids);
+    next.orders.conditions[zoneId] = {
+      fact: 'self-in-zone', operator: 'equals', value: 1, zone: setup.zone,
+    };
+    whenIds.push(zoneId);
+  }
+  for (const id of [...whenIds, ...untilIds])
+    if (!play.ownedConditionIds.includes(id)) play.ownedConditionIds.push(id);
+  const orderId = uniqueOrderId(`${hostOrderId}-recover-health`, projection.orders);
+  const binding = insertOpportunity(play, projection, hostOrderId, {
+    id: orderId,
+    when: expressionOf(whenIds),
+    until: untilIds.length === 1 ? untilIds[0] : { any: untilIds },
+    ...(setup.timeout ? { timeout: clampTicks(setup.timeout) } : {}),
+    ...(setup.cooldown ? { cooldown: clampTicks(setup.cooldown) } : {}),
+    ...(setup.patientsPerTile === null ? {} : { capacity: setup.patientsPerTile }),
+    move: {
+      to: 'nearest-heal-zone',
+      ...(setup.withinWalkingSteps === null
+        ? {} : { withinWalkingSteps: setup.withinWalkingSteps }),
+    },
+  }, 'health-recovery');
+  binding.ownedConditionIds = [...whenIds, ...untilIds];
+  binding.capacityPolicy = {
+    target: 'healing', limit: setup.patientsPerTile,
+    scope: setup.coordinateAcrossSheet ? 'sheet' : 'local',
+  };
+  normalizeOpportunityCapacities(next);
+  return requireMaterialized(next);
+}
+
+export function updateFightOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  setup: FightOpportunitySetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  if ((binding.kind ?? 'use') !== 'fight') throw new Error('Choose a Fight opportunity.');
+  const node = requireOpportunityNodeAny(projection, binding);
+  const conditionId = binding.ownedConditionIds?.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-nearest-visible-enemy-distance');
+  if (!conditionId) throw new Error('Fight contact Condition is missing.');
+  next.orders.conditions[conditionId] = {
+    fact: 'self-nearest-visible-enemy-distance', operator: 'at-most',
+    value: Math.max(0, Math.min(31, Math.trunc(setup.withinWalkingSteps))),
+    ...(setup.zone ? { zone: setup.zone } : {}),
+  };
+  node.fight = {
+    targets: [...setup.targets], style: setup.style,
+    chaseLimit: Math.max(0, Math.min(31, Math.trunc(setup.chaseLimit))),
+    ...(setup.zone ? { zone: setup.zone } : {}),
+  };
+  if (setup.capacity === null || setup.capacity === undefined) delete node.capacity;
+  else node.capacity = Math.max(1, Math.min(8, Math.trunc(setup.capacity)));
+  binding.capacityPolicy = {
+    target: 'enemy', limit: setup.capacity ?? null, scope: 'local',
+  };
+  return requireMaterialized(next);
+}
+
+export function updateCoreRecoveryOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  setup: CoreRecoveryOpportunitySetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  if (binding.kind !== 'core-recovery') throw new Error('Choose a Core recovery opportunity.');
+  const node = requireOpportunityNodeAny(projection, binding);
+  const distanceId = binding.ownedConditionIds?.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-nearest-visible-loose-core-distance');
+  if (!distanceId) throw new Error('Core walking-distance Condition is missing.');
+  next.orders.conditions[distanceId] = {
+    fact: 'self-nearest-visible-loose-core-distance', operator: 'at-most',
+    value: setup.withinWalkingSteps ?? 31,
+    ...(setup.coreBankValue
+      ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+  };
+  node.move = {
+    to: setup.preference === 'highest-value'
+      ? 'highest-bank-value-visible-loose-core' : 'nearest-visible-loose-core',
+    ...(setup.withinWalkingSteps === null
+      ? {} : { withinWalkingSteps: setup.withinWalkingSteps }),
+    ...(setup.coreBankValue
+      ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+  };
+  binding.linkedBankProgramId = setup.linkedBankProgramId;
+  binding.capacityPolicy = {
+    target: 'core', limit: setup.pursuersPerCore,
+    scope: setup.coordinateAcrossSheet ? 'sheet' : 'local',
+  };
+  normalizeOpportunityCapacities(next);
+  return requireMaterialized(next);
+}
+
+export function updateHealthRecoveryOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  setup: HealthRecoveryOpportunitySetup,
+): SheetDraft {
+  const start = Math.max(0, Math.min(99, Math.trunc(setup.startBelow)));
+  const recovered = Math.max(start + 1, Math.min(100, Math.trunc(setup.recoverUntil)));
+  if ((setup.timeout ?? 0) > 0 && (setup.cooldown ?? 0) === 0)
+    throw new Error('A timed-out health recovery needs a positive retry delay.');
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  if (binding.kind !== 'health-recovery') throw new Error('Choose a health recovery opportunity.');
+  const node = requireOpportunityNodeAny(projection, binding);
+  const condition = (fact: string) => binding.ownedConditionIds?.find((id) =>
+    next.orders.conditions[id]?.fact === fact);
+  const lowId = condition('self-health-percent');
+  const nearId = condition('self-nearest-heal-zone-distance');
+  const healedId = binding.ownedConditionIds?.find((id) => {
+    const candidate = next.orders.conditions[id];
+    return candidate?.fact === 'self-health-percent' && candidate.operator === 'at-least';
+  });
+  if (!lowId || !nearId || !healedId) throw new Error('Health recovery Conditions are missing.');
+  next.orders.conditions[lowId].value = start;
+  next.orders.conditions[nearId].value = setup.withinWalkingSteps ?? 31;
+  next.orders.conditions[healedId].value = recovered;
+  node.move = {
+    to: 'nearest-heal-zone',
+    ...(setup.withinWalkingSteps === null
+      ? {} : { withinWalkingSteps: setup.withinWalkingSteps }),
+  };
+  if (setup.timeout) node.timeout = clampTicks(setup.timeout); else delete node.timeout;
+  if (setup.cooldown) node.cooldown = clampTicks(setup.cooldown); else delete node.cooldown;
+  binding.capacityPolicy = {
+    target: 'healing', limit: setup.patientsPerTile,
+    scope: setup.coordinateAcrossSheet ? 'sheet' : 'local',
+  };
+  normalizeOpportunityCapacities(next);
   return requireMaterialized(next);
 }
 
@@ -147,7 +415,7 @@ export function addSignatureOpportunityActivationZone(
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
   const binding = requireBinding(projection, bindingId);
-  const node = requireOpportunityNode(projection, binding);
+  const node = requireOpportunityNodeAny(projection, binding);
   const zoneId = uniqueString(`${binding.useOrderId}-window`, new Set([
     ...Object.keys(next.mapPlan.zones),
     ...Object.keys(next.mapPlan.routes),
@@ -254,7 +522,7 @@ export function renameSignatureOpportunity(
   const binding = requireBinding(projection, bindingId);
   if (findOrderLocation(projection.orders, nextOrderId))
     throw new Error(`Instruction '${nextOrderId}' already exists for this participant.`);
-  const node = requireOpportunityNode(projection, binding);
+  const node = requireOpportunityNodeAny(projection, binding);
   const previous = binding.useOrderId;
   node.id = nextOrderId;
   binding.useOrderId = nextOrderId;
@@ -280,6 +548,10 @@ export function removeSignatureOpportunity(
   host.orders = host.orders.filter((child) => child.id !== binding.useOrderId);
   projection.signatureOpportunities = (projection.signatureOpportunities ?? [])
     .filter((entry) => entry.id !== bindingId);
+  for (const conditionId of binding.ownedConditionIds ?? []) {
+    delete next.orders.conditions[conditionId];
+    play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== conditionId);
+  }
   if (!(projection.signatureOpportunities ?? []).some((entry) =>
       entry.hostOrderId === binding.hostOrderId))
     host.orders = host.orders.filter((child) => !isCommitmentHold(next, child));
@@ -287,6 +559,7 @@ export function removeSignatureOpportunity(
     linked.targets = linked.targets.filter((target) =>
       target.projectionId !== projectionId || target.orderId !== binding.useOrderId);
   play.linkedValues = play.linkedValues.filter((linked) => linked.targets.length > 0);
+  normalizeOpportunityCapacities(next);
   return cleanupUnusedCommitmentConditions(requireMaterialized(next), play);
 }
 
@@ -351,6 +624,269 @@ export function addPlayGeometry(
   else next.mapPlan.anchors[id] = [15, 13];
   play.ownedGeometry.push({ kind, id, purpose: 'available to this Program' });
   return { draft: next, id };
+}
+
+export interface PlayPostSetup {
+  name: string;
+  point: [number, number];
+  tolerance?: number;
+  required?: boolean;
+  facing?: 'north' | 'east' | 'south' | 'west';
+}
+
+/**
+ * Add one canonical map-first Post. Every field projects into ordinary map
+ * geometry, Conditions, capacity and movement; the runtime never sees Post.
+ */
+export function addPlayPost(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  setup: PlayPostSetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const role = next.orders.roles.find((entry) => entry.id === projection.roleId);
+  if (!role) throw new Error(`Unknown role '${projection.roleId}'.`);
+  const base = identifierFromName(setup.name, `${projection.roleId}-post`, 36);
+  const geometryIds = new Set([
+    ...Object.keys(next.mapPlan.anchors), ...Object.keys(next.mapPlan.zones),
+    ...Object.keys(next.mapPlan.routes),
+  ]);
+  const anchorId = uniqueString(`${play.id}-${base}`, geometryIds); geometryIds.add(anchorId);
+  const readinessZoneId = uniqueString(`${anchorId}-ready`, geometryIds); geometryIds.add(readinessZoneId);
+  const facingAnchorId = uniqueString(`${anchorId}-facing`, geometryIds);
+  const tolerance = Math.max(0, Math.min(3, Math.trunc(setup.tolerance ?? 0)));
+  const [x, y] = setup.point;
+  const facing = setup.facing ?? 'east';
+  next.mapPlan.anchors[anchorId] = [x, y];
+  next.mapPlan.anchors[facingAnchorId] = cardinalFacingPoint([x, y], facing);
+  next.mapPlan.zones[readinessZoneId] = {
+    rect: [x - tolerance, y - tolerance, x + tolerance, y + tolerance],
+  };
+  const hostOrderId = uniqueOrderId(`${anchorId}-duty`, projection.orders);
+  const moveOrderId = uniqueOrderId(`${anchorId}-stand`, projection.orders);
+  projection.orders.push({
+    id: hostOrderId,
+    orders: [{
+      id: moveOrderId,
+      capacity: 1,
+      move: {
+        to: { anchor: anchorId }, posture: 'line',
+        face: { anchor: facingAnchorId },
+      },
+    }],
+  });
+  // Blank projections start with a placeholder centre-Well move. Once a Post
+  // owns the participant, retaining that placeholder would be a hidden second
+  // plan below it.
+  projection.orders = projection.orders.filter((order) =>
+    order.id === hostOrderId || order.id !== `${projection.id}-move`);
+  const slotId = uniqueString(`${anchorId}-slot`, new Set(play.slots.map((slot) => slot.id)));
+  const slot = {
+    id: slotId,
+    name: setup.name.trim() || 'Post',
+    roleId: projection.roleId,
+    anchorId,
+    readinessZoneId,
+    required: Boolean(setup.required),
+    tolerance,
+    capacity: 1,
+    facingAnchorId,
+    facing,
+    hostOrderId,
+    moveOrderId,
+  } satisfies NonNullable<LinkedPlay['slots']>[number];
+  play.slots.push(slot);
+  play.ownedGeometry.push(
+    { kind: 'anchor', id: anchorId, purpose: 'Post stand position' },
+    { kind: 'zone', id: readinessZoneId, purpose: 'Post readiness', derivedFrom: anchorId, tolerance },
+    { kind: 'anchor', id: facingAnchorId, purpose: 'Post cardinal facing', derivedFrom: anchorId },
+  );
+  play.geometryGroups.push({
+    id: `${slotId}-geometry`, kind: 'selection',
+    objectIds: [anchorId, facingAnchorId], derivedObjectIds: [readinessZoneId],
+  });
+  if (slot.required) ensurePostReadiness(next, play, projection, slot);
+  return requireMaterialized(synchronizePlayGeometry(next, play.id));
+}
+
+export function setPlayPostFacing(
+  draft: SheetDraft,
+  playId: string,
+  slotId: string,
+  facing: 'north' | 'east' | 'south' | 'west',
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const slot = play.slots.find((entry) => entry.id === slotId);
+  if (!slot?.facingAnchorId) throw new Error(`Post '${slotId}' has no facing arrow.`);
+  const point = next.mapPlan.anchors[slot.anchorId];
+  if (!point) throw new Error(`Post '${slotId}' has no stand position.`);
+  slot.facing = facing;
+  next.mapPlan.anchors[slot.facingAnchorId] = cardinalFacingPoint(point, facing);
+  return requireMaterialized(next);
+}
+
+export function setPlayPostRequired(
+  draft: SheetDraft,
+  playId: string,
+  slotId: string,
+  required: boolean,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const slot = play.slots.find((entry) => entry.id === slotId);
+  if (!slot) throw new Error(`Unknown Post '${slotId}'.`);
+  const projection = play.projections.find((entry) => entry.roleId === slot.roleId);
+  if (!projection) throw new Error(`Post '${slotId}' has no participant.`);
+  slot.required = required;
+  if (required) ensurePostReadiness(next, play, projection, slot);
+  else removePostReadiness(next, play, slot);
+  synchronizePlayResponseConditions(play);
+  return requireMaterialized(next);
+}
+
+export interface PlayPostDeploymentSetup {
+  skill: string;
+  target: [number, number];
+  requiredForReadiness: boolean;
+  rebuildWhenMissing: boolean;
+  refreshDurabilityAtMost?: number;
+  refreshLifetimeAtMost?: number;
+}
+
+export function configurePlayPostDeployment(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  slotId: string,
+  setup: PlayPostDeploymentSetup,
+): SheetDraft {
+  if (!setup.rebuildWhenMissing && setup.refreshDurabilityAtMost === undefined
+    && setup.refreshLifetimeAtMost === undefined)
+    throw new Error('Choose rebuild or at least one visible refresh policy.');
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const slot = play.slots.find((entry) => entry.id === slotId
+    && entry.roleId === projection.roleId);
+  if (!slot?.hostOrderId) throw new Error(`Unknown Post '${slotId}'.`);
+  if (slot.deployment)
+    removePostDeploymentSources(next, play, projection, slot);
+  const ids = new Set([
+    ...Object.keys(next.mapPlan.anchors), ...Object.keys(next.mapPlan.zones),
+    ...Object.keys(next.mapPlan.routes),
+  ]);
+  const targetAnchorId = uniqueString(`${slot.anchorId}-effect`, ids); ids.add(targetAnchorId);
+  const targetZoneId = uniqueString(`${targetAnchorId}-footprint`, ids);
+  next.mapPlan.anchors[targetAnchorId] = [...setup.target];
+  next.mapPlan.zones[targetZoneId] = { rect: [...setup.target, ...setup.target] };
+  play.ownedGeometry.push(
+    { kind: 'anchor', id: targetAnchorId, purpose: 'Post signature effect target' },
+    { kind: 'zone', id: targetZoneId, purpose: 'Post deployment presence', derivedFrom: targetAnchorId, tolerance: 0 },
+  );
+  play.geometryGroups.find((entry) => entry.id === `${slot.id}-geometry`)
+    ?.objectIds.push(targetAnchorId);
+
+  const conditionIds = new Set(Object.keys(next.orders.conditions));
+  const sourceConditionId = uniqueString(identifierFromName(
+    `${slot.anchorId}-occupied-by-self`, 'post-occupied', 44), conditionIds);
+  conditionIds.add(sourceConditionId);
+  const missingConditionId = uniqueString(identifierFromName(
+    `${targetAnchorId}-missing`, 'deployment-missing', 44), conditionIds);
+  conditionIds.add(missingConditionId);
+  const needsPresent = setup.refreshDurabilityAtMost !== undefined
+    || setup.refreshLifetimeAtMost !== undefined;
+  const presentConditionId = needsPresent
+    ? uniqueString(identifierFromName(
+      `${targetAnchorId}-present`, 'deployment-present', 44), conditionIds) : undefined;
+  if (presentConditionId) conditionIds.add(presentConditionId);
+  const presenceConditionId = setup.requiredForReadiness
+    ? uniqueString(identifierFromName(
+      `${targetAnchorId}-role-deployment-ready`, 'deployment-ready', 44), conditionIds)
+    : undefined;
+  next.orders.conditions[sourceConditionId] = {
+    fact: 'self-in-zone', operator: 'equals', value: 1, zone: slot.readinessZoneId,
+  };
+  next.orders.conditions[missingConditionId] = {
+    fact: 'self-deployment-in-zone', operator: 'equals', value: 0, zone: targetZoneId,
+  };
+  if (presentConditionId) next.orders.conditions[presentConditionId] = {
+    fact: 'self-deployment-in-zone', operator: 'equals', value: 1, zone: targetZoneId,
+  };
+  if (presenceConditionId) next.orders.conditions[presenceConditionId] = {
+    fact: 'role-deployments-in-zone-count', operator: 'at-least', value: 1,
+    role: projection.roleId, zone: targetZoneId, signature: setup.skill,
+  };
+  const deploymentConditionIds = [
+    sourceConditionId, missingConditionId,
+    ...(presentConditionId ? [presentConditionId] : []),
+    ...(presenceConditionId ? [presenceConditionId] : []),
+  ];
+  play.ownedConditionIds.push(...deploymentConditionIds);
+
+  const useOrderIds: string[] = [];
+  const addMaintenanceLeaf = (
+    suffix: string,
+    extraConditions: string[],
+  ) => {
+    const orderId = uniqueOrderId(`${slot.anchorId}-${suffix}`, projection.orders);
+    const binding = insertOpportunity(play, projection, slot.hostOrderId!, {
+      id: orderId,
+      when: { all: [sourceConditionId, ...extraConditions] },
+      capacity: 1,
+      use: { skill: setup.skill, target: 'self', at: targetAnchorId },
+    }, 'use');
+    binding.ownedConditionIds = [];
+    binding.capacityPolicy = {
+      target: 'signature-target', limit: 1, scope: 'local',
+    };
+    useOrderIds.push(orderId);
+  };
+  if (setup.rebuildWhenMissing) addMaintenanceLeaf('rebuild', [missingConditionId]);
+  if (setup.refreshDurabilityAtMost !== undefined) {
+    const id = uniqueString(identifierFromName(
+      `${targetAnchorId}-damaged`, 'deployment-damaged', 44), conditionIds); conditionIds.add(id);
+    next.orders.conditions[id] = {
+      fact: 'deployment-durability-percent', operator: 'at-most',
+      value: Math.max(0, Math.min(100, Math.trunc(setup.refreshDurabilityAtMost))),
+    };
+    play.ownedConditionIds.push(id);
+    deploymentConditionIds.push(id);
+    addMaintenanceLeaf('refresh-durability', [presentConditionId!, id]);
+  }
+  if (setup.refreshLifetimeAtMost !== undefined) {
+    const id = uniqueString(identifierFromName(
+      `${targetAnchorId}-expiring`, 'deployment-expiring', 44), conditionIds);
+    next.orders.conditions[id] = {
+      fact: 'deployment-lifetime-percent', operator: 'at-most',
+      value: Math.max(0, Math.min(100, Math.trunc(setup.refreshLifetimeAtMost))),
+    };
+    play.ownedConditionIds.push(id);
+    deploymentConditionIds.push(id);
+    addMaintenanceLeaf('refresh-lifetime', [presentConditionId!, id]);
+  }
+  slot.deployment = {
+    skill: setup.skill,
+    targetAnchorId,
+    targetZoneId,
+    rebuildWhenMissing: setup.rebuildWhenMissing,
+    ...(setup.refreshDurabilityAtMost === undefined ? {} : {
+      refreshDurabilityAtMost: setup.refreshDurabilityAtMost,
+    }),
+    ...(setup.refreshLifetimeAtMost === undefined ? {} : {
+      refreshLifetimeAtMost: setup.refreshLifetimeAtMost,
+    }),
+    requiredForReadiness: setup.requiredForReadiness,
+    presenceConditionId,
+    sourceConditionId,
+    ownedConditionIds: deploymentConditionIds,
+    useOrderIds,
+  };
+  synchronizePlayResponseConditions(play);
+  return requireMaterialized(next);
 }
 
 export function addPlayCondition(
@@ -440,6 +976,7 @@ export function configurePlayContingent(
   const previousConditionId = previousFormation?.conditionId;
 
   let readinessId: string | null = null;
+  let notReadyId: string | null = null;
   if ('zone' in setup.destination && required > 0) {
     if (!next.mapPlan.zones[setup.destination.zone])
       throw new Error(`Unknown formation zone '${setup.destination.zone}'.`);
@@ -451,6 +988,13 @@ export function configurePlayContingent(
     };
     if (!play.ownedConditionIds.includes(readinessId))
       play.ownedConditionIds.push(readinessId);
+    notReadyId = `${readinessId}-not`;
+    next.orders.conditions[notReadyId] = {
+      fact: 'role-in-zone-count', operator: 'at-most', value: required - 1,
+      role: projection.roleId, zone: setup.destination.zone,
+    };
+    if (!play.ownedConditionIds.includes(notReadyId))
+      play.ownedConditionIds.push(notReadyId);
     play.formations = (play.formations ?? []).filter((entry) =>
       entry.projectionId !== projection.id);
     play.formations.push({
@@ -463,8 +1007,9 @@ export function configurePlayContingent(
       entry.projectionId !== projection.id);
     if (previousConditionId) {
       delete next.orders.conditions[previousConditionId];
+      delete next.orders.conditions[`${previousConditionId}-not`];
       play.ownedConditionIds = play.ownedConditionIds.filter((id) =>
-        id !== previousConditionId);
+        id !== previousConditionId && id !== `${previousConditionId}-not`);
     }
     removeProjectionFromReadinessGroups(play, projection.id);
   }
@@ -515,6 +1060,7 @@ export function configurePlayContingent(
   if ('zone' in setup.destination && readinessId) {
     projection.orders.splice(1, 0, {
       id: stageId,
+      ...(notReadyId ? { when: notReadyId } : {}),
       until: readinessId,
       move: { to: { zone: setup.destination.zone }, posture: 'line' },
     });
@@ -536,6 +1082,7 @@ export function setPlayReadinessGroup(
   groupId: string | null,
   name: string,
   projectionIds: string[],
+  maximumSpread?: number,
 ): SheetDraft {
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
@@ -543,14 +1090,21 @@ export function setPlayReadinessGroup(
     play.projections.some((projection) => projection.id === id));
   if (selected.length < 2)
     throw new Error('Combined readiness needs at least two participants.');
-  const formationByProjection = new Map((play.formations ?? []).map((entry) =>
-    [entry.projectionId, entry]));
+  const formationByProjection = new Map<string, NonNullable<LinkedPlay['formations']>>();
+  for (const formation of play.formations ?? []) {
+    const entries = formationByProjection.get(formation.projectionId) ?? [];
+    entries.push(formation);
+    formationByProjection.set(formation.projectionId, entries);
+  }
   for (const projectionId of selected) {
-    const formation = formationByProjection.get(projectionId);
-    if (!formation || !next.orders.conditions[formation.conditionId])
+    const formations = formationByProjection.get(projectionId) ?? [];
+    if (formations.length === 0 || formations.some((formation) =>
+      !next.orders.conditions[formation.conditionId]))
       throw new Error('Every combined participant must first form in an area.');
   }
-  const conditionCount = selected.length + (play.responseTriggerConditionId ? 1 : 0);
+  const conditionCount = selected.reduce((count, projectionId) =>
+    count + (formationByProjection.get(projectionId)?.length ?? 0), 0)
+    + (play.responseTriggerConditionId ? 1 : 0);
   if (conditionCount > 8)
     throw new Error('This combined gate exceeds the current eight-Condition expression limit.');
 
@@ -566,6 +1120,9 @@ export function setPlayReadinessGroup(
     id,
     name: name.trim() || 'Combined readiness',
     projectionIds: selected,
+    ...(maximumSpread === undefined ? {} : {
+      maximumSpread: Math.max(0, Math.min(31, Math.trunc(maximumSpread))),
+    }),
   });
   synchronizePlayResponseConditions(play);
   return requireMaterialized(next);
@@ -600,6 +1157,85 @@ export function setPlayContingentExit(
     throw new Error(`Unknown exit Condition '${conditionId}'.`);
   if (conditionId) response.until = conditionId;
   else delete response.until;
+  return requireMaterialized(next);
+}
+
+export interface PlayLifecycleSetup {
+  minimumCommitmentTicks: number;
+  successConditionIds: string[];
+  maximumTicks: number;
+  cooldownTicks: number;
+  waiting: 'hold-posts' | 'prepare-conditionally' | 'fall-through';
+  preparationConditionId?: string;
+}
+
+/**
+ * Project the human commitment controls into the existing node lifecycle.
+ * No Program latch is introduced: an authored `until` is the runtime latch.
+ */
+export function configurePlayLifecycle(
+  draft: SheetDraft,
+  playId: string,
+  setup: PlayLifecycleSetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const minimum = Math.max(0, Math.min(1200, Math.trunc(setup.minimumCommitmentTicks)));
+  const maximum = Math.max(1, Math.min(1200, Math.trunc(setup.maximumTicks)));
+  if (maximum < minimum)
+    throw new Error('Give up after cannot be shorter than the minimum commitment.');
+  for (const id of setup.successConditionIds)
+    if (!next.orders.conditions[id]) throw new Error(`Unknown success Condition '${id}'.`);
+  if (setup.waiting === 'prepare-conditionally'
+    && (!setup.preparationConditionId
+      || !next.orders.conditions[setup.preparationConditionId]))
+    throw new Error('Conditional preparation needs one visible Condition.');
+
+  const previousMinimum = play.ownedConditionIds.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-order-ticks'
+      && id.startsWith(`${play.id}-minimum-commitment`));
+  let minimumId: string | undefined;
+  if (minimum > 0) {
+    minimumId = previousMinimum ?? uniqueString(`${play.id}-minimum-commitment`,
+      new Set(Object.keys(next.orders.conditions)));
+    next.orders.conditions[minimumId] = {
+      fact: 'self-order-ticks', operator: 'at-least', value: minimum,
+    };
+    if (!play.ownedConditionIds.includes(minimumId)) play.ownedConditionIds.push(minimumId);
+  } else if (previousMinimum) {
+    delete next.orders.conditions[previousMinimum];
+    play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== previousMinimum);
+  }
+  const untilIds = [...(minimumId ? [minimumId] : []), ...setup.successConditionIds];
+  if (untilIds.length > 8)
+    throw new Error('Commitment and success exceed the eight-Condition flat expression limit.');
+  for (const projection of play.projections) {
+    const response = findOrderLocation(projection.orders, `${projection.id}-respond`)?.node;
+    if (!response) continue;
+    if (untilIds.length === 0) delete response.until;
+    else response.until = expressionOf(untilIds);
+    response.timeout = maximum;
+    response.cooldown = Math.max(0, Math.min(1200, Math.trunc(setup.cooldownTicks)));
+    for (const slot of play.slots.filter((entry) => entry.roleId === projection.roleId)) {
+      if (!slot.hostOrderId) continue;
+      const host = findOrderLocation(projection.orders, slot.hostOrderId)?.node;
+      if (!host) continue;
+      if (setup.waiting === 'hold-posts') delete host.when;
+      else if (setup.waiting === 'prepare-conditionally')
+        host.when = setup.preparationConditionId;
+      else if (play.responseTriggerConditionId)
+        host.when = play.responseTriggerConditionId;
+    }
+  }
+  play.lifecycle = {
+    minimumCommitmentTicks: minimum,
+    maximumTicks: maximum,
+    cooldownTicks: Math.max(0, Math.min(1200, Math.trunc(setup.cooldownTicks))),
+    waiting: setup.waiting,
+    ...(setup.preparationConditionId
+      ? { preparationConditionId: setup.preparationConditionId } : {}),
+    successConditionIds: [...setup.successConditionIds],
+  };
   return requireMaterialized(next);
 }
 
@@ -920,8 +1556,20 @@ function synchronizePlayResponseConditions(
 ) {
   const formations = play.formations ?? [];
   const readinessIds = new Set(formations.map((entry) => entry.conditionId));
-  const formationByProjection = new Map(formations.map((entry) =>
-    [entry.projectionId, entry.conditionId]));
+  const formationByProjection = new Map<string, string[]>();
+  for (const formation of formations) {
+    const ids = formationByProjection.get(formation.projectionId) ?? [];
+    ids.push(formation.conditionId);
+    formationByProjection.set(formation.projectionId, ids);
+  }
+  const deploymentByProjection = new Map<string, string[]>();
+  for (const projection of play.projections) {
+    const ids = play.slots.filter((slot) => slot.roleId === projection.roleId
+      && slot.deployment?.requiredForReadiness
+      && slot.deployment.presenceConditionId)
+      .map((slot) => slot.deployment!.presenceConditionId!);
+    deploymentByProjection.set(projection.id, ids);
+  }
   const groupByProjection = new Map<string, NonNullable<LinkedPlay['readinessGroups']>[number]>();
   for (const group of play.readinessGroups ?? [])
     for (const projectionId of group.projectionIds)
@@ -936,9 +1584,10 @@ function synchronizePlayResponseConditions(
       && id !== play.responseTriggerConditionId);
     const group = groupByProjection.get(projection.id);
     const gatedProjectionIds = group?.projectionIds ?? [projection.id];
-    const readiness = gatedProjectionIds
-      .map((projectionId) => formationByProjection.get(projectionId))
-      .filter((id): id is string => Boolean(id));
+    const readiness = gatedProjectionIds.flatMap((projectionId) => [
+      ...(formationByProjection.get(projectionId) ?? []),
+      ...(deploymentByProjection.get(projectionId) ?? []),
+    ]);
     const ids = [...new Set([
       ...(play.responseTriggerConditionId ? [play.responseTriggerConditionId] : []),
       ...base,
@@ -948,6 +1597,85 @@ function synchronizePlayResponseConditions(
       throw new Error('This participant gate exceeds the current eight-Condition expression limit.');
     response.when = expressionOf(ids);
   }
+}
+
+function ensurePostReadiness(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  projection: PlayProjection,
+  slot: LinkedPlay['slots'][number],
+) {
+  if (!findOrderLocation(projection.orders, `${projection.id}-respond`))
+    throw new Error('Add the Program response before requiring a Post for readiness.');
+  const conditionId = slot.readinessConditionId ?? uniqueString(
+    `${slot.anchorId}-ready`, new Set(Object.keys(draft.orders.conditions)));
+  draft.orders.conditions[conditionId] = {
+    fact: 'role-in-zone-count', operator: 'at-least', value: 1,
+    role: slot.roleId, zone: slot.readinessZoneId,
+  };
+  slot.readinessConditionId = conditionId;
+  if (!play.ownedConditionIds.includes(conditionId)) play.ownedConditionIds.push(conditionId);
+  if (!(play.formations ??= []).some((entry) => entry.id === `${slot.id}-formation`))
+    play.formations.push({
+      id: `${slot.id}-formation`, projectionId: projection.id, conditionId,
+    });
+  synchronizePlayResponseConditions(play);
+}
+
+function removePostReadiness(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  slot: LinkedPlay['slots'][number],
+) {
+  if (!slot.readinessConditionId) return;
+  const conditionId = slot.readinessConditionId;
+  play.formations = (play.formations ?? []).filter((entry) =>
+    entry.conditionId !== conditionId);
+  play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== conditionId);
+  delete draft.orders.conditions[conditionId];
+  delete slot.readinessConditionId;
+}
+
+function removePostDeploymentSources(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  projection: PlayProjection,
+  slot: LinkedPlay['slots'][number],
+) {
+  const deployment = slot.deployment;
+  if (!deployment) return;
+  const bindings = projection.signatureOpportunities ?? [];
+  const removing = new Set(bindings.filter((binding) =>
+    deployment.useOrderIds.includes(binding.useOrderId)).map((binding) => binding.id));
+  const host = slot.hostOrderId
+    ? findOrderLocation(projection.orders, slot.hostOrderId)?.node : undefined;
+  if (host?.orders)
+    host.orders = host.orders.filter((entry) => !deployment.useOrderIds.includes(entry.id ?? ''));
+  projection.signatureOpportunities = bindings.filter((binding) => !removing.has(binding.id));
+  const conditionIds = new Set([
+    ...deployment.ownedConditionIds,
+    ...bindings.filter((binding) => removing.has(binding.id))
+      .flatMap((binding) => binding.ownedConditionIds ?? []),
+  ]);
+  for (const id of conditionIds) {
+    delete draft.orders.conditions[id];
+    play.ownedConditionIds = play.ownedConditionIds.filter((entry) => entry !== id);
+  }
+  delete draft.mapPlan.anchors[deployment.targetAnchorId];
+  delete draft.mapPlan.zones[deployment.targetZoneId];
+  play.ownedGeometry = play.ownedGeometry.filter((entry) =>
+    entry.id !== deployment.targetAnchorId && entry.id !== deployment.targetZoneId);
+  delete slot.deployment;
+}
+
+function cardinalFacingPoint(
+  [x, y]: [number, number],
+  facing: 'north' | 'east' | 'south' | 'west',
+): [number, number] {
+  if (facing === 'north') return [x, y - 1];
+  if (facing === 'south') return [x, y + 1];
+  if (facing === 'west') return [x - 1, y];
+  return [x + 1, y];
 }
 
 function removeProjectionFromReadinessGroups(
@@ -1071,6 +1799,101 @@ function updateOpportunityNode(
   return requireMaterialized(next);
 }
 
+function insertOpportunity(
+  play: LinkedPlay,
+  projection: PlayProjection,
+  hostOrderId: string,
+  action: OrderNode,
+  kind: NonNullable<NonNullable<PlayProjection['signatureOpportunities']>[number]['kind']>,
+) {
+  const located = findOrderLocation(projection.orders, hostOrderId);
+  if (!located) throw new Error(`Unknown host Instruction '${hostOrderId}'.`);
+  let host = located.node;
+  if (!host.orders) {
+    if (!host.move && !host.fight)
+      throw new Error('Choose a durable Move, Fight, or existing branch as the continuation.');
+    if (located.depth >= 2)
+      throw new Error('This Instruction is already at the maximum branch depth. Choose its nearest parent branch.');
+    const continuationId = uniqueOrderId(`${hostOrderId}-continue`, projection.orders);
+    const continuation: OrderNode = {
+      id: continuationId,
+      ...(host.move ? { move: structuredClone(host.move) } : {}),
+      ...(host.fight ? { fight: structuredClone(host.fight) } : {}),
+      ...(host.capacity !== undefined ? { capacity: host.capacity } : {}),
+    };
+    const parent: OrderNode = {
+      id: host.id,
+      ...(host.when !== undefined ? { when: structuredClone(host.when) } : {}),
+      ...(host.until !== undefined ? { until: structuredClone(host.until) } : {}),
+      ...(host.timeout !== undefined ? { timeout: host.timeout } : {}),
+      ...(host.cooldown !== undefined ? { cooldown: host.cooldown } : {}),
+      ...(host.urgency !== undefined ? { urgency: host.urgency } : {}),
+      orders: [continuation],
+    };
+    located.container[located.index] = parent;
+    host = parent;
+  }
+  const bindings = projection.signatureOpportunities ??= [];
+  const boundIds = new Set(bindings.map((entry) => entry.useOrderId));
+  const firstContinuation = host.orders!.findIndex((child) =>
+    !child.id || !boundIds.has(child.id));
+  host.orders!.splice(firstContinuation < 0 ? host.orders!.length : firstContinuation,
+    0, action);
+  const bindingBase = `${hostOrderId}-${action.id}-${kind}`;
+  const bindingIds = new Set(play.projections.flatMap((entry) =>
+    (entry.signatureOpportunities ?? []).map((binding) => binding.id)));
+  const binding: NonNullable<PlayProjection['signatureOpportunities']>[number] = {
+    id: uniqueString(bindingBase, bindingIds),
+    kind,
+    hostOrderId,
+    useOrderId: action.id!,
+    ownedConditionIds: [],
+  };
+  bindings.push(binding);
+  return binding;
+}
+
+/**
+ * A visible sheet-wide coordination group materializes as a named capacity
+ * only while several cards consume it; one consumer stays inline. This is a
+ * storage normalization, never a second allocation policy.
+ */
+function normalizeOpportunityCapacities(draft: SheetDraft) {
+  for (const target of ['core', 'healing'] as const) {
+    const members = draft.workshop.plays.flatMap((play) =>
+      play.projections.flatMap((projection) =>
+        (projection.signatureOpportunities ?? [])
+          .filter((binding) => binding.capacityPolicy?.target === target
+            && binding.capacityPolicy.scope === 'sheet')
+          .map((binding) => ({ play, projection, binding }))));
+    const capacityId = target === 'core' ? 'core-recovery' : 'healing';
+    if (members.length === 0) {
+      delete draft.orders.capacities[capacityId];
+      draft.workshop.plays.forEach((play) => {
+        play.ownedCapacityIds = play.ownedCapacityIds.filter((id) => id !== capacityId);
+      });
+      continue;
+    }
+    const limits = new Set(members.map((entry) => entry.binding.capacityPolicy!.limit));
+    if (limits.size > 1)
+      throw new Error(`Every card in the sheet-wide ${target} group must use the same capacity.`);
+    const limit = members[0].binding.capacityPolicy!.limit;
+    for (const { projection, binding } of members) {
+      const node = requireOpportunityNodeAny(projection, binding);
+      if (limit === null) delete node.capacity;
+      else node.capacity = members.length === 1 ? limit : capacityId;
+      binding.capacityPolicy!.groupId = members.length === 1 ? undefined : capacityId;
+    }
+    if (members.length === 1 || limit === null) delete draft.orders.capacities[capacityId];
+    else draft.orders.capacities[capacityId] = limit;
+    draft.workshop.plays.forEach((play) => {
+      play.ownedCapacityIds = play.ownedCapacityIds.filter((id) => id !== capacityId);
+    });
+    if (members.length > 1 && limit !== null)
+      members[0].play.ownedCapacityIds.push(capacityId);
+  }
+}
+
 function ensureCommitmentHold(
   draft: SheetDraft,
   play: LinkedPlay,
@@ -1158,10 +1981,20 @@ function requireOpportunityNode(
   projection: PlayProjection,
   binding: NonNullable<PlayProjection['signatureOpportunities']>[number],
 ): OrderNode {
+  const node = requireOpportunityNodeAny(projection, binding);
+  if (!node.use)
+    throw new Error(`Signature opportunity '${binding.id}' has no direct use child.`);
+  return node;
+}
+
+function requireOpportunityNodeAny(
+  projection: PlayProjection,
+  binding: NonNullable<PlayProjection['signatureOpportunities']>[number],
+): OrderNode {
   const host = findOrderLocation(projection.orders, binding.hostOrderId)?.node;
   const node = host?.orders?.find((entry) => entry.id === binding.useOrderId);
-  if (!node?.use)
-    throw new Error(`Signature opportunity '${binding.id}' has no direct use child.`);
+  if (!node)
+    throw new Error(`Opportunity '${binding.id}' has no direct action child.`);
   return node;
 }
 

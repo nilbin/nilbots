@@ -10,18 +10,24 @@ import {
   deletePlay,
   detachPlay,
   playDrifts,
+  opportunityViews,
   resolveProjectionOrders,
-  signatureOpportunityViews,
   uniquePlayId,
 } from './linkedPlays';
 import {
   addPlayGeometry,
+  addPlayPost,
+  addCoreRecoveryOpportunity,
+  addFightOpportunity,
+  addHealthRecoveryOpportunity,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
   addSignatureOpportunityAnchor,
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
+  configurePlayLifecycle,
+  configurePlayPostDeployment,
   configurePlaySharedTrigger,
   movePlayAnchor,
   moveProgram,
@@ -36,6 +42,8 @@ import {
   replacePlayRole,
   setPlayLinkedValue,
   setPlayName,
+  setPlayPostFacing,
+  setPlayPostRequired,
   setPlayContingentExit,
   setPlayReadinessGroup,
   setPlayZoneRect,
@@ -43,6 +51,9 @@ import {
   setSignatureOpportunityCommitmentHold,
   setSignatureOpportunityWhen,
   updatePlayCondition,
+  updateCoreRecoveryOpportunity,
+  updateFightOpportunity,
+  updateHealthRecoveryOpportunity,
   updateSignatureOpportunityUse,
 } from './playEditing';
 import {
@@ -126,6 +137,7 @@ export default function PlaysWorkspace({
   issues,
   tracks,
   practiceReplay,
+  practiceDraft,
   selectedPlayId,
   onSelectPlay,
   onChange,
@@ -137,6 +149,7 @@ export default function PlaysWorkspace({
   issues: SheetIssue[];
   tracks: UnitTrack[];
   practiceReplay?: ReplayModel;
+  practiceDraft?: SheetDraft;
   selectedPlayId: string | null;
   onSelectPlay: (playId: string | null) => void;
   onChange: (next: SheetDraft) => void;
@@ -264,10 +277,18 @@ export default function PlaysWorkspace({
 
           <ParticipantControls draft={draft} play={play} catalog={catalog}
             onChange={commit} />
+          <PostControls draft={draft} play={play} catalog={catalog}
+            onSelectGeometry={(id, startDrawing = false) => {
+              setSelectedGeometry(id);
+              if (startDrawing) setPlacementGeometry(id);
+              document.querySelector('[data-sheet-path="workshop.plays"]')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            onChange={commit} />
           {play.recipe === 'blank' && <PlayResponseControls draft={draft} play={play} tracks={tracks}
             onSelectGeometry={setSelectedGeometry} onChange={commit} />}
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
-            practiceReplay={practiceReplay}
+            practiceReplay={practiceReplay} practiceDraft={practiceDraft}
             onSelectGeometry={(id, startDrawing = false) => {
               setSelectedGeometry(id);
               if (startDrawing) setPlacementGeometry(id);
@@ -549,6 +570,105 @@ function ParticipantControls({ draft, play, catalog, onChange }: {
   </section>;
 }
 
+function PostControls({ draft, play, catalog, onSelectGeometry, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  catalog: TacticalSheetCatalog;
+  onSelectGeometry: (id: string, startDrawing?: boolean) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const [roleId, setRoleId] = useState(play.projections[0]?.roleId ?? '');
+  const [name, setName] = useState('Guard post');
+  const selectedRoleId = play.projections.some((entry) => entry.roleId === roleId)
+    ? roleId : play.projections[0]?.roleId ?? '';
+  const selectedProjection = play.projections.find((entry) =>
+    entry.roleId === selectedRoleId);
+  return <section className="panel pad" data-testid="program-posts">
+    <p className="lab text-arena-material">Posts</p>
+    <h3 className="type-display mt-1 text-[19px]">Stand here. Face there. Hold the ground.</h3>
+    <p className="t-micro mt-1">A Post is one map-first composition. Underneath it remains an anchor, readiness area, capacity-one Move, facing point and optional deployment Instructions.</p>
+    <div className="mt-3 space-y-2">{play.slots.map((slot) => {
+      const projection = play.projections.find((entry) => entry.roleId === slot.roleId);
+      const role = draft.orders.roles.find((entry) => entry.id === slot.roleId);
+      const durable = role?.classes.flatMap((classId) => {
+        const entry = catalog.classes.find((candidate) => candidate.id === classId);
+        return entry?.signatureAuthoring.durableDeployment ? [entry] : [];
+      }) ?? [];
+      return <article key={slot.id} className="rounded-sm border border-arena-edge bg-arena-deep/30 p-3">
+        <div className="flex flex-wrap items-start gap-2">
+          <button type="button" className="min-h-11 min-w-0 flex-1 text-left"
+            onClick={() => onSelectGeometry(slot.anchorId)}>
+            <span className="lab text-arena-material">{humanize(slot.roleId)} · {slot.capacity ?? 1} body</span>
+            <b className="type-display mt-1 block text-[16px]">{slot.name ?? humanize(slot.anchorId)}</b>
+            <span className="t-micro mt-1 block">Stand {slot.tolerance === 0 ? 'exactly' : `within ${slot.tolerance} tiles`} → face {humanize(slot.facing ?? 'toward point')}</span>
+          </button>
+          <span className="pill">{slot.required ? 'required to arm' : 'optional setup'}</span>
+        </div>
+        <div className="mt-3 grid grid-cols-4 gap-1.5" aria-label={`Facing for ${slot.name ?? slot.id}`}>
+          {(['north', 'east', 'south', 'west'] as const).map((facing) => <button
+            key={facing} type="button" className="btn min-h-11" data-selected={slot.facing === facing}
+            aria-pressed={slot.facing === facing}
+            onClick={() => onChange(setPlayPostFacing(draft, play.id, slot.id, facing))}>
+            {facing === 'north' ? '↑ N' : facing === 'east' ? '→ E' : facing === 'south' ? '↓ S' : '← W'}
+          </button>)}
+        </div>
+        <label className="mt-3 flex min-h-12 items-start gap-3 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
+          <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[var(--color-arena-material)]"
+            checked={slot.required} disabled={!findOrderById(projection?.orders ?? [], `${projection?.id}-respond`)}
+            onChange={(event) => onChange(setPlayPostRequired(
+              draft, play.id, slot.id, event.target.checked))} />
+          <span><span className="lab block">Required before response</span>
+            <span className="t-micro mt-1 block">Every required Post gets its own role-qualified readiness check. {!projection || !findOrderById(projection.orders, `${projection.id}-respond`) ? 'Build this participant response first.' : ''}</span></span>
+        </label>
+        {slot.deployment ? <div className="mt-3 rounded-sm border border-arena-cyan/35 bg-arena-cyan/5 p-3">
+          <div className="flex flex-wrap items-center gap-2"><b className="t-body mr-auto">Keep {humanize(slot.deployment.skill)} at {humanize(slot.deployment.targetAnchorId)}</b>
+            <span className="pill">{slot.deployment.requiredForReadiness ? 'required' : 'opportunity'}</span></div>
+          <p className="t-micro mt-1">{slot.deployment.rebuildWhenMissing ? 'Rebuild when missing' : 'No missing rebuild'}{slot.deployment.refreshDurabilityAtMost !== undefined ? ` · refresh at ${slot.deployment.refreshDurabilityAtMost}% durability` : ''}{slot.deployment.refreshLifetimeAtMost !== undefined ? ` · refresh at ${slot.deployment.refreshLifetimeAtMost}% lifetime` : ''}</p>
+          <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+            onClick={() => onSelectGeometry(slot.deployment!.targetAnchorId)}>Move effect target on map</button>
+        </div> : durable.length > 0 && projection && <button type="button"
+          className="btn btn-secondary mt-3 min-h-11 w-full"
+          onClick={() => {
+            const stand = draft.mapPlan.anchors[slot.anchorId] ?? [15, 13];
+            const target: [number, number] = [Math.min(catalog.map.width - 2, stand[0] + 2), stand[1]];
+            const next = configurePlayPostDeployment(draft, play.id, projection.id, slot.id, {
+              skill: durable[0].signatureId, target,
+              requiredForReadiness: Boolean(findOrderById(projection.orders, `${projection.id}-respond`)),
+              rebuildWhenMissing: true,
+            });
+            onChange(next);
+            const deployed = next.workshop.plays.find((entry) => entry.id === play.id)
+              ?.slots.find((entry) => entry.id === slot.id)?.deployment;
+            if (deployed) onSelectGeometry(deployed.targetAnchorId, true);
+          }}>＋ Maintain {durable[0].signatureName} from this Post</button>}
+      </article>;
+    })}</div>
+    {play.projections.length > 0 && <div className="mt-3 rounded-sm border border-dashed border-arena-material/45 p-3">
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+        <label><span className="lab mb-1 block">Who stands here</span>
+          <select className="field min-h-11" value={selectedRoleId}
+            onChange={(event) => setRoleId(event.target.value)}>
+            {play.projections.map((projection) => <option key={projection.id} value={projection.roleId}>{humanize(projection.roleId)}</option>)}
+          </select></label>
+        <label><span className="lab mb-1 block">Post name</span>
+          <input className="field min-h-11" value={name} maxLength={40}
+            onChange={(event) => setName(event.target.value)} /></label>
+        <button type="button" className="btn btn-primary min-h-11" disabled={!selectedProjection}
+          onClick={() => {
+            const next = addPlayPost(draft, play.id, selectedProjection!.id, {
+              name, point: [15, 13], facing: 'east', required: false,
+            });
+            onChange(next);
+            const created = next.workshop.plays.find((entry) => entry.id === play.id)!.slots.at(-1)!;
+            onSelectGeometry(created.anchorId, true);
+          }}>＋ Place Post</button>
+      </div>
+      <p className="t-micro mt-2">Place it on the map, then set facing and any signature effect independently. Required setup becomes available after this participant has a response.</p>
+    </div>}
+    {play.projections.length === 0 && <p className="t-meta mt-3">Add a participant before placing Posts.</p>}
+  </section>;
+}
+
 function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
@@ -626,7 +746,72 @@ function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange 
         projection={projection} triggerId={triggerId} tracks={tracks}
         onSelectGeometry={onSelectGeometry} onChange={onChange} />)}</div>
     <CombinedReadinessControls key={play.id} draft={draft} play={play} onChange={onChange} />
+    <ProgramLifecycleControls draft={draft} play={play} onChange={onChange} />
   </section>;
+}
+
+function ProgramLifecycleControls({ draft, play, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const current = play.lifecycle;
+  const [minimum, setMinimum] = useState(current?.minimumCommitmentTicks ?? 0);
+  const [maximum, setMaximum] = useState(current?.maximumTicks ?? 90);
+  const [cooldown, setCooldown] = useState(current?.cooldownTicks ?? 15);
+  const [waiting, setWaiting] = useState(current?.waiting ?? 'hold-posts');
+  const [success, setSuccess] = useState(current?.successConditionIds?.[0] ?? '');
+  const conditions = Object.keys(draft.orders.conditions).filter((id) =>
+    !id.startsWith(`${play.id}-minimum-commitment`));
+  return <details className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/35" open={Boolean(current)}>
+    <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
+      <div className="mr-auto"><p className="lab text-arena-material">Commitment and continuation</p>
+        <p className="t-micro mt-1">How long the response persists, retries and waits</p></div>
+      <span className="pill">{current ? 'configured' : 'optional'}</span><span className="disclosure-chevron">›</span>
+    </summary>
+    <div className="space-y-3 border-t border-arena-edge p-3">
+      <div className="grid grid-cols-3 gap-2">
+        <label><span className="lab mb-1 block">Commit at least</span>
+          <input type="number" className="field min-h-11" min={0} max={1200} value={minimum}
+            onChange={(event) => setMinimum(Number(event.target.value))} /></label>
+        <label><span className="lab mb-1 block">Give up after</span>
+          <input type="number" className="field min-h-11" min={1} max={1200} value={maximum}
+            onChange={(event) => setMaximum(Number(event.target.value))} /></label>
+        <label><span className="lab mb-1 block">Retry delay</span>
+          <input type="number" className="field min-h-11" min={0} max={1200} value={cooldown}
+            onChange={(event) => setCooldown(Number(event.target.value))} /></label>
+      </div>
+      <label><span className="lab mb-1 block">Success</span>
+        <select className="field min-h-11" value={success}
+          onChange={(event) => setSuccess(event.target.value)}>
+          <option value="">Minimum commitment or timeout only</option>
+          {conditions.map((id) => <option key={id} value={id}>{programSourceName(id, play.id)}</option>)}
+        </select></label>
+      <div><span className="lab mb-1 block">Before the response is ready</span>
+        <div className="grid gap-1.5 sm:grid-cols-3">{([
+          ['hold-posts', 'Hold Posts', 'Stay set and visible'],
+          ['prepare-conditionally', 'Prepare conditionally', 'Only under the shared trigger'],
+          ['fall-through', 'Fall through', 'Run the next Program'],
+        ] as const).map(([value, label, copy]) => <button key={value} type="button"
+          className="choice-card min-h-16 text-left" data-selected={waiting === value}
+          aria-pressed={waiting === value} onClick={() => setWaiting(value)}>
+          <b className="t-body block">{label}</b><span className="t-micro mt-1 block">{copy}</span>
+        </button>)}</div>
+      </div>
+      <button type="button" className="btn btn-primary min-h-11 w-full"
+        disabled={maximum < minimum}
+        onClick={() => onChange(configurePlayLifecycle(draft, play.id, {
+          minimumCommitmentTicks: minimum,
+          successConditionIds: success ? [success] : [],
+          maximumTicks: maximum,
+          cooldownTicks: cooldown,
+          waiting,
+          ...(waiting === 'prepare-conditionally' && play.responseTriggerConditionId
+            ? { preparationConditionId: play.responseTriggerConditionId } : {}),
+        }))}>Apply commitment</button>
+      {maximum < minimum && <p className="t-micro text-arena-hot">Give up after must be at least the minimum commitment.</p>}
+    </div>
+  </details>;
 }
 
 function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGeometry, onChange }: {
@@ -849,6 +1034,7 @@ function AlongTheWayControls({
   play,
   catalog,
   practiceReplay,
+  practiceDraft,
   onSelectGeometry,
   onOpenOrders,
   onChange,
@@ -857,20 +1043,21 @@ function AlongTheWayControls({
   play: LinkedPlay;
   catalog: TacticalSheetCatalog;
   practiceReplay?: ReplayModel;
+  practiceDraft?: SheetDraft;
   onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   return <section className="panel pad">
-    <p className="lab text-arena-material">Along the way</p>
-    <h3 className="type-display mt-1 text-[19px]">Signature opportunities inside this Program</h3>
-    <p className="t-micro mt-1">Each card becomes a real use Instruction above the continuation shown beside it. Reordering here changes only that local opportunity order; the Program list remains the sole overall priority.</p>
+    <p className="lab text-arena-material">Opportunities</p>
+    <h3 className="type-display mt-1 text-[19px]">What may interrupt each participant’s main plan?</h3>
+    <p className="t-micro mt-1">Skill, Fight, nearby Core and health cards share one real top-to-bottom local order. A card that cannot act yields in the same tick; the participant’s ordinary continuation is pinned last.</p>
     <div className="mt-3 space-y-3">{play.projections.map((projection) => {
       const role = draft.orders.roles.find((entry) => entry.id === projection.roleId);
       if (!role) return null;
       return <OpportunityProjection key={projection.id} draft={draft} play={play}
         projection={projection} role={role} catalog={catalog}
-        practiceReplay={practiceReplay}
+        practiceReplay={practiceReplay} practiceDraft={practiceDraft}
         onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
         onChange={onChange} />;
     })}</div>
@@ -884,6 +1071,7 @@ function OpportunityProjection({
   role,
   catalog,
   practiceReplay,
+  practiceDraft,
   onSelectGeometry,
   onOpenOrders,
   onChange,
@@ -894,15 +1082,17 @@ function OpportunityProjection({
   role: SheetDraft['orders']['roles'][number];
   catalog: TacticalSheetCatalog;
   practiceReplay?: ReplayModel;
+  practiceDraft?: SheetDraft;
   onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
-  const views = signatureOpportunityViews(projection, draft.orders.conditions);
+  const views = opportunityViews(projection, draft.orders.conditions);
   const hosts = opportunityHosts(projection.orders, projection.id);
   const skills = [...new Set(role.classes.map((classId) =>
     skillForClass(catalog, classId)).filter((entry): entry is string => Boolean(entry)))];
   const [adding, setAdding] = useState(false);
+  const [kind, setKind] = useState<'use' | 'fight' | 'core-recovery' | 'health-recovery'>('use');
   const [hostId, setHostId] = useState(hosts[0]?.id ?? '');
   const [skill, setSkill] = useState(skills[0] ?? '');
   const selectedHost = hosts.some((entry) => entry.id === hostId)
@@ -915,62 +1105,101 @@ function OpportunityProjection({
       <div className="mr-auto min-w-0"><b className="type-display block truncate text-[16px]">{humanize(role.id)}</b>
         <span className="t-micro">{views.length} {views.length === 1 ? 'opportunity' : 'opportunities'}</span></div>
       <button type="button" className="btn btn-secondary min-h-11"
-        disabled={hosts.length === 0 || skills.length === 0}
-        onClick={() => setAdding((value) => !value)}>＋ Add signature</button>
+        disabled={hosts.length === 0}
+        onClick={() => setAdding((value) => !value)}>＋ Add opportunity</button>
     </div>
     {adding && <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/5 p-3">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label><span className="lab mb-1 block">Continue this plan</span>
+      <p className="lab text-arena-material">Choose the interruption</p>
+      <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+        {([
+          ['use', 'Use skill', 'Signature timing and target'],
+          ['fight', 'Fight', 'Contact, targets and chase'],
+          ['core-recovery', 'Nearby Core', 'Visible Core within a detour'],
+          ['health-recovery', 'Recover health', 'Heal with real hysteresis'],
+        ] as const).map(([value, label, description]) => <button key={value}
+          type="button" className="choice-card min-h-20 text-left" data-selected={kind === value}
+          aria-pressed={kind === value} onClick={() => setKind(value)}>
+          <b className="t-body block">{label}</b><span className="t-micro mt-1 block">{description}</span>
+        </button>)}
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <label><span className="lab mb-1 block">During which behavior?</span>
           <select className="field min-h-11" value={selectedHost}
             onChange={(event) => setHostId(event.target.value)}>
             {hosts.map((host) => <option key={host.id} value={host.id}>{host.label}</option>)}
           </select></label>
-        <label><span className="lab mb-1 block">Role-owned signature</span>
+        {kind === 'use' && <label><span className="lab mb-1 block">Role-owned skill</span>
           <select className="field min-h-11" value={selectedSkill}
             onChange={(event) => setSkill(event.target.value)}>
             {skills.map((candidate) => <option key={candidate} value={candidate}>
               {catalog.classes.find((entry) => entry.signatureId === candidate)?.signatureName ?? humanize(candidate)}
             </option>)}
-          </select></label>
+          </select></label>}
       </div>
-      <p className="t-micro mt-2">A Move or Fight leaf becomes one ordinary parent branch in this undoable edit. Its original action remains the continuation.</p>
+      <p className="t-micro mt-2">The selected Move, Follow, Patrol, Post or durable Fight becomes one ordinary branch. Its current action remains pinned as the final continuation.</p>
       <button type="button" className="btn btn-primary mt-3 min-h-11 w-full"
-        disabled={!selectedHost || !selectedSkill}
+        disabled={!selectedHost || kind === 'use' && !selectedSkill}
         onClick={() => {
-          const preserveCommitment = catalog.classes.find((entry) =>
-            entry.signatureId === selectedSkill)?.signatureAuthoring
-            .defaultCommitmentBehavior === 'preserve-by-default';
-          onChange(addSignatureOpportunity(draft, play.id, projection.id,
-            selectedHost, { skill: selectedSkill,
-              target: defaultSignatureTarget(catalog, selectedSkill) },
-            preserveCommitment));
+          let next: SheetDraft;
+          if (kind === 'use') {
+            const preserveCommitment = catalog.classes.find((entry) =>
+              entry.signatureId === selectedSkill)?.signatureAuthoring
+              .defaultCommitmentBehavior === 'preserve-by-default';
+            next = addSignatureOpportunity(draft, play.id, projection.id,
+              selectedHost, { skill: selectedSkill,
+                target: defaultSignatureTarget(catalog, selectedSkill) },
+              preserveCommitment);
+          } else if (kind === 'fight') next = addFightOpportunity(
+            draft, play.id, projection.id, selectedHost, {
+              withinWalkingSteps: 4,
+              targets: ['carrier', 'weakest', 'nearest'],
+              style: 'advance', chaseLimit: 3, capacity: null,
+            });
+          else if (kind === 'core-recovery') next = addCoreRecoveryOpportunity(
+            draft, play.id, projection.id, selectedHost, {
+              withinWalkingSteps: 5, preference: 'closest',
+              pursuersPerCore: 1, coordinateAcrossSheet: true,
+            });
+          else next = addHealthRecoveryOpportunity(
+            draft, play.id, projection.id, selectedHost, {
+              startBelow: 30, recoverUntil: 70, withinWalkingSteps: 8,
+              timeout: 60, cooldown: 20, patientsPerTile: 1,
+              coordinateAcrossSheet: true, allowCoreCarriers: false,
+            });
+          onChange(next);
           setAdding(false);
-        }}>Add along this plan</button>
+        }}>Add {kind === 'use' ? 'skill' : kind === 'fight' ? 'Fight' : kind === 'core-recovery' ? 'Core recovery' : 'health recovery'}</button>
     </div>}
     <div className="mt-3 space-y-2">{views.map((view) => {
-      const use = view.use.use!;
-      const when = view.use.when;
+      const use = view.action.use;
+      const when = view.action.when;
       const simpleWhen = typeof when === 'string' ? when : '';
       const commitmentCondition = view.commitment;
-      const descriptor = catalog.classes.find((entry) =>
-        entry.signatureId === use.skill)?.signatureAuthoring;
-      const practice = signatureOpportunityPracticeSummary(
-        practiceReplay, draft, projection, view.binding);
+      const descriptor = use ? catalog.classes.find((entry) =>
+        entry.signatureId === use.skill)?.signatureAuthoring : undefined;
+      const evidencePlay = practiceDraft?.workshop.plays.find((entry) => entry.id === play.id);
+      const evidenceProjection = evidencePlay?.projections.find((entry) => entry.id === projection.id);
+      const evidenceBinding = evidenceProjection?.signatureOpportunities?.find((entry) => entry.id === view.binding.id);
+      const practice = use && practiceDraft && evidenceProjection && evidenceBinding
+        ? signatureOpportunityPracticeSummary(
+          practiceReplay, practiceDraft, evidenceProjection, evidenceBinding)
+        : use && !practiceDraft ? null : null;
+      const opportunityKind = view.binding.kind ?? 'use';
       return <details key={view.binding.id} className="rounded-sm border border-arena-material/30 bg-arena-panel/35" open={views.length === 1}>
         <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
           <span className="pill">{view.ordinal + 1}</span>
-          <ClassIcon classId={catalog.classes.find((entry) => entry.signatureId === use.skill)?.id ?? role.classes[0]} size={34} decorative />
-          <span className="mr-auto min-w-0"><b className="type-display block truncate text-[15px]">{playOrderName(view.use.id ?? use.skill, projection.id)}</b>
-            <span className="t-micro block truncate">{humanize(use.skill)} → otherwise {orderName(view.continuation, projection.id)}</span></span>
+          <ClassIcon classId={use ? catalog.classes.find((entry) => entry.signatureId === use.skill)?.id ?? role.classes[0] : role.classes[0]} size={34} decorative />
+          <span className="mr-auto min-w-0"><b className="type-display block truncate text-[15px]">{opportunityTitle(view.action, opportunityKind)}</b>
+            <span className="t-micro block truncate">{opportunitySummary(view.action, view.binding, draft)} → otherwise {orderName(view.continuation, projection.id)}</span></span>
           <span className="disclosure-chevron">›</span>
         </summary>
         <div className="border-t border-arena-edge p-3">
           <label className="block"><span className="lab mb-1 block">Opportunity name</span>
-            <IdentifierInput value={view.use.id ?? view.binding.useOrderId}
+            <IdentifierInput value={view.action.id ?? view.binding.useOrderId}
               isTaken={(id) => id !== view.binding.useOrderId && Boolean(findOrderById(projection.orders, id))}
               onCommit={(id) => id !== view.binding.useOrderId && onChange(
                 renameSignatureOpportunity(draft, play.id, projection.id, view.binding.id, id))} /></label>
-          <SignatureUseEditor value={use} role={role} roles={draft.orders.roles}
+          {use ? <><SignatureUseEditor value={use} role={role} roles={draft.orders.roles}
             catalog={catalog} mapPlan={draft.mapPlan}
             onOpenMap={(focus) => { if (focus?.id) onSelectGeometry(focus.id); }}
             onCreateAnchor={() => {
@@ -1004,7 +1233,7 @@ function OpportunityProjection({
               {when && typeof when !== 'string' && <span className="t-micro mt-1 block">Combined condition · inspect advanced Instructions to see every term.</span>}
             </label>
             <label><span className="lab mb-1 block">Capacity · bodies on this resolved target</span>
-              <select className="field min-h-11" value={view.use.capacity ?? ''}
+              <select className="field min-h-11" value={view.action.capacity ?? ''}
                 onChange={(event) => onChange(setSignatureOpportunityCapacity(
                   draft, play.id, projection.id, view.binding.id,
                   event.target.value ? Number(event.target.value) : undefined))}>
@@ -1020,6 +1249,8 @@ function OpportunityProjection({
               onChange(result.draft);
               onSelectGeometry(result.zoneId);
             }}>▣ Mark an activation window on the map</button>}
+          </> : <GenericOpportunityEditor draft={draft} play={play}
+            projection={projection} view={view} onChange={onChange} />}
           <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-2">
             <p className="lab">Otherwise</p>
             <p className="t-meta mt-1">{orderName(view.continuation, projection.id)}</p>
@@ -1034,7 +1265,7 @@ function OpportunityProjection({
               onClick={() => onOpenOrders(play.id, projection.id)}>Inspect Instructions</button>
             <button type="button" className="btn min-h-11 text-arena-hot"
               onClick={() => {
-                if (window.confirm(`Remove “${humanize(view.use.id ?? use.skill)}”? The continuation stays.`))
+                if (window.confirm(`Remove “${opportunityTitle(view.action, opportunityKind)}”? The continuation stays.`))
                   onChange(removeSignatureOpportunity(draft, play.id, projection.id, view.binding.id));
               }}>Remove…</button>
           </div>
@@ -1042,6 +1273,191 @@ function OpportunityProjection({
       </details>;
     })}</div>
   </article>;
+}
+
+function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  projection: PlayProjection;
+  view: ReturnType<typeof opportunityViews>[number];
+  onChange: (next: SheetDraft) => void;
+}) {
+  const kind = view.binding.kind;
+  if (kind === 'fight' && view.action.fight) {
+    const contactId = view.binding.ownedConditionIds?.find((id) =>
+      draft.orders.conditions[id]?.fact === 'self-nearest-visible-enemy-distance');
+    const contact = contactId ? draft.orders.conditions[contactId] : undefined;
+    const fight = view.action.fight;
+    const setup = {
+      withinWalkingSteps: contact?.value ?? 4,
+      targets: fight.targets,
+      style: fight.style,
+      chaseLimit: fight.chaseLimit,
+      zone: fight.zone,
+      capacity: view.binding.capacityPolicy?.limit ?? null,
+    };
+    const update = (patch: Partial<typeof setup>) => onChange(updateFightOpportunity(
+      draft, play.id, projection.id, view.binding.id, { ...setup, ...patch }));
+    return <div className="space-y-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label><span className="lab mb-1 block">Join when reachable within</span>
+          <input type="number" className="field min-h-11" min={0} max={31}
+            value={setup.withinWalkingSteps}
+            onChange={(event) => update({ withinWalkingSteps: Number(event.target.value) })} /></label>
+        <label><span className="lab mb-1 block">Chase limit</span>
+          <input type="number" className="field min-h-11" min={0} max={12}
+            value={setup.chaseLimit}
+            onChange={(event) => update({ chaseLimit: Number(event.target.value) })} /></label>
+      </div>
+      <div><span className="lab mb-1 block">Movement in the fight</span>
+        <div className="grid grid-cols-3 gap-1.5">{(['advance', 'hold', 'kite'] as const).map((style) =>
+          <button key={style} type="button" className="choice-card min-h-12"
+            data-selected={setup.style === style} aria-pressed={setup.style === style}
+            onClick={() => update({ style })}>{humanize(style)}</button>)}</div>
+      </div>
+      <label><span className="lab mb-1 block">Only fight inside</span>
+        <select className="field min-h-11" value={setup.zone ?? ''}
+          onChange={(event) => update({ zone: event.target.value || undefined })}>
+          <option value="">Anywhere</option>
+          {Object.keys(draft.mapPlan.zones).map((zone) =>
+            <option key={zone} value={zone}>{humanize(zone)}</option>)}
+        </select></label>
+      <label><span className="lab mb-1 block">Maximum attackers on one enemy</span>
+        <select className="field min-h-11" value={setup.capacity ?? ''}
+          onChange={(event) => update({ capacity: event.target.value ? Number(event.target.value) : null })}>
+          <option value="">Everyone who qualifies</option>
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value}>{value}</option>)}
+        </select></label>
+    </div>;
+  }
+  if (kind === 'core-recovery' && view.action.move) {
+    const distanceId = view.binding.ownedConditionIds?.find((id) =>
+      draft.orders.conditions[id]?.fact === 'self-nearest-visible-loose-core-distance');
+    const distance = distanceId ? draft.orders.conditions[distanceId] : undefined;
+    const preference = view.action.move.to === 'highest-bank-value-visible-loose-core'
+      ? 'highest-value' as const : 'closest' as const;
+    const setup = {
+      withinWalkingSteps: view.action.move.withinWalkingSteps ?? null,
+      preference,
+      coreBankValue: distance?.coreBankValue,
+      pursuersPerCore: view.binding.capacityPolicy?.limit ?? null,
+      coordinateAcrossSheet: view.binding.capacityPolicy?.scope !== 'local',
+      linkedBankProgramId: view.binding.linkedBankProgramId,
+    };
+    const update = (patch: Partial<typeof setup>) => onChange(updateCoreRecoveryOpportunity(
+      draft, play.id, projection.id, view.binding.id, { ...setup, ...patch }));
+    return <div className="space-y-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label><span className="lab mb-1 block">Detour up to walking steps</span>
+          <select className="field min-h-11" value={setup.withinWalkingSteps ?? ''}
+            onChange={(event) => update({ withinWalkingSteps: event.target.value ? Number(event.target.value) : null })}>
+            <option value="">Any reachable Core</option>
+            {[2, 3, 4, 5, 6, 8, 10, 12].map((value) => <option key={value}>{value}</option>)}
+          </select></label>
+        <label><span className="lab mb-1 block">Choose</span>
+          <select className="field min-h-11" value={setup.preference}
+            onChange={(event) => update({ preference: event.target.value as typeof preference })}>
+            <option value="closest">Closest visible Core</option>
+            <option value="highest-value">Highest bank value</option>
+          </select></label>
+      </div>
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label><span className="lab mb-1 block">Bodies per Core</span>
+          <select className="field min-h-11" value={setup.pursuersPerCore ?? ''}
+            onChange={(event) => update({ pursuersPerCore: event.target.value ? Number(event.target.value) : null })}>
+            <option value="">No cap</option>
+            {[1, 2, 3, 4].map((value) => <option key={value}>{value}</option>)}
+          </select></label>
+        <label className="flex min-h-11 items-center gap-3 rounded-sm border border-arena-edge px-3">
+          <input type="checkbox" className="h-5 w-5 accent-[var(--color-arena-material)]"
+            checked={setup.coordinateAcrossSheet}
+            onChange={(event) => update({ coordinateAcrossSheet: event.target.checked })} />
+          <span className="t-meta">Share that cap across the sheet</span>
+        </label>
+      </div>
+      <label><span className="lab mb-1 block">Continue into a banking Program</span>
+        <select className="field min-h-11" value={setup.linkedBankProgramId ?? ''}
+          onChange={(event) => update({ linkedBankProgramId: event.target.value || undefined })}>
+          <option value="">No linked banking Program</option>
+          {draft.workshop.plays.filter((candidate) => candidate.id !== play.id).map((candidate) =>
+            <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
+        </select>
+        <span className="t-micro mt-1 block">Linkage is an authoring explanation only; ordinary Instruction order remains authoritative.</span>
+      </label>
+    </div>;
+  }
+  if (kind === 'health-recovery' && view.action.move) {
+    const owned = (fact: string, operator?: string) => view.binding.ownedConditionIds
+      ?.map((id) => draft.orders.conditions[id])
+      .find((condition) => condition?.fact === fact
+        && (!operator || condition.operator === operator));
+    const low = owned('self-health-percent', 'at-most')?.value ?? 30;
+    const recovered = owned('self-health-percent', 'at-least')?.value ?? 70;
+    const allowCoreCarriers = !owned('self-carrying', 'equals');
+    const setup = {
+      startBelow: low,
+      recoverUntil: recovered,
+      withinWalkingSteps: view.action.move.withinWalkingSteps ?? null,
+      timeout: view.action.timeout,
+      cooldown: view.action.cooldown,
+      patientsPerTile: view.binding.capacityPolicy?.limit ?? null,
+      coordinateAcrossSheet: view.binding.capacityPolicy?.scope !== 'local',
+      allowCoreCarriers,
+    };
+    const update = (patch: Partial<typeof setup>) => onChange(updateHealthRecoveryOpportunity(
+      draft, play.id, projection.id, view.binding.id, { ...setup, ...patch }));
+    return <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2">
+        <label><span className="lab mb-1 block">Leave below health %</span>
+          <input type="number" className="field min-h-11" min={0} max={99} value={setup.startBelow}
+            onChange={(event) => update({ startBelow: Number(event.target.value) })} /></label>
+        <label><span className="lab mb-1 block">Return at health %</span>
+          <input type="number" className="field min-h-11" min={1} max={100} value={setup.recoverUntil}
+            onChange={(event) => update({ recoverUntil: Number(event.target.value) })} /></label>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <label><span className="lab mb-1 block">Give up after ticks</span>
+          <input type="number" className="field min-h-11" min={1} max={1200} value={setup.timeout ?? 60}
+            onChange={(event) => update({ timeout: Number(event.target.value) })} /></label>
+        <label><span className="lab mb-1 block">Retry delay</span>
+          <input type="number" className="field min-h-11" min={1} max={1200} value={setup.cooldown ?? 20}
+            onChange={(event) => update({ cooldown: Number(event.target.value) })} /></label>
+      </div>
+      <label><span className="lab mb-1 block">Bodies per healing tile</span>
+        <select className="field min-h-11" value={setup.patientsPerTile ?? ''}
+          onChange={(event) => update({ patientsPerTile: event.target.value ? Number(event.target.value) : null })}>
+          <option value="">No cap</option>
+          {[1, 2, 3, 4].map((value) => <option key={value}>{value}</option>)}
+        </select></label>
+      <p className="t-micro">{allowCoreCarriers ? 'Core carriers may use this recovery.' : 'A body carrying a Core falls through instead of abandoning its delivery.'}</p>
+    </div>;
+  }
+  return <p className="t-micro">This advanced Opportunity remains an ordinary Instruction. Open its source for fields not yet represented by the guided card.</p>;
+}
+
+function opportunityTitle(action: OrderNode, kind: string) {
+  if (kind === 'use') return action.use ? `Use ${humanize(action.use.skill)}` : 'Use skill';
+  if (kind === 'fight') return 'Fight visible enemies';
+  if (kind === 'core-recovery') return 'Recover a loose Core';
+  if (kind === 'health-recovery') return 'Recover health';
+  if (kind === 'handoff') return 'Hand off the Core';
+  if (kind === 'drop') return 'Drop the Core';
+  return humanize(kind);
+}
+
+function opportunitySummary(action: OrderNode, binding: NonNullable<PlayProjection['signatureOpportunities']>[number], draft: SheetDraft) {
+  if (action.use) return `Use ${humanize(action.use.skill)} when its Conditions allow`;
+  if (action.fight) return `${humanize(action.fight.style)} within ${action.fight.chaseLimit} chase tiles`;
+  if (binding.kind === 'core-recovery') {
+    const distance = action.move?.withinWalkingSteps;
+    return distance === undefined ? 'any reachable visible Core' : `visible Core within ${distance} walking steps`;
+  }
+  if (binding.kind === 'health-recovery') {
+    const low = binding.ownedConditionIds?.map((id) => draft.orders.conditions[id])
+      .find((condition) => condition?.fact === 'self-health-percent' && condition.operator === 'at-most');
+    return `leave below ${low?.value ?? '?'}% health`;
+  }
+  return 'ordinary conditional action';
 }
 
 function OpportunityPracticeSummary({ summary }: {

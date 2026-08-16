@@ -5,6 +5,16 @@ namespace BotArena.App.Tests;
 
 public sealed class TacticalSheetWorkshopValidatorTests
 {
+    [Fact]
+    public void Normalize_captures_one_stable_json_value_for_practice()
+    {
+        const string source = "{ \"schema\": \"arc-relay-workshop-v1\", \"plays\": [ ] }";
+
+        Assert.Equal(
+            "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[]}",
+            TacticalSheetWorkshopValidator.Normalize(source));
+    }
+
     [Theory]
     [InlineData(null)]
     [InlineData("{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[]}")]

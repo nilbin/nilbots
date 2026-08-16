@@ -57,6 +57,7 @@ const keys = {
   tacticalSheetCatalog: ['sheets', 'catalog'] as const,
   tacticalSheets: ['sheets'] as const,
   tacticalSheet: (id: string) => ['sheets', id] as const,
+  practiceAuthoring: (matchId: string) => ['sheets', 'practice', matchId, 'authoring'] as const,
   arcRelayEntrants: ['arc-relay', 'entrants'] as const,
   arcRelayLadder: ['arc-relay', 'ladder'] as const,
   arcRelaySeason: ['arc-relay', 'season', 'current'] as const,
@@ -573,6 +574,15 @@ export function useTrialTacticalSheet() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['matches'] });
     },
+  });
+}
+
+export function usePracticeAuthoringSnapshot(matchId: string | undefined) {
+  return useQuery({
+    queryKey: keys.practiceAuthoring(matchId ?? ''),
+    queryFn: () => endpoints.practiceAuthoringSnapshot(matchId!),
+    enabled: Boolean(matchId),
+    staleTime: Infinity,
   });
 }
 

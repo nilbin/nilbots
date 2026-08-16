@@ -1603,6 +1603,36 @@
         }
       }
     },
+    "/api/sheets/trials/{matchId}/authoring": {
+      "get": {
+        "tags": [
+          "BotArena.App"
+        ],
+        "parameters": [
+          {
+            "name": "matchId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PracticeAuthoringSnapshotResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/notifications": {
       "get": {
         "tags": [
@@ -4611,6 +4641,60 @@
           }
         }
       },
+      "PracticeAuthoringSnapshotResponse": {
+        "required": [
+          "matchId",
+          "sheetId",
+          "sheetName",
+          "revision",
+          "contentHash",
+          "ordersJson",
+          "mapPlanJson",
+          "workshopJson",
+          "createdAt",
+          "programAttributionAvailable"
+        ],
+        "type": "object",
+        "properties": {
+          "matchId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sheetId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sheetName": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "contentHash": {
+            "type": "string"
+          },
+          "ordersJson": {
+            "type": "string"
+          },
+          "mapPlanJson": {
+            "type": "string"
+          },
+          "workshopJson": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "programAttributionAvailable": {
+            "type": "boolean"
+          }
+        }
+      },
       "RankedArenaAllowanceResponse": {
         "required": [
           "used",
@@ -5337,6 +5421,7 @@
           "allowsExactAnchor",
           "allowsRouteAheadRole",
           "allowsRouteForward",
+          "durableDeployment",
           "defaultCommitmentBehavior",
           "preset"
         ],
@@ -5394,6 +5479,9 @@
             "type": "boolean"
           },
           "allowsRouteForward": {
+            "type": "boolean"
+          },
+          "durableDeployment": {
             "type": "boolean"
           },
           "defaultCommitmentBehavior": {

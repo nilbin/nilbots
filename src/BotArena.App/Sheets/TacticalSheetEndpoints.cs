@@ -416,9 +416,12 @@ public static class TacticalSheetEndpoints
                     && value.OwnerUserId == userId
                     && value.Kind == ArcRelayEntrantKind.Sheet,
                     cancellationToken);
-            if (entrant is null
-                || !await db.TacticalSheets.AnyAsync(
-                    value => value.Id == sheetId, cancellationToken))
+            TacticalSheet? sheet = entrant is null ? null
+                : await db.TacticalSheets.SingleOrDefaultAsync(
+                    value => value.Id == sheetId
+                        && value.OwnerUserId == userId,
+                    cancellationToken);
+            if (entrant is null || sheet is null)
             {
                 return Results.NotFound();
             }
@@ -436,11 +439,53 @@ public static class TacticalSheetEndpoints
             {
                 return Invalid(exception.Message);
             }
+            match.PracticeAuthoringSnapshotVersion = 1;
+            match.PracticeWorkshopJsonSnapshot =
+                TacticalSheetWorkshopValidator.Normalize(sheet.WorkshopJson);
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
         }).Produces<CreatedMatchResponse>()
             .RequireRateLimiting(RateLimitPolicies.Challenge);
+
+        group.MapGet("/trials/{matchId:guid}/authoring", async (
+            Guid matchId,
+            ClaimsPrincipal principal,
+            AppDbContext db,
+            CancellationToken cancellationToken) =>
+        {
+            if (principal.UserId() is not Guid userId)
+                return Results.Unauthorized();
+            Match? match = await db.Matches.AsNoTracking()
+                .Include(value => value.Participants)
+                .SingleOrDefaultAsync(value => value.Id == matchId
+                    && value.InitiatedByUserId == userId
+                    && value.ArcRelayLane == ArcRelayMatchLane.Practice,
+                    cancellationToken);
+            MatchParticipant? participant = match?.Participants
+                .OrderBy(value => value.Slot)
+                .FirstOrDefault(value => value.SheetIdSnapshot is not null);
+            if (match is null || participant?.SheetIdSnapshot is not Guid sheetId
+                || participant.SheetRevisionSnapshot is not int revision
+                || participant.SheetNameSnapshot is not string sheetName
+                || participant.SheetHashSnapshot is not string contentHash
+                || participant.SheetCanonicalJsonSnapshot is null
+                || participant.SheetLayoutJsonSnapshot is null)
+                return Results.NotFound();
+            bool available = match.PracticeAuthoringSnapshotVersion == 1
+                && match.PracticeWorkshopJsonSnapshot is not null;
+            return Results.Ok(new PracticeAuthoringSnapshotResponse(
+                match.Id,
+                sheetId,
+                sheetName,
+                revision,
+                contentHash,
+                participant.SheetCanonicalJsonSnapshot!,
+                participant.SheetLayoutJsonSnapshot!,
+                available ? match.PracticeWorkshopJsonSnapshot : null,
+                match.CreatedAt,
+                available));
+        }).Produces<PracticeAuthoringSnapshotResponse>();
     }
 
     private static async Task<TacticalSheetResponse> Response(

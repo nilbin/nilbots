@@ -14,8 +14,9 @@ public sealed class TacticalSheet
     public required string PlaybookJson { get; set; }
     public required string LayoutJson { get; set; }
     /// <summary>
-    /// Optional editor-only linked-Play metadata. It is never compiled,
-    /// snapshotted into a match, or included in <see cref="ContentHash"/>.
+    /// Optional editor-only Program linkage. It is never compiled or included
+    /// in <see cref="ContentHash"/>. Practice alone takes an owner-only copy
+    /// for revision-correct post-run explanation.
     /// </summary>
     public string? WorkshopJson { get; set; }
     public required string ContentHash { get; set; }

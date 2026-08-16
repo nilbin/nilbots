@@ -2086,6 +2086,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/sheets/trials/{matchId}/authoring": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    matchId: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PracticeAuthoringSnapshotResponse"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications": {
         parameters: {
             query?: never;
@@ -3051,6 +3088,22 @@ export interface components {
             kind: string;
             pushEnabled: boolean;
         };
+        PracticeAuthoringSnapshotResponse: {
+            /** Format: uuid */
+            matchId: string;
+            /** Format: uuid */
+            sheetId: string;
+            sheetName: string;
+            /** Format: int32 */
+            revision: number;
+            contentHash: string;
+            ordersJson: string;
+            mapPlanJson: string;
+            workshopJson: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            programAttributionAvailable: boolean;
+        };
         RankedArenaAllowanceResponse: {
             /** Format: int32 */
             used: number;
@@ -3260,6 +3313,7 @@ export interface components {
             allowsExactAnchor: boolean;
             allowsRouteAheadRole: boolean;
             allowsRouteForward: boolean;
+            durableDeployment: boolean;
             defaultCommitmentBehavior: string;
             preset: components["schemas"]["TacticalSheetSignatureOpportunityPresetResponse"];
         };

@@ -39,12 +39,37 @@ export interface PlayGeometryGroup {
 
 export interface PlaySlot {
   id: string;
+  /** Human label for the map-first Post. Older sidecars derive this from id. */
+  name?: string;
   roleId: string;
   anchorId: string;
   readinessZoneId: string;
+  readinessConditionId?: string;
   required: boolean;
   tolerance: number;
   capacity?: number | string;
+  /** Ordinary move.face anchor. A cardinal Post owns a derived aligned point. */
+  facingAnchorId?: string;
+  facing?: 'north' | 'east' | 'south' | 'west' | 'toward-point';
+  /** Stable id of the ordinary branch that holds this Post. */
+  hostOrderId?: string;
+  moveOrderId?: string;
+  /** Optional durable-deployment policy projected into ordinary use leaves. */
+  deployment?: PlayPostDeployment;
+}
+
+export interface PlayPostDeployment {
+  skill: string;
+  targetAnchorId: string;
+  targetZoneId: string;
+  rebuildWhenMissing: boolean;
+  refreshDurabilityAtMost?: number;
+  refreshLifetimeAtMost?: number;
+  requiredForReadiness: boolean;
+  presenceConditionId?: string;
+  sourceConditionId: string;
+  ownedConditionIds: string[];
+  useOrderIds: string[];
 }
 
 /**
@@ -67,6 +92,8 @@ export interface PlayReadinessGroup {
   id: string;
   name: string;
   projectionIds: string[];
+  /** Static authoring constraint over the participating Post envelopes. */
+  maximumSpread?: number;
 }
 
 export interface PlayProjectionPlacement {
@@ -83,12 +110,36 @@ export interface PlayGeneratedOrderFingerprint {
   fingerprint: string;
 }
 
-export interface PlaySignatureOpportunityBinding {
+export type PlayOpportunityKind =
+  | 'use'
+  | 'fight'
+  | 'core-recovery'
+  | 'health-recovery'
+  | 'handoff'
+  | 'drop';
+
+export interface PlayOpportunityBinding {
   id: string;
+  /** Missing on an older sidecar and normalized to use. */
+  kind?: PlayOpportunityKind;
   /** An ordinary branch in this projection. */
   hostOrderId: string;
-  /** A direct child of hostOrderId whose sole action is use. */
+  /**
+   * A direct action child of hostOrderId. The legacy property name is kept so
+   * old workshop documents normalize without rewriting generated Orders.
+   */
   useOrderId: string;
+  /** Program linkage only; runtime selection remains ordinary global order. */
+  linkedBankProgramId?: string;
+  /** Visible coordination policy used to normalize inline/shared capacity. */
+  capacityPolicy?: {
+    target: 'core' | 'healing' | 'enemy' | 'carrier' | 'signature-target';
+    limit: number | null;
+    scope: 'sheet' | 'local';
+    groupId?: string;
+  };
+  /** Conditions derived by this card, so deletion is atomic and inspectable. */
+  ownedConditionIds?: string[];
 }
 
 export interface PlayProjection {
@@ -103,7 +154,7 @@ export interface PlayProjection {
   placement?: PlayProjectionPlacement;
   lastGenerated: PlayGeneratedOrderFingerprint[];
   /** Editor linkage only; all executable fields remain in orders. */
-  signatureOpportunities?: PlaySignatureOpportunityBinding[];
+  signatureOpportunities?: PlayOpportunityBinding[];
 }
 
 export type PlayLinkedValue =
@@ -139,6 +190,15 @@ export interface LinkedPlay {
   slots: PlaySlot[];
   formations?: PlayFormationBinding[];
   readinessGroups?: PlayReadinessGroup[];
+  /** Human lifecycle controls projected into response Instructions. */
+  lifecycle?: {
+    minimumCommitmentTicks: number;
+    maximumTicks: number;
+    cooldownTicks: number;
+    waiting: 'hold-posts' | 'prepare-conditionally' | 'fall-through';
+    preparationConditionId?: string;
+    successConditionIds?: string[];
+  };
   /** The Program-owned trigger copied into every configured participant. */
   responseTriggerConditionId?: string;
   ownedConditionIds: string[];
@@ -165,10 +225,22 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
   for (const play of next.plays) {
     play.formations ??= [];
     play.readinessGroups ??= [];
+    for (const slot of play.slots) {
+      slot.name ??= humanize(slot.id.replace(/-slot$/, ''));
+      slot.capacity ??= 1;
+      if (slot.deployment) slot.deployment.ownedConditionIds ??= [
+        ...(slot.deployment.presenceConditionId ? [slot.deployment.presenceConditionId] : []),
+        slot.deployment.sourceConditionId,
+      ];
+    }
     const used = new Set<string>();
     for (const projection of play.projections) {
       const existing = projection.signatureOpportunities ?? [];
-      projection.signatureOpportunities = existing.map((binding) => ({ ...binding }));
+      projection.signatureOpportunities = existing.map((binding) => ({
+        ...binding,
+        kind: binding.kind ?? 'use',
+        ownedConditionIds: [...(binding.ownedConditionIds ?? [])],
+      }));
       existing.forEach((binding) => used.add(binding.id));
     }
     for (const projection of play.projections) {
@@ -187,14 +259,20 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
           bound.add(`${host.id}\0${child.id}`);
           projection.signatureOpportunities!.push({
             id,
+            kind: 'use',
             hostOrderId: host.id,
             useOrderId: child.id,
+            ownedConditionIds: [],
           });
         }
       });
     }
   }
   return next;
+}
+
+function humanize(value: string) {
+  return value.replace(/-/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 function walkBranches(orders: OrderNode[], visit: (node: OrderNode) => void) {

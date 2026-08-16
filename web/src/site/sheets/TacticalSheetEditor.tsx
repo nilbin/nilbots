@@ -13,6 +13,7 @@ import {
   useDeleteTacticalSheet,
   useMatchLive,
   useMatchReplay,
+  usePracticeAuthoringSnapshot,
   useSaveTacticalSheet,
   useTacticalSheet,
   useTacticalSheets,
@@ -206,6 +207,17 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const selectedRun = runsForSheet.find((run) => run.matchId === selectedRunId) ?? runsForSheet[0];
   const { data: selectedRunLive } = useMatchLive(selectedRun?.matchId);
   const { data: selectedRunReplay } = useMatchReplay(selectedRun?.matchId, selectedRunLive);
+  const selectedAuthoring = usePracticeAuthoringSnapshot(selectedRun?.matchId);
+  const practiceDraft = useMemo(() => {
+    const value = selectedAuthoring.data;
+    if (!value?.programAttributionAvailable || !value.workshopJson) return undefined;
+    try {
+      return parseDraft(value.sheetName, value.sheetId, value.revision,
+        value.ordersJson, value.mapPlanJson, false, value.workshopJson);
+    } catch {
+      return undefined;
+    }
+  }, [selectedAuthoring.data]);
   const selectedTracks = useMemo(() => replayUnitTracks(selectedRunReplay?.replay), [selectedRunReplay?.replay]);
 
   useEffect(() => {
@@ -461,6 +473,37 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         {trial.isError && <span className="text-arena-hot">{trial.error.message}</span>}
       </div>
 
+      {selectedRun && <section className={clsx('rounded-sm border px-3 py-2',
+        selectedRun.revision === draft.revision
+          ? 'border-arena-cyan/35 bg-arena-cyan/5'
+          : 'border-arena-material/45 bg-arena-material/8')}>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="lab">Practice evidence</span>
+          <span className="pill">run revision {selectedRun.revision}</span>
+          <span className="pill">draft revision {draft.revision ?? 'local'}</span>
+          {selectedAuthoring.data?.programAttributionAvailable
+            ? <span className="t-micro text-arena-cyan">Program attribution uses the immutable run revision.</span>
+            : selectedAuthoring.isLoading
+              ? <span className="t-micro">Loading revision-safe attribution…</span>
+              : <span className="t-micro text-arena-hot">This legacy run has raw Instructions only; Program attribution is unavailable.</span>}
+          {practiceDraft && <button type="button" className="btn ml-auto min-h-10"
+            onClick={() => {
+              const source = selectedAuthoring.data!;
+              const restored = parseDraft(
+                `${source.sheetName} · Practice r${source.revision}`,
+                null,
+                null,
+                source.ordersJson,
+                source.mapPlanJson,
+                false,
+                source.workshopJson);
+              replaceDraft(restored);
+              void saveLocalDraft(restored);
+              navigate('/entrants/sheets/new');
+            }}>Open revision used</button>}
+        </div>
+      </section>}
+
       {section === 'squad' && <SquadEditor catalog={catalog} orders={draft.orders} issues={issues}
         onChange={(orders) => mutate((next) => { next.orders = orders; })} />}
       {section === 'orders' && <OrdersWorkspace catalog={catalog} orders={draft.orders} mapPlan={draft.mapPlan} issues={issues}
@@ -492,6 +535,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
         onRename={(kind, previous, nextId) => mutate((next) => renameGeometryAware(next, kind, previous, nextId))} />}
       {section === 'plays' && <PlaysWorkspace catalog={catalog} draft={draft} issues={issues}
         tracks={selectedPlayTracks} practiceReplay={selectedRunReplay?.replay}
+        practiceDraft={practiceDraft}
         selectedPlayId={selectedPlayId} onSelectPlay={setSelectedPlayId}
         onChange={(changed) => mutate((next) => { Object.assign(next, changed); })}
         onOpenSquad={() => setSection('squad')}

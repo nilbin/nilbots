@@ -2720,6 +2720,58 @@ namespace BotArena.Cli.Generated
     }
 
     [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
+    public partial class PracticeAuthoringSnapshotResponse
+    {
+
+        [System.Text.Json.Serialization.JsonPropertyName("matchId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid MatchId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sheetId")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.Guid SheetId { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("sheetName")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string SheetName { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("revision")]
+        public int Revision { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("contentHash")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string ContentHash { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string OrdersJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string MapPlanJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
+        public string? WorkshopJson { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public System.DateTimeOffset CreatedAt { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("programAttributionAvailable")]
+        public bool ProgramAttributionAvailable { get; set; } = default!;
+
+        private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
+
+        [System.Text.Json.Serialization.JsonExtensionData]
+        public System.Collections.Generic.IDictionary<string, object> AdditionalProperties
+        {
+            get { return _additionalProperties ?? (_additionalProperties = new System.Collections.Generic.Dictionary<string, object>()); }
+            set { _additionalProperties = value; }
+        }
+
+    }
+
+    [System.CodeDom.Compiler.GeneratedCode("NJsonSchema", "14.7.1.0 (NJsonSchema v11.6.1.0 (Newtonsoft.Json v13.0.0.0))")]
     public partial class RankedArenaAllowanceResponse
     {
 
@@ -3548,6 +3600,9 @@ namespace BotArena.Cli.Generated
 
         [System.Text.Json.Serialization.JsonPropertyName("allowsRouteForward")]
         public bool AllowsRouteForward { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("durableDeployment")]
+        public bool DurableDeployment { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("defaultCommitmentBehavior")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

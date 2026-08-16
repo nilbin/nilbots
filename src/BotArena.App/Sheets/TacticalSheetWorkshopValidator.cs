@@ -48,4 +48,13 @@ public static class TacticalSheetWorkshopValidator
             }
         }
     }
+
+    public static string? Normalize(string? workshopJson)
+    {
+        Validate(workshopJson);
+        if (workshopJson is null)
+            return null;
+        using JsonDocument document = JsonDocument.Parse(workshopJson);
+        return JsonSerializer.Serialize(document.RootElement);
+    }
 }

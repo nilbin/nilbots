@@ -439,6 +439,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(m => m.PresentationTicksPerSecond)
                 .HasPrecision(6, 3);
             entity.Property(m => m.ArcRelayLane).HasMaxLength(20);
+            entity.Property(m => m.PracticeWorkshopJsonSnapshot)
+                .HasColumnType("jsonb");
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasMany(m => m.TeamResults)
                 .WithOne()

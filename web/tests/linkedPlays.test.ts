@@ -21,16 +21,23 @@ import {
 } from '../src/site/sheets/linkedPlays';
 import {
   addPlayGeometry,
+  addPlayPost,
+  addCoreRecoveryOpportunity,
+  addFightOpportunity,
+  addHealthRecoveryOpportunity,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
   addSignatureOpportunityAnchor,
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
+  configurePlayLifecycle,
+  configurePlayPostDeployment,
   configurePlaySharedTrigger,
   moveProgram,
   movePlayAnchor,
   moveSignatureOpportunity,
+  setPlayPostFacing,
   renamePlayGeometry,
   removeAmbushReserveSlot,
   removePlayReadinessGroup,
@@ -393,6 +400,98 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
   assert.deepEqual(current.orders[0].orders?.[0].move?.to, originalTarget);
 });
 
+test('a canonical Post projects stand, facing, readiness and deployment maintenance into Instructions', () => {
+  let linked = addBlankPlay(draft(), 'Home defence');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'mason');
+  const projectionId = linked.workshop.plays[0].projections[0].id;
+  const threat = addPlayGeometry(linked, playId, 'zone');
+  linked = setPlayZoneRect(threat.draft, playId, threat.id, [13, 10, 17, 16]);
+  linked = configurePlaySharedTrigger(linked, playId, {
+    fact: 'visible-enemies-in-zone', operator: 'at-least', value: 2, zone: threat.id,
+  });
+  linked = configurePlayContingent(linked, playId, projectionId, {
+    triggerConditionId: linked.workshop.plays[0].responseTriggerConditionId!,
+    destination: { zone: threat.id }, requiredBodies: 0, timeout: 80,
+  });
+  linked = addPlayPost(linked, playId, projectionId, {
+    name: 'Mason post', point: [22, 9], required: true, facing: 'east',
+  });
+  const slot = linked.workshop.plays[0].slots[0];
+  linked = configurePlayPostDeployment(linked, playId, projectionId, slot.id, {
+    skill: 'hardlight-block', target: [24, 9],
+    requiredForReadiness: true, rebuildWhenMissing: true,
+    refreshDurabilityAtMost: 25,
+  });
+  linked = configurePlayLifecycle(linked, playId, {
+    minimumCommitmentTicks: 20, successConditionIds: [], maximumTicks: 80,
+    cooldownTicks: 15, waiting: 'hold-posts',
+  });
+
+  const play = linked.workshop.plays[0];
+  const post = play.slots[0];
+  const projection = play.projections[0];
+  const postHost = allOrders(projection.orders).find((order) => order.id === post.hostOrderId)!;
+  assert.deepEqual(postHost.orders?.at(-1)?.move, {
+    to: { anchor: post.anchorId }, posture: 'line', face: { anchor: post.facingAnchorId! },
+  });
+  assert.equal(postHost.orders?.at(-1)?.capacity, 1);
+  assert.equal(postHost.orders?.filter((order) => order.use?.skill === 'hardlight-block').length, 2);
+  assert.equal(post.deployment?.requiredForReadiness, true);
+  const response = allOrders(projection.orders).find((order) =>
+    order.id === `${projectionId}-respond`)!;
+  const responseConditions = conditionExpressionNames(response.when);
+  assert.ok(responseConditions.includes(post.readinessConditionId!));
+  assert.ok(responseConditions.includes(post.deployment!.presenceConditionId!));
+  assert.equal(response.timeout, 80);
+  assert.equal(response.cooldown, 15);
+  assert.equal(typeof response.until, 'string');
+  assert.equal(linked.orders.conditions[response.until as string].fact, 'self-order-ticks');
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+  assert.deepEqual(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error'), []);
+
+  const north = setPlayPostFacing(linked, playId, post.id, 'north');
+  assert.deepEqual(north.mapPlan.anchors[post.facingAnchorId!], [22, 8]);
+});
+
+test('Fight, Core and health cards share one ordered Opportunity host and ordinary fallthrough', () => {
+  let linked = addBlankPlay(draft(), 'North watch');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'support');
+  const projectionId = linked.workshop.plays[0].projections[0].id;
+  const hostId = linked.workshop.plays[0].projections[0].orders[0].id!;
+  linked = addHealthRecoveryOpportunity(linked, playId, projectionId, hostId, {
+    startBelow: 30, recoverUntil: 70, withinWalkingSteps: 8,
+    timeout: 40, cooldown: 20, patientsPerTile: 1,
+    coordinateAcrossSheet: true, allowCoreCarriers: false,
+  });
+  linked = addFightOpportunity(linked, playId, projectionId, hostId, {
+    withinWalkingSteps: 4, targets: ['carrier', 'weakest', 'nearest'],
+    style: 'advance', chaseLimit: 3, capacity: null,
+  });
+  linked = addCoreRecoveryOpportunity(linked, playId, projectionId, hostId, {
+    withinWalkingSteps: 5, preference: 'highest-value',
+    coreBankValue: { operator: 'at-least', value: 2 },
+    pursuersPerCore: 1, coordinateAcrossSheet: true,
+  });
+
+  const projection = linked.workshop.plays[0].projections[0];
+  const bindings = projection.signatureOpportunities!;
+  assert.deepEqual(bindings.map((binding) => binding.kind),
+    ['health-recovery', 'fight', 'core-recovery']);
+  const host = allOrders(projection.orders).find((order) => order.id === hostId)!;
+  assert.deepEqual(host.orders?.slice(0, 3).map((order) =>
+    order.fight ? 'fight' : order.move?.to === 'nearest-heal-zone'
+      ? 'health' : 'core'), ['health', 'fight', 'core']);
+  assert.deepEqual(host.orders?.at(-1)?.move?.to, { well: 'centre' });
+  const core = host.orders?.find((order) =>
+    order.move?.to === 'highest-bank-value-visible-loose-core')!;
+  assert.equal(core.capacity, 1);
+  assert.deepEqual(core.move?.coreBankValue, { operator: 'at-least', value: 2 });
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+  assert.deepEqual(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error'), []);
+});
+
 test('opportunity ordering is the authored sibling order and malformed bindings stay diagnostics', () => {
   let linked = addBlankPlay(draft(), 'Signature order');
   linked = addBlankPlayProjection(linked, linked.workshop.plays[0].id, 'support');
@@ -633,7 +732,8 @@ test('mixed-role readiness compiles one visible 5/5 ALL gate without manual wiri
   const readinessIds = play.formations!.map((entry) => entry.conditionId);
   assert.equal(readinessIds.reduce((sum, id) =>
     sum + linked.orders.conditions[id].value, 0), 5);
-  assert.equal(Object.keys(linked.orders.conditions).length, 5);
+  assert.equal(Object.keys(linked.orders.conditions).length, 9,
+    'four explicit not-ready Conditions keep preparation from re-entering once ready');
   assert.deepEqual(play.readinessGroups, [{
     id: 'return-ambush', name: 'Return ambush', projectionIds,
   }]);

@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -92,7 +93,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             client,
             "First line",
             catalog.TemplateOrdersJson,
-            catalog.TemplateMapPlanJson);
+            catalog.TemplateMapPlanJson,
+            "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[{\"id\":\"opening\"}]}");
         JsonObject counterPlan = JsonNode.Parse(
             catalog.TemplateOrdersJson)!.AsObject();
         counterPlan["roles"]![0]!["upgradePath"]![0] = "reach";
@@ -322,6 +324,35 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         trialQueued.EnsureSuccessStatusCode();
         CreatedMatchResponse trialMatch = Assert.IsType<CreatedMatchResponse>(
             await trialQueued.Content.ReadFromJsonAsync<CreatedMatchResponse>());
+        PracticeAuthoringSnapshotResponse authoring = Assert.IsType<PracticeAuthoringSnapshotResponse>(
+            await client.GetFromJsonAsync<PracticeAuthoringSnapshotResponse>(
+                $"/api/sheets/trials/{trialMatch.Id}/authoring"));
+        Assert.True(authoring.ProgramAttributionAvailable);
+        Assert.Equal(first.Id, authoring.SheetId);
+        Assert.Equal(first.Revision, authoring.Revision);
+        Assert.Contains("opening", authoring.WorkshopJson, StringComparison.Ordinal);
+
+        HttpResponseMessage editedResponse = await client.PutAsJsonAsync(
+            $"/api/sheets/{first.Id}",
+            new SaveTacticalSheetRequest(
+                first.Name,
+                first.Revision,
+                first.OrdersJson,
+                first.MapPlanJson,
+                EnterLadder: true,
+                WorkshopJson:
+                    "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[{\"id\":\"renamed-after-run\"}]}",
+                ReplaceWorkshop: true));
+        editedResponse.EnsureSuccessStatusCode();
+        PracticeAuthoringSnapshotResponse unchanged = Assert.IsType<PracticeAuthoringSnapshotResponse>(
+            await client.GetFromJsonAsync<PracticeAuthoringSnapshotResponse>(
+                $"/api/sheets/trials/{trialMatch.Id}/authoring"));
+        Assert.Equal(authoring, unchanged);
+        using HttpClient stranger = factory.CreateClient();
+        await RegisterAsync(stranger);
+        Assert.Equal(HttpStatusCode.NotFound,
+            (await stranger.GetAsync(
+                $"/api/sheets/trials/{trialMatch.Id}/authoring")).StatusCode);
         await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
         {
             JobExecutionResult result = await scope.ServiceProvider
@@ -414,7 +445,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         HttpClient client,
         string name,
         string ordersJson,
-        string mapPlanJson)
+        string mapPlanJson,
+        string? workshopJson = null)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/api/sheets",
@@ -423,7 +455,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 ExpectedRevision: null,
                 ordersJson,
                 mapPlanJson,
-                EnterLadder: true));
+                EnterLadder: true,
+                WorkshopJson: workshopJson,
+                ReplaceWorkshop: workshopJson is not null));
         response.EnsureSuccessStatusCode();
         return Assert.IsType<TacticalSheetResponse>(
             await response.Content.ReadFromJsonAsync<TacticalSheetResponse>());

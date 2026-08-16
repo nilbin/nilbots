@@ -47,6 +47,18 @@ public class Match
     public Guid? InitiatedByUserId { get; set; }
     /// <summary>Arc Relay product lane; null for legacy and other modes.</summary>
     public string? ArcRelayLane { get; set; }
+    /// <summary>
+    /// Owner-only editor attribution captured when a Practice match starts.
+    /// It never enters participant input, replay content, or gameplay hashes.
+    /// Null identifies a historical Practice match without revision-safe
+    /// Program attribution.
+    /// </summary>
+    public int? PracticeAuthoringSnapshotVersion { get; set; }
+    /// <summary>
+    /// Normalized workshop linkage for the exact sheet revision used by this
+    /// Practice match. Source identity lives on the immutable participant.
+    /// </summary>
+    public string? PracticeWorkshopJsonSnapshot { get; set; }
     /// <summary>1-based game number inside a ranked set.</summary>
     public int? SetGame { get; set; }
     public List<MatchParticipant> Participants { get; set; } = [];
