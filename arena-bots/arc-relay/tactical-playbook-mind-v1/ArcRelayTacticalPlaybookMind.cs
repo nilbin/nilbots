@@ -2452,12 +2452,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (fact == "well-has-outstanding-core")
             return well.OutstandingCoreId is null ? 0 : 1;
         if (fact == "well-ticks-until-birth")
-            return well.NextScheduledBirthTick is int birth
-                ? Math.Max(0, birth - mind.Tick)
-                : int.MaxValue;
+            return WellTicksUntilBirth(well, mind.Tick);
         return own.FilledSocketWellIds.Contains(well.WellId,
             StringComparer.Ordinal) ? 1 : 0;
     }
+
+    /// <summary>
+    /// Programs and generated Instructions consume the one effective public
+    /// Well clock. A Well with an active Core publishes no due tick, so it is
+    /// deliberately farther than every authored numeric threshold.
+    /// </summary>
+    internal static int WellTicksUntilBirth(
+        GenericActorContext.ArcRelayWellState well,
+        int tick) =>
+        well.NextScheduledBirthTick is int birth
+            ? Math.Max(0, birth - tick)
+            : int.MaxValue;
 
     private static bool Compare(int actual, string op, int expected) => op switch
     {

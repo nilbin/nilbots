@@ -282,6 +282,7 @@ export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
   };
   scoreCatalog: ReplayV3ScoreCatalogEntry[];
   pendingRearmTicks: number;
+  bankTriggeredWellRechargeTicks?: number;
   coreRelocationIntervalTicks: number;
   coresPerPulse: number;
   fieldedSlotsPerTeam: number;

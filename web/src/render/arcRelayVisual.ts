@@ -278,24 +278,11 @@ function drawWells(input: ArcRelayVisualContext, state: ArcState): void {
     ctx.stroke();
 
     const schedule = rules?.wells.find((entry) => entry.wellId === well.wellId);
-    if (well.nextScheduledBirthTick !== null && schedule) {
-      const remaining = Math.max(0, well.nextScheduledBirthTick - time);
-      const progress = Math.max(0, Math.min(1, 1 - remaining / schedule.cadenceTicks));
-      ctx.strokeStyle = 'rgba(237, 245, 251, 0.86)';
-      ctx.lineWidth = Math.max(2, tile * 0.06);
-      ctx.beginPath();
-      ctx.arc(
-        point.x,
-        point.y,
-        radius + tile * 0.08,
-        -Math.PI / 2,
-        -Math.PI / 2 + Math.PI * 2 * progress,
-      );
-      ctx.stroke();
-    }
-
     if (well.rearmCompletesAtTick !== null) {
-      const duration = Math.max(1, rules?.pendingRearmTicks ?? 10);
+      const duration = Math.max(
+        1,
+        rules?.bankTriggeredWellRechargeTicks ?? rules?.pendingRearmTicks ?? 10,
+      );
       const progress = Math.max(
         0,
         Math.min(1, 1 - (well.rearmCompletesAtTick - time) / duration),
@@ -306,7 +293,21 @@ function drawWells(input: ArcRelayVisualContext, state: ArcState): void {
       ctx.arc(
         point.x,
         point.y,
-        radius - tile * 0.07,
+        radius + tile * 0.08,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * progress,
+      );
+      ctx.stroke();
+    } else if (well.nextScheduledBirthTick !== null && schedule) {
+      const remaining = Math.max(0, well.nextScheduledBirthTick - time);
+      const progress = Math.max(0, Math.min(1, 1 - remaining / schedule.cadenceTicks));
+      ctx.strokeStyle = 'rgba(237, 245, 251, 0.86)';
+      ctx.lineWidth = Math.max(2, tile * 0.06);
+      ctx.beginPath();
+      ctx.arc(
+        point.x,
+        point.y,
+        radius + tile * 0.08,
         -Math.PI / 2,
         -Math.PI / 2 + Math.PI * 2 * progress,
       );

@@ -2797,7 +2797,11 @@ public sealed record GenericActorContext
     /// <summary>Stable source-local Core identity.</summary>
     public sealed record ArcRelayCoreId(string SourceWellId, int SourceOrdinal);
 
-    /// <summary>One public Well state.</summary>
+    /// <summary>
+    /// One public Well state. <c>NextScheduledBirthTick</c> is the effective
+    /// initial-opening or recharge due tick and is null while the Well's Core
+    /// remains active anywhere on the map.
+    /// </summary>
     public sealed record ArcRelayWellState(
         string WellId,
         Position Position,

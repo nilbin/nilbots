@@ -433,6 +433,9 @@ function validateContract(
               'victory',
               'scoreCatalog',
               'pendingRearmTicks',
+              ...(own(mode, 'bankTriggeredWellRechargeTicks')
+                ? ['bankTriggeredWellRechargeTicks']
+                : []),
               'coreRelocationIntervalTicks',
               'coresPerPulse',
               'fieldedSlotsPerTeam',
@@ -1220,6 +1223,7 @@ function validateContract(
     for (const key of [
       'signatureGrammarVersion',
       'wellBirthJitterTicks',
+      'bankTriggeredWellRechargeTicks',
       'coreBaseValue',
       'ripenIntervalTicks',
       'ripenMaxValue',
@@ -1237,6 +1241,15 @@ function validateContract(
       'minimumDistinctClasses',
     ]) {
       if (own(mode, key)) integer(mode[key], `${modePath}.${key}`, fail);
+    }
+    if (
+      own(mode, 'bankTriggeredWellRechargeTicks') &&
+      (mode.bankTriggeredWellRechargeTicks as number) <= 0
+    ) {
+      fail(
+        `${modePath}.bankTriggeredWellRechargeTicks`,
+        'must be positive when present',
+      );
     }
     for (const key of [
       'alternatingResolutionOrder',
@@ -1406,6 +1419,19 @@ function validateContract(
           'must keep each Well birth window disjoint and after tick zero',
         );
     });
+    if (
+      own(mode, 'bankTriggeredWellRechargeTicks') &&
+      (mode.threefoldSockets === true ||
+        wells.some((entry) => {
+          const well = entry as Record<string, unknown>;
+          return well.firstBirthTick !== well.finalBirthTick;
+        }))
+    ) {
+      fail(
+        modePath,
+        'bank-triggered recharge requires one initial birth per Well and no Threefold sockets',
+      );
+    }
     const signatures = array(
       mode.signatures,
       `${modePath}.signatures`,
@@ -7636,6 +7662,12 @@ function contractFromV3(
         kind: 'arc-relay',
         modeId: contract.rules.gameMode.modeId,
         pendingRearmTicks: contract.rules.gameMode.pendingRearmTicks,
+        ...(contract.rules.gameMode.bankTriggeredWellRechargeTicks === undefined
+          ? {}
+          : {
+              bankTriggeredWellRechargeTicks:
+                contract.rules.gameMode.bankTriggeredWellRechargeTicks,
+            }),
         coreRelocationIntervalTicks:
           contract.rules.gameMode.coreRelocationIntervalTicks,
         coresPerPulse: contract.rules.gameMode.coresPerPulse,

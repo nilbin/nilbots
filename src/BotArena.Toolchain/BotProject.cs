@@ -463,9 +463,11 @@ public static class ToolchainInfo
     /// and hosted default while preserving the unchanged tactical mind bytes.
     /// 0.9.63 promotes Tapline-6's equal-return map fork as the local, editor
     /// and hosted default while preserving Tapline-5 as immutable history.
+    /// 0.9.64 promotes Tapline-8's bank-triggered 46-tick Well recharge as the
+    /// local/editor default while preserving Tapline-7 and hosted v24.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.63";
+    public const string CliVersion = "0.9.64";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -603,7 +605,9 @@ public static class ToolchainInfo
     // movement/facing values. Historical contracts omit them byte-identically.
     // 0.10.13: Arc Relay pending strikes already present in the SDK object
     // graph now cross the shared actor/mind tagged observation codec.
-    public const string SdkVersion = "0.10.13";
+    // 0.10.14: the Arc Relay rules contract declares optional bank-triggered
+    // Well recharge timing. Historical contracts omit it byte-identically.
+    public const string SdkVersion = "0.10.14";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
     // the mind arm of the negotiation state machine, and WrappedPerLifeMind.

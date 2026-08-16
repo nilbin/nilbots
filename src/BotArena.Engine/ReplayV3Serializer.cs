@@ -3875,6 +3875,12 @@ internal static class ReplayV3Serializer
             int relocationTicks = RequiredInt32(
                 gameMode,
                 "coreRelocationIntervalTicks");
+            int bankTriggeredWellRechargeTicks = gameMode.TryGetProperty(
+                "bankTriggeredWellRechargeTicks", out _)
+                ? RequiredInt32(
+                    gameMode,
+                    "bankTriggeredWellRechargeTicks")
+                : 0;
             JsonElement tripNode = RequiredArray(gameMode, "signatures")
                 .EnumerateArray()
                 .Single(value => string.Equals(
@@ -3891,6 +3897,7 @@ internal static class ReplayV3Serializer
             if (pulsesToDestroy <= 0
                 || coresPerPulse <= 0
                 || relocationTicks <= 0
+                || bankTriggeredWellRechargeTicks < 0
                 || tripNodeRevealRange < 0
                 || wells.GetArrayLength() == 0
                 || wells.GetArrayLength() != wellRegions.GetArrayLength())
@@ -3917,6 +3924,7 @@ internal static class ReplayV3Serializer
                     pulsesToDestroy,
                     coresPerPulse,
                     relocationTicks,
+                    bankTriggeredWellRechargeTicks,
                     tripNodeRevealRange,
                     wells.EnumerateArray()
                         .Select(value => RequiredString(value, "wellId"))
@@ -7724,12 +7732,22 @@ internal static class ReplayV3Serializer
 
         foreach (ReplayV3.ArcWell well in state.Wells)
         {
-            if ((well.PendingCharge || well.OutstandingCoreId is not null)
+            bool invalidRecharge = configuration
+                    .BankTriggeredWellRechargeTicks > 0
+                ? well.PendingCharge
+                    || well.OutstandingCoreId is not null
+                        && (well.NextScheduledBirthTick is not null
+                            || well.RearmCompletesAtTick is not null)
+                    || well.RearmCompletesAtTick is int bankRecharge
+                        && (well.OutstandingCoreId is not null
+                            || well.NextScheduledBirthTick != bankRecharge)
+                : (well.RearmCompletesAtTick is not null)
+                    != (well.PendingCharge
+                        && well.OutstandingCoreId is null);
+            if (invalidRecharge
+                || (well.PendingCharge || well.OutstandingCoreId is not null)
                     && well.NextScheduledBirthTick is int scheduled
                     && scheduled < 0
-                || (well.RearmCompletesAtTick is not null)
-                    != (well.PendingCharge
-                        && well.OutstandingCoreId is null)
                 || well.RearmCompletesAtTick is int rearm && rearm < nextTick
                 || well.OutstandingCoreId is { } outstanding
                     && (!string.Equals(
@@ -8399,6 +8417,7 @@ internal static class ReplayV3Serializer
         int PulsesToDestroyReactor,
         int CoresPerPulse,
         int CoreRelocationIntervalTicks,
+        int BankTriggeredWellRechargeTicks,
         int TripNodeRevealRange,
         ImmutableArray<string> WellIds);
 

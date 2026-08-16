@@ -308,6 +308,12 @@ public sealed class GenericActorRulesContract
         public int WellBirthJitterTicks { get; init; }
 
         /// <summary>
+        /// Positive when banking a Well's active Core starts this source-local
+        /// public recharge. Zero retains historical global birth beats.
+        /// </summary>
+        public int BankTriggeredWellRechargeTicks { get; init; }
+
+        /// <summary>
         /// True when the order-dependent slice of movement resolution
         /// alternates direction by tick parity (foundations -03 fairness).
         /// </summary>

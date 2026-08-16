@@ -50,7 +50,8 @@ public sealed record ArcRelayLoopProfile
         int arcTossTravelTilesPerTick = 2,
         ArcRelaySignatureDefinition.ActivationTimingKind
             arcTossActivationTiming = ArcRelaySignatureDefinition
-                .ActivationTimingKind.BeforeCombat)
+                .ActivationTimingKind.BeforeCombat,
+        int bankTriggeredWellRechargeTicks = 0)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -63,12 +64,18 @@ public sealed record ArcRelayLoopProfile
         if (arcTossTravelTilesPerTick <= 0)
             throw new ArgumentOutOfRangeException(
                 nameof(arcTossTravelTilesPerTick));
+        if (bankTriggeredWellRechargeTicks < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(bankTriggeredWellRechargeTicks));
+        }
         CombatMagnitudeScale = combatMagnitudeScale;
         BodyHullBonus = bodyHullBonus;
         CentreOpeningDelayTicks = centreOpeningDelayTicks;
         ArcTossTellTicks = arcTossTellTicks;
         ArcTossTravelTilesPerTick = arcTossTravelTilesPerTick;
         ArcTossActivationTiming = arcTossActivationTiming;
+        BankTriggeredWellRechargeTicks = bankTriggeredWellRechargeTicks;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -163,6 +170,13 @@ public sealed record ArcRelayLoopProfile
     internal int ArcTossTravelTilesPerTick { get; }
     internal ArcRelaySignatureDefinition.ActivationTimingKind
         ArcTossActivationTiming { get; }
+
+    /// <summary>
+    /// When positive, only each Well's initial schedule is global. Banking
+    /// that Well's one active Core starts this public source-local recharge;
+    /// every historical profile keeps zero and its scheduled-beat semantics.
+    /// </summary>
+    internal int BankTriggeredWellRechargeTicks { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -1207,11 +1221,51 @@ public sealed record ArcRelayLoopProfile
             .ActivationTimingKind.AfterCombat);
 
     /// <summary>
+    /// Tapline-7 with source-local supply. Each Well keeps its existing
+    /// seed-jittered opening, then owns exactly one active Core until that
+    /// Core is banked into either reactor. Banking starts a public 46-tick
+    /// recharge; carrying, dropping, stealing, and tossing do not.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline8 { get; } = new(
+        "tapline-8",
+        "arc-relay-tapline-08",
+        "arc-relay-tapline-02",
+        ArcRelayMapGeometry.TaplineEqualReturn,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline7;
+    public static ArcRelayLoopProfile Current => Tapline8;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1289,6 +1343,7 @@ public sealed record ArcRelayLoopProfile
         Tapline5,
         Tapline6,
         Tapline7,
+        Tapline8,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

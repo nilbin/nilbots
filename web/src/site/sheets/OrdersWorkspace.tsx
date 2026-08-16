@@ -1236,7 +1236,7 @@ function conditionFactLabel(fact: string) {
     'remembered-enemies-in-zone': 'Enemies remembered here',
     'known-loose-cores-in-zone': 'Loose Cores known in this zone',
     'well-has-outstanding-core': 'This Well has an active Core',
-    'well-ticks-until-birth': 'Ticks until this Well births a Core',
+    'well-ticks-until-birth': 'Ticks until this Well opens or recharges',
     'well-socket-filled': 'This Well socket is filled',
     'observed-enemy-entries-in-zone': 'Enemy entries seen here',
     'distinct-enemy-lives-observed-in-zone': 'Distinct enemy lives seen here',

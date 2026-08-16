@@ -23,9 +23,8 @@ public sealed class ArcRelayMindRuntimeParityTests
             return;
 
         string root = FindRepoRoot();
-        const string firstSheet = "hunter-tapline-v2.json";
-        const string secondSheet = "wellwright-tapline-v2.json";
-        const string loopProfile = "tapline-1";
+        const string firstSheet = "demolition-march-v1.json";
+        const string secondSheet = "lockbox-v1.json";
         string artifact = Path.Combine(
             root,
             "arena-bots",
@@ -39,14 +38,7 @@ public sealed class ArcRelayMindRuntimeParityTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             firstSheetCompilation.Composition,
             secondSheetCompilation.Composition,
-            loopProfile: loopProfile switch
-            {
-                "ambush-warren-11" => ArcRelayLoopProfile.AmbushWarren11,
-                "drawbench-1" => ArcRelayLoopProfile.Drawbench1,
-                "tapline-1" => ArcRelayLoopProfile.Tapline1,
-                _ => throw new ArgumentOutOfRangeException(
-                    nameof(loopProfile), loopProfile, null),
-            });
+            loopProfile: ArcRelayLoopProfile.Current);
         GenericActorReplayPresentation presentation =
             ArcRelayH0ReplayPresentation.Create(definition);
 
@@ -104,7 +96,8 @@ public sealed class ArcRelayMindRuntimeParityTests
     }
 
     /// <summary>
-    /// The exact owner-caught Tapline regression. Both squads formed an
+    /// The exact owner-caught Tapline regression generalized onto the current
+    /// profile and current admissible sheets. Both squads once formed an
     /// allied queue behind a loaded carrier, the carrier entered a terminal
     /// delivery fallback, and five or six bodies per side remained on one
     /// tile for more than 100 ticks. Keep the threshold behavioral rather

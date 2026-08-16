@@ -22,11 +22,11 @@ public sealed class ArcRelayTaplineEqualReturnTests
     private static readonly Position EnemyWell = new(19, 20);
 
     [Fact]
-    public void Tapline7KeepsTheAcceptedProductMapWithoutMutatingTapline5()
+    public void Tapline8KeepsTheAcceptedProductMapWithoutMutatingTapline5()
     {
-        Assert.Same(ArcRelayLoopProfile.Tapline7, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-7", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-07", ArcRelayLoopProfile.Current.RulesetId);
+        Assert.Same(ArcRelayLoopProfile.Tapline8, ArcRelayLoopProfile.Current);
+        Assert.Equal("tapline-8", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-08", ArcRelayLoopProfile.Current.RulesetId);
         Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Current.MapId);
         Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Tapline6.MapId);
         Assert.Equal("arc-relay-tapline-01", ArcRelayLoopProfile.Tapline5.MapId);

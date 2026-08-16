@@ -53,10 +53,15 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 ## Objective
 
 Three public Wells stand at north `(11,6)`, centre `(15,13)`, and south
-`(19,20)`. Their nominal first beats are centre 25, north 50, and south 75;
-the seed-phased lead and ±6-tick birth jitter below choose the exact order and
-tick. Each then repeats on the 65-tick schedule for nine rounds. A Well has at most one unresolved
-Core and one visible pending charge, so at most three Cores are live.
+`(19,20)`. Tapline-8 keeps the current opening: all three are nominally tick
+50 with public ±6-tick seed jitter (the rotational flank pair shares one
+draw). After that opening, supply is source-local. A Well has exactly one
+active Core until that Core is banked into either reactor; banking starts a
+public 46-tick recharge and the next Core is born on its exact due tick.
+Pickup, carrying, Arc Toss, dropping, and stealing do not start or advance a
+separate birth timer. While the Core remains active there is no Well birth
+countdown. Subsequent global 65-tick births and pending beats do not exist in
+Tapline-8, so at most three Cores are active.
 
 A body ending movement on a loose Core picks it up. A Core can relocate only
 once per two ticks through carrying, handoff, or forced displacement. The
@@ -74,8 +79,9 @@ score only.
 
 `handoff-core` names an adjacent allied unit. The receiver must remain alive,
 carry no Core, and submit `Wait`; the source spends its action. `drop-core`
-leaves the Core neutral on the carrier's tile. Pickup, delivery, handoff, drop,
-flight, and recovery are all authoritative replay facts.
+leaves the Core neutral on a legal adjacent tile toward home and temporarily
+prevents the dropper from reclaiming it. Pickup, delivery, handoff, drop,
+flight, recharge, and birth are all authoritative replay facts.
 
 ## Tapline
 

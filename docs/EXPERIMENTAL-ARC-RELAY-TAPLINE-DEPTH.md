@@ -8,6 +8,11 @@ delayed centre opening later promoted as Tapline-5 and hosted playlist v23
 under Decision #319.
 The equal-return terrain fork later promoted as Tapline-6 and hosted playlist
 v24 under Decision #321; it changes map geometry, not the depth mechanics below.
+Tapline-8 later superseded this brief's recurring global Well supply for the
+local/editor Current line under Decision #328: only the initial openings remain
+scheduled, and banking a Well's sole active Core starts that source's public
+46-tick recharge. The historical 65-tick cadence discussion below describes
+Tapline-4 through Tapline-7 only.
 
 ## Goal
 

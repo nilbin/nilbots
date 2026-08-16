@@ -46,7 +46,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int veterancyDamageBonusCap = 2,
         bool veterancyBonusAfterRearArc = false,
         int vitalityHealthPerPoint = 1,
-        int healZoneHealthPerActivation = 1)
+        int healZoneHealthPerActivation = 1,
+        int bankTriggeredWellRechargeTicks = 0)
         : base(modeId, victory, scoreCatalog)
     {
         RequirePositive(
@@ -66,6 +67,12 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         VeterancyBonusAfterRearArc = veterancyBonusAfterRearArc;
         VitalityHealthPerPoint = vitalityHealthPerPoint;
         HealZoneHealthPerActivation = healZoneHealthPerActivation;
+        if (bankTriggeredWellRechargeTicks < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(bankTriggeredWellRechargeTicks));
+        }
+        BankTriggeredWellRechargeTicks = bankTriggeredWellRechargeTicks;
         if (ownWellCoreCharge < 1
             || centreWellCoreCharge < 1
             || enemyWellCoreCharge < 1)
@@ -166,6 +173,16 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
                 "Arc Relay Wells must be non-null with unique IDs.",
                 nameof(wells));
         }
+        if (bankTriggeredWellRechargeTicks > 0
+            && (threefoldSockets
+                || wellSnapshot.Any(well =>
+                    well.FirstBirthTick != well.FinalBirthTick)))
+        {
+            throw new ArgumentException(
+                "Bank-triggered Well recharge requires one initial birth per "
+                + "Well and cannot combine with Threefold sockets.",
+                nameof(bankTriggeredWellRechargeTicks));
+        }
         if (wellBirthJitterTicks > 0
             && wellSnapshot.Any(well =>
                 2 * wellBirthJitterTicks >= well.CadenceTicks
@@ -240,6 +257,12 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public ArcRelayVictoryDefinition ArcRelayVictory { get; }
     public ImmutableArray<ArcRelayWellScheduleDefinition> Wells { get; }
     public int PendingRearmTicks { get; }
+
+    /// <summary>
+    /// Positive when banking a Well's active Core starts its next public
+    /// recharge. Zero retains historical global beats and pending rearm.
+    /// </summary>
+    public int BankTriggeredWellRechargeTicks { get; }
     public int CoreRelocationIntervalTicks { get; }
     public int CoresPerPulse { get; }
     public int FieldedSlotsPerTeam { get; }

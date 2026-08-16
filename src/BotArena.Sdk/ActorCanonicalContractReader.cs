@@ -735,6 +735,8 @@ public static class ActorCanonicalContractReader
             "signatureGrammarVersion", out _);
         bool hasBirthJitter = element.TryGetProperty(
             "wellBirthJitterTicks", out _);
+        bool hasBankTriggeredRecharge = element.TryGetProperty(
+            "bankTriggeredWellRechargeTicks", out _);
         bool hasAlternatingOrder = element.TryGetProperty(
             "alternatingResolutionOrder", out _);
         bool hasThreefold = element.TryGetProperty(
@@ -770,7 +772,11 @@ public static class ActorCanonicalContractReader
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
-            "pendingRearmTicks", "coreRelocationIntervalTicks",
+            "pendingRearmTicks",
+            .. hasBankTriggeredRecharge
+                ? new[] { "bankTriggeredWellRechargeTicks" }
+                : System.Array.Empty<string>(),
+            "coreRelocationIntervalTicks",
             "coresPerPulse", "fieldedSlotsPerTeam", "maxCopiesPerClass",
             "respawnDelayTicks",
             .. hasGrammarVersion
@@ -875,6 +881,9 @@ public static class ActorCanonicalContractReader
                 : 1,
             WellBirthJitterTicks = hasBirthJitter
                 ? Int(element, "wellBirthJitterTicks")
+                : 0,
+            BankTriggeredWellRechargeTicks = hasBankTriggeredRecharge
+                ? Int(element, "bankTriggeredWellRechargeTicks")
                 : 0,
             AlternatingResolutionOrder = hasAlternatingOrder
                 && Bool(element, "alternatingResolutionOrder"),
@@ -2800,6 +2809,12 @@ public static class ActorCanonicalContractReader
                     || arcRelay.OwnWellCoreCharge <= 0
                     || arcRelay.CentreWellCoreCharge <= 0
                     || arcRelay.EnemyWellCoreCharge <= 0
+                    || arcRelay.BankTriggeredWellRechargeTicks < 0
+                    || arcRelay.BankTriggeredWellRechargeTicks > 0
+                        && (arcRelay.ThreefoldSockets
+                            || arcRelay.Wells.Any(well =>
+                                well.FirstBirthTick
+                                    != well.FinalBirthTick))
                     || (arcRelay.RespawnWavePeriodTicks == 0)
                         != (arcRelay.RespawnMinimumDeadTicks == 0)
                     || arcRelay.RespawnWavePeriodTicks < 0

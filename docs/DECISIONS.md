@@ -8759,3 +8759,45 @@ runtime Program object or manual cross-role wiring. The group is editor-only
 linkage: it adds no state, scheduler, reservation, activation atomicity, or
 priority. Natural-language outcome exits such as “four enemies destroyed” and
 “Core acquired” remain a follow-up rather than a blocker for this milestone.
+
+## 328. Banking starts the source Well's next recharge
+
+Owner gameplay ruling (2026-08-16). Tapline-8 is the next immutable current
+Arc Relay profile. It keeps Tapline-7's `arc-relay-tapline-02` map, 1/2/4
+team-relative Core charge, seed-jittered initial Well opening, combat and
+signature stack, and 600-tick horizon. Tapline-7 and every earlier profile
+remain byte-exact history.
+
+After a Well's Core is banked into either reactor, that source Well begins one
+public 46-tick recharge and births its next Core exactly at `bankTick + 46`.
+Pickup, carrying, Arc Toss, dropping, handoff, and stealing do not start the
+timer. Until banking, the Core remains that Well's sole active Core anywhere
+on the map. While it is active the Well publishes no birth countdown.
+
+Tapline-8 schedules only the three initial births. Its later global 65-tick
+beats and pending-beat behavior do not exist. `nextScheduledBirthTick` is the
+one effective public clock for this profile: initial opening before the first
+Core, then `rearmCompletesAtTick` during a bank-triggered recharge. A bank
+publishes `WellChanged` with `pendingCharge: false` and the exact due tick; the
+due birth clears the recharge and publishes the next outstanding Core.
+`well-ticks-until-birth`, generated Program Conditions, replay cues, and both
+Well renderers consume that same effective field.
+
+The 46-tick value preserves the centre's approximate prior rhythm—19 terrain
+steps home plus 46 recharge equals 65—without making transport-neutral global
+supply. This promotes the local/editor/exhibit product line; immutable hosted
+playlist v24 remains Tapline-6 until a separately authorized deployment
+checkpoint.
+
+The additive canonical rules field moves SDK 0.10.13→0.10.14 and CLI
+0.9.63→0.9.64. The controlled first-party tactical mirror is rebuilt from
+build input
+`c41d6bb60b353a05a8dc7f45dbd449b949adf31d3e3822620cb7e04826b99311`
+to artifact
+`e837ab52ae5aadb86832cccef86de4113e8f83739e3e23d476a6115d7b4c180e`;
+the shared built-in guest is
+`42bbd7d9e4fae781f3938b314fe7fa6366d5435e10fc68ed997994698d86601f`.
+This refreshes compatibility evidence without amending v24's frozen artifact
+or authorizing deployment. A Tapline-8 demolition-vs-lockbox seed-9001 cell
+has the same gameplay-state digest in-process and in WASM:
+`a8c4251062c9b07fef7cdbad55c622052041f7cc2918fde804508095a349b037`.

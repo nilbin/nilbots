@@ -6,18 +6,21 @@ document. `docs/DECISIONS.md` records where open choices were pinned.
 [`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
 plans, and historical evidence.
 
-## Current product (2026-08-15)
+## Current product (2026-08-16)
 
 Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI default and hosted playlist v23
-run `tapline-5` on `arc-relay-tapline-05` with the coordinated movement planner and
+revisions, match history, and rating. The current CLI/editor default is `tapline-8`
+on the accepted equal-return map with the coordinated movement planner and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
 public respawn waves, a seven-distinct-class roster floor, durable deployments, and
-scaled combat durability. The centre Well now opens on the second global beat,
-alongside the outer Wells, so the first beat can be used for scouting and setup.
+scaled combat durability. All three Wells keep their public opening around tick
+50. Each then keeps one active Core until banked into either reactor, which
+starts its exact public 46-tick recharge; carrying, tossing, dropping, and
+stealing do not start it. Hosted playlist v24 remains immutable Tapline-6 until
+a separate deployment checkpoint.
 The primary loop is **change → run → watch → understand →
 change again**.
 

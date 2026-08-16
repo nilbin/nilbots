@@ -251,6 +251,10 @@ The finite fact catalog is:
 
 Role facts require `role`; zone facts require `zone`; Well facts require
 `well` (`north`, `centre`, `south`, `own`, or `enemy`).
+`well-ticks-until-birth` reads the one effective public Well clock: the
+initial opening or a recharge already started by banking that Well's Core.
+While the Core is still active—loose, carried, in flight, dropped, or
+stolen—there is no countdown, so finite `at-most` birth windows remain false.
 `known-enemy-carriers` and `remembered-enemies-in-zone` require
 `freshnessTicks` in `1..600`. Qualifiers on other facts are errors. Health
 percent comparisons are `0..100`; boolean facts compare with `0` or `1`.

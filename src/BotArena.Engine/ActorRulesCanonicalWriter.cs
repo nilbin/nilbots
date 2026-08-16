@@ -242,6 +242,12 @@ internal static class ActorRulesCanonicalWriter
         ArcRelayGameModeDefinition mode)
     {
         writer.WriteNumber("pendingRearmTicks", mode.PendingRearmTicks);
+        if (mode.BankTriggeredWellRechargeTicks != 0)
+        {
+            writer.WriteNumber(
+                "bankTriggeredWellRechargeTicks",
+                mode.BankTriggeredWellRechargeTicks);
+        }
         writer.WriteNumber(
             "coreRelocationIntervalTicks",
             mode.CoreRelocationIntervalTicks);

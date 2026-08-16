@@ -66,6 +66,14 @@ export default function DocsPage() {
           Playlist v24 opens a fresh rating book at 1200; playlist v23 remains readable
           Tapline-5 history and its ratings are not carried into v24.
         </p>
+        <p className="mt-2 text-arena-dim">
+          Practice, the sheet workshop and the local CLI now use immutable Tapline-8 on
+          that same map. Each Well keeps its existing public opening, then owns one active
+          Core until it is banked into either reactor. That bank starts an exact public
+          46-tick recharge. Carrying, tossing, dropping and stealing do not start the
+          clock, and an active Core has no birth countdown. Ranked playlist v24 remains
+          Tapline-6 until a separately authorized deployment advances it.
+        </p>
       </Doc>
 
       <Doc title="Facing and basic fire">

@@ -919,7 +919,9 @@ public static class ArcRelayH0Definition
             veterancyBonusAfterRearArc:
                 loopProfile.CombatMagnitudeScale == 10,
             vitalityHealthPerPoint: loopProfile.CombatMagnitudeScale,
-            healZoneHealthPerActivation: loopProfile.CombatMagnitudeScale);
+            healZoneHealthPerActivation: loopProfile.CombatMagnitudeScale,
+            bankTriggeredWellRechargeTicks:
+                loopProfile.BankTriggeredWellRechargeTicks);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;

@@ -123,7 +123,15 @@ export default function EventFeed({
         case 'core-relocated':
           return `${source} Core relocates · ${arc.relocationKind}`;
         case 'well-changed':
-          return `${arc.wellId} Well ${arc.pendingCharge ? 'rearms' : 'is ready'}`;
+          return `${arc.wellId} Well ${
+            arc.rearmCompletesAtTick !== null
+              ? 'recharging'
+              : arc.pendingCharge
+                ? 'has a pending birth'
+                : arc.outstandingCoreId !== null
+                  ? 'released a Core'
+                  : 'is ready'
+          }`;
         case 'signature-changed':
           return `${actorName(replay, arc.ownerActor)} ${arc.reason} ${arc.signatureId}`;
         case 'body-relocated':

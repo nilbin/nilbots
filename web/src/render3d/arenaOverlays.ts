@@ -2853,18 +2853,12 @@ function buildArcRelayStory(
       const schedule = arcRules?.wells?.find(
         (candidate) => candidate.wellId === state.wellId,
       );
-      const scheduledProgress =
-        state.nextBirthTick !== null && schedule
-          ? Math.max(
-              0,
-              Math.min(
-                1,
-                1 -
-                  Math.max(0, state.nextBirthTick - time) /
-                    Math.max(1, schedule.cadenceTicks),
-              ),
-            )
-          : 0;
+      const rechargeDuration = Math.max(
+        1,
+        arcRules?.bankTriggeredWellRechargeTicks
+          ?? arcRules?.pendingRearmTicks
+          ?? 1,
+      );
       const rearmProgress =
         state.rearmCompletesAtTick !== null
           ? Math.max(
@@ -2873,7 +2867,21 @@ function buildArcRelayStory(
                 1,
                 1 -
                   Math.max(0, state.rearmCompletesAtTick - time) /
-                    Math.max(1, arcRules?.pendingRearmTicks ?? 1),
+                    rechargeDuration,
+              ),
+            )
+          : 0;
+      const scheduledProgress =
+        state.rearmCompletesAtTick === null
+          && state.nextBirthTick !== null
+          && schedule
+          ? Math.max(
+              0,
+              Math.min(
+                1,
+                1 -
+                  Math.max(0, state.nextBirthTick - time) /
+                    Math.max(1, schedule.cadenceTicks),
               ),
             )
           : 0;
@@ -2888,11 +2896,13 @@ function buildArcRelayStory(
           .lerp(new THREE.Color(lumenBastion ? '#ffffff' : '#ffd0a5'), 0.62);
       rig.progress.userData.progress = birthProgress;
       rig.progress.userData.nextBirthTick = state.nextBirthTick;
-      rig.progress.userData.phase = scheduledProgress > 0
-        ? 'scheduled-birth'
-        : rearmProgress > 0 || state.pendingCharge
+      rig.progress.userData.phase = state.rearmCompletesAtTick !== null
           ? 'rearming'
-          : 'idle';
+        : state.nextBirthTick !== null
+          ? 'scheduled-birth'
+          : state.pendingCharge
+            ? 'pending-birth'
+            : 'idle';
       const glyphIndex = state.wellId.includes('north')
         ? 0
         : state.wellId.includes('south')

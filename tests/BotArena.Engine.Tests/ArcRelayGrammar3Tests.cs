@@ -47,7 +47,7 @@ public sealed class ArcRelayGrammar3Tests
         Assert.Equal(16, mode.Signatures.Length);
         Assert.Equal(one.Map.Id, two.Map.Id);
         Assert.True(one.Map.TileRows.SequenceEqual(two.Map.TileRows));
-        Assert.Equal("tapline-7", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("tapline-8", ArcRelayLoopProfile.Current.Id);
 
         string[] versioned = mode.Signatures.Where(signature => signature is
                 ArcRelaySignatureDefinition.NullField3

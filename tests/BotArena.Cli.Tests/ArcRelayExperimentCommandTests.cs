@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_zero_windup_Tapline7_design_line()
+    public void Default_is_the_bank_recharged_Tapline8_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,7 +69,7 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-07",
+            "arc-relay-tapline-08",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
@@ -81,6 +81,12 @@ public sealed class ArcRelayExperimentCommandTests
             document.RootElement.GetProperty("rules")
                 .GetProperty("gameMode")
                 .GetProperty("signatureGrammarVersion")
+                .GetInt32());
+        Assert.Equal(
+            46,
+            document.RootElement.GetProperty("rules")
+                .GetProperty("gameMode")
+                .GetProperty("bankTriggeredWellRechargeTicks")
                 .GetInt32());
         JsonElement toss = document.RootElement.GetProperty("rules")
             .GetProperty("gameMode")

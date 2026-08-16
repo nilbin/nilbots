@@ -607,6 +607,85 @@ test('Ember landmarks turn Arc homes, healing, and well charge into foundry mach
   overlays.dispose();
 });
 
+test('bank-triggered recharge is the one visible Well countdown', () => {
+  const replay = arcRelayReplay();
+  assert.equal(replay.contract.kind, 'v3-generic');
+  if (replay.contract.kind !== 'v3-generic') return;
+  const rules = replay.contract.rawContract.rules.gameMode;
+  assert.equal(rules.kind, 'arc-relay');
+  if (rules.kind !== 'arc-relay') return;
+  rules.bankTriggeredWellRechargeTicks = 46;
+  replay.contract.mode = {
+    ...replay.contract.mode,
+    bankTriggeredWellRechargeTicks: 46,
+  };
+  for (const tick of replay.ticks) {
+    for (const world of [tick.before, tick.after]) {
+      assert.equal(world.mode?.kind, 'arc-relay');
+      if (world.mode?.kind !== 'arc-relay') continue;
+      world.mode.wells[0] = {
+        ...world.mode.wells[0]!,
+        nextScheduledBirthTick: 48,
+        outstandingCoreId: null,
+        pendingCharge: false,
+        rearmCompletesAtTick: 48,
+      };
+      world.mode.visibleCores = [];
+    }
+  }
+
+  const overlays = buildOverlays(replay);
+  overlays.update(2, null, false);
+  const startingObjects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => startingObjects.push(node));
+  const startingProgress = startingObjects.find(
+    (node) => node.userData.kind === 'arc-relay-well-birth-progress',
+  ) as THREE.Mesh | undefined;
+  assert.ok(startingProgress);
+  assert.equal(startingProgress.userData.phase, 'rearming');
+  assert.equal(startingProgress.userData.progress, 0);
+
+  overlays.update(25, null, false);
+  const objects: THREE.Object3D[] = [];
+  overlays.group.traverse((node) => objects.push(node));
+  const progress = objects.find(
+    (node) => node.userData.kind === 'arc-relay-well-birth-progress',
+  ) as THREE.Mesh | undefined;
+  assert.ok(progress);
+  assert.equal(progress.userData.phase, 'rearming');
+  assert.equal(progress.userData.nextBirthTick, 48);
+  assert.equal(progress.userData.progress, 0.5);
+  overlays.dispose();
+
+  for (const tick of replay.ticks) {
+    for (const world of [tick.before, tick.after]) {
+      assert.equal(world.mode?.kind, 'arc-relay');
+      if (world.mode?.kind !== 'arc-relay') continue;
+      world.mode.wells[0] = {
+        ...world.mode.wells[0]!,
+        nextScheduledBirthTick: null,
+        outstandingCoreId: {
+          sourceWellId: 'well-centre',
+          sourceOrdinal: 2,
+        },
+        rearmCompletesAtTick: null,
+      };
+    }
+  }
+  const activeOverlays = buildOverlays(replay);
+  activeOverlays.update(25, null, false);
+  const activeObjects: THREE.Object3D[] = [];
+  activeOverlays.group.traverse((node) => activeObjects.push(node));
+  const activeProgress = activeObjects.find(
+    (node) => node.userData.kind === 'arc-relay-well-birth-progress',
+  ) as THREE.Mesh | undefined;
+  assert.ok(activeProgress);
+  assert.equal(activeProgress.userData.phase, 'idle');
+  assert.equal(activeProgress.userData.progress, 0);
+
+  activeOverlays.dispose();
+});
+
 test('an airborne Core stays neutral until an authoritative pickup', () => {
   const replay = arcRelayReplay();
   const mode = replay.ticks[0]!.after.mode;

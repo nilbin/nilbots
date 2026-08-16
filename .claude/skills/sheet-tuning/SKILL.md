@@ -108,11 +108,13 @@ and atomically swaps it into `SITE_DIR`. Reuse that directory to update a live
 gallery without changing its URL. Expect roughly one minute for six cells on
 the reference machine.
 
-The exhibit harness defaults to the current `tapline-7` design line. It uses
+The exhibit harness defaults to the current `tapline-8` product line. It uses
 the accepted Tapline geometry and coordinated movement plus the promoted
 1/2/4 Core economy, veteran command, public respawn waves, seven-class roster
-floor, durable deployments, tenfold combat scale, and immediate post-combat
-Arc Toss release at three flight tiles per tick. Hosted playlist v24 remains
+floor, durable deployments, tenfold combat scale, immediate post-combat Arc
+Toss release at three flight tiles per tick, and source-local Well supply:
+each initial Core remains its Well's sole active Core until banked, then that
+Well publicly recharges for 46 ticks. Hosted playlist v24 remains
 the immutable `tapline-6` deployment until an owner-authorized promotion
 checkpoint. Pin an older
 `EXHIBIT_LOOP_PROFILE` only for an explicitly labelled historical

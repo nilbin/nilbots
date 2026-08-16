@@ -343,6 +343,11 @@ internal sealed class ArcRelayActorMatchModeDriver
         foreach (WellRuntime well in _wells)
         {
             ArcRelayWellScheduleDefinition schedule = well.Schedule;
+            if (_gameMode.BankTriggeredWellRechargeTicks > 0
+                && well.NextSourceOrdinal > 0)
+            {
+                continue;
+            }
             if (!ScheduledBirthAt(schedule, tick))
                 continue;
             if (well.OutstandingCoreId is null
@@ -986,7 +991,13 @@ internal sealed class ArcRelayActorMatchModeDriver
         {
             ChargeAwarded = chargeAwarded,
         }));
-        if (!_gameMode.ThreefoldSockets && well.PendingCharge)
+        if (_gameMode.BankTriggeredWellRechargeTicks > 0)
+        {
+            well.PendingCharge = false;
+            well.RearmCompletesAtTick = checked(
+                tick + _gameMode.BankTriggeredWellRechargeTicks);
+        }
+        else if (!_gameMode.ThreefoldSockets && well.PendingCharge)
         {
             well.RearmCompletesAtTick = checked(
                 tick + 1 + _gameMode.PendingRearmTicks);
@@ -1063,7 +1074,7 @@ internal sealed class ArcRelayActorMatchModeDriver
             _wells.Select(well => new ArcRelayWellState(
                     well.Schedule.WellId,
                     well.Position,
-                    NextScheduledBirth(well.Schedule, _currentTick),
+                    EffectiveNextBirth(well),
                     well.OutstandingCoreId,
                     well.PendingCharge,
                     well.RearmCompletesAtTick))
@@ -1112,6 +1123,19 @@ internal sealed class ArcRelayActorMatchModeDriver
                     (_currentTick / _gameMode.RespawnWavePeriodTicks + 1)
                     * _gameMode.RespawnWavePeriodTicks),
         };
+
+    private int? EffectiveNextBirth(WellRuntime well)
+    {
+        if (_gameMode.BankTriggeredWellRechargeTicks == 0)
+            return NextScheduledBirth(well.Schedule, _currentTick);
+        if (well.OutstandingCoreId is not null)
+            return null;
+        if (well.RearmCompletesAtTick is int rechargeDue)
+            return rechargeDue;
+        return well.NextSourceOrdinal == 0
+            ? NextScheduledBirth(well.Schedule, _currentTick)
+            : null;
+    }
 
     private Position ArcTossLanding(Position from, Position requested)
     {

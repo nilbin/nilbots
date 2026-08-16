@@ -584,6 +584,7 @@ export type ReplayGenericModeDefinition =
       kind: 'arc-relay';
       modeId: string;
       pendingRearmTicks: number;
+      bankTriggeredWellRechargeTicks?: number;
       coreRelocationIntervalTicks: number;
       coresPerPulse: number;
       pulsesToDestroyReactor: number;

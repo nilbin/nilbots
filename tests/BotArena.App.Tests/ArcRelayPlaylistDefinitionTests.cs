@@ -13,7 +13,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
 {
     [Fact]
     [Trait("Category", "ReleaseWasm")]
-    public void ReleaseGate_CurrentPlaylistPinsTheCurrentTacticalMirror()
+    public void ReleaseGate_CurrentPlaylistKeepsItsFrozenTacticalArtifact()
     {
         if (!ReleaseWasmRequired())
             return;
@@ -23,7 +23,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
             root,
             "arena-bots",
             "arc-relay",
-            "tactical-playbook-mind-v1",
+            "tapline-4-stock-v1",
             "bot.build-receipt.json");
         using JsonDocument receipt = JsonDocument.Parse(
             File.ReadAllText(receiptPath));
