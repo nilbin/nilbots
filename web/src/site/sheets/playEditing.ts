@@ -181,6 +181,38 @@ export function addSignatureOpportunityActivationZone(
   return { draft: requireMaterialized(next), zoneId };
 }
 
+/**
+ * Create one Play-owned exact signature target and bind it to the selected
+ * ordinary `use` Order in the same edit. The author places the point visually;
+ * the temporary centre seed exists only so the object is immediately visible
+ * and draggable on the map.
+ */
+export function addSignatureOpportunityAnchor(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+): { draft: SheetDraft; anchorId: string } {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const node = requireOpportunityNode(projection, binding);
+  const anchorId = uniqueString(`${binding.useOrderId}-target`, new Set([
+    ...Object.keys(next.mapPlan.zones),
+    ...Object.keys(next.mapPlan.routes),
+    ...Object.keys(next.mapPlan.anchors),
+  ]));
+  next.mapPlan.anchors[anchorId] = [15, 13];
+  play.ownedGeometry.push({
+    kind: 'anchor',
+    id: anchorId,
+    purpose: `use.at for ${node.use!.skill}`,
+  });
+  node.use!.at = anchorId;
+  return { draft: requireMaterialized(next), anchorId };
+}
+
 export function moveSignatureOpportunity(
   draft: SheetDraft,
   playId: string,

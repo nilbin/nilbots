@@ -21,6 +21,7 @@ import {
   addPlayGeometry,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
+  addSignatureOpportunityAnchor,
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
@@ -145,6 +146,7 @@ export default function PlaysWorkspace({
 }) {
   const [creating, setCreating] = useState<RecipeChoice | null>(null);
   const [selectedGeometry, setSelectedGeometry] = useState<string | null>(null);
+  const [placementGeometry, setPlacementGeometry] = useState<string | null>(null);
   const [side, setSide] = useState<'west' | 'east'>('west');
   const [createError, setCreateError] = useState<string | null>(null);
   const [removeSources, setRemoveSources] = useState(true);
@@ -217,6 +219,8 @@ export default function PlaysWorkspace({
           <div className="overflow-auto">
             <PlayMapCanvas catalog={catalog} mapPlan={draft.mapPlan} play={play} side={side}
               selectedId={selectedGeometry} tracks={tracks}
+              startDrawingId={placementGeometry}
+              onDrawingStarted={() => setPlacementGeometry(null)}
               onSelect={setSelectedGeometry}
               onMoveAnchor={(anchorId, point) => commit(movePlayAnchor(draft, play.id, anchorId, point))}
               onSetZone={(zoneId, rect) => commit(setPlayZoneRect(draft, play.id, zoneId, rect))}
@@ -256,8 +260,9 @@ export default function PlaysWorkspace({
             onSelectGeometry={setSelectedGeometry} onChange={commit} />}
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
             practiceReplay={practiceReplay}
-            onSelectGeometry={(id) => {
+            onSelectGeometry={(id, startDrawing = false) => {
               setSelectedGeometry(id);
+              if (startDrawing) setPlacementGeometry(id);
               document.querySelector('[data-sheet-path="workshop.plays"]')
                 ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
@@ -553,7 +558,7 @@ function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange 
   draft: SheetDraft;
   play: LinkedPlay;
   tracks: UnitTrack[];
-  onSelectGeometry: (id: string) => void;
+  onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const formationConditionIds = new Set((play.formations ?? [])
@@ -633,7 +638,7 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
   projection: PlayProjection;
   triggerId: string;
   tracks: UnitTrack[];
-  onSelectGeometry: (id: string) => void;
+  onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const role = draft.orders.roles.find((entry) => entry.id === projection.roleId)!;
@@ -736,7 +741,7 @@ function AlongTheWayControls({
   play: LinkedPlay;
   catalog: TacticalSheetCatalog;
   practiceReplay?: ReplayModel;
-  onSelectGeometry: (id: string) => void;
+  onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
@@ -773,7 +778,7 @@ function OpportunityProjection({
   role: SheetDraft['orders']['roles'][number];
   catalog: TacticalSheetCatalog;
   practiceReplay?: ReplayModel;
-  onSelectGeometry: (id: string) => void;
+  onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
@@ -852,6 +857,12 @@ function OpportunityProjection({
           <SignatureUseEditor value={use} role={role} roles={draft.orders.roles}
             catalog={catalog} mapPlan={draft.mapPlan}
             onOpenMap={(focus) => { if (focus?.id) onSelectGeometry(focus.id); }}
+            onCreateAnchor={() => {
+              const result = addSignatureOpportunityAnchor(
+                draft, play.id, projection.id, view.binding.id);
+              onChange(result.draft);
+              onSelectGeometry(result.anchorId, true);
+            }}
             onChange={(nextUse) => onChange(updateSignatureOpportunityUse(
               draft, play.id, projection.id, view.binding.id, nextUse))} />
           {(descriptor?.defaultCommitmentBehavior === 'preserve-by-default'

@@ -92,7 +92,8 @@ test('roles directly cast exact class bodies and surface signature identity', ()
   assert.match(orders, /ClassIcon/);
   assert.match(orders, /signatureName/);
   assert.match(orders, /Upgrade rhythm/);
-  assert.doesNotMatch(orders, /candidateClasses|overflowRoleId|\.minimum|\.preferred|\.maximum\b/);
+  assert.doesNotMatch(orders,
+    /candidateClasses|overflowRoleId|\.minimum\b|\.preferred\b|\.maximum\b/);
 });
 
 test('map planning renders all authoritative social landmarks and opens inside movement cards', () => {

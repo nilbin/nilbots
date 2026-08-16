@@ -27,6 +27,7 @@ export default function SignatureUseEditor({
   catalog,
   mapPlan,
   onOpenMap,
+  onCreateAnchor,
   onChange,
 }: {
   value: UseOrder;
@@ -35,6 +36,9 @@ export default function SignatureUseEditor({
   catalog: TacticalSheetCatalog;
   mapPlan: MapPlanDocument;
   onOpenMap: (focus?: SignatureMapFocus) => void;
+  /** Play editors can create and bind an exact target without making the
+   * author leave this opportunity to maintain map-object ids manually. */
+  onCreateAnchor?: () => void;
   onChange: (next: UseOrder) => void;
 }) {
   const skills = [...new Set(role.classes.map((classId) =>
@@ -99,8 +103,11 @@ export default function SignatureUseEditor({
       <b className="type-display mt-1 block text-[16px]">{preset.title}</b>
       <p className="t-micro mt-1">{preset.description}</p>
       {presetNeeds ? <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
-        onClick={() => onOpenMap()}>
-        Add a Play {presetNeeds} on the map first
+        onClick={() => presetNeeds === 'anchor' && onCreateAnchor
+          ? onCreateAnchor() : onOpenMap()}>
+        {presetNeeds === 'anchor' && onCreateAnchor
+          ? 'Place and bind this target on the map'
+          : `Add a Play ${presetNeeds} on the map first`}
       </button> : <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
         onClick={() => onChange(presetOrder!)}>Use these editable defaults</button>}
     </div>
@@ -207,6 +214,10 @@ export default function SignatureUseEditor({
           else delete next.at;
           onChange(next);
         }} />
+      {onCreateAnchor && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={onCreateAnchor}>
+        ＋ Place a new exact target on the map
+      </button>}
       {value.at && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
         onClick={() => onOpenMap({ kind: 'anchor', id: value.at! })}>
         Inspect {humanize(value.at)} on map

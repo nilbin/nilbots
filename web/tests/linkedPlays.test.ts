@@ -23,6 +23,7 @@ import {
   addPlayGeometry,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
+  addSignatureOpportunityAnchor,
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
@@ -349,6 +350,19 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
   assert.ok(linked.mapPlan.zones[activation.zoneId]);
   assert.equal(linked.workshop.plays[0].ownedGeometry.some((entry) =>
     entry.kind === 'zone' && entry.id === activation.zoneId), true);
+
+  current = linked.workshop.plays[0].projections[0];
+  view = signatureOpportunityViews(current, linked.orders.conditions)[0];
+  const exactTarget = addSignatureOpportunityAnchor(
+    linked, playId, current.id, view.binding.id);
+  linked = exactTarget.draft;
+  assert.deepEqual(linked.mapPlan.anchors[exactTarget.anchorId], [15, 13]);
+  assert.equal(linked.workshop.plays[0].ownedGeometry.some((entry) =>
+    entry.kind === 'anchor' && entry.id === exactTarget.anchorId
+      && entry.purpose === 'use.at for repair-beam'), true);
+  current = linked.workshop.plays[0].projections[0];
+  view = signatureOpportunityViews(current, linked.orders.conditions)[0];
+  assert.equal(view.use.use?.at, exactTarget.anchorId);
 
   current = linked.workshop.plays[0].projections[0];
   view = signatureOpportunityViews(current, linked.orders.conditions)[0];

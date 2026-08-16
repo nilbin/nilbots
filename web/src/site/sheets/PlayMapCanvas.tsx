@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -21,22 +22,26 @@ export default function PlayMapCanvas({
   play,
   side,
   selectedId,
+  startDrawingId,
   tracks = [],
   onSelect,
   onMoveAnchor,
   onSetZone,
   onAppendRoute,
+  onDrawingStarted,
 }: {
   catalog: TacticalSheetCatalog;
   mapPlan: MapPlanDocument;
   play: LinkedPlay;
   side: MapPreviewSide;
   selectedId: string | null;
+  startDrawingId?: string | null;
   tracks?: UnitTrack[];
   onSelect: (id: string) => void;
   onMoveAnchor: (id: string, point: [number, number]) => void;
   onSetZone: (id: string, rect: [number, number, number, number]) => void;
   onAppendRoute: (id: string, point: [number, number]) => void;
+  onDrawingStarted?: () => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -45,6 +50,13 @@ export default function PlayMapCanvas({
   const [zonePreview, setZonePreview] = useState<[number, number, number, number] | null>(null);
   const owned = new Map(play.ownedGeometry.map((entry) => [entry.id, entry]));
   const selected = selectedId ? owned.get(selectedId) : undefined;
+  useEffect(() => {
+    if (!startDrawingId || startDrawingId !== selectedId
+      || side === 'east' || !selected || selected.derivedFrom)
+      return;
+    setDrawing(true);
+    onDrawingStarted?.();
+  }, [onDrawingStarted, selected, selectedId, side, startDrawingId]);
   const transform = (point: Point): Point => side === 'east'
     ? { x: catalog.map.width - 1 - point.x, y: catalog.map.height - 1 - point.y }
     : point;
