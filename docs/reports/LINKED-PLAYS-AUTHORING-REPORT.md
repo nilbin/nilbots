@@ -305,6 +305,11 @@ The current recipe is therefore only three ticks faster over three Cores. That
 is an honest mechanics read, not a balance conclusion or a claim that every
 Core will offer three legal Tosses.
 
+The focused phone gallery is served from detached sessions at
+`https://hopes-locations-congress-while.trycloudflare.com/`. Its card explicitly
+labels Idle Field as an inert mechanics target and points to the first Core's
+three Tosses at ticks `73/126/149`.
+
 The web regression now evaluates Running Relay geometry against Tapline's real
 wall grid and pins all three source/approach/pocket relationships. The direct
 executor's generic `aheadVia` projection treats a body in a one-tile side pocket
