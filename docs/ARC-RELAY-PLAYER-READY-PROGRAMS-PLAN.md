@@ -87,6 +87,11 @@ Preserve these constraints throughout:
   not a runtime Program call. Carrying state plus the one top-to-bottom Program
   order still causes takeover; the linked Program owns its return route,
   escorts, opportunities, and fallbacks exactly once.
+- Core value remains ordinary evidence and target filtering—not a separate
+  custody-policy engine. Pickup preference, carrier routing, escorting,
+  handoff/Toss, and voluntary drop all materialize through the same Conditions,
+  target resolution, local Instruction order, and Program priority already in
+  use elsewhere.
 - Combined readiness means every participant sees the same ordinary gate; it
   does not promise simultaneous actions. A higher Program, death, displacement,
   or dynamic illegality may still affect one participant independently, and
@@ -897,6 +902,113 @@ distance/candidate implementation so the UI cannot say “within five” while t
 action chases something farther away. Walking onto the Core remains the
 existing physical pickup rule; do not add a `pickup` action.
 
+##### Value-aware pickup and custody
+
+The underlying Instructions language already exposes
+`self-carried-core-bank-value` and
+`highest-bank-value-known-loose-core`. Preserve both. The first can already
+gate return movement, Fight, signature use, handoff, or `drop`; the second can
+prefer a distant higher-value Core from the persistent known ledger. That is
+not yet sufficient normal Program UX: it cannot express “take a 4-point Core
+within seven walking steps, otherwise take any Core within three,” and the
+known target is not the currently-visible nearby behavior promised here.
+
+Add one reusable Core-value comparison shape:
+
+```json
+"coreBankValue": { "operator": "at-least", "value": 2 }
+```
+
+The operator is `equals`, `at-least`, or `at-most`; value is `1..4`. The normal
+UI labels this **Core is worth** and obtains the current attainable values and
+point terminology from the rules catalog. On current Tapline these are
+team-relative 1/2/4 bank points. Do not infer value from map coordinates in the
+editor.
+
+Allow that shape on the matching visible-Core distance fact and target:
+
+```json
+{
+  "fact": "self-nearest-visible-loose-core-distance",
+  "operator": "at-most",
+  "value": 7,
+  "coreBankValue": { "operator": "equals", "value": 4 }
+}
+
+{
+  "move": {
+    "to": "highest-bank-value-visible-loose-core",
+    "withinWalkingSteps": 7,
+    "coreBankValue": { "operator": "equals", "value": 4 }
+  }
+}
+```
+
+`nearest-visible-loose-core` remains the default and orders by legal walking
+distance then stable Core identity. The new
+`highest-bank-value-visible-loose-core` orders by team-relative bank value,
+then legal walking distance, then stable Core identity. Both filter by
+`coreBankValue` and `withinWalkingSteps` **before** capacity allocation. The
+qualified distance fact uses the identical candidate filter; no qualifying
+Core makes the fact false and the target empty. Existing unqualified visible
+and known targets retain their exact behavior.
+
+Expose two independent, compact recovery choices:
+
+- **Core is worth:** Any, Exactly N, At least N, or At most N;
+- **Prefer:** Closest or Highest value, then closest.
+
+Allow several normal recovery cards in the same real local order. This makes a
+player-authored ladder such as the following ordinary rather than a hidden
+utility calculation:
+
+```text
+1. Recover a 4-point visible Core within 7 walking steps
+2. Recover a visible Core worth at least 2 within 5 walking steps
+3. Recover any visible Core within 3 walking steps
+Otherwise continue North Loop
+```
+
+Each card still uses the visible **Pursuers per Core** capacity relationship.
+False value/distance filters, no candidate, and capacity loss proceed to the
+next candidate or card in the same tick. The editor shows the qualifying Cores
+and their values on the map so “highest value” is inspectable, not an opaque AI
+score.
+
+Expose the existing `self-carried-core-bank-value` fact normally as **Carried
+Core is worth**, automatically paired with `self-carrying = 1`. A linked Bank
+Program may then contain visibly ordered carrier cases without duplicating the
+source recovery configuration:
+
+```text
+Bank carried Core
+1. Worth 4: Long Safe Return · two escorts
+2. Worth at least 2: Centre Return · one escort
+3. Any carried Core: Direct Return
+```
+
+These are ordinary value-gated participant branches. The first executable
+branch wins; no Core-policy evaluator chooses a route. A recovery card may link
+to this one banking Program regardless of which qualifying Core it collects.
+
+Permit the same `coreBankValue` filter on
+`nearest-friendly-core-carrier` Follow so an escort branch can say “escort a
+4-point carrier” through ordinary target resolution and **Escorts per
+carrier** capacity. An unqualified lower Follow branch can handle every other
+carrier. No team-level carrier-value mode or dynamic role assignment is added.
+
+Finally, expose ordinary **Handoff Core**, legal Core-carrying signature
+opportunities such as Arc Toss, and **Drop Core** as one-shot leaves above a
+Bank participant's durable return continuation. They use the same **Carried
+Core is worth** and Additional Conditions controls as any other leaf. Drop is
+the existing physical action: it chooses the legal adjacent tile nearest the
+owner's reactor, does not destroy or bank the Core, does not start that Well's
+recharge, and invokes the normal source-body reclaim delay. The UI must state
+those consequences and warn about a repeatable pickup/drop loop; it must not
+present Drop as discard or permit an authored landing tile. A false Condition,
+no receiver, illegal signature, or unavailable Drop falls through to the next
+ordinary sibling in the same tick.
+
 Use **Pursuers per Core: 1** by default according to the player-friendly
 capacity rules above. A body that loses the claim tries another visible,
 reachable, in-bound Core and then the next Opportunity card. Claims remain
@@ -987,14 +1099,15 @@ or one body inside a multi-body role, becomes the carrier:
 }
 ```
 
-It resolves live allied Core carriers by legal terrain-path distance and then
-stable unit id. With an ordinary capacity on the Follow leaf, a losing escort
-tries the next carrier and then its next Instruction in the same tick. Expose
-that existing target-local capacity as **Escorts per carrier**. No target means
-the Follow leaf yields; there is no dynamic role assignment, escort
-reservation, sticky carrier claim, hidden route constraint, or escort state.
-The carrying body's return branch remains above its empty-handed escort branch
-when one static role is eligible for both.
+It resolves live allied Core carriers that match its optional
+`coreBankValue` filter by legal terrain-path distance and then stable unit id.
+With an ordinary capacity on the Follow leaf, a losing escort tries the next
+carrier and then its next Instruction in the same tick. Expose that existing
+target-local capacity as **Escorts per carrier**. No target means the Follow
+leaf yields; there is no dynamic role assignment, escort reservation, sticky
+carrier claim, hidden route constraint, or escort state. The carrying body's
+return branch remains above its empty-handed escort branch when one static
+role is eligible for both.
 
 If pickup should end the tactic rather than merely interrupt it for banking,
 the player chooses **Core acquired** through the Program's normal success/end
@@ -1155,6 +1268,10 @@ For a selected Program and body, Practice must answer:
 - the source recovery card's linked banking Program, whether that structurally
   valid higher Program actually took over, which carrier each escort resolved,
   and any **Escorts per carrier** capacity loss or later fallback;
+- every visible Core's team-relative bank value considered by a recovery card,
+  the value/distance filter and preference that selected or rejected it, the
+  carried-value branch that won, and the exact consequence of handoff, Toss, or
+  Drop;
 - whether Fight inherited a Program response or used On-contact activation,
   shown separately from its target/style/chase configuration;
 - capacities in their player-facing terms—such as “one pursuer already owns
@@ -1453,12 +1570,34 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     takes the authored return route; after banking, dropping, or carrier death,
     ordinary eligibility makes that body resume the correct lower behavior
     without a Program call or return stack.
-34. `nearest-friendly-core-carrier` Follow selects only a live allied carrier,
-    orders candidates by legal path distance then unit id, and yields when none
-    exists. Shared **Escorts per carrier** capacity distributes eligible
-    escorts across two carriers, sends a loser to its next candidate or local
-    continuation in the same tick, and releases immediately after the target
-    banks, drops, or dies without a reservation or sticky assignment.
+34. `nearest-friendly-core-carrier` Follow selects only a live allied carrier
+    satisfying its optional `coreBankValue` filter, orders candidates by legal
+    path distance then unit id, and yields when none exists. Shared **Escorts
+    per carrier** capacity distributes eligible escorts across two carriers,
+    sends a loser to its next candidate or local continuation in the same tick,
+    and releases immediately after the target banks, drops, or dies without a
+    reservation or sticky assignment.
+35. Qualified `self-nearest-visible-loose-core-distance`,
+    `nearest-visible-loose-core`, and
+    `highest-bank-value-visible-loose-core` use one team-relative value,
+    visibility, legal-path, blocker, reservation, and walking-bound candidate
+    helper. No matching Core makes the fact false and both targets empty;
+    historical unqualified visible/known targets are unchanged.
+36. Closest preference orders qualifying Cores by walking distance and stable
+    identity; highest-value preference orders by value, walking distance, then
+    identity. Filtering precedes target capacity, and a capacity loser can try
+    another in-bound qualifying Core and then the next differently filtered
+    recovery card without pursuing a rejected value or waiting.
+37. A 4-point carried Core selects the first value-gated safe-return branch and
+    its high-value escort Follow; 1- and 2-point Cores select their authored
+    lower branches. Handoff, Arc Toss, and Drop leaves read the same existing
+    `self-carried-core-bank-value` truth and false/illegal one-shots consider
+    the durable return sibling in the same tick.
+38. An accepted value-gated Drop uses the engine's deterministic adjacent
+    toward-home landing rule, leaves the Core outstanding, starts no Well
+    recharge, and enforces the existing source reclaim delay. The carrier
+    falls through after custody ends, and a focused scene rejects an accidental
+    repeatable pickup/drop cycle rather than treating Drop as discard.
 
 ### Materializer/editor tests
 
@@ -1567,6 +1706,23 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     and whose selected empty-handed escorts use
     `nearest-friendly-core-carrier` Follow leaves with ordinary target-local
     capacity. **Edit linked Program** always edits that same owner.
+30. The recovery card exposes value comparison and Closest/Highest-value
+    preference once, then materializes the identical `coreBankValue` qualifier
+    into its distance Condition and visible-Core target. Editing either human
+    control updates all owned sources atomically and never produces mismatched
+    candidate sets.
+31. Several differently filtered recovery cards remain separate ordinary
+    siblings in the exact displayed order while sharing the intended
+    **Pursuers per Core** coordination group. Reorder, undo/redo, save/reload,
+    copy, detach, and drift checks preserve filters and actual priority.
+32. **Carried Core is worth** reuses
+    `self-carried-core-bank-value` plus `self-carrying = 1` across return,
+    Follow, Handoff, signature, and Drop authoring; it does not create a second
+    fact, Core-policy document, or action-specific condition editor.
+33. Adding value-gated Handoff/Toss/Drop above a Bank return uses the same local
+    one-shot and fallback materializer as other opportunities. Drop's normal
+    UI explains fixed landing, outstanding supply, no recharge, reclaim delay,
+    and cycle risk, and offers no discard or landing-target control.
 
 ### Browser acceptance
 
@@ -1664,6 +1820,27 @@ In a fifth normal-surface flow, without opening Advanced:
    every linked source updates or reports one actionable blocking repair—never
    duplicated hidden configuration.
 
+In a sixth normal-surface flow, without opening Advanced:
+
+1. stack three nearby-Core cards: 4 points within seven steps, at least 2
+   points within five, and any value within three;
+2. switch the first card between **Closest** and **Highest value, then closest**
+   and inspect the exact qualifying/ranked Cores on the map;
+3. run a deterministic scene containing several visible Cores at conflicting
+   values, distances, and capacities, and observe the displayed first
+   actionable card select the same Core reported by Practice;
+4. open the one linked banking Program and author visible 4-point safe-return,
+   2-point normal-return, and any-value direct-return carrier cases;
+5. add a high-value-only escort Follow plus an unqualified lower escort Follow,
+   then add value-gated Handoff, Arc Toss where legal, and Drop leaves above
+   the durable return;
+6. prove a false or illegal transfer/drop reaches return movement in the same
+   tick, while an accepted Drop lands adjacently toward home, starts no Well
+   recharge, and does not enter a pickup/drop cycle; and
+7. reorder/refine/save/reload all filters and cases while every source card,
+   map highlight, generated-priority preview, and Practice reason stays in
+   agreement.
+
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
 
@@ -1743,6 +1920,12 @@ It is complete only when all of the following are true:
     eligible picker, may coordinate capacity-bounded escorts around the actual
     carrier, owns its configuration once, and resumes ordinary lower Programs
     after custody ends without a runtime Program reference or transition.
+22. A player can prefer/filter visible Cores by team-relative value and walking
+    distance, stack those choices in the real local order, and branch the one
+    linked banking tactic by carried value—including escorts, Handoff, legal
+    signature use, and explicit Drop—without Advanced edits or a separate Core
+    policy system. Every value, candidate rejection, takeover, and Drop
+    consequence is visible in the map editor and Practice.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -1766,10 +1949,13 @@ an explicit release checkpoint.
    use, combat interruption, health recovery, and target-loss fallthrough.
 2. **Semantic foundation** — implement `deployment-in-zone`,
    `self-nearest-visible-loose-core-distance`, the matching
-   `nearest-visible-loose-core`/`withinWalkingSteps` target contract,
+   `nearest-visible-loose-core` and
+   `highest-bank-value-visible-loose-core` targets, `withinWalkingSteps`, and
+   their shared `coreBankValue` qualifier,
    `self-nearest-heal-zone-distance` with bounded `nearest-heal-zone`,
-   `nearest-friendly-core-carrier` Follow resolution, commitment
-   materialization, not-ready staging, and focused runtime/compiler tests.
+   value-filtered `nearest-friendly-core-carrier` Follow resolution,
+   commitment materialization, not-ready staging, and focused runtime/compiler
+   tests.
 3. **Post linkage** — add backward-compatible workshop linkage, derived
    geometry synchronization, human-labelled/defaulted Core and Healing
    capacity groups, readiness, maintenance, drift, and undo/redo tests.
@@ -1781,8 +1967,9 @@ an explicit release checkpoint.
    response versus On-contact activation, nearby-Core and health-recovery cards
    in the one real local order, linked higher carrier-Program
    create/choose/extend/reorder/edit UX, escort Follow/capacity controls,
-   all-signature family coverage, legality preview, normal trigger/outcome
-   controls, and mobile editing flow.
+   visible Core-value filters/preferences and carried-value return/transfer/drop
+   controls, all-signature family coverage, legality preview, normal
+   trigger/outcome controls, and mobile editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
    and replay evidence; add selected-body why/timeline views including local
    Opportunity order, host/phase, health lifecycle, walking-distance rejection,
@@ -1810,6 +1997,8 @@ Do not expand this goal into:
   hidden transition to Core Return;
 - a recovery governor, automatic health triage, hidden healing priority, or a
   new `heal` action;
+- an automatic Core-utility score, custody-policy document, hidden
+  value-to-route chooser, discard action, or authored Drop landing tile;
 - arbitrary nested Conditions or a visual programming language;
 - waypoint action scripts, patrol queues, hidden visit/lap state, or a second
   route-local priority system;
