@@ -151,7 +151,8 @@ Capacity is mandatory in this design, not an Advanced afterthought:
 - an exact one-body Post defaults to capacity 1;
 - two Posts for a two-body role materialize two capacity-1 movement targets;
 - each required Post receives its own role-qualified readiness zone/Condition,
-  so one body cannot satisfy two exact slots;
+  and the overlap rule below prevents one eligible body from satisfying two
+  required slots;
 - multiple different roles may participate in the same formation/readiness
   group;
 - all required slots must be occupied before the group reports ready;
@@ -165,6 +166,17 @@ visibly warn when the chosen tolerance areas could violate the configured
 spread. This preserves the earlier acceptance rule that an ambush does not arm
 until all required bodies are in their granular positions and sufficiently
 nearby.
+
+Independent count Conditions are not enough to make overlapping tolerance
+areas distinct: one eligible body could otherwise be counted once in each
+area. For required Posts whose eligible body pools overlap, the normal editor
+must reject intersecting readiness envelopes and highlight the conflicting
+tiles/Posts. Offer the player the direct repairs: move a Post, reduce its
+tolerance, or assign disjoint roles. Do not merely warn and then materialize an
+ambiguous all-slots-ready gate, and do not add a hidden runtime assignment or
+matching system to compensate. Required Posts backed by disjoint role/body
+pools may overlap because no body can satisfy both. Pin this validation for
+zero- and non-zero-tolerance Posts.
 
 ### Backward-compatible editor linkage
 
@@ -380,6 +392,13 @@ Make the waiting policy visible:
 The Program card must state which choice currently prevents or permits lower
 Programs. This is crucial to keeping top-to-bottom priority understandable.
 
+When **Hold these Posts** is selected, arriving participants remain on their
+assigned Posts until engagement, an authored abort/rearm condition, death, or
+normal higher-priority pre-emption. This must be a stable ordinary hold
+continuation, not an unconditional preparation node that repeatedly exits and
+re-enters. The Mid Overload proof below must use this policy for both staged
+formations.
+
 ## 5. Improve condition and signature ergonomics without another language
 
 Replace the single disabled “When” dropdown behavior on signature
@@ -415,6 +434,62 @@ authoring, not natural-language parsing and not a hidden inference engine.
 All signature target capabilities remain descriptor-driven. Adding a future
 signature with an existing target shape must not require a switch in the Post,
 Program, or map components.
+
+### Route-forward movement signatures
+
+Keep Kestrel's existing generic `RouteForward` signature target available in
+the normal Program surface. It is the appropriate counterpart to route-aware
+movement, but it is not Relay's `aheadVia` and it is not a Kestrel Program
+recipe or runtime state. Dash needs a destination, so the ordinary signature
+resolver derives one from the selected route's immediate legal forward course.
+
+The complete normal authoring flow should read approximately:
+
+```text
+Kestrel corridor run
+While inside Raid Dash Window
+Dash at least 2 tiles forward along Long Corridor when legal
+Otherwise continue along Long Corridor
+```
+
+From the map-first Program surface the player must be able to:
+
+1. select the Kestrel role (a one-body role in the proof, resolved through
+   ordinary role allocation rather than a fixed unit id);
+2. draw or select the terminal movement route;
+3. draw the tile/zone/corridor span in which Dash may be attempted;
+4. choose the minimum useful forward gain;
+5. preview the eligible straight spans and understand that one Dash cannot
+   turn a corner; and
+6. choose ordinary movement along that same route as the same-tick fallback.
+
+Materialize the existing ordinary shape, with the activation zone included in
+the opportunity's normal `when` clauses:
+
+```json
+{
+  "skill": "vector-dash",
+  "target": {
+    "route": "long-corridor",
+    "progress": "forward",
+    "minimumForwardTiles": 2
+  }
+}
+```
+
+The use leaf remains immediately above the ordinary route-movement sibling.
+The existing route-forward resolver must choose only a legal, heading-aligned,
+unoccupied straight destination that advances sufficiently along the current
+course. At a bend, outside the activation window, on cooldown, without enough
+gain, or when the span is illegal, it declines with a non-empty reason and the
+same route movement is considered in that same tick. It must never manufacture
+an off-route shortcut, reverse progress, or require hard-coded waypoint
+anchors. Existing signature commitment/tell handling remains authoritative.
+
+This workflow must be descriptor-driven: another future movement signature
+that publishes `RouteForward` receives the same controls without a skill-id
+switch. Kestrel supplies the required proof because it is the current class
+with that capability.
 
 ## 6. Make Practice explain Programs well enough to iterate
 
@@ -471,7 +546,8 @@ The exact class mix may be refined, but a valid illustrative split is:
 - **5-body return ambush:** the other Mason plus four mixed-role bodies at five
   exact Posts; maintain a second wall on the predicted return lane;
 - **1-body raid:** Kestrel takes the authored long corridor toward the enemy
-  Well and uses route-forward Dash only in its legal activation span.
+  Well and uses the normal route-forward Dash Program flow only in its legal
+  activation span.
 
 The shared trigger is at least five **remembered/known** enemies in the drawn
 mid area within an explicit freshness window. It must not depend on them all
@@ -482,10 +558,13 @@ Acceptance behavior:
 - each ambush has multiple roles and capacity-1 exact slots;
 - it reports every slot and required deployment separately;
 - neither ambush arms until all its required setup is ready;
+- both staged groups use **Hold these Posts** and remain stable while waiting,
+  without preparation-node re-entry churn;
 - the response stays committed for its configured minimum even when an enemy
   leaves mid or visibility changes two seconds later;
-- each wall is maintained at its own intended tile;
-- the Kestrel contingent can proceed independently;
+- each Mason actually casts and maintains its wall at its own intended tile;
+- the Kestrel contingent proceeds independently from tick one and actually
+  accepts at least one contextual route-forward Dash in its authored span;
 - success/timeout returns participants to an explicit continuation rather than
   leaving them without work;
 - changing 2/5/1 to 3/4/1, moving either ambush to the opposite corridor,
@@ -537,14 +616,26 @@ Through normal Program controls the player must be able to:
 - prevent the non-carrier from outrunning its next rendezvous;
 - keep both bodies on the authored corridor through ordinary movement
   continuations;
+- express Toss attempts through ordinary carrying-state gates so a successful
+  catch naturally swaps carrier and receiver duties without a Program phase or
+  role reassignment;
 - change a rendezvous or minimum gain and regenerate linked Instructions
   without editing Conditions, source zones, or derived anchors manually.
 
-The focused proof only needs to succeed against Idle Field. Compare it with a
-solo carrier on the exact same route and current rules so the replay shows
-whether the Tosses actually accelerate delivery. This is a behavior/stress
-proof, not a balance claim. Inspect the generated Instructions and assert that
-the race contains no `aheadVia` or other race-only executable field.
+An unavailable or illegal Toss must consider the carrier's ordinary forward
+movement in the same tick. A missed opportunity must never introduce waiting,
+reversal, backtracking, or a local orbit; only the receiver's explicitly
+authored rendezvous hold may wait, and it must not outrun the next useful catch
+Post. Pin these as route/motion assertions rather than judging only the final
+bank.
+
+The focused proof only needs to run against Idle Field, but it is not accepted
+merely because the Core eventually banks. Compare it deterministically with a
+solo Relay carrying along the exact same route and current rules: the
+coordinated Program must bank sooner. This is an execution/usability proof of
+the authored tactic, not a population balance claim. Inspect the generated
+Instructions and assert that the race contains no `aheadVia` or other
+race-only executable field.
 
 Design audit on 2026-08-16: the current generated exact-station race was copied
 to a temporary diagnostic and all three `aheadVia`/`minimumForwardTiles` pairs
@@ -555,10 +646,15 @@ gameplay-state digest
 `6dc664434a8f482a412cda2d107102d291694647698124bcd62169e688a87260`.
 This establishes redundancy for the exact-Post construction; it is not a
 general argument against the Advanced dynamic-route qualifier. The same-route
-solo control finished at `t359`, so this baseline succeeds mechanically but
-does not currently demonstrate acceleration. Preserve that honest comparison
-until the new authoring round produces and explains a better staged tactic;
-do not convert the diagnostic into a balance claim or silently omit it.
+solo control finished at `t359`, so the current `t462` staged baseline is a
+known failing starting point for the stronger proof—it succeeds mechanically
+but does not accelerate delivery. First refine the ordinary Program geometry,
+conditions, rendezvous behavior, and continuation using trace evidence. Do not
+weaken or silently omit the sooner-than-solo gate, and do not add hidden race
+state or restore `aheadVia` merely to pass it. If current general Arc Toss
+mechanics make acceleration impossible after honest authored alternatives are
+exhausted, report that blocker with exact replay evidence rather than silently
+tuning the signature inside this authoring goal.
 
 ## 8. Acceptance scenes and tests
 
@@ -590,6 +686,14 @@ Implement trace-first and pin the smallest scenes before broad UI work.
 13. An exact source-zone + exact one-body receiver-Post Arc Toss resolves and
     advances through an ordinary role target with no `aheadVia`; displacement
     from either Post makes it fall through to corridor movement.
+14. A Kestrel inside its activation zone accepts a legal route-forward Dash;
+    outside the zone, at a bend, on cooldown, obstructed, or below minimum gain
+    it selects the ordinary same-route movement sibling in the same tick.
+15. Route-forward Dash never chooses an off-route/reverse destination and
+    resumes the same terminal route after its authoritative commitment.
+16. A successful Toss changes ordinary carrying state so the two one-body
+    Relay roles exchange carrier/receiver behavior without Program state; an
+    unavailable Toss creates no wait, reversal, backtrack, or local orbit.
 
 ### Materializer/editor tests
 
@@ -612,6 +716,13 @@ Implement trace-first and pin the smallest scenes before broad UI work.
 9. Running Relay source/receiver Post geometry computes forward route gain in
    the editor, rejects insufficient or ambiguous station relationships, and
    generates an ordinary role-target Toss with no `aheadVia`.
+10. Required Posts with overlapping eligible-body pools and intersecting
+    tolerance envelopes cannot be materialized; the editor highlights the
+    overlap and offers spatial/role repairs. Disjoint body pools remain legal.
+11. A blank Program can create the complete Kestrel corridor sentence by
+    selecting a route, activation zone, and minimum gain; it generates the
+    descriptor-driven route-forward use plus same-route continuation without
+    Advanced edits or hard-coded anchors.
 
 ### Browser acceptance
 
@@ -628,6 +739,16 @@ starter sheet, without opening Advanced:
 8. click the Mason and explain whether/why it moved, faced, cast, held,
    committed, and exited;
 9. save, reload, and rerun the same scenario/seed.
+
+In a second normal-surface flow, without opening Advanced:
+
+1. select the Kestrel raid participant;
+2. draw/select its long terminal corridor and Dash activation span;
+3. change the minimum forward gain;
+4. inspect the straight-span preview and same-route fallback summary;
+5. run the Mid Overload drill and observe a contextual Dash; and
+6. drag the activation span or route and regenerate/save/reload without
+   breaking linkage.
 
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
@@ -648,9 +769,11 @@ It is complete only when all of the following are true:
 5. Waiting/staging choices do not silently starve lower Programs.
 6. Mid Overload actually triggers in its deterministic drill and exposes its
    2/5/1 behavior in Practice.
-7. Running Relay advances and banks against Idle Field, generates no
-   `aheadVia`/race-only executable field, and remains editable through
-   Programs; the same-route solo control is linked beside the proof.
+7. Running Relay banks sooner than the same-route solo Relay against Idle
+   Field, naturally swaps duties through carrying state, produces no missed-use
+   wait/reversal/backtrack/orbit, generates no `aheadVia`/race-only executable
+   field, and remains editable through Programs; the deterministic solo
+   control is linked beside the proof.
 8. Both starter sheets are legal eight-body, seven-class rosters with one
    duplicate and complete fallbacks.
 9. A player can identify the current Program and “why” for any selected body
@@ -669,9 +792,11 @@ evidence. Outcomes are behavior records only; make no balance verdict and do
 not run a battery or sweep unless the owner separately asks.
 
 Owner review requires a verified public Cloudflare tunnel URL, production
-browser evidence, a concise implementation report, a clean worktree, and the
-final commit SHA. Do not deploy. Do not rebuild the tracked tactical WASM
-mirror during this design loop; that remains an explicit release checkpoint.
+browser evidence, and a concise implementation report that links the exact
+deterministic replay/trace evidence and states every remaining limitation. It
+also requires a clean worktree and the final commit SHA. Do not deploy. Do not
+rebuild the tracked tactical WASM mirror during this design loop; that remains
+an explicit release checkpoint.
 
 ## Implementation order
 
@@ -684,8 +809,9 @@ mirror during this design loop; that remains an explicit release checkpoint.
    geometry synchronization, capacities, readiness, maintenance, drift, and
    undo/redo tests.
 4. **Map-first UX** — build the Post inspector, facing arrow, target/activation
-   distinction, legality preview, normal trigger/outcome controls, and mobile
-   editing flow.
+   distinction, overlap prevention, descriptor-driven route-forward Dash
+   controls/preview, legality preview, normal trigger/outcome controls, and
+   mobile editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
    and replay evidence; add the selected-body why/timeline views.
 6. **Starter doctrines** — finish Mid Overload and Running Relay as two legal,
