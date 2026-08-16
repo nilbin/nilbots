@@ -208,6 +208,28 @@ test('signature whole-body acting gives the grammar distinct physical verbs', ()
   assert.notDeepEqual(hook, mortar, 'two casts do not share one generic pulse');
 });
 
+test('Arc Toss acts on its post-combat release and settles during flight', () => {
+  const release = arcSignatureBodyPose('arc-toss', 'in-flight', 0);
+  const settled = arcSignatureBodyPose('arc-toss', 'in-flight', 0.8);
+  const historicalTell = arcSignatureBodyPose('arc-toss', 'tell', 0.55);
+
+  assert.ok(
+    release.rise > 0 && release.forward > 0 && release.pitch < 0,
+    'the body throws on the authoritative launch tick',
+  );
+  assert.deepEqual(
+    settled,
+    { scale: 1, rise: 0, forward: 0, lateral: 0, roll: 0, pitch: 0, yaw: 0 },
+    'the release does not masquerade as a multi-tick windup',
+  );
+  assert.ok(historicalTell.forward > 0, 'old tell-bearing replays remain legible');
+  assert.deepEqual(
+    arcSignatureBodyPose('arc-toss', 'in-flight', -0.01),
+    { scale: 1, rise: 0, forward: 0, lateral: 0, roll: 0, pitch: 0, yaw: 0 },
+    'the body stays neutral before the post-combat release instant',
+  );
+});
+
 test('Sentinel Seed body acting preserves floor clearance for its whole tell', () => {
   for (let sample = 0; sample <= 20; sample += 1) {
     const pose = arcSignatureBodyPose('sentinel-seed', 'tell', sample / 10);

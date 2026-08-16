@@ -268,9 +268,11 @@ the independently sharp shared impact is corrected locally.
 
 ### Tapline signature audio inventory
 
-`arc-relay-signatures-v2` is an audio-only successor to V1: it keeps the same
-authored visual treatment while preserving V1's old bindings for recorded
-replays. A skill's primary cue is unique across the sixteen-class roster.
+`arc-relay-signatures-v3` is the current package. It preserves V2's distinct
+sixteen-skill vocabulary but places Arc Toss's launch cue at the no-tell,
+post-combat release. Recorded V2 replays retain their earlier one-tick timing
+and V1 retains its old bindings. A skill's primary cue is unique across the
+sixteen-class roster.
 Secondary cues exist only when the replay publishes a second meaningful beat;
 ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 
@@ -284,7 +286,7 @@ ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 | Mortar | Falling Star | `completed` | `signature-falling-star`, one descent/arrival gesture with no second impact layer |
 | Minesmith | Trip Node | `started`, then `triggered` | soft levitating `signature-trip-deploy`, then gravity-pressure `signature-trip-trigger`; trigger priority outranks placement |
 | Hush | Null Field | `activated` | `signature-null`, only when the field becomes active |
-| Relay | Arc Toss | `launched`, then Core landing | `signature-arc-toss` replaces the departure drop; landing keeps shared `arc-drop` |
+| Relay | Arc Toss | post-combat `launched`, then Core landing | `signature-arc-toss` fires late in the accepted tick and replaces the departure drop; landing keeps shared `arc-drop` |
 | Switchback | Exchange | `completed` | `signature-exchange`, only after the paired relocation succeeds |
 | Longshot | Rail Line | `started`, `completed`, optional `signature-damage` | `signature-rail-charge` and `signature-rail-release` replace generic attack layers; a real hit adds shared `impact` |
 | Mason | Hardlight Block | `started` | `signature-mason`, a soft framed-pane projection rise and cushioned field lock distinct from Prism Wall |
@@ -295,7 +297,7 @@ ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 
 Maintenance, suppression, replacement, expiry, voluntary cancellation, and
 interruption stay silent unless a future replay fact gives them an independently
-useful public outcome. V2 priorities protect Falling Star, Trip trigger, Rail
+useful public outcome. V3 priorities protect Falling Star, Trip trigger, Rail
 release, and Core-adjacent Arc Toss from lower-importance placement or sentry
 fire when the two-signature-voice budget is full.
 

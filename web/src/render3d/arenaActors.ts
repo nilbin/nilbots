@@ -50,6 +50,8 @@ import {
   releaseArcSignatureBodyPose,
   type ArcSignatureBodyState,
 } from './arcModelMotion';
+import { ARC_SIGNATURE_PRESENTATION_ID } from '../render/arcSignaturePresentationId';
+import { ARC_TOSS_RELEASE_TICK_OFFSET } from '../render/signatures/definitions/arcToss';
 import {
   createStatusHealthBar,
   faceStatusElement,
@@ -2463,6 +2465,12 @@ export function buildActors(replay: ReplayModel): ArenaActors {
             `${activeSignature.operationId}:${activeSignature.phase}`,
           ) ?? activeSignature.startedTick
         : time;
+      const signatureReleaseOffset =
+        activeSignature?.signatureId === 'arc-toss' &&
+        activeSignature.phase === 'in-flight' &&
+        replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID
+          ? ARC_TOSS_RELEASE_TICK_OFFSET
+          : 0;
       const bodyRelease = !activeSignature
         ? latestSignatureBodyRelease(
             signatureBodyReleases.get(pose.actorKey) ?? [],
@@ -2474,7 +2482,7 @@ export function buildActors(replay: ReplayModel): ArenaActors {
         ? arcSignatureBodyPose(
             activeSignature.signatureId,
             activeSignature.phase,
-            time - signaturePhaseStartedTick,
+            time - signaturePhaseStartedTick - signatureReleaseOffset,
             reducedMotion,
           )
         : bodyRelease

@@ -12,6 +12,8 @@ import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
 } from '../render/arcSignaturePresentation';
+import { ARC_SIGNATURE_PRESENTATION_ID } from '../render/arcSignaturePresentationId';
+import { ARC_TOSS_RELEASE_TICK_OFFSET } from '../render/signatures/definitions/arcToss';
 import { signatureModel } from './lookModel';
 import {
   arcVeterancyFor,
@@ -667,6 +669,15 @@ export function buildArcRelayEffects(
     let used = 0;
     for (const signature of state.visibleSignatures) {
       const phase = arcSignatureVisualPhase(signature, time);
+      const phaseStartedTick = signaturePhaseStarts.get(
+        `${signature.operationId}:${phase}`,
+      ) ?? signature.startedTick;
+      const releaseOffset =
+        replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID &&
+        signature.signatureId === 'arc-toss' && phase === 'in-flight'
+          ? ARC_TOSS_RELEASE_TICK_OFFSET
+          : 0;
+      if (time < phaseStartedTick + releaseOffset) continue;
       const resolution = resolveArcSignaturePresentation(
         replay,
         signature.signatureId,
@@ -748,10 +759,8 @@ export function buildArcRelayEffects(
       const target = targetPose
         ? new THREE.Vector3(targetPose.x + 0.5, 0.08, targetPose.y + 0.5)
         : points[0] ?? owner;
-      const phaseStartedTick = signaturePhaseStarts.get(
-        `${signature.operationId}:${phase}`,
-      ) ?? signature.startedTick;
-      const phaseAge = Math.max(0, time - phaseStartedTick);
+      const visualPhaseStartedTick = phaseStartedTick + releaseOffset;
+      const phaseAge = Math.max(0, time - visualPhaseStartedTick);
       const coreFlightState = signature.signatureId === 'arc-toss' &&
           phase === 'in-flight'
         ? state.visibleCores.find((core) => {
@@ -776,8 +785,8 @@ export function buildArcRelayEffects(
               1,
               phaseAge / Math.max(
                 1,
-                (signature.completesAtTick ?? phaseStartedTick + 1)
-                  - phaseStartedTick,
+                (signature.completesAtTick ?? visualPhaseStartedTick + 1)
+                  - visualPhaseStartedTick,
               ),
             )),
           }

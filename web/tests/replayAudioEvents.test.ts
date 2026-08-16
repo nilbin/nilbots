@@ -679,6 +679,37 @@ test('V2 Arc Toss replaces departure drop audio and Sentinel bolts sound once at
   );
 });
 
+test('V3 Arc Toss sounds on the authoritative post-combat release', () => {
+  const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
+  replay.signaturePresentationId = 'arc-relay-signatures-v3';
+  const tick = replay.ticks[0]!;
+  const template = tick.events[0]!;
+  const owner = tick.before.actors[0]!.identity;
+  tick.events = [
+    {
+      ...structuredClone(template),
+      eventId: 'arc-toss-immediate-launch',
+      type: 'game-mode',
+      sourceActor: owner,
+      projectileId: null,
+      arcRelayFact: {
+        kind: 'signature-changed',
+        operationId: 'arc-toss-immediate-operation',
+        signatureId: 'arc-toss',
+        ownerActor: owner,
+        phase: 'in-flight',
+        reason: 'launched',
+      },
+    } as ReplayCausalEvent,
+  ];
+
+  const sounds = replayAudioEventsAt(replay, 0);
+  assert.equal(sounds.length, 1);
+  const sound = sounds[0]!;
+  assert.equal(sound.cue, 'signature-arc-toss');
+  assert.equal(sound.tickOffset, 0.68);
+});
+
 test('signature audio remains silent for legacy packages, cancellation, and maintenance', () => {
   const replay = replayWithEvents([{ type: 'Shot', slot: 3 }]);
   const tick = replay.ticks[0]!;

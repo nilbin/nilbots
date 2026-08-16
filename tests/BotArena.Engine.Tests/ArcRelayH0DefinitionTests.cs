@@ -261,6 +261,13 @@ public sealed class ArcRelayH0DefinitionTests
         Assert.Equal(
             "arc-relay-signatures-v2",
             presentation.SignaturePresentationId);
+
+        GenericActorReplayPresentation current =
+            ArcRelayH0ReplayPresentation.Create(ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Tapline7));
+        Assert.Equal(
+            "arc-relay-signatures-v3",
+            current.SignaturePresentationId);
     }
 
     [Fact]

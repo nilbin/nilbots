@@ -51,6 +51,7 @@ export function arcSignatureBodyPose(
   reducedMotion = false,
 ): ArcSignatureBodyPose {
   if (!signatureId || !phase) return { ...REST_SIGNATURE_POSE };
+  if (phaseAge < 0) return { ...REST_SIGNATURE_POSE };
   const motion = reducedMotion ? 0.34 : 1;
   const age = Math.max(0, phaseAge);
   const charge = smoothstep(0, phase === 'tell' ? 0.82 : 0.58, age);
@@ -94,11 +95,22 @@ export function arcSignatureBodyPose(
       break;
     case 'survey-flare':
     case 'smoke-canister':
-    case 'arc-toss':
       pose.rise += 0.11 * opening * motion;
       pose.pitch -= 0.18 * commit * motion;
       pose.forward += 0.06 * commit * motion;
       break;
+    case 'arc-toss': {
+      // Historical Tosses still expose their authored tell. The zero-windup
+      // rules line first appears in-flight, so its body cue must begin at the
+      // authoritative release rather than borrowing a pre-release charge.
+      const release = phase === 'tell'
+        ? commit
+        : 1 - smoothstep(0, 0.72, age);
+      pose.rise += 0.1 * release * motion;
+      pose.pitch -= 0.18 * release * motion;
+      pose.forward += 0.07 * release * motion;
+      break;
+    }
     case 'falling-star':
       pose.scale += 0.07 * opening * motion;
       pose.rise -= 0.08 * commit * motion;

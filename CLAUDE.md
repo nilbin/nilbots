@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-6                             # the current local Arc Relay line
+  --loop-profile tapline-7                             # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,12 +208,19 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-6`, whose atomic occupancy contract
+  `--loop-profile` defaults to `tapline-7`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
   `--mind-stepper greedy` is a historical diagnostic control, never the
   implicit owner-gallery path.
+  Tapline-7 keeps Tapline-6's accepted map and complete rules stack but removes
+  Arc Toss's tell: its accepted action resolves in the declared post-combat
+  signature phase, so attacks already committed that tick still reach the
+  carrier before a surviving carrier launches the Core. Its flight advances
+  three tiles per tick, so a maximum-range pass remains readable but lands in
+  two ticks rather than three. This local/review identity does not rewrite the
+  hosted lane.
   Immutable hosted entrant playlist v24 pins `tapline-6`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
   the delayed centre opening, the equal-return map fork, and the parity-proven

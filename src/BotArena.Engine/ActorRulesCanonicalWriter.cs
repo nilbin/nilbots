@@ -405,6 +405,13 @@ internal static class ActorRulesCanonicalWriter
         writer.WriteString("classId", signature.ClassId);
         writer.WriteString("actionId", signature.ActionId);
         writer.WriteNumber("cooldownTicks", signature.CooldownTicks);
+        if (signature.ActivationTiming != ArcRelaySignatureDefinition
+                .ActivationTimingKind.BeforeCombat)
+        {
+            writer.WriteString(
+                "activationTiming",
+                Id(signature.ActivationTiming));
+        }
         switch (signature)
         {
             case ArcRelaySignatureDefinition.VectorDash value:
@@ -577,7 +584,7 @@ internal static class ActorRulesCanonicalWriter
         if (includeTiming)
         {
             ArcRelaySignatureDefinition.SignatureTimingMetadata timing =
-                ArcRelaySignatureDefinition.TimingFor(signature.Kind);
+                ArcRelaySignatureDefinition.TimingFor(signature);
             writer.WriteString("initialPhase", timing.InitialPhase);
             writer.WriteString("maturityPhase", timing.MaturityPhase);
             writer.WriteString("cooldownAnchor", timing.CooldownAnchor);

@@ -8649,3 +8649,30 @@ Running Relay at tick 294. This is an execution/acceleration proof, not a
 balance result. A fourth final-approach pass was rejected because the receiver
 could get only one tile ahead and the extra tell did not save time. No frozen
 artifact, hosted playlist or rating identity changes in this fast design loop.
+
+## 324. Arc Toss has no tell, resolves after combat and flies three tiles per tick
+
+Owner gameplay ruling (2026-08-16). Tapline-7 removes Arc Toss's one-tick tell
+without turning the signature into a same-tick escape shield. Attacks and
+damage already committed on the accepted action tick resolve first. A surviving
+carrier releases afterward; a carrier destroyed in that combat drops the Core
+normally and never launches it. Tapline-7 also raises flight speed from two to
+three tiles per tick: a maximum-range Toss lands in two ticks instead of three,
+while every Toss still has at least one public in-flight tick. Range, landing
+legality, catcher pinning, cooldown, reclaim, scoring and Core cadence are
+unchanged.
+
+Signature action timing is general contract data rather than an Arc Toss check
+hidden in the session. `tellTicks` may be zero, and optional
+`activationTiming` selects the deterministic joint-tick phase; omission means
+the historical `before-combat` phase. The first admitted non-default is
+`after-combat`. Tapline-7 declares Arc Toss as zero-tell/after-combat, while all
+earlier rules contracts omit the field and retain their exact chronology.
+
+Presentation package `arc-relay-signatures-v3` removes the destination tell and
+aligns Relay body release, the one real Core's departure, and launch SFX at the
+late-tick combat boundary. V2 and V1 remain immutable historical reads.
+Tapline-7 becomes the local CLI and exhibit default on the unchanged
+`arc-relay-tapline-02` map. This fast design checkpoint does not rebuild WASM,
+mint stock artifacts, advance the hosted playlist or alter a rating book;
+hosted v24 remains Tapline-6 until a separate promotion gate.

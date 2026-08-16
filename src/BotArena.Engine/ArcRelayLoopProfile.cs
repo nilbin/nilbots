@@ -45,7 +45,12 @@ public sealed record ArcRelayLoopProfile
         bool durableDeployments = false,
         int combatMagnitudeScale = 1,
         int bodyHullBonus = 0,
-        int centreOpeningDelayTicks = 0)
+        int centreOpeningDelayTicks = 0,
+        int arcTossTellTicks = 1,
+        int arcTossTravelTilesPerTick = 2,
+        ArcRelaySignatureDefinition.ActivationTimingKind
+            arcTossActivationTiming = ArcRelaySignatureDefinition
+                .ActivationTimingKind.BeforeCombat)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -53,9 +58,17 @@ public sealed record ArcRelayLoopProfile
             throw new ArgumentOutOfRangeException(nameof(bodyHullBonus));
         if (centreOpeningDelayTicks < 0)
             throw new ArgumentOutOfRangeException(nameof(centreOpeningDelayTicks));
+        if (arcTossTellTicks < 0)
+            throw new ArgumentOutOfRangeException(nameof(arcTossTellTicks));
+        if (arcTossTravelTilesPerTick <= 0)
+            throw new ArgumentOutOfRangeException(
+                nameof(arcTossTravelTilesPerTick));
         CombatMagnitudeScale = combatMagnitudeScale;
         BodyHullBonus = bodyHullBonus;
         CentreOpeningDelayTicks = centreOpeningDelayTicks;
+        ArcTossTellTicks = arcTossTellTicks;
+        ArcTossTravelTilesPerTick = arcTossTravelTilesPerTick;
+        ArcTossActivationTiming = arcTossActivationTiming;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -146,6 +159,10 @@ public sealed record ArcRelayLoopProfile
     internal int CombatMagnitudeScale { get; }
     internal int BodyHullBonus { get; }
     internal int CentreOpeningDelayTicks { get; }
+    internal int ArcTossTellTicks { get; }
+    internal int ArcTossTravelTilesPerTick { get; }
+    internal ArcRelaySignatureDefinition.ActivationTimingKind
+        ArcTossActivationTiming { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -1150,11 +1167,51 @@ public sealed record ArcRelayLoopProfile
         centreOpeningDelayTicks: 25);
 
     /// <summary>
+    /// Tapline-6 with an immediate Arc Toss release and three-tile flight
+    /// cadence. The Core enters flight on the accepted action tick; range and
+    /// cooldown are unchanged. The new rules identity preserves every
+    /// Tapline-6 match and hosted rating contract while the faster no-windup
+    /// line is reviewed locally.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline7 { get; } = new(
+        "tapline-7",
+        "arc-relay-tapline-07",
+        "arc-relay-tapline-02",
+        ArcRelayMapGeometry.TaplineEqualReturn,
+        30, 65, 25, 9,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline6;
+    public static ArcRelayLoopProfile Current => Tapline7;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1231,6 +1288,7 @@ public sealed record ArcRelayLoopProfile
         Tapline4,
         Tapline5,
         Tapline6,
+        Tapline7,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

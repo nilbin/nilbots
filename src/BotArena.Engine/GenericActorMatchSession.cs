@@ -669,7 +669,8 @@ public sealed class GenericActorMatchSession : IDisposable
             ResolveArcRelaySignatureActions(
                 resolutions,
                 arcRelayAfterMovement,
-                events);
+                events,
+                afterCombatOnly: false);
             ResolveArcRelayObjectiveActions(resolutions, events);
         }
         ReserveLifecycleCreations(resolutions, events);
@@ -765,6 +766,18 @@ public sealed class GenericActorMatchSession : IDisposable
             projectileTransitions);
         ImmutableArray<FrontlineScrapDestruction> destructions =
             FinalizeDestroyedLives(newlyDisqualified, events);
+        if (_mode is ArcRelayActorMatchModeDriver arcRelayAfterCombat)
+        {
+            // Zero-tell Arc Toss has no public windup, but it is not a
+            // same-tick escape shield. Resolve it after this tick's attacks
+            // and destruction: an already-committed hit still reaches the
+            // carrier, and only a surviving carrier releases the Core.
+            ResolveArcRelaySignatureActions(
+                resolutions,
+                arcRelayAfterCombat,
+                events,
+                afterCombatOnly: true);
+        }
         // The mode store's verb settles here: after every bolt has flown, so
         // a tier bought this tick cannot lengthen this tick's shot, and
         // before the resolutions are remembered, so a blocked purchase is the
@@ -1938,7 +1951,8 @@ public sealed class GenericActorMatchSession : IDisposable
     private void ResolveArcRelaySignatureActions(
         IReadOnlyDictionary<ActorIdentity, ActionState> resolutions,
         ArcRelayActorMatchModeDriver mode,
-        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
+        ImmutableArray<GenericActorAuthoritativeEvent>.Builder events,
+        bool afterCombatOnly)
     {
         foreach (ActionState resolution in resolutions.Values
                      .OrderBy(value => value.ActorId))
@@ -1954,11 +1968,23 @@ public sealed class GenericActorMatchSession : IDisposable
 
             ArcRelaySignatureDefinition signature =
                 mode.Signatures.DefinitionForAction(action.Id);
+            bool resolvesAfterCombat = signature.ActivationTiming ==
+                ArcRelaySignatureDefinition.ActivationTimingKind.AfterCombat;
+            if (resolvesAfterCombat != afterCombatOnly)
+                continue;
             // Grammar-3 null fields mature after movement, after the action
             // mask that admitted this command was published. Revalidate the
             // exact body position now: staying inside blocks the requested
             // signature; spending the response move to escape remains safe.
-            LifeState owner = _lives[resolution.ActorId];
+            if (!_lives.TryGetValue(
+                    resolution.ActorId,
+                    out LifeState? owner))
+            {
+                // An after-combat signature whose owner was destroyed in
+                // that combat never starts its operation.
+                Block(resolution);
+                continue;
+            }
             if (!mode.Signatures.CanStart(
                     owner.ActorId,
                     action.Id,

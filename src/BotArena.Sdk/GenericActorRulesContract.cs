@@ -458,6 +458,11 @@ public sealed class GenericActorRulesContract
         public int? FireCooldownTicks { get; init; }
         public int? BoltTilesPerAdvance { get; init; }
         public int? AcquisitionTicks { get; init; }
+        /// <summary>
+        /// Optional non-default joint-tick activation phase. Null means the
+        /// ordinary before-combat signature action phase.
+        /// </summary>
+        public string? ActivationTiming { get; init; }
 
         /// <summary>
         /// Designed-role metadata, present on grammar-2 and later contracts:

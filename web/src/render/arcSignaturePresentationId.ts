@@ -1,4 +1,8 @@
 export const ARC_SIGNATURE_PRESENTATION_ID =
+  'arc-relay-signatures-v3' as const;
+
+/** The one-tick Arc Toss release package retained by historical replays. */
+export const ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID =
   'arc-relay-signatures-v2' as const;
 
 /**
@@ -13,6 +17,7 @@ export function isKnownArcSignaturePresentationId(
 ): boolean {
   return (
     value === ARC_SIGNATURE_PRESENTATION_ID ||
+    value === ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID ||
     value === ARC_SIGNATURE_LEGACY_PRESENTATION_ID
   );
 }

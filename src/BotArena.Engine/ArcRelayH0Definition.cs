@@ -1056,13 +1056,36 @@ public static class ArcRelayH0Definition
                     },
                     _ => entry,
                 })];
+        ImmutableArray<LaunchClass> signatureTiming =
+            [.. grammar.Select(entry => entry.Signature switch
+            {
+                ArcRelaySignatureDefinition.ArcToss toss
+                    when toss.TellTicks != loopProfile.ArcTossTellTicks
+                        || toss.TravelTilesPerTick !=
+                            loopProfile.ArcTossTravelTilesPerTick
+                        || toss.ActivationTiming !=
+                            loopProfile.ArcTossActivationTiming =>
+                    entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.ArcToss(
+                            toss.SignatureId,
+                            toss.ClassId,
+                            toss.ActionId,
+                            toss.Range,
+                            loopProfile.ArcTossTellTicks,
+                            loopProfile.ArcTossTravelTilesPerTick,
+                            toss.CooldownTicks,
+                            loopProfile.ArcTossActivationTiming),
+                    },
+                _ => entry,
+            })];
         ImmutableArray<LaunchClass> deployments =
             !loopProfile.DurableDeployments
-                ? grammar
+                ? signatureTiming
                 // Candidate-only: keep the stable signature/action IDs and
                 // every other Mason number, but lengthen the barrier enough
                 // for both teams to preserve, relocate, or dismantle it.
-                : [.. grammar.Select(entry => entry.Signature switch
+                : [.. signatureTiming.Select(entry => entry.Signature switch
                     {
                         ArcRelaySignatureDefinition.HardlightBlock block =>
                             entry with

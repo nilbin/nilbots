@@ -985,6 +985,8 @@ public static class ActorCanonicalContractReader
         // The bolt-class telegraph windup (owner ruling 2026-08-08), written
         // only by a ruleset that authors one.
         bool hasWindup = element.TryGetProperty("windupTicks", out _);
+        bool hasActivationTiming = element.TryGetProperty(
+            "activationTiming", out _);
         string[] specific = kind switch
         {
             "vector-dash" => ["tellTicks", "maxTiles"],
@@ -1040,7 +1042,11 @@ public static class ActorCanonicalContractReader
         ExactObject(
             element,
             ["kind", "signatureId", "classId", "actionId",
-                "cooldownTicks", .. specific,
+                "cooldownTicks",
+                .. hasActivationTiming
+                    ? new[] { "activationTiming" }
+                    : [],
+                .. specific,
                 .. hasMetadata
                     ? new[] { "category", "argumentKind", "engagementRange" }
                     : [],
@@ -1088,6 +1094,9 @@ public static class ActorCanonicalContractReader
                 ? Int(element, "boltTilesPerAdvance")
                 : null,
             AcquisitionTicks = Optional("acquisitionTicks"),
+            ActivationTiming = hasActivationTiming
+                ? Semantic(element, "activationTiming")
+                : null,
             Category = hasMetadata ? Id(element, "category") : null,
             ArgumentKind = hasMetadata ? Id(element, "argumentKind") : null,
             EngagementRange = hasMetadata

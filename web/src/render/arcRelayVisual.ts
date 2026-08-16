@@ -21,6 +21,8 @@ import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
 } from './arcSignaturePresentation';
+import { ARC_SIGNATURE_PRESENTATION_ID } from './arcSignaturePresentationId';
+import { ARC_TOSS_RELEASE_TICK_OFFSET } from './signatures/definitions/arcToss';
 import {
   HEALTH_BAR_RELATIVE_WIDTH,
   healthBarState,
@@ -477,6 +479,12 @@ function drawPulse(input: ArcRelayVisualContext, state: ArcState): void {
 function drawSignatures(input: ArcRelayVisualContext, state: ArcState): void {
   const { ctx, tile, time } = input;
   for (const signature of state.visibleSignatures) {
+    if (
+      input.replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID &&
+      signature.signatureId === 'arc-toss' &&
+      signature.phase === 'in-flight' &&
+      time < signature.startedTick + ARC_TOSS_RELEASE_TICK_OFFSET
+    ) continue;
     const accent = teamAccent(input, signature.ownerTeamId);
     const tell = signature.phase === 'tell';
     const alpha = tell ? 0.52 + 0.22 * Math.sin(time * Math.PI * 3) : 0.7;
@@ -1188,24 +1196,65 @@ function drawCores(
       input.ctx.restore();
     } else if (core.disposition === 'in-flight' && core.flightTarget) {
       const target = centre(input, core.flightTarget);
-      const progress = input.fraction;
+      const releaseOffset =
+        input.replay.signaturePresentationId ===
+          ARC_SIGNATURE_PRESENTATION_ID
+          ? ARC_TOSS_RELEASE_TICK_OFFSET
+          : 0;
+      const operation = state.visibleSignatures.find((signature) =>
+        signature.signatureId === 'arc-toss' &&
+        signature.phase === 'in-flight' &&
+        signature.completesAtTick === core.flightCompletesAtTick &&
+        signature.positions.some((position) =>
+          position.x === core.position.x && position.y === core.position.y
+        ) &&
+        signature.positions.some((position) =>
+          position.x === core.flightTarget!.x &&
+          position.y === core.flightTarget!.y
+        )
+      );
+      const distance = Math.max(
+        Math.abs(core.flightTarget.x - core.position.x),
+        Math.abs(core.flightTarget.y - core.position.y),
+      );
+      const authoritativeStart = operation
+        ? operation.startedTick +
+          (input.replay.signaturePresentationId ===
+              ARC_SIGNATURE_PRESENTATION_ID
+            ? 0
+            : 1)
+        : (core.flightCompletesAtTick ?? Math.floor(input.time) + 1) -
+          Math.max(1, Math.ceil(distance / 2));
+      const visualStart = authoritativeStart + releaseOffset;
+      const visualEnd = core.flightCompletesAtTick ?? visualStart + 1;
+      const progress = Math.max(
+        0,
+        Math.min(
+          1,
+          (input.time - visualStart) /
+            Math.max(0.001, visualEnd - visualStart),
+        ),
+      );
       x = base.x + (target.x - base.x) * progress;
       y = base.y + (target.y - base.y) * progress -
         Math.sin(progress * Math.PI) * input.tile * 0.42;
-      input.ctx.save();
-      input.ctx.setLineDash([input.tile * 0.1, input.tile * 0.08]);
-      input.ctx.strokeStyle = 'rgba(245, 248, 251, 0.55)';
-      input.ctx.lineWidth = Math.max(1.5, input.tile * 0.035);
-      input.ctx.beginPath();
-      input.ctx.moveTo(base.x, base.y);
-      input.ctx.quadraticCurveTo(
-        (base.x + target.x) / 2,
-        Math.min(base.y, target.y) - input.tile * 0.8,
-        target.x,
-        target.y,
-      );
-      input.ctx.stroke();
-      input.ctx.restore();
+      if (input.time < visualStart) y -= input.tile * 0.66;
+      if (input.time >= visualStart) {
+        input.ctx.save();
+        input.ctx.setLineDash([input.tile * 0.1, input.tile * 0.08]);
+        input.ctx.strokeStyle = 'rgba(245, 248, 251, 0.55)';
+        input.ctx.lineWidth = Math.max(1.5, input.tile * 0.035);
+        input.ctx.beginPath();
+        input.ctx.moveTo(base.x, base.y);
+        input.ctx.quadraticCurveTo(
+          (base.x + target.x) / 2,
+          Math.min(base.y, target.y) - input.tile * 0.8,
+          target.x,
+          target.y,
+        );
+        input.ctx.stroke();
+        input.ctx.restore();
+      }
     } else {
       // Keep a loose Core visually anchored to its authoritative tile while lifting the
       // sphere just enough to read as the same object that later rides above a carrier.

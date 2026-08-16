@@ -20,6 +20,8 @@ public static class ArcRelayH0ReplayPresentation
     public const string ProjectileLookId = "arc-pulse";
     public const string ProjectileLookPrefix = "arc-shot-";
     public const string SignaturePresentationId =
+        "arc-relay-signatures-v3";
+    public const string PreviousSignaturePresentationId =
         "arc-relay-signatures-v2";
 
     public static GenericActorReplayPresentation Create(
@@ -54,8 +56,17 @@ public static class ArcRelayH0ReplayPresentation
             definition.Rules.GameMode is ArcRelayGameModeDefinition
             {
                 SignatureGrammarVersion: >= 3,
-            }
-                ? SignaturePresentationId
+            } mode
+                ? mode.Signatures
+                    .OfType<ArcRelaySignatureDefinition.ArcToss>()
+                    .Single() is
+                    {
+                        TellTicks: 0,
+                        ActivationTiming: ArcRelaySignatureDefinition
+                            .ActivationTimingKind.AfterCombat,
+                    }
+                        ? SignaturePresentationId
+                        : PreviousSignaturePresentationId
                 : null);
     }
 }

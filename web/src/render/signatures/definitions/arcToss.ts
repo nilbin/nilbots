@@ -1,19 +1,21 @@
 import { defineArcSignature } from '../definition';
 
+/** Arc Toss resolves after the accepted tick's combat phase. */
+export const ARC_TOSS_RELEASE_TICK_OFFSET = 0.68;
+
 export default defineArcSignature({
   signatureId: 'arc-toss',
   topology: 'objective-flight',
-  phases: ['tell', 'in-flight'],
+  phases: ['in-flight'],
   canvasMarker: 'objective-arc',
   webglPainterId: 'arc-toss',
   audio: [
     { trigger: 'core-facts', cue: 'core-family' },
-    { trigger: 'started', cue: 'silent' },
     {
       trigger: 'launched',
       cue: 'signature-arc-toss',
       priority: 6,
-      tickOffset: 0.2,
+      tickOffset: ARC_TOSS_RELEASE_TICK_OFFSET,
     },
   ],
   reducedMotion: {
@@ -32,6 +34,6 @@ export default defineArcSignature({
   },
   fidelity: {
     reference: '03-motion-objective.png#arc-toss',
-    dominantSilhouette: 'destination tell and the one authoritative Core in flight',
+    dominantSilhouette: 'destination marker and the one authoritative Core in flight',
   },
 });

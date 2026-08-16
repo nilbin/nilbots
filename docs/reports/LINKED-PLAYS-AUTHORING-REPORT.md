@@ -224,3 +224,37 @@ Arc Toss timing, or mobile feature surface changed in this work. The correction
 does change compiler grammar and first-party executor behavior in the narrow
 generic way described above. The fast design loop intentionally did not rebuild
 WASM or mint a playlist.
+
+## Tapline-7 Arc Toss timing follow-up (2026-08-16)
+
+Decision #324 supersedes the report's Tapline-6 timing, without rewriting its
+recorded evidence. Signature definitions now declare both a non-negative
+`tellTicks` and an optional deterministic `activationTiming`; omission preserves
+the historical before-combat phase. Tapline-7 declares Arc Toss as zero-tell,
+after-combat and three flight tiles per tick. A surviving carrier releases after
+already-committed attacks and damage, while a carrier destroyed in that combat
+drops normally and never starts the Toss. A focused session scene pins both
+branches.
+
+The Running Relay mechanical diagnostic on seed 9001 still accepted exactly
+nine Tosses. Launches occurred at ticks `61/85/101`, `145/169/185`, and
+`229/253/269`; banks moved from the Tapline-6 baseline `122/208/294` to
+`117/201/285`. Replay hash:
+`21cd53b01e6f40112c1eb4142e3ae6a45ba6c55a2ca9be910d94632c6e4934fb`.
+This is the same deliberately inert Idle Field diagnostic, so it proves the
+mechanical chronology and says nothing about balance.
+
+Presentation package `arc-relay-signatures-v3` removes the tell marker and
+aligns Relay body release, the one real Core's departure and launch audio at
+the late-tick combat boundary. Recorded V2/V1 replays keep their exact prior
+treatment. WebGL playback at the release completed with SFX enabled and no
+browser console warning or error; the Canvas path reconstructs flight start
+from the public Arc Toss operation so seek and frame-step do not depend on an
+unavailable renderer-private field.
+
+The normal six-cell Relay Circuit versus Demolition March exhibit passed the
+felt-eligibility and movement-sanity gates at
+`https://disks-plots-pools-specifications.trycloudflare.com/`. It is an exhibit,
+not a balance read. This fast checkpoint uses in-process execution and does not
+rebuild WASM, mint a stock artifact, advance hosted v24, or alter its rating
+book.

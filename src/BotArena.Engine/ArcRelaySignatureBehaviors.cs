@@ -464,13 +464,31 @@ internal sealed partial class ArcRelaySignatureRuntime
             SignatureStartContext start)
         {
             var value = (ArcRelaySignatureDefinition.ArcToss)start.Definition;
+            bool immediate = value.TellTicks == 0;
             return NewOperation(
                 start,
-                ArcRelaySignatureState.SignaturePhase.Tell,
-                checked(start.Tick + value.TellTicks),
+                immediate
+                    ? ArcRelaySignatureState.SignaturePhase.InFlight
+                    : ArcRelaySignatureState.SignaturePhase.Tell,
+                immediate
+                    ? checked(start.Tick + FlightTicks(start, value))
+                    : checked(start.Tick + value.TellTicks),
                 endsAtTick: null,
                 Endpoints(start.Source, start.TargetPosition!.Value),
                 remainingCapacity: 0);
+        }
+
+        public override void OnStarted(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            var toss = (ArcRelaySignatureDefinition.ArcToss)
+                operation.Definition;
+            if (toss.TellTicks == 0)
+                Launch(runtime, operation, tick, toss, effects, events);
         }
 
         public override void AdvanceAtTickStart(
@@ -487,20 +505,8 @@ internal sealed partial class ArcRelaySignatureRuntime
             {
                 operation.Phase = ArcRelaySignatureState.SignaturePhase.InFlight;
                 operation.CompletesAtTick = checked(
-                    tick + Math.Max(
-                        1,
-                        (operation.SourcePosition.ChebyshevDistance(
-                            operation.TargetPosition!.Value)
-                         + toss.TravelTilesPerTick - 1)
-                        / toss.TravelTilesPerTick));
-                effects.Add(new Effect.ArcTossLaunch(
-                    operation.OperationId,
-                    operation.OwnerActorId,
-                    operation.TargetPosition.Value,
-                    operation.CompletesAtTick.Value));
-                runtime._readyAtTick[operation.OwnerActorId] = checked(
-                    tick + toss.CooldownTicks);
-                events.Add(runtime.SignatureEvent(operation, "launched"));
+                    tick + FlightTicks(operation, toss));
+                Launch(runtime, operation, tick, toss, effects, events);
                 return;
             }
             effects.Add(new Effect.ArcTossLand(
@@ -509,6 +515,47 @@ internal sealed partial class ArcRelaySignatureRuntime
                 operation.TargetPosition!.Value));
             runtime.Complete(operation, tick, "landed", events);
         }
+
+        private static void Launch(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            ArcRelaySignatureDefinition.ArcToss toss,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            effects.Add(new Effect.ArcTossLaunch(
+                operation.OperationId,
+                operation.OwnerActorId,
+                operation.TargetPosition!.Value,
+                operation.CompletesAtTick!.Value));
+            runtime._readyAtTick[operation.OwnerActorId] = checked(
+                tick + toss.CooldownTicks);
+            events.Add(runtime.SignatureEvent(operation, "launched"));
+        }
+
+        private static int FlightTicks(
+            SignatureStartContext start,
+            ArcRelaySignatureDefinition.ArcToss toss) =>
+            FlightTicks(start.Source, start.TargetPosition!.Value, toss);
+
+        private static int FlightTicks(
+            Operation operation,
+            ArcRelaySignatureDefinition.ArcToss toss) =>
+            FlightTicks(
+                operation.SourcePosition,
+                operation.TargetPosition!.Value,
+                toss);
+
+        private static int FlightTicks(
+            Position source,
+            Position target,
+            ArcRelaySignatureDefinition.ArcToss toss) =>
+            Math.Max(
+                1,
+                (source.ChebyshevDistance(target)
+                 + toss.TravelTilesPerTick - 1)
+                / toss.TravelTilesPerTick);
     }
 
     private sealed class ExchangeBehavior : SignatureBehavior

@@ -34,6 +34,8 @@ import {
 } from '../render/teamVision';
 import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
+import { ARC_SIGNATURE_PRESENTATION_ID } from '../render/arcSignaturePresentationId';
+import { ARC_TOSS_RELEASE_TICK_OFFSET } from '../render/signatures/definitions/arcToss';
 import { arenaTheme } from '../render/arenaThemes';
 import { objectiveModel } from './lookModel';
 import { isolateModelFromPointLights } from './modelLighting';
@@ -2050,6 +2052,10 @@ function buildArcRelayStory(
   const emberForge = themeId === 'ember-forge';
   const lumenBastion = themeId === 'lumen-bastion';
   const arcArchitecture = emberForge || lumenBastion;
+  const arcTossReleaseOffset =
+    replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID
+      ? ARC_TOSS_RELEASE_TICK_OFFSET
+      : 0;
   const arcRules =
     replay.contract.kind === 'v3-generic' &&
     replay.contract.rawContract.rules.gameMode.kind === 'arc-relay'
@@ -3088,10 +3094,9 @@ function buildArcRelayStory(
         sourceGlyph.rotation.y = -time * 1.1;
       }
     }
-    // Arc Toss changes the public Core to in-flight at tick start, while ordinary
-    // possession snapshots intentionally settle late. Paint the current in-flight state
-    // immediately so the same sphere starts at its carried height instead of appearing
-    // as a small ground marker until 85% of the launch tick.
+    // Arc Toss changes the public Core to in-flight on its accepted tick, while the v3
+    // presentation releases after that tick's combat. Keep the one real sphere at carried
+    // height until the release offset, then fly it through the remaining public interval.
     for (const arcTossFlight of activeFlights) {
       const rig = core(usedCoreRigs++);
       rig.group.userData.coreKey = arcTossFlight.key;
@@ -3109,11 +3114,13 @@ function buildArcRelayStory(
       const target = catchTransition?.position ??
         arcTossFlight.flightTarget ?? arcTossFlight.position;
       const progress = easeCore(
-        (time - arcTossFlight.flightStartedAtTick!) /
+        (time - (
+          arcTossFlight.flightStartedAtTick! + arcTossReleaseOffset
+        )) /
           Math.max(
-            1,
+            0.001,
             arcTossFlight.flightCompletesAtTick! -
-              arcTossFlight.flightStartedAtTick!,
+              arcTossFlight.flightStartedAtTick! - arcTossReleaseOffset,
           ),
       );
       const targetHeight = catchTransition

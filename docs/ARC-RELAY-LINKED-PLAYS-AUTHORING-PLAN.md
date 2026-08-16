@@ -69,8 +69,10 @@ That produces three accepted Tosses per Core (nine across the three-Core proof),
 advancing the Core by `+5`, `+4`, and `+5` route tiles without a repeated Core
 tile. Six Idle Field cells bank at ticks 116–126, 202–212, and 288–298. A
 same-route solo control finishes at tick 347 versus tick 294 for Running Relay
-on seed 9001. The existing one-tick Toss tell remains unchanged and is included
-in both timings.
+on seed 9001. Those acceptance timings were measured on Tapline-6 and include
+its historical one-tick Toss tell. Tapline-7 subsequently removed that tell and
+resolves the release after same-tick combat; it does not rewrite this recorded
+baseline.
 
 The accepted correction is a deliberately narrow grammar expansion. A named
 Arc Toss role target may state `aheadVia` plus `minimumForwardTiles`, and the
@@ -608,25 +610,27 @@ make the route strategically sound; this proof asks whether the author can
 build the chain and whether two Relays can physically execute it. It is not a
 balance result.
 
-Arc Toss retains its one-tick tell before launch, then a distance-based public
-flight. The accepted proof includes that tell. Any future timing proposal is a
-separate gameplay change, never editor behavior:
+The original Running Relay proof used Tapline-6's one-tick tell and two-tile
+public flight speed. Tapline-7 is the separately versioned gameplay change:
+there is no tell, an accepted Toss releases after combat already committed for
+that tick, and flight advances three tiles per tick. The workshop still cannot
+alter signature timing:
 
 1. Trace the failed catch/overtake chronology and rule out route, target,
    capacity, cooldown, reclaim, and priority mistakes first.
-2. Compare the current one-tick tell with the smallest candidate timing change
-   in the focused Idle Field scene.
-3. Keep flight duration, landing legality, catcher pinning, cooldown, and Core
-   reclaim rules unchanged unless the trace proves one of them is independently
-   at fault.
+2. Compare any proposed timing change with the pinned Tapline-6 baseline in the
+   focused Idle Field scene.
+3. Keep landing legality, catcher pinning, cooldown, and Core reclaim rules
+   unchanged unless the trace proves one of them is independently at fault.
 4. Mint/version any accepted gameplay timing change through the normal rules
    path; the workshop sidecar cannot alter Arc Toss timing.
 
-A timing change does not pass on mechanics alone. Arc Toss presentation is
-bound to its authoritative tell → launch → in-flight → catch/landing chronology.
+A timing change does not pass on mechanics alone. Current Arc Toss presentation
+is bound to its authoritative after-combat launch → in-flight → catch/landing
+chronology, while recorded Tapline-6 replays retain tell → launch → flight.
 The verification must cover:
 
-- WebGL and Canvas tell/target treatment, Relay body motion, the one real Core's
+- WebGL and Canvas landing-target treatment, Relay body motion, the one real Core's
   complete flight arc, and continuous catch at carried height;
 - launch and landing audio firing once at the correct authoritative events;
 - no one-tick missing Core, duplicate Core, floor snap, premature carried pose,
@@ -634,12 +638,11 @@ The verification must cover:
 - short and maximum-range Tosses at normal speed and frame-step; and
 - replay seek, refresh, phone Canvas fallback, and WebGL context fallback.
 
-In particular, the current presentation derives the first in-flight tick from
-the established one-tick tell. If the tell becomes zero, that derivation and
-its tests must follow the actual authoritative phase boundary rather than keep
-assuming `startedTick + 1`.
+In particular, Tapline-7 derives the visual release from the after-combat phase
+inside the accepted tick. It must not inherit Tapline-6's `startedTick + 1`
+assumption or show a pre-release destination tell.
 
-The current timing is sufficient: on seed 9001, the same route and opponent bank
+The historical Tapline-6 timing was sufficient: on seed 9001, the same route and opponent bank
 at ticks `133/240/347` with one solo carrier and `122/208/294` with Running
 Relay. The 53-tick finish gain is the controlled mechanics read; it is not a
 balance verdict. Do not introduce a hidden turn flag or special Relay-chain
@@ -800,9 +803,9 @@ compiler. If role-qualified readiness or alternating Relay movement exposes a
 real current-contract gap, document that exact gap and stop for an owner ruling;
 do not conceal it in editor state. A sidecar model proven only against the
 Ambush recipe does not pass Phase 0. Both behavior proofs may use the idle
-practice opponent. Only a traced Relay failure attributable to the current
-one-tick Toss tell opens the separate timing candidate and presentation
-verification above.
+practice opponent. The no-tell, post-combat release is now the Tapline-7 rules
+line; further timing changes still require the separate mechanics and
+presentation verification above.
 
 ### Phase 1 — complete ownership and safe linked editing
 

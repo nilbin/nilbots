@@ -5,6 +5,7 @@ import type {
 } from './arcSignaturePresentation';
 import {
   ARC_SIGNATURE_LEGACY_PRESENTATION_ID,
+  ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID,
   ARC_SIGNATURE_PRESENTATION_ID,
 } from './arcSignaturePresentationId';
 import arcToss from './signatures/definitions/arcToss';
@@ -68,6 +69,17 @@ const legacyAudioBindings = new Map<string, readonly ArcSignatureAudioBinding[]>
   ['smoke-canister', [{ trigger: 'landed', cue: 'signature-smoke' }]],
 ]);
 
+const previousArcTossAudio: readonly ArcSignatureAudioBinding[] = [
+  { trigger: 'core-facts', cue: 'core-family' },
+  { trigger: 'started', cue: 'silent' },
+  {
+    trigger: 'launched',
+    cue: 'signature-arc-toss',
+    priority: 6,
+    tickOffset: 0.2,
+  },
+];
+
 const projectileAudioDefinitions = new Map<
   string,
   ArcSignaturePresentationDefinition
@@ -120,6 +132,11 @@ export function resolveArcSignatureAudioTriggerBinding(
     replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID
       ? audioDefinitions.get(signatureId)?.audio
       : replay.signaturePresentationId ===
+          ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID
+        ? signatureId === 'arc-toss'
+          ? previousArcTossAudio
+          : audioDefinitions.get(signatureId)?.audio
+      : replay.signaturePresentationId ===
           ARC_SIGNATURE_LEGACY_PRESENTATION_ID
         ? legacyAudioBindings.get(signatureId)
         : null;
@@ -133,7 +150,9 @@ export function resolveArcSignatureProjectileAudioBinding(
   attackProfileId: string | undefined,
 ): ArcSignatureResolvedAudioBinding | null {
   if (
-    replay.signaturePresentationId !== ARC_SIGNATURE_PRESENTATION_ID ||
+    (replay.signaturePresentationId !== ARC_SIGNATURE_PRESENTATION_ID &&
+      replay.signaturePresentationId !==
+        ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID) ||
     attackProfileId === undefined
   ) {
     return null;

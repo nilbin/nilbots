@@ -199,6 +199,10 @@ internal static class ActorContractCanonicalIds
 
         ArcRelaySignatureDefinition.SignatureKind kind =>
             ArcRelaySignatureDefinition.StableIdFor(kind),
+        ArcRelaySignatureDefinition.ActivationTimingKind.BeforeCombat =>
+            "before-combat",
+        ArcRelaySignatureDefinition.ActivationTimingKind.AfterCombat =>
+            "after-combat",
 
         ActorRuntimeFaultDefinition.AccumulationScopeKind
                 .ParticipantAcrossAllSlotsLivesAndRuntimeStages =>

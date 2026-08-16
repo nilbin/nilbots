@@ -11,7 +11,7 @@ namespace BotArena.Engine.Tests;
 public sealed class ArcRelayTaplineEqualReturnTests
 {
     private static ActorMapDefinition Current() => ArcRelayH0Definition
-        .Create(loopProfile: ArcRelayLoopProfile.Tapline6).Map;
+        .Create(loopProfile: ArcRelayLoopProfile.Current).Map;
 
     private static ActorMapDefinition Historical() => ArcRelayH0Definition
         .Create(loopProfile: ArcRelayLoopProfile.Tapline5).Map;
@@ -22,12 +22,13 @@ public sealed class ArcRelayTaplineEqualReturnTests
     private static readonly Position EnemyWell = new(19, 20);
 
     [Fact]
-    public void Tapline6IsTheCurrentProductMapWithoutMutatingTapline5()
+    public void Tapline7KeepsTheAcceptedProductMapWithoutMutatingTapline5()
     {
-        Assert.Same(ArcRelayLoopProfile.Tapline6, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-6", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-06", ArcRelayLoopProfile.Current.RulesetId);
+        Assert.Same(ArcRelayLoopProfile.Tapline7, ArcRelayLoopProfile.Current);
+        Assert.Equal("tapline-7", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-07", ArcRelayLoopProfile.Current.RulesetId);
         Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Current.MapId);
+        Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Tapline6.MapId);
         Assert.Equal("arc-relay-tapline-01", ArcRelayLoopProfile.Tapline5.MapId);
 
         ActorMapDefinition before = Historical();
@@ -54,6 +55,125 @@ public sealed class ArcRelayTaplineEqualReturnTests
             Assert.False(before.IsWall(tile));
             Assert.True(after.IsWall(tile));
         });
+    }
+
+    [Fact]
+    public void Tapline7ArcTossLaunchesImmediatelyWhileTapline6KeepsItsTell()
+    {
+        string[] composition =
+        [
+            ArcRelayLaunchClassIds.Relay,
+            ArcRelayLaunchClassIds.Kestrel,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Mortar,
+            ArcRelayLaunchClassIds.Minesmith,
+        ];
+        ActorIdentity relay = ActorIdentity.FromTeamUnitLife(0, 0, 0);
+        Position source = new(15, 13);
+        Position destination = new(15, 8);
+
+        (ArcRelaySignatureRuntime current, ArcRelaySignatureDefinition.ArcToss
+            currentDefinition) = Runtime(ArcRelayLoopProfile.Tapline7);
+        ArcRelaySignatureRuntime.TickResult immediate = current.Start(
+            10,
+            relay,
+            source,
+            "arc-toss",
+            [new GenericActorRuntimeActionArgument.PositionTargetArgument(
+                destination)],
+            [new ArcRelaySignatureRuntime.Life(relay, source, 4, 4)]);
+
+        Assert.Equal(0, currentDefinition.TellTicks);
+        Assert.Equal(3, currentDefinition.TravelTilesPerTick);
+        Assert.Equal(
+            ArcRelaySignatureDefinition.ActivationTimingKind.AfterCombat,
+            currentDefinition.ActivationTiming);
+        Assert.Equal(["started", "launched"], Reasons(immediate));
+        Assert.IsType<ArcRelaySignatureRuntime.Effect.ArcTossLaunch>(
+            Assert.Single(immediate.Effects));
+        ArcRelaySignatureState inFlight = Assert.Single(current.Project(10));
+        Assert.Equal(
+            ArcRelaySignatureState.SignaturePhase.InFlight,
+            inFlight.Phase);
+        Assert.Equal(12, inFlight.CompletesAtTick);
+
+        (ArcRelaySignatureRuntime historical,
+            ArcRelaySignatureDefinition.ArcToss historicalDefinition) =
+            Runtime(ArcRelayLoopProfile.Tapline6);
+        ArcRelaySignatureRuntime.TickResult telling = historical.Start(
+            10,
+            relay,
+            source,
+            "arc-toss",
+            [new GenericActorRuntimeActionArgument.PositionTargetArgument(
+                destination)],
+            [new ArcRelaySignatureRuntime.Life(relay, source, 4, 4)]);
+
+        Assert.Equal(1, historicalDefinition.TellTicks);
+        Assert.Equal(2, historicalDefinition.TravelTilesPerTick);
+        Assert.Equal(
+            ArcRelaySignatureDefinition.ActivationTimingKind.BeforeCombat,
+            historicalDefinition.ActivationTiming);
+        Assert.Equal(["started"], Reasons(telling));
+        Assert.Empty(telling.Effects);
+        Assert.Equal(
+            ArcRelaySignatureState.SignaturePhase.Tell,
+            Assert.Single(historical.Project(10)).Phase);
+        ArcRelaySignatureRuntime.TickResult launched = historical.Advance(
+            11,
+            [new ArcRelaySignatureRuntime.Life(relay, source, 4, 4)]);
+        Assert.Equal(["launched"], Reasons(launched));
+        Assert.Equal(14, Assert.Single(historical.Project(11)).CompletesAtTick);
+
+        string currentRules = ActorContractManifestSerializer.ToCanonicalJson(
+            ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Tapline7));
+        string historicalRules = ActorContractManifestSerializer
+            .ToCanonicalJson(ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Tapline6));
+        Assert.Contains(
+            "\"activationTiming\":\"after-combat\"",
+            currentRules,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("activationTiming", historicalRules,
+            StringComparison.Ordinal);
+        GenericActorResolvedMatchContract parsed =
+            ActorCanonicalContractReader.Parse(currentRules);
+        Assert.Equal(
+            "after-combat",
+            Assert.Single(Assert.IsType<
+                    GenericActorRulesContract.ArcRelayGameMode>(
+                    parsed.Rules.GameMode).Signatures
+                .Where(value => value.SignatureId == "arc-toss"))
+                .ActivationTiming);
+        Assert.Contains(
+            "\"maturityPhase\":\"post-combat\"",
+            currentRules,
+            StringComparison.Ordinal);
+
+        (ArcRelaySignatureRuntime Runtime,
+            ArcRelaySignatureDefinition.ArcToss Definition) Runtime(
+                ArcRelayLoopProfile profile)
+        {
+            ActorResolvedMatchDefinition definition = ArcRelayH0Definition
+                .Create(composition, composition, loopProfile: profile);
+            var mode = Assert.IsType<ArcRelayGameModeDefinition>(
+                definition.Rules.GameMode);
+            return (
+                new ArcRelaySignatureRuntime(definition, mode),
+                Assert.Single(mode.Signatures
+                    .OfType<ArcRelaySignatureDefinition.ArcToss>()));
+        }
+
+        static string[] Reasons(ArcRelaySignatureRuntime.TickResult result) =>
+            [.. result.Events.Select(value => value.Payload).OfType<
+                    GenericActorRuntimeObservation.EventPayload.ArcRelay>()
+                .Select(value => value.Fact)
+                .OfType<ArcRelayEvent.SignatureChanged>()
+                .Select(value => value.Reason)];
     }
 
     [Fact]

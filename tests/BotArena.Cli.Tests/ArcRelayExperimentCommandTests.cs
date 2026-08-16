@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_promoted_Tapline6_product_line()
+    public void Default_is_the_zero_windup_Tapline7_design_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,7 +69,7 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-06",
+            "arc-relay-tapline-07",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
@@ -82,6 +82,16 @@ public sealed class ArcRelayExperimentCommandTests
                 .GetProperty("gameMode")
                 .GetProperty("signatureGrammarVersion")
                 .GetInt32());
+        JsonElement toss = document.RootElement.GetProperty("rules")
+            .GetProperty("gameMode")
+            .GetProperty("signatures")
+            .EnumerateArray()
+            .Single(value => value.GetProperty("signatureId").GetString()
+                == "arc-toss");
+        Assert.Equal(0, toss.GetProperty("tellTicks").GetInt32());
+        Assert.Equal(
+            "after-combat",
+            toss.GetProperty("activationTiming").GetString());
     }
 
     [Theory]

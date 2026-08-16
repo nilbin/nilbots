@@ -10,7 +10,9 @@ public abstract record ArcRelaySignatureDefinition
         string signatureId,
         string classId,
         string actionId,
-        int cooldownTicks)
+        int cooldownTicks,
+        ActivationTimingKind activationTiming =
+            ActivationTimingKind.BeforeCombat)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(signatureId);
         ArgumentException.ThrowIfNullOrWhiteSpace(classId);
@@ -22,6 +24,7 @@ public abstract record ArcRelaySignatureDefinition
         ClassId = classId;
         ActionId = actionId;
         CooldownTicks = cooldownTicks;
+        ActivationTiming = activationTiming;
     }
 
     public abstract SignatureKind Kind { get; }
@@ -29,6 +32,19 @@ public abstract record ArcRelaySignatureDefinition
     public string ClassId { get; }
     public string ActionId { get; }
     public int CooldownTicks { get; }
+    public ActivationTimingKind ActivationTiming { get; init; }
+
+    /// <summary>
+    /// The joint-tick phase in which an accepted signature action starts.
+    /// Most signatures activate after movement and before attacks. A signature
+    /// may instead let already-committed combat settle first; this is contract
+    /// data, never a kind check hidden in the session.
+    /// </summary>
+    public enum ActivationTimingKind
+    {
+        BeforeCombat,
+        AfterCombat,
+    }
 
     public sealed record VectorDash : ArcRelaySignatureDefinition
     {
@@ -185,11 +201,18 @@ public abstract record ArcRelaySignatureDefinition
     public sealed record ArcToss : ArcRelaySignatureDefinition
     {
         public ArcToss(string signatureId, string classId, string actionId,
-            int range, int tellTicks, int travelTilesPerTick, int cooldownTicks)
-            : base(signatureId, classId, actionId, cooldownTicks)
+            int range, int tellTicks, int travelTilesPerTick, int cooldownTicks,
+            ActivationTimingKind activationTiming =
+                ActivationTimingKind.BeforeCombat)
+            : base(
+                signatureId,
+                classId,
+                actionId,
+                cooldownTicks,
+                activationTiming)
         {
             RequirePositive(range, nameof(range));
-            RequirePositive(tellTicks, nameof(tellTicks));
+            RequireNonNegative(tellTicks, nameof(tellTicks));
             RequirePositive(travelTilesPerTick, nameof(travelTilesPerTick));
             Range = range;
             TellTicks = tellTicks;
@@ -742,5 +765,13 @@ public abstract record ArcRelaySignatureDefinition
             SignatureKind.SmokeCanister2 =>
                 new("in-flight", "tick-start", "start"),
             _ => throw new ArgumentOutOfRangeException(nameof(kind)),
+        };
+
+    public static SignatureTimingMetadata TimingFor(
+        ArcRelaySignatureDefinition definition) => definition switch
+        {
+            ArcToss { TellTicks: 0 } =>
+                new("in-flight", "post-combat", "launch"),
+            _ => TimingFor(definition.Kind),
         };
 }

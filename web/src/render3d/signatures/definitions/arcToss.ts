@@ -3,7 +3,7 @@ import {
   setEnergyColour,
   setEnergyOpacity,
   targetRing,
-  tellPulse,
+  tellPulse as landingPulse,
 } from '../primitives';
 
 const CORE_ARC = '#e6e5ef';
@@ -28,7 +28,7 @@ export default defineArcSignatureWebGLPainter({
           )[0]
       : points.at(-1) ?? target);
     if (!destination) return;
-    targetRing(rig, destination, tellPulse(time) * 1.28);
+    targetRing(rig, destination, landingPulse(time) * 1.28);
     setEnergyColour(rig.ring, CORE_ARC);
     setEnergyOpacity(rig.ring, 0.34);
     const inner = rig.rings[0]!;

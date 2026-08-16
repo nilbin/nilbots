@@ -130,7 +130,7 @@ faceless Sentinel remains an omnidirectional automated exception.
 | Mortar | 3 | deliberate | medium | **Falling Star** — visible target within 8, 2-tick reticle, 1 damage on centre and cardinal neighbours; cooldown 12. |
 | Minesmith | 4 | standard | short | **Trip Node** — adjacent node, hull 1, 2 trigger damage, proximity reveal; cooldown 12. |
 | Hush | 4 | standard | medium | **Null Field** — 1-tick actionable tell, then radius 3 for 5 ticks; blocks starts and suppresses hostile signatures; cooldown 18. |
-| Relay | 4 | swift | short | **Arc Toss** — carrier targets straight landing within 5; 1-tick tell, Core flies 2/tick; cooldown 12 from launch. |
+| Relay | 4 | swift | short | **Arc Toss** — carrier targets straight landing within 5; no tell, surviving carrier releases after that tick's combat, Core flies 3/tick; cooldown 12 from launch. |
 | Switchback | 3 | standard | medium | **Exchange** — visible ally within 6, 1-tick tell and target Wait; carrier drops first; cooldown 16. |
 | Longshot | 3 | deliberate | long | **Rail Line** — fixed heading, 2-tick charge, range 12, 2 damage through bodies; cooldown 18 (8 if interrupted). |
 | Mason | 5 | deliberate | short | **Hardlight Block** — adjacent hull-3 block for 12 ticks; one active; cooldown 14. |

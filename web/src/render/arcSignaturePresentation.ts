@@ -5,6 +5,7 @@ import {
 } from './arcSignaturePresentationId';
 export {
   ARC_SIGNATURE_LEGACY_PRESENTATION_ID,
+  ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID,
   ARC_SIGNATURE_PRESENTATION_ID,
 } from './arcSignaturePresentationId';
 
