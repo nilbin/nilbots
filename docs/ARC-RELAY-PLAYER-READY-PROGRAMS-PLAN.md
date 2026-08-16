@@ -83,6 +83,10 @@ Preserve these constraints throughout:
   and generated `fight` leaf use one editor/materializer. Ambush readiness and
   trigger may activate that behavior from its parent Program; ambient contact
   may activate it with a local distance Condition.
+- A post-pickup **Bank carried Core** link is editor navigation and validation,
+  not a runtime Program call. Carrying state plus the one top-to-bottom Program
+  order still causes takeover; the linked Program owns its return route,
+  escorts, opportunities, and fallbacks exactly once.
 - Combined readiness means every participant sees the same ordinary gate; it
   does not promise simultaneous actions. A higher Program, death, displacement,
   or dynamic illegality may still affect one participant independently, and
@@ -223,6 +227,7 @@ Do not make a player translate every tactic into the abstract word
 - **Bodies at this Post** for spatial occupation;
 - **Pursuers per Core** for Core recovery;
 - **Patients per healing tile** for health recovery;
+- **Escorts per carrier** for a banking Follow group;
 - **Attackers per enemy** for fight focus; and
 - **Casters per target** where several eligible bodies share a signature
   opportunity.
@@ -924,6 +929,73 @@ Core** Program or move an existing one above the host. Allow **Keep carrying in
 this behavior** only as an explicit alternative and warn if the continuation
 can retain a Core indefinitely.
 
+##### Reuse one linked banking tactic
+
+Persist the **On pickup** choice as a stable workshop-sidecar reference to an
+ordinary higher Program. The reference provides navigation, summaries, drift
+diagnostics, and coverage validation only; it emits no executable call,
+transition, return address, or Program id. One banking Program may be linked
+from many recovery cards without copying any of its configuration.
+
+The source card shows a compact live summary and an **Edit linked Program**
+action, for example:
+
+```text
+On pickup → Safe bank · Program 1
+Carrier: every eligible picker · South Return → own reactor
+Escort: up to 2 per carrier · Guard + Medic · fight on contact
+After banking: resume North watch if still active
+```
+
+Adding nearby-Core recovery must not require the player to anticipate this
+separate Program. The normal flow:
+
+1. reuses and links the sole compatible higher banking Program when one exists;
+2. asks the player to choose when several compatible banking Programs exist;
+3. offers an inline **Create Bank carried Core** setup when none exists; and
+4. offers one-click **Extend carrier coverage** or **Move above this Program**
+   repairs rather than cloning a partial return tactic.
+
+All route, Toss, Fight, signature, escort, and recovery settings remain owned
+and edited in the linked banking Program. Editing them from the source card
+opens that same owner in context; it must not create source-local overrides.
+Deleting, moving, or narrowing the linked Program updates every source summary
+and becomes blocking when the promised takeover is no longer structurally
+valid.
+
+The linked Program may be a complete multi-participant tactic:
+
+- every role that can collect through a linked recovery card gets an ordinary
+  `self-carrying` return branch to the own reactor, with its authored route and
+  opportunities;
+- selected empty-handed escort roles become eligible while
+  `friendly-carriers >= 1`, follow the resolved carrier, and use the same
+  generic Fight/signature/health controls available on any Follow host; and
+- when the last Core is banked, dropped, or lost with its carrier, these
+  ordinary Conditions become false and every survivor falls through to its
+  next Program. The source behavior resumes only if it remains active/eligible.
+
+Add one small generic Follow selector so this works when any of several roles,
+or one body inside a multi-body role, becomes the carrier:
+
+```json
+{
+  "move": {
+    "follow": { "selector": "nearest-friendly-core-carrier" },
+    "posture": "rear"
+  }
+}
+```
+
+It resolves live allied Core carriers by legal terrain-path distance and then
+stable unit id. With an ordinary capacity on the Follow leaf, a losing escort
+tries the next carrier and then its next Instruction in the same tick. Expose
+that existing target-local capacity as **Escorts per carrier**. No target means
+the Follow leaf yields; there is no dynamic role assignment, escort
+reservation, sticky carrier claim, hidden route constraint, or escort state.
+The carrying body's return branch remains above its empty-handed escort branch
+when one static role is eligible for both.
+
 If pickup should end the tactic rather than merely interrupt it for banking,
 the player chooses **Core acquired** through the Program's normal success/end
 controls. Do not encode that as a hidden Opportunity transition. If an existing
@@ -1080,6 +1152,9 @@ For a selected Program and body, Practice must answer:
   yielded, including encounter distance, Core visibility/walking distance,
   health start/recovered thresholds, healing-tile detour, carrying policy, and
   target-capacity loss;
+- the source recovery card's linked banking Program, whether that structurally
+  valid higher Program actually took over, which carrier each escort resolved,
+  and any **Escorts per carrier** capacity loss or later fallback;
 - whether Fight inherited a Program response or used On-contact activation,
   shown separately from its target/style/chase configuration;
 - capacities in their player-facing terms—such as “one pursuer already owns
@@ -1373,6 +1448,17 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     sighting does not cancel parent commitment; no actionable target yields to
     the authored response hold, and a later target resumes Fight without a
     second activation mechanism.
+33. A body from each of two differently named recovery roles can pick up a
+    Core and be handled by the same higher banking Program. Its carrying branch
+    takes the authored return route; after banking, dropping, or carrier death,
+    ordinary eligibility makes that body resume the correct lower behavior
+    without a Program call or return stack.
+34. `nearest-friendly-core-carrier` Follow selects only a live allied carrier,
+    orders candidates by legal path distance then unit id, and yields when none
+    exists. Shared **Escorts per carrier** capacity distributes eligible
+    escorts across two carriers, sends a loser to its next candidate or local
+    continuation in the same tick, and releases immediately after the target
+    banks, drops, or dies without a reservation or sticky assignment.
 
 ### Materializer/editor tests
 
@@ -1471,6 +1557,16 @@ Implement trace-first and pin the smallest scenes before broad UI work.
 27. Ambush and other recipes may prefill that common Fight behavior but cannot
     persist an `AmbushFight`/engagement configuration, invoke another
     materializer, or add a runtime combat mode.
+28. Several nearby-Core cards may hold stable sidecar links to one higher
+    banking Program. The links survive rename, reorder, save/reload, copy, and
+    undo/redo; update their summaries together; detect deletion or lost role
+    coverage; and never materialize a Program id, call, return address, or a
+    second copy of banking/escort configuration.
+29. Inline create/choose/extend/reorder repairs produce one ordinary banking
+    Program whose eligible carrier roles use `self-carrying` return branches
+    and whose selected empty-handed escorts use
+    `nearest-friendly-core-carrier` Follow leaves with ordinary target-local
+    capacity. **Edit linked Program** always edits that same owner.
 
 ### Browser acceptance
 
@@ -1550,6 +1646,24 @@ In a fourth normal-surface flow, without opening Advanced:
 6. save/reload/refine all three hosts through Programs with one consistent
    Opportunity editor.
 
+In a fifth normal-surface flow, without opening Advanced:
+
+1. add nearby-Core recovery to two differently named participant roles;
+2. from the first source card, use inline **Create Bank carried Core**, choose a
+   return route, and see the new Program placed above both sources;
+3. from the second source card, reuse that same Program and extend missing
+   carrier coverage rather than creating another return configuration;
+4. add two escort roles, choose **Escorts per carrier: 2**, attach ordinary
+   Fight-on-contact to their Follow behavior, and inspect the linked summary
+   from either source card;
+5. run a deterministic scene where either recovery role can become carrier,
+   the carrier returns on the authored route, eligible escorts follow the
+   actual carrier, and every survivor resumes its lower Program after banking;
+   and
+6. rename, reorder, edit, save/reload, and delete/undo the banking Program while
+   every linked source updates or reports one actionable blocking repair—never
+   duplicated hidden configuration.
+
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
 
@@ -1623,6 +1737,12 @@ It is complete only when all of the following are true:
     same Fight behavior between **When this Program responds** and **On
     contact** preserves target order, style, chase, and attacker capacity, and
     no `AmbushFight`, engagement scheduler, or second combat state is added.
+21. Adding nearby-Core recovery makes its post-pickup consequence unavoidable
+    in normal authoring: the player can create, choose, inspect, and edit one
+    reusable higher banking Program from the source card. It covers every
+    eligible picker, may coordinate capacity-bounded escorts around the actual
+    carrier, owns its configuration once, and resumes ordinary lower Programs
+    after custody ends without a runtime Program reference or transition.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -1648,8 +1768,8 @@ an explicit release checkpoint.
    `self-nearest-visible-loose-core-distance`, the matching
    `nearest-visible-loose-core`/`withinWalkingSteps` target contract,
    `self-nearest-heal-zone-distance` with bounded `nearest-heal-zone`,
-   commitment materialization, not-ready staging, and focused runtime/compiler
-   tests.
+   `nearest-friendly-core-carrier` Follow resolution, commitment
+   materialization, not-ready staging, and focused runtime/compiler tests.
 3. **Post linkage** — add backward-compatible workshop linkage, derived
    geometry synchronization, human-labelled/defaulted Core and Healing
    capacity groups, readiness, maintenance, drift, and undo/redo tests.
@@ -1659,7 +1779,8 @@ an explicit release checkpoint.
    opportunity markers, one generic Opportunity component for all supported
    host continuations/phases, one shared Fight editor with explicit inherited-
    response versus On-contact activation, nearby-Core and health-recovery cards
-   in the one real local order, higher carrier-Program preview/repair,
+   in the one real local order, linked higher carrier-Program
+   create/choose/extend/reorder/edit UX, escort Follow/capacity controls,
    all-signature family coverage, legality preview, normal trigger/outcome
    controls, and mobile editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
@@ -1683,6 +1804,8 @@ Do not expand this goal into:
 
 - runtime Programs, atomic multi-body activation, reservations, or a second
   state machine;
+- executable cross-Program calls, return stacks, source-local overrides of a
+  linked banking Program, or dynamic carrier/escort role assignment;
 - persistent Core claims, target-identity latches, a new `pickup` action, or a
   hidden transition to Core Return;
 - a recovery governor, automatic health triage, hidden healing priority, or a
