@@ -3,6 +3,7 @@ import test from 'node:test';
 import type { ReplayModel } from '../src/replayModel';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import {
+  conditionExpressionNames,
   parseDraft,
   stringifyDocument,
   validateDraft,
@@ -19,7 +20,6 @@ import {
   signatureOpportunityViews,
 } from '../src/site/sheets/linkedPlays';
 import {
-  addPlayCondition,
   addPlayGeometry,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
@@ -27,15 +27,18 @@ import {
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
+  configurePlaySharedTrigger,
   moveProgram,
   movePlayAnchor,
   moveSignatureOpportunity,
   renamePlayGeometry,
   removeAmbushReserveSlot,
+  removePlayReadinessGroup,
   removeSignatureOpportunity,
   renameSignatureOpportunity,
   replacePlayRole,
   setPlayLinkedValue,
+  setPlayReadinessGroup,
   setPlayZoneRect,
   setSignatureOpportunityCommitmentHold,
   updateSignatureOpportunityUse,
@@ -351,6 +354,12 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
   assert.ok(linked.mapPlan.zones[activation.zoneId]);
   assert.equal(linked.workshop.plays[0].ownedGeometry.some((entry) =>
     entry.kind === 'zone' && entry.id === activation.zoneId), true);
+  const activationCondition = Object.entries(linked.orders.conditions).find(([, condition]) =>
+    condition.fact === 'self-in-zone' && condition.zone === activation.zoneId);
+  assert.ok(activationCondition, 'the map choice must derive a visible activation Condition');
+  assert.ok(conditionExpressionNames(signatureOpportunityViews(
+    linked.workshop.plays[0].projections[0], linked.orders.conditions)[0].use.when)
+    .includes(activationCondition![0]));
 
   current = linked.workshop.plays[0].projections[0];
   view = signatureOpportunityViews(current, linked.orders.conditions)[0];
@@ -523,7 +532,7 @@ test('Program materialization filters by participant and ignores legacy insertio
     .orders.map((entry) => entry.id), [`${secondId}-reserve-move`, 'reserve-baseline']);
 });
 
-test('a blank Play refines shared-trigger contingents without rebuilding their Orders', () => {
+test('a blank Program derives its shared trigger and refines contingents without rebuilding Instructions', () => {
   let linked = addBlankPlay(draft(), 'Generic fork');
   const playId = linked.workshop.plays[0].id;
   linked = addBlankPlayProjection(linked, playId, 'reserve');
@@ -536,22 +545,22 @@ test('a blank Play refines shared-trigger contingents without rebuilding their O
   linked = appendPlayRouteWaypoint(route.draft, playId, route.id, [24, 13]);
   linked = appendPlayRouteWaypoint(linked, playId, route.id, [18, 13]);
   linked = appendPlayRouteWaypoint(linked, playId, route.id, [13, 13]);
-  const trigger = addPlayCondition(linked, playId, 'mid-overload', {
+  linked = configurePlaySharedTrigger(linked, playId, {
     fact: 'visible-enemies-in-zone', operator: 'at-least', value: 5,
     zone: watch.id,
   });
-  linked = trigger.draft;
+  const triggerId = linked.workshop.plays[0].responseTriggerConditionId!;
   const play = linked.workshop.plays[0];
   const reserveProjection = play.projections.find((entry) => entry.roleId === 'reserve')!;
   const relayProjection = play.projections.find((entry) => entry.roleId === 'relay-a')!;
   linked = configurePlayContingent(linked, playId, reserveProjection.id, {
-    triggerConditionId: trigger.id,
+    triggerConditionId: triggerId,
     destination: { zone: north.id },
     requiredBodies: 2,
     timeout: 90,
   });
   linked = configurePlayContingent(linked, playId, relayProjection.id, {
-    triggerConditionId: trigger.id,
+    triggerConditionId: triggerId,
     destination: { route: route.id },
     requiredBodies: 0,
     timeout: 45,
@@ -566,18 +575,20 @@ test('a blank Play refines shared-trigger contingents without rebuilding their O
   });
   const reserveResponse = current.projections.find((entry) =>
     entry.id === reserveProjection.id)!.orders[0];
-  assert.deepEqual(reserveResponse.when, { all: [trigger.id, current.formations![0].conditionId] });
+  assert.deepEqual(reserveResponse.when, { all: [triggerId, current.formations![0].conditionId] });
   assert.equal(reserveResponse.timeout, 90);
   const relayResponse = current.projections.find((entry) =>
     entry.id === relayProjection.id)!.orders[0];
-  assert.equal(relayResponse.when, trigger.id);
+  assert.equal(relayResponse.when, triggerId);
   assert.equal(relayResponse.orders?.[0].move?.patrol, route.id);
 
   // Refinement updates the existing source ids and retains nested authored work.
   const responseId = reserveResponse.id!;
-  linked.orders.conditions[trigger.id].value = 4;
+  linked = configurePlaySharedTrigger(linked, playId, {
+    ...linked.orders.conditions[triggerId], value: 4,
+  });
   linked = configurePlayContingent(linked, playId, reserveProjection.id, {
-    triggerConditionId: trigger.id,
+    triggerConditionId: triggerId,
     destination: { zone: north.id },
     requiredBodies: 1,
     timeout: 120,
@@ -587,6 +598,57 @@ test('a blank Play refines shared-trigger contingents without rebuilding their O
     .orders[0].id, responseId);
   assert.equal(linked.orders.conditions[current.formations![0].conditionId].value, 1);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+});
+
+test('mixed-role readiness compiles one visible 5/5 ALL gate without manual wiring', () => {
+  let linked = addBlankPlay(draft(), 'Mixed return ambush');
+  const playId = linked.workshop.plays[0].id;
+  for (const roleId of ['mason', 'longshot', 'hush', 'reserve'])
+    linked = addBlankPlayProjection(linked, playId, roleId);
+  const ambush = addPlayGeometry(linked, playId, 'zone');
+  linked = setPlayZoneRect(ambush.draft, playId, ambush.id, [19, 15, 23, 19]);
+  const watch = addPlayGeometry(linked, playId, 'zone');
+  linked = setPlayZoneRect(watch.draft, playId, watch.id, [13, 10, 17, 16]);
+  linked = configurePlaySharedTrigger(linked, playId, {
+    fact: 'visible-enemies-in-zone', operator: 'at-least', value: 5,
+    zone: watch.id,
+  });
+  const triggerId = linked.workshop.plays[0].responseTriggerConditionId!;
+  const requiredByRole = new Map([
+    ['mason', 1], ['longshot', 1], ['hush', 1], ['reserve', 2],
+  ]);
+  for (const projection of [...linked.workshop.plays[0].projections]) {
+    linked = configurePlayContingent(linked, playId, projection.id, {
+      triggerConditionId: triggerId,
+      destination: { zone: ambush.id },
+      requiredBodies: requiredByRole.get(projection.roleId)!,
+      timeout: 90,
+    });
+  }
+  const projectionIds = linked.workshop.plays[0].projections.map((entry) => entry.id);
+  linked = setPlayReadinessGroup(
+    linked, playId, null, 'Return ambush', projectionIds);
+
+  const play = linked.workshop.plays[0];
+  const readinessIds = play.formations!.map((entry) => entry.conditionId);
+  assert.equal(readinessIds.reduce((sum, id) =>
+    sum + linked.orders.conditions[id].value, 0), 5);
+  assert.equal(Object.keys(linked.orders.conditions).length, 5);
+  assert.deepEqual(play.readinessGroups, [{
+    id: 'return-ambush', name: 'Return ambush', projectionIds,
+  }]);
+  for (const projection of play.projections)
+    assert.deepEqual(projection.orders[0].when, {
+      all: [triggerId, ...readinessIds],
+    });
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+
+  linked = removePlayReadinessGroup(linked, playId, 'return-ambush');
+  for (const projection of linked.workshop.plays[0].projections) {
+    const own = linked.workshop.plays[0].formations!.find((entry) =>
+      entry.projectionId === projection.id)!.conditionId;
+    assert.deepEqual(projection.orders[0].when, { all: [triggerId, own] });
+  }
 });
 
 test('Practice diagnostics correlate ordinary Order reasons without replay Play state', () => {

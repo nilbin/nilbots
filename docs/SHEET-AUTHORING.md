@@ -639,6 +639,24 @@ Reordering one Program therefore moves every participant block together. There
 is no participant-specific insertion point, runtime Program state, atomic team
 activation, reservation, or second scheduler.
 
+Normal Program controls also derive the Condition wiring. The author chooses a
+shared situation (for example, five visible enemies in a drawn area), each
+participant's area or route, required body count, timeout, signature activation
+area, and whether a signature commitment should be maintained. The editor
+creates and links the corresponding named Conditions; the player does not copy
+Condition ids between participants. Generated Conditions remain collapsed
+under **Advanced** and can be edited there as the exact-source escape hatch.
+
+Area contingents are independently ready by default. The author may combine
+two or more of them into one readiness group. Each role retains one ordinary
+`role-in-zone-count` Condition, while every selected participant receives the
+same flat `all` expression over the shared trigger and all selected readiness
+Conditions. The editor shows both each role's count and the combined body
+total, such as a mixed 1+1+1+2 formation reading 5/5. This linkage remains
+sidecar-only authoring sugar; execution sees only ordinary Conditions and
+Instructions. The current flat expression limit permits at most eight named
+Conditions in one gate.
+
 The editor currently offers one blank Program and five guided lenses: Ambush,
 Running Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
 authoring convenience. Its generated Instructions use the same five action

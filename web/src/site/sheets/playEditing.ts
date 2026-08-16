@@ -367,6 +367,38 @@ export function addPlayCondition(
   return { draft: next, id };
 }
 
+/**
+ * Author the Program's shared tactical start directly. The editor reuses one
+ * visible Condition and propagates it to every configured participant; the
+ * player never wires participant expressions by hand.
+ */
+export function configurePlaySharedTrigger(
+  draft: SheetDraft,
+  playId: string,
+  condition: ConditionDefinition,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const readinessIds = new Set((play.formations ?? []).map((entry) =>
+    entry.conditionId));
+  const responseSets = play.projections.map((projection) => {
+    const response = findOrderLocation(
+      projection.orders, `${projection.id}-respond`)?.node;
+    return response ? expressionIds(response.when).filter((id) =>
+      !readinessIds.has(id)) : [];
+  }).filter((ids) => ids.length > 0);
+  const inferred = responseSets.length === 0 ? undefined
+    : responseSets[0].find((id) => responseSets.every((ids) => ids.includes(id)));
+  const conditionId = play.responseTriggerConditionId ?? inferred ?? uniqueString(
+    `${play.id}-response-start`, new Set(Object.keys(next.orders.conditions)));
+  next.orders.conditions[conditionId] = structuredClone(condition);
+  if (!play.ownedConditionIds.includes(conditionId))
+    play.ownedConditionIds.push(conditionId);
+  play.responseTriggerConditionId = conditionId;
+  synchronizePlayResponseConditions(play);
+  return requireMaterialized(next);
+}
+
 export interface PlayContingentSetup {
   triggerConditionId: string;
   destination: { zone: string } | { route: string };
@@ -396,6 +428,8 @@ export function configurePlayContingent(
   if (!role) throw new Error(`Unknown role '${projection.roleId}'.`);
   if (!next.orders.conditions[setup.triggerConditionId])
     throw new Error(`Unknown shared trigger '${setup.triggerConditionId}'.`);
+  const previousTriggerId = play.responseTriggerConditionId;
+  play.responseTriggerConditionId = setup.triggerConditionId;
   const required = Math.max(0, Math.min(role.classes.length,
     Math.trunc(setup.requiredBodies)));
   const responseId = `${projection.id}-respond`;
@@ -432,6 +466,7 @@ export function configurePlayContingent(
       play.ownedConditionIds = play.ownedConditionIds.filter((id) =>
         id !== previousConditionId);
     }
+    removeProjectionFromReadinessGroups(play, projection.id);
   }
 
   const when = expressionOf([
@@ -484,7 +519,69 @@ export function configurePlayContingent(
       move: { to: { zone: setup.destination.zone }, posture: 'line' },
     });
   }
-  return requireMaterialized(next, true);
+  synchronizePlayResponseConditions(play,
+    previousTriggerId && previousTriggerId !== setup.triggerConditionId
+      ? new Set([previousTriggerId]) : undefined);
+  return requireMaterialized(next);
+}
+
+/**
+ * Link several role-qualified readiness checks into one flat ALL gate. This is
+ * editor metadata only: every participant still receives an ordinary `when`
+ * expression over the generated Conditions.
+ */
+export function setPlayReadinessGroup(
+  draft: SheetDraft,
+  playId: string,
+  groupId: string | null,
+  name: string,
+  projectionIds: string[],
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const selected = [...new Set(projectionIds)].filter((id) =>
+    play.projections.some((projection) => projection.id === id));
+  if (selected.length < 2)
+    throw new Error('Combined readiness needs at least two participants.');
+  const formationByProjection = new Map((play.formations ?? []).map((entry) =>
+    [entry.projectionId, entry]));
+  for (const projectionId of selected) {
+    const formation = formationByProjection.get(projectionId);
+    if (!formation || !next.orders.conditions[formation.conditionId])
+      throw new Error('Every combined participant must first form in an area.');
+  }
+  const conditionCount = selected.length + (play.responseTriggerConditionId ? 1 : 0);
+  if (conditionCount > 8)
+    throw new Error('This combined gate exceeds the current eight-Condition expression limit.');
+
+  const groups = play.readinessGroups ??= [];
+  const retained = groups.filter((entry) => entry.id !== groupId);
+  for (const group of retained)
+    group.projectionIds = group.projectionIds.filter((id) => !selected.includes(id));
+  play.readinessGroups = retained.filter((entry) => entry.projectionIds.length >= 2);
+  const id = groupId ?? uniqueString(
+    identifierFromName(name, 'readiness', 48),
+    new Set(play.readinessGroups.map((entry) => entry.id)));
+  play.readinessGroups.push({
+    id,
+    name: name.trim() || 'Combined readiness',
+    projectionIds: selected,
+  });
+  synchronizePlayResponseConditions(play);
+  return requireMaterialized(next);
+}
+
+export function removePlayReadinessGroup(
+  draft: SheetDraft,
+  playId: string,
+  groupId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  play.readinessGroups = (play.readinessGroups ?? []).filter((entry) =>
+    entry.id !== groupId);
+  synchronizePlayResponseConditions(play);
+  return requireMaterialized(next);
 }
 
 export function setPlayContingentExit(
@@ -815,6 +912,60 @@ function requireMaterialized(draft: SheetDraft, force = false): SheetDraft {
   draft.orders = result.orders;
   draft.workshop = result.workshop;
   return draft;
+}
+
+function synchronizePlayResponseConditions(
+  play: LinkedPlay,
+  removedBaseIds: ReadonlySet<string> = new Set(),
+) {
+  const formations = play.formations ?? [];
+  const readinessIds = new Set(formations.map((entry) => entry.conditionId));
+  const formationByProjection = new Map(formations.map((entry) =>
+    [entry.projectionId, entry.conditionId]));
+  const groupByProjection = new Map<string, NonNullable<LinkedPlay['readinessGroups']>[number]>();
+  for (const group of play.readinessGroups ?? [])
+    for (const projectionId of group.projectionIds)
+      groupByProjection.set(projectionId, group);
+
+  for (const projection of play.projections) {
+    const response = findOrderLocation(
+      projection.orders, `${projection.id}-respond`)?.node;
+    if (!response) continue;
+    const base = expressionIds(response.when).filter((id) =>
+      !readinessIds.has(id) && !removedBaseIds.has(id)
+      && id !== play.responseTriggerConditionId);
+    const group = groupByProjection.get(projection.id);
+    const gatedProjectionIds = group?.projectionIds ?? [projection.id];
+    const readiness = gatedProjectionIds
+      .map((projectionId) => formationByProjection.get(projectionId))
+      .filter((id): id is string => Boolean(id));
+    const ids = [...new Set([
+      ...(play.responseTriggerConditionId ? [play.responseTriggerConditionId] : []),
+      ...base,
+      ...readiness,
+    ])];
+    if (ids.length > 8)
+      throw new Error('This participant gate exceeds the current eight-Condition expression limit.');
+    response.when = expressionOf(ids);
+  }
+}
+
+function removeProjectionFromReadinessGroups(
+  play: LinkedPlay,
+  projectionId: string,
+) {
+  for (const group of play.readinessGroups ?? [])
+    group.projectionIds = group.projectionIds.filter((id) => id !== projectionId);
+  play.readinessGroups = (play.readinessGroups ?? []).filter((entry) =>
+    entry.projectionIds.length >= 2);
+}
+
+function expressionIds(expression: ConditionExpression | undefined): string[] {
+  if (!expression || expression === 'always') return [];
+  if (typeof expression === 'string') return [expression];
+  if ('any' in expression)
+    throw new Error('An Advanced ANY gate cannot be combined with Program-derived readiness without nested Conditions.');
+  return [...expression.all];
 }
 
 function appendConditionToLinkedValue(play: LinkedPlay, linkedId: string, conditionId: string) {

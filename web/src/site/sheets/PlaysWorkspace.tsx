@@ -15,7 +15,6 @@ import {
   uniquePlayId,
 } from './linkedPlays';
 import {
-  addPlayCondition,
   addPlayGeometry,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
@@ -23,11 +22,13 @@ import {
   addAmbushReserveSlot,
   appendPlayRouteWaypoint,
   configurePlayContingent,
+  configurePlaySharedTrigger,
   movePlayAnchor,
   moveProgram,
   moveSignatureOpportunity,
   rematerializeDraft,
   removeLastPlayRouteWaypoint,
+  removePlayReadinessGroup,
   removeAmbushReserveSlot,
   removeSignatureOpportunity,
   renameSignatureOpportunity,
@@ -36,6 +37,7 @@ import {
   setPlayLinkedValue,
   setPlayName,
   setPlayContingentExit,
+  setPlayReadinessGroup,
   setPlayZoneRect,
   setSignatureOpportunityCapacity,
   setSignatureOpportunityCommitmentHold,
@@ -564,27 +566,25 @@ function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange 
   const common = responseConditionSets.length === 0 ? []
     : [...responseConditionSets[0]].filter((id) =>
       responseConditionSets.every((set) => set.has(id)));
-  const candidates = play.ownedConditionIds.filter((id) =>
-    draft.orders.conditions[id]
-    && !formationConditionIds.has(id)
-    && draft.orders.conditions[id].fact !== 'signature-commitment-active');
-  const inferred = common[0] ?? candidates[0] ?? '';
-  const [selectedTrigger, setSelectedTrigger] = useState(inferred);
-  const triggerId = draft.orders.conditions[selectedTrigger]
-    ? selectedTrigger : inferred;
+  const inferred = play.responseTriggerConditionId
+    ?? common[0] ?? '';
+  const triggerId = draft.orders.conditions[inferred] ? inferred : '';
+  const trigger = triggerId ? draft.orders.conditions[triggerId] : undefined;
   const zoneIds = play.ownedGeometry.filter((entry) =>
     entry.kind === 'zone' && !entry.derivedFrom).map((entry) => entry.id);
   const [newTriggerZone, setNewTriggerZone] = useState(zoneIds[0] ?? '');
   const selectedZone = zoneIds.includes(newTriggerZone)
     ? newTriggerZone : zoneIds[0] ?? '';
+  const directEnemyTrigger = trigger?.fact === 'visible-enemies-in-zone'
+    && Boolean(trigger.zone);
 
   return <section className="panel pad" data-testid="play-response-design">
     <p className="lab text-arena-material">Shared response</p>
     <h3 className="type-display mt-1 text-[19px]">One start, independent contingents</h3>
-    <p className="t-micro mt-1">The shared start is one named Condition. Each participant then has its own readiness, timeout, exit and continuation inside this Program.</p>
-    {candidates.length === 0 ? <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
+    <p className="t-micro mt-1">Choose the situation once. The Program derives the shared Condition and every participant gate underneath.</p>
+    {!trigger ? <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/8 p-3">
       <p className="type-display text-[16px]">What starts the response?</p>
-      <p className="t-micro mt-1">Start with enemies entering a drawn area. You can refine the exact fact and threshold after creation.</p>
+      <p className="t-micro mt-1">Start with enemy pressure in a drawn area. Exact Condition source remains available in Advanced.</p>
       {zoneIds.length > 0 ? <>
         <label className="mt-3 block"><span className="lab mb-1 block">Watched area</span>
           <select className="field min-h-11" value={selectedZone}
@@ -592,15 +592,10 @@ function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange 
             {zoneIds.map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
           </select></label>
         <button type="button" className="btn btn-primary mt-3 min-h-11 w-full"
-          onClick={() => {
-            const result = addPlayCondition(draft, play.id,
-              `${play.id}-response-start`, {
-                fact: 'visible-enemies-in-zone', operator: 'at-least', value: 5,
-                zone: selectedZone,
-              });
-            onChange(result.draft);
-            setSelectedTrigger(result.id);
-          }}>Create shared start · 5 enemies in {humanize(selectedZone)}</button>
+          onClick={() => onChange(configurePlaySharedTrigger(draft, play.id, {
+            fact: 'visible-enemies-in-zone', operator: 'at-least', value: 5,
+            zone: selectedZone,
+          }))}>Create shared start · 5 enemies in {humanize(selectedZone)}</button>
       </> : <p className="t-meta mt-3">Draw either ambush area on the map above, then return here.</p>}
     </div> : <div className="mt-3 rounded-sm border border-arena-material/40 bg-arena-material/8 p-3">
       <div className="flex flex-wrap items-start gap-2">
@@ -608,20 +603,29 @@ function PlayResponseControls({ draft, play, tracks, onSelectGeometry, onChange 
           <p className="type-display mt-1 text-[17px]">{conditionSummary(draft.orders.conditions[triggerId])}</p></div>
         {common.includes(triggerId) && <span className="pill text-arena-cyan">shared by every configured contingent</span>}
       </div>
-      {candidates.length > 1 && <label className="mt-3 block"><span className="t-micro mb-1 block">Condition used as the shared start</span>
-        <select className="field min-h-11" value={triggerId}
-          onChange={(event) => setSelectedTrigger(event.target.value)}>
-          {candidates.map((id) => <option key={id} value={id}>{programSourceName(id, play.id)}</option>)}
-        </select></label>}
-      <ConditionCard id={triggerId} label={programSourceName(triggerId, play.id)} value={draft.orders.conditions[triggerId]}
-        zones={Object.keys(draft.mapPlan.zones)} roles={draft.orders.roles.map((role) => role.id)}
-        onSelectGeometry={onSelectGeometry}
-        onChange={(next) => onChange(updatePlayCondition(draft, play.id, triggerId, next))} />
+      {directEnemyTrigger ? <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label><span className="lab mb-1 block">Enemies required · {trigger.value}</span>
+          <input type="range" className="w-full accent-[var(--color-arena-material)]"
+            min={1} max={8} value={trigger.value}
+            onChange={(event) => onChange(configurePlaySharedTrigger(draft, play.id, {
+              ...trigger, value: Number(event.target.value),
+            }))} /></label>
+        <label><span className="lab mb-1 block">Watched area</span>
+          <select className="field min-h-11" value={trigger.zone}
+            onChange={(event) => onChange(configurePlaySharedTrigger(draft, play.id, {
+              ...trigger, zone: event.target.value,
+            }))}>
+            {zoneIds.map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
+          </select></label>
+        <button type="button" className="btn btn-secondary min-h-11 sm:col-span-2"
+          onClick={() => onSelectGeometry(trigger.zone!)}>Edit {humanize(trigger.zone!)} on map</button>
+      </div> : <p className="t-micro mt-3">This Program keeps its exact Advanced trigger. No participant wiring is required.</p>}
     </div>}
     <div className="mt-3 grid gap-3">{play.projections.map((projection) =>
       <ContingentCard key={projection.id} draft={draft} play={play}
         projection={projection} triggerId={triggerId} tracks={tracks}
         onSelectGeometry={onSelectGeometry} onChange={onChange} />)}</div>
+    <CombinedReadinessControls key={play.id} draft={draft} play={play} onChange={onChange} />
   </section>;
 }
 
@@ -709,16 +713,135 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
     {configured && <div className="mt-3 grid gap-2 rounded-sm border border-arena-edge bg-arena-panel/45 p-3 sm:grid-cols-2">
       <div><p className="lab">Starts</p><p className="t-micro mt-1">{conditionSummary(draft.orders.conditions[triggerId])}{ready ? ` AND ${conditionSummary(ready)}` : ''}</p></div>
       <div><p className="lab">During</p><p className="t-micro mt-1">{currentRoute ? `Move on ${humanize(currentRoute)}` : 'Fight from the formed area'} · timeout {response?.timeout}</p></div>
-      <label className="sm:col-span-2"><span className="lab mb-1 block">Success / explicit exit Condition</span>
-        <select className="field min-h-11" value={exit}
-          onChange={(event) => onChange(setPlayContingentExit(
-            draft, play.id, projection.id, event.target.value || null))}>
-          <option value="">No explicit exit · timeout or pre-emption</option>
-          {allConditions.map((id) => <option key={id} value={id}>{programSourceName(id, play.id)}</option>)}
-        </select></label>
       <p className="t-micro sm:col-span-2">On failure, timeout, or no executable Instruction, this role falls through to its next participating Program. After all Programs, advanced unlinked Instructions remain the compatibility fallback.</p>
+      <details className="sm:col-span-2 rounded-sm border border-arena-edge bg-arena-deep/30">
+        <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3"><span className="t-body mr-auto">Advanced explicit exit</span><span className="pill">optional</span><span className="disclosure-chevron">›</span></summary>
+        <label className="block border-t border-arena-edge p-3"><span className="lab mb-1 block">Exact exit Condition</span>
+          <select className="field min-h-11" value={exit}
+            onChange={(event) => onChange(setPlayContingentExit(
+              draft, play.id, projection.id, event.target.value || null))}>
+            <option value="">None · timeout or pre-emption</option>
+            {allConditions.map((id) => <option key={id} value={id}>{programSourceName(id, play.id)}</option>)}
+          </select>
+          <span className="t-micro mt-2 block">Natural choices such as “four enemies destroyed” and “Core acquired” are a follow-up; raw Conditions remain the escape hatch.</span>
+        </label>
+      </details>
     </div>}
   </article>;
+}
+
+function CombinedReadinessControls({ draft, play, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const eligible = readinessParticipants(draft, play);
+  const groups = play.readinessGroups ?? [];
+  const grouped = new Set(groups.flatMap((entry) => entry.projectionIds));
+  const available = eligible.filter((entry) => !grouped.has(entry.projectionId));
+  const [creating, setCreating] = useState(false);
+
+  return <section className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
+    <p className="lab text-arena-material">Readiness relationships</p>
+    <h4 className="type-display mt-1 text-[17px]">Independent by default, combined when the tactic needs it</h4>
+    <p className="t-micro mt-1">Each area contingent already owns its role count. Combining them makes one visible ALL gate for every selected participant—no manual Condition wiring.</p>
+    <div className="mt-3 space-y-2">{groups.map((group) =>
+      <ReadinessGroupEditor key={group.id} draft={draft} play={play}
+        groupId={group.id} initialName={group.name}
+        initialProjectionIds={group.projectionIds} eligible={eligible}
+        onChange={onChange} />)}</div>
+    {creating ? <ReadinessGroupEditor draft={draft} play={play}
+      groupId={null} initialName="Return ambush"
+      initialProjectionIds={available.map((entry) => entry.projectionId)}
+      eligible={eligible} onChange={(next) => { onChange(next); setCreating(false); }}
+      onCancel={() => setCreating(false)} />
+      : <button type="button" className="btn btn-secondary mt-3 min-h-11 w-full"
+        disabled={eligible.length < 2}
+        onClick={() => setCreating(true)}>＋ Combine participant readiness</button>}
+    {eligible.length < 2 && <p className="t-micro mt-2">Configure at least two participants to form in areas before combining them.</p>}
+  </section>;
+}
+
+function ReadinessGroupEditor({
+  draft,
+  play,
+  groupId,
+  initialName,
+  initialProjectionIds,
+  eligible,
+  onChange,
+  onCancel,
+}: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  groupId: string | null;
+  initialName: string;
+  initialProjectionIds: string[];
+  eligible: ReturnType<typeof readinessParticipants>;
+  onChange: (next: SheetDraft) => void;
+  onCancel?: () => void;
+}) {
+  const [name, setName] = useState(initialName);
+  const [selected, setSelected] = useState(initialProjectionIds);
+  useEffect(() => {
+    setName(initialName);
+    setSelected(initialProjectionIds);
+  }, [initialName, initialProjectionIds.join('|')]);
+  const selectedEntries = eligible.filter((entry) => selected.includes(entry.projectionId));
+  const required = selectedEntries.reduce((sum, entry) => sum + entry.required, 0);
+  const bodies = selectedEntries.reduce((sum, entry) => sum + entry.bodies, 0);
+  const toggle = (projectionId: string) => setSelected((current) =>
+    current.includes(projectionId)
+      ? current.filter((id) => id !== projectionId)
+      : [...current, projectionId]);
+
+  return <article className="rounded-sm border border-arena-material/35 bg-arena-deep/35 p-3">
+    <div className="flex items-center gap-2">
+      <label className="min-w-0 flex-1"><span className="lab mb-1 block">Readiness group</span>
+        <input className="field min-h-11" value={name} maxLength={48}
+          onChange={(event) => setName(event.target.value)} /></label>
+      <span className="pill shrink-0 text-arena-cyan">{required}/{bodies} ready</span>
+    </div>
+    <div className="mt-3 grid gap-2 sm:grid-cols-2">{eligible.map((entry) => {
+      const active = selected.includes(entry.projectionId);
+      return <button key={entry.projectionId} type="button"
+        className="choice-card min-h-16 text-left" data-selected={active}
+        aria-pressed={active} onClick={() => toggle(entry.projectionId)}>
+        <b className="t-body block">{humanize(entry.roleId)}</b>
+        <span className="t-micro mt-1 block">{entry.required}/{entry.bodies} in {humanize(entry.zoneId)}</span>
+      </button>;
+    })}</div>
+    <p className="t-micro mt-2">Selected roles each keep their own generated role-in-area Condition. Their participant Instructions receive the same flat ALL gate.</p>
+    <div className="mt-3 flex flex-wrap gap-2">
+      <button type="button" className="btn btn-primary min-h-11 flex-1"
+        disabled={selected.length < 2}
+        onClick={() => onChange(setPlayReadinessGroup(
+          draft, play.id, groupId, name, selected))}>
+        {groupId ? `Apply ${required}/${bodies} refinement` : `Arm ${required}/${bodies} together`}
+      </button>
+      {groupId ? <button type="button" className="btn min-h-11 text-arena-hot"
+        onClick={() => onChange(removePlayReadinessGroup(draft, play.id, groupId))}>Separate</button>
+        : <button type="button" className="btn min-h-11" onClick={onCancel}>Cancel</button>}
+    </div>
+  </article>;
+}
+
+function readinessParticipants(draft: SheetDraft, play: LinkedPlay) {
+  return (play.formations ?? []).flatMap((formation) => {
+    const projection = play.projections.find((entry) =>
+      entry.id === formation.projectionId);
+    const condition = draft.orders.conditions[formation.conditionId];
+    const role = draft.orders.roles.find((entry) => entry.id === projection?.roleId);
+    if (!projection || !condition?.zone || !role) return [];
+    return [{
+      projectionId: projection.id,
+      roleId: role.id,
+      conditionId: formation.conditionId,
+      zoneId: condition.zone,
+      required: condition.value,
+      bodies: role.classes.length,
+    }];
+  });
 }
 
 function AlongTheWayControls({
@@ -1005,7 +1128,7 @@ function ConditionControls({ draft, play, onChange }: {
   draft: SheetDraft; play: LinkedPlay; onChange: (next: SheetDraft) => void;
 }) {
   return <details className="panel overflow-hidden">
-    <summary className="flex min-h-14 cursor-pointer items-center gap-2 p-3"><div className="mr-auto"><p className="lab">Conditions</p><p className="t-micro mt-1">Exact Program-owned facts and thresholds</p></div><span className="pill">{play.ownedConditionIds.length}</span><span className="disclosure-chevron">›</span></summary>
+    <summary className="flex min-h-14 cursor-pointer items-center gap-2 p-3"><div className="mr-auto"><p className="lab">Generated Conditions</p><p className="t-micro mt-1">Advanced · exact source derived from the tactical choices above</p></div><span className="pill">{play.ownedConditionIds.length}</span><span className="disclosure-chevron">›</span></summary>
     <div className="grid gap-2 border-t border-arena-edge p-3">{play.ownedConditionIds.map((conditionId) => {
       const condition = draft.orders.conditions[conditionId];
       if (!condition) return <p key={conditionId} className="t-micro text-arena-hot">Missing {conditionId}</p>;

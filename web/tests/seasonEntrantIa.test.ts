@@ -81,6 +81,12 @@ test('Programs expose one top-to-bottom priority and generated Instructions stay
   assert.match(programRecipes, /Untitled Program/);
   assert.doesNotMatch(programRecipes, /Untitled Play/);
   assert.doesNotMatch(programs, /Insert projection|There is no Play priority|setPlayProjectionPlacement|projectionPriorityOptions/);
+  assert.match(programs, /configurePlaySharedTrigger/);
+  assert.match(programs, /Readiness relationships/);
+  assert.match(programs, /Combine participant readiness/);
+  assert.match(programs, /Generated Conditions/);
+  assert.match(programs, /Advanced explicit exit/);
+  assert.doesNotMatch(programs, /Condition used as the shared start|addPlayCondition/);
 });
 
 test('conditions, lifecycle and capacities are explicit game controls rather than opaque strings', () => {

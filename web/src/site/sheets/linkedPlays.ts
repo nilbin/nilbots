@@ -23,7 +23,8 @@ export interface PlayDrift {
   roleId: string;
   orderId?: string;
   kind: 'role-missing' | 'order-missing' | 'order-changed' | 'order-collision'
-    | 'opportunity-binding-invalid' | 'formation-binding-invalid';
+    | 'opportunity-binding-invalid' | 'formation-binding-invalid'
+    | 'readiness-group-invalid' | 'program-condition-invalid';
   message: string;
 }
 
@@ -96,6 +97,34 @@ export function inspectWorkshop(
   const drifts: PlayDrift[] = [];
   for (const play of workshop.plays) {
     const bindingIds = new Set<string>();
+    if (play.responseTriggerConditionId) {
+      const triggerId = play.responseTriggerConditionId;
+      if (!orders.conditions[triggerId] || !play.ownedConditionIds.includes(triggerId)) {
+        drifts.push({
+          playId: play.id,
+          projectionId: '',
+          roleId: '',
+          kind: 'program-condition-invalid',
+          message: `Program trigger '${triggerId}' must remain a visible Program-owned Condition.`,
+        });
+      }
+      for (const projection of play.projections) {
+        const response = findOrder(projection.orders, `${projection.id}-respond`);
+        if (!response) continue;
+        const names = response.when === undefined ? []
+          : typeof response.when === 'string' ? [response.when]
+            : expressionNames(response.when);
+        if (!names.includes(triggerId)) {
+          drifts.push({
+            playId: play.id,
+            projectionId: projection.id,
+            roleId: projection.roleId,
+            kind: 'program-condition-invalid',
+            message: `Program trigger '${triggerId}' is not compiled into '${projection.roleId}'.`,
+          });
+        }
+      }
+    }
     for (const formation of play.formations ?? []) {
       const projection = play.projections.find((entry) =>
         entry.id === formation.projectionId);
@@ -112,6 +141,45 @@ export function inspectWorkshop(
           kind: 'formation-binding-invalid',
           message: `Formation '${formation.id}' must link its projection to one role-in-zone-count Condition.`,
         });
+      }
+    }
+    const groupedProjections = new Set<string>();
+    for (const group of play.readinessGroups ?? []) {
+      const projectionIds = [...new Set(group.projectionIds)];
+      const formationByProjection = new Map((play.formations ?? []).map((entry) =>
+        [entry.projectionId, entry.conditionId]));
+      const conditionIds = projectionIds.map((id) => formationByProjection.get(id))
+        .filter((id): id is string => Boolean(id));
+      const invalid = projectionIds.length < 2
+        || conditionIds.length !== projectionIds.length
+        || projectionIds.some((id) => groupedProjections.has(id));
+      if (invalid) {
+        drifts.push({
+          playId: play.id,
+          projectionId: projectionIds[0] ?? '',
+          roleId: '',
+          kind: 'readiness-group-invalid',
+          message: `Combined readiness '${group.name}' needs at least two unique, area-formed participants and may not overlap another group.`,
+        });
+        continue;
+      }
+      projectionIds.forEach((id) => groupedProjections.add(id));
+      for (const projectionId of projectionIds) {
+        const projection = play.projections.find((entry) => entry.id === projectionId);
+        const response = projection && findOrder(
+          projection.orders, `${projection.id}-respond`);
+        const names = response?.when === undefined ? []
+          : typeof response.when === 'string' ? [response.when]
+            : expressionNames(response.when);
+        if (!response || conditionIds.some((id) => !names.includes(id))) {
+          drifts.push({
+            playId: play.id,
+            projectionId,
+            roleId: projection?.roleId ?? '',
+            kind: 'readiness-group-invalid',
+            message: `Combined readiness '${group.name}' is not compiled into every participant's Instruction gate.`,
+          });
+        }
       }
     }
     for (const projection of play.projections) {

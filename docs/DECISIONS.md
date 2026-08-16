@@ -8740,3 +8740,22 @@ Overload Fork remains the primary UX proof: one shared trigger, independently
 armed 2/2 home defense and 5/5 return ambush, immediate Kestrel raid,
 contextual signature opportunities, explicit continuations, and in-place
 refinement. It is not a bespoke recipe and carries no balance verdict.
+
+## 327. Programs derive Conditions from direct tactical choices
+
+Owner amendment (2026-08-16). Ordinary Program authoring does not require the
+player to wire Condition identifiers. The Program derives its shared trigger,
+per-role area-readiness Conditions, positional signature activation,
+signature-commitment hold, timeout and normal Program fallthrough from the
+direct controls that express those choices. Generated Conditions remain
+visible and editable under Advanced as the exact-source escape hatch; they do
+not encode hidden tactical intent.
+
+Several area contingents may be joined into one named readiness group. Each
+role keeps its ordinary `role-in-zone-count` Condition and every selected
+participant receives the same flat `all` expression over those Conditions and
+the Program trigger. Thus mixed roles can express one 5/5 formation without a
+runtime Program object or manual cross-role wiring. The group is editor-only
+linkage: it adds no state, scheduler, reservation, activation atomicity, or
+priority. Natural-language outcome exits such as “four enemies destroyed” and
+“Core acquired” remain a follow-up rather than a blocker for this milestone.

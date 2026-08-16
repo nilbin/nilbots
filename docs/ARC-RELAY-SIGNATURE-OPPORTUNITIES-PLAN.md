@@ -31,6 +31,25 @@ identifiers remain unchanged for compatibility.
 - Existing unlinked Instructions remain an advanced compatibility surface;
   historical sheet migration does not block this goal.
 
+### Program-derived Conditions ruling — 2026-08-16
+
+Normal Program authoring derives executable Conditions from the player's
+direct tactical choices. Shared enemy-pressure triggers, each role's readiness
+count and area, positional signature activation, signature commitment, and the
+timeout/fallthrough structure are authored without manually wiring Condition
+identifiers. The exact generated Conditions remain visible and editable under
+Advanced as an escape hatch.
+
+Several role-qualified readiness checks may be linked as one combined
+readiness group. The editor materializes each role's ordinary
+`role-in-zone-count` Condition and writes one flat `all` gate onto every
+participant Instruction in that group. This is editor linkage only: it adds no
+runtime Program state, scheduler, reservation, or priority model. For example,
+one 1-body Mason role, one 1-body Longshot role, one 1-body Hush role, and one
+2-body reserve role form a visible 5/5 gate from four generated Conditions.
+Natural-language outcome exits such as “four enemies destroyed” or “Core
+acquired” are an explicit follow-up rather than a milestone blocker.
+
 The primary UX acceptance scenario is **Mid Overload Fork**, authored through
 the generic blank-Program surface rather than a recipe. A player draws two ambush
 locations and a Kestrel route, assigns 2/5/1 contingents, defines one shared

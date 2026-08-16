@@ -58,6 +58,17 @@ export interface PlayFormationBinding {
   conditionId: string;
 }
 
+/**
+ * Editor-only linkage saying that several independently authored participant
+ * readiness checks arm as one contingent. The executable source remains the
+ * flat `all` expression written onto each participant Instruction.
+ */
+export interface PlayReadinessGroup {
+  id: string;
+  name: string;
+  projectionIds: string[];
+}
+
 export interface PlayProjectionPlacement {
   /**
    * Retained only so an older workshop sidecar can still be read. Program
@@ -127,6 +138,9 @@ export interface LinkedPlay {
   geometryGroups: PlayGeometryGroup[];
   slots: PlaySlot[];
   formations?: PlayFormationBinding[];
+  readinessGroups?: PlayReadinessGroup[];
+  /** The Program-owned trigger copied into every configured participant. */
+  responseTriggerConditionId?: string;
   ownedConditionIds: string[];
   ownedCapacityIds: string[];
   projections: PlayProjection[];
@@ -150,6 +164,7 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
   const next = structuredClone(value);
   for (const play of next.plays) {
     play.formations ??= [];
+    play.readinessGroups ??= [];
     const used = new Set<string>();
     for (const projection of play.projections) {
       const existing = projection.signatureOpportunities ?? [];

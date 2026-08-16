@@ -50,6 +50,7 @@ export function addBlankPlay(draft: SheetDraft, name = 'Untitled Program'): Shee
     geometryGroups: [],
     slots: [],
     formations: [],
+    readinessGroups: [],
     ownedConditionIds: [],
     ownedCapacityIds: [],
     projections: [],
@@ -66,10 +67,10 @@ export function addBlankPlayProjection(
   const next = structuredClone(draft);
   const play = next.workshop.plays.find((entry) => entry.id === playId);
   if (!play || play.recipe !== 'blank')
-    throw new Error(`Unknown blank Play '${playId}'.`);
+    throw new Error(`Unknown blank Program '${playId}'.`);
   const role = requireRole(next, roleId);
   if (play.projections.some((entry) => entry.roleId === roleId))
-    throw new Error(`Role '${roleId}' already has a projection in this Play.`);
+    throw new Error(`Role '${roleId}' already participates in this Program.`);
   const projectionId = `${play.id}-${roleId}`;
   const usedIds = new Set(role.orders.flatMap(orderIds));
   let orderId = `${play.id}-${roleId}-move`;
