@@ -1,8 +1,10 @@
 # Arc Relay linked Plays authoring plan
 
-Status: **implemented on `main` on 2026-08-16, then corrected after the first
-Running Relay watch. The correction adds one generic condition fact and two
-generic Arc Toss target qualifiers; it adds no Play runtime state.**
+Status: **implemented on `main` on 2026-08-16, then corrected after owner
+replay review. Running Relay now uses Tapline's registered 58-step outer return
+rather than the shorter inner/lower route. The corrections add one generic
+condition fact and two generic Arc Toss target qualifiers; they add no Play
+runtime state.**
 
 Implement against `docs/SHEET-AUTHORING.md` and
 `docs/SPEC-SHEET-ORDERS-V2.md`. Decisions #294 and #317 remain authoritative:
@@ -61,18 +63,23 @@ as sheet `e058bbd2-8443-4e0a-97b6-3338225a5698` (`Linked Plays Fieldbook`).
 Against Idle Field, the North ambush reached all five required posts at tick 40.
 The first two Relay lenses were rejected after owner review. The four-post
 prototype barely Tossed; the 20-station version made the carrier wait and made
-the runner weave backward through its partner. The accepted **Running Relay**
-keeps the carrier moving on one continuous lower return corridor. Only the
-empty Relay runs toward three sparse, side-of-course rendezvous, and Arc Toss
-is eligible only when that receiver is four or five authored-route tiles ahead.
-That produces three accepted Tosses per Core (nine across the three-Core proof),
-advancing the Core by `+5`, `+4`, and `+5` route tiles without a repeated Core
-tile. Six Idle Field cells bank at ticks 116–126, 202–212, and 288–298. A
-same-route solo control finishes at tick 347 versus tick 294 for Running Relay
-on seed 9001. Those acceptance timings were measured on Tapline-6 and include
-its historical one-tick Toss tell. Tapline-7 subsequently removed that tell and
-resolves the release after same-tick combat; it does not rewrite this recorded
-baseline.
+the runner weave backward through its partner. A third version proved the
+mechanic on a shorter inner/lower return, but owner replay review correctly
+caught that it was not Tapline's full outer corridor. The current **Running
+Relay** uses the 58-step outer return: east outer gate, whole southern perimeter,
+then the west-side climb. Three one-tile passing pockets sit beside that
+one-tile-wide course. The empty Relay steps into a pocket; the carrier keeps
+moving on the authored route and Tosses only from an exact source tile when the
+receiver is at least two route tiles ahead. No Core tile repeats.
+
+The older nine-Toss and 53-tick improvement below remain recorded Tapline-6
+evidence for the superseded inner/lower version. On Tapline-7 seed 9001 the
+current outer-corridor recipe launches at `73/126/149` for the first Core and
+`347/400/423` for the third; the middle Core returns without a legal receiver
+opportunity. Banks are `172/300/446`, versus `167/308/449` for a solo carrier on
+the same outer route. The three-Core finish is therefore three ticks faster,
+not the dramatic gain of the shorter-route proof. This is mechanics evidence
+against Idle Field, not a balance claim.
 
 The accepted correction is a deliberately narrow grammar expansion. A named
 Arc Toss role target may state `aheadVia` plus `minimumForwardTiles`, and the
@@ -524,21 +531,20 @@ precisely that it makes a signature mechanic into an editable team strategy.
 2. Select two one-body Relay roles. The editor creates two linked projections
    and visibly pairs each role with the other; it does not collapse them into
    an opaque two-body unit.
-3. Place only legal receiver rendezvous: three on the current Tapline-6 lower
-   corridor. The posts sit beside the carrier course where possible so the
-   waiting runner cannot become the carrier's obstacle. Each post owns a
-   derived one-tile readiness zone.
+3. Place only legal receiver rendezvous: three one-tile passing pockets beside
+   the Tapline-7 outer corridor. A receiver on the one-tile course would block
+   the carrier, so each pocket also owns an exact approach tile, exact Toss
+   source tile, and one-tile readiness zone.
 4. Each Arc Toss target names the partner role and states the same route in
-   `aheadVia`, plus `minimumForwardTiles`. The current three gains are four,
-   four, and five tiles at authoring time; the observed throws advance the Core
-   by five, four, and five route tiles.
+   `aheadVia`, plus `minimumForwardTiles`. The current three passing pockets are
+   each two route tiles ahead of their exact Toss source.
 5. After a successful Toss, `self-ticks-since-signature-use` makes the now-empty
-   source patrol the same corridor toward its next rendezvous. Once its partner
-   occupies the next readiness zone, a nested Order changes the final approach
-   to `move.to` the exact catch anchor. The fact is body-local and records a
-   successful signature use; it is not a shared turn or a Play phase. A direct
-   shortest-path move to the catch anchor is specifically wrong because it can
-   bypass the corridor the Play author drew.
+   source patrol the same corridor. At the next exact approach tile a nested
+   Order steps it into the passing pocket; while ready it holds that pocket.
+   The fact is body-local and records a successful signature use; it is not a
+   shared turn or a Play phase. A direct shortest-path move to the catch anchor
+   is specifically wrong because it can bypass the corridor the Play author
+   drew.
 6. Place both projections relative to emergency recovery, generic scoring, and
    ordinary collection. The card shows which behavior wins if a Relay acquires
    a Core outside the long corridor.
@@ -553,9 +559,11 @@ is:
 RUN TO NEXT RENDEZVOUS
   when empty-handed AND I just successfully Tossed
   until carrying
-  timeout 40
-  WHEN NEXT RECEIVER POST IS READY
-    move.to receiver anchor
+  timeout 80
+  WHEN AT NEXT RECEIVER POST
+    move.to receiver anchor (hold the passing pocket)
+  WHEN AT ITS APPROACH TILE
+    move.to receiver anchor (enter the passing pocket)
   OTHERWISE
     move.patrol return corridor
 
@@ -565,7 +573,7 @@ RUNNING RETURN
     when carrying AND signature ready AND receiver present
     use Arc Toss on partner role
       aheadVia return corridor
-      minimumForwardTiles 4 or 5
+      minimumForwardTiles 2
   BANK FINAL APPROACH
     when carrying AND inside terminal approach
     until empty-handed
@@ -586,7 +594,7 @@ exists and an unambiguous distance-one route projection for a side rendezvous.
 The exact-landing check rejects a wall-clipped Toss. The Play geometry validator
 uses the same straight-line, range, and terrain requirements before save.
 
-The observed rhythm is concrete:
+When all three receiver opportunities materialize, the intended rhythm is:
 
 | Moment | Relay A | Relay B | Core |
 | --- | --- | --- | --- |
@@ -603,11 +611,13 @@ generated Orders references.
 The rejected station-chain design is retained only as history: 20 alternating
 posts, 18 bounded routes, and 19 Tosses forced both bodies to walk backward,
 wait, and dodge one another. It looked busy but did not accelerate the Core.
-Running Relay instead accepts three Tosses **per Core**, nine in a complete
-three-Core match. A fourth-pass experiment on the final approach found the
-runner only one route tile ahead; its extra tell could not save time and its
-latched receiver could strand. That pass was rejected rather than padding the
-count.
+The superseded inner/lower recipe accepted three Tosses **per Core**, nine in a
+complete three-Core match. The current outer-corridor recipe authors three legal
+opportunities but never waits to force them: seed 9001 realizes all three on
+the first and third Core, and none on the middle Core. A fourth-pass experiment
+on the final approach found the runner only one route tile ahead; its extra tell
+could not save time and its latched receiver could strand. That pass was
+rejected rather than padding the count.
 
 ### Proof environment and Arc Toss timing dependency
 

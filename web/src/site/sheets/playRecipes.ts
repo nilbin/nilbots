@@ -233,34 +233,47 @@ export function addRelayChainPlay(
     throw new Error('Choose two distinct one-body Relay roles.');
 
   const id = uniquePlayId('relay-chain', next.workshop);
-  // One west-authored long return corridor from the enemy Well, down through
-  // the southern passage, across the lower lane, and up the west approach to
-  // the home reactor. The carrier always follows this continuous corridor.
-  // Three sparse rendezvous sit at useful straight-line ends: only the empty
-  // runner advances to them, while the carrier keeps moving. This matters
-  // because Arc Toss is an eight-way straight throw; arbitrary route-ahead
-  // positions around a bend are not legal landing lines.
+  // The west-authored 58-step full-shadow south return from the enemy Well:
+  // reach the east outer gate, cross the entire southern perimeter, then climb
+  // the west approach to the home reactor. This is the map analysis contract's
+  // actual outer corridor—not the shorter inner/lower return. The carrier and
+  // empty runner share it continuously.
+  //
+  // Each rendezvous is a one-tile passing pocket beside the route. The empty
+  // runner steps out of the corridor before the carrier arrives; after the
+  // Toss, the former carrier takes the route tile while the new carrier's
+  // ordinary relocation cooldown holds it in the pocket. That is what lets two
+  // bodies alternate through a one-tile-wide outer corridor without either
+  // blocking the other. Arc Toss is an eight-way straight throw, so every
+  // source and pocket are an authored, terrain-clear pair.
   const corridorWaypoints: Array<[number, number]> = [
-    [18, 19], [18, 16], [15, 16], [13, 17],
-    [11, 18], [9, 20], [7, 22], [7, 23], [3, 23],
-    [3, 19], [5, 17], [4, 16], [5, 15], [5, 12],
-    [4, 11], [4, 9], [3, 8], [4, 7],
+    [19, 20], [22, 23], [22, 22], [23, 21], [24, 22],
+    [24, 23], [25, 23], [27, 23], [27, 25],
+    [16, 25], [15, 25], [14, 25], [5, 25], [3, 25], [3, 24],
+    [3, 23], [2, 22], [1, 21], [2, 20], [3, 19],
+    [4, 17], [4, 16], [4, 15], [5, 14], [5, 12], [4, 11],
+    [4, 9], [3, 8], [2, 7], [2, 5],
   ];
   const corridorRoute = `${id}-return-corridor`;
   const pickupAnchor = `${id}-enemy-well-pickup`;
   const homeAnchor = `${id}-home-reactor`;
   const homeZone = `${homeAnchor}-approach`;
-  // Receiver posts sit one tile beside the carrier's course. A waiting
-  // runner must never become the obstacle the Core carrier has to dodge.
   const rendezvousPoints: Array<[number, number]> = [
-    [13, 16], [3, 23], [5, 12],
+    [28, 23], [2, 25], [4, 14],
   ];
-  const minimumForwardTiles = [4, 4, 5];
+  const approachWaypointIndices = [7, 13, 22];
+  const tossSourceWaypointIndices = [6, 12, 21];
+  const minimumForwardTiles = [2, 2, 2];
   const rendezvous = rendezvousPoints.map((point, index) => ({
+    index,
     id: `${id}-receiver-${index + 1}`,
     zone: `${id}-receiver-${index + 1}-ready`,
+    approachZone: `${id}-receiver-${index + 1}-approach`,
+    sourceZone: `${id}-toss-${index + 1}-source`,
     point,
     roleId: index % 2 === 0 ? roles.relayBRoleId : roles.relayARoleId,
+    approachWaypointIndex: approachWaypointIndices[index],
+    sourceWaypointIndex: tossSourceWaypointIndices[index],
     minimumForwardTiles: minimumForwardTiles[index],
   }));
   next.mapPlan.routes[corridorRoute] = { waypoints: corridorWaypoints };
@@ -268,8 +281,14 @@ export function addRelayChainPlay(
   next.mapPlan.anchors[homeAnchor] = [2, 5];
   for (const station of rendezvous)
     next.mapPlan.anchors[station.id] = station.point;
-  for (const station of rendezvous)
+  for (const station of rendezvous) {
     next.mapPlan.zones[station.zone] = { rect: [...station.point, ...station.point] };
+    const approach = corridorWaypoints[station.approachWaypointIndex];
+    const source = corridorWaypoints[station.sourceWaypointIndex];
+    if (station.index > 0)
+      next.mapPlan.zones[station.approachZone] = { rect: [...approach, ...approach] };
+    next.mapPlan.zones[station.sourceZone] = { rect: [...source, ...source] };
+  }
   // Entering this small terminal approach switches both roles off the
   // repeating patrol before it can lap. The carrier walks the final two
   // tiles into the reactor; the empty runner holds beside, never on, the
@@ -286,6 +305,9 @@ export function addRelayChainPlay(
   };
   for (let index = 0; index < rendezvous.length; index += 1) {
     conditionIds[`receiver${index + 1}`] = `${id}-receiver-${index + 1}-occupied`;
+    if (index > 0)
+      conditionIds[`approach${index + 1}`] = `${id}-receiver-${index + 1}-at-approach`;
+    conditionIds[`source${index + 1}`] = `${id}-carrier-${index + 1}-at-source`;
   }
   const conditions: Record<string, ConditionDefinition> = {
     [conditionIds.carrying]: { fact: 'self-carrying', operator: 'equals', value: 1 },
@@ -310,6 +332,16 @@ export function addRelayChainPlay(
       role: station.roleId,
       zone: station.zone,
     };
+    if (index > 0) {
+      conditions[conditionIds[`approach${index + 1}`]] = {
+        fact: 'self-in-zone', operator: 'equals', value: 1,
+        zone: station.approachZone,
+      };
+    }
+    conditions[conditionIds[`source${index + 1}`]] = {
+      fact: 'self-in-zone', operator: 'equals', value: 1,
+      zone: station.sourceZone,
+    };
   }
   Object.assign(next.orders.conditions, conditions);
 
@@ -318,6 +350,7 @@ export function addRelayChainPlay(
       ? [{
         anchorId: station.id,
         previousReadyCondition: conditionIds[`receiver${index + 1}`],
+        approachCondition: conditionIds[`approach${index + 2}`],
         readyCondition: conditionIds[`receiver${index + 2}`],
       }]
       : []);
@@ -325,6 +358,7 @@ export function addRelayChainPlay(
     rendezvous.flatMap((station, index) => station.roleId === roleId
       ? [{
         receiverReadyCondition: conditionIds[`receiver${index + 1}`],
+        sourceCondition: conditionIds[`source${index + 1}`],
         minimumForwardTiles: station.minimumForwardTiles,
       }]
       : []);
@@ -369,6 +403,18 @@ export function addRelayChainPlay(
         derivedFrom: station.id,
         tolerance: 0,
       })),
+      ...rendezvous.flatMap((station) => ([
+        ...(station.index > 0 ? [{
+          kind: 'zone' as const,
+          id: station.approachZone,
+          purpose: 'self-in-zone receiver approach',
+        }] : []),
+        {
+          kind: 'zone' as const,
+          id: station.sourceZone,
+          purpose: 'self-in-zone toss source',
+        },
+      ])),
       { kind: 'zone', id: homeZone, purpose: 'self-in-zone' },
     ],
     geometryGroups: [{
@@ -382,10 +428,10 @@ export function addRelayChainPlay(
         homeZone,
       ],
       derivedObjectIds: rendezvous.map((station) => station.zone),
-      tossLinks: [1, 7, 10].map((sourceWaypointIndex, index) => ({
+      tossLinks: rendezvous.map((station) => ({
         routeId: corridorRoute,
-        sourceWaypointIndex,
-        receiverAnchorId: rendezvous[index].id,
+        sourceWaypointIndex: station.sourceWaypointIndex,
+        receiverAnchorId: station.id,
       })),
     }],
     slots: [],
@@ -715,11 +761,13 @@ function ambushProjection(
 interface RelayReceiverStage {
   anchorId: string;
   previousReadyCondition: string;
+  approachCondition: string;
   readyCondition: string;
 }
 
 interface RelayTossStage {
   receiverReadyCondition: string;
+  sourceCondition: string;
   minimumForwardTiles: number;
 }
 
@@ -753,14 +801,20 @@ function relayProjection(
         },
         until: conditions.carrying,
         // A disrupted catch must not strand the former carrier forever. The
-        // clean corridor proof completes each receiver episode inside 26
-        // ticks; 40 preserves that run while bounding combat/pathing failure.
-        timeout: 40,
+        // full outer perimeter puts 29 route steps between the first two
+        // passing pockets; 80 preserves that clean run while still bounding
+        // combat or pathing failure.
+        timeout: 80,
         urgency: 'urgent',
         orders: [
           {
             id: `${playId}-${label}-receive-${index + 1}-hold`,
             when: stage.readyCondition,
+            move: { to: { anchor: stage.anchorId } },
+          },
+          {
+            id: `${playId}-${label}-receive-${index + 1}-enter-pocket`,
+            when: stage.approachCondition,
             move: { to: { anchor: stage.anchorId } },
           },
           {
@@ -779,6 +833,7 @@ function relayProjection(
               all: [
                 conditions.carrying,
                 conditions.signature,
+                stage.sourceCondition,
                 stage.receiverReadyCondition,
               ],
             },

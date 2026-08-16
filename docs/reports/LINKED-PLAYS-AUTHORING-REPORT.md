@@ -274,3 +274,42 @@ felt-eligibility and movement-sanity gates at
 not a balance read. This fast checkpoint uses in-process execution and does not
 rebuild WASM, mint a stock artifact, advance hosted v24, or alter its rating
 book.
+
+## Full outer-corridor correction (2026-08-16)
+
+Owner replay review found a more fundamental authoring error: the route called
+the return corridor above was the shorter inner/lower route, not Tapline's
+registered 58-step full-shadow southern return. The current Running Relay lens
+supersedes it with the actual course through the east outer gate, across the
+whole southern perimeter, and up the west-side approach.
+
+Simply moving the three receiver anchors onto that course did not work. The
+outer corridor is one tile wide, so a receiver on the course became the very
+obstacle the carrier had to pass. Four adjacent pockets with one-tile forward
+gains produced four Tosses per Core but finished at tick 479 versus 449 for the
+solo control; that visually busy version was rejected. The accepted geometry
+uses three terrain-clear passing pockets. Each owns an exact approach tile and
+exact Toss source, with a two-route-tile forward gain. The empty runner enters
+the pocket while the carrier stays on the route; after the catch, ordinary Core
+relocation cadence lets the former carrier pass on the course.
+
+On the focused Tapline-7 seed-9001 Idle Field diagnostic, the first Core launches
+at ticks `73/126/149` and the third at `347/400/423`. The middle Core returns
+without a legal receiver opportunity rather than waiting. Banks are
+`172/300/446`, result tick 446, replay hash
+`3f2b65745b601b0a2d373407ae65cfcbd0b0e36831153019d5b70e2d10862994`.
+Every Core relocation advances to a previously unvisited tile. The solo control
+on the same full outer route banks at `167/308/449`, result tick 449, replay
+hash `2f13651c818c6bac836311405f23f641cf9f510af0186a712a90a95845ed7d95`.
+The current recipe is therefore only three ticks faster over three Cores. That
+is an honest mechanics read, not a balance conclusion or a claim that every
+Core will offer three legal Tosses.
+
+The web regression now evaluates Running Relay geometry against Tapline's real
+wall grid and pins all three source/approach/pocket relationships. The direct
+executor's generic `aheadVia` projection treats a body in a one-tile side pocket
+as occupying its adjacent course progress, while an exact authored waypoint
+still outranks an advanced route cursor. Focused and full tactical-mind tests
+pin the projection band; all 576 web tests pass. No map, scoring rule, signature
+timing, frozen artifact, playlist, rating book, replay contract, or WASM mirror
+changed in this fast design correction.

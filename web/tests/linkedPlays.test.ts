@@ -41,6 +41,39 @@ const signatures: Record<string, string> = {
   patchbay: 'repair-beam',
 };
 
+// The Running Relay recipe is authored against Tapline's real terrain. Keep
+// its geometry test on that terrain so an apparently straight Toss cannot
+// silently cross a wall while an all-floor fixture says it is valid.
+const taplineTileRows = [
+  '###############################',
+  '#.............................#',
+  '###.###########.###########.###',
+  '#......#......................#',
+  '#....#...#..###.###.##..###...#',
+  '#....#...#...#...#..#....#....#',
+  '#........#...#...#..#.##.#....#',
+  '#........#.......#.......#....#',
+  '#....#...###....##....#.......#',
+  '###......###.##.#..........##.#',
+  '#....#######......###..##.....#',
+  '#.##......##.......#....#.....#',
+  '#.....###..#.......#....#.....#',
+  '#..##...##...........##...##..#',
+  '#.....#....#.......#..###.....#',
+  '#.....#....#.......##......##.#',
+  '#.....##..###......#######....#',
+  '#.##..........#.##.###......###',
+  '#.......#....##....###...#....#',
+  '#....#.......#.......#........#',
+  '#....#.##.#..#...#...#........#',
+  '#....#....#..#...#...#...#....#',
+  '#...###..##.###.###..#...#....#',
+  '#......................#......#',
+  '###.###########.###########.###',
+  '#.............................#',
+  '###############################',
+];
+
 const orders: OrdersDocument = {
   schema: 'arc-relay-orders-v2',
   sheetId: 'linked-play-test',
@@ -85,7 +118,7 @@ test('the North ambush materializes ordinary linked Orders and detects external 
   assert.equal(play.slots.length, 5);
   assert.equal(play.projections.length, 4);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
-  assert.equal(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error').length, 0);
+  assert.deepEqual(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error'), []);
 
   const timeout = play.linkedValues.find((value) => value.field === 'timeout')!;
   const editedWorkshop = setLinkedValue(linked.workshop, play.id, timeout.id, 40);
@@ -150,9 +183,9 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'route').length, 1);
   assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'anchor'
     && entry.id.includes('-receiver-')).length, 3);
-  assert.equal(playGeometryIssues(linked, play.id, catalog.map.tileRows).length, 0);
+  assert.equal(playGeometryIssues(linked, play.id, taplineTileRows).length, 0);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
-  assert.equal(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error').length, 0);
+  assert.deepEqual(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error'), []);
   const generated = play.projections.flatMap((projection) => allOrders(projection.orders));
   const receiverBranches = play.projections.flatMap((projection) => projection.orders)
     .filter((order) => order.id?.includes('-receive-'));
@@ -163,7 +196,7 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(generated.filter((order) => order.id?.includes('-hop-')).length, 0);
   const corridor = play.ownedGeometry.find((entry) => entry.kind === 'route')!.id;
   const tossLinks = play.geometryGroups[0].tossLinks!;
-  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [1, 7, 10]);
+  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [6, 12, 21]);
   for (const projection of play.projections) {
     const children = projection.orders.find((order) => order.id?.endsWith('-running-return'))!.orders!;
     const toss = children.find((order) => order.use?.skill === 'arc-toss')!;
@@ -175,27 +208,29 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
     assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.move?.patrol, corridor);
     for (const receive of projection.orders.filter((order) => order.id?.includes('-receive-'))) {
       assert.equal(receive.urgency, 'urgent');
-      assert.equal(receive.timeout, 40);
+      assert.equal(receive.timeout, 80);
       assert.equal(receive.move, undefined);
       const hold = receive.orders!.find((order) => order.id?.endsWith('-hold'))!;
+      const enter = receive.orders!.find((order) => order.id?.endsWith('-enter-pocket'))!;
       const run = receive.orders!.find((order) => order.id?.endsWith('-run-corridor'))!;
       assert.equal(typeof hold.move?.to === 'object' && 'anchor' in hold.move.to, true);
+      assert.equal(typeof enter.move?.to === 'object' && 'anchor' in enter.move.to, true);
       assert.equal(run.move?.patrol, corridor);
     }
   }
 
   const firstReceiver = tossLinks[0].receiverAnchorId;
-  const moved = movePlayAnchor(linked, play.id, firstReceiver, [13, 15]);
+  const moved = movePlayAnchor(linked, play.id, firstReceiver, [28, 24]);
   const movedZone = moved.workshop.plays[0].ownedGeometry.find((entry) =>
     entry.kind === 'zone' && entry.derivedFrom === firstReceiver)!.id;
-  assert.deepEqual(moved.mapPlan.zones[movedZone].rect, [13, 15, 13, 15]);
-  assert.match(playGeometryIssues(moved, play.id, catalog.map.tileRows)[0].message,
+  assert.deepEqual(moved.mapPlan.zones[movedZone].rect, [28, 24, 28, 24]);
+  assert.match(playGeometryIssues(moved, play.id, taplineTileRows)[0].message,
     /not on a horizontal, vertical, or 45° line/);
 
-  const blockedRows = [...catalog.map.tileRows];
-  blockedRows[16] = `${blockedRows[16].slice(0, 16)}#${blockedRows[16].slice(17)}`;
+  const blockedRows = [...taplineTileRows];
+  blockedRows[23] = `${blockedRows[23].slice(0, 26)}#${blockedRows[23].slice(27)}`;
   assert.match(playGeometryIssues(linked, play.id, blockedRows)[0].message,
-    /blocked by terrain at 16,16/);
+    /blocked by terrain at 26,23/);
 
   const detached = detachPlay(linked.workshop, play.id);
   assert.equal(detached.plays.length, 0);

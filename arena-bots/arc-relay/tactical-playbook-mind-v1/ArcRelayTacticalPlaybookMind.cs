@@ -1228,32 +1228,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
         int nextIndex;
         int initialDistance;
-        if (_routeCursors.TryGetValue(unitId, out RouteCursor? cursor)
-            && cursor.Initialized
-            && cursor.Lap == 0
-            && string.Equals(cursor.RouteId, routeId, StringComparison.Ordinal)
-            && cursor.Index >= 0
-            && cursor.Index < points.Count)
+        int[] exactIndexes = points
+            .Select((point, index) => (point, index))
+            .Where(value => value.point == position)
+            .Select(value => value.index)
+            .ToArray();
+        var projections = points.Select((point, index) => new
+            {
+                Index = index,
+                Distance = ArenaBasics.StaticDistance(
+                    contract.Map, position, point),
+            })
+            .Where(value => value.Distance is >= 0 and <= 1)
+            .ToArray();
+        if (exactIndexes.Length == 1)
         {
-            int? toCurrent = ArenaBasics.StaticDistance(
-                contract.Map, position, points[cursor.Index]);
-            if (toCurrent is null)
-                return null;
-            nextIndex = cursor.Index;
-            initialDistance = toCurrent.Value;
+            // Arrival hysteresis may advance a route cursor while the body is
+            // still standing on the preceding authored waypoint. For Toss
+            // progress the body's exact tile is authoritative; otherwise a
+            // carrier can reach its authored source and be measured as if it
+            // had already passed the receiver.
+            nextIndex = exactIndexes[0];
+            initialDistance = 0;
         }
-        else
+        else if (exactIndexes.Length > 1)
         {
-            var projections = points.Select((point, index) => new
-                {
-                    Index = index,
-                    Distance = ArenaBasics.StaticDistance(
-                        contract.Map, position, point),
-                })
-                .Where(value => value.Distance is >= 0 and <= 1)
-                .ToArray();
-            if (projections.Length == 0)
-                return null;
+            return null;
+        }
+        else if (projections.Length > 0)
+        {
             int nearestDistance = projections.Min(value => value.Distance)!.Value;
             int[] nearest = projections
                 .Where(value => value.Distance == nearestDistance)
@@ -1269,7 +1272,33 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return null;
             }
             nextIndex = nearest.Max();
-            initialDistance = nearestDistance;
+            // This is route progress, not physical travel remaining. A
+            // receiver waiting in a one-tile passing pocket projects onto the
+            // adjacent course tile; charging that lateral step here would say
+            // an immediately-ahead receiver made zero forward progress and
+            // force it back onto the one-tile route where it blocks the
+            // carrier. Reachability is already proven by the <= 1 projection
+            // above, so only distance along the authored route belongs in the
+            // aheadVia comparison.
+            initialDistance = RouteProjectionOffset(nearestDistance);
+        }
+        else if (_routeCursors.TryGetValue(unitId, out RouteCursor? cursor)
+            && cursor.Initialized
+            && cursor.Lap == 0
+            && string.Equals(cursor.RouteId, routeId, StringComparison.Ordinal)
+            && cursor.Index >= 0
+            && cursor.Index < points.Count)
+        {
+            int? toCurrent = ArenaBasics.StaticDistance(
+                contract.Map, position, points[cursor.Index]);
+            if (toCurrent is null)
+                return null;
+            nextIndex = cursor.Index;
+            initialDistance = toCurrent.Value;
+        }
+        else
+        {
+            return null;
         }
 
         int remaining = initialDistance;
@@ -1282,6 +1311,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             remaining = checked(remaining + leg.Value);
         }
         return remaining;
+    }
+
+    internal static int RouteProjectionOffset(int distanceToCourse)
+    {
+        if (distanceToCourse is < 0 or > 1)
+            throw new ArgumentOutOfRangeException(nameof(distanceToCourse));
+        return 0;
     }
 
     private static string? OptionalTrace(string value) => value;
