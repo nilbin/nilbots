@@ -27,6 +27,18 @@ later, and mechanically reliable. The same primitive must generalize to firing
 posts, mines, sentries, smoke, flares, artillery targets, repair stations, and
 other future signatures. It must not be a Mason-only recipe.
 
+The second canonical alpha sentence is an ordinary role plan, not a new
+behavior system:
+
+> Patrol this route. Use these skills at these locations. Fight when this body
+> runs into reachable enemies, recover a visible loose Core within five legal
+> walking steps when empty-handed, and otherwise keep patrolling.
+
+That complete sentence must be authorable and reorderable from one Program
+participant card. Its displayed local order must be the exact generated
+Instruction sibling order, with no hidden priority between the skill, fight,
+Core-recovery, and patrol choices.
+
 ## Product boundary
 
 Preserve these constraints throughout:
@@ -46,6 +58,15 @@ Preserve these constraints throughout:
 - Capacity remains the existing generic “how many bodies may resolve this
   target” primitive. Do not invent fixed unit assignments or a hidden formation
   allocator.
+- Intent-aware capacity defaults are allowed only as visible Program-authoring
+  sugar that materializes the ordinary capacity field. In particular, nearby
+  Core recovery defaults to **One bot per Core across this sheet's default
+  recovery group**. Do not change the executor's generic default or silently
+  reinterpret an existing sheet with no capacity.
+- An **Along the way** list is not a second priority system. Its displayed
+  top-to-bottom order is the actual order of direct-child Instruction leaves
+  inside that Program participant, followed by the exact movement/fight
+  continuation. Dragging it changes that one real order.
 - Combined readiness means every participant sees the same ordinary gate; it
   does not promise simultaneous actions. A higher Program, death, displacement,
   or dynamic illegality may still affect one participant independently, and
@@ -177,6 +198,59 @@ ambiguous all-slots-ready gate, and do not add a hidden runtime assignment or
 matching system to compensate. Required Posts backed by disjoint role/body
 pools may overlap because no body can satisfy both. Pin this validation for
 zero- and non-zero-tolerance Posts.
+
+### Player-friendly capacity authoring
+
+Do not make a player translate every tactic into the abstract word
+“capacity.” Label the same existing primitive in terms of its resolved target:
+
+- **Bodies at this Post** for spatial occupation;
+- **Pursuers per Core** for Core recovery;
+- **Attackers per enemy** for fight focus; and
+- **Casters per target** where several eligible bodies share a signature
+  opportunity.
+
+The compact Program summary must always show the effective policy even when a
+safe default supplied it. The expanded control explains that claims recompute
+every tick, are not reservations, and that a body which loses a claim tries its
+next eligible target and then its next local behavior in the same tick.
+
+Nearby visible-Core recovery defaults to:
+
+```text
+Pursuers per Core · 1 (recommended)
+```
+
+The player may change that to 2–8 or deliberately choose **All eligible**;
+**All eligible** removes the capacity field rather than materializing a magic
+number. The recommended default is persisted in Program linkage and
+materialized as an ordinary capacity; it is not an invisible executor rule.
+New normal-surface nearby-Core cards join one visible sheet-wide **Core
+recovery** coordination group by default, so two roles or Programs do not each
+send one body to the same Core while both claim to mean “one per Core.” The
+expanded control lets a player deliberately split off a separately named
+coordination group when a tactic needs independent pursuit.
+
+If the default group currently has one recovery leaf, use an inline capacity.
+If it has several leaves across roles or Programs, materialize one shared named
+capacity. Normalize back to an inline capacity if only one consumer remains,
+without changing behavior or exposing that storage detail in the compact UI.
+The summary still says whether the policy coordinates across the sheet or only
+within a deliberately separate group.
+
+Capacity is per resolved Core, not one collector for the whole map. With three
+eligible visible Cores, three bodies may each pursue a different Core under the
+default. With one Core, only one pursues it; the others try another in-range
+Core and then the next Along-the-way behavior. If the pursuer dies, loses the
+target, or becomes ineligible, another body may win the recomputed claim next
+tick. Do not add a claim lifetime, target reservation, or hidden collector
+assignment.
+
+Do not invent intent defaults where the desired coordination is genuinely a
+strategy choice. Encounter fighting must show its effective **Attackers per
+enemy** setting but may default to **All eligible**; focus fire versus spreading
+damage belongs to the player. Existing Programs and Orders retain their exact
+authored capacity semantics until edited.
 
 ### Backward-compatible editor linkage
 
@@ -399,7 +473,7 @@ continuation, not an unconditional preparation node that repeatedly exits and
 re-enters. The Mid Overload proof below must use this policy for both staged
 formations.
 
-## 5. Improve condition and signature ergonomics without another language
+## 5. Improve condition and opportunity ergonomics without another language
 
 Replace the single disabled “When” dropdown behavior on signature
 opportunities with direct clause controls:
@@ -425,6 +499,7 @@ Surface a compact set of common tactical triggers directly:
 - role/body count in an area;
 - self health and lowest health in a selected role;
 - this body's nearest reachable visible-enemy distance;
+- this body's nearest reachable visible-loose-Core walking distance;
 - Core carried/value/source state;
 - respawn-wave timing;
 - veteran level;
@@ -606,6 +681,145 @@ descriptor/grammar contract: in particular, loop-forward Vector Dash remains
 separate from the generic “use near this patrol station” composition unless it
 is deliberately admitted and pinned by route-forward tests.
 
+### Encounter and nearby-objective opportunities
+
+Do not stop at signature-only **Along the way** cards. A role with an ordinary
+movement continuation must be able to combine three normal opportunity kinds
+in one visibly ordered list:
+
+1. **Use a skill** at an authored source station or activation area;
+2. **Fight on contact** under an authored body-local encounter range; and
+3. **Recover a nearby Core** when empty-handed and a currently visible loose
+   Core is within an authored walking distance.
+
+Location-bound signature cards use their authored route stations. Fight and
+Core recovery default to **Anywhere along this movement** because their source
+is the moving body; do not force the player to draw fake Posts for them. The
+player may add an ordinary activation area if the tactic should apply only on
+one part of the route.
+
+The patrol proof must be readable approximately as:
+
+```text
+North watch · Scout role
+Patrol North Loop
+
+Along the way · top to bottom
+1. At Flare Overlook, Survey Flare the North Approach when enemies are known
+2. Fight when this body can join a visible enemy within 4 steps
+   Advance · chase at most 3 tiles · Attackers per enemy: All eligible
+3. When empty-handed, recover a visible loose Core within 5 walking steps
+   Pursuers per Core: 1 · across this sheet
+
+Otherwise continue North Loop
+After pickup: leave this patrol → Core Return
+```
+
+The player may drag these cards into a different order. This is a consequential
+strategy decision: if Fight is above Core recovery, contact wins that tick; if
+Core recovery is above Fight, the objective diversion wins while it remains
+eligible. The numbered list must be the actual direct-child Instruction order,
+not advisory metadata. The ordinary movement continuation is visibly pinned
+last. A false Condition, missing target, lost capacity claim, illegal action,
+or cooldown proceeds to the next sibling in the same tick.
+
+Allow Fight and Core-recovery opportunities on any durable ordinary movement
+continuation where their fallback is well-defined; require the complete proof
+on a patrol. Do not add an “autonomy mode,” interrupt scheduler, route-local
+state machine, or opaque behavior policy. The workshop sidecar owns only the
+link between each human card and its ordinary Condition/action leaf.
+
+#### Fight on contact
+
+This card needs no new executor primitive. Materialize the existing
+`self-nearest-visible-enemy-distance` Condition above an ordinary `fight` leaf
+and expose:
+
+- encounter distance, labelled accurately as the legal walking steps this body
+  needs to reach a firing tile—not geometric distance to the enemy;
+- ordered target preferences;
+- advance/hold/kite style;
+- chase limit from the fight-entry position; and
+- the visible **Attackers per enemy** capacity policy.
+
+If no legal target is actionable, the leaf yields to the next opportunity or
+movement that tick. When the encounter Condition/lifecycle exits, the same
+patrol cursor resumes; entering combat must not silently restart the route or
+convert the chase limit into distance from a waypoint. Existing minimum
+commitment and maximum-attempt controls remain available when the player wants
+the fight to survive a momentary sighting loss, but an ambient encounter card
+does not create its own latch.
+
+#### Recover a nearby visible Core
+
+Add one body fact:
+
+```text
+self-nearest-visible-loose-core-distance
+```
+
+It is the fewest legal movement steps from this body to the exact tile of a
+currently team-visible loose Core that this body may collect. A sighting from
+any allied sensor counts, but distance is computed independently for each
+body. Known durable blockers, protected terrain, and spawn reservations count;
+body occupancy remains transient traffic. Comparisons use the same `0..31`
+upper-bound convention as visible-enemy approach distance. With no reachable
+currently visible loose Core, every finite upper bound is false. This fact is
+current perception, not the persistent known-Core ledger.
+
+Add the matching dynamic move target and bounded qualifier:
+
+```json
+{
+  "move": {
+    "to": "nearest-visible-loose-core",
+    "withinWalkingSteps": 5
+  }
+}
+```
+
+`withinWalkingSteps` is `0..31`. It filters **every** candidate before target
+capacity allocation, not merely the first candidate. This matters when the
+nearest Core has already reached its one-pursuer capacity: the losing body may
+try another visible Core only if that Core is also within its authored bound.
+The target orders the remaining candidates by this body's legal walking
+distance and then stable Core identity. No reachable in-bound candidate means
+the move yields to the next sibling in the same tick.
+
+The normal recovery card materializes both
+`self-nearest-visible-loose-core-distance <= N` and `self-carrying = 0`, plus
+the identically bounded target. Condition and target must share one canonical
+distance/candidate implementation so the UI cannot say “within five” while the
+action chases something farther away. Walking onto the Core remains the
+existing physical pickup rule; do not add a `pickup` action.
+
+Use **Pursuers per Core: 1** by default according to the player-friendly
+capacity rules above. A body that loses the claim tries another visible,
+reachable, in-bound Core and then the next Along-the-way card. Claims remain
+tick-local and target-local. Do not reserve a Core, latch its identity, or
+silently fall back to `nearest-known-loose-core`. A player who wants persistent
+recovery after vision is lost can author the existing known-Core recovery as a
+separate Program with explicit lifecycle consequences.
+
+Adding nearby recovery must also make the post-pickup continuation explicit.
+The recommended normal choice is:
+
+```text
+After pickup · leave this patrol
+Expected next Program · Core Return
+```
+
+This visibly gates the patrol participant branch to empty-handed bodies, so a
+loaded body is handled on the next tick by the highest eligible ordinary
+Program after the whole top-to-bottom list is evaluated again. Preview that
+actual Program and its list position: a newly eligible higher Core Return
+pre-empts normally, while a lower one receives ordinary fallthrough. If no
+Program can return a loaded body to the reactor, show a blocking diagnostic
+with a one-click option to add the ordinary Core Return fallback. Allow **Keep
+this Program while carrying** only as an explicit alternative and warn if its
+patrol continuation would retain a Core indefinitely. This is ordinary
+top-to-bottom Program eligibility, not a transition or Program-to-Program call.
+
 ### Alpha signature breadth without bespoke skill editors
 
 The existing descriptor catalog already covers all sixteen current classes.
@@ -663,6 +877,11 @@ For a selected Program and body, Practice must answer:
   fallthrough in terms derivable from ordinary source;
 - signature attempted, accepted, or declined, with the exact reason (cooldown,
   range, blocked line, missing target, wrong route progress, etc.);
+- each Along-the-way card considered in its visible order and why it acted or
+  yielded, including encounter distance, Core visibility/walking distance,
+  carrying state, and target-capacity loss;
+- capacities in their player-facing terms—such as “one pursuer already owns
+  this Core this tick”—rather than only a generated capacity id;
 - the continuation chosen when the signature did not execute;
 - the response’s minimum-commit and maximum-time clocks;
 - the exit/fallthrough cause.
@@ -675,6 +894,8 @@ Add a compact post-run Program timeline/summary sufficient to answer:
 - Did it ever prepare and arm?
 - How long did it remain committed?
 - Did the intended signature fire, and where?
+- Did contact or a nearby Core divert the body, and why did any closer-looking
+  target fail the authored walking-distance or capacity test?
 - What success/timeout/failure ended it?
 - Which Program took over next?
 
@@ -688,6 +909,11 @@ Do not force the first player to begin from a blank sheet. Deliver two complete,
 legal, editable starter sheets with sensible lower-priority scoring, loose-Core
 recovery, healing, and combat fallbacks so every body has useful behavior when
 its headline Program is inactive.
+
+Their ordinary loose-Core recovery uses the player-facing **One bot per Core**
+default and an explicit post-pickup fallthrough to a carrier-return Program.
+This is not a doctrine-specific allocation rule; the starter sheets simply
+demonstrate the generic Program behavior described above.
 
 They must be separate sheets: the one-duplicate-wildcard roster rule permits
 either twin Masons or twin Relays in one eight-body roster, not both.
@@ -868,6 +1094,30 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     recast; destruction permits rebuilding on a later pass. An explicitly
     acknowledged second target replaces/relocates the first rather than
     creating an extra deployment.
+21. `self-nearest-visible-loose-core-distance` measures the shortest legal
+    path to the exact collectible tile for each body, changes with durable
+    blockers/reservations, ignores transient body traffic, and fails its finite
+    upper bound for an unreachable, merely remembered, or no-longer-visible
+    Core.
+22. `nearest-visible-loose-core` with `withinWalkingSteps: 5` exposes only
+    currently visible, reachable candidates inside that body's bound. When its
+    nearest Core is at capacity, it may choose another in-bound Core but never
+    a farther sixth-step Core merely because the Condition was true for the
+    first target.
+23. The default shared one-pursuer capacity across two different roles and
+    Programs sends at most one body to each resolved Core, can distribute
+    bodies across several Cores, recomputes after loss/death, and sends
+    capacity losers to their next local behavior without waiting. A deliberately
+    separate coordination group is independent and visible as such.
+24. One Program participant combining a route-station signature, encounter
+    Fight, nearby-Core recovery, and Patrol executes the first actionable leaf
+    in the displayed order. Reordering Fight and recovery reverses that
+    contested choice deterministically; unavailable leaves reach Patrol in the
+    same tick.
+25. Fight exit, a vanished Core, and a capacity loss each resume the same
+    patrol cursor without restarting or reversing. Successful pickup makes the
+    empty-handed patrol branch ineligible on the next tick; the displayed Core
+    Return Program takes over and banks the Core.
 
 ### Materializer/editor tests
 
@@ -916,6 +1166,27 @@ Implement trace-first and pin the smallest scenes before broad UI work.
     visit memory, action queue, or second order list. Save/reload/copy/detach,
     drift detection, undo/redo, route rename, and deletion remain
     non-destructive.
+17. Fight-on-contact and nearby-Core cards materialize as ordinary sibling
+    `fight`/`move` leaves in exactly the order displayed above the one Patrol
+    continuation. Drag reorder, undo/redo, save/reload, copy, detach, and drift
+    detection preserve that single order.
+18. A nearby-Core card generates the same authored bound in its body-local
+    Condition and `withinWalkingSteps` target qualifier, plus the ordinary
+    `self-carrying = 0` gate; editing the visible distance updates both
+    atomically and cannot leave mismatched evidence/action ranges.
+19. Nearby-Core recovery defaults visibly to **Pursuers per Core: 1 · across
+    this sheet**. One consumer generates an inline capacity; several cards
+    across roles or Programs generate one shared capacity; removing consumers
+    normalizes storage without changing the policy. Choosing 2–8, All eligible,
+    or a deliberately separate coordination group is one undoable
+    normal-surface edit.
+20. The post-pickup default gates the participant branch to empty-handed
+    bodies and previews the real next eligible carrier Program. Removing every
+    carrier-return path creates a blocking diagnostic and the offered repair
+    creates an ordinary Program, not a hidden transition.
+21. Capacity controls use target-specific labels and summaries while retaining
+    the exact existing target-capacity semantics. Opening an older Program or
+    Orders-only sheet does not synthesize or change a missing capacity.
 
 ### Browser acceptance
 
@@ -953,13 +1224,20 @@ In a third normal-surface flow, without opening Advanced:
 2. tap **Add opportunity here** at one route station and configure Lantern to
    Flare a separate watched anchor under an enemy-memory trigger;
 3. add a Nest opportunity at another station with **maintain Sentinel here**;
-4. drag a source tolerance, route waypoint, and effect target independently;
-5. inspect the exact repeat/replacement summary and local opportunity order;
-6. run a deterministic patrol scene and observe accepted use, same-route
-   continuation, already-present fallthrough, destruction, and later rebuild;
-   and
-7. save/reload and refine both stations without raw identifiers or generated
-   Instruction edits.
+4. add **Fight on contact**, choose its encounter distance, target order,
+   style, chase limit, and visible Attackers-per-enemy policy;
+5. add **Recover a nearby Core**, set five walking steps, observe the visible
+   default **Pursuers per Core: 1 · across this sheet**, and confirm **After
+   pickup: leave this patrol → Core Return** names a real next Program;
+6. drag a source tolerance, route waypoint, and effect target independently;
+7. reorder Fight and recovery and inspect an exact generated-priority preview
+   without leaving Programs;
+8. run a deterministic patrol scene and observe accepted signature use,
+   already-present deployment fallthrough, destruction/later rebuild,
+   encounter fighting, one-pursuer nearby-Core diversion, a farther Core being
+   ignored, same-route resumption, pickup, and Core Return takeover; and
+9. save/reload and refine the route, stations, local priorities, distances,
+   chase, and capacity without raw identifiers or generated Instruction edits.
 
 No raw id, Condition, Instruction, or JSON edit is permitted in this acceptance
 flow. Capture desktop and phone evidence with zero console warnings/errors.
@@ -992,8 +1270,9 @@ It is complete only when all of the following are true:
 10. The full create/refine/practice/save/reload flow works on desktop and phone.
 11. Focused tests, the full relevant web suite/build, compiler tests, and
     deterministic gameplay scenes pass.
-12. Documentation describes Posts as authoring sugar, the new Condition fact,
-    commitment/fallthrough, capacity, and the two starter doctrines accurately.
+12. Documentation describes Posts as authoring sugar, the new Condition facts
+    and bounded visible-Core target, commitment/fallthrough, capacity, and the
+    two starter doctrines accurately.
 13. All sixteen current signatures remain normally authorable and persistent
     through Programs; Patchbay channel, Palisade/Longshot lane/tell, Mortar
     exact tell, and Hush/Repulsor self-local scenes prove the distinct families
@@ -1005,6 +1284,16 @@ It is complete only when all of the following are true:
     patrol from the map, including separate source and effect points, without
     creating patrol scripting state; accepted uses resume the same route and
     durable placement obeys honest one-deployment replacement/maintenance.
+16. The complete second canonical sentence—patrol, location-bound skills,
+    encounter Fight, visible-Core recovery within five legal walking steps,
+    and patrol fallback—is authorable, reorderable, explainable, and refinable
+    from one normal Program participant without Advanced edits or a second
+    priority system.
+17. Nearby-Core recovery visibly defaults to one pursuer per resolved Core
+    across the sheet's default recovery group, distributes several eligible
+    bodies across several in-bound Cores, never diverts a capacity loser to an
+    out-of-bound Core, and hands a successful carrier to an ordinary Core
+    Return Program.
 
 After focused diagnosis, deliver the normal standard six-cell phone exhibit
 for one complete starter sheet against one named current practice control,
@@ -1024,23 +1313,32 @@ an explicit release checkpoint.
 
 1. **Baseline and traces** — preserve current generated Program/Running Relay
    source and record the failing commitment, stage re-entry, and wrong-location
-   deployment scenes.
-2. **Semantic foundation** — implement `deployment-in-zone`, commitment
-   materialization, not-ready staging, and focused runtime/compiler tests.
+   deployment scenes; also preserve one current patrol cursor through signature
+   use, combat interruption, and target-loss fallthrough.
+2. **Semantic foundation** — implement `deployment-in-zone`,
+   `self-nearest-visible-loose-core-distance`, the matching
+   `nearest-visible-loose-core`/`withinWalkingSteps` target contract,
+   commitment materialization, not-ready staging, and focused
+   runtime/compiler tests.
 3. **Post linkage** — add backward-compatible workshop linkage, derived
-   geometry synchronization, capacities, readiness, maintenance, drift, and
-   undo/redo tests.
+   geometry synchronization, human-labelled/defaulted capacity policies,
+   readiness, maintenance, drift, and undo/redo tests.
 4. **Map-first UX** — build the Post inspector, facing arrow, target/activation
    distinction, overlap prevention, descriptor-driven route-forward Dash
    controls/preview with shared movement-`via` linkage, route-linked patrol
-   opportunity markers, all-signature family coverage, legality preview,
-   normal trigger/outcome controls, and mobile editing flow.
+   opportunity markers, Fight-on-contact and nearby-Core cards in the one real
+   local order, post-pickup Program preview/repair, all-signature family
+   coverage, legality preview, normal trigger/outcome controls, and mobile
+   editing flow.
 5. **Practice explanation** — correlate Programs/Posts with ordinary source
-   and replay evidence; add the selected-body why/timeline views.
+   and replay evidence; add selected-body why/timeline views including local
+   opportunity order, walking-distance rejection, capacity loss, and
+   post-pickup takeover.
 6. **Starter doctrines and signature seams** — finish Mid Overload and Running
    Relay as two legal, fully fallback-equipped sheets; add their deterministic
    drills/controls plus the focused Patchbay, Palisade/Longshot, Mortar, and
-   Hush/Repulsor family scenes and the Flare/Sentinel patrol scene.
+   Hush/Repulsor family scenes and the integrated
+   skill/Fight/Core/Flare/Sentinel patrol scene.
 7. **Validation and delivery** — run focused and full relevant tests, browser
    QA, exact mechanical proofs, standard exhibit, docs/Decision update, public
    tunnel verification, report, commit, and clean-status check.
@@ -1051,6 +1349,8 @@ Do not expand this goal into:
 
 - runtime Programs, atomic multi-body activation, reservations, or a second
   state machine;
+- persistent Core claims, target-identity latches, a new `pickup` action, or a
+  hidden transition to Core Return;
 - arbitrary nested Conditions or a visual programming language;
 - waypoint action scripts, patrol queues, hidden visit/lap state, or a second
   route-local priority system;
