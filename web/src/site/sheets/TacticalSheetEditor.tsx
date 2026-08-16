@@ -188,7 +188,8 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
   const clientIssues = useMemo(() => {
     if (!draft) return [];
     const workshopIssues: SheetIssue[] = [
-      ...draft.workshop.plays.flatMap((play) => playGeometryIssues(draft, play.id)),
+      ...draft.workshop.plays.flatMap((play) =>
+        playGeometryIssues(draft, play.id, catalog.map.tileRows)),
       ...inspectWorkshop(draft.orders, draft.workshop).map((drift) => ({
         path: `workshop.plays.${drift.playId}.${drift.projectionId}`,
         severity: 'error' as const,

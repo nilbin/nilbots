@@ -124,14 +124,14 @@ export default function PlaysWorkspace({
   }, [onSelectPlay, play, selectedPlayId]);
 
   const playIssues = useMemo(() => play ? [
-    ...playGeometryIssues(draft, play.id),
+    ...playGeometryIssues(draft, play.id, catalog.map.tileRows),
     ...playDrifts(draft.orders, draft.workshop, play.id).map((drift): SheetIssue => ({
       path: `workshop.plays.${play.id}.${drift.projectionId}`,
       severity: 'error',
       message: drift.message,
     })),
     ...issues.filter((issue) => issue.path.includes(play.id)),
-  ] : [], [draft, issues, play]);
+  ] : [], [catalog.map.tileRows, draft, issues, play]);
 
   const commit = (next: SheetDraft) => {
     onChange(next);

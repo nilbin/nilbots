@@ -145,15 +145,42 @@ test('the Relay chain uses the same projection path and leaves standalone Orders
   const play = linked.workshop.plays[0];
   assert.equal(play.recipe, 'relay-chain');
   assert.equal(play.projections.length, 2);
-  assert.equal(play.slots.length, 4);
-  assert.equal(playGeometryIssues(linked, play.id).length, 0);
+  assert.equal(play.slots.length, 20);
+  assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'route').length, 18);
+  assert.equal(playGeometryIssues(linked, play.id, catalog.map.tileRows).length, 0);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
   assert.equal(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error').length, 0);
+  const generated = play.projections.flatMap((projection) => allOrders(projection.orders));
+  assert.equal(generated.filter((order) => order.use?.skill === 'arc-toss').length, 19);
+  assert.equal(generated.filter((order) => order.id?.includes('-advance-r')).length, 18);
+  assert.ok(generated.some((order) => order.id === `${play.id}-b-bank-r19`));
+  assert.equal(generated.filter((order) => order.id?.includes('-wait-r')).length, 0);
+  assert.deepEqual(play.projections[0].orders[0].until, {
+    all: [`${play.id}-carrying-core`, `${play.id}-self-at-r2`],
+  });
+  const finalLaunch = generated.find((order) => order.id === `${play.id}-a-final-launch-r18`)!;
+  assert.ok(finalLaunch.orders?.some((order) => order.id === `${play.id}-a-hold-r18`));
+
+  const bent = structuredClone(linked);
+  const second = play.slots[1].anchorId;
+  bent.mapPlan.anchors[second] = [17, 19];
+  assert.match(playGeometryIssues(bent, play.id, catalog.map.tileRows)[0].message,
+    /horizontal, vertical, or 45° Arc Toss line/);
+
+  const blocked = structuredClone(linked);
+  const blockedRows = [...catalog.map.tileRows];
+  blockedRows[20] = `${blockedRows[20].slice(0, 18)}#${blockedRows[20].slice(19)}`;
+  const firstStation = play.slots[0].anchorId;
+  const secondStation = play.slots[1].anchorId;
+  blocked.mapPlan.anchors[firstStation] = [19, 20];
+  blocked.mapPlan.anchors[secondStation] = [17, 20];
+  assert.match(playGeometryIssues(blocked, play.id, blockedRows)[0].message,
+    /blocked by terrain/);
 
   const detached = detachPlay(linked.workshop, play.id);
   assert.equal(detached.plays.length, 0);
   assert.ok(linked.orders.roles.find((entry) => entry.id === 'relay-a')!
-    .orders.some((order) => order.id === `${play.id}-a-hop`));
+    .orders.some((order) => order.id === `${play.id}-a-hop-r0-r2`));
 });
 
 test('reference-aware Play edits rename geometry and change a participant atomically', () => {
@@ -239,4 +266,8 @@ function draft() {
     'Linked Play test', null, null,
     stringifyDocument(orders), stringifyDocument(mapPlan), false,
   );
+}
+
+function allOrders(orders: OrdersDocument['roles'][number]['orders']): OrdersDocument['roles'][number]['orders'] {
+  return orders.flatMap((order) => [order, ...allOrders(order.orders ?? [])]);
 }

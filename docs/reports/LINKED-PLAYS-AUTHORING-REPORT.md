@@ -39,6 +39,7 @@ The visible browser proof is still in the local persistent volume:
 | --- | --- | ---: | ---: | ---: | ---: |
 | Linked Plays Fieldbook | `e058bbd2-8443-4e0a-97b6-3338225a5698` | 6 | 18,933 B | 2,564 B | 15,963 B |
 | Linked Plays detached proof | `b5dcabcc-37f0-4c40-ab78-3433aa8f0d23` | 3 | 18,938 B | 2,569 B | 48 B |
+| Long Corridor Relay | `e11d8345-4b85-4e79-a691-45d507d89137` | 2 | 36,875 B | 7,029 B | 30,470 B |
 
 The detached sheet's 48-byte sidecar is only the empty schema envelope. Its
 previously generated Orders and geometry remain present, editable, and passed
@@ -96,20 +97,37 @@ same-pool overlap rejection.
 
 ### Dual Relay corridor chain
 
-The visible editor paired two one-body Relay roles and created four receiver
-posts plus three bounded route slices from one logical corridor. In Practice:
+Owner review rejected the initial four-post/two-Toss proof as the wrong play.
+The corrected visible editor lens pairs two one-body Relay roles across:
 
-- Relay A selected `relay-chain-a-toss-r0-r1` at tick 54;
-- Relay A then selected `relay-chain-a-advance-r2` rather than a generic return;
-- Relay B selected `relay-chain-b-toss-r1-r2` at tick 64;
-- Relay B then selected `relay-chain-b-advance-r3`; and
-- ordinary play continued homeward, with the match ending by reactor
-  destruction at tick 257.
+- 20 alternating receiver posts along the long lower return corridor;
+- 18 bounded same-Relay advance routes, each rejoining two posts ahead;
+- 19 alternating Arc Toss Orders; and
+- a final receiver bank at the home reactor.
 
-Match: `e5313a63-1ee3-41f8-aefd-d5656d435e0f`, replay hash
-`8c7d333c5e0738a866fae603d9c00c539ae9fb006fe3f21b7b78841faa2c8802`.
-The existing one-tick Arc Toss tell worked; no rules or presentation timing
-change was needed.
+Each hop is one latched ordinary Orders node. The current carrier Tosses only
+when its partner occupies the next post, advances empty-handed to its next
+same-Relay post, waits there, and releases the hop only after the partner Tosses
+possession back. The route avoids the other two Wells so the empty advancing
+Relay cannot auto-collect a second Core and poison the chain. There are no
+unconditional station waits that can pin a Relay at a future post on spawn.
+
+The corrected Play was created and saved through visible UI controls as
+`Long Corridor Relay`, sheet `e11d8345-4b85-4e79-a691-45d507d89137`, revision
+2, in the persistent local PostgreSQL volume. A controlled Idle Field exhibit
+parks the six non-participants so they cannot steal the proof Core. Its three
+complete chains are:
+
+- first Toss at tick 46, nineteenth Toss and bank at tick 191;
+- bank at tick 361; and
+- bank at tick 531, ending by reactor destruction.
+
+Exhibit replay hash:
+`087b33acd55e18c11748571e21dc434cd39a4877cb2c11c8c91d3551e0d7004d`.
+Review gallery: `https://advantages-list-sector-cards.trycloudflare.com`.
+This is an explicitly labelled mechanics proof against Idle Field, not a
+balance read. The existing one-tick Arc Toss tell worked; no rules or
+presentation timing change was needed.
 
 ## Practice iteration and diagnostics
 

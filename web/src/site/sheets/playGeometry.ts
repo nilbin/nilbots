@@ -76,7 +76,11 @@ export function movePlayGeometryGroup(
   return synchronizePlayGeometry(next, playId);
 }
 
-export function playGeometryIssues(draft: SheetDraft, playId: string): SheetIssue[] {
+export function playGeometryIssues(
+  draft: SheetDraft,
+  playId: string,
+  tileRows?: string[],
+): SheetIssue[] {
   const play = requirePlay(draft, playId);
   const issues: SheetIssue[] = [];
   const requiredByRole = new Map<string, number>();
@@ -119,14 +123,54 @@ export function playGeometryIssues(draft: SheetDraft, playId: string): SheetIssu
       const right = draft.mapPlan.anchors[rightId];
       if (!left || !right) continue;
       const distance = Math.max(Math.abs(left[0] - right[0]), Math.abs(left[1] - right[1]));
-      if (distance > 5) issues.push({
+      if (distance > 5) {
+        issues.push({
+          path: `workshop.plays.${playId}.geometry.${rightId}`,
+          severity: 'error',
+          message: `${leftId} → ${rightId} is ${distance} tiles apart, outside Arc Toss range.`,
+        });
+        continue;
+      }
+      if (!isStraight(left, right)) {
+        issues.push({
+          path: `workshop.plays.${playId}.geometry.${rightId}`,
+          severity: 'error',
+          message: `${leftId} → ${rightId} is not on a horizontal, vertical, or 45° Arc Toss line.`,
+        });
+        continue;
+      }
+      const wall = tileRows && firstWallBetween(left, right, tileRows);
+      if (wall) issues.push({
         path: `workshop.plays.${playId}.geometry.${rightId}`,
         severity: 'error',
-        message: `${leftId} → ${rightId} is ${distance} tiles apart, outside Arc Toss range.`,
+        message: `${leftId} → ${rightId} is blocked by terrain at ${wall[0]},${wall[1]}; Arc Toss would land before its receiver.`,
       });
     }
   }
   return issues;
+}
+
+function isStraight(from: [number, number], to: [number, number]) {
+  const dx = Math.abs(to[0] - from[0]);
+  const dy = Math.abs(to[1] - from[1]);
+  return dx === 0 || dy === 0 || dx === dy;
+}
+
+function firstWallBetween(
+  from: [number, number],
+  to: [number, number],
+  tileRows: string[],
+): [number, number] | null {
+  const dx = Math.sign(to[0] - from[0]);
+  const dy = Math.sign(to[1] - from[1]);
+  let x = from[0];
+  let y = from[1];
+  while (x !== to[0] || y !== to[1]) {
+    x += dx;
+    y += dy;
+    if (tileRows[y]?.[x] === '#') return [x, y];
+  }
+  return null;
 }
 
 function synchronizeGroup(draft: SheetDraft, group: PlayGeometryGroup) {

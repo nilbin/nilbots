@@ -233,47 +233,82 @@ export function addRelayChainPlay(
     throw new Error('Choose two distinct one-body Relay roles.');
 
   const id = uniquePlayId('relay-chain', next.workshop);
-  const stationIds = [0, 1, 2, 3].map((index) => `${id}-r${index}`);
+  // One west-authored long return corridor from the enemy Well, down through
+  // the southern passage, across the lower lane, and up the west approach to
+  // the home reactor. Every point is an alternating Toss station; the empty
+  // Relay uses the three-station slice to leapfrog one post beyond its partner.
+  // The course deliberately avoids the other two Wells: an empty advancing
+  // Relay must not auto-collect a second Core and poison the possession relay.
+  const corridorWaypoints: Array<[number, number]> = [
+    [19, 20], [18, 19], [18, 16], [15, 16], [13, 16],
+    [11, 18], [9, 20], [7, 22], [7, 23], [3, 23],
+    [3, 19], [5, 17], [4, 16], [5, 15], [5, 12],
+    [4, 11], [4, 9], [3, 8], [4, 7], [2, 5],
+  ];
+  const stationWaypointIndexes = corridorWaypoints.map((_, index) => index);
+  const points = stationWaypointIndexes.map((index) => corridorWaypoints[index]);
+  const stationIds = points.map((_, index) => `${id}-r${index}`);
   const zoneIds = stationIds.map((station) => `${station}-catch`);
-  const points: Array<[number, number]> = [[15, 13], [12, 13], [10, 13], [9, 11]];
   stationIds.forEach((station, index) => {
     next.mapPlan.anchors[station] = points[index];
     const [x, y] = points[index];
     next.mapPlan.zones[zoneIds[index]] = { rect: [x, y, x, y] };
   });
-  const routeA = `${id}-r0-to-r2`;
-  const routeB = `${id}-r1-to-r3`;
-  const bankRoute = `${id}-r3-to-reactor`;
-  next.mapPlan.routes[routeA] = { waypoints: points.slice(0, 3) };
-  next.mapPlan.routes[routeB] = { waypoints: points.slice(1, 4) };
-  next.mapPlan.routes[bankRoute] = {
-    waypoints: [points[3], [7, 9], [5, 7], [2, 5]],
-  };
+  const hopRoutes = stationIds.slice(0, -2).map((_, index) => {
+    const routeId = `${id}-r${index}-to-r${index + 2}`;
+    next.mapPlan.routes[routeId] = {
+      waypoints: corridorWaypoints.slice(
+        stationWaypointIndexes[index],
+        stationWaypointIndexes[index + 2] + 1,
+      ),
+    };
+    return routeId;
+  });
 
-  const conditionIds = {
+  const conditionIds: Record<string, string> = {
     carrying: `${id}-carrying-core`,
-    empty: `${id}-empty-handed`,
     signature: `${id}-signature-ready`,
-    a0: `${id}-a-at-r0`, a2: `${id}-a-at-r2`,
-    b1: `${id}-b-at-r1`, b3: `${id}-b-at-r3`,
   };
   const conditions: Record<string, ConditionDefinition> = {
     [conditionIds.carrying]: { fact: 'self-carrying', operator: 'equals', value: 1 },
-    [conditionIds.empty]: { fact: 'self-carrying', operator: 'equals', value: 0 },
     [conditionIds.signature]: { fact: 'signature-ready', operator: 'equals', value: 1 },
-    [conditionIds.a0]: roleReady(roles.relayARoleId, zoneIds[0]),
-    [conditionIds.a2]: roleReady(roles.relayARoleId, zoneIds[2]),
-    [conditionIds.b1]: roleReady(roles.relayBRoleId, zoneIds[1]),
-    [conditionIds.b3]: roleReady(roles.relayBRoleId, zoneIds[3]),
   };
+  stationIds.forEach((_, index) => {
+    const selfAt = `${id}-self-at-r${index}`;
+    conditionIds[`selfAt${index}`] = selfAt;
+    conditions[selfAt] = {
+      fact: 'self-in-zone', operator: 'equals', value: 1, zone: zoneIds[index],
+    };
+    if (index > 0) {
+      const roleAt = `${id}-${index % 2 === 0 ? 'a' : 'b'}-at-r${index}`;
+      conditionIds[`roleAt${index}`] = roleAt;
+      conditions[roleAt] = roleReady(
+        index % 2 === 0 ? roles.relayARoleId : roles.relayBRoleId,
+        zoneIds[index],
+      );
+    }
+  });
   Object.assign(next.orders.conditions, conditions);
 
-  const aProjection = relayAProjection(id, roles, stationIds, routeA, conditionIds, next);
-  const bProjection = relayBProjection(id, roles, stationIds, routeB, bankRoute, conditionIds, next);
+  const aProjection = relayProjection(
+    id, 'a', roles.relayARoleId, roles.relayBRoleId,
+    0, stationIds, hopRoutes, conditionIds, next,
+  );
+  const bProjection = relayProjection(
+    id, 'b', roles.relayBRoleId, roles.relayARoleId,
+    1, stationIds, hopRoutes, conditionIds, next,
+  );
   const projections = [aProjection, bProjection];
-  const linkedValues = [
-    linkedLifecycle(`${id}-hop-timeout`, 'timeout', 240, projections, 'hop'),
-  ];
+  const linkedValues: PlayLinkedValueDefinition[] = [{
+    id: `${id}-hop-timeout`, field: 'timeout', value: 240,
+    targets: projections.flatMap((projection) => projection.orders
+      .filter((order) => order.id?.includes('-hop-r'))
+      .map((order) => ({
+        projectionId: projection.id,
+        orderId: order.id!,
+        field: 'timeout',
+      }))),
+  }];
   const play: LinkedPlay = {
     id,
     name,
@@ -283,22 +318,23 @@ export function addRelayChainPlay(
         { kind: 'anchor' as const, id: station, purpose: 'move.to' },
         { kind: 'zone' as const, id: zoneIds[index], purpose: 'role-in-zone-count', derivedFrom: station, tolerance: 0 },
       ]),
-      { kind: 'route', id: routeA, purpose: 'move.via', derivedFrom: `${id}-corridor` },
-      { kind: 'route', id: routeB, purpose: 'move.via', derivedFrom: `${id}-corridor` },
-      { kind: 'route', id: bankRoute, purpose: 'move.via', derivedFrom: `${id}-corridor` },
+      ...hopRoutes.map((routeId) => ({
+        kind: 'route' as const, id: routeId, purpose: 'move.via', derivedFrom: `${id}-corridor`,
+      })),
     ],
     geometryGroups: [{
       id: `${id}-corridor`,
       kind: 'relay-corridor',
       objectIds: [...stationIds, ...zoneIds],
-      derivedObjectIds: [routeA, routeB, bankRoute],
-      waypoints: [...points, [7, 9], [5, 7], [2, 5]],
-      stationWaypointIndexes: Object.fromEntries(stationIds.map((station, index) => [station, index])),
-      routeSlices: [
-        { routeId: routeA, fromWaypointIndex: 0, toWaypointIndex: 2 },
-        { routeId: routeB, fromWaypointIndex: 1, toWaypointIndex: 3 },
-        { routeId: bankRoute, fromWaypointIndex: 3, toWaypointIndex: 6 },
-      ],
+      derivedObjectIds: hopRoutes,
+      waypoints: corridorWaypoints,
+      stationWaypointIndexes: Object.fromEntries(stationIds.map((station, index) =>
+        [station, stationWaypointIndexes[index]])),
+      routeSlices: hopRoutes.map((routeId, index) => ({
+        routeId,
+        fromWaypointIndex: stationWaypointIndexes[index],
+        toWaypointIndex: stationWaypointIndexes[index + 2],
+      })),
     }],
     slots: stationIds.map((station, index) => ({
       id: `${station}-slot`,
@@ -635,84 +671,97 @@ function ambushProjection(
   };
 }
 
-function relayAProjection(
+function relayProjection(
   playId: string,
-  roles: RelayChainRecipeRoles,
+  label: 'a' | 'b',
+  roleId: string,
+  partnerRoleId: string,
+  parity: 0 | 1,
   stations: string[],
-  routeA: string,
+  hopRoutes: string[],
   conditions: Record<string, string>,
   draft: SheetDraft,
 ): PlayProjection {
-  return {
-    id: `${playId}-relay-a`,
-    roleId: roles.relayARoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(requireRole(draft, roles.relayARoleId)) },
-    lastGenerated: [],
-    orders: [
-      {
-        id: `${playId}-a-final-toss`,
-        when: { all: [conditions.carrying, conditions.a2, conditions.b3, conditions.signature] },
-        use: { skill: 'arc-toss', target: { role: roles.relayBRoleId } },
-      },
-      {
-        id: `${playId}-a-hop`,
-        when: { all: [conditions.carrying, conditions.a0] },
-        until: conditions.a2,
-        orders: [
-          {
-            id: `${playId}-a-toss-r0-r1`,
-            when: { all: [conditions.carrying, conditions.b1, conditions.signature] },
-            use: { skill: 'arc-toss', target: { role: roles.relayBRoleId } },
-          },
-          { id: `${playId}-a-hold-r0`, when: conditions.carrying, move: { to: { anchor: stations[0] } } },
-          { id: `${playId}-a-advance-r2`, move: { to: { anchor: stations[2] }, via: routeA } },
-        ],
-      },
-      { id: `${playId}-a-hold-r2`, when: conditions.a2, move: { to: { anchor: stations[2] } } },
-      { id: `${playId}-a-collect-r0`, move: { to: { anchor: stations[0] } } },
-    ],
-  };
-}
+  const ownedStations = stations.map((_, index) => index)
+    .filter((index) => index % 2 === parity);
+  const launchStations = ownedStations.filter((index) => index < stations.length - 1);
+  const advancingLaunches = launchStations.filter((index) => index + 2 < stations.length);
+  const terminalLaunch = launchStations.find((index) => index + 2 >= stations.length);
+  const finalStation = ownedStations.at(-1)!;
+  const orders: OrderNode[] = [];
 
-function relayBProjection(
-  playId: string,
-  roles: RelayChainRecipeRoles,
-  stations: string[],
-  routeB: string,
-  bankRoute: string,
-  conditions: Record<string, string>,
-  draft: SheetDraft,
-): PlayProjection {
-  return {
-    id: `${playId}-relay-b`,
-    roleId: roles.relayBRoleId,
-    placement: { beforeOrderKey: defaultPriorityNeighbor(requireRole(draft, roles.relayBRoleId)) },
-    lastGenerated: [],
+  if (finalStation === stations.length - 1) orders.push({
+    id: `${playId}-${label}-bank-r${finalStation}`,
+    when: { all: [conditions.carrying, conditions[`selfAt${finalStation}`]] },
+    urgency: 'urgent',
+    move: { to: 'own-reactor' },
+  });
+
+  for (const station of advancingLaunches) orders.push({
+    id: `${playId}-${label}-hop-r${station}-r${station + 2}`,
+    when: { all: [conditions.carrying, conditions[`selfAt${station}`]] },
+    // The carrier starts this lifecycle at its launch post. After Toss makes
+    // it empty-handed, the same latched node advances it exactly one
+    // same-Relay hop and holds that receiver post. It releases only after the
+    // partner Tosses the Core back. Ending merely on arrival would let a later
+    // station rule win before possession returned and break the leapfrog.
+    until: { all: [conditions.carrying, conditions[`selfAt${station + 2}`]] },
     orders: [
       {
-        id: `${playId}-b-bank`,
-        when: { all: [conditions.carrying, conditions.b3] },
-        until: conditions.empty,
-        urgency: 'urgent',
-        move: { to: 'own-reactor', via: bankRoute },
+        id: `${playId}-${label}-toss-r${station}-r${station + 1}`,
+        when: {
+          all: [
+            conditions.carrying,
+            conditions[`roleAt${station + 1}`],
+            conditions.signature,
+          ],
+        },
+        use: { skill: 'arc-toss', target: { role: partnerRoleId } },
       },
       {
-        id: `${playId}-b-hop`,
-        when: { all: [conditions.carrying, conditions.b1] },
-        until: conditions.b3,
-        orders: [
-          {
-            id: `${playId}-b-toss-r1-r2`,
-            when: { all: [conditions.carrying, conditions.a2, conditions.signature] },
-            use: { skill: 'arc-toss', target: { role: roles.relayARoleId } },
-          },
-          { id: `${playId}-b-hold-r1`, when: conditions.carrying, move: { to: { anchor: stations[1] } } },
-          { id: `${playId}-b-advance-r3`, move: { to: { anchor: stations[3] }, via: routeB } },
-        ],
+        id: `${playId}-${label}-hold-r${station}`,
+        when: conditions.carrying,
+        move: { to: { anchor: stations[station] } },
       },
-      { id: `${playId}-b-hold-r3`, when: conditions.b3, move: { to: { anchor: stations[3] } } },
-      { id: `${playId}-b-stage-r1`, move: { to: { anchor: stations[1] } } },
+      {
+        id: `${playId}-${label}-advance-r${station + 2}`,
+        move: { to: { anchor: stations[station + 2] }, via: hopRoutes[station] },
+      },
     ],
+  });
+
+  if (terminalLaunch !== undefined) orders.push({
+    id: `${playId}-${label}-final-launch-r${terminalLaunch}`,
+    when: { all: [conditions.carrying, conditions[`selfAt${terminalLaunch}`]] },
+    orders: [
+      {
+        id: `${playId}-${label}-toss-r${terminalLaunch}-r${terminalLaunch + 1}`,
+        when: {
+          all: [
+            conditions[`roleAt${terminalLaunch + 1}`],
+            conditions.signature,
+          ],
+        },
+        use: { skill: 'arc-toss', target: { role: partnerRoleId } },
+      },
+      {
+        id: `${playId}-${label}-hold-r${terminalLaunch}`,
+        move: { to: { anchor: stations[terminalLaunch] } },
+      },
+    ],
+  });
+
+  orders.push({
+    id: `${playId}-${label}-${parity === 0 ? 'collect' : 'stage'}-r${parity}`,
+    move: { to: { anchor: stations[parity] } },
+  });
+
+  return {
+    id: `${playId}-relay-${label}`,
+    roleId,
+    placement: { beforeOrderKey: defaultPriorityNeighbor(requireRole(draft, roleId)) },
+    lastGenerated: [],
+    orders,
   };
 }
 

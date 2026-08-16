@@ -58,11 +58,16 @@ The production path now follows this plan:
 The acceptance sources were authored through visible UI controls and persisted
 as sheet `e058bbd2-8443-4e0a-97b6-3338225a5698` (`Linked Plays Fieldbook`).
 Against Idle Field, the North ambush reached all five required posts at tick 40.
-The Relay chain selected `relay-chain-a-toss-r0-r1` at tick 54 and
-`relay-chain-b-toss-r1-r2` at tick 64, then continued homeward; the match ended
-at tick 257. Because Idle Field has no enemies, the Ambush proof deliberately
-proves staging/readiness rather than hostile engagement. Its authored northern
-traffic threshold was restored after that focused staging run.
+The first Relay lens was rejected after owner review: four posts and two visible
+Tosses did not express the requested play. The corrected lens is persisted as
+`Long Corridor Relay` (`e11d8345-4b85-4e79-a691-45d507d89137`) and authors 20
+alternating posts, 18 bounded same-Relay advances and 19 Arc Tosses from the
+enemy-side Well through the long lower corridor to the home reactor. In the
+isolated Idle Field proof, the first chain Tosses from tick 46 and banks at tick
+191; complete chains bank again at ticks 361 and 531. Because Idle Field has no
+enemies, both acceptance runs deliberately prove authored execution rather than
+combat strength or balance. The Ambush sheet's authored northern-traffic
+threshold was restored after its focused staging run.
 
 Sheet `b5dcabcc-37f0-4c40-ab78-3433aa8f0d23` is the visible-UI detach proof:
 both Plays were detached, the sidecar contains no Plays, and the materialized
