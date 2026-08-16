@@ -757,6 +757,10 @@ function UseEditor({ node, role, allOrders, catalog, mapPlan, onOpenMap, onChang
     : [];
   const targets = [...namedTargets.map((target) => `named:${target}`), ...friendlySelectors];
   const selectedTarget = encodeUseTarget(node.use?.target ?? namedTargets[0] ?? 'self');
+  const roleTarget = node.use?.target && typeof node.use.target === 'object'
+    && 'role' in node.use.target ? node.use.target : null;
+  const forwardOnly = skill === 'arc-toss' && Boolean(roleTarget?.aheadVia);
+  const routeIds = Object.keys(mapPlan.routes);
   return <div className="mt-4 rounded-sm border border-arena-material/30 bg-arena-material/5 p-3">
     <div className="flex items-center gap-3"><ClassIcon classId={classInfo?.id ?? role.classes[0]} size={46} /><div><p className="lab text-arena-material">{classInfo?.signatureName ?? humanize(skill)}</p><p className="t-meta mt-1">{classInfo?.fantasy}</p></div></div>
     {skills.length > 1 && <CardPicker label="Which class acts?" value={skill} values={skills}
@@ -770,6 +774,39 @@ function UseEditor({ node, role, allOrders, catalog, mapPlan, onOpenMap, onChang
         : entry.startsWith('role:') ? `Role · ${humanize(entry.slice(5))}` : humanize(entry.slice(6))}
       descriptions={{ 'selector:most-experienced-ally': 'Protect, repair, or relay through the live veteran.' }}
       onChange={(target) => onChange({ ...node.use, skill, target: decodeUseTarget(target) })} />
+    {skill === 'arc-toss' && roleTarget && <div className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/55 p-3">
+      <label className="flex min-h-11 items-center gap-3">
+        <input type="checkbox" className="h-5 w-5 accent-[var(--color-arena-material)]"
+          checked={forwardOnly} disabled={routeIds.length === 0}
+          onChange={(event) => onChange({ ...node.use!, skill, target: event.target.checked
+            ? { role: roleTarget.role, aheadVia: routeIds[0], minimumForwardTiles: 4 }
+            : { role: roleTarget.role } })} />
+        <span><span className="lab block">Forward Toss only</span>
+          <span className="t-micro mt-1 block">Pass only when this role is measurably ahead on an authored route.</span></span>
+      </label>
+      {routeIds.length === 0 && <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+        onClick={() => onOpenMap()}>Draw the relay route first</button>}
+      {forwardOnly && <>
+        <CardPicker label="Progress route" value={roleTarget.aheadVia!} values={routeIds}
+          labeler={humanize}
+          descriptions={Object.fromEntries(routeIds.map((id) => [id,
+            'The receiver must be farther along this ordered route.']))}
+          onChange={(aheadVia) => onChange({ ...node.use!, skill, target: {
+            ...roleTarget, aheadVia,
+            minimumForwardTiles: roleTarget['minimumForwardTiles'] ?? 4,
+          } })} />
+        <label className="mt-3 block"><span className="lab mb-1 block">Minimum forward gain · {roleTarget['minimumForwardTiles'] ?? 4} tiles</span>
+          <input type="range" className="w-full accent-[var(--color-arena-material)]" min={1} max={5}
+            value={roleTarget['minimumForwardTiles'] ?? 4}
+            onChange={(event) => onChange({ ...node.use!, skill, target: {
+              ...roleTarget, minimumForwardTiles: Number(event.target.value),
+            } })} /></label>
+        <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
+          onClick={() => onOpenMap({ kind: 'route', id: roleTarget.aheadVia! })}>
+          Inspect {humanize(roleTarget.aheadVia!)}
+        </button>
+      </>}
+    </div>}
     {['hardlight-block', 'trip-node', 'sentinel-seed'].includes(skill) && <div className="mt-3">
       <CardPicker label="Exact placement · optional" value={node.use?.at ?? ''}
         values={['', ...Object.keys(mapPlan.anchors)]} emptyLabel="Aim toward selected target"
@@ -1155,7 +1192,7 @@ function decodeUseTarget(value: string): UseTarget {
 function useTargetLabel(value: UseTarget): string {
   if (typeof value === 'string') return humanize(value);
   return 'role' in value
-    ? `role ${humanize(value.role)}`
+    ? `role ${humanize(value.role)}${value.aheadVia ? ` ahead on ${humanize(value.aheadVia)}` : ''}`
     : 'most experienced ally';
 }
 
@@ -1183,6 +1220,10 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
   if (fact === 'self-nearest-visible-enemy-distance') {
     next.operator = 'at-most';
     next.value = previous.fact === fact ? previous.value : 7;
+  }
+  if (fact === 'self-ticks-since-signature-use') {
+    next.operator = 'at-most';
+    next.value = previous.fact === fact ? previous.value : 12;
   }
   if (['self-carrying', 'self-in-zone', 'signature-ready',
     'deployment-active', 'well-has-outstanding-core', 'well-socket-filled',
@@ -1240,6 +1281,7 @@ function conditionFactLabel(fact: string) {
     'self-in-zone': 'I am inside a zone',
     'self-nearest-visible-enemy-distance': 'Steps to join a visible fight',
     'self-carried-core-bank-value': 'Value of my carried Core',
+    'self-ticks-since-signature-use': 'Ticks since I used my signature',
     'signature-ready': 'My signature skill is ready',
     'deployment-active': 'My deployment is active',
     'deployment-lifetime-percent': 'My deployment lifetime',

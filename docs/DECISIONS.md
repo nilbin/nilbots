@@ -8616,3 +8616,36 @@ and Lane closure. These names are editor recipes only. The first browser proof
 authored and persisted a five-post North ambush and a two-Relay corridor chain
 through visible controls against Idle Field. This is an expressiveness and
 iteration proof, not a balance verdict.
+
+## 323. Running Relay gates Arc Toss by authored-route progress
+
+Owner correction (2026-08-16) after watching the linked Relay proof. A visible
+Toss count is not the objective: the Core must keep advancing and the carrier
+must not wait, reverse, or dodge around its receiver. The 20-station / 19-Toss
+chain is rejected because both Relays backtracked and blocked one another.
+
+The editor recipe is now **Running Relay**. Two one-body Relay roles share one
+continuous lower return corridor and three sparse receiver rendezvous. The
+carrier always falls through to route movement unless its named receiver is an
+exact legal Arc Toss landing at least the authored number of tiles ahead on
+that ordered route. Orders v2 therefore admits the generic paired target
+qualifiers `aheadVia` and `minimumForwardTiles` for named-role Arc Toss only.
+Both are required together; the minimum is 1–5. A unique route point or a
+distance-one side rendezvous may establish progress. Ambiguous, remote,
+terrain-clipped, or insufficiently forward receivers are ineligible.
+
+The generic body fact `self-ticks-since-signature-use` records the age of that
+body's last successfully accepted signature action. Running Relay uses it to
+send only the former carrier toward the next rendezvous; it creates no Play
+turn or shared executor state. Receiver episodes time out after 40 ticks, so a
+disrupted catch cannot strand a body. The final approach remains latched until
+the Core leaves the carrier.
+
+The authoritative one-tick Arc Toss tell, flight, cooldown, reclaim rules,
+map, scoring and Core cadence are unchanged. In the focused Idle Field proof,
+each Core receives three useful Tosses with route gains `+5/+4/+5`; nine Tosses
+bank three Cores. On seed 9001 the same-route solo control ends at tick 347 and
+Running Relay at tick 294. This is an execution/acceleration proof, not a
+balance result. A fourth final-approach pass was rejected because the receiver
+could get only one tile ahead and the extra tell did not save time. No frozen
+artifact, hosted playlist or rating identity changes in this fast design loop.

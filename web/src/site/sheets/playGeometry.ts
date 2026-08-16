@@ -18,6 +18,23 @@ export function synchronizePlayGeometry(
       entry.kind === 'zone' && entry.id === slot.readinessZoneId);
     if (owned) owned.tolerance = slot.tolerance;
   }
+  // A recipe may own a readiness zone without calling it a required body
+  // slot. Keep that ordinary zone attached to its semantic anchor too.
+  for (const owned of play.ownedGeometry.filter((entry) =>
+    entry.kind === 'zone' && entry.derivedFrom)) {
+    if (play.slots.some((slot) => slot.readinessZoneId === owned.id)) continue;
+    const anchor = next.mapPlan.anchors[owned.derivedFrom!];
+    if (!anchor) continue;
+    const tolerance = owned.tolerance ?? 0;
+    next.mapPlan.zones[owned.id] = {
+      rect: [
+        anchor[0] - tolerance,
+        anchor[1] - tolerance,
+        anchor[0] + tolerance,
+        anchor[1] + tolerance,
+      ],
+    };
+  }
   for (const group of play.geometryGroups)
     synchronizeGroup(next, group);
   return next;
@@ -111,6 +128,40 @@ export function playGeometryIssues(
           message: `${a.id} and ${b.id} overlap. One ${a.roleId} body could falsely fill both required positions.`,
         });
       }
+    }
+  }
+  for (const group of play.geometryGroups) {
+    for (const link of group.tossLinks ?? []) {
+      const route = draft.mapPlan.routes[link.routeId]?.waypoints;
+      const source = route?.[link.sourceWaypointIndex];
+      const receiver = draft.mapPlan.anchors[link.receiverAnchorId];
+      if (!source || !receiver) continue;
+      const distance = Math.max(
+        Math.abs(source[0] - receiver[0]),
+        Math.abs(source[1] - receiver[1]),
+      );
+      if (distance < 1 || distance > 5) {
+        issues.push({
+          path: `workshop.plays.${playId}.geometry.${link.receiverAnchorId}`,
+          severity: 'error',
+          message: `${link.receiverAnchorId} is ${distance} tiles from its Toss point, outside Arc Toss range.`,
+        });
+        continue;
+      }
+      if (!isStraight(source, receiver)) {
+        issues.push({
+          path: `workshop.plays.${playId}.geometry.${link.receiverAnchorId}`,
+          severity: 'error',
+          message: `${link.receiverAnchorId} is not on a horizontal, vertical, or 45° line from its Toss point.`,
+        });
+        continue;
+      }
+      const wall = tileRows && firstWallBetween(source, receiver, tileRows);
+      if (wall) issues.push({
+        path: `workshop.plays.${playId}.geometry.${link.receiverAnchorId}`,
+        severity: 'error',
+        message: `${link.receiverAnchorId} is blocked by terrain at ${wall[0]},${wall[1]}; Arc Toss would land before its receiver.`,
+      });
     }
   }
   for (const group of play.geometryGroups.filter((entry) => entry.kind === 'relay-corridor')) {

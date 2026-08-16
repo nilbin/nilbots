@@ -61,7 +61,13 @@ export interface FightOrder {
   chaseLimit: number;
 }
 
-export type UseTarget = string | { role: string } | { selector: 'most-experienced-ally' };
+export type UseTarget = string
+  | {
+      role: string;
+      aheadVia?: string;
+      minimumForwardTiles?: number;
+    }
+  | { selector: 'most-experienced-ally' };
 export interface UseOrder { skill: string; target: UseTarget; at?: string }
 export interface HandoffOrder {
   target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
@@ -135,7 +141,8 @@ export const CONDITION_OPERATORS: readonly ConditionOperator[] =
 export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
   'self-order-ticks', 'self-in-zone', 'self-nearest-visible-enemy-distance',
-  'self-carried-core-bank-value', 'signature-ready', 'deployment-active',
+  'self-carried-core-bank-value', 'self-ticks-since-signature-use',
+  'signature-ready', 'deployment-active',
   'deployment-lifetime-percent', 'deployment-durability-percent',
   'role-live-count', 'role-highest-level',
   'role-lowest-health-percent', 'role-in-zone-count', 'live-friendlies',
@@ -532,6 +539,9 @@ export function validateDraft(
     if (condition.fact === 'self-nearest-visible-enemy-distance'
       && (condition.value < 0 || condition.value > 31))
       error(`${path}.value`, 'Firing-approach distance is zero to 31 steps.');
+    if (condition.fact === 'self-ticks-since-signature-use'
+      && (condition.value < 0 || condition.value > 1200))
+      error(`${path}.value`, 'Signature-use age is zero to 1200 ticks.');
     if (ROLE_FACTS.has(condition.fact) && (!condition.role || !roles.has(condition.role)))
       error(`${path}.role`, 'This fact needs a declared role.');
     if (ZONE_FACTS.has(condition.fact)) {
@@ -691,8 +701,24 @@ function validateOrder(
       error(`${path}.use.skill`, 'At least one body in this role must own this signature skill.');
     if (typeof node.use!.target === 'object') {
       const target = node.use!.target;
-      if ('role' in target && !roles.has(target.role))
-        error(`${path}.use.target`, 'Target an existing role.');
+      if ('role' in target) {
+        exactKeys(target as unknown as JsonObject, ['role'],
+          `${path}.use.target`, error, ['aheadVia', 'minimumForwardTiles']);
+        if (!roles.has(target.role))
+          error(`${path}.use.target`, 'Target an existing role.');
+        const hasRoute = target.aheadVia !== undefined;
+        const hasMinimum = target.minimumForwardTiles !== undefined;
+        if (hasRoute !== hasMinimum)
+          error(`${path}.use.target`, 'Forward Toss targeting needs both a route and minimum gain.');
+        if (hasRoute) {
+          if (node.use!.skill !== 'arc-toss')
+            error(`${path}.use.target`, 'Only Arc Toss can require a receiver ahead on a route.');
+          usedRoutes.add(target.aheadVia!);
+          if (!Number.isInteger(target.minimumForwardTiles)
+            || target.minimumForwardTiles! < 1 || target.minimumForwardTiles! > 5)
+            error(`${path}.use.target.minimumForwardTiles`, 'Minimum forward gain is 1–5 tiles.');
+        }
+      }
       if ('selector' in target && target.selector !== 'most-experienced-ally')
         error(`${path}.use.target`, 'Choose a published friendly selector.');
       if (!['repair-beam', 'exchange', 'arc-toss'].includes(node.use!.skill))

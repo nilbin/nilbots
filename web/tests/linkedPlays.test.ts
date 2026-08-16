@@ -17,6 +17,7 @@ import {
 } from '../src/site/sheets/linkedPlays';
 import {
   addAmbushReserveSlot,
+  movePlayAnchor,
   renamePlayGeometry,
   removeAmbushReserveSlot,
   replacePlayRole,
@@ -138,49 +139,63 @@ test('an Ambush pooled post updates readiness and reserve Orders as one reversib
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
 });
 
-test('the Relay chain uses the same projection path and leaves standalone Orders on detach', () => {
+test('the Relay chain keeps its carrier moving between sparse forward receiver posts', () => {
   const linked = addRelayChainPlay(draft(), {
     relayARoleId: 'relay-a', relayBRoleId: 'relay-b',
   });
   const play = linked.workshop.plays[0];
   assert.equal(play.recipe, 'relay-chain');
   assert.equal(play.projections.length, 2);
-  assert.equal(play.slots.length, 20);
-  assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'route').length, 18);
+  assert.equal(play.slots.length, 0);
+  assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'route').length, 1);
+  assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'anchor'
+    && entry.id.includes('-receiver-')).length, 3);
   assert.equal(playGeometryIssues(linked, play.id, catalog.map.tileRows).length, 0);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
   assert.equal(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error').length, 0);
   const generated = play.projections.flatMap((projection) => allOrders(projection.orders));
-  assert.equal(generated.filter((order) => order.use?.skill === 'arc-toss').length, 19);
-  assert.equal(generated.filter((order) => order.id?.includes('-advance-r')).length, 18);
-  assert.ok(generated.some((order) => order.id === `${play.id}-b-bank-r19`));
-  assert.equal(generated.filter((order) => order.id?.includes('-wait-r')).length, 0);
-  assert.deepEqual(play.projections[0].orders[0].until, {
-    all: [`${play.id}-carrying-core`, `${play.id}-self-at-r2`],
-  });
-  const finalLaunch = generated.find((order) => order.id === `${play.id}-a-final-launch-r18`)!;
-  assert.ok(finalLaunch.orders?.some((order) => order.id === `${play.id}-a-hold-r18`));
+  assert.equal(generated.filter((order) => order.use?.skill === 'arc-toss').length, 3);
+  assert.equal(generated.filter((order) => order.id?.includes('-receive-')).length, 2);
+  assert.equal(generated.filter((order) => order.id?.endsWith('-carry-forward')).length, 2);
+  assert.equal(generated.filter((order) => order.id?.endsWith('-take-start')).length, 2);
+  assert.equal(generated.filter((order) => order.id?.includes('-hop-')).length, 0);
+  const corridor = play.ownedGeometry.find((entry) => entry.kind === 'route')!.id;
+  const tossLinks = play.geometryGroups[0].tossLinks!;
+  assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [1, 7, 10]);
+  for (const projection of play.projections) {
+    const children = projection.orders.find((order) => order.id?.endsWith('-running-return'))!.orders!;
+    const toss = children.find((order) => order.use?.skill === 'arc-toss')!;
+    assert.equal(typeof toss.use!.target === 'object' && 'role' in toss.use!.target
+      ? toss.use!.target.aheadVia : undefined, corridor);
+    assert.equal(typeof toss.use!.target === 'object' && 'role' in toss.use!.target
+      ? Number.isInteger(toss.use!.target.minimumForwardTiles) : false, true);
+    assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.urgency, 'normal');
+    assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.move?.patrol, corridor);
+    for (const receive of projection.orders.filter((order) => order.id?.includes('-receive-'))) {
+      assert.equal(receive.urgency, 'urgent');
+      assert.equal(receive.timeout, 40);
+      assert.equal(typeof receive.move?.to === 'object' && 'anchor' in receive.move.to, true);
+      assert.equal(receive.move?.via, undefined);
+    }
+  }
 
-  const bent = structuredClone(linked);
-  const second = play.slots[1].anchorId;
-  bent.mapPlan.anchors[second] = [17, 19];
-  assert.match(playGeometryIssues(bent, play.id, catalog.map.tileRows)[0].message,
-    /horizontal, vertical, or 45° Arc Toss line/);
+  const firstReceiver = tossLinks[0].receiverAnchorId;
+  const moved = movePlayAnchor(linked, play.id, firstReceiver, [13, 15]);
+  const movedZone = moved.workshop.plays[0].ownedGeometry.find((entry) =>
+    entry.kind === 'zone' && entry.derivedFrom === firstReceiver)!.id;
+  assert.deepEqual(moved.mapPlan.zones[movedZone].rect, [13, 15, 13, 15]);
+  assert.match(playGeometryIssues(moved, play.id, catalog.map.tileRows)[0].message,
+    /not on a horizontal, vertical, or 45° line/);
 
-  const blocked = structuredClone(linked);
   const blockedRows = [...catalog.map.tileRows];
-  blockedRows[20] = `${blockedRows[20].slice(0, 18)}#${blockedRows[20].slice(19)}`;
-  const firstStation = play.slots[0].anchorId;
-  const secondStation = play.slots[1].anchorId;
-  blocked.mapPlan.anchors[firstStation] = [19, 20];
-  blocked.mapPlan.anchors[secondStation] = [17, 20];
-  assert.match(playGeometryIssues(blocked, play.id, blockedRows)[0].message,
-    /blocked by terrain/);
+  blockedRows[16] = `${blockedRows[16].slice(0, 16)}#${blockedRows[16].slice(17)}`;
+  assert.match(playGeometryIssues(linked, play.id, blockedRows)[0].message,
+    /blocked by terrain at 16,16/);
 
   const detached = detachPlay(linked.workshop, play.id);
   assert.equal(detached.plays.length, 0);
   assert.ok(linked.orders.roles.find((entry) => entry.id === 'relay-a')!
-    .orders.some((order) => order.id === `${play.id}-a-hop-r0-r2`));
+    .orders.some((order) => order.id === `${play.id}-a-running-return`));
 });
 
 test('reference-aware Play edits rename geometry and change a participant atomically', () => {

@@ -47,7 +47,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "self-health-percent", "self-level", "self-carrying",
             "self-carried-core-bank-value",
             "self-stuck-ticks", "self-order-ticks", "self-in-zone",
-            "self-nearest-visible-enemy-distance", "signature-ready",
+            "self-nearest-visible-enemy-distance",
+            "self-ticks-since-signature-use", "signature-ready",
             "deployment-active", "deployment-lifetime-percent",
             "deployment-durability-percent",
             "role-live-count", "role-lowest-health-percent",
@@ -293,6 +294,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(at,
                     "firing-approach distance must be in [0, 31].");
+            }
+            if (fact == "self-ticks-since-signature-use"
+                && comparison is < 0 or > 1200)
+            {
+                throw Error(at,
+                    "signature-use age must be in [0, 1200].");
             }
             if ((fact is "self-carrying" or "self-in-zone" or
                     "signature-ready" or "deployment-active")
@@ -810,7 +817,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     $"{path}.use.target",
                     "target object needs exactly one of role/selector.");
             }
-            Object(targetValue, $"{path}.use.target", [found[0]]);
+            bool forwardRouteTarget = found[0] == "role"
+                && (targetValue.TryGetProperty("aheadVia", out _)
+                    || targetValue.TryGetProperty("minimumForwardTiles", out _));
+            Object(
+                targetValue,
+                $"{path}.use.target",
+                [found[0]],
+                found[0] == "role"
+                    ? ["aheadVia", "minimumForwardTiles"]
+                    : []);
             targetKind = found[0];
             target = RequiredString(
                 targetValue, found[0], $"{path}.use.target");
@@ -830,6 +846,36 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error(
                     $"{path}.use.target",
                     $"'{skill}' cannot target a friendly role or selector.");
+            }
+            if (forwardRouteTarget)
+            {
+                if (skill != "arc-toss")
+                {
+                    throw Error(
+                        $"{path}.use.target",
+                        "only arc-toss can require a receiver ahead on a route.");
+                }
+                if (!targetValue.TryGetProperty(
+                        "aheadVia", out JsonElement aheadVia)
+                    || !targetValue.TryGetProperty(
+                        "minimumForwardTiles", out _))
+                {
+                    throw Error(
+                        $"{path}.use.target",
+                        "forward route targeting needs both aheadVia and "
+                        + "minimumForwardTiles.");
+                }
+                string route = StringValue(
+                    aheadVia, $"{path}.use.target.aheadVia");
+                IdentifierValue(
+                    route, $"{path}.use.target.aheadVia", "route");
+                consumers.ReferenceRoute(route, path);
+                Range(
+                    targetValue,
+                    "minimumForwardTiles",
+                    $"{path}.use.target",
+                    1,
+                    5);
             }
         }
         if (!role.Classes.Any(classId => string.Equals(

@@ -4,7 +4,7 @@ Date: 2026-08-16
 
 Branch: `main`
 
-Implementation commits: `3ccc558e`, `3efe71ed`, `f91cdd52`
+Base implementation commits: `3ccc558e`, `3efe71ed`, `f91cdd52`
 
 ## Result
 
@@ -12,6 +12,10 @@ Arc Relay now has a real, server-backed **Plays** workspace. A Play is an
 editor ownership object that updates several existing Orders and map objects as
 one tactic. It is not game state: the shared compiler still receives only the
 normal Orders v2 document and map plan, and the executor still sees only ATL2.
+The corrected Running Relay lens did expose two missing generic Orders words:
+forward progress on a named-role Arc Toss target and the body's age since its
+last successful signature use. Those are compiler/executor vocabulary, not
+workshop state.
 
 The full browser flow was exercised against the persistent local PostgreSQL
 volume: cast a squad, create both acceptance Plays through visible controls,
@@ -39,7 +43,8 @@ The visible browser proof is still in the local persistent volume:
 | --- | --- | ---: | ---: | ---: | ---: |
 | Linked Plays Fieldbook | `e058bbd2-8443-4e0a-97b6-3338225a5698` | 6 | 18,933 B | 2,564 B | 15,963 B |
 | Linked Plays detached proof | `b5dcabcc-37f0-4c40-ab78-3433aa8f0d23` | 3 | 18,938 B | 2,569 B | 48 B |
-| Long Corridor Relay | `e11d8345-4b85-4e79-a691-45d507d89137` | 2 | 36,875 B | 7,029 B | 30,470 B |
+| Long Corridor Relay (rejected station-chain evidence) | `e11d8345-4b85-4e79-a691-45d507d89137` | 2 | 36,875 B | 7,029 B | 30,470 B |
+| Running Relay | `c5fc300e-4104-4231-80fc-47722dcc61e8` | 1 | 10,428 B | 1,841 B | 6,210 B |
 
 The detached sheet's 48-byte sidecar is only the empty schema envelope. Its
 previously generated Orders and geometry remain present, editable, and passed
@@ -53,9 +58,8 @@ editor exposes one blank Play plus five guided lenses:
 - **Ambush** — exact role or pooled posts, required readiness ranges, watched
   zone, facing, `when`/`until`, `timeout`, `cooldown`, capacity and local
   priority placement.
-- **Relay chain** — two role-local projections, alternating `use` of Arc Toss,
-  receiver anchors, one logical corridor and derived bounded `move.via` route
-  slices.
+- **Running Relay** — two role-local projections, one continuous carrier
+  corridor, sparse receiver rendezvous and forward-only Arc Toss.
 - **Veteran escort** — level-gated follower and veteran Orders.
 - **Safe return** — carrying-gated safe route and handoff/Arc Toss projection.
 - **Lane closure** — Mason deployment plus an alternate-lane screen.
@@ -95,39 +99,65 @@ four-enemy engagement or four-destruction release, and this report does not
 pretend otherwise. Unit coverage separately pins 4/5 versus 5/5 readiness and
 same-pool overlap rejection.
 
-### Dual Relay corridor chain
+### Running Relay
 
-Owner review rejected the initial four-post/two-Toss proof as the wrong play.
-The corrected visible editor lens pairs two one-body Relay roles across:
+Owner review rejected both the initial four-post/two-Toss proof and its first
+20-station correction. The latter produced 19 visible Tosses, but the carrier
+waited, both bodies backtracked, and the runner became an obstacle. Toss count
+was standing in for progress.
 
-- 20 alternating receiver posts along the long lower return corridor;
-- 18 bounded same-Relay advance routes, each rejoining two posts ahead;
-- 19 alternating Arc Toss Orders; and
-- a final receiver bank at the home reactor.
+The accepted **Running Relay** lens instead pairs two one-body Relay roles over:
 
-Each hop is one latched ordinary Orders node. The current carrier Tosses only
-when its partner occupies the next post, advances empty-handed to its next
-same-Relay post, waits there, and releases the hop only after the partner Tosses
-possession back. The route avoids the other two Wells so the empty advancing
-Relay cannot auto-collect a second Core and poison the chain. There are no
-unconditional station waits that can pin a Relay at a future post on spawn.
+- one continuous lower return corridor that the carrier never abandons;
+- three sparse receiver anchors beside or at useful straight-line sections;
+- three route-progress-gated Arc Toss Orders per Core, with observed advances
+  of `+5`, `+4`, and `+5` route tiles;
+- a 40-tick receiver timeout, so a disrupted catch cannot strand the former
+  carrier indefinitely; and
+- one latched final approach that releases only after the Core is banked.
 
-The corrected Play was created and saved through visible UI controls as
-`Long Corridor Relay`, sheet `e11d8345-4b85-4e79-a691-45d507d89137`, revision
-2, in the persistent local PostgreSQL volume. A controlled Idle Field exhibit
-parks the six non-participants so they cannot steal the proof Core. Its three
-complete chains are:
+`use.target.aheadVia` plus `minimumForwardTiles` measures both bodies on the
+same ordered route. A receiver that is behind, ambiguous, too close, outside
+range, or behind terrain is ineligible; the carrier falls through to
+`move.patrol` in that same tick. `self-ticks-since-signature-use` starts only
+the source body's next receiver run after a successful Toss. There is no Play
+turn, carrier hold, station chain, per-hop route, or executor-owned participant
+choice.
 
-- first Toss at tick 46, nineteenth Toss and bank at tick 191;
-- bank at tick 361; and
-- bank at tick 531, ending by reactor destruction.
+All six focused Idle Field cells complete with exactly nine accepted Tosses—
+three for each of three Cores—and three banks:
 
-Exhibit replay hash:
-`087b33acd55e18c11748571e21dc434cd39a4877cb2c11c8c91d3551e0d7004d`.
-Review gallery: `https://advantages-list-sector-cards.trycloudflare.com`.
-This is an explicitly labelled mechanics proof against Idle Field, not a
-balance read. The existing one-tick Arc Toss tell worked; no rules or
-presentation timing change was needed.
+| cell | Toss tells | bank ticks | finish | replay hash |
+| --- | --- | --- | ---: | --- |
+| e-9004 | 65/91/108, 151/177/194, 237/263/280 | 126/212/298 | 298 | `0ee5b8f27674732ccccdbbec8ab53c68bc6e3b534acf2d92f86d595f8b7226d9` |
+| e-9005 | 61/87/104, 147/173/190, 233/259/276 | 122/208/294 | 294 | `ef0dbada13cd84c86f08947417e45217e5f4d096bbca33391f555551113567c6` |
+| e-9009 | 64/90/107, 150/176/193, 236/262/279 | 125/211/297 | 297 | `824802f6231100a3ea7c0894bbf246bfe6e9bd08d2dd6a61abe812b349a09043` |
+| w-9001 | 61/87/104, 147/173/190, 233/259/276 | 122/208/294 | 294 | `cb46c3bc3eb4a4a042422c08a5c2de878c5bfe8f19dbe42b9fe594e58a3275c3` |
+| w-9002 | 55/81/98, 141/167/184, 227/253/270 | 116/202/288 | 288 | `2db029b6cfed605c7fd54faebe612e3fc9eef08a09e1ac56a40f0d8fda18b8a2` |
+| w-9012 | 63/89/106, 149/175/192, 235/261/278 | 124/210/296 | 296 | `8a2ae89ea4c0f625976ca8e253673e285adf8a48ed61a362576c5cbef1b503f7` |
+
+Each Core has 29 position changes and no revisited tile. The normal carried-Core
+cadence and one-tick Toss tell still leave up to three replay ticks at one
+position; no authored hold or route reversal is present. A same-route solo
+control on w-9001 banks at ticks `133/240/347` (hash
+`781acf7c3fd61486894ab9c63d8baaa159b727dbd794d19d714414899a4192b7`),
+versus `122/208/294` for Running Relay: a 53-tick three-Core finish gain with
+the unchanged tell included.
+
+A fourth-pass experiment moved the third catch earlier and staged a final
+receiver. The runner reached only one route tile ahead of the carrier. The
+extra tell could not save time, and a missed pass left the receiver latched.
+That pass was rejected rather than padding the count.
+
+The final recipe was created through visible controls and persisted as
+`Running Relay`, sheet `c5fc300e-4104-4231-80fc-47722dcc61e8`, revision 1, in
+the real local PostgreSQL volume. Hosted Practice match
+`860848c7-d507-4bd0-8edd-fe21ff9f2466` compiled the saved snapshot, ran against
+Idle Field through the product worker, and opened the seekable replay at tick
+180. The isolated mechanics gallery remains at
+`https://advantages-list-sector-cards.trycloudflare.com`. Idle Field is
+deliberately inert, so this is an execution and acceleration proof, not a
+balance read.
 
 ## Practice iteration and diagnostics
 
@@ -164,6 +194,12 @@ scrollable tactical picker so the map stays wide enough to read.
 - `cd web && npm run build`: passed; production Vite build completed.
 - `dotnet build BotArena.sln --no-restore`: passed (one transient file-copy
   retry while the local App process was running, no error).
+- `dotnet test tests/BotArena.Cli.Tests --no-restore`: 243 passed; the one
+  failing allied-traffic-debt scene reproduces at clean base `541b2a16` and
+  is therefore not a regression from this correction. The focused compiler
+  fixture passed 34/34.
+- `dotnet test tests/ArcRelayTacticalPlaybookMind.Tests --no-restore`: 27
+  passed.
 - PostgreSQL-gated `BotArena.App.Tests`: 301 passed, 3 skipped after the JSONB
   semantic-comparison correction; the focused persistence test also passed.
 - `bash scripts/generate-api-clients.sh`: passed with no generated drift.
@@ -172,7 +208,7 @@ scrollable tactical picker so the map stays wide enough to read.
 
 ## Honest limits
 
-- The browser smoke proves the two requested acceptance strategies and the
+- The browser smoke proves the requested acceptance strategies and the
   other recipe lenses have compiler-valid projection coverage. It does not
   claim every recipe is strategically strong.
 - Ten-minute unfamiliar-player authoring time was not measured with a human
@@ -183,6 +219,8 @@ scrollable tactical picker so the map stays wide enough to read.
   trusted as gameplay input.
 - There is no balance claim. Idle Field is intentionally the proof opponent.
 
-No engine rules, map, compiler grammar, executor behavior, frozen artifact,
-playlist, rating book, canonical replay content or mobile feature surface
-changed in this work.
+No engine rules, map, frozen artifact, playlist, rating book, replay format,
+Arc Toss timing, or mobile feature surface changed in this work. The correction
+does change compiler grammar and first-party executor behavior in the narrow
+generic way described above. The fast design loop intentionally did not rebuild
+WASM or mint a playlist.

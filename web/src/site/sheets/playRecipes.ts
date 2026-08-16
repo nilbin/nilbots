@@ -224,7 +224,7 @@ export function addNorthAmbushPlay(
 export function addRelayChainPlay(
   draft: SheetDraft,
   roles: RelayChainRecipeRoles,
-  name = 'Dual Relay corridor chain',
+  name = 'Running Relay corridor',
 ): SheetDraft {
   const next = structuredClone(draft);
   assertOneBodyClass(next, roles.relayARoleId, 'relay');
@@ -235,123 +235,163 @@ export function addRelayChainPlay(
   const id = uniquePlayId('relay-chain', next.workshop);
   // One west-authored long return corridor from the enemy Well, down through
   // the southern passage, across the lower lane, and up the west approach to
-  // the home reactor. Every point is an alternating Toss station; the empty
-  // Relay uses the three-station slice to leapfrog one post beyond its partner.
-  // The course deliberately avoids the other two Wells: an empty advancing
-  // Relay must not auto-collect a second Core and poison the possession relay.
+  // the home reactor. The carrier always follows this continuous corridor.
+  // Three sparse rendezvous sit at useful straight-line ends: only the empty
+  // runner advances to them, while the carrier keeps moving. This matters
+  // because Arc Toss is an eight-way straight throw; arbitrary route-ahead
+  // positions around a bend are not legal landing lines.
   const corridorWaypoints: Array<[number, number]> = [
-    [19, 20], [18, 19], [18, 16], [15, 16], [13, 16],
+    [18, 19], [18, 16], [15, 16], [13, 17],
     [11, 18], [9, 20], [7, 22], [7, 23], [3, 23],
     [3, 19], [5, 17], [4, 16], [5, 15], [5, 12],
-    [4, 11], [4, 9], [3, 8], [4, 7], [2, 5],
+    [4, 11], [4, 9], [3, 8], [4, 7],
   ];
-  const stationWaypointIndexes = corridorWaypoints.map((_, index) => index);
-  const points = stationWaypointIndexes.map((index) => corridorWaypoints[index]);
-  const stationIds = points.map((_, index) => `${id}-r${index}`);
-  const zoneIds = stationIds.map((station) => `${station}-catch`);
-  stationIds.forEach((station, index) => {
-    next.mapPlan.anchors[station] = points[index];
-    const [x, y] = points[index];
-    next.mapPlan.zones[zoneIds[index]] = { rect: [x, y, x, y] };
-  });
-  const hopRoutes = stationIds.slice(0, -2).map((_, index) => {
-    const routeId = `${id}-r${index}-to-r${index + 2}`;
-    next.mapPlan.routes[routeId] = {
-      waypoints: corridorWaypoints.slice(
-        stationWaypointIndexes[index],
-        stationWaypointIndexes[index + 2] + 1,
-      ),
-    };
-    return routeId;
-  });
+  const corridorRoute = `${id}-return-corridor`;
+  const pickupAnchor = `${id}-enemy-well-pickup`;
+  const homeAnchor = `${id}-home-reactor`;
+  const homeZone = `${homeAnchor}-approach`;
+  // Receiver posts sit one tile beside the carrier's course. A waiting
+  // runner must never become the obstacle the Core carrier has to dodge.
+  const rendezvousPoints: Array<[number, number]> = [
+    [13, 16], [3, 23], [5, 12],
+  ];
+  const minimumForwardTiles = [4, 4, 5];
+  const rendezvous = rendezvousPoints.map((point, index) => ({
+    id: `${id}-receiver-${index + 1}`,
+    zone: `${id}-receiver-${index + 1}-ready`,
+    point,
+    roleId: index % 2 === 0 ? roles.relayBRoleId : roles.relayARoleId,
+    minimumForwardTiles: minimumForwardTiles[index],
+  }));
+  next.mapPlan.routes[corridorRoute] = { waypoints: corridorWaypoints };
+  next.mapPlan.anchors[pickupAnchor] = [19, 20];
+  next.mapPlan.anchors[homeAnchor] = [2, 5];
+  for (const station of rendezvous)
+    next.mapPlan.anchors[station.id] = station.point;
+  for (const station of rendezvous)
+    next.mapPlan.zones[station.zone] = { rect: [...station.point, ...station.point] };
+  // Entering this small terminal approach switches both roles off the
+  // repeating patrol before it can lap. The carrier walks the final two
+  // tiles into the reactor; the empty runner holds beside, never on, the
+  // scoring tile.
+  next.mapPlan.zones[homeZone] = { rect: [3, 6, 5, 8] };
 
   const conditionIds: Record<string, string> = {
     carrying: `${id}-carrying-core`,
+    empty: `${id}-empty-handed`,
+    teamCarrying: `${id}-team-carrying`,
     signature: `${id}-signature-ready`,
+    justTossed: `${id}-just-tossed`,
+    atHome: `${id}-at-home-reactor`,
   };
+  for (let index = 0; index < rendezvous.length; index += 1) {
+    conditionIds[`receiver${index + 1}`] = `${id}-receiver-${index + 1}-occupied`;
+  }
   const conditions: Record<string, ConditionDefinition> = {
     [conditionIds.carrying]: { fact: 'self-carrying', operator: 'equals', value: 1 },
+    [conditionIds.empty]: { fact: 'self-carrying', operator: 'equals', value: 0 },
+    [conditionIds.teamCarrying]: { fact: 'friendly-carriers', operator: 'at-least', value: 1 },
     [conditionIds.signature]: { fact: 'signature-ready', operator: 'equals', value: 1 },
+    [conditionIds.justTossed]: {
+      fact: 'self-ticks-since-signature-use',
+      operator: 'at-most',
+      value: 12,
+    },
+    [conditionIds.atHome]: {
+      fact: 'self-in-zone', operator: 'equals', value: 1, zone: homeZone,
+    },
   };
-  stationIds.forEach((_, index) => {
-    const selfAt = `${id}-self-at-r${index}`;
-    conditionIds[`selfAt${index}`] = selfAt;
-    conditions[selfAt] = {
-      fact: 'self-in-zone', operator: 'equals', value: 1, zone: zoneIds[index],
+  for (let index = 0; index < rendezvous.length; index += 1) {
+    const station = rendezvous[index];
+    conditions[conditionIds[`receiver${index + 1}`]] = {
+      fact: 'role-in-zone-count',
+      operator: 'at-least',
+      value: 1,
+      role: station.roleId,
+      zone: station.zone,
     };
-    if (index > 0) {
-      const roleAt = `${id}-${index % 2 === 0 ? 'a' : 'b'}-at-r${index}`;
-      conditionIds[`roleAt${index}`] = roleAt;
-      conditions[roleAt] = roleReady(
-        index % 2 === 0 ? roles.relayARoleId : roles.relayBRoleId,
-        zoneIds[index],
-      );
-    }
-  });
+  }
   Object.assign(next.orders.conditions, conditions);
 
+  const receiverStagesFor = (roleId: string): RelayReceiverStage[] =>
+    rendezvous.slice(1).flatMap((station, index) => station.roleId === roleId
+      ? [{
+        anchorId: station.id,
+        previousReadyCondition: conditionIds[`receiver${index + 1}`],
+      }]
+      : []);
+  const tossStagesFor = (roleId: string): RelayTossStage[] =>
+    rendezvous.flatMap((station, index) => station.roleId === roleId
+      ? [{
+        receiverReadyCondition: conditionIds[`receiver${index + 1}`],
+        minimumForwardTiles: station.minimumForwardTiles,
+      }]
+      : []);
   const aProjection = relayProjection(
     id, 'a', roles.relayARoleId, roles.relayBRoleId,
-    0, stationIds, hopRoutes, conditionIds, next,
+    pickupAnchor,
+    corridorRoute,
+    homeAnchor,
+    receiverStagesFor(roles.relayARoleId),
+    tossStagesFor(roles.relayBRoleId),
+    conditionIds,
+    next,
   );
   const bProjection = relayProjection(
     id, 'b', roles.relayBRoleId, roles.relayARoleId,
-    1, stationIds, hopRoutes, conditionIds, next,
+    rendezvous[0].id,
+    corridorRoute,
+    homeAnchor,
+    receiverStagesFor(roles.relayBRoleId),
+    tossStagesFor(roles.relayARoleId),
+    conditionIds,
+    next,
   );
   const projections = [aProjection, bProjection];
-  const linkedValues: PlayLinkedValueDefinition[] = [{
-    id: `${id}-hop-timeout`, field: 'timeout', value: 240,
-    targets: projections.flatMap((projection) => projection.orders
-      .filter((order) => order.id?.includes('-hop-r'))
-      .map((order) => ({
-        projectionId: projection.id,
-        orderId: order.id!,
-        field: 'timeout',
-      }))),
-  }];
   const play: LinkedPlay = {
     id,
     name,
     recipe: 'relay-chain',
     ownedGeometry: [
-      ...stationIds.flatMap((station, index) => [
-        { kind: 'anchor' as const, id: station, purpose: 'move.to' },
-        { kind: 'zone' as const, id: zoneIds[index], purpose: 'role-in-zone-count', derivedFrom: station, tolerance: 0 },
-      ]),
-      ...hopRoutes.map((routeId) => ({
-        kind: 'route' as const, id: routeId, purpose: 'move.via', derivedFrom: `${id}-corridor`,
+      { kind: 'route', id: corridorRoute, purpose: 'move.patrol and use.target.aheadVia' },
+      { kind: 'anchor', id: pickupAnchor, purpose: 'move.to' },
+      { kind: 'anchor', id: homeAnchor, purpose: 'move.to' },
+      ...rendezvous.map((station) => ({
+        kind: 'anchor' as const,
+        id: station.id,
+        purpose: 'move.to and arc-toss receiver',
       })),
+      ...rendezvous.map((station) => ({
+        kind: 'zone' as const,
+        id: station.zone,
+        purpose: 'role-in-zone-count',
+        derivedFrom: station.id,
+        tolerance: 0,
+      })),
+      { kind: 'zone', id: homeZone, purpose: 'self-in-zone' },
     ],
     geometryGroups: [{
       id: `${id}-corridor`,
-      kind: 'relay-corridor',
-      objectIds: [...stationIds, ...zoneIds],
-      derivedObjectIds: hopRoutes,
-      waypoints: corridorWaypoints,
-      stationWaypointIndexes: Object.fromEntries(stationIds.map((station, index) =>
-        [station, stationWaypointIndexes[index]])),
-      routeSlices: hopRoutes.map((routeId, index) => ({
-        routeId,
-        fromWaypointIndex: stationWaypointIndexes[index],
-        toWaypointIndex: stationWaypointIndexes[index + 2],
+      kind: 'selection',
+      objectIds: [
+        corridorRoute,
+        pickupAnchor,
+        homeAnchor,
+        ...rendezvous.map((station) => station.id),
+        homeZone,
+      ],
+      derivedObjectIds: rendezvous.map((station) => station.zone),
+      tossLinks: [1, 7, 10].map((sourceWaypointIndex, index) => ({
+        routeId: corridorRoute,
+        sourceWaypointIndex,
+        receiverAnchorId: rendezvous[index].id,
       })),
     }],
-    slots: stationIds.map((station, index) => ({
-      id: `${station}-slot`,
-      roleId: index % 2 === 0 ? roles.relayARoleId : roles.relayBRoleId,
-      anchorId: station,
-      readinessZoneId: zoneIds[index],
-      // Relay stations are sequential receiver posts, not a simultaneous
-      // formation-readiness gate. They remain visible/editable slots without
-      // claiming that one body must occupy both of its stations at once.
-      required: false,
-      tolerance: 0,
-      capacity: 1,
-    })),
+    slots: [],
     ownedConditionIds: Object.keys(conditions),
     ownedCapacityIds: [],
     projections,
-    linkedValues,
+    linkedValues: [],
   };
   next.workshop.plays.push(play);
   return applyMaterialization(next);
@@ -671,97 +711,110 @@ function ambushProjection(
   };
 }
 
+interface RelayReceiverStage {
+  anchorId: string;
+  previousReadyCondition: string;
+}
+
+interface RelayTossStage {
+  receiverReadyCondition: string;
+  minimumForwardTiles: number;
+}
+
 function relayProjection(
   playId: string,
   label: 'a' | 'b',
   roleId: string,
   partnerRoleId: string,
-  parity: 0 | 1,
-  stations: string[],
-  hopRoutes: string[],
+  startAnchor: string,
+  corridorRoute: string,
+  homeAnchor: string,
+  receiverStages: RelayReceiverStage[],
+  tossStages: RelayTossStage[],
   conditions: Record<string, string>,
   draft: SheetDraft,
 ): PlayProjection {
-  const ownedStations = stations.map((_, index) => index)
-    .filter((index) => index % 2 === parity);
-  const launchStations = ownedStations.filter((index) => index < stations.length - 1);
-  const advancingLaunches = launchStations.filter((index) => index + 2 < stations.length);
-  const terminalLaunch = launchStations.find((index) => index + 2 >= stations.length);
-  const finalStation = ownedStations.at(-1)!;
-  const orders: OrderNode[] = [];
-
-  if (finalStation === stations.length - 1) orders.push({
-    id: `${playId}-${label}-bank-r${finalStation}`,
-    when: { all: [conditions.carrying, conditions[`selfAt${finalStation}`]] },
-    urgency: 'urgent',
-    move: { to: 'own-reactor' },
-  });
-
-  for (const station of advancingLaunches) orders.push({
-    id: `${playId}-${label}-hop-r${station}-r${station + 2}`,
-    when: { all: [conditions.carrying, conditions[`selfAt${station}`]] },
-    // The carrier starts this lifecycle at its launch post. After Toss makes
-    // it empty-handed, the same latched node advances it exactly one
-    // same-Relay hop and holds that receiver post. It releases only after the
-    // partner Tosses the Core back. Ending merely on arrival would let a later
-    // station rule win before possession returned and break the leapfrog.
-    until: { all: [conditions.carrying, conditions[`selfAt${station + 2}`]] },
-    orders: [
-      {
-        id: `${playId}-${label}-toss-r${station}-r${station + 1}`,
-        when: {
-          all: [
-            conditions.carrying,
-            conditions[`roleAt${station + 1}`],
-            conditions.signature,
-          ],
-        },
-        use: { skill: 'arc-toss', target: { role: partnerRoleId } },
-      },
-      {
-        id: `${playId}-${label}-hold-r${station}`,
-        when: conditions.carrying,
-        move: { to: { anchor: stations[station] } },
-      },
-      {
-        id: `${playId}-${label}-advance-r${station + 2}`,
-        move: { to: { anchor: stations[station + 2] }, via: hopRoutes[station] },
-      },
-    ],
-  });
-
-  if (terminalLaunch !== undefined) orders.push({
-    id: `${playId}-${label}-final-launch-r${terminalLaunch}`,
-    when: { all: [conditions.carrying, conditions[`selfAt${terminalLaunch}`]] },
-    orders: [
-      {
-        id: `${playId}-${label}-toss-r${terminalLaunch}-r${terminalLaunch + 1}`,
-        when: {
-          all: [
-            conditions[`roleAt${terminalLaunch + 1}`],
-            conditions.signature,
-          ],
-        },
-        use: { skill: 'arc-toss', target: { role: partnerRoleId } },
-      },
-      {
-        id: `${playId}-${label}-hold-r${terminalLaunch}`,
-        move: { to: { anchor: stations[terminalLaunch] } },
-      },
-    ],
-  });
-
-  orders.push({
-    id: `${playId}-${label}-${parity === 0 ? 'collect' : 'stage'}-r${parity}`,
-    move: { to: { anchor: stations[parity] } },
-  });
-
   return {
     id: `${playId}-relay-${label}`,
     roleId,
     placement: { beforeOrderKey: defaultPriorityNeighbor(requireRole(draft, roleId)) },
     lastGenerated: [],
-    orders,
+    orders: [
+      ...receiverStages.map((stage, index): OrderNode => ({
+        id: `${playId}-${label}-receive-${index + 1}`,
+        when: {
+          all: [
+            conditions.empty,
+            conditions.justTossed,
+            stage.previousReadyCondition,
+          ],
+        },
+        until: conditions.carrying,
+        // A disrupted catch must not strand the former carrier forever. The
+        // clean corridor proof completes each receiver episode inside 26
+        // ticks; 40 preserves that run while bounding combat/pathing failure.
+        timeout: 40,
+        urgency: 'urgent',
+        move: {
+          to: { anchor: stage.anchorId },
+        },
+      })),
+      {
+        id: `${playId}-${label}-running-return`,
+        when: conditions.teamCarrying,
+        orders: [
+          ...tossStages.map((stage, index): OrderNode => ({
+            id: `${playId}-${label}-forward-toss-${index + 1}`,
+            when: {
+              all: [
+                conditions.carrying,
+                conditions.signature,
+                stage.receiverReadyCondition,
+              ],
+            },
+            use: {
+              skill: 'arc-toss',
+              target: {
+                role: partnerRoleId,
+                aheadVia: corridorRoute,
+                minimumForwardTiles: stage.minimumForwardTiles,
+              },
+            },
+          })),
+          {
+            id: `${playId}-${label}-bank-final-approach`,
+            when: { all: [conditions.carrying, conditions.atHome] },
+            // Crossing the approach zone starts one banking episode. Keep it
+            // latched while the carrier walks out of that small trigger zone;
+            // otherwise the route rung wins again and pulls the Core backward.
+            until: conditions.empty,
+            urgency: 'urgent',
+            move: { to: { anchor: homeAnchor } },
+          },
+          {
+            id: `${playId}-${label}-carry-forward`,
+            when: conditions.carrying,
+            urgency: 'normal',
+            move: { patrol: corridorRoute },
+          },
+        ],
+      },
+      {
+        id: `${playId}-${label}-run-after-toss`,
+        when: {
+          all: [
+            conditions.empty,
+            conditions.justTossed,
+          ],
+        },
+        urgency: 'normal',
+        move: { patrol: corridorRoute },
+      },
+      {
+        id: `${playId}-${label}-take-start`,
+        move: { to: { anchor: startAnchor } },
+      },
+    ],
   };
 }
 

@@ -68,9 +68,9 @@ const RECIPE_COPY: Record<RecipeChoice, { title: string; kicker: string; descrip
     description: 'Mason, Longshot, Hush and a two-body reserve assemble before a linked fight.',
   },
   'relay-chain': {
-    title: 'Relay chain',
-    kicker: 'Two alternating carriers',
-    description: 'Two one-body Relays move and Arc Toss along one linked corridor.',
+    title: 'Running Relay',
+    kicker: 'Forward-only Core relay',
+    description: 'Two one-body Relays sprint ahead and Toss only when the receiver gains ground along one corridor.',
   },
   'veteran-escort': {
     title: 'Veteran escort',
@@ -623,7 +623,7 @@ function compatibleRoles(draft: SheetDraft, play: LinkedPlay, projection: PlayPr
 }
 
 function recipeName(recipe: PlayRecipe) {
-  return recipe === 'relay-chain' ? 'Relay chain' : recipe === 'ambush' ? 'Ambush recipe' : recipe === 'blank' ? 'Blank Play' : humanize(recipe);
+  return recipe === 'relay-chain' ? 'Running Relay' : recipe === 'ambush' ? 'Ambush recipe' : recipe === 'blank' ? 'Blank Play' : humanize(recipe);
 }
 
 function geometryExists(draft: SheetDraft, kind: PlayGeometryKind, id: string) {

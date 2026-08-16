@@ -22,6 +22,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<int, (ActorIdentity Actor, int Spent)> _invested = [];
     private readonly Dictionary<int, PendingOneShot> _pendingOneShots = [];
+    private readonly Dictionary<ActorIdentity, int> _lastSignatureUseTick = [];
     private readonly Dictionary<(ActorIdentity Actor, string Path), FightAnchor>
         _fightAnchors = [];
     private readonly Dictionary<string, KnownCore> _knownLooseCores =
@@ -115,7 +116,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
         UpdateMemory(contract, mind, arc);
         _evidence.Observe(_teamId, mind);
-        ResolvePreviousOneShots(mind);
+        ResolvePreviousOneShots(contract, mind);
         UpdateMotionMemory(mind);
         IReadOnlySet<ActorIdentity> live = mind.Bodies
             .Select(body => body.ActorId).ToHashSet();
@@ -538,7 +539,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && (use.TargetKind is "role" or "selector"
                         || use.Target == "veteran"))
                 {
-                    decline = use.TargetKind == "role"
+                    decline = use.AheadVia is string route
+                        ? $"after-{node.Id}-no-forward-role-{use.Target}"
+                            + $"-via-{route}"
+                            + ForwardRouteDeclineTrace(
+                                contract, mind, package, body, use, route)
+                        : use.TargetKind == "role"
                         ? $"after-{node.Id}-no-live-role-{use.Target}"
                         : use.Target == "veteran"
                             ? $"after-{node.Id}-no-visible-veteran"
@@ -559,6 +565,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             default:
                 return [];
         }
+    }
+
+    private string ForwardRouteDeclineTrace(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        OrdersPackage package,
+        MindBody body,
+        OrdersPackage.UseAction use,
+        string routeId)
+    {
+        if (use.TargetKind != "role")
+            return "";
+        string[] reads = mind.Bodies
+            .Where(candidate => candidate.UnitId != body.UnitId
+                && package.RolesByUnit[candidate.UnitId].Id == use.Target)
+            .OrderBy(candidate => candidate.UnitId)
+            .Select(candidate =>
+            {
+                int? gain = ForwardRouteGain(
+                    contract,
+                    package,
+                    body,
+                    candidate.ActorId,
+                    candidate.Position,
+                    routeId);
+                return $"-u{candidate.UnitId}-gain-{gain?.ToString() ?? "na"}";
+            })
+            .ToArray();
+        return reads.Length == 0 ? "-no-live-candidate" : string.Concat(reads);
     }
 
     private ResolvedTarget[] ResolveMoveTargets(
@@ -1123,12 +1158,130 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 },
                 _ => [],
             };
+        if (use.AheadVia is string aheadVia)
+        {
+            values = values
+                .Select(value => (
+                    Value: value,
+                    Gain: ForwardRouteGain(
+                        contract,
+                        package,
+                        body,
+                        value.Actor,
+                        value.Position,
+                        aheadVia)))
+                .Where(candidate => candidate.Gain is int gain
+                    && gain >= use.MinimumForwardTiles)
+                .Select(candidate => (
+                    candidate.Value.Actor,
+                    candidate.Value.Position,
+                    candidate.Value.Health,
+                    candidate.Value.Level,
+                    (string?)($"{candidate.Value.Trace}:ahead-via-{aheadVia}"
+                        + $"-gain-{candidate.Gain}")));
+        }
         return values.Select(value => new ResolvedTarget(
             $"body:{value.Actor}", value.Position, [value.Position],
             value.Actor, null, value.Trace))
             .Where(target => CanExecuteUse(
                 contract, body, target, use, exactPlacement))
             .ToArray();
+    }
+
+    /// <summary>
+    /// Measures a prospective Arc Toss against the same ordered route both
+    /// Relays are traversing. This deliberately uses authored route progress:
+    /// geometric or direct-to-reactor distance can call a receiver "ahead"
+    /// while it is actually behind on a long authored corridor. A body that
+    /// owns a route cursor uses it. An empty runner may wait on a rendezvous
+    /// immediately beside the course, so it does not block the carrier. That
+    /// post projects to the nearest route waypoint; a distant or genuinely
+    /// ambiguous projection is intentionally refused.
+    /// </summary>
+    private int? ForwardRouteGain(
+        GenericActorResolvedMatchContract contract,
+        OrdersPackage package,
+        MindBody source,
+        ActorIdentity target,
+        Position targetPosition,
+        string routeId)
+    {
+        Position[] points = package.RoutePoints(routeId);
+        int? sourceRemaining = RemainingRouteDistance(
+            contract, source.Position, source.UnitId, routeId, points);
+        int? targetRemaining = RemainingRouteDistance(
+            contract, targetPosition, target.UnitId, routeId, points);
+        return sourceRemaining is int from && targetRemaining is int to
+            ? from - to
+            : null;
+    }
+
+    private int? RemainingRouteDistance(
+        GenericActorResolvedMatchContract contract,
+        Position position,
+        int unitId,
+        string routeId,
+        IReadOnlyList<Position> points)
+    {
+        if (points.Count > 0 && position == points[^1])
+            return 0;
+
+        int nextIndex;
+        int initialDistance;
+        if (_routeCursors.TryGetValue(unitId, out RouteCursor? cursor)
+            && cursor.Initialized
+            && cursor.Lap == 0
+            && string.Equals(cursor.RouteId, routeId, StringComparison.Ordinal)
+            && cursor.Index >= 0
+            && cursor.Index < points.Count)
+        {
+            int? toCurrent = ArenaBasics.StaticDistance(
+                contract.Map, position, points[cursor.Index]);
+            if (toCurrent is null)
+                return null;
+            nextIndex = cursor.Index;
+            initialDistance = toCurrent.Value;
+        }
+        else
+        {
+            var projections = points.Select((point, index) => new
+                {
+                    Index = index,
+                    Distance = ArenaBasics.StaticDistance(
+                        contract.Map, position, point),
+                })
+                .Where(value => value.Distance is >= 0 and <= 1)
+                .ToArray();
+            if (projections.Length == 0)
+                return null;
+            int nearestDistance = projections.Min(value => value.Distance)!.Value;
+            int[] nearest = projections
+                .Where(value => value.Distance == nearestDistance)
+                .Select(value => value.Index)
+                .ToArray();
+            // An exact repeated waypoint or two distant parts of a route
+            // touching the same post do not define one predictable progress
+            // point. Consecutive corner waypoints are one local course; the
+            // later one is the conservative forward projection.
+            if (nearest.Length > 1
+                && (nearestDistance == 0 || nearest.Max() - nearest.Min() > 1))
+            {
+                return null;
+            }
+            nextIndex = nearest.Max();
+            initialDistance = nearestDistance;
+        }
+
+        int remaining = initialDistance;
+        for (int index = nextIndex; index + 1 < points.Count; index++)
+        {
+            int? leg = ArenaBasics.StaticDistance(
+                contract.Map, points[index], points[index + 1]);
+            if (leg is null)
+                return null;
+            remaining = checked(remaining + leg.Value);
+        }
+        return remaining;
     }
 
     private static string? OptionalTrace(string value) => value;
@@ -1181,9 +1334,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // so the engine can complete the catch authoritatively.
             if (signature.Kind == "arc-toss"
                 && target.Actor is not null
-                && action.Constraints.OfType<GenericActorActionLegality
-                    .ArgumentConstraint.PositionTargetConstraint>()
-                    .Single().AllowedValues.Contains(target.Position) == false)
+                && (!action.Constraints.OfType<GenericActorActionLegality
+                        .ArgumentConstraint.PositionTargetConstraint>()
+                    .Single().AllowedValues.Contains(target.Position)
+                    || !ArcTossLandsExactly(
+                        contract.Map, body.Position, target.Position)))
             {
                 return false;
             }
@@ -1192,6 +1347,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         return ArenaBasics.CanUseParameterlessSignature(
             contract, body, signature.Kind);
+    }
+
+    private static bool ArcTossLandsExactly(
+        GenericActorMapContract map,
+        Position source,
+        Position requested)
+    {
+        int deltaX = requested.X - source.X;
+        int deltaY = requested.Y - source.Y;
+        if (deltaX != 0 && deltaY != 0
+            && Math.Abs(deltaX) != Math.Abs(deltaY))
+        {
+            return false;
+        }
+        int dx = Math.Sign(deltaX);
+        int dy = Math.Sign(deltaY);
+        int distance = Math.Max(Math.Abs(deltaX), Math.Abs(deltaY));
+        Position current = source;
+        for (int step = 0; step < distance; step++)
+        {
+            current = current.Offset(dx, dy);
+            if (!ArenaBasics.CanEnter(map, current))
+                return false;
+        }
+        return current == requested;
     }
 
     private ResolvedTarget[] ResolveHandoffTargets(
@@ -1395,9 +1575,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         cursors ??= _routeCursors;
         Position[] points = package.RoutePoints(routeId);
         RouteCursor state = cursors.GetValueOrDefault(body.UnitId)
-            ?? RouteCursor.For(body.ActorId, stateId);
-        if (state.Actor != body.ActorId || state.StateId != stateId)
-            state = RouteCursor.For(body.ActorId, stateId);
+            ?? RouteCursor.For(body.ActorId, stateId, routeId);
+        if (state.Actor != body.ActorId
+            || state.StateId != stateId
+            || !string.Equals(state.RouteId, routeId, StringComparison.Ordinal))
+        {
+            state = RouteCursor.For(body.ActorId, stateId, routeId);
+        }
         if (!state.Initialized)
         {
             state.Index = loop
@@ -1959,6 +2143,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return _stationaryTicks.GetValueOrDefault(body.UnitId);
         if (fact == "self-order-ticks")
             return orderTicks;
+        if (fact == "self-ticks-since-signature-use")
+        {
+            return _lastSignatureUseTick.TryGetValue(
+                    body.ActorId, out int usedAt)
+                ? Math.Min(1201, Math.Max(0, mind.Tick - usedAt))
+                : 1201;
+        }
         if (fact == "self-in-zone")
             return package.Contains(condition.Zone!, body.Position) ? 1 : 0;
         if (fact == "self-nearest-visible-enemy-distance")
@@ -2195,7 +2386,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _knownLooseCores[key] = new KnownCore(key, core, position, tick);
     }
 
-    private void ResolvePreviousOneShots(MindContext mind)
+    private void ResolvePreviousOneShots(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind)
     {
         foreach (MindBody body in mind.Bodies)
         {
@@ -2208,6 +2401,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     == GenericActorActionResolution.ActionOutcome.Success)
             {
                 _orders.Complete(body.ActorId, pending.Node, mind.Tick - 1);
+                if (ArenaBasics.ArcRules(contract)?.Signatures.Any(signature =>
+                        signature.ActionId == pending.ActionId) == true)
+                {
+                    _lastSignatureUseTick[body.ActorId] = mind.Tick - 1;
+                }
             }
             _pendingOneShots.Remove(body.UnitId);
         }
@@ -2513,20 +2711,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private sealed class RouteCursor
     {
-        private RouteCursor(ActorIdentity actor, string stateId)
+        private RouteCursor(
+            ActorIdentity actor,
+            string stateId,
+            string routeId)
         {
             Actor = actor;
             StateId = stateId;
+            RouteId = routeId;
         }
 
         public ActorIdentity Actor { get; }
         public string StateId { get; }
+        public string RouteId { get; }
         public int Index { get; set; }
         public int Lap { get; set; }
         public bool Initialized { get; set; }
         public int BestDistance { get; set; } = int.MaxValue;
-        public static RouteCursor For(ActorIdentity actor, string stateId) =>
-            new(actor, stateId);
+        public static RouteCursor For(
+            ActorIdentity actor,
+            string stateId,
+            string routeId) => new(actor, stateId, routeId);
     }
 
     private sealed record PendingOneShot(

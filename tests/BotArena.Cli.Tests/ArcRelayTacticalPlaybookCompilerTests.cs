@@ -193,6 +193,54 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void ArcTossMayRequireItsNamedReceiverToBeAheadOnAConsumedRoute()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject map = MapPlan("starter-tapline-v2");
+        map["routes"]!["relay-return"] = new JsonObject
+        {
+            ["waypoints"] = new JsonArray
+            {
+                new JsonArray(19, 20),
+                new JsonArray(18, 19),
+                new JsonArray(2, 5),
+            },
+        };
+        JsonObject home = source["roles"]![0]!.AsObject();
+        JsonObject toss = new()
+        {
+            ["id"] = "forward-relay-toss",
+            ["when"] = "carrying-core",
+            ["use"] = new JsonObject
+            {
+                ["skill"] = "arc-toss",
+                ["target"] = new JsonObject
+                {
+                    ["role"] = "centre-team",
+                    ["aheadVia"] = "relay-return",
+                    ["minimumForwardTiles"] = 4,
+                },
+            },
+        };
+        home["orders"]!.AsArray().Insert(0, toss);
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        toss["use"]!["target"]!.AsObject()
+            .Remove("minimumForwardTiles");
+        InvalidDataException incomplete = Assert.Throws<InvalidDataException>(
+            () => Compile(source, map));
+        Assert.Contains("needs both aheadVia and minimumForwardTiles",
+            incomplete.Message);
+
+        toss["use"]!["target"]!["minimumForwardTiles"] = 4;
+        toss["use"]!["target"]!["aheadVia"] = "missing-route";
+        InvalidDataException missing = Assert.Throws<InvalidDataException>(
+            () => Compile(source, map));
+        Assert.Contains("unknown route 'missing-route'", missing.Message);
+    }
+
+    [Fact]
     public void PlaceableConstructMayTargetAnExactConsumedAnchor()
     {
         JsonObject source = Source("hunter-tapline-v2");

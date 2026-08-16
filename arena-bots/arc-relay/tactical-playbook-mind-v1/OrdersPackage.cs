@@ -359,6 +359,8 @@ internal sealed class OrdersPackage
         JsonElement target = value.GetProperty("target");
         string targetKind;
         string targetValue;
+        string? aheadVia = null;
+        int minimumForwardTiles = 0;
         if (target.ValueKind == JsonValueKind.String)
         {
             targetKind = "named";
@@ -366,14 +368,23 @@ internal sealed class OrdersPackage
         }
         else
         {
-            JsonProperty property = target.EnumerateObject().Single();
-            targetKind = property.Name;
-            targetValue = property.Value.GetString()!;
+            targetKind = target.TryGetProperty("role", out JsonElement role)
+                ? "role"
+                : "selector";
+            targetValue = target.GetProperty(targetKind).GetString()!;
+            if (target.TryGetProperty("aheadVia", out JsonElement route))
+            {
+                aheadVia = route.GetString();
+                minimumForwardTiles = target.GetProperty(
+                    "minimumForwardTiles").GetInt32();
+            }
         }
         return new UseAction(
             value.GetProperty("skill").GetString()!,
             targetKind,
             targetValue,
+            aheadVia,
+            minimumForwardTiles,
             value.TryGetProperty("at", out JsonElement useAt)
                 ? useAt.GetString()
                 : null);
@@ -538,6 +549,8 @@ internal sealed class OrdersPackage
         string Skill,
         string TargetKind,
         string Target,
+        string? AheadVia,
+        int MinimumForwardTiles,
         string? AtAnchor) : OrderAction;
     internal sealed record HandoffAction(string TargetKind, string Target)
         : OrderAction;

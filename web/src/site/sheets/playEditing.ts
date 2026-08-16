@@ -299,6 +299,11 @@ export function renamePlayGeometry(
     }
     for (const slice of group.routeSlices ?? [])
       if (slice.routeId === previous) slice.routeId = nextId;
+    for (const link of group.tossLinks ?? []) {
+      if (kind === 'route' && link.routeId === previous) link.routeId = nextId;
+      if (kind === 'anchor' && link.receiverAnchorId === previous)
+        link.receiverAnchorId = nextId;
+    }
   }
   for (const slot of play.slots) {
     if (slot.anchorId === previous) slot.anchorId = nextId;

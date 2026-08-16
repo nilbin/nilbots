@@ -30,6 +30,11 @@ export interface PlayGeometryGroup {
     fromWaypointIndex: number;
     toWaypointIndex: number;
   }>;
+  tossLinks?: Array<{
+    routeId: string;
+    sourceWaypointIndex: number;
+    receiverAnchorId: string;
+  }>;
 }
 
 export interface PlaySlot {

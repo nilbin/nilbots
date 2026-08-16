@@ -243,7 +243,7 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `signature-ready`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-ticks-since-signature-use`, `signature-ready`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count` |
 | team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
@@ -280,6 +280,12 @@ bodies are transient traffic and do not. Use an upper-bound comparison in
 bound.
 `visible-enemies-in-zone` remains the explicit non-distance team-perception
 fact for a coordinated response to contact reported anywhere in a named zone.
+
+`self-ticks-since-signature-use` is the age of this body's last successfully
+accepted signature action, capped above the authored `0..1200` comparison
+range. Before the body has used its signature it fails every upper-bound
+comparison. This is a local transition latch; it does not create shared Play
+state or imply another body's behavior.
 
 ## 6. Five actions
 
@@ -386,6 +392,29 @@ skill's argument kind. Use never implies travel or an unseen target search.
 For `arc-toss`, the toward-home selector resolves only an empty-handed ally on
 an exact legal landing tile, so the authored pass cannot silently become a
 blind Core drop.
+
+An Arc Toss to a named role may additionally require forward route progress:
+
+```json
+{
+  "use": {
+    "skill": "arc-toss",
+    "target": {
+      "role": "relay-b",
+      "aheadVia": "long-return-corridor",
+      "minimumForwardTiles": 4
+    }
+  }
+}
+```
+
+Both route fields are required together, and the minimum is `1..5`. The
+receiver must be at a unique point on the ordered route or at a rendezvous one
+terrain step beside it; a distant or ambiguous projection is ineligible. The
+executor measures remaining authored-route distance for both bodies and Tosses
+only when the receiver is at least the stated number of tiles ahead. It also
+requires the requested receiver tile to be the exact unobstructed Arc Toss
+landing, rather than accepting an engine-clipped landing before a wall.
 
 Geographic intent stays compositional rather than hidden inside `use`:
 `self-in-zone` can guard a skill leaf, while a lower-priority `move` leaf in the
@@ -554,7 +583,7 @@ identity, and replay. Orders plus map plan remain complete standalone gameplay
 sources.
 
 The editor currently offers one blank Play and five guided lenses: Ambush,
-Relay chain, Veteran escort, Safe return, and Lane closure. A lens is only an
+Running Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
 authoring convenience. Its projection uses the same five action names and the
 same `when`, `until`, `timeout`, `cooldown`, `urgency`, and `capacity` fields as
 the Orders workspace. No `play`, phase, global priority, roster reservation, or

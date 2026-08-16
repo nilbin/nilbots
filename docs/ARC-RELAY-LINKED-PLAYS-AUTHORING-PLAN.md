@@ -1,7 +1,8 @@
 # Arc Relay linked Plays authoring plan
 
-Status: **implemented on `main` on 2026-08-16. No Orders, compiler, executor,
-or gameplay-language expansion was required.**
+Status: **implemented on `main` on 2026-08-16, then corrected after the first
+Running Relay watch. The correction adds one generic condition fact and two
+generic Arc Toss target qualifiers; it adds no Play runtime state.**
 
 Implement against `docs/SHEET-AUTHORING.md` and
 `docs/SPEC-SHEET-ORDERS-V2.md`. Decisions #294 and #317 remain authoritative:
@@ -48,7 +49,7 @@ The production path now follows this plan:
   priority neighbors, generated-Orders inspection, drift recovery, detach,
   delete, and undo/redo.
 - Six editor lenses use one deterministic projection path: blank, Ambush,
-  Relay chain, Veteran escort, Safe return, and Lane closure. They materialize
+  Running Relay, Veteran escort, Safe return, and Lane closure. They materialize
   only ordinary `move`, `fight`, `use`, `handoff`, and `drop` Orders plus
   ordinary map-plan objects.
 - Practice return restores the selected Play, opponent, seed, and workspace.
@@ -58,16 +59,25 @@ The production path now follows this plan:
 The acceptance sources were authored through visible UI controls and persisted
 as sheet `e058bbd2-8443-4e0a-97b6-3338225a5698` (`Linked Plays Fieldbook`).
 Against Idle Field, the North ambush reached all five required posts at tick 40.
-The first Relay lens was rejected after owner review: four posts and two visible
-Tosses did not express the requested play. The corrected lens is persisted as
-`Long Corridor Relay` (`e11d8345-4b85-4e79-a691-45d507d89137`) and authors 20
-alternating posts, 18 bounded same-Relay advances and 19 Arc Tosses from the
-enemy-side Well through the long lower corridor to the home reactor. In the
-isolated Idle Field proof, the first chain Tosses from tick 46 and banks at tick
-191; complete chains bank again at ticks 361 and 531. Because Idle Field has no
-enemies, both acceptance runs deliberately prove authored execution rather than
-combat strength or balance. The Ambush sheet's authored northern-traffic
-threshold was restored after its focused staging run.
+The first two Relay lenses were rejected after owner review. The four-post
+prototype barely Tossed; the 20-station version made the carrier wait and made
+the runner weave backward through its partner. The accepted **Running Relay**
+keeps the carrier moving on one continuous lower return corridor. Only the
+empty Relay runs toward three sparse, side-of-course rendezvous, and Arc Toss
+is eligible only when that receiver is four or five authored-route tiles ahead.
+That produces three accepted Tosses per Core (nine across the three-Core proof),
+advancing the Core by `+5`, `+4`, and `+5` route tiles without a repeated Core
+tile. Six Idle Field cells bank at ticks 116–126, 202–212, and 288–298. A
+same-route solo control finishes at tick 347 versus tick 294 for Running Relay
+on seed 9001. The existing one-tick Toss tell remains unchanged and is included
+in both timings.
+
+The accepted correction is a deliberately narrow grammar expansion. A named
+Arc Toss role target may state `aheadVia` plus `minimumForwardTiles`, and the
+body-local `self-ticks-since-signature-use` fact lets the former carrier begin
+its next receiver run. Neither word refers to a Play or coordinates another
+body implicitly. The compiler, editor and executor all validate the same route,
+range and exact-landing constraints.
 
 Sheet `b5dcabcc-37f0-4c40-ab78-3433aa8f0d23` is the visible-UI detach proof:
 both Plays were detached, the sidecar contains no Plays, and the materialized
@@ -123,11 +133,14 @@ know that a Play existed in the editor.
 
 This work must not:
 
-- add a `plays` key, play reference, anchor set, selector, condition, action, or
-  lifecycle word to `arc-relay-orders-v2`;
+- add a `plays` key, Play reference, anchor set, lifecycle, writable turn,
+  hidden carrier hold, or Play-specific action to `arc-relay-orders-v2`;
 - add anything to `arc-relay-map-plan-v2` beyond its existing zones, routes,
   and anchors;
-- add compiler desugaring or another intermediate representation;
+- add compiler desugaring or another intermediate representation. The accepted
+  `aheadVia` / `minimumForwardTiles` Arc Toss target qualifiers and
+  `self-ticks-since-signature-use` fact remain ordinary, independently usable
+  Orders vocabulary;
 - introduce global Play priority, Play phases, sticky unit reservations, or a
   second state machine;
 - replace or diminish the current Squad, Orders, Map plan, JSON import/export,
@@ -484,20 +497,18 @@ orders retain their ids, content, and position.
 
 This is the generality check. The editor architecture is too Ambush-specific if
 it cannot express this without pretending that the Relays occupy a formation or
-wait for a global arm gate.
+wait for a global arm gate. The shipped authoring lens is called **Running
+Relay**.
 
 ### Intent
 
-Two one-body Relay roles bring an enemy-side Core home through the authored
-long corridor through alternating receiver posts. The empty Relay advances to
-exactly its **next** homeward receiver post and holds there; it must never keep
-running down the generic return route or skip ahead to a later post while still
-empty-handed. The carrier holds at the current launch post until its partner
-occupies that next legal catch area, then uses ordinary Arc Toss. Each catch
-post doubles as that Relay's current launch/hold post for the following leg.
-Possession, station position, and an ordinary latched move lifecycle determine
-which Relay advances and which carries, so the two roles take turns without an
-authored turn counter or writable Play state.
+Two one-body Relay roles bring an enemy-side Core home through one authored long
+corridor. The Core carrier keeps advancing. The empty Relay uses normal-speed
+movement and the route's bends to reach a sparse rendezvous ahead. The carrier
+Arc Tosses only when that exact receiver is materially farther homeward on the
+same ordered route. A receiver that is absent, behind, ambiguous, outside range,
+or behind terrain makes the Toss ineligible; the carrier immediately falls
+through to its route movement rather than waiting.
 
 This is a class-specific Play, which is desirable. The Relay chain recipe is
 available only when the selected participants own `arc-toss`, and its value is
@@ -505,108 +516,89 @@ precisely that it makes a signature mechanic into an editable team strategy.
 
 ### Human construction
 
-1. Draw the long enemy-to-home corridor once in the Play workspace. Place an
-   ordered series of stations `R0, R1, R2...` along it, alternating Relay A /
-   Relay B ownership. Adjacent stations may be no farther apart than current
-   legal Arc Toss geometry allows. Give each station a small role-qualified
-   catch area; it is both the catch destination for one leg and the launch/hold
-   point for the next. The recipe derives the ordinary, used route segments
-   required by each hop from this one editable corridor gesture.
+1. Draw the long enemy-to-home corridor once in the Play workspace. The route
+   is the carrier's continuous `move.patrol` course and the progress reference
+   for every Toss.
 2. Select two one-body Relay roles. The editor creates two linked projections
    and visibly pairs each role with the other; it does not collapse them into
    an opaque two-body unit.
-3. For each Relay and station, define the carrier task: while carrying at `Ri`,
-   use `arc-toss` on the partner role only when that role is inside `Ri+1` and
-   the signature is ready. Until then, a lower leaf uses `move.to Ri`, whose
-   existing destination behavior holds the carrier at the launch post. It does
-   not continue toward the reactor and close or overshoot the rendezvous.
-4. Define a bounded empty task for the Relay that just tossed from `Ri`: enter
-   while empty-handed in `Ri`, move to that same Relay's next assigned station
-   `Ri+2` **via a bounded route segment for that hop**, and remain in that
-   active move until `self-carrying` becomes true. `move.to Ri+2` therefore
-   holds after arrival instead of continuing farther. The next advance (`Ri+2`
-   to `Ri+4`) is a later ordinary node and cannot win while the earlier
-   advance-and-wait node remains latched. Order these hop nodes from enemy side
-   to home side so this relationship is visible.
-5. Use current capacity where a receiver anchor admits only one body. Current
-   station zones, carrying state, `role-in-zone-count`, and lifecycle select the
-   authored leaves; the editor does not create a turn counter. If the author
-   adds an abort or timeout, it must fall out to an explicit recovery/staging
-   behavior, never into the next empty-handed hop.
+3. Place only legal receiver rendezvous: three on the current Tapline-6 lower
+   corridor. The posts sit beside the carrier course where possible so the
+   waiting runner cannot become the carrier's obstacle. Each post owns a
+   derived one-tile readiness zone.
+4. Each Arc Toss target names the partner role and states the same route in
+   `aheadVia`, plus `minimumForwardTiles`. The current three gains are four,
+   four, and five tiles at authoring time; the observed throws advance the Core
+   by five, four, and five route tiles.
+5. After a successful Toss, `self-ticks-since-signature-use` makes the now-empty
+   source run toward its next rendezvous. The fact is body-local and records a
+   successful signature use; it is not a shared turn or a Play phase.
 6. Place both projections relative to emergency recovery, generic scoring, and
    ordinary collection. The card shows which behavior wins if a Relay acquires
    a Core outside the long corridor.
 7. Practice and inspect one Core journey. The selected Play overlay shows both
-   Relay tracks, every accepted/declined Toss, possession changes, and the
-   ordinary fallback when a catch is unavailable.
+   Relay tracks, the continuous carrier route, the sparse catches, possession
+   changes, and the ordinary movement fallback whenever a Toss is unavailable.
 
-The generated station logic should remain legible as ordinary Orders. For one
-Relay, the essential shape is:
+The generated logic remains ordinary Orders. For one Relay, the essential shape
+is:
 
 ```text
-TOSS Ri -> Ri+1
-  when carrying AND self in Ri AND partner in Ri+1 AND signature ready
-  use Arc Toss on partner role
-HOLD CARRIER AT Ri
-  when carrying AND self in Ri
-  move.to Ri
-ADVANCE Ri-2 -> Ri, THEN WAIT
-  when empty-handed AND self in Ri-2
+RUN TO NEXT RENDEZVOUS
+  when empty-handed AND I just successfully Tossed
   until carrying
-  move.to Ri via bounded-hop-Ri-2-to-Ri
-ADVANCE Ri -> Ri+2, THEN WAIT
-  when empty-handed AND self in Ri
-  until carrying
-  move.to Ri+2 via bounded-hop-Ri-to-Ri+2
+  timeout 40
+  move.to receiver anchor
+
+RUNNING RETURN
+  when the team has a carrier
+  TOSS FORWARD
+    when carrying AND signature ready AND receiver present
+    use Arc Toss on partner role
+      aheadVia return corridor
+      minimumForwardTiles 4 or 5
+  BANK FINAL APPROACH
+    when carrying AND inside terminal approach
+    until empty-handed
+    move.to home reactor
+  OTHERWISE CARRY FORWARD
+    when carrying
+    move.patrol return corridor
+
+RUN AFTER TOSS
+  when empty-handed AND I just successfully Tossed
+  move.patrol return corridor
 ```
 
-`until` and `via` have different jobs. The earlier active advance-and-wait node
-prevents the empty receiver from immediately satisfying the next station's
-start condition and running a second hop. The per-hop `via` route keeps its run
-on the selected corridor course; the exact destination anchor stops it. This is
-existing Orders latching, route intent, and `move.to` holding, not hidden Play
-state.
-
-Do not attach every mid-corridor hop to one full non-looping `via` route. A
-current ingress begins at that route's first waypoint, so a later hop could
-backtrack toward the enemy side before coming home. Instead, materialize one
-ordinary route segment per advance node. Each segment begins at its launch
-station, follows the relevant slice of the corridor (including its turns), and
-ends at the next same-Relay receiver station. These generated segments may
-overlap and remain linked to the one corridor gesture in Play metadata; each is
-referenced by an ordinary move, so the map plan contains no decorative unused
-route.
-
 Routes remain authored intent rather than rails: normal collision detours and
-rejoin behavior still apply. The Idle Field proof should show that both bodies
-select the expected hop route and remain on its corridor course except for
-ordinary legal detour/rejoin. The map overlay should mark the receiver as
-**waiting at the next post**, display the active segment, and show a validation
-error if any adjacent launch/catch pair exceeds legal Toss range.
+rejoin behavior still apply. `aheadVia` does not move either body. It compares
+remaining distance on the ordered route, using a live route cursor where one
+exists and an unambiguous distance-one route projection for a side rendezvous.
+The exact-landing check rejects a wall-clipped Toss. The Play geometry validator
+uses the same straight-line, range, and terrain requirements before save.
 
-The expected rhythm is concrete:
+The observed rhythm is concrete:
 
 | Moment | Relay A | Relay B | Core |
 | --- | --- | --- | --- |
-| setup | carries/holds at `R0` | waits at `R1` | A |
-| after first Toss | advances only to `R2`, then waits | carries/holds at `R1` | B |
-| after second Toss | carries/holds at `R2` | advances only to `R3`, then waits | A |
-| after third Toss | advances only to `R4`, then waits | carries/holds at `R3` | B |
+| setup | collects at enemy Well | waits at first rendezvous | A |
+| after first Toss | runs for second rendezvous | carries continuously | B |
+| after second Toss | carries continuously | runs for third rendezvous | A |
+| after third Toss | follows the route | carries through final approach | B |
 
-The linked edit test is to move or replace the logical corridor, swap either
-Relay role, or change a receiver anchor once and see every affected bounded
-route and both partner projections update. Orders still shows the exact two
-local priority positions and each role's carrier/empty-handed fallthrough.
+The linked edit test moves a rendezvous once and observes its derived readiness
+zone move in the same transaction; an illegal line then produces a local
+geometry error. Renaming either route or receiver updates the Toss link and the
+generated Orders references.
 
-Phase 0 must confirm the intended alternating catch geometry and bounded
-advance-and-wait lifecycle against current Arc Toss legality and movement
-behavior before freezing this recipe. The gameplay proof target is one Core
-making at least two accepted alternating partner Tosses on the long corridor
-and then continuing toward a bank. During every wait, the empty Relay must stop
-at the immediately next receiver post; reaching or pathing toward a later post
-before catching the Core, taking a non-authored shortcut instead of the bounded
-hop route, or restarting a later hop from the corridor's first station fails
-the proof.
+The rejected station-chain design is retained only as history: 20 alternating
+posts, 18 bounded routes, and 19 Tosses forced both bodies to walk backward,
+wait, and dodge one another. It looked busy but did not accelerate the Core.
+Running Relay instead accepts three Tosses **per Core**, nine in a complete
+three-Core match. A fourth-pass experiment on the final approach found the
+runner only one route tile ahead; its extra tell could not save time and its
+latched receiver could strand. That pass was rejected rather than padding the
+count.
 
 ### Proof environment and Arc Toss timing dependency
 
@@ -616,10 +608,9 @@ make the route strategically sound; this proof asks whether the author can
 build the chain and whether two Relays can physically execute it. It is not a
 balance result.
 
-Test today's Arc Toss first. It currently has a one-tick tell before launch,
-then a distance-based public flight. If the linked Orders and route are correct
-but that timing prevents reliable leapfrogging, treat a reduced/removed Toss
-windup as a separate, explicit gameplay dependency—not as editor behavior:
+Arc Toss retains its one-tick tell before launch, then a distance-based public
+flight. The accepted proof includes that tell. Any future timing proposal is a
+separate gameplay change, never editor behavior:
 
 1. Trace the failed catch/overtake chronology and rule out route, target,
    capacity, cooldown, reclaim, and priority mistakes first.
@@ -648,10 +639,11 @@ the established one-tick tell. If the tell becomes zero, that derivation and
 its tests must follow the actual authoritative phase boundary rather than keep
 assuming `startedTick + 1`.
 
-If neither current timing nor an explicitly approved timing candidate makes
-the chain deterministic, record the exact missing expression and seek an owner
-ruling. Do not introduce a hidden turn flag or special Relay-chain executor
-behavior.
+The current timing is sufficient: on seed 9001, the same route and opponent bank
+at ticks `133/240/347` with one solo carrier and `122/208/294` with Running
+Relay. The 53-tick finish gain is the controlled mechanics read; it is not a
+balance verdict. Do not introduce a hidden turn flag or special Relay-chain
+executor behavior to inflate that result.
 
 ## Other use cases
 
