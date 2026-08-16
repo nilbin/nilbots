@@ -356,6 +356,8 @@ test('a signature opportunity scaffolds, edits and removes one real local priori
   const exactTarget = addSignatureOpportunityAnchor(
     linked, playId, current.id, view.binding.id);
   linked = exactTarget.draft;
+  assert.ok(exactTarget.anchorId.length <= 48,
+    `generated anchor id exceeded editor contract: ${exactTarget.anchorId}`);
   assert.deepEqual(linked.mapPlan.anchors[exactTarget.anchorId], [15, 13]);
   assert.equal(linked.workshop.plays[0].ownedGeometry.some((entry) =>
     entry.kind === 'anchor' && entry.id === exactTarget.anchorId
@@ -410,6 +412,29 @@ test('opportunity ordering is the authored sibling order and malformed bindings 
     projection.orders[0].orders!.at(-1)!.id!;
   assert.match(inspectWorkshop(linked.orders, broken, catalog)[0].message,
     /direct use child/);
+});
+
+test('generated opportunity ids stay inside the player authoring contract', () => {
+  let linked = addBlankPlay(draft(), 'Long generated identifiers');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'support');
+  let projection = linked.workshop.plays[0].projections[0];
+  projection.orders[0].id = 'a-very-long-player-authored-order-name-near-limi';
+  linked = addSignatureOpportunity(linked, playId, projection.id,
+    projection.orders[0].id, { skill: 'repair-beam', target: 'weakest-ally' }, true);
+  projection = linked.workshop.plays[0].projections[0];
+  const binding = projection.signatureOpportunities![0];
+  const target = addSignatureOpportunityAnchor(
+    linked, playId, projection.id, binding.id);
+  const ids: string[] = [];
+  const collect = (orders: typeof projection.orders) => orders.forEach((order) => {
+    if (order.id) ids.push(order.id);
+    if (order.orders) collect(order.orders);
+  });
+  collect(target.draft.workshop.plays[0].projections[0].orders);
+  ids.push(target.anchorId);
+  assert.ok(ids.every((id) => id.length <= 48 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(id)),
+    `invalid generated ids: ${ids.join(', ')}`);
 });
 
 test('reference-aware Play edits rename geometry and change a participant atomically', () => {

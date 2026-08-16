@@ -239,6 +239,7 @@ test('condition categories expose every current fact exactly once', () => {
 test('player-entered tactical names normalize only at the identifier boundary', () => {
   assert.equal(identifierFromName('North  Ambush - Gate'), 'north-ambush-gate');
   assert.equal(identifierFromName('Rear Guard', 'role', 8), 'rear-gua');
+  assert.equal(identifierFromName('12345678 target', 'role', 9), '12345678');
   assert.equal(identifierFromName('---', 'existing-name'), 'existing-name');
 });
 

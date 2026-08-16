@@ -400,7 +400,8 @@ export function defaultSignatureTarget(
 
 export function identifierFromName(value: string, fallback = 'untitled-sheet', maximumLength = 48): string {
   const id = value.toLowerCase().normalize('NFKD')
-    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, maximumLength);
+    .replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, maximumLength)
+    .replace(/-$/g, '');
   return id || fallback;
 }
 

@@ -783,7 +783,7 @@ function OpportunityProjection({
   onChange: (next: SheetDraft) => void;
 }) {
   const views = signatureOpportunityViews(projection, draft.orders.conditions);
-  const hosts = opportunityHosts(projection.orders);
+  const hosts = opportunityHosts(projection.orders, projection.id);
   const skills = [...new Set(role.classes.map((classId) =>
     skillForClass(catalog, classId)).filter((entry): entry is string => Boolean(entry)))];
   const [adding, setAdding] = useState(false);
@@ -844,8 +844,8 @@ function OpportunityProjection({
         <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
           <span className="pill">{view.ordinal + 1}</span>
           <ClassIcon classId={catalog.classes.find((entry) => entry.signatureId === use.skill)?.id ?? role.classes[0]} size={34} decorative />
-          <span className="mr-auto min-w-0"><b className="type-display block truncate text-[15px]">{humanize(view.use.id ?? use.skill)}</b>
-            <span className="t-micro block truncate">{humanize(use.skill)} → otherwise {orderName(view.continuation)}</span></span>
+          <span className="mr-auto min-w-0"><b className="type-display block truncate text-[15px]">{playOrderName(view.use.id ?? use.skill, projection.id)}</b>
+            <span className="t-micro block truncate">{humanize(use.skill)} → otherwise {orderName(view.continuation, projection.id)}</span></span>
           <span className="disclosure-chevron">›</span>
         </summary>
         <div className="border-t border-arena-edge p-3">
@@ -906,7 +906,7 @@ function OpportunityProjection({
             }}>▣ Mark an activation window on the map</button>}
           <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-2">
             <p className="lab">Otherwise</p>
-            <p className="t-meta mt-1">{orderName(view.continuation)}</p>
+            <p className="t-meta mt-1">{orderName(view.continuation, projection.id)}</p>
           </div>
           {practice && <OpportunityPracticeSummary summary={practice} />}
           <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -954,11 +954,11 @@ function OpportunityPracticeSummary({ summary }: {
   </section>;
 }
 
-function opportunityHosts(orders: OrderNode[]) {
+function opportunityHosts(orders: OrderNode[], projectionId: string) {
   const result: Array<{ id: string; label: string }> = [];
   const walk = (nodes: OrderNode[], depth: number) => nodes.forEach((node) => {
     if (node.id && (node.orders || depth < 2 && (node.move || node.fight)))
-      result.push({ id: node.id, label: `${humanize(node.id)} · ${node.orders ? 'branch' : node.move ? 'Move' : 'Fight'}` });
+      result.push({ id: node.id, label: `${playOrderName(node.id, projectionId)} · ${node.orders ? 'branch' : node.move ? 'Move' : 'Fight'}` });
     if (node.orders) walk(node.orders, depth + 1);
   });
   walk(orders, 0);
@@ -974,11 +974,20 @@ function findOrderById(orders: OrderNode[], id: string): OrderNode | undefined {
   return undefined;
 }
 
-function orderName(order: OrderNode | null) {
+function orderName(order: OrderNode | null, projectionId?: string) {
   if (!order) return 'normal root fallthrough';
-  if (order.move) return `${humanize(order.id ?? 'move')} · continue moving`;
-  if (order.fight) return `${humanize(order.id ?? 'fight')} · continue fighting`;
-  return humanize(order.id ?? 'next ordinary Order');
+  if (order.move) return `${playOrderName(order.id ?? 'move', projectionId)} · continue moving`;
+  if (order.fight) return `${playOrderName(order.id ?? 'fight', projectionId)} · continue fighting`;
+  return playOrderName(order.id ?? 'next ordinary Order', projectionId);
+}
+
+/** Stable generated ids preserve every Play link across a title edit. They are
+ * source identifiers, not player copy, so labels show only the local Order. */
+function playOrderName(id: string, projectionId?: string) {
+  const localId = projectionId && id.startsWith(`${projectionId}-`)
+    ? id.slice(projectionId.length + 1)
+    : id;
+  return humanize(localId);
 }
 
 function LinkedOrdersControls({ draft, play, onChange }: {

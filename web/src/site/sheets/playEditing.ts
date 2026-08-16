@@ -4,12 +4,13 @@ import {
   type PlayDrift,
 } from './linkedPlays';
 import { synchronizePlayGeometry } from './playGeometry';
-import type {
-  ConditionDefinition,
-  ConditionExpression,
-  OrderNode,
-  SheetDraft,
-  UseOrder,
+import {
+  identifierFromName,
+  type ConditionDefinition,
+  type ConditionExpression,
+  type OrderNode,
+  type SheetDraft,
+  type UseOrder,
 } from './sheetAuthoring';
 import type {
   LinkedPlay,
@@ -198,7 +199,8 @@ export function addSignatureOpportunityAnchor(
   const projection = requireProjection(play, projectionId);
   const binding = requireBinding(projection, bindingId);
   const node = requireOpportunityNode(projection, binding);
-  const anchorId = uniqueString(`${binding.useOrderId}-target`, new Set([
+  const anchorId = uniqueString(identifierFromName(
+    `${binding.useOrderId}-target`, 'signature-target', 44), new Set([
     ...Object.keys(next.mapPlan.zones),
     ...Object.keys(next.mapPlan.routes),
     ...Object.keys(next.mapPlan.anchors),
@@ -1041,7 +1043,13 @@ function uniqueOrderId(base: string, orders: OrderNode[]): string {
   orders.forEach((order) => walkOrder(order, (node) => {
     if (node.id) used.add(node.id);
   }));
-  return uniqueString(base, used);
+  const normalized = identifierFromName(base, 'order', 48);
+  if (!used.has(normalized)) return normalized;
+  for (let suffix = 2; ; suffix++) {
+    const tail = `-${suffix}`;
+    const candidate = `${identifierFromName(base, 'order', 48 - tail.length)}${tail}`;
+    if (!used.has(candidate)) return candidate;
+  }
 }
 
 function uniqueString(base: string, used: ReadonlySet<string>): string {
