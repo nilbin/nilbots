@@ -8,12 +8,228 @@ import type {
   ConditionDefinition,
   OrderNode,
   SheetDraft,
+  UseOrder,
 } from './sheetAuthoring';
 import type {
   LinkedPlay,
   PlayGeometryKind,
   PlayLinkedValue,
+  PlayProjection,
 } from './workshopTypes';
+
+export function addSignatureOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  hostOrderId: string,
+  use: UseOrder,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const located = findOrderLocation(projection.orders, hostOrderId);
+  if (!located) throw new Error(`Unknown host Order '${hostOrderId}'.`);
+
+  let host = located.node;
+  if (!host.orders) {
+    if (!host.move && !host.fight)
+      throw new Error('Choose a durable Move, Fight, or existing branch as the continuation.');
+    if (located.depth >= 2)
+      throw new Error('This Order is already at the maximum branch depth. Choose its nearest parent branch.');
+    const continuationId = uniqueOrderId(`${hostOrderId}-continue`, projection.orders);
+    const continuation: OrderNode = {
+      id: continuationId,
+      ...(host.move ? { move: structuredClone(host.move) } : {}),
+      ...(host.fight ? { fight: structuredClone(host.fight) } : {}),
+      ...(host.capacity !== undefined ? { capacity: host.capacity } : {}),
+    };
+    const parent: OrderNode = {
+      id: host.id,
+      ...(host.when !== undefined ? { when: structuredClone(host.when) } : {}),
+      ...(host.until !== undefined ? { until: structuredClone(host.until) } : {}),
+      ...(host.timeout !== undefined ? { timeout: host.timeout } : {}),
+      ...(host.cooldown !== undefined ? { cooldown: host.cooldown } : {}),
+      ...(host.urgency !== undefined ? { urgency: host.urgency } : {}),
+      orders: [continuation],
+    };
+    located.container[located.index] = parent;
+    host = parent;
+  }
+
+  const useOrderId = uniqueOrderId(`${hostOrderId}-${use.skill}`, projection.orders);
+  const useNode: OrderNode = { id: useOrderId, use: structuredClone(use) };
+  const bindings = projection.signatureOpportunities ??= [];
+  const boundIds = new Set(bindings.map((entry) => entry.useOrderId));
+  const firstContinuation = host.orders!.findIndex((child) =>
+    !child.id || !boundIds.has(child.id));
+  host.orders!.splice(firstContinuation < 0 ? host.orders!.length : firstContinuation,
+    0, useNode);
+  const bindingBase = `${hostOrderId}-${useOrderId}-signature`;
+  const bindingIds = new Set(play.projections.flatMap((entry) =>
+    (entry.signatureOpportunities ?? []).map((binding) => binding.id)));
+  projection.signatureOpportunities.push({
+    id: uniqueString(bindingBase, bindingIds),
+    hostOrderId,
+    useOrderId,
+  });
+  return requireMaterialized(next);
+}
+
+export function updateSignatureOpportunityUse(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  use: UseOrder,
+): SheetDraft {
+  return updateOpportunityNode(draft, playId, projectionId, bindingId,
+    (node) => { node.use = structuredClone(use); });
+}
+
+export function setSignatureOpportunityWhen(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  when: OrderNode['when'],
+): SheetDraft {
+  return updateOpportunityNode(draft, playId, projectionId, bindingId,
+    (node) => {
+      if (when === undefined) delete node.when;
+      else node.when = structuredClone(when);
+    });
+}
+
+export function setSignatureOpportunityCapacity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  capacity: OrderNode['capacity'],
+): SheetDraft {
+  return updateOpportunityNode(draft, playId, projectionId, bindingId,
+    (node) => {
+      if (capacity === undefined) delete node.capacity;
+      else node.capacity = capacity;
+    });
+}
+
+export function addSignatureOpportunityActivationZone(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+): { draft: SheetDraft; zoneId: string } {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const node = requireOpportunityNode(projection, binding);
+  const zoneId = uniqueString(`${binding.useOrderId}-window`, new Set([
+    ...Object.keys(next.mapPlan.zones),
+    ...Object.keys(next.mapPlan.routes),
+    ...Object.keys(next.mapPlan.anchors),
+  ]));
+  const conditionId = uniqueString(`${zoneId}-active`, new Set(
+    Object.keys(next.orders.conditions)));
+  const routeId = play.ownedGeometry.find((entry) => entry.kind === 'route')?.id;
+  const route = routeId ? next.mapPlan.routes[routeId] : undefined;
+  const anchorId = play.ownedGeometry.find((entry) =>
+    entry.kind === 'anchor' && !entry.derivedFrom)?.id;
+  const anchor = anchorId ? next.mapPlan.anchors[anchorId] : undefined;
+  const points = route?.waypoints.slice(0, 2)
+    ?? (anchor ? [anchor] : [[15, 13] as [number, number]]);
+  const xs = points.map((point) => point[0]);
+  const ys = points.map((point) => point[1]);
+  next.mapPlan.zones[zoneId] = {
+    rect: [Math.min(...xs), Math.min(...ys), Math.max(...xs), Math.max(...ys)],
+  };
+  next.orders.conditions[conditionId] = {
+    fact: 'self-in-zone', operator: 'equals', value: 1, zone: zoneId,
+  };
+  play.ownedGeometry.push({
+    kind: 'zone', id: zoneId, purpose: 'self-in-zone signature activation',
+  });
+  play.ownedConditionIds.push(conditionId);
+  if (!node.when) node.when = conditionId;
+  else if (typeof node.when === 'string') node.when = { all: [node.when, conditionId] };
+  else if ('all' in node.when && node.when.all.length < 8)
+    node.when.all.push(conditionId);
+  else throw new Error('This opportunity already uses the flat condition-expression limit.');
+  return { draft: requireMaterialized(next), zoneId };
+}
+
+export function moveSignatureOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  direction: -1 | 1,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const host = findOrderLocation(projection.orders, binding.hostOrderId)?.node;
+  if (!host?.orders) throw new Error(`Opportunity host '${binding.hostOrderId}' is missing.`);
+  const siblings = (projection.signatureOpportunities ?? [])
+    .filter((entry) => entry.hostOrderId === binding.hostOrderId)
+    .map((entry) => host.orders!.findIndex((node) => node.id === entry.useOrderId))
+    .filter((index) => index >= 0)
+    .sort((left, right) => left - right);
+  const current = host.orders.findIndex((node) => node.id === binding.useOrderId);
+  const ordinal = siblings.indexOf(current);
+  const target = siblings[ordinal + direction];
+  if (target === undefined) return next;
+  [host.orders[current], host.orders[target]] = [host.orders[target], host.orders[current]];
+  return requireMaterialized(next);
+}
+
+export function renameSignatureOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  nextOrderId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  if (findOrderLocation(projection.orders, nextOrderId))
+    throw new Error(`Order '${nextOrderId}' already exists in this projection.`);
+  const node = requireOpportunityNode(projection, binding);
+  const previous = binding.useOrderId;
+  node.id = nextOrderId;
+  binding.useOrderId = nextOrderId;
+  for (const linked of play.linkedValues)
+    for (const target of linked.targets)
+      if (target.projectionId === projection.id && target.orderId === previous)
+        target.orderId = nextOrderId;
+  return requireMaterialized(next);
+}
+
+export function removeSignatureOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const host = findOrderLocation(projection.orders, binding.hostOrderId)?.node;
+  if (!host?.orders) throw new Error(`Opportunity host '${binding.hostOrderId}' is missing.`);
+  host.orders = host.orders.filter((child) => child.id !== binding.useOrderId);
+  projection.signatureOpportunities = (projection.signatureOpportunities ?? [])
+    .filter((entry) => entry.id !== bindingId);
+  for (const linked of play.linkedValues)
+    linked.targets = linked.targets.filter((target) =>
+      target.projectionId !== projectionId || target.orderId !== binding.useOrderId);
+  play.linkedValues = play.linkedValues.filter((linked) => linked.targets.length > 0);
+  return requireMaterialized(next);
+}
 
 export function rematerializeDraft(
   draft: SheetDraft,
@@ -407,6 +623,77 @@ function orderKey(order: OrderNode, index: number): string {
   if (order.id) return `id:${order.id}`;
   if (order.shared) return `shared:${order.shared}`;
   return `index:${index}`;
+}
+
+function updateOpportunityNode(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  mutate: (node: OrderNode) => void,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  mutate(requireOpportunityNode(projection, binding));
+  return requireMaterialized(next);
+}
+
+function requireProjection(play: LinkedPlay, projectionId: string): PlayProjection {
+  const projection = play.projections.find((entry) => entry.id === projectionId);
+  if (!projection) throw new Error(`Unknown projection '${projectionId}'.`);
+  return projection;
+}
+
+function requireBinding(
+  projection: PlayProjection,
+  bindingId: string,
+) {
+  const binding = (projection.signatureOpportunities ?? [])
+    .find((entry) => entry.id === bindingId);
+  if (!binding) throw new Error(`Unknown signature opportunity '${bindingId}'.`);
+  return binding;
+}
+
+function requireOpportunityNode(
+  projection: PlayProjection,
+  binding: NonNullable<PlayProjection['signatureOpportunities']>[number],
+): OrderNode {
+  const host = findOrderLocation(projection.orders, binding.hostOrderId)?.node;
+  const node = host?.orders?.find((entry) => entry.id === binding.useOrderId);
+  if (!node?.use)
+    throw new Error(`Signature opportunity '${binding.id}' has no direct use child.`);
+  return node;
+}
+
+function findOrderLocation(
+  orders: OrderNode[],
+  id: string,
+  depth = 0,
+): { node: OrderNode; container: OrderNode[]; index: number; depth: number } | null {
+  for (const [index, node] of orders.entries()) {
+    if (node.id === id) return { node, container: orders, index, depth };
+    if (node.orders) {
+      const nested = findOrderLocation(node.orders, id, depth + 1);
+      if (nested) return nested;
+    }
+  }
+  return null;
+}
+
+function uniqueOrderId(base: string, orders: OrderNode[]): string {
+  const used = new Set<string>();
+  orders.forEach((order) => walkOrder(order, (node) => {
+    if (node.id) used.add(node.id);
+  }));
+  return uniqueString(base, used);
+}
+
+function uniqueString(base: string, used: ReadonlySet<string>): string {
+  if (!used.has(base)) return base;
+  for (let suffix = 2; ; suffix++)
+    if (!used.has(`${base}-${suffix}`)) return `${base}-${suffix}`;
 }
 
 function requirePlay(draft: SheetDraft, playId: string): LinkedPlay {

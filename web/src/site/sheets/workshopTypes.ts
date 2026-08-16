@@ -57,6 +57,14 @@ export interface PlayGeneratedOrderFingerprint {
   fingerprint: string;
 }
 
+export interface PlaySignatureOpportunityBinding {
+  id: string;
+  /** An ordinary branch in this projection. */
+  hostOrderId: string;
+  /** A direct child of hostOrderId whose sole action is use. */
+  useOrderId: string;
+}
+
 export interface PlayProjection {
   id: string;
   roleId: string;
@@ -67,6 +75,8 @@ export interface PlayProjection {
   orders: OrderNode[];
   placement: PlayProjectionPlacement;
   lastGenerated: PlayGeneratedOrderFingerprint[];
+  /** Editor linkage only; all executable fields remain in orders. */
+  signatureOpportunities?: PlaySignatureOpportunityBinding[];
 }
 
 export type PlayLinkedValue =
@@ -113,4 +123,51 @@ export interface WorkshopDocument {
 
 export function emptyWorkshop(): WorkshopDocument {
   return { schema: 'arc-relay-workshop-v1', plays: [] };
+}
+
+/**
+ * Additive v1 normalization. Existing Play-owned use children are recognized
+ * without rewriting projection Orders or materialized gameplay.
+ */
+export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
+  const next = structuredClone(value);
+  for (const play of next.plays) {
+    const used = new Set<string>();
+    for (const projection of play.projections) {
+      const existing = projection.signatureOpportunities ?? [];
+      projection.signatureOpportunities = existing.map((binding) => ({ ...binding }));
+      existing.forEach((binding) => used.add(binding.id));
+    }
+    for (const projection of play.projections) {
+      const bound = new Set(projection.signatureOpportunities!.map((entry) =>
+        `${entry.hostOrderId}\0${entry.useOrderId}`));
+      walkBranches(projection.orders, (host) => {
+        if (!host.id || !host.orders) return;
+        for (const [index, child] of host.orders.entries()) {
+          if (!child.id || !child.use || bound.has(`${host.id}\0${child.id}`)) continue;
+          if (!host.orders.slice(index + 1).some((candidate) => !candidate.use))
+            continue;
+          const base = `${host.id}-${child.id}-signature`;
+          let id = base;
+          for (let suffix = 2; used.has(id); suffix++) id = `${base}-${suffix}`;
+          used.add(id);
+          bound.add(`${host.id}\0${child.id}`);
+          projection.signatureOpportunities!.push({
+            id,
+            hostOrderId: host.id,
+            useOrderId: child.id,
+          });
+        }
+      });
+    }
+  }
+  return next;
+}
+
+function walkBranches(orders: OrderNode[], visit: (node: OrderNode) => void) {
+  const walk = (node: OrderNode) => {
+    if (node.orders) visit(node);
+    node.orders?.forEach(walk);
+  };
+  orders.forEach(walk);
 }

@@ -4,6 +4,7 @@ import ClassIcon from '../../components/ClassIcon';
 import type { TacticalSheetCatalog } from '../api';
 import IdentifierInput from './IdentifierInput';
 import { ProjectionOrdersComposer } from './OrdersWorkspace';
+import SignatureUseEditor from './SignatureUseEditor';
 import PlayMapCanvas from './PlayMapCanvas';
 import {
   deletePlay,
@@ -11,20 +12,29 @@ import {
   playDrifts,
   projectionPriorityOptions,
   resolveProjectionOrders,
+  signatureOpportunityViews,
   uniquePlayId,
 } from './linkedPlays';
 import {
+  addSignatureOpportunity,
+  addSignatureOpportunityActivationZone,
   addAmbushReserveSlot,
   movePlayAnchor,
+  moveSignatureOpportunity,
   rematerializeDraft,
   removeAmbushReserveSlot,
+  removeSignatureOpportunity,
+  renameSignatureOpportunity,
   renamePlayGeometry,
   replacePlayRole,
   setPlayLinkedValue,
   setPlayName,
   setPlayProjectionPlacement,
+  setSignatureOpportunityCapacity,
+  setSignatureOpportunityWhen,
   updatePlayCondition,
   updatePlayProjectionOrders,
+  updateSignatureOpportunityUse,
 } from './playEditing';
 import {
   movePlayGeometryGroup,
@@ -45,6 +55,10 @@ import type {
   OrderNode,
   SheetDraft,
   SheetIssue,
+} from './sheetAuthoring';
+import {
+  defaultSignatureTarget,
+  skillForClass,
 } from './sheetAuthoring';
 import { bestPlayReadiness, type UnitTrack } from './sheetTrials';
 import type {
@@ -216,6 +230,13 @@ export default function PlaysWorkspace({
 
           <ParticipantControls draft={draft} play={play} catalog={catalog} issues={issues}
             onSelectGeometry={setSelectedGeometry} onChange={commit} />
+          <AlongTheWayControls draft={draft} play={play} catalog={catalog}
+            onSelectGeometry={(id) => {
+              setSelectedGeometry(id);
+              document.querySelector('[data-sheet-path="workshop.plays"]')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            onOpenOrders={onOpenOrders} onChange={commit} />
           <LinkedOrdersControls draft={draft} play={play} onChange={commit} />
           <PriorityControls draft={draft} play={play} onChange={commit} onOpenOrders={onOpenOrders} />
           <ConditionControls draft={draft} play={play} onChange={commit} />
@@ -485,6 +506,203 @@ function ParticipantControls({ draft, play, catalog, issues, onSelectGeometry, o
         onClick={() => onChange(addBlankPlayProjection(draft, play.id, selectedBlankRole))}>＋ Add role projection</button>
     </div>}
   </section>;
+}
+
+function AlongTheWayControls({
+  draft,
+  play,
+  catalog,
+  onSelectGeometry,
+  onOpenOrders,
+  onChange,
+}: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  catalog: TacticalSheetCatalog;
+  onSelectGeometry: (id: string) => void;
+  onOpenOrders: (playId: string, projectionId?: string) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  return <section className="panel pad">
+    <p className="lab text-arena-material">Along the way</p>
+    <h3 className="type-display mt-1 text-[19px]">Signature opportunities inside real Orders</h3>
+    <p className="t-micro mt-1">Each card is a real use child above the continuation shown beside it. Reordering changes that exact local child order; it creates no separate Play priority.</p>
+    <div className="mt-3 space-y-3">{play.projections.map((projection) => {
+      const role = draft.orders.roles.find((entry) => entry.id === projection.roleId);
+      if (!role) return null;
+      return <OpportunityProjection key={projection.id} draft={draft} play={play}
+        projection={projection} role={role} catalog={catalog}
+        onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
+        onChange={onChange} />;
+    })}</div>
+  </section>;
+}
+
+function OpportunityProjection({
+  draft,
+  play,
+  projection,
+  role,
+  catalog,
+  onSelectGeometry,
+  onOpenOrders,
+  onChange,
+}: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  projection: PlayProjection;
+  role: SheetDraft['orders']['roles'][number];
+  catalog: TacticalSheetCatalog;
+  onSelectGeometry: (id: string) => void;
+  onOpenOrders: (playId: string, projectionId?: string) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const views = signatureOpportunityViews(projection);
+  const hosts = opportunityHosts(projection.orders);
+  const skills = [...new Set(role.classes.map((classId) =>
+    skillForClass(catalog, classId)).filter((entry): entry is string => Boolean(entry)))];
+  const [adding, setAdding] = useState(false);
+  const [hostId, setHostId] = useState(hosts[0]?.id ?? '');
+  const [skill, setSkill] = useState(skills[0] ?? '');
+  const selectedHost = hosts.some((entry) => entry.id === hostId)
+    ? hostId : hosts[0]?.id ?? '';
+  const selectedSkill = skills.includes(skill) ? skill : skills[0] ?? '';
+  return <article className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="flex -space-x-1">{role.classes.map((classId, index) =>
+        <ClassIcon key={`${classId}:${index}`} classId={classId} size={32} decorative />)}</span>
+      <div className="mr-auto min-w-0"><b className="type-display block truncate text-[16px]">{humanize(role.id)}</b>
+        <span className="t-micro">{views.length} {views.length === 1 ? 'opportunity' : 'opportunities'}</span></div>
+      <button type="button" className="btn btn-secondary min-h-11"
+        disabled={hosts.length === 0 || skills.length === 0}
+        onClick={() => setAdding((value) => !value)}>＋ Add signature</button>
+    </div>
+    {adding && <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/5 p-3">
+      <div className="grid gap-2 sm:grid-cols-2">
+        <label><span className="lab mb-1 block">Continue this plan</span>
+          <select className="field min-h-11" value={selectedHost}
+            onChange={(event) => setHostId(event.target.value)}>
+            {hosts.map((host) => <option key={host.id} value={host.id}>{host.label}</option>)}
+          </select></label>
+        <label><span className="lab mb-1 block">Role-owned signature</span>
+          <select className="field min-h-11" value={selectedSkill}
+            onChange={(event) => setSkill(event.target.value)}>
+            {skills.map((candidate) => <option key={candidate} value={candidate}>
+              {catalog.classes.find((entry) => entry.signatureId === candidate)?.signatureName ?? humanize(candidate)}
+            </option>)}
+          </select></label>
+      </div>
+      <p className="t-micro mt-2">A Move or Fight leaf becomes one ordinary parent branch in this undoable edit. Its original action remains the continuation.</p>
+      <button type="button" className="btn btn-primary mt-3 min-h-11 w-full"
+        disabled={!selectedHost || !selectedSkill}
+        onClick={() => {
+          onChange(addSignatureOpportunity(draft, play.id, projection.id,
+            selectedHost, { skill: selectedSkill,
+              target: defaultSignatureTarget(catalog, selectedSkill) }));
+          setAdding(false);
+        }}>Add along this plan</button>
+    </div>}
+    <div className="mt-3 space-y-2">{views.map((view) => {
+      const use = view.use.use!;
+      const when = view.use.when;
+      const simpleWhen = typeof when === 'string' ? when : '';
+      return <details key={view.binding.id} className="rounded-sm border border-arena-material/30 bg-arena-panel/35" open={views.length === 1}>
+        <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
+          <span className="pill">{view.ordinal + 1}</span>
+          <ClassIcon classId={catalog.classes.find((entry) => entry.signatureId === use.skill)?.id ?? role.classes[0]} size={34} decorative />
+          <span className="mr-auto min-w-0"><b className="type-display block truncate text-[15px]">{humanize(view.use.id ?? use.skill)}</b>
+            <span className="t-micro block truncate">{humanize(use.skill)} → otherwise {orderName(view.continuation)}</span></span>
+          <span className="disclosure-chevron">›</span>
+        </summary>
+        <div className="border-t border-arena-edge p-3">
+          <label className="block"><span className="lab mb-1 block">Opportunity name</span>
+            <IdentifierInput value={view.use.id ?? view.binding.useOrderId}
+              isTaken={(id) => id !== view.binding.useOrderId && Boolean(findOrderById(projection.orders, id))}
+              onCommit={(id) => id !== view.binding.useOrderId && onChange(
+                renameSignatureOpportunity(draft, play.id, projection.id, view.binding.id, id))} /></label>
+          <SignatureUseEditor value={use} role={role} roles={draft.orders.roles}
+            catalog={catalog} mapPlan={draft.mapPlan}
+            onOpenMap={(focus) => { if (focus?.id) onSelectGeometry(focus.id); }}
+            onChange={(nextUse) => onChange(updateSignatureOpportunityUse(
+              draft, play.id, projection.id, view.binding.id, nextUse))} />
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label><span className="lab mb-1 block">When</span>
+              <select className="field min-h-11" value={simpleWhen}
+                disabled={Boolean(when && typeof when !== 'string')}
+                onChange={(event) => onChange(setSignatureOpportunityWhen(
+                  draft, play.id, projection.id, view.binding.id,
+                  event.target.value || undefined))}>
+                <option value="">Whenever the parent is active</option>
+                {Object.keys(draft.orders.conditions).map((id) =>
+                  <option key={id} value={id}>{humanize(id)}</option>)}
+              </select>
+              {when && typeof when !== 'string' && <span className="t-micro mt-1 block">Combined condition · inspect in Orders to edit every term.</span>}
+            </label>
+            <label><span className="lab mb-1 block">Capacity · bodies on this resolved target</span>
+              <select className="field min-h-11" value={view.use.capacity ?? ''}
+                onChange={(event) => onChange(setSignatureOpportunityCapacity(
+                  draft, play.id, projection.id, view.binding.id,
+                  event.target.value ? Number(event.target.value) : undefined))}>
+                <option value="">No added cap</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value} value={value}>{value}</option>)}
+              </select>
+            </label>
+          </div>
+          {!when && <button type="button" className="btn btn-secondary mt-3 min-h-11 w-full"
+            onClick={() => {
+              const result = addSignatureOpportunityActivationZone(
+                draft, play.id, projection.id, view.binding.id);
+              onChange(result.draft);
+              onSelectGeometry(result.zoneId);
+            }}>▣ Mark an activation window on the map</button>}
+          <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-2">
+            <p className="lab">Otherwise</p>
+            <p className="t-meta mt-1">{orderName(view.continuation)}</p>
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <button type="button" className="btn min-h-11" disabled={view.ordinal === 0}
+              onClick={() => onChange(moveSignatureOpportunity(draft, play.id, projection.id, view.binding.id, -1))}>↑ Earlier</button>
+            <button type="button" className="btn min-h-11" disabled={view.ordinal === view.count - 1}
+              onClick={() => onChange(moveSignatureOpportunity(draft, play.id, projection.id, view.binding.id, 1))}>↓ Later</button>
+            <button type="button" className="btn min-h-11"
+              onClick={() => onOpenOrders(play.id, projection.id)}>Inspect Orders</button>
+            <button type="button" className="btn min-h-11 text-arena-hot"
+              onClick={() => {
+                if (window.confirm(`Remove “${humanize(view.use.id ?? use.skill)}”? The continuation stays.`))
+                  onChange(removeSignatureOpportunity(draft, play.id, projection.id, view.binding.id));
+              }}>Remove…</button>
+          </div>
+        </div>
+      </details>;
+    })}</div>
+  </article>;
+}
+
+function opportunityHosts(orders: OrderNode[]) {
+  const result: Array<{ id: string; label: string }> = [];
+  const walk = (nodes: OrderNode[], depth: number) => nodes.forEach((node) => {
+    if (node.id && (node.orders || depth < 2 && (node.move || node.fight)))
+      result.push({ id: node.id, label: `${humanize(node.id)} · ${node.orders ? 'branch' : node.move ? 'Move' : 'Fight'}` });
+    if (node.orders) walk(node.orders, depth + 1);
+  });
+  walk(orders, 0);
+  return result;
+}
+
+function findOrderById(orders: OrderNode[], id: string): OrderNode | undefined {
+  for (const node of orders) {
+    if (node.id === id) return node;
+    const nested = node.orders && findOrderById(node.orders, id);
+    if (nested) return nested;
+  }
+  return undefined;
+}
+
+function orderName(order: OrderNode | null) {
+  if (!order) return 'normal root fallthrough';
+  if (order.move) return `${humanize(order.id ?? 'move')} · continue moving`;
+  if (order.fight) return `${humanize(order.id ?? 'fight')} · continue fighting`;
+  return humanize(order.id ?? 'next ordinary Order');
 }
 
 function LinkedOrdersControls({ draft, play, onChange }: {

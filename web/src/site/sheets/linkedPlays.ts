@@ -5,8 +5,10 @@ import type {
   OrdersDocument,
   SheetDraft,
 } from './sheetAuthoring';
+import type { TacticalSheetCatalog } from '../api';
 import {
   emptyWorkshop,
+  normalizeWorkshop,
   type LinkedPlay,
   type PlayGeometryKind,
   type PlayLinkedValue,
@@ -20,7 +22,8 @@ export interface PlayDrift {
   projectionId: string;
   roleId: string;
   orderId?: string;
-  kind: 'role-missing' | 'order-missing' | 'order-changed' | 'order-collision' | 'priority-neighbor-missing';
+  kind: 'role-missing' | 'order-missing' | 'order-changed' | 'order-collision'
+    | 'priority-neighbor-missing' | 'opportunity-binding-invalid';
   message: string;
 }
 
@@ -30,22 +33,101 @@ export interface PlayMaterialization {
   drifts: PlayDrift[];
 }
 
+export interface SignatureOpportunityView {
+  binding: NonNullable<PlayProjection['signatureOpportunities']>[number];
+  host: OrderNode;
+  use: OrderNode;
+  continuation: OrderNode | null;
+  ordinal: number;
+  count: number;
+}
+
+export function signatureOpportunityViews(
+  projection: PlayProjection,
+): SignatureOpportunityView[] {
+  const bindings = projection.signatureOpportunities ?? [];
+  const result: SignatureOpportunityView[] = [];
+  for (const binding of bindings) {
+    const host = findOrder(projection.orders, binding.hostOrderId);
+    const use = host?.orders?.find((entry) => entry.id === binding.useOrderId);
+    if (!host?.orders || !use?.use) continue;
+    const hostBindings = bindings.filter((entry) =>
+      entry.hostOrderId === binding.hostOrderId);
+    const boundIds = new Set(hostBindings.map((entry) => entry.useOrderId));
+    const ordered = host.orders.filter((entry) => entry.id && boundIds.has(entry.id));
+    const index = host.orders.indexOf(use);
+    result.push({
+      binding,
+      host,
+      use,
+      continuation: host.orders.slice(index + 1)
+        .find((entry) => !entry.id || !boundIds.has(entry.id)) ?? null,
+      ordinal: ordered.indexOf(use),
+      count: ordered.length,
+    });
+  }
+  return result.sort((left, right) => {
+    const leftHost = projection.orders.findIndex((entry) => entry.id === left.host.id);
+    const rightHost = projection.orders.findIndex((entry) => entry.id === right.host.id);
+    return leftHost - rightHost || left.ordinal - right.ordinal;
+  });
+}
+
 export function parseWorkshop(workshopJson?: string | null): WorkshopDocument {
   if (!workshopJson) return emptyWorkshop();
   const value = JSON.parse(workshopJson) as WorkshopDocument;
   if (!value || value.schema !== 'arc-relay-workshop-v1' || !Array.isArray(value.plays))
     throw new Error('workshop.json must use arc-relay-workshop-v1.');
-  return value;
+  return normalizeWorkshop(value);
 }
 
 export function inspectWorkshop(
   orders: OrdersDocument,
   workshop: WorkshopDocument,
+  catalog?: Pick<TacticalSheetCatalog, 'classes'>,
 ): PlayDrift[] {
   const drifts: PlayDrift[] = [];
   for (const play of workshop.plays) {
+    const bindingIds = new Set<string>();
     for (const projection of play.projections) {
       const role = orders.roles.find((entry) => entry.id === projection.roleId);
+      const ownedSkills = new Set(role?.classes.map((classId) =>
+        catalog?.classes.find((entry) => entry.id === classId)?.signatureId)
+        .filter((entry): entry is string => Boolean(entry)) ?? []);
+      const bindings = projection.signatureOpportunities ?? [];
+      for (const binding of bindings) {
+        const path = `opportunity '${binding.id}'`;
+        if (!binding.id || bindingIds.has(binding.id)) {
+          drifts.push(opportunityDrift(
+            play.id, projection, `${path} needs a unique stable id.`));
+          continue;
+        }
+        bindingIds.add(binding.id);
+        const host = findOrder(projection.orders, binding.hostOrderId);
+        const child = host?.orders?.find((entry) =>
+          entry.id === binding.useOrderId);
+        const actionCount = child ? ['orders', 'move', 'fight', 'use', 'handoff', 'drop']
+          .filter((key) => child[key as keyof OrderNode] !== undefined).length : 0;
+        if (!host?.orders) {
+          drifts.push(opportunityDrift(play.id, projection,
+            `${path} names missing branch '${binding.hostOrderId}'.`));
+        } else if (!child || actionCount !== 1 || !child.use) {
+          drifts.push(opportunityDrift(play.id, projection,
+            `${path} must name one direct use child '${binding.useOrderId}'.`));
+        } else if (catalog && !ownedSkills.has(child.use.skill)) {
+          drifts.push(opportunityDrift(play.id, projection,
+            `${path} uses '${child.use.skill}', which role '${projection.roleId}' does not own.`));
+        } else {
+          const useIndex = host.orders.indexOf(child);
+          const boundUseIds = new Set(bindings.map((entry) => entry.useOrderId));
+          const hasContinuation = host.orders.slice(useIndex + 1)
+            .some((entry) => !entry.id || !boundUseIds.has(entry.id));
+          if (!hasContinuation) {
+            drifts.push(opportunityDrift(play.id, projection,
+              `${path} needs an ordinary continuation after its use child.`));
+          }
+        }
+      }
       if (!role) {
         drifts.push({
           playId: play.id,
@@ -127,13 +209,27 @@ export function inspectWorkshop(
   return drifts;
 }
 
+function opportunityDrift(
+  playId: string,
+  projection: PlayProjection,
+  message: string,
+): PlayDrift {
+  return {
+    playId,
+    projectionId: projection.id,
+    roleId: projection.roleId,
+    kind: 'opportunity-binding-invalid',
+    message,
+  };
+}
+
 export function materializeWorkshop(
   sourceOrders: OrdersDocument,
   sourceWorkshop: WorkshopDocument,
   force = false,
 ): PlayMaterialization {
   const orders = structuredClone(sourceOrders);
-  const workshop = structuredClone(sourceWorkshop);
+  const workshop = normalizeWorkshop(sourceWorkshop);
   const drifts = inspectWorkshop(orders, workshop);
   if (drifts.length > 0 && !force) return { orders, workshop, drifts };
 

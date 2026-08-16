@@ -190,7 +190,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
     const workshopIssues: SheetIssue[] = [
       ...draft.workshop.plays.flatMap((play) =>
         playGeometryIssues(draft, play.id, catalog.map.tileRows)),
-      ...inspectWorkshop(draft.orders, draft.workshop).map((drift) => ({
+      ...inspectWorkshop(draft.orders, draft.workshop, catalog).map((drift) => ({
         path: `workshop.plays.${drift.playId}.${drift.projectionId}`,
         severity: 'error' as const,
         message: drift.message,

@@ -1,6 +1,7 @@
 import type { TacticalSheetCatalog } from '../api';
 import {
   emptyWorkshop,
+  normalizeWorkshop,
   type WorkshopDocument,
 } from './workshopTypes';
 
@@ -299,7 +300,7 @@ export function parseDraft(
     enterLadder,
     orders,
     mapPlan,
-    workshop,
+    workshop: normalizeWorkshop(workshop),
   };
 }
 

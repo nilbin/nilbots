@@ -13,15 +13,23 @@ import {
   detachPlay,
   inspectWorkshop,
   materializeWorkshop,
+  parseWorkshop,
   setLinkedValue,
+  signatureOpportunityViews,
 } from '../src/site/sheets/linkedPlays';
 import {
+  addSignatureOpportunity,
+  addSignatureOpportunityActivationZone,
   addAmbushReserveSlot,
   movePlayAnchor,
+  moveSignatureOpportunity,
   renamePlayGeometry,
   removeAmbushReserveSlot,
+  removeSignatureOpportunity,
+  renameSignatureOpportunity,
   replacePlayRole,
   setPlayLinkedValue,
+  updateSignatureOpportunityUse,
 } from '../src/site/sheets/playEditing';
 import {
   addBlankPlay,
@@ -252,6 +260,112 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(detached.plays.length, 0);
   assert.ok(linked.orders.roles.find((entry) => entry.id === 'relay-a')!
     .orders.some((order) => order.id === `${play.id}-a-running-return`));
+});
+
+test('old v1 Plays gain opportunity linkage without changing their ordinary Orders', () => {
+  for (const source of [
+    addRelayChainPlay(draft(), { relayARoleId: 'relay-a', relayBRoleId: 'relay-b' }),
+    addNorthAmbushPlay(draft(), {
+      masonRoleId: 'mason', longshotRoleId: 'longshot', hushRoleId: 'hush', reserveRoleId: 'reserve',
+    }),
+  ]) {
+    const oldWorkshop = structuredClone(source.workshop);
+    for (const projection of oldWorkshop.plays[0].projections)
+      delete projection.signatureOpportunities;
+    const before = oldWorkshop.plays[0].projections.map((projection) =>
+      stringifyDocument(projection.orders));
+    const normalized = parseWorkshop(JSON.stringify(oldWorkshop));
+    const after = normalized.plays[0].projections.map((projection) =>
+      stringifyDocument(projection.orders));
+    assert.deepEqual(after, before);
+    assert.ok(normalized.plays[0].projections.some((projection) =>
+      (projection.signatureOpportunities?.length ?? 0) > 0));
+    assert.equal(inspectWorkshop(source.orders, normalized, catalog).length, 0);
+  }
+});
+
+test('a signature opportunity scaffolds, edits and removes one real local priority tree', () => {
+  let linked = addBlankPlay(draft(), 'Signature scaffold');
+  linked = addBlankPlayProjection(linked, linked.workshop.plays[0].id, 'support');
+  const playId = linked.workshop.plays[0].id;
+  const projection = linked.workshop.plays[0].projections[0];
+  const hostId = projection.orders[0].id!;
+  const originalTarget = structuredClone(projection.orders[0].move!.to);
+  projection.orders[0].when = 'always';
+  projection.orders[0].timeout = 55;
+  projection.orders[0].cooldown = 9;
+  projection.orders[0].urgency = 'urgent';
+  linked = addSignatureOpportunity(linked, playId, projection.id, hostId, {
+    skill: 'repair-beam', target: { role: 'longshot' },
+  });
+
+  let current = linked.workshop.plays[0].projections[0];
+  let view = signatureOpportunityViews(current)[0];
+  assert.equal(view.host.id, hostId);
+  assert.equal(view.host.when, 'always');
+  assert.equal(view.host.timeout, 55);
+  assert.equal(view.host.cooldown, 9);
+  assert.equal(view.host.urgency, 'urgent');
+  assert.deepEqual(view.continuation?.move?.to, originalTarget);
+  assert.equal(view.continuation?.capacity, undefined);
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+
+  linked = updateSignatureOpportunityUse(linked, playId, current.id, view.binding.id, {
+    skill: 'repair-beam', target: 'weakest-ally',
+  });
+  current = linked.workshop.plays[0].projections[0];
+  view = signatureOpportunityViews(current)[0];
+  linked = renameSignatureOpportunity(linked, playId, current.id,
+    view.binding.id, 'protect-wounded');
+  current = linked.workshop.plays[0].projections[0];
+  view = signatureOpportunityViews(current)[0];
+  assert.equal(view.use.id, 'protect-wounded');
+  assert.equal(view.use.use?.target, 'weakest-ally');
+
+  const activation = addSignatureOpportunityActivationZone(
+    linked, playId, current.id, view.binding.id);
+  linked = activation.draft;
+  assert.ok(linked.mapPlan.zones[activation.zoneId]);
+  assert.equal(linked.workshop.plays[0].ownedGeometry.some((entry) =>
+    entry.kind === 'zone' && entry.id === activation.zoneId), true);
+
+  current = linked.workshop.plays[0].projections[0];
+  view = signatureOpportunityViews(current)[0];
+  linked = removeSignatureOpportunity(linked, playId, current.id, view.binding.id);
+  current = linked.workshop.plays[0].projections[0];
+  assert.equal(signatureOpportunityViews(current).length, 0);
+  assert.deepEqual(current.orders[0].orders?.[0].move?.to, originalTarget);
+});
+
+test('opportunity ordering is the authored sibling order and malformed bindings stay diagnostics', () => {
+  let linked = addBlankPlay(draft(), 'Signature order');
+  linked = addBlankPlayProjection(linked, linked.workshop.plays[0].id, 'support');
+  const playId = linked.workshop.plays[0].id;
+  const projectionId = linked.workshop.plays[0].projections[0].id;
+  const hostId = linked.workshop.plays[0].projections[0].orders[0].id!;
+  linked = addSignatureOpportunity(linked, playId, projectionId, hostId,
+    { skill: 'repair-beam', target: 'weakest-ally' });
+  linked = addSignatureOpportunity(linked, playId, projectionId, hostId,
+    { skill: 'repair-beam', target: 'nearest-ally' });
+  let projection = linked.workshop.plays[0].projections[0];
+  const views = signatureOpportunityViews(projection);
+  assert.deepEqual(views.map((entry) => entry.use.use?.target),
+    ['weakest-ally', 'nearest-ally']);
+  linked = moveSignatureOpportunity(linked, playId, projectionId,
+    views[1].binding.id, -1);
+  projection = linked.workshop.plays[0].projections[0];
+  assert.deepEqual(signatureOpportunityViews(projection).map((entry) => entry.use.use?.target),
+    ['nearest-ally', 'weakest-ally']);
+
+  const broken = structuredClone(linked.workshop);
+  broken.plays[0].projections[0].signatureOpportunities![0].hostOrderId = 'missing';
+  assert.match(inspectWorkshop(linked.orders, broken, catalog)[0].message,
+    /missing branch/);
+  broken.plays[0].projections[0].signatureOpportunities![0].hostOrderId = hostId;
+  broken.plays[0].projections[0].signatureOpportunities![0].useOrderId =
+    projection.orders[0].orders!.at(-1)!.id!;
+  assert.match(inspectWorkshop(linked.orders, broken, catalog)[0].message,
+    /direct use child/);
 });
 
 test('reference-aware Play edits rename geometry and change a participant atomically', () => {
