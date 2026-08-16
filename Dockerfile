@@ -57,6 +57,25 @@ COPY arena-bots/arc-relay /prune/arena-bots/arc-relay
 RUN find /prune -type f ! -name bot.wasm -delete \
     && find /prune -type d -empty -delete
 
+# The ordinary hosted app needs the .NET SDK to publish, but it does not need
+# clang/LLVM, wasi-sdk, a rebuilt first-party guest, or a primed submission
+# cache. Keep this stage independent from `toolchain`: a local/runtime image
+# review must consume the repository's committed WASM artifacts exactly as
+# checked in. Controlled custom-mind/compiler images still use the explicit
+# `compiler` target below.
+FROM ubuntu:24.04 AS app-build
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl ca-certificates libicu74 \
+    && rm -rf /var/lib/apt/lists/* \
+    && curl -sSL https://dot.net/v1/dotnet-install.sh -o /tmp/dotnet-install.sh \
+    && bash /tmp/dotnet-install.sh --channel 10.0 --install-dir /opt/dotnet \
+    && ln -s /opt/dotnet/dotnet /usr/local/bin/dotnet \
+    && rm /tmp/dotnet-install.sh
+WORKDIR /app
+COPY . .
+RUN rm -rf web \
+    && dotnet publish src/BotArena.App -c Release -o /app/publish
+
 FROM ubuntu:24.04 AS toolchain
 RUN apt-get update && apt-get install -y --no-install-recommends \
       curl ca-certificates git util-linux clang-18 llvm-18 lld-18 wasi-libc \
@@ -147,10 +166,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
     && mkdir -p /app /data /cache \
     && chown botarena:botarena /data /cache
 WORKDIR /app
-COPY --from=toolchain /app/publish /app/publish
-COPY --from=toolchain /app/maps /app/maps
-COPY --from=toolchain /app/champions /app/champions
-COPY --from=toolchain /app/artifacts/wasm /app/artifacts/wasm
+COPY --from=app-build /app/publish /app/publish
+COPY --from=app-build /app/maps /app/maps
+COPY --from=app-build /app/champions /app/champions
+COPY --from=app-build /app/artifacts/wasm /app/artifacts/wasm
 # The frozen minds the Arc Relay seeder loads. This image runs BOTARENA_ROLE=migrate
 # in production, and that role seeds the immutable playlist, so without these the
 # migration aborts on "Frozen Arc Relay stock mind artifact is missing".

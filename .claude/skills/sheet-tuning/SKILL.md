@@ -58,6 +58,16 @@ During the fast design loop:
   its local CLI cache when `src/` is newer; that is a local iteration build,
   not a product release. Rebuild the viewer only when viewer code/assets moved.
 
+When an App/API/editor change genuinely needs the containerized site for a
+browser smoke, build the Docker `runtime` target (the default in
+`docker-compose.yml`). That target publishes the trusted App and consumes
+committed WASM artifacts; it must not build clang/LLVM, wasi-sdk,
+`build-wasm-guest.sh`, or the controlled submission cache. Seeing any of those
+in an ordinary browser-review build means the compiler/toolchain target was
+selected accidentally: stop and fix the build boundary instead of waiting for
+an irrelevant WASM build. Use the `compiler` target only when the custom-mind
+submission path itself is under review.
+
 Enter the **deployment checkpoint** only when the owner explicitly asks to
 deploy or release, or when the task itself changes the custom-mind sandbox,
 SDK/Guest ABI, controlled compiler, or WASM runtime. A behavior-changing
