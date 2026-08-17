@@ -97,9 +97,9 @@
       ]
     },
     {
-      "id": "builder",
+      "id": "flex",
       "classes": [
-        "mason"
+        "switchback"
       ],
       "upgradePath": [
         "reach",
@@ -107,23 +107,23 @@
       ],
       "orders": [
         {
-          "id": "open-field-builder-field-work",
+          "id": "open-field-flex-field-work",
           "orders": [
             {
-              "id": "open-field-builder-field-work-carry-home",
-              "when": "open-field-builder-custody-carrying",
-              "until": "open-field-builder-custody-empty",
+              "id": "open-field-flex-field-work-carry-home",
+              "when": "open-field-flex-custody-carrying",
+              "until": "open-field-flex-custody-empty",
               "urgency": "urgent",
               "move": {
                 "to": "own-reactor"
               }
             },
             {
-              "id": "open-field-builder-field-work-recover-core",
+              "id": "open-field-flex-field-work-recover-core",
               "when": {
                 "all": [
-                  "open-field-builder-field-work-empty-handed",
-                  "open-field-builder-field-work-core-nearby"
+                  "open-field-flex-field-work-empty-handed",
+                  "open-field-flex-field-work-core-nearby"
                 ]
               },
               "capacity": "core-recovery",
@@ -133,18 +133,18 @@
               }
             },
             {
-              "id": "open-field-builder-field-work-recover-health",
+              "id": "open-field-flex-field-work-recover-health",
               "when": {
                 "all": [
-                  "open-field-builder-field-work-health-low",
-                  "open-field-builder-field-work-healing-nearby",
-                  "open-field-builder-field-work-not-carrying"
+                  "open-field-flex-field-work-health-low",
+                  "open-field-flex-field-work-healing-nearby",
+                  "open-field-flex-field-work-not-carrying"
                 ]
               },
               "until": {
                 "any": [
-                  "open-field-builder-field-work-health-recovered",
-                  "open-field-builder-field-work-became-carrier"
+                  "open-field-flex-field-work-health-recovered",
+                  "open-field-flex-field-work-became-carrier"
                 ]
               },
               "timeout": 55,
@@ -156,8 +156,8 @@
               }
             },
             {
-              "id": "open-field-builder-field-work-fight",
-              "when": "open-field-builder-field-work-contact",
+              "id": "open-field-flex-field-work-fight",
+              "when": "open-field-flex-field-work-contact",
               "capacity": 3,
               "fight": {
                 "targets": [
@@ -170,7 +170,7 @@
               }
             },
             {
-              "id": "open-field-builder-field-work-continue",
+              "id": "open-field-flex-field-work-continue",
               "move": {
                 "to": {
                   "well": "centre"
@@ -181,7 +181,7 @@
           ]
         },
         {
-          "id": "builder-park",
+          "id": "flex-park",
           "move": {
             "to": "own-reactor"
           }
@@ -695,42 +695,42 @@
       "operator": "at-most",
       "value": 6
     },
-    "open-field-builder-field-work-empty-handed": {
+    "open-field-flex-field-work-empty-handed": {
       "fact": "self-carrying",
       "operator": "equals",
       "value": 0
     },
-    "open-field-builder-field-work-core-nearby": {
+    "open-field-flex-field-work-core-nearby": {
       "fact": "self-nearest-visible-loose-core-distance",
       "operator": "at-most",
       "value": 5
     },
-    "open-field-builder-field-work-health-low": {
+    "open-field-flex-field-work-health-low": {
       "fact": "self-health-percent",
       "operator": "at-most",
       "value": 35
     },
-    "open-field-builder-field-work-health-recovered": {
+    "open-field-flex-field-work-health-recovered": {
       "fact": "self-health-percent",
       "operator": "at-least",
       "value": 70
     },
-    "open-field-builder-field-work-healing-nearby": {
+    "open-field-flex-field-work-healing-nearby": {
       "fact": "self-nearest-heal-zone-distance",
       "operator": "at-most",
       "value": 8
     },
-    "open-field-builder-field-work-not-carrying": {
+    "open-field-flex-field-work-not-carrying": {
       "fact": "self-carrying",
       "operator": "equals",
       "value": 0
     },
-    "open-field-builder-field-work-became-carrier": {
+    "open-field-flex-field-work-became-carrier": {
       "fact": "self-carrying",
       "operator": "equals",
       "value": 1
     },
-    "open-field-builder-field-work-contact": {
+    "open-field-flex-field-work-contact": {
       "fact": "self-nearest-visible-enemy-distance",
       "operator": "at-most",
       "value": 6
@@ -945,12 +945,12 @@
       "operator": "equals",
       "value": 0
     },
-    "open-field-builder-custody-carrying": {
+    "open-field-flex-custody-carrying": {
       "fact": "self-carrying",
       "operator": "equals",
       "value": 1
     },
-    "open-field-builder-custody-empty": {
+    "open-field-flex-custody-empty": {
       "fact": "self-carrying",
       "operator": "equals",
       "value": 0

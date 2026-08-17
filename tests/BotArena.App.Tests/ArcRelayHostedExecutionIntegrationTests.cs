@@ -472,7 +472,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 EnterLadder: true,
                 WorkshopJson: workshopJson,
                 ReplaceWorkshop: workshopJson is not null));
-        response.EnsureSuccessStatusCode();
+        Assert.True(response.IsSuccessStatusCode,
+            $"Sheet save failed with {(int)response.StatusCode}: "
+            + await response.Content.ReadAsStringAsync());
         return Assert.IsType<TacticalSheetResponse>(
             await response.Content.ReadFromJsonAsync<TacticalSheetResponse>());
     }

@@ -1003,7 +1003,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 ordersJson ?? catalog.TemplateOrdersJson,
                 catalog.TemplateMapPlanJson,
                 enterLadder));
-        response.EnsureSuccessStatusCode();
+        Assert.True(response.IsSuccessStatusCode,
+            $"Sheet save failed with {(int)response.StatusCode}: "
+            + await response.Content.ReadAsStringAsync());
         return (await response.Content.ReadFromJsonAsync<TacticalSheetResponse>())!;
     }
 

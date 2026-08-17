@@ -43,7 +43,7 @@ mkdirSync(output, { recursive: true });
 
 const recommendedRoles = [
   role('couriers', 'relay', 2),
-  role('builder', 'mason'),
+  role('flex', 'switchback'),
   role('scout', 'lantern'),
   role('medic', 'patchbay'),
   role('skirmisher', 'kestrel'),

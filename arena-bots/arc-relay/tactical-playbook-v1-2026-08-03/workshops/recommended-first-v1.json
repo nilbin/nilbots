@@ -19,14 +19,14 @@
         "open-field-couriers-field-work-health-recovered",
         "open-field-couriers-field-work-became-carrier",
         "open-field-couriers-field-work-contact",
-        "open-field-builder-field-work-empty-handed",
-        "open-field-builder-field-work-core-nearby",
-        "open-field-builder-field-work-health-low",
-        "open-field-builder-field-work-healing-nearby",
-        "open-field-builder-field-work-not-carrying",
-        "open-field-builder-field-work-health-recovered",
-        "open-field-builder-field-work-became-carrier",
-        "open-field-builder-field-work-contact",
+        "open-field-flex-field-work-empty-handed",
+        "open-field-flex-field-work-core-nearby",
+        "open-field-flex-field-work-health-low",
+        "open-field-flex-field-work-healing-nearby",
+        "open-field-flex-field-work-not-carrying",
+        "open-field-flex-field-work-health-recovered",
+        "open-field-flex-field-work-became-carrier",
+        "open-field-flex-field-work-contact",
         "open-field-scout-field-work-empty-handed",
         "open-field-scout-field-work-core-nearby",
         "open-field-scout-field-work-health-low",
@@ -69,8 +69,8 @@
         "open-field-dampener-field-work-contact",
         "open-field-couriers-custody-carrying",
         "open-field-couriers-custody-empty",
-        "open-field-builder-custody-carrying",
-        "open-field-builder-custody-empty",
+        "open-field-flex-custody-carrying",
+        "open-field-flex-custody-empty",
         "open-field-scout-custody-carrying",
         "open-field-scout-custody-empty",
         "open-field-medic-custody-carrying",
@@ -227,27 +227,27 @@
           ]
         },
         {
-          "id": "open-field-builder",
-          "roleId": "builder",
+          "id": "open-field-flex",
+          "roleId": "flex",
           "orders": [
             {
-              "id": "open-field-builder-field-work",
+              "id": "open-field-flex-field-work",
               "orders": [
                 {
-                  "id": "open-field-builder-field-work-carry-home",
-                  "when": "open-field-builder-custody-carrying",
-                  "until": "open-field-builder-custody-empty",
+                  "id": "open-field-flex-field-work-carry-home",
+                  "when": "open-field-flex-custody-carrying",
+                  "until": "open-field-flex-custody-empty",
                   "urgency": "urgent",
                   "move": {
                     "to": "own-reactor"
                   }
                 },
                 {
-                  "id": "open-field-builder-field-work-recover-core",
+                  "id": "open-field-flex-field-work-recover-core",
                   "when": {
                     "all": [
-                      "open-field-builder-field-work-empty-handed",
-                      "open-field-builder-field-work-core-nearby"
+                      "open-field-flex-field-work-empty-handed",
+                      "open-field-flex-field-work-core-nearby"
                     ]
                   },
                   "capacity": "core-recovery",
@@ -257,18 +257,18 @@
                   }
                 },
                 {
-                  "id": "open-field-builder-field-work-recover-health",
+                  "id": "open-field-flex-field-work-recover-health",
                   "when": {
                     "all": [
-                      "open-field-builder-field-work-health-low",
-                      "open-field-builder-field-work-healing-nearby",
-                      "open-field-builder-field-work-not-carrying"
+                      "open-field-flex-field-work-health-low",
+                      "open-field-flex-field-work-healing-nearby",
+                      "open-field-flex-field-work-not-carrying"
                     ]
                   },
                   "until": {
                     "any": [
-                      "open-field-builder-field-work-health-recovered",
-                      "open-field-builder-field-work-became-carrier"
+                      "open-field-flex-field-work-health-recovered",
+                      "open-field-flex-field-work-became-carrier"
                     ]
                   },
                   "timeout": 55,
@@ -280,8 +280,8 @@
                   }
                 },
                 {
-                  "id": "open-field-builder-field-work-fight",
-                  "when": "open-field-builder-field-work-contact",
+                  "id": "open-field-flex-field-work-fight",
+                  "when": "open-field-flex-field-work-contact",
                   "capacity": 3,
                   "fight": {
                     "targets": [
@@ -294,7 +294,7 @@
                   }
                 },
                 {
-                  "id": "open-field-builder-field-work-continue",
+                  "id": "open-field-flex-field-work-continue",
                   "move": {
                     "to": {
                       "well": "centre"
@@ -307,21 +307,21 @@
           ],
           "lastGenerated": [
             {
-              "orderId": "open-field-builder-field-work",
-              "fingerprint": "fnv1a64:8f1a9ce7ac543d6f"
+              "orderId": "open-field-flex-field-work",
+              "fingerprint": "fnv1a64:8f04c137fd078c2b"
             }
           ],
           "responseActivation": "program-trigger",
           "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
-              "id": "open-field-builder-field-work-open-field-builder-field-work-recover-core-core-recovery",
+              "id": "open-field-flex-field-work-open-field-flex-field-work-recover-core-core-recovery",
               "kind": "core-recovery",
-              "hostOrderId": "open-field-builder-field-work",
-              "useOrderId": "open-field-builder-field-work-recover-core",
+              "hostOrderId": "open-field-flex-field-work",
+              "useOrderId": "open-field-flex-field-work-recover-core",
               "ownedConditionIds": [
-                "open-field-builder-field-work-empty-handed",
-                "open-field-builder-field-work-core-nearby"
+                "open-field-flex-field-work-empty-handed",
+                "open-field-flex-field-work-core-nearby"
               ],
               "capacityPolicy": {
                 "target": "core",
@@ -331,16 +331,16 @@
               }
             },
             {
-              "id": "open-field-builder-field-work-open-field-builder-field-work-recover-health-health-recovery",
+              "id": "open-field-flex-field-work-open-field-flex-field-work-recover-health-health-recovery",
               "kind": "health-recovery",
-              "hostOrderId": "open-field-builder-field-work",
-              "useOrderId": "open-field-builder-field-work-recover-health",
+              "hostOrderId": "open-field-flex-field-work",
+              "useOrderId": "open-field-flex-field-work-recover-health",
               "ownedConditionIds": [
-                "open-field-builder-field-work-health-low",
-                "open-field-builder-field-work-healing-nearby",
-                "open-field-builder-field-work-not-carrying",
-                "open-field-builder-field-work-health-recovered",
-                "open-field-builder-field-work-became-carrier"
+                "open-field-flex-field-work-health-low",
+                "open-field-flex-field-work-healing-nearby",
+                "open-field-flex-field-work-not-carrying",
+                "open-field-flex-field-work-health-recovered",
+                "open-field-flex-field-work-became-carrier"
               ],
               "capacityPolicy": {
                 "target": "healing",
@@ -350,12 +350,12 @@
               }
             },
             {
-              "id": "open-field-builder-field-work-open-field-builder-field-work-fight-fight",
+              "id": "open-field-flex-field-work-open-field-flex-field-work-fight-fight",
               "kind": "fight",
-              "hostOrderId": "open-field-builder-field-work",
-              "useOrderId": "open-field-builder-field-work-fight",
+              "hostOrderId": "open-field-flex-field-work",
+              "useOrderId": "open-field-flex-field-work-fight",
               "ownedConditionIds": [
-                "open-field-builder-field-work-contact"
+                "open-field-flex-field-work-contact"
               ],
               "capacityPolicy": {
                 "target": "enemy",
@@ -1076,7 +1076,7 @@
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
@@ -1089,18 +1089,18 @@
             ]
           },
           {
-            "id": "open-field-builder-carrier-return-custody",
-            "projectionId": "open-field-builder",
+            "id": "open-field-flex-carrier-return-custody",
+            "projectionId": "open-field-flex",
             "hostOrderIds": [
-              "open-field-builder-field-work"
+              "open-field-flex-field-work"
             ],
             "actionOrderIds": [
-              "open-field-builder-field-work-carry-home"
+              "open-field-flex-field-work-carry-home"
             ],
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
@@ -1108,8 +1108,8 @@
               "dampener"
             ],
             "ownedConditionIds": [
-              "open-field-builder-custody-carrying",
-              "open-field-builder-custody-empty"
+              "open-field-flex-custody-carrying",
+              "open-field-flex-custody-empty"
             ]
           },
           {
@@ -1124,7 +1124,7 @@
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
@@ -1148,7 +1148,7 @@
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
@@ -1172,7 +1172,7 @@
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
@@ -1196,7 +1196,7 @@
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
@@ -1220,7 +1220,7 @@
             "kind": "carrier-return",
             "carrierRoleIds": [
               "couriers",
-              "builder",
+              "flex",
               "scout",
               "medic",
               "skirmisher",
