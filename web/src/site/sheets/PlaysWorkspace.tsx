@@ -26,16 +26,19 @@ import {
   addSignatureOpportunityActivationZone,
   addSignatureOpportunityAnchor,
   addAmbushReserveSlot,
+  addProgramCustodyCase,
   appendPlayRouteWaypoint,
   configurePlayContingent,
   configurePlayLifecycle,
   configureProgramCustody,
   configureProgramCustodyCompletion,
+  configureProgramCustodyHandoff,
   configurePlayPostDeployment,
   configurePlayResponseFight,
   configurePlaySharedTrigger,
   movePlayAnchor,
   moveProgram,
+  moveProgramCustodyCase,
   moveSignatureOpportunity,
   rematerializeDraft,
   removeLastPlayRouteWaypoint,
@@ -43,6 +46,7 @@ import {
   removeAmbushReserveSlot,
   removeSignatureOpportunity,
   removeProgramCustody,
+  removeProgramCustodyCase,
   removeProgramCustodyCompletion,
   renameSignatureOpportunity,
   renamePlayGeometry,
@@ -63,12 +67,14 @@ import {
   updateHealthRecoveryOpportunity,
   updateHandoffOpportunity,
   updateDropOpportunity,
+  updateProgramCustodyCase,
   updateSignatureOpportunityUse,
 } from './playEditing';
 import {
   analyzeCoreContinuation,
   analyzeProgramPriority,
   possibleCoreValues,
+  programCustodyShadowWarnings,
 } from './programAnalysis';
 import {
   movePlayGeometryGroup,
@@ -112,6 +118,7 @@ import {
 } from './sheetTrials';
 import type {
   LinkedPlay,
+  PlayCustodyCase,
   PlayGeometryKind,
   PlayProjection,
   PlayRecipe,
@@ -328,6 +335,7 @@ export default function PlaysWorkspace({
               document.querySelector('[data-sheet-path="workshop.plays"]')
                 ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
+            onOpenOrders={onOpenOrders}
             onChange={commit} />
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
             practiceReplay={practiceReplay} practiceDraft={practiceDraft}
@@ -1385,13 +1393,16 @@ function readinessParticipants(draft: SheetDraft, play: LinkedPlay) {
   });
 }
 
-function ProgramCustodyControls({ draft, play, onSelectGeometry, onChange }: {
+function ProgramCustodyControls({ draft, play, onSelectGeometry, onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   onSelectGeometry: (id: string) => void;
+  onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const bindings = play.coreCustody?.bindings ?? [];
+  const cases = play.coreCustody?.cases ?? [];
+  const shadowWarnings = programCustodyShadowWarnings(play);
   const carrierRoles = [...new Set(bindings.filter((entry) =>
     entry.kind === 'carrier-return').map((entry) =>
     play.projections.find((projection) => projection.id === entry.projectionId)?.roleId)
@@ -1422,6 +1433,19 @@ function ProgramCustodyControls({ draft, play, onSelectGeometry, onChange }: {
     const read = analyzeCoreContinuation(draft, roleId, value as 1 | 2 | 4, play.id);
     return read.controller && read.controller.playId !== play.id;
   }));
+  const finishCustodyChange = (changed: SheetDraft) => {
+    let result = synchronizeProgramEscortCarrierRoles(changed, play.id);
+    const updated = result.workshop.plays.find((entry) => entry.id === play.id)!;
+    const configuredCarrierRoles = [...new Set((updated.coreCustody?.bindings ?? [])
+      .filter((entry) => entry.kind === 'carrier-return')
+      .map((entry) => updated.projections.find((projection) =>
+        projection.id === entry.projectionId)?.roleId)
+      .filter((id): id is string => Boolean(id)))];
+    if (configuredCarrierRoles.length > 0)
+      result = configureProgramCustodyCompletion(result, play.id, configuredCarrierRoles);
+    else result = removeProgramCustodyCompletion(result, play.id);
+    onChange(result);
+  };
   return <section className="panel panel-feature pad">
     <p className="lab text-arena-cyan">If this Program gains a Core</p>
     <h3 className="type-display mt-1 text-[19px]">Keep custody inside the active tactic</h3>
@@ -1477,20 +1501,33 @@ function ProgramCustodyControls({ draft, play, onSelectGeometry, onChange }: {
           }}><b className="t-body block">{label}</b><span className="t-micro mt-1 block">{copy}</span></button>;
       })}</div>
     </fieldset>
-    <div className="mt-3 space-y-2">{play.projections.map((projection) =>
-      <CustodyParticipantCard key={projection.id} draft={draft} play={play}
-        projection={projection} carrierRoles={carrierRoles}
-        bindings={bindings.filter((entry) => entry.projectionId === projection.id)}
-        onSelectGeometry={onSelectGeometry}
-        onChange={(next, configuredCarrierRoles) => {
-          let result = synchronizeProgramEscortCarrierRoles(
-            next, play.id, configuredCarrierRoles);
-          if (configuredCarrierRoles.length > 0)
-            result = configureProgramCustodyCompletion(result, play.id, configuredCarrierRoles);
-          else
-            result = removeProgramCustodyCompletion(result, play.id);
-          onChange(result);
-        }} />)}</div>
+    <div className="mt-4 flex flex-wrap items-center gap-2">
+      <div className="mr-auto"><p className="lab">Ordered Core-handling cases</p>
+        <p className="t-micro mt-1">First matching case wins through ordinary Instruction order. Put specific value/source cases before an optional Any Core fallback.</p></div>
+      <button type="button" className="btn btn-primary min-h-11" onClick={() => {
+        const added = addProgramCustodyCase(draft, play.id, {
+          name: cases.length === 0 ? 'Any Core' : `Core case ${cases.length + 1}`,
+        });
+        onChange(added.draft);
+      }}>＋ Add case</button>
+    </div>
+    {shadowWarnings.length > 0 && <div className="mt-3 rounded-sm border border-arena-hot/50 bg-arena-hot/8 p-3">
+      <p className="lab text-arena-hot">Priority conflicts</p>
+      <ul className="mt-2 space-y-1 t-micro">{shadowWarnings.map((warning) =>
+        <li key={warning.caseId}>⚠ {warning.message}</li>)}</ul>
+    </div>}
+    {cases.length === 0
+      ? <div className="mt-3 rounded-sm border border-dashed border-arena-edge p-4 text-center">
+        <p className="t-body">No Program-local Core handling yet.</p>
+        <p className="t-micro mt-1">Add a case, then choose which roles return or escort that Core.</p>
+      </div>
+      : <div className="mt-3 space-y-3">{cases.map((custodyCase, index) =>
+        <CustodyCaseCard key={custodyCase.id} draft={draft} play={play}
+          custodyCase={custodyCase} index={index} caseCount={cases.length}
+          bindings={bindings.filter((entry) => entry.caseId === custodyCase.id)}
+          warning={shadowWarnings.find((entry) => entry.caseId === custodyCase.id)?.message}
+          onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
+          onChange={finishCustodyChange} />)}</div>}
   </section>;
 }
 
@@ -1502,15 +1539,97 @@ function routeLength(points: Array<[number, number]> | undefined): number {
   ), 0);
 }
 
-function CustodyParticipantCard({ draft, play, projection, bindings, carrierRoles,
-  onSelectGeometry, onChange }: {
+function CustodyCaseCard({ draft, play, custodyCase, index, caseCount, bindings,
+  warning, onSelectGeometry, onOpenOrders, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  custodyCase: PlayCustodyCase;
+  index: number;
+  caseCount: number;
+  bindings: NonNullable<LinkedPlay['coreCustody']>['bindings'];
+  warning?: string;
+  onSelectGeometry: (id: string) => void;
+  onOpenOrders: (playId: string, projectionId?: string) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const [name, setName] = useState(custodyCase.name);
+  useEffect(() => setName(custodyCase.name), [custodyCase.id, custodyCase.name]);
+  const carrierRoles = [...new Set(bindings.filter((entry) =>
+    entry.kind === 'carrier-return').map((entry) =>
+    play.projections.find((projection) => projection.id === entry.projectionId)?.roleId)
+    .filter((id): id is string => Boolean(id)))];
+  const update = (patch: Partial<Pick<PlayCustodyCase,
+    'name' | 'coreBankValue' | 'well'>>) => onChange(updateProgramCustodyCase(
+      draft, play.id, custodyCase.id, {
+        name: patch.name ?? custodyCase.name,
+        coreBankValue: Object.hasOwn(patch, 'coreBankValue')
+          ? patch.coreBankValue : custodyCase.coreBankValue,
+        well: Object.hasOwn(patch, 'well') ? patch.well : custodyCase.well,
+      }));
+  return <article className="rounded-sm border border-arena-material/35 bg-arena-material/5 p-3">
+    <div className="flex flex-wrap items-start gap-2">
+      <span className="pill mt-1">Case {index + 1}</span>
+      <label className="min-w-48 flex-1"><span className="sr-only">Case name</span>
+        <input className="field min-h-11 font-semibold" value={name}
+          onChange={(event) => setName(event.target.value)}
+          onBlur={() => { if (name.trim() && name.trim() !== custodyCase.name) update({ name }); }}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') event.currentTarget.blur();
+          }} /></label>
+      <div className="flex gap-1">
+        <button type="button" className="btn min-h-11 px-3" aria-label="Move case earlier"
+          disabled={index === 0}
+          onClick={() => onChange(moveProgramCustodyCase(
+            draft, play.id, custodyCase.id, -1))}>↑</button>
+        <button type="button" className="btn min-h-11 px-3" aria-label="Move case later"
+          disabled={index === caseCount - 1}
+          onClick={() => onChange(moveProgramCustodyCase(
+            draft, play.id, custodyCase.id, 1))}>↓</button>
+        <button type="button" className="btn min-h-11 text-arena-hot"
+          onClick={() => {
+            if (window.confirm(`Remove ${custodyCase.name} and its generated custody Instructions?`))
+              onChange(removeProgramCustodyCase(draft, play.id, custodyCase.id));
+          }}>Remove</button>
+      </div>
+    </div>
+    <div className="mt-3 grid gap-3">
+      <CoreValueFilterControl value={custodyCase.coreBankValue}
+        label="Core value matched by this case"
+        onChange={(coreBankValue) => update({
+          coreBankValue,
+          well: custodyCase.well,
+        })} />
+      <CoreSourceFilterControl value={custodyCase.well}
+        label="Source Well matched by this case"
+        onChange={(well) => update({
+          coreBankValue: custodyCase.coreBankValue,
+          well,
+        })} />
+    </div>
+    <p className="t-micro mt-2">{custodyCase.coreBankValue || custodyCase.well
+      ? 'Only a carried Core matching these filters reaches this case.'
+      : 'Any Core fallback: keep this after all specific cases.'}</p>
+    {warning && <p className="mt-2 rounded-sm border border-arena-hot/45 bg-arena-hot/8 p-2 t-micro text-arena-hot">⚠ {warning}</p>}
+    <div className="mt-3 space-y-2">{play.projections.map((projection) =>
+      <CustodyParticipantCard key={projection.id} draft={draft} play={play}
+        projection={projection} custodyCase={custodyCase} carrierRoles={carrierRoles}
+        bindings={bindings.filter((entry) => entry.projectionId === projection.id)}
+        onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
+        onChange={onChange} />)}</div>
+  </article>;
+}
+
+function CustodyParticipantCard({ draft, play, projection, custodyCase, bindings,
+  carrierRoles, onSelectGeometry, onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   projection: PlayProjection;
+  custodyCase: PlayCustodyCase;
   bindings: NonNullable<LinkedPlay['coreCustody']>['bindings'];
   carrierRoles: string[];
   onSelectGeometry: (id: string) => void;
-  onChange: (next: SheetDraft, carrierRoles: string[]) => void;
+  onOpenOrders: (playId: string, projectionId?: string) => void;
+  onChange: (next: SheetDraft) => void;
 }) {
   const carrier = bindings.find((entry) => entry.kind === 'carrier-return');
   const escort = bindings.find((entry) => entry.kind === 'escort-carrier');
@@ -1522,49 +1641,54 @@ function CustodyParticipantCard({ draft, play, projection, bindings, carrierRole
         <span className="t-micro">{bindings.length === 0
           ? 'No local custody behavior'
           : [carrier && 'may carry', escort && 'escorts current carrier'].filter(Boolean).join(' · ')}</span></span>
-      <span className="pill">{bindings.length}/2 branches</span><span className="disclosure-chevron">›</span>
+      <span className="pill">{bindings.length}/2 behaviors</span><span className="disclosure-chevron">›</span>
     </summary>
-    <div className="grid gap-3 border-t border-arena-edge p-3 lg:grid-cols-2">
+    <div className="grid gap-3 border-t border-arena-edge p-3">
       <CustodyBehaviorEditor draft={draft} play={play} projection={projection}
-        kind="carrier-return" binding={carrier} carrierRoles={carrierRoles}
-        onSelectGeometry={onSelectGeometry} onChange={onChange} />
+        custodyCase={custodyCase} kind="carrier-return" binding={carrier}
+        carrierRoles={carrierRoles} onSelectGeometry={onSelectGeometry}
+        onOpenOrders={onOpenOrders} onChange={onChange} />
       <CustodyBehaviorEditor draft={draft} play={play} projection={projection}
-        kind="escort-carrier" binding={escort} carrierRoles={carrierRoles}
-        onSelectGeometry={onSelectGeometry} onChange={onChange} />
+        custodyCase={custodyCase} kind="escort-carrier" binding={escort}
+        carrierRoles={carrierRoles} onSelectGeometry={onSelectGeometry}
+        onOpenOrders={onOpenOrders} onChange={onChange} />
     </div>
   </details>;
 }
 
-function CustodyBehaviorEditor({ draft, play, projection, binding, carrierRoles,
-  kind, onSelectGeometry, onChange }: {
+function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
+  carrierRoles, kind, onSelectGeometry, onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   projection: PlayProjection;
+  custodyCase: PlayCustodyCase;
   binding?: NonNullable<LinkedPlay['coreCustody']>['bindings'][number];
   carrierRoles: string[];
   kind: 'carrier-return' | 'escort-carrier';
   onSelectGeometry: (id: string) => void;
-  onChange: (next: SheetDraft, carrierRoles: string[]) => void;
+  onOpenOrders: (playId: string, projectionId?: string) => void;
+  onChange: (next: SheetDraft) => void;
 }) {
   const [routeId, setRouteId] = useState(binding?.routeId ?? '');
-  const [coreBankValue, setCoreBankValue] = useState(binding?.coreBankValue);
-  const [well, setWell] = useState(binding?.well);
   const [hostIds, setHostIds] = useState(binding?.hostOrderIds
     ?? projection.orders.map((entry) => entry.id).filter((id): id is string => Boolean(id)));
   useEffect(() => {
     setRouteId(binding?.routeId ?? '');
-    setCoreBankValue(binding?.coreBankValue);
-    setWell(binding?.well);
     setHostIds(binding?.hostOrderIds
       ?? projection.orders.map((entry) => entry.id).filter((id): id is string => Boolean(id)));
-  }, [binding?.id, binding?.routeId, JSON.stringify(binding?.coreBankValue),
-    binding?.well, binding?.hostOrderIds.join('|')]);
+  }, [binding?.id, binding?.routeId, binding?.hostOrderIds.join('|')]);
   const hostChoices = projection.orders.map((entry) => ({
     id: entry.id!, label: playOrderName(entry.id!, projection.id),
   })).filter((entry) => entry.id);
-  const projectedCarrierRoles = kind === 'carrier-return'
-    ? [...new Set([...carrierRoles, projection.roleId])] : carrierRoles;
   const disabled = kind === 'escort-carrier' && carrierRoles.length === 0;
+  const handoffViews = binding && kind === 'carrier-return'
+    ? opportunityViews(projection, draft.orders.conditions).filter((view) =>
+      view.binding.kind === 'handoff'
+        && binding.actionOrderIds.includes(view.binding.hostOrderId)) : [];
+  const handoffTargets = handoffViews.map((view) => view.action.handoff?.target)
+    .filter((target): target is NonNullable<OrderNode['handoff']>['target'] => Boolean(target));
+  const handoffTarget = handoffTargets[0];
+  const selectedRole = typeof handoffTarget === 'object' ? handoffTarget.role : '';
   return <section className="space-y-3 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
       <div><p className="lab text-arena-material">{kind === 'carrier-return' ? 'When this role carries' : 'While another participant carries'}</p>
         <p className="t-micro mt-1">{kind === 'carrier-return'
@@ -1589,52 +1713,90 @@ function CustodyBehaviorEditor({ draft, play, projection, binding, carrierRoles,
           </select></label>
         {routeId && <button type="button" className="btn btn-secondary min-h-10 w-full"
           onClick={() => onSelectGeometry(routeId)}>Refine route on map</button>}
-        <CoreValueFilterControl value={coreBankValue} label="Handle which carried Core values?" onChange={setCoreBankValue} />
-        <CoreSourceFilterControl value={well} label="Handle Cores from which Well?" onChange={setWell} />
+        {binding && <fieldset className="rounded-sm border border-arena-edge p-2.5">
+          <legend className="lab px-1">Common Handoff</legend>
+          <p className="t-micro mb-2">Handoff is adjacent-only. If no eligible ally is beside this carrier, it falls through in the same tick to the next Opportunity or return movement.</p>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <button type="button" className="choice-card min-h-14 text-left"
+              data-selected={handoffTarget === 'nearest-ally-toward-own-reactor'}
+              onClick={() => onChange(configureProgramCustodyHandoff(
+                draft, play.id, binding.id, 'nearest-ally-toward-own-reactor'))}>
+              <b className="t-body block">Pass forward</b><span className="t-micro">Any adjacent ally closer to our reactor</span>
+            </button>
+            <button type="button" className="choice-card min-h-14 text-left"
+              data-selected={handoffViews.length === 0}
+              onClick={() => onChange(configureProgramCustodyHandoff(
+                draft, play.id, binding.id, null))}>
+              <b className="t-body block">Never pass</b><span className="t-micro">Keep moving with this carrier</span>
+            </button>
+          </div>
+          <label className="mt-2 block"><span className="lab mb-1 block">Or pass to an adjacent role</span>
+            <select className="field min-h-11" value={selectedRole}
+              onChange={(event) => {
+                if (event.target.value) onChange(configureProgramCustodyHandoff(
+                  draft, play.id, binding.id, { role: event.target.value }));
+              }}>
+              <option value="">Choose role…</option>
+              {draft.orders.roles.filter((entry) => entry.id !== projection.roleId)
+                .map((entry) => <option key={entry.id} value={entry.id}>{humanize(entry.id)}</option>)}
+            </select></label>
+        </fieldset>}
       </>}
       {kind === 'escort-carrier' && <>
         <p className="t-meta">Handoff or Toss retargets this ordinary follow branch on the next tick. If this body receives the Core, its carrier branch above wins first.</p>
-        <CoreValueFilterControl value={coreBankValue} label="Escort which carried Core values?" onChange={setCoreBankValue} />
-        <CoreSourceFilterControl value={well} label="Escort Cores from which Well?" onChange={setWell} />
       </>}
       <div className="grid grid-cols-2 gap-2">
         <button type="button" className="btn btn-primary min-h-11"
           onClick={() => onChange(configureProgramCustody(draft, play.id, projection.id, {
-            kind, hostOrderIds: hostIds,
+            caseId: custodyCase.id, kind, hostOrderIds: hostIds,
             carrierRoleIds: kind === 'carrier-return' ? [projection.roleId] : carrierRoles,
-            ...(routeId ? { routeId } : {}), ...(coreBankValue ? { coreBankValue } : {}),
-            ...(well ? { well } : {}),
-          }), projectedCarrierRoles)} disabled={disabled || hostIds.length === 0}>{binding ? 'Update branch' : 'Add branch'}</button>
+            ...(routeId ? { routeId } : {}),
+          }))} disabled={disabled || hostIds.length === 0}>{binding ? 'Update behavior' : 'Add behavior'}</button>
         <button type="button" className="btn min-h-11 text-arena-hot" disabled={!binding}
-          onClick={() => onChange(removeProgramCustody(draft, play.id, projection.id, kind),
-            kind === 'carrier-return'
-              ? carrierRoles.filter((id) => id !== projection.roleId)
-              : carrierRoles)}>Remove</button>
+          onClick={() => onChange(removeProgramCustody(
+            draft, play.id, projection.id, kind, custodyCase.id))}>Remove</button>
       </div>
-      <p className="t-micro">Fight, healing, Handoff, Drop and signature Opportunities can be nested into this generated branch below; editing this card preserves them.</p>
+      <div className="flex flex-wrap items-center gap-2"><p className="t-micro mr-auto">Fight, healing, Handoff, Drop and signature Opportunities can be nested into this case’s generated behavior; editing the case preserves them.</p>
+        {binding && <button type="button" className="btn btn-secondary min-h-10"
+          onClick={() => document.getElementById(`program-${play.id}-opportunities`)
+            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Open Opportunities</button>}
+        {binding && <button type="button" className="btn min-h-10"
+          onClick={() => onOpenOrders(play.id, projection.id)}>Inspect Instructions</button>}
+      </div>
   </section>;
 }
 
 function synchronizeProgramEscortCarrierRoles(
   draft: SheetDraft,
   playId: string,
-  carrierRoles: string[],
 ): SheetDraft {
   let next = draft;
-  const play = next.workshop.plays.find((entry) => entry.id === playId);
-  const escorts = (play?.coreCustody?.bindings ?? [])
-    .filter((entry) => entry.kind === 'escort-carrier');
-  for (const binding of escorts) {
-    if (carrierRoles.length === 0) {
-      next = removeProgramCustody(next, playId, binding.projectionId, 'escort-carrier');
-      continue;
+  const sourcePlay = next.workshop.plays.find((entry) => entry.id === playId);
+  const cases = sourcePlay?.coreCustody?.cases ?? [];
+  for (const custodyCase of cases) {
+    let current = next.workshop.plays.find((entry) => entry.id === playId)!;
+    const carrierRoles = [...new Set((current.coreCustody?.bindings ?? [])
+      .filter((entry) => entry.caseId === custodyCase.id
+        && entry.kind === 'carrier-return')
+      .map((entry) => current.projections.find((projection) =>
+        projection.id === entry.projectionId)?.roleId)
+      .filter((id): id is string => Boolean(id)))];
+    const escorts = (current.coreCustody?.bindings ?? [])
+      .filter((entry) => entry.caseId === custodyCase.id
+        && entry.kind === 'escort-carrier')
+      .map((entry) => structuredClone(entry));
+    for (const binding of escorts) {
+      if (carrierRoles.length === 0) {
+        next = removeProgramCustody(
+          next, playId, binding.projectionId, 'escort-carrier', custodyCase.id);
+        continue;
+      }
+      next = configureProgramCustody(next, playId, binding.projectionId, {
+        caseId: custodyCase.id,
+        kind: 'escort-carrier', hostOrderIds: binding.hostOrderIds,
+        carrierRoleIds: carrierRoles,
+      });
     }
-    next = configureProgramCustody(next, playId, binding.projectionId, {
-      kind: 'escort-carrier', hostOrderIds: binding.hostOrderIds,
-      carrierRoleIds: carrierRoles,
-      ...(binding.coreBankValue ? { coreBankValue: binding.coreBankValue } : {}),
-      ...(binding.well ? { well: binding.well } : {}),
-    });
   }
   return next;
 }
@@ -1667,7 +1829,7 @@ function AlongTheWayControls({
   onSelectProgram: (playId: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
-  return <section className="panel pad">
+  return <section id={`program-${play.id}-opportunities`} className="panel pad">
     <p className="lab text-arena-material">Opportunities</p>
     <h3 className="type-display mt-1 text-[19px]">What may interrupt each participant’s main plan?</h3>
     <p className="t-micro mt-1">Skill, Fight, nearby Core and health cards share one real top-to-bottom local order. A card that cannot act yields in the same tick; the participant’s ordinary continuation is pinned last.</p>
@@ -2103,6 +2265,7 @@ function GenericOpportunityEditor({ draft, play, projection, view, onSelectProgr
     const low = owned('self-health-percent', 'at-most')?.value ?? 30;
     const recovered = owned('self-health-percent', 'at-least')?.value ?? 70;
     const allowCoreCarriers = !owned('self-carrying', 'equals');
+    const zone = owned('self-in-zone')?.zone;
     const setup = {
       startBelow: low,
       recoverUntil: recovered,
@@ -2112,6 +2275,7 @@ function GenericOpportunityEditor({ draft, play, projection, view, onSelectProgr
       patientsPerTile: view.binding.capacityPolicy?.limit ?? null,
       coordinateAcrossSheet: view.binding.capacityPolicy?.scope !== 'local',
       allowCoreCarriers,
+      zone,
     };
     const update = (patch: Partial<typeof setup>) => onChange(updateHealthRecoveryOpportunity(
       draft, play.id, projection.id, view.binding.id, { ...setup, ...patch }));
@@ -2138,7 +2302,15 @@ function GenericOpportunityEditor({ draft, play, projection, view, onSelectProgr
           <option value="">No cap</option>
           {[1, 2, 3, 4].map((value) => <option key={value}>{value}</option>)}
         </select></label>
-      <p className="t-micro">{allowCoreCarriers ? 'Core carriers may use this recovery.' : 'A body carrying a Core falls through instead of abandoning its delivery.'}</p>
+      <label className="choice-card flex min-h-14 items-start gap-3 p-3"
+        data-selected={allowCoreCarriers}>
+        <input type="checkbox" className="mt-1" checked={allowCoreCarriers}
+          onChange={(event) => update({ allowCoreCarriers: event.target.checked })} />
+        <span><b className="t-body block">Allow Core carriers to recover</b>
+          <span className="t-micro mt-1 block">{allowCoreCarriers
+            ? 'A carrier may visit healing, then resume this Program’s existing custody return.'
+            : 'Default: carrying makes this Opportunity ineligible and aborts an active recovery.'}</span></span>
+      </label>
     </div>;
   }
   if (kind === 'handoff' && view.action.handoff) {
@@ -2231,7 +2403,7 @@ function CoreSourceFilterControl({ value, label, onChange }: {
   onChange: (value: ConditionDefinition['well'] | undefined) => void;
 }) {
   return <div><span className="lab mb-1 block">{label}</span>
-    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+    <div className="grid grid-cols-3 gap-1.5">
       {([['', 'Any'], ['own', 'Own'], ['centre', 'Centre'], ['enemy', 'Enemy'],
         ['north', 'North'], ['south', 'South']] as const).map(([candidate, copy]) =>
         <button key={candidate || 'any'} type="button" className="choice-card min-h-11"

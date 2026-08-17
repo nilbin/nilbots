@@ -790,7 +790,11 @@ Fight Opportunities use the same `fight` shape as a Program response: optional
 encounter and target areas, ordered target preferences, style, chase limit,
 and per-target capacity. Health recovery derives low/high hysteresis, a bounded
 walking detour, retry lifecycle, carrying policy, and the sheet-wide default of
-one patient per healing tile. Nearby-Core recovery derives a bounded visible
+one patient per healing tile. **Allow Core carriers to recover** is off by
+default. Turning it on removes both the empty-handed entry gate and the
+became-carrier abort from that ordinary recovery leaf, so a carrier can heal
+and then fall back to the same Program-local custody return; it does not create
+a new carrier routine. Nearby-Core recovery derives a bounded visible
 Core target, optional bank-value filter/ranking, and the sheet-wide default of
 one pursuer per resolved Core. Handoff and Drop are likewise ordinary one-shot
 leaves whose illegal or false case reaches the visible continuation in the
@@ -800,7 +804,13 @@ A Program can own a visible **If this Program gains a Core** continuation.
 That continuation is not a Program call or a second priority layer. The
 Program's existing durable participant root owns its trigger, readiness,
 commitment, hard timeout, and authored overall outcome. Beneath that root, each
-participant may have ordinary local carrier and escort branches:
+participant may have ordinary local carrier and escort branches grouped into
+visible **Core-handling cases**. Cases are evaluated top-to-bottom and may
+filter by bank value and source Well. A specific case normally precedes an
+optional **Any Core** fallback. Reordering a case reorders every participant's
+generated branch together; there is no case scheduler or runtime case state.
+
+Within each case:
 
 - a carrier branch is gated by this participant's current carrying/value/source
   Conditions and ends when this participant becomes empty-handed;
@@ -811,6 +821,14 @@ participant may have ordinary local carrier and escort branches:
 - the parent Program ends only on its authored same-Core bank/drop/loss outcome
   or hard timeout—not merely because one carrier became empty during Handoff or
   Arc Toss.
+
+An earlier case that covers every value/source accepted by a later case makes
+the later case unreachable; the editor reports that ordinary-priority shadow.
+The common Handoff controls are only shortcuts for the same direct-child
+`handoff` leaf described above: adjacent ally closer to our reactor, adjacent
+member of a named role, or no Handoff leaf. If the configured receiver is not
+adjacent and eligible, target resolution yields no proposal and evaluation
+continues to the case's next Opportunity or return movement in the same tick.
 
 The Program supplies role filters to ordinary facts and selectors; execution
 has no active-Program fact. Same-Core completion correlates immutable

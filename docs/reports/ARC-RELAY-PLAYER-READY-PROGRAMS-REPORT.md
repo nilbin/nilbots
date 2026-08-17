@@ -33,6 +33,43 @@ There is still:
 - no atomic activation or second scheduler; and
 - no priority beyond the generated ordinary Instruction order.
 
+## Custody acceptance follow-up
+
+The review follow-up is implemented without changing the architecture above
+and without refining Running Relay:
+
+- Health recovery now exposes **Allow Core carriers to recover**, default off.
+  The editor owns and atomically rewrites the empty-handed entry Condition and
+  became-carrier abort Condition when this is toggled; create, on, off, and
+  serialized reload are pinned in one focused test.
+- A Program's Core handling is an ordered list of value/source cases. Each case
+  may generate its own return, escort, Fight, recovery, signature, Handoff, and
+  Drop children for each participant. Moving a case moves those ordinary
+  sibling Instruction blocks together. No runtime case identity was added.
+- Static analysis warns when an earlier case accepts every Core a later case
+  could accept. A specific 4-point case, a cheaper 1-point case, and an Any
+  Core fallback are pinned in generated priority order.
+- The common Handoff choices are shortcuts over the existing `handoff` leaf:
+  adjacent ally closer to the reactor, adjacent member of a named role, or no
+  Handoff. An unavailable target produces no proposal, so the next sibling—
+  including return movement—remains eligible in the same tick.
+- Long generated custody ids exposed a collision between a newly wrapped
+  continuation and its first Opportunity. Opportunity insertion now detects
+  that normalized-id collision and deterministically re-keys the child.
+
+The existing same-Core evidence correlation remains the transfer mechanism:
+after Handoff or Arc Toss, the old carrier's branch ends, the receiver's first
+matching case becomes eligible, and role-scoped escorts resolve the new
+carrier. No scheduler, reservation, transition, or additional Instruction
+depth was introduced.
+
+The controlled site-review fixture had drifted behind the current editor
+contract (starter catalogue, class signature authoring, distinct-class floor,
+and current map id), leaving the review page stuck while restoring a draft. It
+now loads the real Recommended First starter and the current Tapline editor
+surface, so the custody interaction remains browser-reviewable rather than
+being covered only by source assertions.
+
 The focused public proof gallery is:
 
 <https://maiden-tutorials-atom-infrared.trycloudflare.com>
@@ -267,11 +304,16 @@ visual record:
 
 ![Phone map-first Post editing](assets/player-ready-programs/program-map-phone.png)
 
-At closure, the in-app Browser reported no connected browser
-(`browsers.list() = []`), so the amended custody UI was not falsely claimed as
-a fresh manual Chrome pass. The current production build completed, the public
-gallery was rebuilt from the amended replays, and its Cloudflare URL returned
-HTTP 200.
+The custody follow-up received a fresh controlled production-build browser
+pass. It created a second case, selected a 4-point/source-specific filter,
+added carrier behavior, selected a named adjacent-role Handoff, reordered the
+specific case above Any Core, and observed the shadow warning clear. The
+carrier-recovery switch was exercised off → on → off, with the displayed
+semantics changing each time. The map-first inspector had no document-level
+horizontal overflow (`1728 / 1728` client/scroll width) or error boundary. Its
+narrow-column filter and behavior panels were stacked after visual review so
+labels remain readable at inspector and phone widths. Running Relay and its
+proof gallery were deliberately not regenerated or refined in this follow-up.
 
 ## Validation
 
@@ -286,7 +328,7 @@ HTTP 200.
 | Determinism tests | 17 passed |
 | Runtime.Wasm tests | 69 passed |
 | SDK / Guest tests | 87 / 36 passed |
-| `cd web && npm test` | 597 passed |
+| `cd web && npm test` | 600 passed |
 | `cd web && npm run build` | passed |
 | `bash scripts/generate-api-clients.sh` | passed, no generated-client drift |
 | direct starter generator comparison | 14 / 14 tracked outputs byte-identical |

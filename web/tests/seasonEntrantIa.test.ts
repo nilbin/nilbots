@@ -90,6 +90,17 @@ test('Programs expose one top-to-bottom priority and generated Instructions stay
   assert.doesNotMatch(programs, /Condition used as the shared start|addPlayCondition/);
 });
 
+test('Program Core custody is ordered cases with ordinary adjacent Handoff and carrier recovery', () => {
+  assert.match(programs, /Ordered Core-handling cases/);
+  assert.match(programs, /First matching case wins through ordinary Instruction order/);
+  assert.match(programs, /Core value matched by this case/);
+  assert.match(programs, /Source Well matched by this case/);
+  assert.match(programs, /Handoff is adjacent-only/);
+  assert.match(programs, /falls through in the same tick/);
+  assert.match(programs, /Allow Core carriers to recover/);
+  assert.doesNotMatch(programs, /linkedBankProgramId|custody scheduler/i);
+});
+
 test('conditions, lifecycle and capacities are explicit game controls rather than opaque strings', () => {
   assert.match(orders, /Enter \/ remain while/);
   assert.match(orders, /Latch until/);

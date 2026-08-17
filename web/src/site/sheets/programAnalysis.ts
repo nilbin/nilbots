@@ -4,7 +4,7 @@ import type {
   OrderNode,
   SheetDraft,
 } from './sheetAuthoring.ts';
-import type { LinkedPlay, PlayProjection } from './workshopTypes.ts';
+import type { LinkedPlay, PlayCustodyCase, PlayProjection } from './workshopTypes.ts';
 
 export interface ProgramRoleState {
   carryingCoreValue?: 1 | 2 | 4;
@@ -115,6 +115,39 @@ export function possibleCoreValues(filter?: {
     ? value === filter.value
     : filter.operator === 'at-least'
       ? value >= filter.value : value <= filter.value);
+}
+
+export interface ProgramCustodyShadowWarning {
+  caseId: string;
+  shadowedByCaseId: string;
+  message: string;
+}
+
+/** Static priority warning only; generated sibling Instructions remain truth. */
+export function programCustodyShadowWarnings(
+  play: LinkedPlay,
+): ProgramCustodyShadowWarning[] {
+  const cases = play.coreCustody?.cases ?? [];
+  const result: ProgramCustodyShadowWarning[] = [];
+  for (let index = 1; index < cases.length; index++) {
+    const current = cases[index];
+    const earlier = cases.slice(0, index).find((candidate) =>
+      custodyCaseCovers(candidate, current));
+    if (earlier) result.push({
+      caseId: current.id,
+      shadowedByCaseId: earlier.id,
+      message: `${earlier.name} matches every Core that ${current.name} can match, so ordinary top-to-bottom priority makes ${current.name} unreachable.`,
+    });
+  }
+  return result;
+}
+
+function custodyCaseCovers(earlier: PlayCustodyCase, later: PlayCustodyCase) {
+  const earlierValues = new Set(possibleCoreValues(earlier.coreBankValue));
+  const valueCoverage = possibleCoreValues(later.coreBankValue)
+    .every((value) => earlierValues.has(value));
+  const sourceCoverage = !earlier.well || earlier.well === later.well;
+  return valueCoverage && sourceCoverage;
 }
 
 export function projectionForRole(play: LinkedPlay, roleId: string): PlayProjection | undefined {

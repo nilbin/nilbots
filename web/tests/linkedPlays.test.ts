@@ -31,20 +31,24 @@ import {
   addSignatureOpportunityActivationZone,
   addSignatureOpportunityAnchor,
   addAmbushReserveSlot,
+  addProgramCustodyCase,
   appendPlayRouteWaypoint,
   configurePlayContingent,
   configurePlayLifecycle,
   configureProgramCustody,
   configureProgramCustodyCompletion,
+  configureProgramCustodyHandoff,
   configurePlayPostDeployment,
   configurePlayResponseFight,
   configurePlaySharedTrigger,
   moveProgram,
+  moveProgramCustodyCase,
   movePlayAnchor,
   moveSignatureOpportunity,
   setPlayPostFacing,
   renamePlayGeometry,
   removeAmbushReserveSlot,
+  removeProgramCustodyCase,
   removePlayReadinessGroup,
   removeSignatureOpportunity,
   removeProgramCustodyCompletion,
@@ -56,6 +60,8 @@ import {
   setSignatureOpportunityCommitmentHold,
   updateSignatureOpportunityUse,
   updateDropOpportunity,
+  updateHealthRecoveryOpportunity,
+  updateProgramCustodyCase,
 } from '../src/site/sheets/playEditing';
 import {
   addBlankPlay,
@@ -72,7 +78,10 @@ import {
   playSpatialGuides,
   setPlaySlotTolerance,
 } from '../src/site/sheets/playGeometry';
-import { analyzeCoreContinuation } from '../src/site/sheets/programAnalysis';
+import {
+  analyzeCoreContinuation,
+  programCustodyShadowWarnings,
+} from '../src/site/sheets/programAnalysis';
 import {
   bestPlayReadiness,
   practiceActionLabel,
@@ -449,6 +458,136 @@ test('Program custody stays beneath durable hosts and follows one Core across ca
   }));
 });
 
+test('ordered Core cases materialize premium, cheap and fallback handling as ordinary sibling priority', () => {
+  let linked = addBlankPlay(draft(), 'Value-aware return');
+  const playId = linked.workshop.plays[0].id;
+  for (const roleId of ['relay-a', 'relay-b', 'support'])
+    linked = addBlankPlayProjection(linked, playId, roleId);
+  const play = () => linked.workshop.plays[0];
+  const projection = (roleId: string) => play().projections.find((entry) =>
+    entry.roleId === roleId)!;
+  const premiumRoute = addPlayGeometry(linked, playId, 'route');
+  linked = premiumRoute.draft;
+  linked = appendPlayRouteWaypoint(linked, playId, premiumRoute.id, [24, 19]);
+  linked = appendPlayRouteWaypoint(linked, playId, premiumRoute.id, [2, 5]);
+
+  let added = addProgramCustodyCase(linked, playId, {
+    name: 'Premium four', coreBankValue: { operator: 'equals', value: 4 },
+    well: 'enemy',
+  });
+  linked = added.draft;
+  const premiumId = added.caseId;
+  added = addProgramCustodyCase(linked, playId, {
+    name: 'Cheap one', coreBankValue: { operator: 'equals', value: 1 },
+  });
+  linked = added.draft;
+  const cheapId = added.caseId;
+  added = addProgramCustodyCase(linked, playId, { name: 'Any Core' });
+  linked = added.draft;
+  const fallbackId = added.caseId;
+
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    caseId: premiumId, kind: 'carrier-return', carrierRoleIds: ['relay-a', 'relay-b'],
+    routeId: premiumRoute.id,
+  });
+  linked = configureProgramCustody(linked, playId, projection('relay-b').id, {
+    caseId: premiumId, kind: 'carrier-return', carrierRoleIds: ['relay-a', 'relay-b'],
+    routeId: premiumRoute.id,
+  });
+  linked = configureProgramCustody(linked, playId, projection('support').id, {
+    caseId: premiumId, kind: 'escort-carrier', carrierRoleIds: ['relay-a', 'relay-b'],
+  });
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    caseId: cheapId, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    caseId: fallbackId, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  linked = configureProgramCustodyCompletion(linked, playId, ['relay-a', 'relay-b']);
+
+  const binding = (caseId: string, roleId = 'relay-a') => play().coreCustody!.bindings
+    .find((entry) => entry.caseId === caseId
+      && entry.projectionId === projection(roleId).id
+      && entry.kind === 'carrier-return')!;
+  const host = projection('relay-a').orders.find((entry) =>
+    entry.id === binding(premiumId).hostOrderIds[0])!;
+  assert.deepEqual(host.orders!.filter((entry) => [premiumId, cheapId, fallbackId]
+    .some((caseId) => binding(caseId).actionOrderIds.includes(entry.id!)))
+    .map((entry) => [premiumId, cheapId, fallbackId].find((caseId) =>
+      binding(caseId).actionOrderIds.includes(entry.id!))),
+  [premiumId, cheapId, fallbackId]);
+  const premium = allOrders(projection('relay-a').orders).find((entry) =>
+    entry.id === binding(premiumId).actionOrderIds[0])!;
+  const cheap = allOrders(projection('relay-a').orders).find((entry) =>
+    entry.id === binding(cheapId).actionOrderIds[0])!;
+  assert.ok(conditionExpressionNames(premium.when).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carried-core-bank-value'
+      && linked.orders.conditions[id]?.value === 4));
+  assert.equal((premium.move ?? allOrders(premium.orders ?? [])
+    .find((entry) => entry.move?.to === 'own-reactor')?.move)?.via, premiumRoute.id);
+  assert.ok(conditionExpressionNames(cheap.when).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carried-core-bank-value'
+      && linked.orders.conditions[id]?.value === 1));
+  const premiumEscort = play().coreCustody!.bindings.find((entry) =>
+    entry.caseId === premiumId && entry.kind === 'escort-carrier')!;
+  assert.deepEqual(allOrders(projection('support').orders).find((entry) =>
+    entry.id === premiumEscort.actionOrderIds[0])?.move?.follow, {
+    selector: 'nearest-friendly-core-carrier',
+    roles: ['relay-a', 'relay-b'],
+    coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+  });
+
+  linked = configureProgramCustodyHandoff(
+    linked, playId, binding(premiumId).id, { role: 'relay-b' });
+  const afterHandoff = allOrders(projection('relay-a').orders).find((entry) =>
+    entry.id === binding(premiumId).actionOrderIds[0])!;
+  assert.deepEqual(afterHandoff.orders?.[0].handoff?.target, { role: 'relay-b' });
+  assert.equal(afterHandoff.orders?.at(-1)?.move?.to, 'own-reactor',
+    'an unavailable adjacent Handoff must fall through to return movement');
+  linked = configureProgramCustodyHandoff(
+    linked, playId, binding(premiumId).id, null);
+  assert.equal(allOrders(projection('relay-a').orders).some((entry) => entry.handoff), false);
+  linked = configureProgramCustodyHandoff(
+    linked, playId, binding(premiumId).id, 'nearest-ally-toward-own-reactor');
+  assert.equal(allOrders(projection('relay-a').orders).find((entry) => entry.handoff)
+    ?.handoff?.target, 'nearest-ally-toward-own-reactor');
+  linked = configureProgramCustodyHandoff(
+    linked, playId, binding(premiumId).id, { role: 'relay-b' });
+  assert.deepEqual(linked.orders.conditions[play().coreCustody!.completionConditionId!], {
+    fact: 'friendly-core-resolutions', operator: 'at-least', value: 1,
+    roles: ['relay-a', 'relay-b'], since: 'node-entry', correlateAcquisition: true,
+    outcomes: ['bank'],
+  });
+
+  linked = updateProgramCustodyCase(linked, playId, cheapId, {
+    name: 'Cheap one or two', coreBankValue: { operator: 'at-most', value: 2 },
+  });
+  assert.ok(conditionExpressionNames(allOrders(projection('relay-a').orders).find((entry) =>
+    entry.id === binding(cheapId).actionOrderIds[0])!.when).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carried-core-bank-value'
+      && linked.orders.conditions[id]?.operator === 'at-most'
+      && linked.orders.conditions[id]?.value === 2));
+  assert.equal(programCustodyShadowWarnings(play()).length, 0);
+  linked = moveProgramCustodyCase(linked, playId, fallbackId, -1);
+  linked = moveProgramCustodyCase(linked, playId, fallbackId, -1);
+  assert.ok(programCustodyShadowWarnings(play()).some((warning) =>
+    warning.shadowedByCaseId === fallbackId && warning.caseId === premiumId));
+
+  const reloaded = parseDraft(
+    linked.name, null, null, stringifyDocument(linked.orders),
+    stringifyDocument(linked.mapPlan), false, stringifyDocument(linked.workshop));
+  assert.deepEqual(reloaded.workshop.plays[0].coreCustody?.cases?.map((entry) => entry.id),
+    [fallbackId, premiumId, cheapId]);
+
+  linked = removeProgramCustodyCase(linked, playId, fallbackId);
+  linked = removeProgramCustodyCase(linked, playId, cheapId);
+  assert.deepEqual(linked.orders.conditions[play().coreCustody!.completionConditionId!], {
+    fact: 'friendly-core-resolutions', operator: 'at-least', value: 1,
+    roles: ['relay-a', 'relay-b'], since: 'node-entry', correlateAcquisition: true,
+    outcomes: ['bank'], coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+  }, 'case removal must refresh the same-Core completion filter without a UI caller');
+});
+
 test('an unwanted incidental Core is visibly authored as an ordinary local Drop branch', () => {
   let linked = addBlankPlay(draft(), 'Reject incidental own Core');
   const playId = linked.workshop.plays[0].id;
@@ -728,6 +867,58 @@ test('Fight, Core and health cards share one ordered Opportunity host and ordina
   assert.deepEqual(core.move?.coreBankValue, { operator: 'at-least', value: 2 });
   assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
   assert.deepEqual(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error'), []);
+});
+
+test('health recovery carrier permission toggles its ordinary entry and abort Conditions and survives reload', () => {
+  let linked = addBlankPlay(draft(), 'Carrier recovery');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  const projection = linked.workshop.plays[0].projections[0];
+  const hostId = projection.orders[0].id!;
+  const setup = {
+    startBelow: 35, recoverUntil: 75, withinWalkingSteps: 9,
+    timeout: 50, cooldown: 18, patientsPerTile: 1,
+    coordinateAcrossSheet: false, allowCoreCarriers: false,
+  };
+  linked = addHealthRecoveryOpportunity(
+    linked, playId, projection.id, hostId, setup);
+  const binding = () => linked.workshop.plays[0].projections[0]
+    .signatureOpportunities!.find((entry) => entry.kind === 'health-recovery')!;
+  const recovery = () => allOrders(linked.workshop.plays[0].projections[0].orders)
+    .find((entry) => entry.id === binding().useOrderId)!;
+  const ownedFacts = () => binding().ownedConditionIds!.map((id) =>
+    linked.orders.conditions[id]?.fact);
+  assert.equal(ownedFacts().filter((fact) => fact === 'self-carrying').length, 2);
+  assert.ok(conditionExpressionNames(recovery().when).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carrying'
+      && linked.orders.conditions[id]?.value === 0));
+  assert.ok(conditionExpressionNames(recovery().until).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carrying'
+      && linked.orders.conditions[id]?.value === 1));
+
+  linked = updateHealthRecoveryOpportunity(
+    linked, playId, projection.id, binding().id, { ...setup, allowCoreCarriers: true });
+  assert.equal(ownedFacts().includes('self-carrying'), false);
+  assert.equal(conditionExpressionNames(recovery().when).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carrying'), false);
+  assert.equal(conditionExpressionNames(recovery().until).some((id) =>
+    linked.orders.conditions[id]?.fact === 'self-carrying'), false);
+
+  linked = updateHealthRecoveryOpportunity(
+    linked, playId, projection.id, binding().id, setup);
+  assert.equal(ownedFacts().filter((fact) => fact === 'self-carrying').length, 2);
+  const reloaded = parseDraft(
+    linked.name, null, null, stringifyDocument(linked.orders),
+    stringifyDocument(linked.mapPlan), false, stringifyDocument(linked.workshop));
+  const reloadedBinding = reloaded.workshop.plays[0].projections[0]
+    .signatureOpportunities!.find((entry) => entry.kind === 'health-recovery')!;
+  const reloadedRecovery = allOrders(reloaded.workshop.plays[0].projections[0].orders)
+    .find((entry) => entry.id === reloadedBinding.useOrderId)!;
+  assert.equal(reloadedBinding.ownedConditionIds!.map((id) =>
+    reloaded.orders.conditions[id]?.fact).filter((fact) => fact === 'self-carrying').length, 2);
+  assert.ok(conditionExpressionNames(reloadedRecovery.until).some((id) =>
+    reloaded.orders.conditions[id]?.fact === 'self-carrying'
+      && reloaded.orders.conditions[id]?.value === 1));
 });
 
 test('opportunity ordering is the authored sibling order and malformed bindings stay diagnostics', () => {

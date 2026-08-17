@@ -173,6 +173,8 @@ export interface PlayProjection {
 
 export interface PlayCustodyBinding {
   id: string;
+  /** Ordered editor case that owns this ordinary Instruction branch. */
+  caseId?: string;
   projectionId: string;
   hostOrderIds: string[];
   actionOrderIds: string[];
@@ -185,6 +187,20 @@ export interface PlayCustodyBinding {
   };
   well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
   ownedConditionIds: string[];
+}
+
+/**
+ * One player-authored, top-to-bottom Core handling case. The executable
+ * priority remains the generated sibling Instruction order.
+ */
+export interface PlayCustodyCase {
+  id: string;
+  name: string;
+  coreBankValue?: {
+    operator: 'equals' | 'at-least' | 'at-most';
+    value: number;
+  };
+  well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
 }
 
 export type PlayLinkedValue =
@@ -237,6 +253,7 @@ export interface LinkedPlay {
   linkedValues: PlayLinkedValueDefinition[];
   /** Editor linkage for ordinary custody Instructions nested under active hosts. */
   coreCustody?: {
+    cases?: PlayCustodyCase[];
     bindings: PlayCustodyBinding[];
     completionConditionId?: string;
     completionOutcomes?: Array<'bank' | 'drop' | 'loss'>;
@@ -262,6 +279,7 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
     play.formations ??= [];
     play.readinessGroups ??= [];
     play.coreCustody ??= { bindings: [] };
+    normalizeCustodyCases(play);
     for (const slot of play.slots) {
       slot.name ??= humanize(slot.id.replace(/-slot$/, ''));
       slot.capacity ??= 1;
@@ -309,6 +327,55 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
     }
   }
   return next;
+}
+
+function normalizeCustodyCases(play: LinkedPlay) {
+  const custody = play.coreCustody!;
+  custody.cases ??= [];
+  const usedIds = new Set(custody.cases.map((entry) => entry.id));
+  for (const [index, entry] of custody.cases.entries()) {
+    entry.name ||= `Core case ${index + 1}`;
+  }
+  for (const binding of custody.bindings) {
+    const assigned = custody.cases.find((entry) => entry.id === binding.caseId);
+    if (assigned) continue;
+    let matched = custody.cases.find((entry) =>
+      sameValueFilter(entry.coreBankValue, binding.coreBankValue)
+      && entry.well === binding.well);
+    if (!matched) {
+      const name = custodyCaseName(binding.coreBankValue, binding.well);
+      const baseId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+        || 'core-case';
+      let id = baseId;
+      for (let suffix = 2; usedIds.has(id); suffix++) id = `${baseId}-${suffix}`;
+      usedIds.add(id);
+      matched = {
+        id, name,
+        ...(binding.coreBankValue
+          ? { coreBankValue: structuredClone(binding.coreBankValue) } : {}),
+        ...(binding.well ? { well: binding.well } : {}),
+      };
+      custody.cases.push(matched);
+    }
+    binding.caseId = matched.id;
+  }
+}
+
+function sameValueFilter(
+  left: PlayCustodyCase['coreBankValue'],
+  right: PlayCustodyCase['coreBankValue'],
+) {
+  return left?.operator === right?.operator && left?.value === right?.value;
+}
+
+function custodyCaseName(
+  value: PlayCustodyCase['coreBankValue'],
+  well: PlayCustodyCase['well'],
+) {
+  const valueName = !value ? 'Any Core'
+    : value.operator === 'equals' ? `${value.value}-point Core`
+      : `${value.operator === 'at-least' ? 'At least' : 'At most'} ${value.value} points`;
+  return well ? `${valueName} from ${humanize(well)} Well` : valueName;
 }
 
 function withoutLegacyBankLink(binding: PlayOpportunityBinding): PlayOpportunityBinding {

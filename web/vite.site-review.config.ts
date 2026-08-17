@@ -38,9 +38,33 @@ const taplineTemplateLayout = readFileSync(
   ),
   'utf8',
 ).trim();
+const recommendedFirstOrders = readFileSync(
+  new URL(
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/recommended-first-v1.json',
+    import.meta.url,
+  ),
+  'utf8',
+).trim();
+const recommendedFirstMapPlan = readFileSync(
+  new URL(
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/recommended-first-v1.json',
+    import.meta.url,
+  ),
+  'utf8',
+).trim();
+const recommendedFirstWorkshop = readFileSync(
+  new URL(
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/workshops/recommended-first-v1.json',
+    import.meta.url,
+  ),
+  'utf8',
+).trim();
 const taplineReviewCatalog = makeTaplineReviewCatalog(
   taplineTemplatePlaybook,
   taplineTemplateLayout,
+  recommendedFirstOrders,
+  recommendedFirstMapPlan,
+  recommendedFirstWorkshop,
 );
 const completedReviewReplays = new Map<string, string>(
   reviewSetGameSpecs.map((spec) => [
@@ -395,6 +419,9 @@ function sheetReviewResponse(
 function makeTaplineReviewCatalog(
   templateOrdersJson: string,
   templateMapPlanJson: string,
+  starterOrdersJson: string,
+  starterMapPlanJson: string,
+  starterWorkshopJson: string,
 ) {
   const classes = [
     ['kestrel', 'Kestrel', 'Vector Dash', 'Rapid interceptor built to abandon one lane and answer another.'],
@@ -424,6 +451,8 @@ function makeTaplineReviewCatalog(
     // The review account owns the launch band so every composition interaction
     // can be assessed without mixing entitlement states into the UX pass.
     unlocked: true,
+    signatureAuthoring: reviewSignatureAuthoring(
+      signatureName.toLowerCase().replaceAll(' ', '-')),
   }));
   return {
     playlistKey: 'arc-relay-entrants',
@@ -431,15 +460,68 @@ function makeTaplineReviewCatalog(
     map: makeTaplineReviewMap(),
     slotCount: 8,
     maximumCopiesPerClass: 2,
+    minimumDistinctClasses: 7,
     classes,
     templateOrdersJson,
     templateMapPlanJson,
+    starterSheets: [{
+      id: 'recommended-first-v1',
+      name: 'Recommended First',
+      description: 'A straightforward Tapline sheet with clear field work and Core returns.',
+      composition: (JSON.parse(starterOrdersJson) as {
+        roles: Array<{ classes: string[] }>;
+      }).roles.flatMap((role) => role.classes),
+      ordersJson: starterOrdersJson,
+      mapPlanJson: starterMapPlanJson,
+      workshopJson: starterWorkshopJson,
+      classification: 'recommended',
+      recommended: true,
+    }],
     stockOpponents: [{
       id: 'wellwright-v2',
       name: 'Wellwright v2',
       description: 'The Tapline stock opponent works all three Wells and explicitly returns every carried Core.',
       composition: ['kestrel', 'patchbay', 'relay', 'longshot', 'longshot', 'towline', 'towline', 'mason'],
     }],
+  };
+}
+
+function reviewSignatureAuthoring(signatureId: string) {
+  const roleSelectors = ['repair-beam', 'exchange', 'arc-toss'].includes(signatureId);
+  return {
+    category: 'support',
+    argumentKind: 'unit',
+    engagementRange: 6,
+    cooldownTicks: 30,
+    activationTiming: 'before-combat',
+    initialPhase: 'active',
+    maturityPhase: 'immediate',
+    cooldownAnchor: 'start',
+    parameters: {},
+    allowedSelectors: signatureId === 'null-field' || signatureId === 'kinetic-burst'
+      ? ['self']
+      : signatureId === 'repair-beam'
+        ? ['weakest-ally', 'nearest-ally']
+        : signatureId === 'arc-toss'
+          ? ['nearest-ally-toward-own-reactor', 'nearest-ally', 'own-reactor']
+          : ['nearest-enemy', 'weakest-enemy', 'enemy-carrier', 'nearest-ally',
+            'weakest-ally', 'self', 'own-reactor'],
+    allowsFriendlyRole: roleSelectors,
+    allowsMostExperiencedAlly: roleSelectors,
+    allowsExactAnchor: ['hardlight-block', 'trip-node', 'sentinel-seed',
+      'survey-flare', 'falling-star', 'smoke-canister'].includes(signatureId),
+    allowsRouteAheadRole: signatureId === 'arc-toss',
+    allowsRouteForward: signatureId === 'vector-dash',
+    durableDeployment: ['hardlight-block', 'trip-node', 'sentinel-seed'].includes(signatureId),
+    defaultCommitmentBehavior: 'continue-normally',
+    preset: {
+      id: `use-${signatureId}`,
+      title: signatureId.replaceAll('-', ' '),
+      description: `Use ${signatureId.replaceAll('-', ' ')} when its authored opportunity is legal.`,
+      targetKind: 'named-selector',
+      namedTarget: 'nearest-enemy',
+      suggestsActivationZone: true,
+    },
   };
 }
 
@@ -493,7 +575,7 @@ function makeTaplineReviewMap() {
     tiles,
   });
   return {
-    id: 'arc-relay-tapline-01',
+    id: 'arc-relay-tapline-02',
     version: 1,
     formatVersion: 1,
     width: 31,
