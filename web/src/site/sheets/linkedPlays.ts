@@ -34,6 +34,88 @@ export interface PlayMaterialization {
   drifts: PlayDrift[];
 }
 
+/**
+ * Upgrade the pre-role-scoped Pass Forward shape wherever a Program custody
+ * case owns it. This runs both while loading a saved draft and before ordinary
+ * rematerialization so the workshop source and generated Instructions cannot
+ * disagree merely because the player has not reopened the custody card.
+ *
+ * Existing drift remains drift: a generated root whose fingerprint was
+ * already dirty is not blessed by this migration. Clean generated roots have
+ * their ledger fingerprint advanced after the one mechanical target rewrite.
+ */
+export function migrateLegacyProgramCustodyHandoffs(
+  orders: OrdersDocument,
+  workshop: WorkshopDocument,
+): void {
+  for (const play of workshop.plays) {
+    const carrierBindings = (play.coreCustody?.bindings ?? []).filter((binding) =>
+      binding.kind === 'carrier-return');
+    const carrierRolesByCase = new Map<string, string[]>();
+    for (const binding of carrierBindings) {
+      const caseKey = binding.caseId ?? '';
+      const roleId = play.projections.find((projection) =>
+        projection.id === binding.projectionId)?.roleId;
+      if (!roleId) continue;
+      const roles = carrierRolesByCase.get(caseKey) ?? [];
+      if (!roles.includes(roleId)) roles.push(roleId);
+      carrierRolesByCase.set(caseKey, roles);
+    }
+
+    for (const projection of play.projections) {
+      const role = orders.roles.find((entry) => entry.id === projection.roleId);
+      const ledgerWasClean = new Map(projection.lastGenerated.map((entry) => {
+        const materialized = role && findOrder(role.orders, entry.orderId);
+        return [entry.orderId, materialized !== undefined
+          && fingerprintOrder(materialized) === entry.fingerprint] as const;
+      }));
+      let generatedChanged = false;
+
+      for (const binding of carrierBindings.filter((entry) =>
+        entry.projectionId === projection.id)) {
+        const roles = carrierRolesByCase.get(binding.caseId ?? '') ?? [];
+        if (roles.length === 0) continue;
+        const actionHosts = new Set(binding.actionOrderIds);
+        for (const opportunity of projection.signatureOpportunities ?? []) {
+          if (opportunity.kind !== 'handoff'
+              || !actionHosts.has(opportunity.hostOrderId)) continue;
+          const source = findOrder(projection.orders, opportunity.useOrderId);
+          const materialized = role && findOrder(role.orders, opportunity.useOrderId);
+          normalizeLegacyPassForward(source, roles);
+          if (normalizeLegacyPassForward(materialized, roles)) generatedChanged = true;
+        }
+      }
+
+      if (!generatedChanged || !role) continue;
+      for (const entry of projection.lastGenerated) {
+        if (!ledgerWasClean.get(entry.orderId)) continue;
+        const materialized = findOrder(role.orders, entry.orderId);
+        if (materialized) entry.fingerprint = fingerprintOrder(materialized);
+      }
+    }
+  }
+}
+
+function normalizeLegacyPassForward(
+  order: OrderNode | undefined,
+  roles: string[],
+): boolean {
+  const target = order?.handoff?.target;
+  if (target !== 'nearest-ally-toward-own-reactor'
+      && !(typeof target === 'object'
+        && 'selector' in target
+        && target.selector === 'nearest-ally-toward-own-reactor')) return false;
+  const next = {
+    selector: 'nearest-ally-toward-own-reactor' as const,
+    roles: [...roles],
+  };
+  if (typeof target === 'object'
+      && target.roles.length === next.roles.length
+      && target.roles.every((role, index) => role === next.roles[index])) return false;
+  order!.handoff!.target = next;
+  return true;
+}
+
 export interface SignatureOpportunityView {
   binding: NonNullable<PlayProjection['signatureOpportunities']>[number];
   host: OrderNode;
@@ -354,6 +436,7 @@ export function materializeWorkshop(
 ): PlayMaterialization {
   const orders = structuredClone(sourceOrders);
   const workshop = normalizeWorkshop(sourceWorkshop);
+  migrateLegacyProgramCustodyHandoffs(orders, workshop);
   const drifts = inspectWorkshop(orders, workshop);
   if (drifts.length > 0 && !force) return { orders, workshop, drifts };
 

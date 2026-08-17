@@ -77,12 +77,19 @@ policy beside ordinary Handoff:
   removed. Another body in the same multi-body role remains eligible. Removing
   the behavior behind a named receiver also removes that now-invalid generated
   Handoff and its owned Conditions.
+- Saved pre-role-scoped Pass Forward strings are upgraded during draft load
+  and rematerialization. The workshop source, generated Instruction, and clean
+  generation fingerprint move together immediately; the player does not need
+  to reopen or resave the case. A pre-`c9f3197c` reload fixture proves that an
+  unrelated role is no longer eligible.
 - Opening Opportunities from a custody card selects that exact role and
   carrier host. Player-facing labels name the source—for example,
   **Premium four · Couriers carrying**—instead of exposing a generated id.
-- Core-case shadow analysis now compares both the filter and the exact
-  participant behavior binding. An Any Core behavior for one role no longer
-  claims that an unrelated role's later 4-point behavior is unreachable.
+- Core-case shadow analysis now compares the filter, projection,
+  carrier/escort kind, and exact durable host. Disjoint hosts do not warn;
+  partial overlaps report only the affected binding and host. Rendered warning
+  identities include both cases and the affected bindings, so independent
+  conflicts cannot collapse into one React row.
 
 The scoped selector is normal compiled Instruction data, not Program runtime
 state. An unavailable named or Pass Forward Handoff still proposes nothing;
@@ -97,7 +104,7 @@ being covered only by source assertions.
 
 The focused public proof gallery is:
 
-<https://maiden-tutorials-atom-infrared.trycloudflare.com>
+<https://fancy-andrew-wildlife-studio.trycloudflare.com>
 
 It contains four deterministic mechanics fixtures. Idle/drill opponents are
 intentional, eligibility is explicitly bypassed, and nothing in it is a
@@ -245,6 +252,27 @@ playbook, map-plan, and workshop files byte-for-byte without a test-only loader.
 
 ## Deterministic acceptance evidence
 
+### Common role-scoped Pass Forward
+
+`premium-pass-forward-proof` versus `idle-field-v1`, seed 9001:
+
+- Courier A carries the south Well's 4-point Core to `(5,16)`;
+- the wrong-role Kestrel is cardinally adjacent at `(5,15)` and has the lower
+  unit id, while eligible Courier B is farther diagonally at `(4,15)`;
+- the compiled role-scoped selector ignores the Kestrel and hands the Core to
+  Courier B at tick 147;
+- Courier B selects the same premium return and the escort retargets at tick
+  148; and
+- Courier B banks that same 4-point Core at tick 301.
+
+Replay hash:
+`06105c7296214fb09ca35ddee0647861831c8e5f97cef36d2b93556e0c928130`.
+Gameplay-state digest:
+`1d48223d2c3388eac32bd1b9f3e5cf9e6fc345393f98b86d6d31df8a3cafc2ec`.
+The tracked scene drives the compiled sheet through the real match runtime and
+asserts positions, wrong-role exclusion, receiver continuation, escort
+retarget, same-Core identity, value, and bank.
+
 ### Premium named Handoff
 
 `premium-transfer-proof` versus `idle-field-v1`, seed 9001:
@@ -380,11 +408,24 @@ The final custody deep-link was also exercised from its case card: it opened
 the exact participant and carrier host, whose selector read **Any Core ·
 Couriers carrying** rather than a generated Instruction id.
 
+This final acceptance follow-up rebuilt the four-fixture gallery from fresh
+Tapline-8 broadcasts and published it from two uniquely named detached
+sessions (`program-custody-20260817-serve` and
+`program-custody-20260817-tunnel`). At 2026-08-17 18:46 CEST, the exact public
+index, `sample-01.html`, and its replay payload each returned HTTP 200, and the
+index contained the Pass Forward proof card. No browser-control surface was
+connected to this session, so this paragraph deliberately makes no new visual
+browser-smoke claim beyond the earlier production-build browser pass.
+
 ## Validation
 
 | Check | Result |
 | --- | --- |
 | `dotnet build BotArena.sln -c Release` | passed, 0 warnings / 0 errors |
+| CLI suite after final acceptance follow-up | 263 / 263 passed |
+| focused named Handoff, Pass Forward, and carrier-recovery runtime scenes | 3 / 3 passed |
+| web suite after final acceptance follow-up | 606 / 606 passed |
+| `npm run build` | passed |
 | full solution after custody follow-up, Release, serial | 2,269 passed; 88 PostgreSQL/S3/toolchain environment-gated skips |
 | Engine tests | 1,539 passed |
 | tactical-mind tests | 41 passed |
@@ -398,7 +439,7 @@ Couriers carrying** rather than a generated Instruction id.
 | `cd web && npm run build` | passed |
 | `bash scripts/generate-api-clients.sh` | passed, no generated-client drift |
 | direct starter generator comparison | 14 / 14 tracked outputs byte-identical |
-| Program custody proof generator comparison | 11 / 11 tracked outputs byte-identical |
+| Program custody proof generator comparison | 14 / 14 tracked outputs byte-identical |
 | `git diff --check` | passed |
 
 The full solution's first parallel invocation made the App's 1.6-second hosted

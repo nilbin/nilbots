@@ -156,6 +156,60 @@ write('premium-transfer-proof.json', transfer.orders);
 write('premium-transfer-proof-map.json', transfer.mapPlan);
 write('premium-transfer-proof-workshop.json', transfer.workshop);
 
+// Common Pass Forward uses the same ordinary Handoff child, but scopes its
+// selector to the carrier roles configured for this exact custody case. A
+// lower-id Kestrel waits cardinally beside the handoff tile while Courier B
+// waits diagonally. Without the role scope that wrong-role body wins the
+// deterministic distance/id ordering; with it, Courier B receives, continues
+// the same premium route, and banks.
+let passForward = structuredClone(transfer);
+passForward.orders.sheetId = 'premium-pass-forward-proof';
+passForward.orders.mapPlan = 'premium-pass-forward-proof-map.json';
+passForward.mapPlan.mapPlanId = 'premium-pass-forward-proof';
+const passObservers = passForward.orders.roles.find((entry) =>
+  entry.id === 'observers')!;
+passObservers.classes = passObservers.classes.filter((entry) => entry !== 'kestrel');
+passForward.orders.roles.splice(1, 0, {
+  id: 'decoy',
+  classes: ['kestrel'],
+  upgradePath: ['reach', 'vitality'],
+  orders: [{ id: 'decoy-fallback', move: { to: 'own-reactor' } }],
+});
+const passPlayId = passForward.workshop.plays[0].id;
+passForward = addBlankPlayProjection(passForward, passPlayId, 'decoy');
+const passPlay = () => passForward.workshop.plays[0];
+const passProjection = (roleId: string) => passPlay().projections
+  .find((entry) => entry.roleId === roleId)!;
+const passReceiverAnchor = passPlay().ownedGeometry.find((entry) =>
+  entry.kind === 'anchor')!.id;
+passForward.mapPlan.anchors[passReceiverAnchor] = [4, 15];
+const decoyPost = addPlayGeometry(passForward, passPlayId, 'anchor');
+passForward = decoyPost.draft;
+passForward.mapPlan.anchors[decoyPost.id] = [5, 15];
+passForward = updatePlayProjectionOrders(
+  passForward, passPlayId, passProjection('decoy').id, [{
+    id: 'premium-decoy-stage',
+    move: { to: { anchor: decoyPost.id } },
+  }]);
+const passCase = passPlay().coreCustody!.cases!.find((entry) =>
+  entry.name === 'Premium four')!;
+const passBinding = passPlay().coreCustody!.bindings.find((entry) =>
+  entry.caseId === passCase.id && entry.kind === 'carrier-return'
+    && entry.projectionId === passProjection('courier-a').id)!;
+passForward = configureProgramCustodyHandoff(
+  passForward, passPlayId, passBinding.id,
+  'nearest-ally-toward-own-reactor');
+passForward = configurePlayLifecycle(passForward, passPlayId, {
+  minimumCommitmentTicks: 0,
+  successConditionIds: [passPlay().coreCustody!.completionConditionId!],
+  maximumTicks: 260,
+  cooldownTicks: 1200,
+  waiting: 'fall-through',
+});
+write('premium-pass-forward-proof.json', passForward.orders);
+write('premium-pass-forward-proof-map.json', passForward.mapPlan);
+write('premium-pass-forward-proof-workshop.json', passForward.workshop);
+
 // The recovery variant is produced through the same visible Opportunity helper.
 // Its focused runtime test drives low -> healing -> recovered and proves that
 // the next ordinary sibling is the same premium route, not a different Program.

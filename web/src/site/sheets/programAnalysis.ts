@@ -121,6 +121,7 @@ export interface ProgramCustodyShadowWarning {
   caseId: string;
   shadowedByCaseId: string;
   bindingIds: string[];
+  hostOrderIds: string[];
   message: string;
 }
 
@@ -136,32 +137,44 @@ export function programCustodyShadowWarnings(
       .filter((binding) => binding.caseId === current.id);
     const groups = new Map<string, {
       earlier: PlayCustodyCase;
-      bindings: typeof currentBindings;
+      bindings: Map<string, typeof currentBindings[number]>;
+      hostOrderIds: Set<string>;
     }>();
     for (const binding of currentBindings) {
-      const earlier = cases.slice(0, index).find((candidate) => {
-        if (!custodyCaseCovers(candidate, current)) return false;
-        return (play.coreCustody?.bindings ?? []).some((entry) =>
-          entry.caseId === candidate.id
-          && entry.projectionId === binding.projectionId
-          && entry.kind === binding.kind);
-      });
-      if (!earlier) continue;
-      const group = groups.get(earlier.id) ?? { earlier, bindings: [] };
-      group.bindings.push(binding);
-      groups.set(earlier.id, group);
+      for (const hostOrderId of binding.hostOrderIds) {
+        const earlier = cases.slice(0, index).find((candidate) => {
+          if (!custodyCaseCovers(candidate, current)) return false;
+          return (play.coreCustody?.bindings ?? []).some((entry) =>
+            entry.caseId === candidate.id
+            && entry.projectionId === binding.projectionId
+            && entry.kind === binding.kind
+            && entry.hostOrderIds.includes(hostOrderId));
+        });
+        if (!earlier) continue;
+        const group = groups.get(earlier.id) ?? {
+          earlier,
+          bindings: new Map(),
+          hostOrderIds: new Set(),
+        };
+        group.bindings.set(binding.id, binding);
+        group.hostOrderIds.add(hostOrderId);
+        groups.set(earlier.id, group);
+      }
     }
-    for (const { earlier, bindings: shadowed } of groups.values()) {
+    for (const { earlier, bindings, hostOrderIds } of groups.values()) {
+      const shadowed = [...bindings.values()];
       const labels = [...new Set(shadowed.map((binding) => {
         const roleId = play.projections.find((projection) =>
           projection.id === binding.projectionId)?.roleId ?? binding.projectionId;
         return `${humanize(roleId)} ${binding.kind === 'carrier-return' ? 'carrying' : 'escorting'}`;
       }))];
+      const affectedHosts = [...hostOrderIds].sort();
       result.push({
         caseId: current.id,
         shadowedByCaseId: earlier.id,
-        bindingIds: shadowed.map((binding) => binding.id),
-        message: `${earlier.name} matches every Core that ${current.name} can match for ${labels.join(', ')}, so those later behaviors are unreachable.`,
+        bindingIds: shadowed.map((binding) => binding.id).sort(),
+        hostOrderIds: affectedHosts,
+        message: `${earlier.name} matches every Core that ${current.name} can match for ${labels.join(', ')} on ${affectedHosts.length} shared active ${affectedHosts.length === 1 ? 'continuation' : 'continuations'}, so only those later behaviors are unreachable.`,
       });
     }
   }

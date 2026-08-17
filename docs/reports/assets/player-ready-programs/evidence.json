@@ -1,10 +1,19 @@
 {
-  "schema": "arc-relay-player-ready-programs-evidence-v3",
-  "generatedAt": "2026-08-17T15:44:50+02:00",
+  "schema": "arc-relay-player-ready-programs-evidence-v4",
+  "generatedAt": "2026-08-17T18:46:56+02:00",
   "loopProfile": "tapline-8",
   "mapId": "arc-relay-tapline-02",
   "runtime": "in-process-generic-mind",
-  "publicGallery": "https://maiden-tutorials-atom-infrared.trycloudflare.com",
+  "publicGallery": "https://fancy-andrew-wildlife-studio.trycloudflare.com",
+  "publicGalleryVerification": {
+    "indexStatus": 200,
+    "firstReplayPageStatus": 200,
+    "firstReplayPayloadStatus": 200,
+    "indexContainsPassForwardCard": true,
+    "serveSession": "program-custody-20260817-serve",
+    "tunnelSession": "program-custody-20260817-tunnel",
+    "visualBrowserSmoke": "not rerun: no browser-control surface was connected"
+  },
   "architecture": {
     "programRuntimeState": false,
     "programTransitions": false,
@@ -13,6 +22,29 @@
     "custody": "participant-local branches beneath the already-activated durable Program host"
   },
   "mechanicalProofs": {
+    "premiumPassForward": {
+      "pairing": [
+        "premium-pass-forward-proof",
+        "idle-field-v1"
+      ],
+      "seed": 9001,
+      "coreBankValue": 4,
+      "replayHash": "06105c7296214fb09ca35ddee0647861831c8e5f97cef36d2b93556e0c928130",
+      "gameplayStateDigest": "1d48223d2c3388eac32bd1b9f3e5cf9e6fc345393f98b86d6d31df8a3cafc2ec",
+      "broadcastSha256": "27f65dbf67487257d925fa493f27d23abaf78d9cb1c5fbb308c44af98d6e1bf9",
+      "handoffTick": 147,
+      "receiverReturnTick": 148,
+      "escortRetargetTick": 148,
+      "bankTick": 301,
+      "sourceRole": "courier-a",
+      "wrongRole": "decoy",
+      "receiverRole": "courier-b",
+      "handoffPositions": {
+        "source": [5, 16],
+        "wrongRole": [5, 15],
+        "receiver": [4, 15]
+      }
+    },
     "midOverload": {
       "pairing": [
         "mid-overload-fork-v1",

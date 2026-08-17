@@ -4,6 +4,7 @@ import {
   normalizeWorkshop,
   type WorkshopDocument,
 } from './workshopTypes.ts';
+import { migrateLegacyProgramCustodyHandoffs } from './linkedPlays.ts';
 
 export type JsonObject = Record<string, unknown>;
 export interface Point { x: number; y: number }
@@ -367,6 +368,8 @@ export function parseDraft(
     || workshop.schema !== 'arc-relay-workshop-v1'
     || !Array.isArray(workshop.plays))
     throw new Error('workshop.json must use arc-relay-workshop-v1.');
+  const normalizedWorkshop = normalizeWorkshop(workshop);
+  migrateLegacyProgramCustodyHandoffs(orders, normalizedWorkshop);
   return {
     localId: sheetId ? `sheet:${sheetId}` : newLocalDraftId(),
     name,
@@ -375,7 +378,7 @@ export function parseDraft(
     enterLadder,
     orders,
     mapPlan,
-    workshop: normalizeWorkshop(workshop),
+    workshop: normalizedWorkshop,
   };
 }
 

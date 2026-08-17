@@ -101,6 +101,8 @@ test('Program Core custody is ordered cases with ordinary adjacent Handoff and c
   assert.match(programs, /Named receivers are limited to roles with carrier behavior/);
   assert.match(programs, /Add .* carrier behavior and pass/);
   assert.match(programs, /programOpportunityHostLabel/);
+  assert.match(programs, /warning\.caseId.*warning\.shadowedByCaseId.*warning\.bindingIds/s,
+    'separate binding-aware shadow warnings need separate React identities');
   assert.doesNotMatch(programs, /linkedBankProgramId|custody scheduler/i);
 });
 

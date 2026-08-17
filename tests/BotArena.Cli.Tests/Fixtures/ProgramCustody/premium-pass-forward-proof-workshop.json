@@ -1,0 +1,348 @@
+{
+  "schema": "arc-relay-workshop-v1",
+  "plays": [
+    {
+      "id": "untitled-play",
+      "name": "Premium transfer proof",
+      "recipe": "blank",
+      "ownedGeometry": [
+        {
+          "kind": "anchor",
+          "id": "untitled-play-anchor",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "route",
+          "id": "untitled-play-route",
+          "purpose": "available to this Program"
+        },
+        {
+          "kind": "anchor",
+          "id": "untitled-play-anchor-2",
+          "purpose": "available to this Program"
+        }
+      ],
+      "geometryGroups": [],
+      "slots": [],
+      "formations": [],
+      "readinessGroups": [],
+      "ownedConditionIds": [
+        "untitled-play-courier-a-custody-carrying",
+        "untitled-play-courier-a-custody-empty",
+        "untitled-play-courier-a-custody-value",
+        "untitled-play-courier-a-custody-source",
+        "untitled-play-courier-b-custody-carrying",
+        "untitled-play-courier-b-custody-empty",
+        "untitled-play-courier-b-custody-value",
+        "untitled-play-courier-b-custody-source",
+        "untitled-play-escort-program-carrier",
+        "premium-courier-a-steal-premium-four-carry-home",
+        "untitled-play-acquired-core-resolved"
+      ],
+      "ownedCapacityIds": [],
+      "projections": [
+        {
+          "id": "untitled-play-courier-a",
+          "roleId": "courier-a",
+          "orders": [
+            {
+              "id": "premium-courier-a-steal",
+              "orders": [
+                {
+                  "id": "premium-courier-a-steal-premium-four-carry-home",
+                  "when": {
+                    "all": [
+                      "untitled-play-courier-a-custody-carrying",
+                      "untitled-play-courier-a-custody-value",
+                      "untitled-play-courier-a-custody-source"
+                    ]
+                  },
+                  "until": "untitled-play-courier-a-custody-empty",
+                  "urgency": "urgent",
+                  "orders": [
+                    {
+                      "id": "premium-courier-a-steal-premium-four-carry-hom-3",
+                      "when": "premium-courier-a-steal-premium-four-carry-home",
+                      "handoff": {
+                        "target": {
+                          "selector": "nearest-ally-toward-own-reactor",
+                          "roles": [
+                            "courier-a",
+                            "courier-b"
+                          ]
+                        }
+                      }
+                    },
+                    {
+                      "id": "premium-courier-a-steal-premium-four-carry-hom-2",
+                      "move": {
+                        "to": "own-reactor",
+                        "via": "untitled-play-route"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "premium-courier-a-steal-continue",
+                  "move": {
+                    "to": {
+                      "well": "enemy"
+                    }
+                  }
+                }
+              ],
+              "until": "untitled-play-acquired-core-resolved",
+              "timeout": 260,
+              "cooldown": 1200
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "premium-courier-a-steal",
+              "fingerprint": "fnv1a64:3db4c321045b62ab"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "premium-courier-a-steal-premium-four-carry-home-premium-courier-a-steal-premium-four-carry-hom-3-handoff",
+              "kind": "handoff",
+              "hostOrderId": "premium-courier-a-steal-premium-four-carry-home",
+              "useOrderId": "premium-courier-a-steal-premium-four-carry-hom-3",
+              "ownedConditionIds": [
+                "premium-courier-a-steal-premium-four-carry-home"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "untitled-play-courier-b",
+          "roleId": "courier-b",
+          "orders": [
+            {
+              "id": "premium-courier-b-stage",
+              "orders": [
+                {
+                  "id": "premium-courier-b-stage-premium-four-carry-home",
+                  "when": {
+                    "all": [
+                      "untitled-play-courier-b-custody-carrying",
+                      "untitled-play-courier-b-custody-value",
+                      "untitled-play-courier-b-custody-source"
+                    ]
+                  },
+                  "until": "untitled-play-courier-b-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor",
+                    "via": "untitled-play-route"
+                  }
+                },
+                {
+                  "id": "premium-courier-b-stage-continue",
+                  "move": {
+                    "to": {
+                      "anchor": "untitled-play-anchor"
+                    }
+                  }
+                }
+              ],
+              "until": "untitled-play-acquired-core-resolved",
+              "timeout": 260,
+              "cooldown": 1200
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "premium-courier-b-stage",
+              "fingerprint": "fnv1a64:80d528954957f605"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "untitled-play-escort",
+          "roleId": "escort",
+          "orders": [
+            {
+              "id": "premium-escort-stage",
+              "orders": [
+                {
+                  "id": "premium-escort-stage-premium-four-escort-carrier",
+                  "when": "untitled-play-escort-program-carrier",
+                  "move": {
+                    "follow": {
+                      "selector": "nearest-friendly-core-carrier",
+                      "roles": [
+                        "courier-a",
+                        "courier-b"
+                      ],
+                      "coreBankValue": {
+                        "operator": "equals",
+                        "value": 4
+                      },
+                      "well": "enemy"
+                    },
+                    "posture": "rear"
+                  }
+                },
+                {
+                  "id": "premium-escort-stage-continue",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "rear"
+                  }
+                }
+              ],
+              "until": "untitled-play-acquired-core-resolved",
+              "timeout": 260,
+              "cooldown": 1200
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "premium-escort-stage",
+              "fingerprint": "fnv1a64:281a3878ae9f9758"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": []
+        },
+        {
+          "id": "untitled-play-decoy",
+          "roleId": "decoy",
+          "orders": [
+            {
+              "id": "premium-decoy-stage",
+              "move": {
+                "to": {
+                  "anchor": "untitled-play-anchor-2"
+                }
+              }
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "premium-decoy-stage",
+              "fingerprint": "fnv1a64:fc3c592408e8c0b1"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": []
+        }
+      ],
+      "linkedValues": [],
+      "coreCustody": {
+        "bindings": [
+          {
+            "id": "untitled-play-courier-a-premium-four-carrier-return-custody",
+            "caseId": "premium-four",
+            "projectionId": "untitled-play-courier-a",
+            "hostOrderIds": [
+              "premium-courier-a-steal"
+            ],
+            "actionOrderIds": [
+              "premium-courier-a-steal-premium-four-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "courier-a"
+            ],
+            "routeId": "untitled-play-route",
+            "coreBankValue": {
+              "operator": "equals",
+              "value": 4
+            },
+            "well": "enemy",
+            "ownedConditionIds": [
+              "untitled-play-courier-a-custody-carrying",
+              "untitled-play-courier-a-custody-empty",
+              "untitled-play-courier-a-custody-value",
+              "untitled-play-courier-a-custody-source"
+            ]
+          },
+          {
+            "id": "untitled-play-courier-b-premium-four-carrier-return-custody",
+            "caseId": "premium-four",
+            "projectionId": "untitled-play-courier-b",
+            "hostOrderIds": [
+              "premium-courier-b-stage"
+            ],
+            "actionOrderIds": [
+              "premium-courier-b-stage-premium-four-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "courier-b"
+            ],
+            "routeId": "untitled-play-route",
+            "coreBankValue": {
+              "operator": "equals",
+              "value": 4
+            },
+            "well": "enemy",
+            "ownedConditionIds": [
+              "untitled-play-courier-b-custody-carrying",
+              "untitled-play-courier-b-custody-empty",
+              "untitled-play-courier-b-custody-value",
+              "untitled-play-courier-b-custody-source"
+            ]
+          },
+          {
+            "id": "untitled-play-escort-premium-four-escort-carrier-custody",
+            "caseId": "premium-four",
+            "projectionId": "untitled-play-escort",
+            "hostOrderIds": [
+              "premium-escort-stage"
+            ],
+            "actionOrderIds": [
+              "premium-escort-stage-premium-four-escort-carrier"
+            ],
+            "kind": "escort-carrier",
+            "carrierRoleIds": [
+              "courier-a",
+              "courier-b"
+            ],
+            "coreBankValue": {
+              "operator": "equals",
+              "value": 4
+            },
+            "well": "enemy",
+            "ownedConditionIds": [
+              "untitled-play-escort-program-carrier"
+            ]
+          }
+        ],
+        "cases": [
+          {
+            "id": "premium-four",
+            "name": "Premium four",
+            "coreBankValue": {
+              "operator": "equals",
+              "value": 4
+            },
+            "well": "enemy"
+          }
+        ],
+        "completionConditionId": "untitled-play-acquired-core-resolved",
+        "completionOutcomes": [
+          "bank"
+        ]
+      },
+      "lifecycle": {
+        "minimumCommitmentTicks": 0,
+        "maximumTicks": 260,
+        "cooldownTicks": 1200,
+        "waiting": "fall-through",
+        "successConditionIds": [
+          "untitled-play-acquired-core-resolved"
+        ]
+      }
+    }
+  ]
+}

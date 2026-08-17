@@ -13,6 +13,7 @@ import {
 import {
   deletePlay,
   detachPlay,
+  fingerprintOrder,
   inspectWorkshop,
   materializeWorkshop,
   parseWorkshop,
@@ -700,6 +701,93 @@ test('a multi-body carrier role keeps its friendly custody label and may pass fo
     .find((entry) => entry.handoff)?.handoff?.target, {
     selector: 'nearest-ally-toward-own-reactor', roles: ['couriers'],
   });
+});
+
+test('loading a pre-role-scoped custody sidecar migrates Pass Forward in source and generated Instructions', () => {
+  let linked = addBlankPlay(draft(), 'Legacy Pass Forward');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  linked = addBlankPlayProjection(linked, playId, 'relay-b');
+  linked = addBlankPlayProjection(linked, playId, 'support');
+  const projection = (roleId: string) => linked.workshop.plays[0].projections
+    .find((entry) => entry.roleId === roleId)!;
+  const added = addProgramCustodyCase(linked, playId, {
+    name: 'Premium four', coreBankValue: { operator: 'equals', value: 4 },
+  });
+  linked = configureProgramCustody(added.draft, playId, projection('relay-a').id, {
+    caseId: added.caseId, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  linked = configureProgramCustody(linked, playId, projection('relay-b').id, {
+    caseId: added.caseId, kind: 'carrier-return', carrierRoleIds: ['relay-b'],
+  });
+  const binding = linked.workshop.plays[0].coreCustody!.bindings.find((entry) =>
+    entry.caseId === added.caseId && entry.projectionId === projection('relay-a').id)!;
+  linked = configureProgramCustodyHandoff(
+    linked, playId, binding.id, 'nearest-ally-toward-own-reactor');
+
+  // This is the exact pre-c9f3197c persisted shape: both copies and the clean
+  // generated ledger predate role-scoped Pass Forward.
+  const handoffId = projection('relay-a').signatureOpportunities!
+    .find((entry) => entry.kind === 'handoff')!.useOrderId;
+  allOrders(projection('relay-a').orders).find((entry) =>
+    entry.id === handoffId)!.handoff!.target = 'nearest-ally-toward-own-reactor';
+  const materializedRole = linked.orders.roles.find((entry) => entry.id === 'relay-a')!;
+  allOrders(materializedRole.orders).find((entry) =>
+    entry.id === handoffId)!.handoff!.target = 'nearest-ally-toward-own-reactor';
+  const generatedRoot = materializedRole.orders.find((entry) =>
+    entry.id === projection('relay-a').lastGenerated[0].orderId)!;
+  projection('relay-a').lastGenerated[0].fingerprint = fingerprintOrder(generatedRoot);
+
+  const reloaded = parseDraft(
+    linked.name, null, null, stringifyDocument(linked.orders),
+    stringifyDocument(linked.mapPlan), false, stringifyDocument(linked.workshop));
+  const expected = {
+    selector: 'nearest-ally-toward-own-reactor' as const,
+    roles: ['relay-a', 'relay-b'],
+  };
+  const reloadedProjection = reloaded.workshop.plays[0].projections.find((entry) =>
+    entry.roleId === 'relay-a')!;
+  assert.deepEqual(allOrders(reloadedProjection.orders).find((entry) =>
+    entry.id === handoffId)?.handoff?.target, expected);
+  assert.deepEqual(allOrders(reloaded.orders.roles.find((entry) =>
+    entry.id === 'relay-a')!.orders).find((entry) =>
+    entry.id === handoffId)?.handoff?.target, expected);
+  assert.ok(!expected.roles.includes('support'), 'the unrelated role is not eligible');
+  assert.deepEqual(inspectWorkshop(reloaded.orders, reloaded.workshop), [],
+    'the mechanical load migration keeps a previously clean sidecar clean');
+  const rematerialized = materializeWorkshop(reloaded.orders, reloaded.workshop);
+  assert.deepEqual(rematerialized.drifts, []);
+  assert.deepEqual(allOrders(rematerialized.orders.roles.find((entry) =>
+    entry.id === 'relay-a')!.orders).find((entry) =>
+    entry.id === handoffId)?.handoff?.target, expected);
+});
+
+test('custody shadow analysis ignores the same role and kind on disjoint hosts', () => {
+  const { play, earlier, later } = custodyShadowFixture();
+  earlier.hostOrderIds = ['prepare-host'];
+  later.hostOrderIds = ['response-host'];
+  assert.deepEqual(programCustodyShadowWarnings(play), []);
+});
+
+test('custody shadow analysis reports only the binding and host that partially overlap', () => {
+  const { play, earlier, later } = custodyShadowFixture();
+  earlier.hostOrderIds = ['prepare-host'];
+  later.hostOrderIds = ['prepare-host', 'response-host'];
+  const warnings = programCustodyShadowWarnings(play);
+  assert.equal(warnings.length, 1);
+  assert.deepEqual(warnings[0].bindingIds, [later.id]);
+  assert.deepEqual(warnings[0].hostOrderIds, ['prepare-host']);
+});
+
+test('custody shadow analysis retains a complete host overlap warning', () => {
+  const { play, earlier, later } = custodyShadowFixture();
+  earlier.hostOrderIds = ['prepare-host', 'response-host'];
+  later.hostOrderIds = ['prepare-host', 'response-host'];
+  const warnings = programCustodyShadowWarnings(play);
+  assert.equal(warnings.length, 1);
+  assert.deepEqual(warnings[0].bindingIds, [later.id]);
+  assert.deepEqual(warnings[0].hostOrderIds, ['prepare-host', 'response-host']);
+  assert.equal(warnings[0].shadowedByCaseId, earlier.caseId);
 });
 
 test('an unwanted incidental Core is visibly authored as an ordinary local Drop branch', () => {
@@ -1603,4 +1691,28 @@ function draft() {
 
 function allOrders(orders: OrdersDocument['roles'][number]['orders']): OrdersDocument['roles'][number]['orders'] {
   return orders.flatMap((order) => [order, ...allOrders(order.orders ?? [])]);
+}
+
+function custodyShadowFixture() {
+  let linked = addBlankPlay(draft(), 'Host-aware shadows');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  const projectionId = linked.workshop.plays[0].projections[0].id;
+  let added = addProgramCustodyCase(linked, playId, { name: 'Any Core' });
+  linked = configureProgramCustody(added.draft, playId, projectionId, {
+    caseId: added.caseId, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  const earlierCaseId = added.caseId;
+  added = addProgramCustodyCase(linked, playId, {
+    name: 'Premium four', coreBankValue: { operator: 'equals', value: 4 },
+  });
+  linked = configureProgramCustody(added.draft, playId, projectionId, {
+    caseId: added.caseId, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  const bindings = linked.workshop.plays[0].coreCustody!.bindings;
+  return {
+    play: linked.workshop.plays[0],
+    earlier: bindings.find((entry) => entry.caseId === earlierCaseId)!,
+    later: bindings.find((entry) => entry.caseId === added.caseId)!,
+  };
 }

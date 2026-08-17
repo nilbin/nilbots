@@ -111,6 +111,105 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
+    public void RoleScopedPassForwardSkipsCloserWrongRoleAndReceiverBanksSameCore()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation transfer = CompileProgramCustodyFixture(
+            root, "premium-pass-forward-proof");
+        TacticalPlaybookCompilation idle = Compile(root, "idle-field-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            transfer.Composition,
+            idle.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline8);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, transfer), Participant(1, idle)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        ArcRelayEvent.CoreHandedOff? handoff = null;
+        ArcRelayEvent.CoreBanked? bank = null;
+        Position? sourceAtHandoff = null;
+        Position? wrongRoleAtHandoff = null;
+        Position? receiverAtHandoff = null;
+        int handoffTick = -1;
+        int receiverReturnTick = -1;
+        int escortReceiverTick = -1;
+        int bankTick = -1;
+        while (!session.IsCompleted && bank is null)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericMindCommandResolution command in step.MindTurns
+                .Single(turn => turn.TeamId == 0).Commands)
+            {
+                string reason = command.Command.DebugMessage ?? "";
+                Assert.False(string.IsNullOrWhiteSpace(reason));
+                if (handoff is not null && receiverReturnTick < 0
+                    && command.Command.UnitId == 2
+                    && reason.Contains(
+                        "premium-four-carry-home", StringComparison.Ordinal))
+                {
+                    receiverReturnTick = step.Tick;
+                }
+                if (handoff is not null && escortReceiverTick < 0
+                    && command.Command.UnitId == 3
+                    && reason.Contains(
+                        "move:body:0:2:0", StringComparison.Ordinal))
+                {
+                    escortReceiverTick = step.Tick;
+                }
+            }
+            foreach (GenericActorAuthoritativeEvent fact
+                     in step.AuthoritativeEvents)
+            {
+                if (handoff is null
+                    && fact.Payload is GenericActorRuntimeObservation
+                        .EventPayload.ArcRelay
+                        { Fact: ArcRelayEvent.CoreHandedOff transferred }
+                    && transferred.SourceActorId.TeamId == 0)
+                {
+                    handoff = transferred;
+                    handoffTick = step.Tick;
+                    sourceAtHandoff = PositionOf(step.PostState, 0);
+                    wrongRoleAtHandoff = PositionOf(step.PostState, 1);
+                    receiverAtHandoff = PositionOf(step.PostState, 2);
+                }
+                if (handoff is not null
+                    && fact.Payload is GenericActorRuntimeObservation
+                        .EventPayload.ArcRelay
+                        { Fact: ArcRelayEvent.CoreBanked banked }
+                    && banked.CoreId == handoff.CoreId)
+                {
+                    bank = banked;
+                    bankTick = step.Tick;
+                }
+            }
+        }
+
+        Assert.NotNull(handoff);
+        Assert.Equal(new ActorIdentity(0, 0, 0), handoff.SourceActorId);
+        Assert.Equal(new ActorIdentity(0, 2, 0), handoff.TargetActorId);
+        Assert.Equal(new Position(5, 16), sourceAtHandoff);
+        Assert.Equal(new Position(5, 15), wrongRoleAtHandoff);
+        Assert.Equal(new Position(4, 15), receiverAtHandoff);
+        Assert.Equal(1, SquaredDistance(
+            sourceAtHandoff!.Value, wrongRoleAtHandoff!.Value));
+        Assert.Equal(2, SquaredDistance(
+            sourceAtHandoff.Value, receiverAtHandoff!.Value));
+        Assert.True(handoff.TargetActorId.UnitId > 1,
+            "the lower-id adjacent wrong-role candidate must be ignored");
+        Assert.Equal(147, handoffTick);
+        Assert.True(receiverReturnTick > handoffTick);
+        Assert.True(escortReceiverTick > handoffTick);
+        Assert.NotNull(bank);
+        Assert.Equal(handoff.CoreId, bank.CoreId);
+        Assert.Equal(handoff.TargetActorId, bank.CarrierActorId);
+        Assert.Equal(4, bank.ChargeAwarded);
+        Assert.Equal(301, bankTick);
+    }
+
+    [Fact]
     public void PremiumCarrierRecoversThenResumesItsSameCustodyRouteAndBanks()
     {
         string root = FindRepoRoot();
@@ -1770,6 +1869,18 @@ public sealed class OrdersMovementSceneTests
         ActorIdentity Carrier,
         Position Position,
         int Ticks);
+
+    private static Position PositionOf(
+        GenericActorWorldSnapshot state,
+        int unitId) => state.ActiveLives.Single(life =>
+            life.ActorId.TeamId == 0 && life.ActorId.UnitId == unitId).Position;
+
+    private static int SquaredDistance(Position left, Position right)
+    {
+        int dx = left.X - right.X;
+        int dy = left.Y - right.Y;
+        return dx * dx + dy * dy;
+    }
 
     private static GenericActorParticipantConfiguration Participant(
         int participantId,

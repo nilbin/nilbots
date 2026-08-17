@@ -1531,7 +1531,9 @@ function ProgramCustodyControls({ draft, play, onSelectGeometry, onOpenOpportuni
     {shadowWarnings.length > 0 && <div className="mt-3 rounded-sm border border-arena-hot/50 bg-arena-hot/8 p-3">
       <p className="lab text-arena-hot">Priority conflicts</p>
       <ul className="mt-2 space-y-1 t-micro">{shadowWarnings.map((warning) =>
-        <li key={warning.caseId}>⚠ {warning.message}</li>)}</ul>
+        <li key={`${warning.caseId}:${warning.shadowedByCaseId}:${warning.bindingIds.join(',')}`}>
+          ⚠ {warning.message}
+        </li>)}</ul>
     </div>}
     {cases.length === 0
       ? <div className="mt-3 rounded-sm border border-dashed border-arena-edge p-4 text-center">
