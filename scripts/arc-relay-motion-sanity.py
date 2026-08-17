@@ -24,7 +24,6 @@ import sys
 from pathlib import Path
 
 
-RECOVER_GOAL = re.compile(r"recover-health.*?march@(-?\d+),(-?\d+)")
 MOVE_GOAL = re.compile(r":march@(-?\d+),(-?\d+)")
 AVOID_DENIED = re.compile(r":avoid-denied-(-?\d+)-(-?\d+)@")
 TRAFFIC_RIGHT_OF_WAY = re.compile(
@@ -187,6 +186,10 @@ def analyze(path: Path) -> dict:
                 body_key = (command["unitId"], command["lifeId"])
                 body = bodies.get(body_key)
                 reason = command.get("debugMessage") or ""
+                # Eligibility explains rejected higher Instructions after the
+                # active order path. It must never make a diagnostic treat a
+                # rejected recovery as the action being executed.
+                active_order = reason.split(":eligibility[", 1)[0]
                 move_match = MOVE_GOAL.search(reason)
                 actor_key = (team, *body_key)
                 denied_match = AVOID_DENIED.search(reason)
@@ -279,7 +282,7 @@ def analyze(path: Path) -> dict:
                         and ":at-target:" not in reason \
                         and ":at-contribution:" not in reason \
                         and "return-to-reactor" not in reason \
-                        and "recover-health" not in reason:
+                        and "recover-health" not in active_order:
                     seen_movers.add(actor_key)
                     goal = (int(move_match.group(1)), int(move_match.group(2)))
                     position = point(body["position"])
@@ -346,8 +349,9 @@ def analyze(path: Path) -> dict:
                         "lifeId": command["lifeId"],
                         "reason": reason,
                     })
-                goal_match = RECOVER_GOAL.search(reason)
-                if body is None or goal_match is None:
+                goal_match = MOVE_GOAL.search(reason)
+                if body is None or goal_match is None \
+                        or "recover-health" not in active_order:
                     continue
                 key = (team, *body_key)
                 seen.add(key)

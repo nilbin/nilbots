@@ -27,8 +27,10 @@ public sealed class ArcRelayClassCatalogTests
             ("patchbay", "repair-beam",
                 ArcRelaySignatureTargetCapability.FriendlyRole
                 | ArcRelaySignatureTargetCapability.MostExperiencedAlly),
-            ("lantern", "survey-flare", 0),
-            ("mortar", "falling-star", 0),
+            ("lantern", "survey-flare",
+                ArcRelaySignatureTargetCapability.ExactAnchor),
+            ("mortar", "falling-star",
+                ArcRelaySignatureTargetCapability.ExactAnchor),
             ("minesmith", "trip-node",
                 ArcRelaySignatureTargetCapability.ExactAnchor),
             ("hush", "null-field", 0),
@@ -44,7 +46,8 @@ public sealed class ArcRelayClassCatalogTests
                 ArcRelaySignatureTargetCapability.ExactAnchor),
             ("sunder", "target-paint", 0),
             ("repulsor", "kinetic-burst", 0),
-            ("veil", "smoke-canister", 0),
+            ("veil", "smoke-canister",
+                ArcRelaySignatureTargetCapability.ExactAnchor),
             ("nest", "sentinel-seed",
                 ArcRelaySignatureTargetCapability.ExactAnchor),
         ];

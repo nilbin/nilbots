@@ -1,6 +1,7 @@
 # Arc Relay player-ready Tactical Programs follow-up
 
-Status: **proposed implementation plan; ready to assign, not yet implemented**  
+Status: **implemented for owner review** — see
+[`ARC-RELAY-PLAYER-READY-PROGRAMS-REPORT.md`](reports/ARC-RELAY-PLAYER-READY-PROGRAMS-REPORT.md)
 Date: 2026-08-16  
 Baseline: current `main`, local/review loop profile `tapline-8`
 

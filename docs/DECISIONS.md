@@ -8801,3 +8801,40 @@ This refreshes compatibility evidence without amending v24's frozen artifact
 or authorizing deployment. A Tapline-8 demolition-vs-lockbox seed-9001 cell
 has the same gameplay-state digest in-process and in WASM:
 `a8c4251062c9b07fef7cdbad55c622052041f7cc2918fde804508095a349b037`.
+
+## 329. Programs are the player-ready strategy surface
+
+Owner-directed implementation (2026-08-17). Arc Relay's normal sheet workflow
+is now the ordered, map-first **Program** list. Posts, participant readiness,
+shared triggers, commitment, signature opportunities, contact fighting,
+bounded health/Core recovery, and their capacities are edited as direct
+tactical choices. They materialize deterministically into the existing five
+Instruction actions and flat Conditions. Programs remain authoring sugar: no
+Program id enters ATL2, match state, replay, priority, reservations, or a
+second scheduler.
+
+Program authoring derives the mechanical Conditions it needs. It adds the
+body-local deployment/location, bounded visible-Core/healing distance,
+bank-value, deployment-count, and historical friendly-Core-pickup vocabulary
+recorded in `docs/SHEET-AUTHORING.md`; these are general Orders v2 primitives,
+not recipe checks. Target-local capacity remains the only coordination claim.
+All sixteen launch signatures continue through the catalog-driven `use`
+surface, with exact anchors and route-forward movement only where the resolved
+signature descriptor permits them.
+
+The two editable starters are **Mid Overload Fork** (2/5/1 staged response)
+and **Running Relay** (two Relays passing along one drawn route), each with an
+eight-body, seven-class roster and complete lower fallbacks. Their deterministic
+drill and same-route solo comparison are mechanism evidence, not balance
+claims.
+
+Practice snapshots the owner-only normalized authoring revision at match
+creation. The editor correlates accepted/rejected generated Instruction ids
+back to that immutable Program snapshot and shows body/tick attribution,
+required Posts, exact higher-gate evidence, and a compact timeline. This
+metadata never changes match identity or leaks to opponents/public broadcasts;
+legacy runs without it remain unattributed rather than guessed.
+
+This is a local product/editor promotion only. It does not authorize a hosted
+playlist/rating migration, release, deploy, or tracked WASM rebuild; those
+remain explicit checkpoints.

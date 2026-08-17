@@ -153,6 +153,15 @@ export interface PlayProjection {
    */
   responseActivation?: 'program-trigger' | 'immediate';
   /**
+   * Editor-only activation for the response's ordinary Fight continuation.
+   * `program-response` leaves the Fight inherited from the response branch;
+   * `on-contact` materializes an ordinary distance Condition plus a hold
+   * fallback. Neither value is runtime Program state.
+   */
+  responseFightActivation?: 'program-response' | 'on-contact';
+  /** Condition owned by the On-contact response Fight, when selected. */
+  responseFightContactConditionId?: string;
+  /**
    * Editor-owned source Orders. Fields owned by linkedValues are omitted here
    * and applied deterministically while materializing the projection.
    */
@@ -243,6 +252,8 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
     const used = new Set<string>();
     for (const projection of play.projections) {
       projection.responseActivation ??= 'program-trigger';
+      projection.responseFightActivation ??= projection.responseFightContactConditionId
+        ? 'on-contact' : 'program-response';
       const existing = projection.signatureOpportunities ?? [];
       projection.signatureOpportunities = existing.map((binding) => ({
         ...binding,

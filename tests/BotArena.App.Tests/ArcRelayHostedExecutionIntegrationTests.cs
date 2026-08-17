@@ -107,7 +107,10 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[{\"id\":\"opening\"}]}");
         JsonObject counterPlan = JsonNode.Parse(
             catalog.TemplateOrdersJson)!.AsObject();
-        counterPlan["roles"]![0]!["upgradePath"]![0] = "reach";
+        // Change a real executable value. Running Relay already starts its
+        // first upgrade path with `reach`, so assigning the same value was a
+        // no-op and could not prove that distinct drafts get distinct hashes.
+        counterPlan["roles"]![0]!["orders"]![0]!["timeout"] = 79;
         TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
@@ -438,12 +441,13 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
 
     private static async Task<UserResponse> RegisterAsync(HttpClient client)
     {
+        string identity = Guid.NewGuid().ToString("N");
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/api/accounts/register",
             new
             {
-                displayName = "Arc Relay Owner",
-                email = $"arc-relay-{Guid.NewGuid():N}@example.test",
+                displayName = $"Arc Relay {identity[..8]}",
+                email = $"arc-relay-{identity}@example.test",
                 password = "correct-horse-battery-staple",
             });
         response.EnsureSuccessStatusCode();

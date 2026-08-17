@@ -28,6 +28,7 @@ import {
   configurePlayContingent,
   configurePlayLifecycle,
   configurePlayPostDeployment,
+  configurePlayResponseFight,
   configurePlaySharedTrigger,
   movePlayAnchor,
   moveProgram,
@@ -58,6 +59,7 @@ import {
 } from './playEditing';
 import {
   movePlayGeometryGroup,
+  movePlayGeometryObject,
   playGeometryIssues,
   setPlaySlotTolerance,
 } from './playGeometry';
@@ -190,7 +192,7 @@ export default function PlaysWorkspace({
     setCreateError(null);
   };
 
-  return <section className="grid min-w-0 gap-3" data-sheet-path="workshop.plays">
+  return <section className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3" data-sheet-path="workshop.plays">
     <header className="panel panel-feature pad overflow-hidden">
       <div className="flex flex-wrap items-start gap-3">
         <div className="mr-auto max-w-3xl">
@@ -259,7 +261,10 @@ export default function PlaysWorkspace({
               onMoveAnchor={(anchorId, point) => commit(movePlayAnchor(draft, play.id, anchorId, point))}
               onSetZone={(zoneId, rect) => commit(setPlayZoneRect(draft, play.id, zoneId, rect))}
               onAppendRoute={(routeId, point) => commit(appendPlayRouteWaypoint(
-                draft, play.id, routeId, point))} />
+                draft, play.id, routeId, point))}
+              onNudge={(objectId, dx, dy) => commit(movePlayGeometryObject(
+                draft, play.id, objectId, dx, dy,
+                catalog.map.width, catalog.map.height))} />
           </div>
           <GeometryControls catalog={catalog} draft={draft} play={play}
             selectedId={selectedGeometry} tracks={tracks}
@@ -399,7 +404,8 @@ function PracticeProgramLens({ replay, draft, onOpenProgram }: {
       <article className="rounded-sm border border-arena-cyan/35 bg-arena-cyan/5 p-3">
         <div className="flex flex-wrap items-center gap-2">
           <span className="lab text-arena-cyan">Tick {point?.tick ?? tick}</span>
-          <span className="pill">{point ? practiceActionLabel(point.action) : 'No evidence'}</span>
+          <span className="pill">{point ? practiceActionLabel(
+            point.action, draft, point.body.roleId, point.orderId) : 'No evidence'}</span>
           {exactCurrentProgram && <button type="button" className="btn ml-auto min-h-10"
             onClick={() => onOpenProgram(point!.programId!)}>Open Program</button>}
         </div>
@@ -755,6 +761,40 @@ function PostControls({ draft, play, catalog, onSelectGeometry, onChange }: {
           <div className="flex flex-wrap items-center gap-2"><b className="t-body mr-auto">Keep {humanize(slot.deployment.skill)} at {humanize(slot.deployment.targetAnchorId)}</b>
             <span className="pill">{slot.deployment.requiredForReadiness ? 'required' : 'opportunity'}</span></div>
           <p className="t-micro mt-1">{slot.deployment.rebuildWhenMissing ? 'Rebuild when missing' : 'No missing rebuild'}{slot.deployment.refreshDurabilityAtMost !== undefined ? ` · refresh at ${slot.deployment.refreshDurabilityAtMost}% durability` : ''}{slot.deployment.refreshLifetimeAtMost !== undefined ? ` · refresh at ${slot.deployment.refreshLifetimeAtMost}% lifetime` : ''}</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <label className="flex min-h-11 items-start gap-2 rounded-sm border border-arena-edge bg-arena-panel/35 p-2.5">
+              <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[var(--color-arena-material)]"
+                aria-label={`Rebuild ${humanize(slot.deployment.skill)} when missing`}
+                checked={slot.deployment.rebuildWhenMissing}
+                onChange={(event) => onChange(configurePlayPostDeployment(
+                  draft, play.id, projection!.id, slot.id, {
+                    skill: slot.deployment!.skill,
+                    target: draft.mapPlan.anchors[slot.deployment!.targetAnchorId],
+                    requiredForReadiness: slot.deployment!.requiredForReadiness,
+                    rebuildWhenMissing: event.target.checked,
+                    refreshDurabilityAtMost: slot.deployment!.refreshDurabilityAtMost,
+                    refreshLifetimeAtMost: slot.deployment!.refreshLifetimeAtMost,
+                  }))} />
+              <span><span className="lab block">Rebuild when missing</span>
+                <span className="t-micro mt-1 block">Attempt the deployment again from this Post after destruction or expiry.</span></span>
+            </label>
+            <label className="flex min-h-11 items-start gap-2 rounded-sm border border-arena-edge bg-arena-panel/35 p-2.5">
+              <input type="checkbox" className="mt-0.5 h-5 w-5 accent-[var(--color-arena-material)]"
+                aria-label={`Require ${humanize(slot.deployment.skill)} before response`}
+                checked={slot.deployment.requiredForReadiness}
+                onChange={(event) => onChange(configurePlayPostDeployment(
+                  draft, play.id, projection!.id, slot.id, {
+                    skill: slot.deployment!.skill,
+                    target: draft.mapPlan.anchors[slot.deployment!.targetAnchorId],
+                    requiredForReadiness: event.target.checked,
+                    rebuildWhenMissing: slot.deployment!.rebuildWhenMissing,
+                    refreshDurabilityAtMost: slot.deployment!.refreshDurabilityAtMost,
+                    refreshLifetimeAtMost: slot.deployment!.refreshLifetimeAtMost,
+                  }))} />
+              <span><span className="lab block">Required before response</span>
+                <span className="t-micro mt-1 block">Include this maintained deployment in the participant readiness gate.</span></span>
+            </label>
+          </div>
           <button type="button" className="btn btn-secondary mt-2 min-h-11 w-full"
             onClick={() => onSelectGeometry(slot.deployment!.targetAnchorId)}>Move effect target on map</button>
         </div> : durable.length > 0 && projection && <button type="button"
@@ -980,6 +1020,10 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
   const [activation, setActivation] = useState<'program-trigger' | 'immediate'>(
     projection.responseActivation ?? 'program-trigger');
   const configured = Boolean(response);
+  const responseFight = response?.orders?.find((child) => child.fight);
+  const responseFightContact = projection.responseFightContactConditionId
+    ? draft.orders.conditions[projection.responseFightContactConditionId]
+    : undefined;
   const exit = typeof response?.until === 'string' ? response.until : '';
   const allConditions = Object.keys(draft.orders.conditions)
     .filter((id) => id !== triggerId && id !== formation?.conditionId);
@@ -1058,6 +1102,40 @@ function ContingentCard({ draft, play, projection, triggerId, tracks, onSelectGe
         </label>
       </details>
     </div>}
+    {configured && responseFight?.fight && <section className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">
+      <p className="lab text-arena-material">Fight behavior</p>
+      <h4 className="type-display mt-1 text-[17px]">One Fight, wherever it activates</h4>
+      <p className="t-micro mt-1">This is the same ordinary Fight shape used by contact opportunities. Switching activation preserves its target area, target order, movement, chase, and capacity.</p>
+      <div className="mt-3 grid grid-cols-2 gap-1.5">
+        {([
+          ['program-response', 'When this Program responds', 'Inherit the shared response and readiness gate.'],
+          ['on-contact', 'On contact', 'Fight only when a reachable enemy is nearby.'],
+        ] as const).map(([value, label, description]) => <button key={value} type="button"
+          className="choice-card min-h-16" data-selected={(projection.responseFightActivation ?? 'program-response') === value}
+          aria-pressed={(projection.responseFightActivation ?? 'program-response') === value}
+          onClick={() => onChange(configurePlayResponseFight(draft, play.id, projection.id, {
+            activation: value,
+            withinWalkingSteps: responseFightContact?.value ?? 4,
+            targets: responseFight.fight!.targets,
+            style: responseFight.fight!.style,
+            chaseLimit: responseFight.fight!.chaseLimit,
+            zone: responseFight.fight!.zone,
+            capacity: typeof responseFight.capacity === 'number' ? responseFight.capacity : null,
+          }))}><b className="t-body block">{label}</b><span className="t-micro">{description}</span></button>)}</div>
+      <FightBehaviorFields draft={draft} setup={{
+        withinWalkingSteps: responseFightContact?.value ?? 4,
+        targets: responseFight.fight.targets,
+        style: responseFight.fight.style,
+        chaseLimit: responseFight.fight.chaseLimit,
+        zone: responseFight.fight.zone,
+        capacity: typeof responseFight.capacity === 'number' ? responseFight.capacity : null,
+      }} showContactDistance={(projection.responseFightActivation ?? 'program-response') === 'on-contact'}
+      onChange={(setup) => onChange(configurePlayResponseFight(
+        draft, play.id, projection.id, {
+          activation: projection.responseFightActivation ?? 'program-response',
+          ...setup,
+        }))} />
+    </section>}
   </article>;
 }
 
@@ -1421,6 +1499,72 @@ function OpportunityProjection({
   </article>;
 }
 
+interface FightBehaviorSetup {
+  withinWalkingSteps: number;
+  targets: NonNullable<OrderNode['fight']>['targets'];
+  style: NonNullable<OrderNode['fight']>['style'];
+  chaseLimit: number;
+  zone?: string;
+  capacity: number | null;
+}
+
+function FightBehaviorFields({ draft, setup, showContactDistance = true, onChange }: {
+  draft: SheetDraft;
+  setup: FightBehaviorSetup;
+  showContactDistance?: boolean;
+  onChange: (next: FightBehaviorSetup) => void;
+}) {
+  const update = (patch: Partial<FightBehaviorSetup>) => onChange({ ...setup, ...patch });
+  const moveTarget = (index: number, offset: number) => {
+    const targets = [...setup.targets];
+    const nextIndex = index + offset;
+    if (nextIndex < 0 || nextIndex >= targets.length) return;
+    [targets[index], targets[nextIndex]] = [targets[nextIndex], targets[index]];
+    update({ targets });
+  };
+  return <div className="mt-3 space-y-3">
+    <div className="grid gap-2 sm:grid-cols-2">
+      {showContactDistance && <label><span className="lab mb-1 block">Join when reachable within</span>
+        <input type="number" className="field min-h-11" min={0} max={31}
+          value={setup.withinWalkingSteps}
+          onChange={(event) => update({ withinWalkingSteps: Number(event.target.value) })} /></label>}
+      <label><span className="lab mb-1 block">Chase limit</span>
+        <input type="number" className="field min-h-11" min={0} max={12}
+          value={setup.chaseLimit}
+          onChange={(event) => update({ chaseLimit: Number(event.target.value) })} /></label>
+    </div>
+    <div><span className="lab mb-1 block">Movement in the fight</span>
+      <div className="grid grid-cols-3 gap-1.5">{(['advance', 'hold', 'kite'] as const).map((style) =>
+        <button key={style} type="button" className="choice-card min-h-12"
+          data-selected={setup.style === style} aria-pressed={setup.style === style}
+          onClick={() => update({ style })}>{humanize(style)}</button>)}</div>
+    </div>
+    <div><span className="lab mb-1 block">Target order</span>
+      <div className="space-y-1.5">{setup.targets.map((target, index) => <div key={target}
+        className="flex min-h-11 items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/35 px-2">
+        <span className="pill">{index + 1}</span><span className="t-body mr-auto">{humanize(target)}</span>
+        <button type="button" className="btn min-h-9 min-w-10" disabled={index === 0}
+          aria-label={`Move ${humanize(target)} earlier`} onClick={() => moveTarget(index, -1)}>↑</button>
+        <button type="button" className="btn min-h-9 min-w-10" disabled={index === setup.targets.length - 1}
+          aria-label={`Move ${humanize(target)} later`} onClick={() => moveTarget(index, 1)}>↓</button>
+      </div>)}</div>
+    </div>
+    <label><span className="lab mb-1 block">Fight target area</span>
+      <select className="field min-h-11" value={setup.zone ?? ''}
+        onChange={(event) => update({ zone: event.target.value || undefined })}>
+        <option value="">Anywhere</option>
+        {Object.keys(draft.mapPlan.zones).map((zone) =>
+          <option key={zone} value={zone}>{humanize(zone)}</option>)}
+      </select></label>
+    <label><span className="lab mb-1 block">Attackers per enemy</span>
+      <select className="field min-h-11" value={setup.capacity ?? ''}
+        onChange={(event) => update({ capacity: event.target.value ? Number(event.target.value) : null })}>
+        <option value="">Everyone who qualifies</option>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value}>{value}</option>)}
+      </select></label>
+  </div>;
+}
+
 function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
@@ -1442,39 +1586,9 @@ function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
       zone: fight.zone,
       capacity: view.binding.capacityPolicy?.limit ?? null,
     };
-    const update = (patch: Partial<typeof setup>) => onChange(updateFightOpportunity(
-      draft, play.id, projection.id, view.binding.id, { ...setup, ...patch }));
-    return <div className="space-y-3">
-      <div className="grid gap-2 sm:grid-cols-2">
-        <label><span className="lab mb-1 block">Join when reachable within</span>
-          <input type="number" className="field min-h-11" min={0} max={31}
-            value={setup.withinWalkingSteps}
-            onChange={(event) => update({ withinWalkingSteps: Number(event.target.value) })} /></label>
-        <label><span className="lab mb-1 block">Chase limit</span>
-          <input type="number" className="field min-h-11" min={0} max={12}
-            value={setup.chaseLimit}
-            onChange={(event) => update({ chaseLimit: Number(event.target.value) })} /></label>
-      </div>
-      <div><span className="lab mb-1 block">Movement in the fight</span>
-        <div className="grid grid-cols-3 gap-1.5">{(['advance', 'hold', 'kite'] as const).map((style) =>
-          <button key={style} type="button" className="choice-card min-h-12"
-            data-selected={setup.style === style} aria-pressed={setup.style === style}
-            onClick={() => update({ style })}>{humanize(style)}</button>)}</div>
-      </div>
-      <label><span className="lab mb-1 block">Only fight inside</span>
-        <select className="field min-h-11" value={setup.zone ?? ''}
-          onChange={(event) => update({ zone: event.target.value || undefined })}>
-          <option value="">Anywhere</option>
-          {Object.keys(draft.mapPlan.zones).map((zone) =>
-            <option key={zone} value={zone}>{humanize(zone)}</option>)}
-        </select></label>
-      <label><span className="lab mb-1 block">Maximum attackers on one enemy</span>
-        <select className="field min-h-11" value={setup.capacity ?? ''}
-          onChange={(event) => update({ capacity: event.target.value ? Number(event.target.value) : null })}>
-          <option value="">Everyone who qualifies</option>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((value) => <option key={value}>{value}</option>)}
-        </select></label>
-    </div>;
+    return <FightBehaviorFields draft={draft} setup={setup}
+      onChange={(next) => onChange(updateFightOpportunity(
+        draft, play.id, projection.id, view.binding.id, next))} />;
   }
   if (kind === 'core-recovery' && view.action.move) {
     const distanceId = view.binding.ownedConditionIds?.find((id) =>

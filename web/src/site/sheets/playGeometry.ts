@@ -113,6 +113,50 @@ export function movePlayGeometryGroup(
   return synchronizePlayGeometry(next, playId);
 }
 
+export function movePlayGeometryObject(
+  draft: SheetDraft,
+  playId: string,
+  objectId: string,
+  dx: number,
+  dy: number,
+  width: number,
+  height: number,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const object = play.ownedGeometry.find((entry) => entry.id === objectId);
+  if (!object || object.derivedFrom)
+    throw new Error(`Program object '${objectId}' is not directly movable.`);
+
+  const points: Array<[number, number]> = object.kind === 'anchor'
+    ? [next.mapPlan.anchors[objectId]]
+    : object.kind === 'zone'
+      ? (() => {
+        const [x1, y1, x2, y2] = next.mapPlan.zones[objectId].rect;
+        return [[x1, y1], [x2, y2]] as Array<[number, number]>;
+      })()
+      : next.mapPlan.routes[objectId].waypoints;
+  if (points.length === 0) return next;
+  const boundedDx = Math.max(-Math.min(...points.map(([x]) => x)),
+    Math.min(dx, width - 1 - Math.max(...points.map(([x]) => x))));
+  const boundedDy = Math.max(-Math.min(...points.map(([, y]) => y)),
+    Math.min(dy, height - 1 - Math.max(...points.map(([, y]) => y))));
+
+  if (object.kind === 'anchor') {
+    const [x, y] = next.mapPlan.anchors[objectId];
+    next.mapPlan.anchors[objectId] = [x + boundedDx, y + boundedDy];
+  } else if (object.kind === 'zone') {
+    const [x1, y1, x2, y2] = next.mapPlan.zones[objectId].rect;
+    next.mapPlan.zones[objectId].rect = [
+      x1 + boundedDx, y1 + boundedDy, x2 + boundedDx, y2 + boundedDy,
+    ];
+  } else {
+    next.mapPlan.routes[objectId].waypoints = points
+      .map(([x, y]) => [x + boundedDx, y + boundedDy]);
+  }
+  return synchronizePlayGeometry(next, playId);
+}
+
 export function playGeometryIssues(
   draft: SheetDraft,
   playId: string,

@@ -243,10 +243,11 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
-| role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `self-deployment-in-zone`, `deployment-lifetime-percent`, `deployment-durability-percent` |
+| role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count`, `role-deployments-in-zone-count` |
 | team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
+| history | `friendly-core-pickups` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 
 Role facts require `role`; zone facts require `zone`; Well facts require
@@ -255,11 +256,16 @@ Role facts require `role`; zone facts require `zone`; Well facts require
 initial opening or a recharge already started by banking that Well's Core.
 While the Core is still active—loose, carried, in flight, dropped, or
 stolen—there is no countdown, so finite `at-most` birth windows remain false.
-`known-enemy-carriers` and `remembered-enemies-in-zone` require
+`self-deployment-in-zone` and `role-deployments-in-zone-count` require a
+current `signature` id plus `zone`; the latter also requires `role`.
+`self-nearest-visible-loose-core-distance` may take a `coreBankValue` filter,
+and all three bounded service-distance facts are legal only as walking-step
+upper bounds. `friendly-core-pickups` takes the same explicit historical
+interval as the four zone-history facts, but no zone. `known-enemy-carriers` and `remembered-enemies-in-zone` require
 `freshnessTicks` in `1..600`. Qualifiers on other facts are errors. Health
 percent comparisons are `0..100`; boolean facts compare with `0` or `1`.
 
-The four historical zone facts are finite, read-only team evidence. Each needs
+The historical facts are finite, read-only team evidence. Each needs
 exactly one interval: `windowTicks: 1..1200`, `since: "match-start"`, or
 `since: "node-entry"`. Node-entry evidence is legal only in the active order's
 `until`. At decision tick T the interval ends before T's actions. Entries count
@@ -273,6 +279,16 @@ a replay can explain why a response activated without exposing hidden enemies.
 Known loose Cores use the team's objective ledger. A Core remains known until
 a visible pickup, handoff, bank, drop, or new position updates it; leaving
 vision alone does not erase the fact.
+
+Visible-Core and healing distances are deliberately body-local walking
+distances. `self-nearest-visible-loose-core-distance` considers only currently
+visible qualifying Cores; `self-nearest-heal-zone-distance` considers the
+rules-owned heal tiles. Their matching move targets accept
+`withinWalkingSteps: 0..31`; a body outside that bound falls through instead
+of beginning an unbounded detour. A visible-Core target may also use one
+`coreBankValue` comparison (`equals`, `at-least`, or `at-most`) and either
+nearest-first or highest-value-then-nearest ranking. The Condition and move
+use the same filter when the workshop derives a recovery Opportunity.
 
 `self-nearest-visible-enemy-distance` is the fewest legal movement steps this
 body needs to reach a tile from which it can attack a team-visible enemy. The
@@ -311,8 +327,11 @@ caster is free. This observes engine state; it is not an authored duration.
 
 `to` accepts:
 
-- `own-reactor`, `nearest-heal-zone`, `nearest-known-loose-core`, or
-  `highest-bank-value-known-loose-core`;
+- `own-reactor` or `nearest-heal-zone`;
+- `nearest-known-loose-core` or `highest-bank-value-known-loose-core` for the
+  durable team ledger;
+- `nearest-visible-loose-core` or
+  `highest-bank-value-visible-loose-core` for a bounded immediate detour;
 - `current-position`, an intentional hold at the body's already-resolved tile;
 - `{ "zone": "id" }`;
 - `{ "anchor": "id" }`; or
@@ -326,14 +345,21 @@ body beside it. Occupancy and casting legality remain runtime facts; no
 duplicate staging zone or companion anchor is authored.
 
 `patrol` repeats a route. `follow` tracks either the nearest live body of a
-named role by terrain path distance, then unit id, or the most-experienced live
-ally by level, distance, then unit id. It stands on a legal adjacent tile rather
+named role by terrain path distance, then unit id; the most-experienced live
+ally by level, distance, then unit id; or the nearest friendly Core carrier,
+optionally filtered by carried bank value. It stands on a legal adjacent tile rather
 than asking for the leader's occupied tile. `via` is an optional
 one-time ingress route for `to` or `patrol`; follow cannot use it. Combat pre-emption
 does not restart ingress. Exit, death, or an impossible route does.
 
 Optional posture is `front`, `line`, or `rear`. It is individual pre-combat
 positioning relative to the destination, not a formation or combat behavior.
+
+`withinWalkingSteps` is legal only on `nearest-heal-zone` and the two visible
+Core targets. It measures the actual corner-strict terrain path, not bird's-eye
+distance; visible bodies remain transient traffic. `coreBankValue` is legal
+only on visible-Core moves and nearest-carrier Follow. These are candidate
+filters, not hidden movement or pickup rules.
 
 Optional `face: { "anchor": "id" }` is legal only on a `move.to` whose
 destination is an authored zone or anchor. It never changes travel. Once the
@@ -661,8 +687,19 @@ sidecar-only authoring sugar; execution sees only ordinary Conditions and
 Instructions. The current flat expression limit permits at most eight named
 Conditions in one gate.
 
-The editor currently offers one blank Program and five guided lenses: Ambush,
-Running Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
+The product starts from two complete editable Program sheets:
+
+- **Mid Overload Fork** fields a legal eight-body, seven-class roster with two
+  Masons. One remembered enemy-pressure trigger coordinates a 2/2 home
+  defense and a separately armed 5/5 return ambush, while Kestrel raids
+  immediately through one authored route and uses contextual Vector Dash.
+- **Running Relay** fields a legal eight-body, seven-class roster with two
+  Relays. The pair moves along one drawn corridor and uses ordinary Arc Toss
+  opportunities only when the receiver has gained forward route progress;
+  the other six bodies retain complete field fallbacks.
+
+The editor also offers one blank Program and guided lenses for Ambush, Running
+Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
 authoring convenience. Its generated Instructions use the same five action
 names and the same `when`, `until`, `timeout`, `cooldown`, `urgency`, and
 `capacity` fields as the advanced Instructions workspace.
@@ -687,14 +724,31 @@ is required to clear or change it.
 Practice restores the active workspace, selected Program, opponent, and seed.
 The map can overlay actual tracks for only that Program's participating roles;
 an Ambush-style Program also reports the best observed required-slot readiness
-frame. These diagnostics interpret the replay for the author and never feed
-back into the match.
+frame. Starting Practice stores an immutable owner-only authoring snapshot:
+sheet revision, normalized workshop, Orders and map plan. It does not enter
+ATL2, the gameplay/content hash, opponent input, or public replay data.
 
-### Signature opportunities remain ordinary `use` Instructions
+The **Program lens** maps the selected body and replay tick back through that
+snapshot to the accepted generated Instruction. It shows the owning Program,
+the body action, current required-Post occupancy, higher Programs that yielded,
+and the executor's exact recorded gate values. A compact timeline groups
+consecutive ticks by Program/action. Renaming, reordering, or deleting a
+Program later cannot rewrite old attribution; the editor labels the revision
+mismatch and offers both **Open revision used** and **Rerun current draft**.
+Legacy Practice without a snapshot says Program attribution is unavailable
+instead of guessing. These diagnostics interpret the replay for the author and
+never feed back into the match.
 
-A participant block may link a durable plan branch to one or more **signature
-opportunities**. The focused Program view calls this list **Along the way**.
-Each binding points at a real direct-child `use` leaf under that branch; it
+### Opportunities remain ordinary Instructions
+
+A participant block may link a durable plan branch to one or more
+**Opportunities**. The focused Program view calls this list **Along the way**.
+The current generic cards are signature use, Fight on contact, Recover health,
+Recover a nearby Core, Handoff, and Drop. Each is a normal sibling in the exact
+displayed order; the durable host continuation stays last.
+
+A signature opportunity points at a real direct-child `use` leaf under that
+branch; it
 stores no second copy of the skill, target, conditions, capacity, lifecycle, or
 Instruction. The use leaf's actual sibling position is its local priority. The
 first following ordinary sibling is its continuation.
@@ -714,6 +768,24 @@ the Program keeps the exact materialized Instructions editable. Opportunity ids 
 remain in the workshop sidecar and never enter ATL2, execution, match state, or
 replay.
 
+Fight Opportunities use the same `fight` shape as a Program response: optional
+encounter and target areas, ordered target preferences, style, chase limit,
+and per-target capacity. Health recovery derives low/high hysteresis, a bounded
+walking detour, retry lifecycle, carrying policy, and the sheet-wide default of
+one patient per healing tile. Nearby-Core recovery derives a bounded visible
+Core target, optional bank-value filter/ranking, and the sheet-wide default of
+one pursuer per resolved Core. Its normal consequence is an explicit higher
+**Bank carried Core** Program; pickup itself does not create runtime Program
+state. Handoff and Drop are likewise ordinary one-shot leaves whose illegal or
+false case reaches the visible continuation in the same tick.
+
+Posts are also authoring sugar. A Post owns a standing anchor, readiness zone,
+tolerance, optional cardinal facing point, capacity, and optional maintained
+deployment. **Rebuild when missing** derives `self-deployment-in-zone`;
+**Required before arming** derives the role/signature/zone deployment count
+into shared readiness. The runtime still sees only move/use leaves and
+Conditions. A Post cannot reserve a body or tile.
+
 ## 11. Runtime and determinism
 
 ATL2 contains the exact role/class/upgrade assignment, expanded order tree
@@ -722,6 +794,11 @@ geometry. The direct executor evaluates those bytes in both hosts.
 
 Every submitted action and every decline, capacity loss, target miss,
 lifecycle exit, wait, and automatic micro decision carries a non-empty reason.
+For owner-only canonical Practice, a compact `eligibility[...]` clause names
+inactive higher root Instructions and the exact false Condition values. The
+web correlates those source ids through the immutable workshop snapshot and
+removes the clause from the player-facing action label. Compact public
+broadcasts carry neither the clause nor private Program attribution.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 

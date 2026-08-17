@@ -10,6 +10,7 @@ const entrants = read('../src/site/pages/ArcRelayPage.tsx');
 const workshop = read('../src/site/sheets/TacticalSheetEditor.tsx');
 const orders = read('../src/site/sheets/OrdersWorkspace.tsx');
 const programs = read('../src/site/sheets/PlaysWorkspace.tsx');
+const programMap = read('../src/site/sheets/PlayMapCanvas.tsx');
 const programRecipes = read('../src/site/sheets/playRecipes.ts');
 const map = read('../src/site/sheets/MapPlanEditor.tsx');
 const docs = read('../src/site/pages/DocsPage.tsx');
@@ -128,6 +129,19 @@ test('map planning renders all authoritative social landmarks and opens inside m
   assert.match(orders, /Plot a route before this patrol can run/);
   assert.match(orders, /Open map and add route/);
   assert.doesNotMatch(orders, /value=\{value\.to!\}/);
+});
+
+test('Program map edits have a keyboard-equivalent one-tile nudge', () => {
+  assert.match(programMap, /tabIndex=\{0\}/);
+  assert.match(programMap, /Arrow keys move the selected Program object/);
+  assert.match(programMap, /onKeyDown=\{nudge\}/);
+  assert.match(programs, /movePlayGeometryObject/);
+});
+
+test('Post deployment policy remains editable on the normal Program surface', () => {
+  assert.match(programs, /Rebuild when missing/);
+  assert.match(programs, /Required before response/);
+  assert.match(programs, /configurePlayPostDeployment/);
 });
 
 test('sheet tools contain player-facing entrant controls only', () => {

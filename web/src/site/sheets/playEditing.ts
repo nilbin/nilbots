@@ -944,6 +944,80 @@ export interface PlayContingentSetup {
   timeout: number;
 }
 
+export interface PlayResponseFightSetup {
+  activation: 'program-response' | 'on-contact';
+  withinWalkingSteps: number;
+  targets: NonNullable<OrderNode['fight']>['targets'];
+  style: NonNullable<OrderNode['fight']>['style'];
+  chaseLimit: number;
+  zone?: string;
+  capacity?: number | null;
+}
+
+/**
+ * Refine the response's one ordinary Fight leaf. Activation is represented by
+ * either inheritance from the response branch or an ordinary contact
+ * Condition with an explicit hold fallback; this adds no Program runtime
+ * state and uses the same Fight shape as a local Fight opportunity.
+ */
+export function configurePlayResponseFight(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  setup: PlayResponseFightSetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const responseId = `${projection.id}-respond`;
+  const response = findOrderLocation(projection.orders, responseId)?.node;
+  const fight = response?.orders?.find((child) => child.fight);
+  if (!response || !fight?.fight)
+    throw new Error('Configure a formed-area response before editing its Fight behavior.');
+
+  const previousContactId = projection.responseFightContactConditionId;
+  const holdId = `${responseId}-contact-hold`;
+  fight.fight = {
+    targets: [...setup.targets],
+    style: setup.style,
+    chaseLimit: Math.max(0, Math.min(31, Math.trunc(setup.chaseLimit))),
+    ...(setup.zone ? { zone: setup.zone } : {}),
+  };
+  if (setup.capacity === null || setup.capacity === undefined)
+    delete fight.capacity;
+  else fight.capacity = Math.max(1, Math.min(8, Math.trunc(setup.capacity)));
+
+  if (setup.activation === 'on-contact') {
+    const contactId = previousContactId ?? uniqueIdentifier(
+      `${responseId}-contact`, new Set(Object.keys(next.orders.conditions)));
+    next.orders.conditions[contactId] = {
+      fact: 'self-nearest-visible-enemy-distance', operator: 'at-most',
+      value: Math.max(0, Math.min(31, Math.trunc(setup.withinWalkingSteps))),
+      ...(setup.zone ? { zone: setup.zone } : {}),
+    };
+    if (!play.ownedConditionIds.includes(contactId))
+      play.ownedConditionIds.push(contactId);
+    projection.responseFightContactConditionId = contactId;
+    fight.when = contactId;
+    if (!response.orders!.some((child) => child.id === holdId)) {
+      response.orders!.push({
+        id: holdId,
+        move: { to: 'current-position', posture: 'line' },
+      });
+    }
+  } else {
+    delete fight.when;
+    response.orders = response.orders?.filter((child) => child.id !== holdId);
+    if (previousContactId) {
+      delete next.orders.conditions[previousContactId];
+      play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== previousContactId);
+    }
+    delete projection.responseFightContactConditionId;
+  }
+  projection.responseFightActivation = setup.activation;
+  return requireMaterialized(next);
+}
+
 /**
  * Scaffold or refine one generic contingent as ordinary Orders. A zone-backed
  * contingent stages until its role-qualified readiness Condition is true; a
@@ -1063,7 +1137,16 @@ export function configurePlayContingent(
     if (continuation && 'route' in setup.destination) {
       delete continuation.fight;
       continuation.move = { patrol: setup.destination.route, posture: 'front' };
-    } else if (continuation) {
+      response.orders = response.orders?.filter((child) =>
+        child.id !== `${responseId}-contact-hold`);
+      if (projection.responseFightContactConditionId) {
+        delete next.orders.conditions[projection.responseFightContactConditionId];
+        play.ownedConditionIds = play.ownedConditionIds.filter((id) =>
+          id !== projection.responseFightContactConditionId);
+      }
+      delete projection.responseFightContactConditionId;
+      delete projection.responseFightActivation;
+    } else if (continuation && !continuation.fight) {
       delete continuation.move;
       continuation.fight = {
         targets: ['carrier', 'weakest', 'nearest'],

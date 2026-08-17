@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
 } from 'react';
 import clsx from 'clsx';
@@ -28,6 +29,7 @@ export default function PlayMapCanvas({
   onMoveAnchor,
   onSetZone,
   onAppendRoute,
+  onNudge,
   onDrawingStarted,
 }: {
   catalog: TacticalSheetCatalog;
@@ -41,6 +43,7 @@ export default function PlayMapCanvas({
   onMoveAnchor: (id: string, point: [number, number]) => void;
   onSetZone: (id: string, rect: [number, number, number, number]) => void;
   onAppendRoute: (id: string, point: [number, number]) => void;
+  onNudge: (id: string, dx: number, dy: number) => void;
   onDrawingStarted?: () => void;
 }) {
   const svg = useRef<SVGSVGElement>(null);
@@ -100,6 +103,17 @@ export default function PlayMapCanvas({
     }
   };
 
+  const nudge = (event: ReactKeyboardEvent<SVGSVGElement>) => {
+    const movement: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+      ArrowUp: [0, -1], ArrowDown: [0, 1],
+    };
+    const delta = movement[event.key];
+    if (!delta || !selected || selected.derivedFrom || side === 'east') return;
+    event.preventDefault();
+    onNudge(selected.id, delta[0], delta[1]);
+  };
+
   return <div className="overflow-hidden rounded-sm border border-arena-edge bg-[#06090c]">
     <div className="flex flex-wrap items-center gap-2 border-b border-arena-edge p-2">
       <button type="button" className={clsx('btn min-h-11', !drawing && 'btn-on')}
@@ -117,7 +131,9 @@ export default function PlayMapCanvas({
     <svg ref={svg} viewBox={`0 0 ${catalog.map.width} ${catalog.map.height}`}
       className={clsx('block w-full min-w-[580px] select-none', (dragging || drawing) && 'touch-none')}
       style={{ aspectRatio: `${catalog.map.width}/${catalog.map.height}` }}
-      role="img" aria-label={`${play.name} on the ${side} Tapline perspective`}
+      role="img" tabIndex={0}
+      aria-label={`${play.name} on the ${side} Tapline perspective. Arrow keys move the selected Program object.`}
+      onKeyDown={nudge}
       onPointerMove={(event) => {
         if (zoneStart && selected?.kind === 'zone') {
           const point = sourcePoint(event);
@@ -205,7 +221,9 @@ export default function PlayMapCanvas({
       <span className="text-arena-material">● Program point</span>
       <span className="text-[#b49cff]">□ derived readiness zone</span>
       <span className="text-[#39d7f2]">— linked route</span>
-      <span className="ml-auto">{side === 'west' ? 'Drag a Program point to move it.' : 'East is a read-only rotated preview.'}</span>
+      <span className="ml-auto">{side === 'west'
+        ? 'Drag a Program point or focus the map and use arrow keys.'
+        : 'East is a read-only rotated preview.'}</span>
     </div>
   </div>;
 }

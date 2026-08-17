@@ -1,0 +1,106 @@
+{
+  "schema": "arc-relay-player-ready-programs-evidence-v1",
+  "generatedAt": "2026-08-17T02:58:39+02:00",
+  "loopProfile": "tapline-8",
+  "mapId": "arc-relay-tapline-02",
+  "runtime": "in-process-generic-mind",
+  "mechanicalProofs": {
+    "midOverload": {
+      "pairing": [
+        "mid-overload-fork-v1",
+        "mid-overload-drill-v1"
+      ],
+      "seed": 9001,
+      "replayHash": "b69154b5660d1f968cfa670f9c2a592e8975e88ff382830dc74e011fff967f8c",
+      "gameplayStateDigest": "65b2e137d673d6dc357a38c2ae54ad31a61b3c48e2a5e048e96e79bcf7e12b2f",
+      "endTick": 331,
+      "firstObserved": {
+        "independentRaiderProgramTick": 0,
+        "vectorDashAcceptedTick": 21,
+        "homeHardlightAcceptedTick": 24,
+        "returnHardlightAcceptedTick": 36,
+        "homeResponseTick": 54,
+        "returnResponseTick": 60
+      }
+    },
+    "runningRelay": {
+      "seed": 9001,
+      "sourceWell": "south",
+      "linked": {
+        "pairing": [
+          "running-relay-v1",
+          "idle-field-v1"
+        ],
+        "replayHash": "d3a75702c6310af64d8e856b1c43e99a65719ec320492552e4a82e2ce409cd3c",
+        "gameplayStateDigest": "76faf5e4494428624e1fbb9fa3a344f5c7b8b5425d8f4eb8ba6674550b8fd81c",
+        "acceptedArcTossTicks": [
+          67,
+          100,
+          142
+        ],
+        "bankTick": 157
+      },
+      "solo": {
+        "pairing": [
+          "running-relay-solo-v1",
+          "idle-field-v1"
+        ],
+        "replayHash": "cc945dd26d403b407daa43e720b3da75b57ab4e8a586beb447f91a9f58970acf",
+        "gameplayStateDigest": "8aee8fc264629c81628a4b24070862dbe4b22969f2e227c5774540a6b62ff1e1",
+        "bankTick": 167
+      },
+      "linkedLeadTicks": 10
+    }
+  },
+  "standardExhibit": [
+    {
+      "cell": "w-9001",
+      "replayHash": "5cc1c3fcd0c8aab3e592e31a3c496f17353eeb65305f9016226bdfcedaa44f1e",
+      "gameplayStateDigest": "5104bd048e1ee5b2b15440bb45cafdd73698f379c1ac687e4e9a69cb2a9eadb5",
+      "endTick": 360,
+      "runningRelayPulses": 2,
+      "soloPulses": 3
+    },
+    {
+      "cell": "w-9002",
+      "replayHash": "c7669290c491b794d6a9bb2f353f356bd95a227a5910499a60b1b5ebfc508ba9",
+      "gameplayStateDigest": "b4ee1399c0ddd62f1ac1ac85032ed4de3879f79fa293c743cb71936bd800a8db",
+      "endTick": 274,
+      "runningRelayPulses": 1,
+      "soloPulses": 3
+    },
+    {
+      "cell": "e-9005",
+      "replayHash": "dc813a3924167e0dbae3a58133c34b2cb0a76e57e406985929a58f1e65d84ec1",
+      "gameplayStateDigest": "64f211a6e22013034b847cb0acc9ef4a8840d0359e5c4d4fafc0daf4d52687b4",
+      "endTick": 196,
+      "runningRelayPulses": 0,
+      "soloPulses": 3
+    },
+    {
+      "cell": "e-9009",
+      "replayHash": "e0c2856bee8147665d79f47fc20ce80b7463189e71fac896e2f1ad6118dda08f",
+      "gameplayStateDigest": "642c21d0f9a4717ec27fcc9757dd9a38b71dd256206622a87d03032951c34973",
+      "endTick": 193,
+      "runningRelayPulses": 0,
+      "soloPulses": 3
+    },
+    {
+      "cell": "w-9012",
+      "replayHash": "a057d08b33154ce76880475b3026df65e9afa47ef28f36375e6c4286c1e0aaa7",
+      "gameplayStateDigest": "ecb3fad24ff5197f3693baff60f3f99793221e973d2ffef5624ee75180ce4f28",
+      "endTick": 278,
+      "runningRelayPulses": 1,
+      "soloPulses": 3
+    },
+    {
+      "cell": "e-9004",
+      "replayHash": "920d4f0db0e0ffca3c7583ad58d108f930a4f7b82b0323723b3303bd20733962",
+      "gameplayStateDigest": "9212d63d38ec04a1ec8b25af8dc7534c08ea7b228a39f2b117b2e988b0244e87",
+      "endTick": 221,
+      "runningRelayPulses": 1,
+      "soloPulses": 3
+    }
+  ],
+  "interpretation": "Mechanical proofs pin authored behavior. The six-cell exhibit records outcomes for review and is not a balance sample."
+}

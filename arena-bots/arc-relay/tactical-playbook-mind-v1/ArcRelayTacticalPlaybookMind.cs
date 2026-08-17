@@ -734,6 +734,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "signature-commitment-hold")];
             if (move.Target == "nearest-heal-zone")
             {
+                // Bounded recovery is a new player-ready primitive, but an
+                // unqualified historical target is a frozen behavior shape.
+                // Keep its former static-distance ordering byte-for-byte and
+                // only pay the legal-walking-distance semantics when the
+                // sheet actually authors a bound.
+                if (move.WithinWalkingSteps is null)
+                {
+                    return _healTiles
+                        .OrderBy(tile => ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, tile)
+                            ?? int.MaxValue)
+                        .ThenBy(tile => tile.Y)
+                        .ThenBy(tile => tile.X)
+                        .Select(tile => new ResolvedTarget(
+                            $"heal:{tile.X}:{tile.Y}",
+                            tile,
+                            [tile],
+                            null,
+                            null))
+                        .ToArray();
+                }
                 int[] distances = WalkingDistanceField(contract, mind, body);
                 return _healTiles
                     .Select(tile => new

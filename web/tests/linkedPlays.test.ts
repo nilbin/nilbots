@@ -33,6 +33,7 @@ import {
   configurePlayContingent,
   configurePlayLifecycle,
   configurePlayPostDeployment,
+  configurePlayResponseFight,
   configurePlaySharedTrigger,
   moveProgram,
   movePlayAnchor,
@@ -59,7 +60,11 @@ import {
   addSafeReturnPlay,
   addVeteranEscortPlay,
 } from '../src/site/sheets/playRecipes';
-import { playGeometryIssues, setPlaySlotTolerance } from '../src/site/sheets/playGeometry';
+import {
+  movePlayGeometryObject,
+  playGeometryIssues,
+  setPlaySlotTolerance,
+} from '../src/site/sheets/playGeometry';
 import {
   bestPlayReadiness,
   practiceActionLabel,
@@ -454,6 +459,12 @@ test('a canonical Post projects stand, facing, readiness and deployment maintena
 
   const north = setPlayPostFacing(linked, playId, post.id, 'north');
   assert.deepEqual(north.mapPlan.anchors[post.facingAnchorId!], [22, 8]);
+  const nudged = movePlayGeometryObject(
+    north, playId, post.anchorId, -1, 0, 31, 27);
+  assert.deepEqual(nudged.mapPlan.anchors[post.anchorId], [21, 9]);
+  assert.deepEqual(nudged.mapPlan.anchors[post.facingAnchorId!], [21, 8]);
+  assert.deepEqual(nudged.mapPlan.zones[post.readinessZoneId].rect,
+    [21, 9, 21, 9]);
 });
 
 test('Fight, Core and health cards share one ordered Opportunity host and ordinary fallthrough', () => {
@@ -706,6 +717,72 @@ test('a blank Program derives its shared trigger and refines contingents without
   assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
 });
 
+test('a response and contact opportunity share one editable Fight shape without losing its configuration', () => {
+  let linked = addBlankPlay(draft(), 'Shared fight');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'mason');
+  const projectionId = linked.workshop.plays[0].projections[0].id;
+  const zone = addPlayGeometry(linked, playId, 'zone');
+  linked = setPlayZoneRect(zone.draft, playId, zone.id, [11, 8, 14, 11]);
+  linked = configurePlaySharedTrigger(linked, playId, {
+    fact: 'visible-enemies-in-zone', operator: 'at-least', value: 3, zone: zone.id,
+  });
+  const triggerId = linked.workshop.plays[0].responseTriggerConditionId!;
+  linked = configurePlayContingent(linked, playId, projectionId, {
+    triggerConditionId: triggerId,
+    destination: { zone: zone.id }, requiredBodies: 1, timeout: 90,
+  });
+  linked = configurePlayResponseFight(linked, playId, projectionId, {
+    activation: 'on-contact', withinWalkingSteps: 5,
+    targets: ['marked', 'carrier', 'weakest'], style: 'kite', chaseLimit: 3,
+    zone: zone.id, capacity: 2,
+  });
+
+  let projection = linked.workshop.plays[0].projections[0];
+  let response = allOrders(projection.orders).find((entry) =>
+    entry.id === `${projectionId}-respond`)!;
+  let fight = response.orders!.find((entry) => entry.fight)!;
+  const contactId = projection.responseFightContactConditionId!;
+  assert.deepEqual(linked.orders.conditions[contactId], {
+    fact: 'self-nearest-visible-enemy-distance', operator: 'at-most', value: 5,
+    zone: zone.id,
+  });
+  assert.equal(fight.when, contactId);
+  assert.deepEqual(fight.fight, {
+    targets: ['marked', 'carrier', 'weakest'], style: 'kite', chaseLimit: 3,
+    zone: zone.id,
+  });
+  assert.equal(fight.capacity, 2);
+  assert.equal(response.orders!.at(-1)?.move?.to, 'current-position');
+
+  linked = configurePlayResponseFight(linked, playId, projectionId, {
+    activation: 'program-response', withinWalkingSteps: 5,
+    targets: ['marked', 'carrier', 'weakest'], style: 'kite', chaseLimit: 3,
+    zone: zone.id, capacity: 2,
+  });
+  projection = linked.workshop.plays[0].projections[0];
+  response = allOrders(projection.orders).find((entry) =>
+    entry.id === `${projectionId}-respond`)!;
+  fight = response.orders!.find((entry) => entry.fight)!;
+  assert.equal(fight.when, undefined);
+  assert.equal(projection.responseFightContactConditionId, undefined);
+  assert.equal(linked.orders.conditions[contactId], undefined);
+  assert.equal(response.orders!.some((entry) =>
+    entry.id === `${projectionId}-respond-contact-hold`), false);
+
+  linked = configurePlayContingent(linked, playId, projectionId, {
+    triggerConditionId: triggerId,
+    destination: { zone: zone.id }, requiredBodies: 1, timeout: 110,
+  });
+  fight = allOrders(linked.workshop.plays[0].projections[0].orders).find((entry) =>
+    entry.id === `${projectionId}-respond`)!.orders!.find((entry) => entry.fight)!;
+  assert.deepEqual(fight.fight?.targets, ['marked', 'carrier', 'weakest']);
+  assert.equal(fight.fight?.style, 'kite');
+  assert.equal(fight.fight?.chaseLimit, 3);
+  assert.equal(fight.capacity, 2);
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop, catalog).length, 0);
+});
+
 test('mixed-role readiness compiles one visible 5/5 ALL gate without manual wiring', () => {
   let linked = addBlankPlay(draft(), 'Mixed return ambush');
   const playId = linked.workshop.plays[0].id;
@@ -863,6 +940,9 @@ test('Practice maps accepted and rejected Instructions to the immutable Program 
   assert.equal(point?.programName, 'Second response');
   assert.equal(point?.orderId, secondLeaf);
   assert.equal(practiceActionLabel(point!.action), 'Move');
+  assert.equal(practiceActionLabel(
+    'eligibility[truncated-before-semantic-action]', linked, 'support', secondLeaf),
+  'Move', 'immutable authored source explains compact diagnostics whose action suffix was truncated');
   assert.deepEqual(point?.higherPrograms.map((entry) => ({
     id: entry.programId, status: entry.status, reason: entry.reason,
   })), [{

@@ -264,7 +264,7 @@ public sealed class ArcRelayPlaylistSeeder(
         string? wasmPath = RepoPaths.FindUpward(Path.Combine(
             "arena-bots",
             "arc-relay",
-            "tactical-playbook-mind-v1",
+            "tapline-4-stock-v1",
             "bot.wasm"));
         if (wasmPath is null)
         {

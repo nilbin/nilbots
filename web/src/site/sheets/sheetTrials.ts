@@ -291,7 +291,8 @@ export function practiceProgramTimeline(
   const result: PracticeProgramTimelineSegment[] = [];
   for (const frame of replay.ticks) {
     const point = practiceProgramAttributionForFrame(draft, body, frame);
-    const action = practiceActionLabel(point.action);
+    const action = practiceActionLabel(
+      point.action, draft, body.roleId, point.orderId);
     const previous = result.at(-1);
     if (previous
       && previous.programId === point.programId
@@ -314,7 +315,27 @@ export function practiceProgramTimeline(
 }
 
 /** Reduce executor diagnostics to the player-facing action clause. */
-export function practiceActionLabel(action: string): string {
+export function practiceActionLabel(
+  action: string,
+  draft?: SheetDraft,
+  roleId?: string,
+  orderId?: string | null,
+): string {
+  const authored = draft && roleId && orderId
+    ? findAuthoredOrder(draft, roleId, orderId)
+    : undefined;
+  if (authored?.use) return `Use ${humanizeReason(authored.use.skill)}`;
+  if (authored?.fight) return 'Fight';
+  if (authored?.handoff) return 'Handoff Core';
+  if (authored?.drop) return 'Drop Core';
+  if (authored?.move) {
+    if (authored.move.to === 'current-position') return 'Hold Post';
+    if (authored.move.to === 'nearest-heal-zone') return 'Recover health';
+    if (authored.move.to === 'nearest-visible-loose-core'
+      || authored.move.to === 'highest-bank-value-visible-loose-core')
+      return 'Recover Core';
+    return 'Move';
+  }
   const withoutPlanner = action.split(':urgency-')[0] ?? action;
   const semantic = /(?:^|:)(march|use|handoff|drop|repair|focus|prepare focus|duel-stand|close-on-focus|flank-approach|hold|wait|no-eligible-order)(?::|$)/
     .exec(withoutPlanner);
@@ -334,6 +355,24 @@ export function practiceActionLabel(action: string): string {
   if (verb === 'repair') return 'Repair';
   if (verb === 'hold' || verb === 'wait') return 'Hold';
   return humanizeReason(verb);
+}
+
+function findAuthoredOrder(
+  draft: SheetDraft,
+  roleId: string,
+  orderId: string,
+): OrderNode | undefined {
+  const role = draft.orders.roles.find((candidate) => candidate.id === roleId);
+  if (!role) return undefined;
+  const visit = (orders: OrderNode[]): OrderNode | undefined => {
+    for (const order of orders) {
+      if (order.id === orderId) return order;
+      const nested = order.orders ? visit(order.orders) : undefined;
+      if (nested) return nested;
+    }
+    return undefined;
+  };
+  return visit(role.orders);
 }
 
 /**
