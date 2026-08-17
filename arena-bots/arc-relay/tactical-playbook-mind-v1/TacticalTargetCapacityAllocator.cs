@@ -10,7 +10,9 @@ internal static class TacticalTargetCapacityAllocator
         string? Scope,
         string Target,
         int Limit,
-        int Distance);
+        int Distance,
+        string? Selection = null,
+        int VeteranLevel = 1);
 
     internal static Dictionary<int, T> Allocate<T>(
         IReadOnlyDictionary<int, IReadOnlyList<Candidate<T>>> candidatesByBody)
@@ -62,12 +64,29 @@ internal static class TacticalTargetCapacityAllocator
                         + $"for target {group.Key.Target}.");
                 }
 
+                string?[] selections = group
+                    .Select(value => value.Candidate.Selection)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
+                if (selections.Length != 1)
+                {
+                    throw new InvalidOperationException(
+                        $"Capacity {group.Key.Scope} has inconsistent selection policies "
+                        + $"for target {group.Key.Target}.");
+                }
+
                 int remaining = Math.Max(
                     0,
                     limits[0] - claimed.GetValueOrDefault(group.Key));
-                (int BodyId, Candidate<T> Candidate)[] winners = group
-                    .OrderBy(value => value.Candidate.Distance)
-                    .ThenBy(value => value.BodyId)
+                IEnumerable<(int BodyId, Candidate<T> Candidate)> ranked = group;
+                ranked = string.Equals(selections[0], "highest-veteran",
+                        StringComparison.Ordinal)
+                    ? ranked.OrderByDescending(value => value.Candidate.VeteranLevel)
+                        .ThenBy(value => value.Candidate.Distance)
+                        .ThenBy(value => value.BodyId)
+                    : ranked.OrderBy(value => value.Candidate.Distance)
+                        .ThenBy(value => value.BodyId);
+                (int BodyId, Candidate<T> Candidate)[] winners = ranked
                     .Take(remaining)
                     .ToArray();
                 HashSet<int> winnerIds = winners

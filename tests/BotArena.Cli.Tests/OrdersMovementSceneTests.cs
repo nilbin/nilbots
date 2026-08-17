@@ -18,7 +18,7 @@ namespace BotArena.Cli.Tests;
 public sealed class OrdersMovementSceneTests
 {
     [Fact]
-    public void PracticeReasonNamesRejectedHigherInstructionGates()
+    public void PracticeReasonNamesRejectedHigherProgramGate()
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation program = Compile(
@@ -41,10 +41,6 @@ public sealed class OrdersMovementSceneTests
             .Command.DebugMessage ?? "";
 
         Assert.Contains(":eligibility[", reason, StringComparison.Ordinal);
-        Assert.Contains(
-            "bank-core-home-mason-bank~when-bank-core-carrying-0-equals-1",
-            reason,
-            StringComparison.Ordinal);
         Assert.Contains(
             "mid-fork-home-mason-respond~when-",
             reason,

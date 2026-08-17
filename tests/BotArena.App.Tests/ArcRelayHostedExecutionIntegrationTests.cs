@@ -65,7 +65,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(10, catalog.StockOpponents.Count);
         Assert.Equal(
-            ["running-relay-v1", "mid-overload-fork-v1"],
+            ["recommended-first-v1", "running-relay-v1", "mid-overload-fork-v1"],
             catalog.StarterSheets.Select(value => value.Id));
         Assert.All(catalog.StarterSheets, starter =>
         {

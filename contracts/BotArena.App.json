@@ -5580,7 +5580,9 @@
           "composition",
           "ordersJson",
           "mapPlanJson",
-          "workshopJson"
+          "workshopJson",
+          "classification",
+          "recommended"
         ],
         "type": "object",
         "properties": {
@@ -5607,6 +5609,12 @@
           },
           "workshopJson": {
             "type": "string"
+          },
+          "classification": {
+            "type": "string"
+          },
+          "recommended": {
+            "type": "boolean"
           }
         }
       },

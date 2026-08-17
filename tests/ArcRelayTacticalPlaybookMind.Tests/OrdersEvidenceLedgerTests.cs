@@ -166,6 +166,188 @@ public sealed class OrdersEvidenceLedgerTests
         Assert.Contains("1-friendly-core-pickups@0..0", read.Trace);
     }
 
+    [Fact]
+    public void TickStartCorePickupIsRetainedWhenObservationDoesNotRepeatIt()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        var core = new GenericActorContext.ArcRelayCoreId("south", 0);
+        ActorIdentity relay = new(0, 1, 0);
+        GenericActorContext.ObservedEvent pickup = ArcEvent(
+            "tick-start-pickup",
+            0,
+            new GenericActorContext.ArcRelayEvent.CorePickedUp(
+                core, relay, new Position(1, 0), 2));
+
+        ledger.ObserveSnapshot(0, 0, ZoneTiles, [], [pickup]);
+        Assert.Equal(0, ledger.ReadCore(
+            Condition("friendly-core-acquisitions", since: "node-entry",
+                roles: ["relay"]),
+            decisionTick: 0,
+            orderTicks: 0,
+            _ => "relay").Actual);
+
+        // Real tick-start events are not repeated in the next observation.
+        // The prior observation must nevertheless become completed evidence.
+        ledger.ObserveSnapshot(0, 1, ZoneTiles, [], []);
+        Assert.Equal(1, ledger.ReadCore(
+            Condition("friendly-core-acquisitions", since: "node-entry",
+                roles: ["relay"]),
+            decisionTick: 1,
+            orderTicks: 1,
+            _ => "relay").Actual);
+    }
+
+    [Fact]
+    public void ScopedCustodyEvidenceFollowsOneCoreAcrossRoleTransferAndBank()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        var wanted = new GenericActorContext.ArcRelayCoreId("enemy", 1);
+        var unrelated = new GenericActorContext.ArcRelayCoreId("enemy", 2);
+        ActorIdentity kestrel = new(0, 2, 0);
+        ActorIdentity relay = new(0, 3, 0);
+
+        ledger.ObserveSnapshot(0, 0, ZoneTiles, [], []);
+        ledger.ObserveSnapshot(0, 1, ZoneTiles, [],
+        [
+            ArcEvent("pickup-wanted", 0,
+                new GenericActorContext.ArcRelayEvent.CorePickedUp(
+                    wanted, kestrel, new Position(1, 0), 2)),
+        ]);
+        ledger.ObserveSnapshot(0, 2, ZoneTiles, [],
+        [
+            ArcEvent("handoff-wanted", 1,
+                new GenericActorContext.ArcRelayEvent.CoreHandedOff(
+                    wanted, kestrel, relay, new Position(1, 0), 3)),
+            ArcEvent("bank-unrelated", 1,
+                new GenericActorContext.ArcRelayEvent.CoreBanked(
+                    unrelated, relay, 0, new Position(0, 0), 4)
+                    { ChargeAwarded = 4 }),
+        ]);
+        ledger.ObserveSnapshot(0, 3, ZoneTiles, [],
+        [
+            ArcEvent("bank-wanted", 2,
+                new GenericActorContext.ArcRelayEvent.CoreBanked(
+                    wanted, relay, 0, new Position(0, 0), 8)
+                    { ChargeAwarded = 4 }),
+        ]);
+
+        string? RoleForUnit(int unitId) => unitId switch
+        {
+            2 => "runner",
+            3 => "relay",
+            _ => null,
+        };
+        int Value(GenericActorContext.ArcRelayCoreId _) => 4;
+        bool EnemySource(GenericActorContext.ArcRelayCoreId core) =>
+            core.SourceWellId == "enemy";
+
+        OrdersEvidenceLedger.EvidenceRead acquisitions = ledger.ReadCore(
+            Condition("friendly-core-acquisitions", since: "node-entry",
+                roles: ["runner", "relay"]),
+            decisionTick: 3,
+            orderTicks: 3,
+            RoleForUnit,
+            Value,
+            EnemySource);
+        OrdersEvidenceLedger.EvidenceRead banks = ledger.ReadCore(
+            Condition("friendly-core-banks", since: "node-entry",
+                roles: ["runner", "relay"], correlateAcquisition: true,
+                coreBankValue: new("equals", 4)),
+            decisionTick: 3,
+            orderTicks: 3,
+            RoleForUnit,
+            Value,
+            EnemySource);
+
+        Assert.Equal(2, acquisitions.Actual);
+        Assert.Equal(1, banks.Actual);
+        Assert.Contains("1-bank-events@0..2", banks.Trace);
+    }
+
+    [Fact]
+    public void ScopedDropEvidenceRejectsOtherRolesAndOtherSources()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        var own = new GenericActorContext.ArcRelayCoreId("own", 1);
+        var enemy = new GenericActorContext.ArcRelayCoreId("enemy", 1);
+        ActorIdentity runner = new(0, 2, 0);
+        ActorIdentity outsider = new(0, 7, 0);
+
+        ledger.ObserveSnapshot(0, 0, ZoneTiles, [], []);
+        ledger.ObserveSnapshot(0, 1, ZoneTiles, [],
+        [
+            ArcEvent("drop-own", 0,
+                new GenericActorContext.ArcRelayEvent.CoreDropped(
+                    own, runner, new Position(1, 0), 2, "voluntary")),
+            ArcEvent("drop-outsider", 0,
+                new GenericActorContext.ArcRelayEvent.CoreDropped(
+                    enemy, outsider, new Position(1, 0), 2, "voluntary")),
+        ]);
+
+        OrdersEvidenceLedger.EvidenceRead drops = ledger.ReadCore(
+            Condition("friendly-core-drops", since: "node-entry",
+                roles: ["runner"]),
+            decisionTick: 1,
+            orderTicks: 1,
+            unitId => unitId == 2 ? "runner" : "outsider",
+            _ => 1,
+            core => core.SourceWellId == "own");
+
+        Assert.Equal(1, drops.Actual);
+    }
+
+    [Fact]
+    public void ArcTossDepartureIsNotALossButAnUncaughtLandingIs()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        var core = new GenericActorContext.ArcRelayCoreId("enemy", 4);
+        ActorIdentity runner = new(0, 2, 0);
+
+        ledger.ObserveSnapshot(0, 0, ZoneTiles, [], []);
+        ledger.ObserveSnapshot(0, 1, ZoneTiles, [],
+        [
+            ArcEvent("pickup", 0,
+                new GenericActorContext.ArcRelayEvent.CorePickedUp(
+                    core, runner, new Position(1, 0), 1)),
+            ArcEvent("toss-departure", 0,
+                new GenericActorContext.ArcRelayEvent.CoreDropped(
+                    core, runner, new Position(1, 0), 1,
+                    "signature-departure")),
+        ]);
+
+        OrdersEvidenceLedger.EvidenceRead beforeLanding = ledger.ReadCore(
+            Condition("friendly-core-losses", since: "node-entry",
+                roles: ["runner"], correlateAcquisition: true),
+            decisionTick: 1,
+            orderTicks: 1,
+            unitId => unitId == 2 ? "runner" : null);
+        Assert.Equal(0, beforeLanding.Actual);
+
+        ledger.ObserveSnapshot(0, 2, ZoneTiles, [],
+        [
+            ArcEvent("uncaught-landing", 1,
+                new GenericActorContext.ArcRelayEvent.CoreDropped(
+                    core, runner, new Position(2, 0), 2,
+                    "arc-toss-landing")),
+        ]);
+        OrdersEvidenceLedger.EvidenceRead afterLanding = ledger.ReadCore(
+            Condition("friendly-core-losses", since: "node-entry",
+                roles: ["runner"], correlateAcquisition: true),
+            decisionTick: 2,
+            orderTicks: 2,
+            unitId => unitId == 2 ? "runner" : null);
+        Assert.Equal(1, afterLanding.Actual);
+        Assert.Contains("1-loss-events@0..1", afterLanding.Trace);
+        OrdersEvidenceLedger.EvidenceRead resolved = ledger.ReadCore(
+            Condition("friendly-core-resolutions", since: "node-entry",
+                roles: ["runner"], correlateAcquisition: true,
+                outcomes: ["bank", "loss"]),
+            decisionTick: 2,
+            orderTicks: 2,
+            unitId => unitId == 2 ? "runner" : null);
+        Assert.Equal(1, resolved.Actual);
+    }
+
     [Theory]
     [InlineData(Direction.North, 1, -1, Direction.North)]
     [InlineData(Direction.East, 1, -1, Direction.East)]
@@ -192,7 +374,11 @@ public sealed class OrdersEvidenceLedgerTests
     private static OrdersPackage.Condition Condition(
         string fact,
         int? windowTicks = null,
-        string? since = null) => new(
+        string? since = null,
+        string[]? roles = null,
+        bool correlateAcquisition = false,
+        OrdersPackage.CoreBankValueFilter? coreBankValue = null,
+        string[]? outcomes = null) => new(
             fact,
             fact,
             "at-least",
@@ -204,7 +390,10 @@ public sealed class OrdersEvidenceLedgerTests
             windowTicks,
             since,
             null,
-            null);
+            coreBankValue,
+            roles,
+            correlateAcquisition,
+            outcomes);
 
     private static GenericActorContext.ObservedEnemyState Enemy(
         ActorIdentity actor,

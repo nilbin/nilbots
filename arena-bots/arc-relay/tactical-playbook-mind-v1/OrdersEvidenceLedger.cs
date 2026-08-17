@@ -12,6 +12,7 @@ internal sealed class OrdersEvidenceLedger
     private readonly List<EnemyEntry> _entries = [];
     private readonly List<EnemyDestruction> _destructions = [];
     private readonly List<FriendlyCorePickup> _friendlyCorePickups = [];
+    private readonly List<FriendlyCoreEvent> _friendlyCoreEvents = [];
     private readonly HashSet<string> _processedEvents = new(StringComparer.Ordinal);
 
     public void Reset()
@@ -22,6 +23,7 @@ internal sealed class OrdersEvidenceLedger
         _entries.Clear();
         _destructions.Clear();
         _friendlyCorePickups.Clear();
+        _friendlyCoreEvents.Clear();
         _processedEvents.Clear();
     }
 
@@ -56,9 +58,16 @@ internal sealed class OrdersEvidenceLedger
 
         foreach (GenericActorContext.ObservedEvent observed in visibleEvents)
         {
-            // A same-tick event is not historical evidence yet. Do not mark it
-            // consumed before the next decision can evaluate it as completed.
-            if (observed.SourceTick >= tick
+            // Tick-start mode events (including Core pickup/catch) are already
+            // authoritative when they enter this decision's observation and
+            // may be visible only once. Record them now; Interval deliberately
+            // excludes the current decision tick, so they become eligible on
+            // the next decision. Movement is different: entry evidence needs
+            // the following visibility sample, so defer it without consuming
+            // its handle until that sample exists.
+            if (observed.SourceTick > tick
+                || observed.SourceTick == tick
+                    && observed.Payload is GenericActorContext.EventPayload.Movement
                 || !_processedEvents.Add(observed.EventHandle))
                 continue;
             switch (observed.Payload)
@@ -92,6 +101,45 @@ internal sealed class OrdersEvidenceLedger
                         observed.SourceTick,
                         pickup.CoreId,
                         pickup.CarrierActorId));
+                    _friendlyCoreEvents.Add(new FriendlyCoreEvent(
+                        observed.SourceTick, pickup.CoreId,
+                        pickup.CarrierActorId, "acquisition"));
+                    break;
+                case GenericActorContext.EventPayload.ArcRelay mode
+                    when mode.Fact is GenericActorContext.ArcRelayEvent
+                        .CoreHandedOff handoff
+                        && handoff.TargetActorId.TeamId == teamId:
+                    _friendlyCoreEvents.Add(new FriendlyCoreEvent(
+                        observed.SourceTick, handoff.CoreId,
+                        handoff.TargetActorId, "acquisition"));
+                    break;
+                case GenericActorContext.EventPayload.ArcRelay mode
+                    when mode.Fact is GenericActorContext.ArcRelayEvent
+                        .CoreBanked banked
+                        && banked.TeamId == teamId:
+                    _friendlyCoreEvents.Add(new FriendlyCoreEvent(
+                        observed.SourceTick, banked.CoreId,
+                        banked.CarrierActorId, "bank"));
+                    break;
+                case GenericActorContext.EventPayload.ArcRelay mode
+                    when mode.Fact is GenericActorContext.ArcRelayEvent
+                        .CoreDropped dropped
+                        && dropped.SourceActorId.TeamId == teamId:
+                    string? outcome = dropped.Kind switch
+                    {
+                        "voluntary" => "drop",
+                        "destruction" or "arc-toss-landing" => "loss",
+                        // Signature departure is the first half of Arc Toss,
+                        // not a tactical loss. The later catch/pickup or loose
+                        // landing supplies the authoritative outcome.
+                        _ => null,
+                    };
+                    if (outcome is not null)
+                    {
+                        _friendlyCoreEvents.Add(new FriendlyCoreEvent(
+                            observed.SourceTick, dropped.CoreId,
+                            dropped.SourceActorId, outcome));
+                    }
                     break;
             }
         }
@@ -102,14 +150,42 @@ internal sealed class OrdersEvidenceLedger
         GenericActorMapContract map,
         OrdersPackage.Condition condition,
         int decisionTick,
-        int orderTicks)
+        int orderTicks,
+        Func<GenericActorContext.ArcRelayCoreId, int>? bankValue = null,
+        Func<GenericActorContext.ArcRelayCoreId, bool>? sourceMatches = null)
+        => ReadCore(
+            condition,
+            decisionTick,
+            orderTicks,
+            unitId => package.RolesByUnit.TryGetValue(unitId, out var role)
+                ? role.Id
+                : null,
+            bankValue,
+            sourceMatches,
+            fallback: () => Read(
+                condition,
+                decisionTick,
+                orderTicks,
+                position => package.Contains(condition.Zone!, position),
+                package.ZoneTiles(condition.Zone!, map)));
+
+    internal EvidenceRead ReadCore(
+        OrdersPackage.Condition condition,
+        int decisionTick,
+        int orderTicks,
+        Func<int, string?> roleForUnit,
+        Func<GenericActorContext.ArcRelayCoreId, int>? bankValue = null,
+        Func<GenericActorContext.ArcRelayCoreId, bool>? sourceMatches = null,
+        Func<EvidenceRead>? fallback = null)
     {
         if (condition.Fact == "friendly-core-pickups")
         {
             (int start, int end) = Interval(
                 condition, decisionTick, orderTicks);
             int count = _friendlyCorePickups.Count(value =>
-                value.Tick >= start && value.Tick < end);
+                value.Tick >= start && value.Tick < end
+                && Matches(roleForUnit, condition, value.Core, value.Carrier,
+                    bankValue, sourceMatches));
             string interval = end <= start
                 ? $"{start}..empty"
                 : $"{start}..{end - 1}";
@@ -117,12 +193,44 @@ internal sealed class OrdersEvidenceLedger
                 count,
                 $"{condition.Id}={count}-friendly-core-pickups@{interval}");
         }
-        return Read(
-            condition,
-            decisionTick,
-            orderTicks,
-            position => package.Contains(condition.Zone!, position),
-            package.ZoneTiles(condition.Zone!, map));
+        if (condition.Fact is "friendly-core-acquisitions"
+                or "friendly-core-banks" or "friendly-core-drops"
+                or "friendly-core-losses" or "friendly-core-resolutions")
+        {
+            (int start, int end) = Interval(condition, decisionTick, orderTicks);
+            string[] kinds = condition.Fact switch
+            {
+                "friendly-core-banks" => ["bank"],
+                "friendly-core-drops" => ["drop"],
+                "friendly-core-losses" => ["loss"],
+                "friendly-core-resolutions" => condition.Outcomes ?? [],
+                _ => ["acquisition"],
+            };
+            FriendlyCoreEvent[] values = _friendlyCoreEvents.Where(value =>
+                    kinds.Contains(value.Kind, StringComparer.Ordinal)
+                    && value.Tick >= start && value.Tick < end
+                    && Matches(roleForUnit, condition, value.Core, value.Actor,
+                        bankValue, sourceMatches))
+                .ToArray();
+            if (condition.CorrelateAcquisition)
+            {
+                HashSet<GenericActorContext.ArcRelayCoreId> acquired =
+                    _friendlyCoreEvents.Where(value =>
+                            value.Kind == "acquisition"
+                            && value.Tick >= start && value.Tick < end
+                            && Matches(roleForUnit, condition, value.Core, value.Actor,
+                                bankValue, sourceMatches))
+                        .Select(value => value.Core).ToHashSet();
+                values = values.Where(value => acquired.Contains(value.Core)).ToArray();
+            }
+            string interval = end <= start
+                ? $"{start}..empty" : $"{start}..{end - 1}";
+            return new EvidenceRead(values.Length,
+                $"{condition.Id}={values.Length}-{string.Join("-or-", kinds)}-events@{interval}");
+        }
+        return fallback?.Invoke()
+            ?? throw new InvalidOperationException(
+                $"No evidence reader exists for '{condition.Fact}'.");
     }
 
     internal EvidenceRead Read(
@@ -210,6 +318,23 @@ internal sealed class OrdersEvidenceLedger
         return (start, decisionTick);
     }
 
+    private static bool Matches(
+        Func<int, string?> roleForUnit,
+        OrdersPackage.Condition condition,
+        GenericActorContext.ArcRelayCoreId core,
+        ActorIdentity actor,
+        Func<GenericActorContext.ArcRelayCoreId, int>? bankValue,
+        Func<GenericActorContext.ArcRelayCoreId, bool>? sourceMatches)
+    {
+        if (condition.Roles is { Length: > 0 }
+            && (roleForUnit(actor.UnitId) is not string roleId
+                || !condition.Roles.Contains(roleId, StringComparer.Ordinal)))
+            return false;
+        if (sourceMatches is not null && !sourceMatches(core)) return false;
+        return condition.CoreBankValue is null || bankValue is not null
+            && condition.CoreBankValue.Matches(bankValue(core));
+    }
+
     internal readonly record struct EvidenceRead(int Actual, string Trace);
     private sealed record EnemySample(
         int Tick, ActorIdentity Actor, Position Position);
@@ -221,4 +346,9 @@ internal sealed class OrdersEvidenceLedger
         int Tick,
         GenericActorContext.ArcRelayCoreId Core,
         ActorIdentity Carrier);
+    private sealed record FriendlyCoreEvent(
+        int Tick,
+        GenericActorContext.ArcRelayCoreId Core,
+        ActorIdentity Actor,
+        string Kind);
 }

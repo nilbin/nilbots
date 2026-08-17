@@ -25,6 +25,8 @@ import {
   addCoreRecoveryOpportunity,
   addFightOpportunity,
   addHealthRecoveryOpportunity,
+  addHandoffOpportunity,
+  addDropOpportunity,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
   addSignatureOpportunityAnchor,
@@ -32,6 +34,8 @@ import {
   appendPlayRouteWaypoint,
   configurePlayContingent,
   configurePlayLifecycle,
+  configureProgramCustody,
+  configureProgramCustodyCompletion,
   configurePlayPostDeployment,
   configurePlayResponseFight,
   configurePlaySharedTrigger,
@@ -43,6 +47,7 @@ import {
   removeAmbushReserveSlot,
   removePlayReadinessGroup,
   removeSignatureOpportunity,
+  removeProgramCustodyCompletion,
   renameSignatureOpportunity,
   replacePlayRole,
   setPlayLinkedValue,
@@ -50,6 +55,7 @@ import {
   setPlayZoneRect,
   setSignatureOpportunityCommitmentHold,
   updateSignatureOpportunityUse,
+  updateDropOpportunity,
 } from '../src/site/sheets/playEditing';
 import {
   addBlankPlay,
@@ -63,11 +69,14 @@ import {
 import {
   movePlayGeometryObject,
   playGeometryIssues,
+  playSpatialGuides,
   setPlaySlotTolerance,
 } from '../src/site/sheets/playGeometry';
+import { analyzeCoreContinuation } from '../src/site/sheets/programAnalysis';
 import {
   bestPlayReadiness,
   practiceActionLabel,
+  practiceCoreCustodyEvents,
   practiceProgramAttributionAt,
   practiceProgramTimeline,
   signatureOpportunityPracticeSummary,
@@ -243,11 +252,11 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'route').length, 1);
   assert.equal(play.ownedGeometry.filter((entry) => entry.kind === 'anchor'
     && entry.id.includes('-receiver-')).length, 3);
-  assert.equal(playGeometryIssues(linked, play.id, taplineTileRows).length, 0);
+  assert.deepEqual(playGeometryIssues(linked, play.id, taplineTileRows), []);
   assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
   assert.deepEqual(validateDraft(linked, catalog).filter((issue) => issue.severity === 'error'), []);
   const generated = play.projections.flatMap((projection) => allOrders(projection.orders));
-  const receiverBranches = play.projections.flatMap((projection) => projection.orders)
+  const receiverBranches = play.projections.flatMap((projection) => allOrders(projection.orders))
     .filter((order) => order.id?.includes('-receive-'));
   assert.equal(generated.filter((order) => order.use?.skill === 'arc-toss').length, 3);
   assert.equal(receiverBranches.length, 2);
@@ -259,14 +268,16 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
   assert.deepEqual(tossLinks.map((link) => link.sourceWaypointIndex), [3, 8, 17]);
   assert.deepEqual(tossLinks.map((link) => link.forwardRouteTiles), [2, 5, 2]);
   for (const projection of play.projections) {
-    const children = projection.orders.find((order) => order.id?.endsWith('-running-return'))!.orders!;
+    const children = allOrders(projection.orders)
+      .find((order) => order.id?.endsWith('-running-return'))!.orders!;
     const toss = children.find((order) => order.use?.skill === 'arc-toss')!;
     assert.deepEqual(toss.use!.target, {
       role: projection.roleId === 'relay-a' ? 'relay-b' : 'relay-a',
     });
     assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.urgency, 'normal');
     assert.equal(children.find((order) => order.id?.endsWith('-carry-forward'))!.move?.patrol, corridor);
-    for (const receive of projection.orders.filter((order) => order.id?.includes('-receive-'))) {
+    for (const receive of allOrders(projection.orders)
+      .filter((order) => order.id?.includes('-receive-'))) {
       assert.equal(receive.urgency, 'urgent');
       assert.equal(receive.timeout, 80);
       assert.equal(typeof receive.move?.to === 'object'
@@ -293,8 +304,202 @@ test('the Relay chain keeps its carrier moving between sparse forward receiver p
 
   const detached = detachPlay(linked.workshop, play.id);
   assert.equal(detached.plays.length, 0);
-  assert.ok(linked.orders.roles.find((entry) => entry.id === 'relay-a')!
-    .orders.some((order) => order.id === `${play.id}-a-running-return`));
+  assert.ok(allOrders(linked.orders.roles.find((entry) => entry.id === 'relay-a')!.orders)
+    .some((order) => order.id === `${play.id}-a-running-return`));
+});
+
+test('Program custody stays beneath durable hosts and follows one Core across carriers', () => {
+  let linked = addBlankPlay(draft(), 'Enemy Well heist');
+  const playId = linked.workshop.plays[0].id;
+  for (const roleId of ['relay-a', 'relay-b', 'support'])
+    linked = addBlankPlayProjection(linked, playId, roleId);
+  const play = () => linked.workshop.plays[0];
+  const projection = (roleId: string) => play().projections.find((entry) =>
+    entry.roleId === roleId)!;
+  const route = addPlayGeometry(linked, playId, 'route');
+  linked = route.draft;
+  linked = appendPlayRouteWaypoint(linked, playId, route.id, [19, 20]);
+  linked = appendPlayRouteWaypoint(linked, playId, route.id, [2, 5]);
+
+  for (const roleId of ['relay-a', 'relay-b']) {
+    const current = projection(roleId);
+    linked = configureProgramCustody(linked, playId, current.id, {
+      kind: 'carrier-return', carrierRoleIds: ['relay-a', 'relay-b'],
+      routeId: route.id,
+      coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+    });
+  }
+  linked = configureProgramCustody(linked, playId, projection('support').id, {
+    kind: 'escort-carrier', carrierRoleIds: ['relay-a', 'relay-b'],
+    coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+  });
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    kind: 'escort-carrier', carrierRoleIds: ['relay-a', 'relay-b'],
+    coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+  });
+  let relayACarrier = play().coreCustody!.bindings.find((entry) =>
+    entry.projectionId === projection('relay-a').id
+      && entry.kind === 'carrier-return')!;
+  linked = addHandoffOpportunity(linked, playId, projection('relay-a').id,
+    relayACarrier.actionOrderIds[0], { target: { role: 'relay-b' },
+      coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy' });
+  linked = addDropOpportunity(linked, playId, projection('relay-a').id,
+    relayACarrier.actionOrderIds[0], {
+      coreBankValue: { operator: 'equals', value: 1 }, well: 'own',
+    });
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    kind: 'carrier-return', carrierRoleIds: ['relay-a', 'relay-b'],
+    routeId: route.id,
+    coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+  });
+  linked = configureProgramCustodyCompletion(
+    linked, playId, ['relay-a', 'relay-b']);
+
+  const completionId = play().coreCustody!.completionConditionId!;
+  assert.deepEqual(linked.orders.conditions[completionId], {
+    fact: 'friendly-core-resolutions', operator: 'at-least', value: 1,
+    roles: ['relay-a', 'relay-b'], since: 'node-entry',
+    correlateAcquisition: true,
+    outcomes: ['bank'],
+    coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+  });
+  const relayABindings = play().coreCustody!.bindings.filter((entry) =>
+    entry.projectionId === projection('relay-a').id);
+  assert.deepEqual(relayABindings.map((entry) => entry.kind),
+    ['carrier-return', 'escort-carrier']);
+  relayACarrier = relayABindings.find((entry) => entry.kind === 'carrier-return')!;
+  const relayAEscort = relayABindings.find((entry) => entry.kind === 'escort-carrier')!;
+  const relayAHost = projection('relay-a').orders.find((entry) =>
+    entry.id === relayACarrier.hostOrderIds[0])!;
+  assert.ok(relayAHost.orders!.findIndex((entry) =>
+    entry.id === relayACarrier.actionOrderIds[0])
+    < relayAHost.orders!.findIndex((entry) =>
+      entry.id === relayAEscort.actionOrderIds[0]));
+  assert.ok(allOrders(projection('relay-a').orders).some((entry) => entry.handoff));
+  const drop = allOrders(projection('relay-a').orders).find((entry) => entry.drop)!;
+  const dropConditionIds = conditionExpressionNames(drop.when);
+  assert.equal(new Set(dropConditionIds).size, dropConditionIds.length,
+    'combining value and source filters must allocate distinct Condition ids');
+  assert.deepEqual(dropConditionIds.map((id) => linked.orders.conditions[id].fact), [
+    'self-carrying', 'self-carried-core-bank-value', 'self-carrying-core-from-well',
+  ]);
+  for (const current of play().projections) {
+    const binding = play().coreCustody!.bindings.find((entry) =>
+      entry.projectionId === current.id)!;
+    const host = current.orders.find((entry) =>
+      entry.id === binding.hostOrderIds[0])!;
+    assert.ok(conditionExpressionNames(host.until).includes(completionId));
+    const local = allOrders(current.orders).find((entry) =>
+      entry.id === binding.actionOrderIds[0])!;
+    if (binding.kind === 'carrier-return') {
+      const facts = conditionExpressionNames(local.when).map((id) =>
+        linked.orders.conditions[id]?.fact);
+      assert.ok(facts.includes('self-carrying'));
+      assert.ok(facts.includes('self-carried-core-bank-value'));
+      assert.ok(facts.includes('self-carrying-core-from-well'));
+      assert.equal(linked.orders.conditions[local.until as string].fact,
+        'self-carrying');
+      assert.equal(linked.orders.conditions[local.until as string].value, 0);
+      const carrierMove = local.move ?? allOrders(local.orders ?? [])
+        .find((entry) => entry.move?.to === 'own-reactor')?.move;
+      assert.deepEqual(carrierMove, { to: 'own-reactor', via: route.id });
+    } else {
+      assert.deepEqual(local.move?.follow, {
+        selector: 'nearest-friendly-core-carrier',
+        roles: ['relay-a', 'relay-b'],
+        coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
+      });
+    }
+  }
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
+  assert.deepEqual(validateDraft(linked, catalog)
+    .filter((issue) => issue.severity === 'error'), []);
+
+  const continuation = analyzeCoreContinuation(linked, 'relay-a', 4, playId);
+  assert.equal(continuation.controller?.playId, playId);
+  assert.equal(continuation.controller?.localCustody, true);
+  assert.match(continuation.controller?.reason ?? '', /already active/);
+
+  linked = configurePlayLifecycle(linked, playId, {
+    minimumCommitmentTicks: 12,
+    successConditionIds: [completionId],
+    maximumTicks: 234,
+    cooldownTicks: 17,
+    waiting: 'hold-posts',
+  });
+  for (const binding of play().coreCustody!.bindings) {
+    const current = play().projections.find((entry) =>
+      entry.id === binding.projectionId)!;
+    for (const hostId of binding.hostOrderIds) {
+      const host = allOrders(current.orders).find((entry) => entry.id === hostId)!;
+      assert.equal(host.timeout, 234);
+      assert.equal(host.cooldown, 17);
+      assert.ok(conditionExpressionNames(host.until).includes(completionId));
+    }
+  }
+
+  linked = removeProgramCustodyCompletion(linked, playId);
+  assert.equal(linked.orders.conditions[completionId], undefined);
+  assert.ok(play().coreCustody?.bindings.every((binding) => {
+    const current = projection(play().projections.find((entry) =>
+      entry.id === binding.projectionId)!.roleId);
+    return binding.hostOrderIds.every((id) =>
+      !conditionExpressionNames(allOrders(current.orders)
+        .find((entry) => entry.id === id)?.until).includes(completionId));
+  }));
+});
+
+test('an unwanted incidental Core is visibly authored as an ordinary local Drop branch', () => {
+  let linked = addBlankPlay(draft(), 'Reject incidental own Core');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  const projection = linked.workshop.plays[0].projections[0];
+  linked = configureProgramCustody(linked, playId, projection.id, {
+    kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  const carrier = linked.workshop.plays[0].coreCustody!.bindings[0];
+  linked = addDropOpportunity(linked, playId, projection.id,
+    carrier.actionOrderIds[0], {
+      coreBankValue: { operator: 'equals', value: 1 }, well: 'own',
+    });
+  linked = configureProgramCustodyCompletion(
+    linked, playId, ['relay-a'], ['drop']);
+
+  let current = linked.workshop.plays[0];
+  let dropBinding = current.projections[0].signatureOpportunities!.find((entry) =>
+    entry.kind === 'drop')!;
+  let drop = allOrders(current.projections[0].orders).find((entry) =>
+    entry.id === dropBinding.useOrderId)!;
+  assert.ok(drop.drop);
+  assert.deepEqual(conditionExpressionNames(drop.when).map((id) =>
+    linked.orders.conditions[id].fact), [
+    'self-carrying', 'self-carried-core-bank-value', 'self-carrying-core-from-well',
+  ]);
+  assert.deepEqual(linked.orders.conditions[current.coreCustody!.completionConditionId!], {
+    fact: 'friendly-core-resolutions', operator: 'at-least', value: 1,
+    roles: ['relay-a'], since: 'node-entry', correlateAcquisition: true,
+    outcomes: ['drop'],
+  });
+
+  // Refinement goes through the same visible card and rewrites only its
+  // ordinary Conditions; no raw Instruction edit or hidden pickup policy.
+  linked = updateDropOpportunity(linked, playId, projection.id, dropBinding.id, {
+    coreBankValue: { operator: 'at-most', value: 2 }, well: 'centre',
+  });
+  current = linked.workshop.plays[0];
+  dropBinding = current.projections[0].signatureOpportunities!.find((entry) =>
+    entry.kind === 'drop')!;
+  drop = allOrders(current.projections[0].orders).find((entry) =>
+    entry.id === dropBinding.useOrderId)!;
+  const refined = conditionExpressionNames(drop.when).map((id) =>
+    linked.orders.conditions[id]);
+  assert.ok(refined.some((condition) => condition.fact === 'self-carried-core-bank-value'
+    && condition.operator === 'at-most' && condition.value === 2));
+  assert.ok(refined.some((condition) => condition.fact === 'self-carrying-core-from-well'
+    && condition.well === 'centre'));
+  assert.equal(inspectWorkshop(linked.orders, linked.workshop).length, 0);
+  assert.deepEqual(validateDraft(linked, catalog)
+    .filter((issue) => issue.severity === 'error'), []);
 });
 
 test('old v1 Plays gain opportunity linkage without changing their ordinary Orders', () => {
@@ -465,6 +670,26 @@ test('a canonical Post projects stand, facing, readiness and deployment maintena
   assert.deepEqual(nudged.mapPlan.anchors[post.facingAnchorId!], [21, 8]);
   assert.deepEqual(nudged.mapPlan.zones[post.readinessZoneId].rect,
     [21, 9, 21, 9]);
+  let guides = playSpatialGuides(nudged, playId, catalog);
+  assert.deepEqual(guides.map((guide) => ({
+    source: nudged.mapPlan.anchors[guide.sourceAnchorId],
+    target: nudged.mapPlan.anchors[guide.targetAnchorId],
+    distance: guide.distance,
+    valid: guide.valid,
+  })), [{ source: [21, 9], target: [24, 9], distance: 3, valid: true }]);
+  const movedTarget = movePlayGeometryObject(
+    nudged, playId, post.deployment!.targetAnchorId, -1, 1, 31, 27);
+  guides = playSpatialGuides(movedTarget, playId, catalog);
+  assert.deepEqual(movedTarget.mapPlan.anchors[post.deployment!.targetAnchorId], [23, 10]);
+  assert.equal(guides[0].distance, 2);
+  const maintained = allOrders(movedTarget.workshop.plays[0].projections[0].orders)
+    .filter((order) => order.use?.skill === 'hardlight-block');
+  assert.ok(maintained.every((order) => order.use?.at === post.deployment!.targetAnchorId));
+  const impossible = movePlayGeometryObject(
+    movedTarget, playId, post.deployment!.targetAnchorId, 7, 7, 31, 27);
+  assert.match(playGeometryIssues(impossible, playId, catalog.map.tileRows, catalog)
+    .find((issue) => issue.message.includes('outside range'))?.message ?? '',
+  /outside range 6/);
 });
 
 test('Fight, Core and health cards share one ordered Opportunity host and ordinary fallthrough', () => {
@@ -958,6 +1183,69 @@ test('Practice maps accepted and rejected Instructions to the immutable Program 
     orderId: secondLeaf,
     action: 'Move',
   }]);
+});
+
+test('Practice explains Program-local acquisition, transfer and bank for the selected body', () => {
+  let linked = addBlankPlay(draft(), 'Relay recovery');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  linked = addBlankPlayProjection(linked, playId, 'relay-b');
+  const relayAHost = linked.workshop.plays[0].projections.find((entry) =>
+    entry.roleId === 'relay-a')!.orders[0].id!;
+  linked = addCoreRecoveryOpportunity(linked, playId,
+    linked.workshop.plays[0].projections.find((entry) => entry.roleId === 'relay-a')!.id,
+    relayAHost, {
+      withinWalkingSteps: 5, preference: 'highest-value', pursuersPerCore: 1,
+      coordinateAcrossSheet: true,
+    });
+  for (const roleId of ['relay-a', 'relay-b']) {
+    const projection = linked.workshop.plays[0].projections.find((entry) =>
+      entry.roleId === roleId)!;
+    linked = configureProgramCustody(linked, playId, projection.id, {
+      kind: 'carrier-return', carrierRoleIds: ['relay-a', 'relay-b'],
+    });
+  }
+  linked = configureProgramCustodyCompletion(linked, playId, ['relay-a', 'relay-b']);
+  const relayA = linked.workshop.plays[0].projections.find((entry) =>
+    entry.roleId === 'relay-a')!;
+  const relayB = linked.workshop.plays[0].projections.find((entry) =>
+    entry.roleId === 'relay-b')!;
+  const aCarry = linked.workshop.plays[0].coreCustody!.bindings.find((entry) =>
+    entry.projectionId === relayA.id)!.actionOrderIds[0];
+  const aRecovery = relayA.signatureOpportunities!.find((entry) =>
+    entry.kind === 'core-recovery')!.useOrderId;
+  assert.equal(allOrders(relayA.orders).find((entry) => entry.id === aRecovery)?.move?.to,
+    'highest-bank-value-visible-loose-core');
+  const bCarry = linked.workshop.plays[0].coreCustody!.bindings.find((entry) =>
+    entry.projectionId === relayB.id)!.actionOrderIds[0];
+  const coreId = { sourceWellId: 'well-enemy', sourceOrdinal: 2 };
+  const identity = (unitId: number) => ({ teamId: 0, unitId, lifeId: 0 });
+  const actor = (unitId: number) => ({ identity: identity(unitId), position: { x: 5, y: 5 } });
+  const frame = (tick: number, event: object | null, aOrder: string, bOrder: string) => ({
+    tick, before: { actors: [actor(5), actor(6)] }, after: { actors: [actor(5), actor(6)] },
+    actorTurns: [
+      { actor: identity(5), runtimeReply: { debugMessage: `orders:relay-a > ${aOrder}:march@2,2` }, acceptedDecision: { debugMessage: null } },
+      { actor: identity(6), runtimeReply: { debugMessage: `orders:relay-b > ${bOrder}:march@2,2` }, acceptedDecision: { debugMessage: null } },
+    ],
+    events: event ? [{ tick, ordinal: 0, arcRelayFact: event }] : [],
+  });
+  const replay = {
+    initialWorld: { actors: [actor(5), actor(6)] },
+    ticks: [
+      frame(9, null, aRecovery, bCarry),
+      frame(10, { kind: 'core-picked-up', coreId, carrierActor: identity(5), position: { x: 5, y: 5 }, nextRelocationTick: 11 }, aCarry, bCarry),
+      frame(11, { kind: 'core-handed-off', coreId, sourceActor: identity(5), targetActor: identity(6), position: { x: 5, y: 5 }, nextRelocationTick: 12 }, aCarry, bCarry),
+      frame(12, { kind: 'core-banked', coreId, carrierActor: identity(6), teamId: 0, position: { x: 2, y: 2 }, chargePips: 1, chargeAwarded: 4 }, aCarry, bCarry),
+    ],
+  } as unknown as ReplayModel;
+
+  assert.deepEqual(practiceCoreCustodyEvents(replay, linked, 5).map((entry) => entry.kind),
+    ['deliberate-pickup', 'handoff-out']);
+  assert.deepEqual(practiceCoreCustodyEvents(replay, linked, 6).map((entry) => entry.kind),
+    ['handoff-in', 'bank']);
+  const atBank = practiceProgramAttributionAt(replay, linked, 6, 12);
+  assert.equal(atBank?.programId, playId);
+  assert.equal(atBank?.localCustody?.kind, 'carrier-return');
 });
 
 test('the remaining recipe lenses materialize only valid ordinary Orders', () => {

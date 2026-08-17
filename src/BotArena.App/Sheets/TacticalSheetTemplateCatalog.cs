@@ -19,7 +19,9 @@ public sealed record TacticalSheetSource(
     string[] Composition,
     byte[] LinkedData,
     string ContentHash,
-    string? WorkshopJson = null);
+    string? WorkshopJson = null,
+    string Classification = "practice",
+    bool Recommended = false);
 
 /// <summary>
 /// Reproducible two-file product templates derived from tracked Orders v2
@@ -39,19 +41,30 @@ public sealed class TacticalSheetTemplateCatalog
         TacticalSheetSource[] starters =
         [
             Resolve(
+                "recommended-first-v1",
+                "Tapline Fundamentals",
+                "A clear first sheet: bodies split across the three Wells, recover nearby Cores, return cargo, take sensible fights, and heal when needed.",
+                Resource("BotArena.Sheets.recommended-first-v1.sheet.json"),
+                Resource("BotArena.Sheets.recommended-first-v1.map-plan.json"),
+                Resource("BotArena.Sheets.recommended-first-v1.workshop.json"),
+                classification: "recommended",
+                recommended: true),
+            Resolve(
                 "running-relay-v1",
                 "Running Relay",
                 "Two Relay runners carry a Core through a drawn corridor with forward Arc Tosses, while six bodies work the field.",
                 Resource("BotArena.Sheets.running-relay-v1.sheet.json"),
                 Resource("BotArena.Sheets.running-relay-v1.map-plan.json"),
-                Resource("BotArena.Sheets.running-relay-v1.workshop.json")),
+                Resource("BotArena.Sheets.running-relay-v1.workshop.json"),
+                classification: "experimental"),
             Resolve(
                 "mid-overload-fork-v1",
                 "Mid Overload Fork",
                 "A complete map-first Program: two home defenders, a five-body return ambush, and an independent Kestrel raid.",
                 Resource("BotArena.Sheets.mid-overload-fork-v1.sheet.json"),
                 Resource("BotArena.Sheets.mid-overload-fork-v1.map-plan.json"),
-                Resource("BotArena.Sheets.mid-overload-fork-v1.workshop.json")),
+                Resource("BotArena.Sheets.mid-overload-fork-v1.workshop.json"),
+                classification: "advanced"),
         ];
         Starters = starters;
         Template = starters[0];
@@ -138,7 +151,9 @@ public sealed class TacticalSheetTemplateCatalog
         string description,
         string ordersJson,
         string mapPlanJson,
-        string? workshopJson = null)
+        string? workshopJson = null,
+        string classification = "practice",
+        bool recommended = false)
     {
         JsonObject orders = JsonNode.Parse(ordersJson)?.AsObject()
             ?? throw new InvalidDataException($"Embedded Orders sheet '{id}' is empty.");
@@ -182,7 +197,9 @@ public sealed class TacticalSheetTemplateCatalog
             compilation.Composition,
             compilation.LinkedData,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)),
-            TacticalSheetWorkshopValidator.Normalize(workshopJson));
+            TacticalSheetWorkshopValidator.Normalize(workshopJson),
+            classification,
+            recommended);
     }
 
     private static string Resource(string name)

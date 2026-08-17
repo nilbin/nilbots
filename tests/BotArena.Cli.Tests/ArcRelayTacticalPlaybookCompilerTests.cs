@@ -730,6 +730,104 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void ProgramScopedCustodyUsesRoleQualifiedCarrierAndCorrelatedCoreEvidence()
+    {
+        JsonObject source = Source("lockbox-v1");
+        JsonObject map = MapPlan("lockbox-v1");
+        JsonArray orders = source["roles"]![0]!["orders"]!.AsArray();
+        source["conditions"]!["scoped-carrier"] = new JsonObject
+        {
+            ["fact"] = "friendly-carriers-in-roles",
+            ["operator"] = "at-least",
+            ["value"] = 1,
+            ["roles"] = new JsonArray("own-well-mason", "centre-screen"),
+            ["coreBankValue"] = new JsonObject
+            {
+                ["operator"] = "at-least",
+                ["value"] = 2,
+            },
+        };
+        source["conditions"]!["same-core-banked"] = new JsonObject
+        {
+            ["fact"] = "friendly-core-banks",
+            ["operator"] = "at-least",
+            ["value"] = 1,
+            ["roles"] = new JsonArray("own-well-mason", "centre-screen"),
+            ["well"] = "enemy",
+            ["since"] = "node-entry",
+            ["correlateAcquisition"] = true,
+        };
+        source["conditions"]!["carrying-enemy-core"] = new JsonObject
+        {
+            ["fact"] = "self-carrying-core-from-well",
+            ["operator"] = "equals",
+            ["value"] = 1,
+            ["well"] = "enemy",
+        };
+        source["conditions"]!["same-core-lost"] = new JsonObject
+        {
+            ["fact"] = "friendly-core-losses",
+            ["operator"] = "at-least",
+            ["value"] = 1,
+            ["roles"] = new JsonArray("own-well-mason", "centre-screen"),
+            ["well"] = "enemy",
+            ["since"] = "node-entry",
+            ["correlateAcquisition"] = true,
+        };
+        orders.Insert(0, new JsonObject
+        {
+            ["id"] = "scoped-custody-host",
+            ["until"] = new JsonObject
+            {
+                ["any"] = new JsonArray("same-core-banked", "same-core-lost"),
+            },
+            ["orders"] = new JsonArray
+            {
+                new JsonObject
+                {
+                    ["id"] = "return-enemy-core",
+                    ["when"] = "carrying-enemy-core",
+                    ["move"] = new JsonObject { ["to"] = "own-reactor" },
+                },
+                new JsonObject
+                {
+                    ["id"] = "recover-enemy-core",
+                    ["move"] = new JsonObject
+                    {
+                        ["to"] = "nearest-visible-loose-core",
+                        ["well"] = "enemy",
+                    },
+                },
+                new JsonObject
+                {
+                    ["id"] = "escort-program-carrier",
+                    ["when"] = "scoped-carrier",
+                    ["move"] = new JsonObject
+                    {
+                        ["follow"] = new JsonObject
+                        {
+                            ["selector"] = "nearest-friendly-core-carrier",
+                            ["roles"] = new JsonArray(
+                                "own-well-mason", "centre-screen"),
+                            ["well"] = "enemy",
+                        },
+                        ["posture"] = "rear",
+                    },
+                },
+            },
+        });
+
+        Assert.True(Compile(source, map).UsesOrderTree);
+
+        source["conditions"]!["same-core-banked"]!["roles"] =
+            new JsonArray("not-a-role");
+        InvalidDataException invalid = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+        Assert.Contains("needs unique declared roles", invalid.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DestinationFacingIsNarrowAndConsumesItsAnchor()
     {
         JsonObject source = Source("lockbox-v1");

@@ -243,11 +243,11 @@ The finite fact catalog is:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `self-deployment-in-zone`, `deployment-lifetime-percent`, `deployment-durability-percent` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-carrying-core-from-well`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `self-deployment-in-zone`, `deployment-lifetime-percent`, `deployment-durability-percent` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count`, `role-deployments-in-zone-count` |
-| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
+| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `friendly-carriers-in-roles`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
-| history | `friendly-core-pickups` |
+| history | `friendly-core-pickups`, `friendly-core-acquisitions`, `friendly-core-banks`, `friendly-core-drops`, `friendly-core-losses`, `friendly-core-resolutions` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 
 Role facts require `role`; zone facts require `zone`; Well facts require
@@ -258,10 +258,19 @@ While the Core is still active—loose, carried, in flight, dropped, or
 stolen—there is no countdown, so finite `at-most` birth windows remain false.
 `self-deployment-in-zone` and `role-deployments-in-zone-count` require a
 current `signature` id plus `zone`; the latter also requires `role`.
-`self-nearest-visible-loose-core-distance` may take a `coreBankValue` filter,
+`self-carrying-core-from-well` requires `well` and says whether this body's
+current carried Core came from that team-relative Well. `friendly-carriers-in-roles`
+requires one or more declared `roles` and may additionally filter by `well` and
+`coreBankValue`; it counts only current friendly carriers in that authored role
+scope. `self-nearest-visible-loose-core-distance` may take a `coreBankValue` filter,
 and all three bounded service-distance facts are legal only as walking-step
-upper bounds. `friendly-core-pickups` takes the same explicit historical
-interval as the four zone-history facts, but no zone. `known-enemy-carriers` and `remembered-enemies-in-zone` require
+upper bounds. Core-history facts take the same explicit historical interval as
+the four zone-history facts, but no zone. They may filter by declared `roles`,
+`well`, and `coreBankValue`. `friendly-core-acquisitions` includes pickup,
+catch, and Handoff receipt. `friendly-core-resolutions` also requires one or
+more `outcomes` from `bank`, `drop`, and `loss`; with
+`correlateAcquisition: true`, only the same authoritative Core identity acquired
+inside the interval may satisfy the outcome. `known-enemy-carriers` and `remembered-enemies-in-zone` require
 `freshnessTicks` in `1..600`. Qualifiers on other facts are errors. Health
 percent comparisons are `0..100`; boolean facts compare with `0` or `1`.
 
@@ -347,7 +356,9 @@ duplicate staging zone or companion anchor is authored.
 `patrol` repeats a route. `follow` tracks either the nearest live body of a
 named role by terrain path distance, then unit id; the most-experienced live
 ally by level, distance, then unit id; or the nearest friendly Core carrier,
-optionally filtered by carried bank value. It stands on a legal adjacent tile rather
+optionally filtered by declared carrier roles, carried bank value, and source
+Well. A named role may likewise select its highest veteran deterministically by
+level, distance, then unit id. Follow stands on a legal adjacent tile rather
 than asking for the leader's occupied tile. `via` is an optional
 one-time ingress route for `to` or `patrol`; follow cannot use it. Combat pre-emption
 does not restart ingress. Exit, death, or an impossible route does.
@@ -358,8 +369,9 @@ positioning relative to the destination, not a formation or combat behavior.
 `withinWalkingSteps` is legal only on `nearest-heal-zone` and the two visible
 Core targets. It measures the actual corner-strict terrain path, not bird's-eye
 distance; visible bodies remain transient traffic. `coreBankValue` is legal
-only on visible-Core moves and nearest-carrier Follow. These are candidate
-filters, not hidden movement or pickup rules.
+only on visible-Core moves and nearest-carrier Follow; the latter may also take
+`roles` and `well`. These are candidate filters, not hidden movement or pickup
+rules.
 
 Optional `face: { "anchor": "id" }` is legal only on a `move.to` whose
 destination is an authored zone or anchor. It never changes travel. Once the
@@ -693,10 +705,16 @@ The product starts from two complete editable Program sheets:
   Masons. One remembered enemy-pressure trigger coordinates a 2/2 home
   defense and a separately armed 5/5 return ambush, while Kestrel raids
   immediately through one authored route and uses contextual Vector Dash.
-- **Running Relay** fields a legal eight-body, seven-class roster with two
-  Relays. The pair moves along one drawn corridor and uses ordinary Arc Toss
-  opportunities only when the receiver has gained forward route progress;
-  the other six bodies retain complete field fallbacks.
+- **Running Relay** is an Experimental coordination/mechanics example with a
+  legal eight-body, seven-class roster and two Relays. One durable Program
+  keeps custody local while the pair moves along a drawn corridor, transfers
+  the same Core through ordinary Arc Toss opportunities, retargets its escort,
+  and completes on the correlated bank event. It is not the recommended first
+  strategy.
+
+The starter catalog classifies one straightforward balanced sheet as
+**Recommended first**, Mid Overload Fork as **Advanced**, and Running Relay as
+**Experimental**. Recommendation is explicit metadata, never catalogue order.
 
 The editor also offers one blank Program and guided lenses for Ambush, Running
 Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
@@ -774,10 +792,39 @@ and per-target capacity. Health recovery derives low/high hysteresis, a bounded
 walking detour, retry lifecycle, carrying policy, and the sheet-wide default of
 one patient per healing tile. Nearby-Core recovery derives a bounded visible
 Core target, optional bank-value filter/ranking, and the sheet-wide default of
-one pursuer per resolved Core. Its normal consequence is an explicit higher
-**Bank carried Core** Program; pickup itself does not create runtime Program
-state. Handoff and Drop are likewise ordinary one-shot leaves whose illegal or
-false case reaches the visible continuation in the same tick.
+one pursuer per resolved Core. Handoff and Drop are likewise ordinary one-shot
+leaves whose illegal or false case reaches the visible continuation in the
+same tick.
+
+A Program can own a visible **If this Program gains a Core** continuation.
+That continuation is not a Program call or a second priority layer. The
+Program's existing durable participant root owns its trigger, readiness,
+commitment, hard timeout, and authored overall outcome. Beneath that root, each
+participant may have ordinary local carrier and escort branches:
+
+- a carrier branch is gated by this participant's current carrying/value/source
+  Conditions and ends when this participant becomes empty-handed;
+- another participant may Follow the nearest current Core carrier filtered to
+  the Program's declared carrier roles, value, and source;
+- Fight, healing, Handoff, Drop, and signature Opportunities remain ordinary
+  siblings inside either local branch; and
+- the parent Program ends only on its authored same-Core bank/drop/loss outcome
+  or hard timeout—not merely because one carrier became empty during Handoff or
+  Arc Toss.
+
+The Program supplies role filters to ordinary facts and selectors; execution
+has no active-Program fact. Same-Core completion correlates immutable
+pickup/catch/Handoff and bank/drop/loss events by Core identity since the
+durable node entered. A standalone Core-custody Program is still legal as an
+ordinary higher override or lower fallback, but no source Program links or
+jumps to it. The editor explains the actual top-to-bottom result instead.
+
+Core pursuit filters govern deliberate pursuit only. A body can still acquire
+an incidental Core through physical movement. A Program may therefore put a
+value/source-filtered Drop or transfer before its wanted-Core return. An
+accepted Drop consumes the tick and uses the engine's adjacent homeward landing
+plus source-life reclaim delay; it is not discard or permanent avoidance. The
+editor warns when the authored route can repeat the pickup/drop cycle.
 
 Posts are also authoring sugar. A Post owns a standing anchor, readiness zone,
 tolerance, optional cardinal facing point, capacity, and optional maintained

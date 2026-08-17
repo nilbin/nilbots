@@ -126,6 +126,7 @@ export default function TacticalSheetEditor({ catalog, initialSheetId = null }: 
 
   const starterDraft = useCallback((starterId?: string) => {
     const starter = catalog.starterSheets.find((entry) => entry.id === starterId)
+      ?? catalog.starterSheets.find((entry) => entry.recommended)
       ?? catalog.starterSheets[0];
     return starter
       ? parseDraft(starter.name, null, null, starter.ordersJson,
@@ -648,7 +649,7 @@ function StarterChooser({ catalog, onChoose }: {
   return <div>
     <p className="t-meta max-w-3xl">Start with a complete strategy, then reshape its Programs directly on Tapline. Nothing here is a locked recipe: every Post, route, trigger, Opportunity and fallback stays editable.</p>
     <div className="mt-4 grid gap-3 md:grid-cols-2">
-      {catalog.starterSheets.map((starter, index) => {
+      {catalog.starterSheets.map((starter) => {
         const locked = [...new Set(starter.composition.filter((classId) =>
           !catalog.classes.find((entry) => entry.id === classId)?.unlocked))];
         return <button key={starter.id} type="button"
@@ -656,7 +657,11 @@ function StarterChooser({ catalog, onChoose }: {
           <span className="flex items-center gap-2">
             <span className="flex -space-x-1.5">{starter.composition.map((classId, slot) =>
               <ClassIcon key={`${classId}:${slot}`} classId={classId} size={34} decorative />)}</span>
-            {index === 0 && <span className="pill ml-auto">Recommended first</span>}
+            <span className="pill ml-auto">{starter.recommended
+              ? 'Recommended first'
+              : starter.classification === 'advanced' ? 'Advanced example'
+                : starter.classification === 'experimental' ? 'Experimental mechanics'
+                  : 'Practice example'}</span>
           </span>
           <b className="type-display mt-4 block text-[22px]">{starter.name}</b>
           <span className="t-meta mt-2 block">{starter.description}</span>

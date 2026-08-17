@@ -2,8 +2,8 @@ import {
   materializeWorkshop,
   replaceProjectionOrders,
   type PlayDrift,
-} from './linkedPlays';
-import { synchronizePlayGeometry } from './playGeometry';
+} from './linkedPlays.ts';
+import { synchronizePlayGeometry } from './playGeometry.ts';
 import {
   identifierFromName,
   type ConditionDefinition,
@@ -11,13 +11,14 @@ import {
   type OrderNode,
   type SheetDraft,
   type UseOrder,
-} from './sheetAuthoring';
+} from './sheetAuthoring.ts';
 import type {
   LinkedPlay,
   PlayGeometryKind,
   PlayLinkedValue,
   PlayProjection,
-} from './workshopTypes';
+  PlayCustodyBinding,
+} from './workshopTypes.ts';
 
 export function addSignatureOpportunity(
   draft: SheetDraft,
@@ -91,9 +92,9 @@ export interface CoreRecoveryOpportunitySetup {
   withinWalkingSteps: number | null;
   preference: 'closest' | 'highest-value';
   coreBankValue?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
+  well?: ConditionDefinition['well'];
   pursuersPerCore: number | null;
   coordinateAcrossSheet: boolean;
-  linkedBankProgramId?: string;
 }
 
 export function addCoreRecoveryOpportunity(
@@ -118,6 +119,7 @@ export function addCoreRecoveryOpportunity(
     value: setup.withinWalkingSteps ?? 31,
     ...(setup.coreBankValue
       ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+    ...(setup.well ? { well: setup.well } : {}),
   };
   play.ownedConditionIds.push(emptyId, nearbyId);
   const orderId = uniqueOrderId(`${hostOrderId}-recover-core`, projection.orders);
@@ -133,10 +135,10 @@ export function addCoreRecoveryOpportunity(
         ? {} : { withinWalkingSteps: setup.withinWalkingSteps }),
       ...(setup.coreBankValue
         ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+      ...(setup.well ? { well: setup.well } : {}),
     },
   }, 'core-recovery');
   binding.ownedConditionIds = [emptyId, nearbyId];
-  binding.linkedBankProgramId = setup.linkedBankProgramId;
   binding.capacityPolicy = {
     target: 'core', limit: setup.pursuersPerCore,
     scope: setup.coordinateAcrossSheet ? 'sheet' : 'local',
@@ -231,6 +233,133 @@ export function addHealthRecoveryOpportunity(
   return requireMaterialized(next);
 }
 
+export interface HandoffOpportunitySetup {
+  target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
+  coreBankValue?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
+  well?: ConditionDefinition['well'];
+}
+
+export function addHandoffOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  hostOrderId: string,
+  setup: HandoffOpportunitySetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const ids = new Set(Object.keys(next.orders.conditions));
+  const carryingId = uniqueIdentifier(`${hostOrderId}-carrying`, ids);
+  next.orders.conditions[carryingId] = {
+    fact: 'self-carrying', operator: 'equals', value: 1,
+  };
+  const whenIds = [carryingId];
+  if (setup.coreBankValue) {
+    ids.add(carryingId);
+    const valueId = uniqueIdentifier(`${hostOrderId}-carried-value`, ids);
+    ids.add(valueId);
+    next.orders.conditions[valueId] = {
+      fact: 'self-carried-core-bank-value',
+      operator: setup.coreBankValue.operator,
+      value: setup.coreBankValue.value,
+    };
+    whenIds.push(valueId);
+  }
+  if (setup.well) {
+    const sourceId = uniqueIdentifier(`${hostOrderId}-carried-source`, ids);
+    next.orders.conditions[sourceId] = {
+      fact: 'self-carrying-core-from-well', operator: 'equals', value: 1,
+      well: setup.well,
+    };
+    whenIds.push(sourceId);
+  }
+  play.ownedConditionIds.push(...whenIds);
+  const orderId = uniqueOrderId(`${hostOrderId}-handoff`, projection.orders);
+  const binding = insertOpportunity(play, projection, hostOrderId, {
+    id: orderId,
+    when: expressionOf(whenIds),
+    handoff: { target: structuredClone(setup.target) },
+  }, 'handoff');
+  binding.ownedConditionIds = whenIds;
+  return requireMaterialized(next);
+}
+
+export interface DropOpportunitySetup {
+  coreBankValue?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
+  well?: ConditionDefinition['well'];
+}
+
+export function addDropOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  hostOrderId: string,
+  setup: DropOpportunitySetup = {},
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const ids = new Set(Object.keys(next.orders.conditions));
+  const carryingId = uniqueIdentifier(`${hostOrderId}-carrying`, ids);
+  next.orders.conditions[carryingId] = {
+    fact: 'self-carrying', operator: 'equals', value: 1,
+  };
+  const whenIds = [carryingId];
+  if (setup.coreBankValue) {
+    ids.add(carryingId);
+    const valueId = uniqueIdentifier(`${hostOrderId}-carried-value`, ids);
+    ids.add(valueId);
+    next.orders.conditions[valueId] = {
+      fact: 'self-carried-core-bank-value',
+      operator: setup.coreBankValue.operator,
+      value: setup.coreBankValue.value,
+    };
+    whenIds.push(valueId);
+  }
+  if (setup.well) {
+    const sourceId = uniqueIdentifier(`${hostOrderId}-carried-source`, ids);
+    next.orders.conditions[sourceId] = {
+      fact: 'self-carrying-core-from-well', operator: 'equals', value: 1,
+      well: setup.well,
+    };
+    whenIds.push(sourceId);
+  }
+  play.ownedConditionIds.push(...whenIds);
+  const orderId = uniqueOrderId(`${hostOrderId}-drop`, projection.orders);
+  const binding = insertOpportunity(play, projection, hostOrderId, {
+    id: orderId,
+    when: expressionOf(whenIds),
+    drop: true,
+  }, 'drop');
+  binding.ownedConditionIds = whenIds;
+  return requireMaterialized(next);
+}
+
+export function updateHandoffOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  setup: HandoffOpportunitySetup,
+): SheetDraft {
+  return updateCarriedCoreOpportunity(draft, playId, projectionId, bindingId,
+    setup.coreBankValue, setup.well, (node) => {
+      node.handoff = { target: structuredClone(setup.target) };
+    });
+}
+
+export function updateDropOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  setup: DropOpportunitySetup,
+): SheetDraft {
+  return updateCarriedCoreOpportunity(draft, playId, projectionId, bindingId,
+    setup.coreBankValue, setup.well, (node) => { node.drop = true; });
+}
+
 export function updateFightOpportunity(
   draft: SheetDraft,
   playId: string,
@@ -286,6 +415,7 @@ export function updateCoreRecoveryOpportunity(
     value: setup.withinWalkingSteps ?? 31,
     ...(setup.coreBankValue
       ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+    ...(setup.well ? { well: setup.well } : {}),
   };
   node.move = {
     to: setup.preference === 'highest-value'
@@ -294,8 +424,8 @@ export function updateCoreRecoveryOpportunity(
       ? {} : { withinWalkingSteps: setup.withinWalkingSteps }),
     ...(setup.coreBankValue
       ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+    ...(setup.well ? { well: setup.well } : {}),
   };
-  binding.linkedBankProgramId = setup.linkedBankProgramId;
   binding.capacityPolicy = {
     target: 'core', limit: setup.pursuersPerCore,
     scope: setup.coordinateAcrossSheet ? 'sheet' : 'local',
@@ -600,6 +730,339 @@ export function moveProgram(
   if (target < 0 || target >= next.workshop.plays.length) return next;
   [next.workshop.plays[index], next.workshop.plays[target]] =
     [next.workshop.plays[target], next.workshop.plays[index]];
+  return requireMaterialized(next);
+}
+
+/** Add a plain banking Program. It is never called by another Program; its
+ * carrying gate simply wins wherever it sits in the one global Program list. */
+export function addBankingProgram(
+  draft: SheetDraft,
+  roleIds: string[],
+  name = 'Bank carried Core',
+): { draft: SheetDraft; playId: string } {
+  const next = structuredClone(draft);
+  const playId = uniqueIdentifier('bank-carried-core',
+    new Set(next.workshop.plays.map((entry) => entry.id)), 'program');
+  const ids = new Set(Object.keys(next.orders.conditions));
+  const carryingId = uniqueIdentifier(`${playId}-carrying`, ids); ids.add(carryingId);
+  const emptyId = uniqueIdentifier(`${playId}-empty`, ids);
+  next.orders.conditions[carryingId] = {
+    fact: 'self-carrying', operator: 'equals', value: 1,
+  };
+  next.orders.conditions[emptyId] = {
+    fact: 'self-carrying', operator: 'equals', value: 0,
+  };
+  next.workshop.plays.push({
+    id: playId,
+    name,
+    recipe: 'blank',
+    ownedGeometry: [],
+    geometryGroups: [],
+    slots: [],
+    formations: [],
+    readinessGroups: [],
+    ownedConditionIds: [carryingId, emptyId],
+    ownedCapacityIds: [],
+    linkedValues: [],
+    projections: roleIds.map((roleId) => ({
+      id: `${playId}-${roleId}`,
+      roleId,
+      orders: [{
+        id: `${playId}-${roleId}-bank`,
+        when: carryingId,
+        until: emptyId,
+        urgency: 'urgent',
+        move: { to: 'own-reactor' },
+      }],
+      lastGenerated: [],
+      signatureOpportunities: [],
+    })),
+  });
+  return { draft: requireMaterialized(next), playId };
+}
+
+export function extendBankingProgram(
+  draft: SheetDraft,
+  playId: string,
+  roleId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  if (play.projections.some((entry) => entry.roleId === roleId)) return next;
+  const carryingId = play.ownedConditionIds.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-carrying'
+    && next.orders.conditions[id]?.value === 1);
+  const emptyId = play.ownedConditionIds.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-carrying'
+    && next.orders.conditions[id]?.value === 0);
+  if (!carryingId || !emptyId)
+    throw new Error(`Program '${play.name}' is not a generated banking Program.`);
+  play.projections.push({
+    id: `${play.id}-${roleId}`,
+    roleId,
+    orders: [{
+      id: `${play.id}-${roleId}-bank`,
+      when: carryingId,
+      until: emptyId,
+      urgency: 'urgent',
+      move: { to: 'own-reactor' },
+    }],
+    lastGenerated: [],
+    signatureOpportunities: [],
+  });
+  return requireMaterialized(next);
+}
+
+export interface ProgramCustodySetup {
+  kind: 'carrier-return' | 'escort-carrier';
+  hostOrderIds?: string[];
+  carrierRoleIds: string[];
+  routeId?: string;
+  coreBankValue?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
+  well?: ConditionDefinition['well'];
+}
+
+/**
+ * Materialize Program-local custody beneath the participant's durable host.
+ * The parent keeps tactical activation/lifecycle; the generated child owns
+ * only this body's current carrier state.
+ */
+export function configureProgramCustody(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  setup: ProgramCustodySetup,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const custody = play.coreCustody ??= { bindings: [] };
+  const existing = custody.bindings.find((entry) =>
+    entry.projectionId === projectionId && entry.kind === setup.kind);
+  const hostOrderIds = setup.hostOrderIds?.length
+    ? [...new Set(setup.hostOrderIds)]
+    : projection.orders.map((entry) => entry.id).filter((id): id is string => Boolean(id));
+  if (hostOrderIds.length === 0)
+    throw new Error('This participant needs an executable host before custody can be added.');
+  if (setup.carrierRoleIds.length === 0)
+    throw new Error('Choose at least one Program carrier role.');
+  const knownRoles = new Set(next.orders.roles.map((entry) => entry.id));
+  if (setup.carrierRoleIds.some((id) => !knownRoles.has(id)))
+    throw new Error('Core custody references an unknown role.');
+  for (const id of existing?.ownedConditionIds ?? []) {
+    delete next.orders.conditions[id];
+    play.ownedConditionIds = play.ownedConditionIds.filter((entry) => entry !== id);
+  }
+  const ids = new Set(Object.keys(next.orders.conditions));
+  const ownedConditionIds: string[] = [];
+  let when: ConditionExpression;
+  let until: ConditionExpression | undefined;
+  if (setup.kind === 'carrier-return') {
+    const carryingId = uniqueIdentifier(`${projection.id}-custody-carrying`, ids);
+    ids.add(carryingId);
+    const emptyId = uniqueIdentifier(`${projection.id}-custody-empty`, ids);
+    ids.add(emptyId);
+    next.orders.conditions[carryingId] = {
+      fact: 'self-carrying', operator: 'equals', value: 1,
+    };
+    next.orders.conditions[emptyId] = {
+      fact: 'self-carrying', operator: 'equals', value: 0,
+    };
+    ownedConditionIds.push(carryingId, emptyId);
+    const gates = [carryingId];
+    if (setup.coreBankValue) {
+      const valueId = uniqueIdentifier(`${projection.id}-custody-value`, ids);
+      next.orders.conditions[valueId] = {
+        fact: 'self-carried-core-bank-value',
+        operator: setup.coreBankValue.operator,
+        value: setup.coreBankValue.value,
+      };
+      ownedConditionIds.push(valueId);
+      gates.push(valueId);
+    }
+    if (setup.well) {
+      const sourceId = uniqueIdentifier(`${projection.id}-custody-source`, ids);
+      next.orders.conditions[sourceId] = {
+        fact: 'self-carrying-core-from-well', operator: 'equals', value: 1,
+        well: setup.well,
+      };
+      ownedConditionIds.push(sourceId);
+      gates.push(sourceId);
+    }
+    when = expressionOf(gates);
+    until = emptyId;
+  } else {
+    const carrierId = uniqueIdentifier(`${projection.id}-program-carrier`, ids);
+    next.orders.conditions[carrierId] = {
+      fact: 'friendly-carriers-in-roles', operator: 'at-least', value: 1,
+      roles: [...setup.carrierRoleIds],
+      ...(setup.coreBankValue
+        ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+      ...(setup.well ? { well: setup.well } : {}),
+    };
+    ownedConditionIds.push(carrierId);
+    when = carrierId;
+  }
+  play.ownedConditionIds.push(...ownedConditionIds);
+  const previousActionByHost = new Map((existing?.hostOrderIds ?? []).map(
+    (hostOrderId, index) => [hostOrderId, existing!.actionOrderIds[index]]));
+  for (const [previousHost, actionId] of previousActionByHost) {
+    if (!hostOrderIds.includes(previousHost) && actionId)
+      removeOrderWithOpportunitySources(next, play, projection, actionId);
+  }
+  const actionOrderIds: string[] = [];
+  for (const hostOrderId of hostOrderIds) {
+    const host = ensureBranchHost(projection, hostOrderId);
+    const retainedId = previousActionByHost.get(hostOrderId);
+    const retained = retainedId
+      ? findOrderLocation(projection.orders, retainedId)?.node : undefined;
+    const orderId = retained?.id ?? uniqueOrderId(
+      `${hostOrderId}-${setup.kind === 'carrier-return' ? 'carry-home' : 'escort-carrier'}`,
+      projection.orders);
+    const action = retained ?? { id: orderId };
+    updateCustodyAction(projection, action, setup, when, until);
+    if (!retained) insertCustodyAction(play, host, action, setup.kind);
+    actionOrderIds.push(orderId);
+  }
+  const binding: PlayCustodyBinding = {
+    id: existing?.id ?? `${projection.id}-${setup.kind}-custody`,
+    projectionId,
+    hostOrderIds,
+    actionOrderIds,
+    kind: setup.kind,
+    carrierRoleIds: [...setup.carrierRoleIds],
+    ...(setup.routeId ? { routeId: setup.routeId } : {}),
+    ...(setup.coreBankValue
+      ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+    ...(setup.well ? { well: setup.well } : {}),
+    ownedConditionIds,
+  };
+  if (existing) custody.bindings[custody.bindings.indexOf(existing)] = binding;
+  else custody.bindings.push(binding);
+  sortCustodyActions(play, projection);
+  return requireMaterialized(next);
+}
+
+export function removeProgramCustody(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  kind?: PlayCustodyBinding['kind'],
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  removeProgramCustodySources(next, play, projectionId, kind);
+  return requireMaterialized(next);
+}
+
+export function configureProgramCustodyCompletion(
+  draft: SheetDraft,
+  playId: string,
+  roleIds: string[],
+  outcomes?: Array<'bank' | 'drop' | 'loss'>,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const previous = play.coreCustody?.completionConditionId;
+  if (previous) {
+    delete next.orders.conditions[previous];
+    play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== previous);
+  }
+  const conditionId = uniqueIdentifier(`${play.id}-acquired-core-resolved`,
+    new Set(Object.keys(next.orders.conditions)));
+  const carrierBindings = (play.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.kind === 'carrier-return'
+      && entry.carrierRoleIds.some((roleId) => roleIds.includes(roleId)));
+  const valueFilters = [...new Set(carrierBindings.map((entry) =>
+    JSON.stringify(entry.coreBankValue ?? null)))];
+  const wellFilters = [...new Set(carrierBindings.map((entry) => entry.well ?? ''))];
+  const sharedValue = valueFilters.length === 1 && valueFilters[0] !== 'null'
+    ? JSON.parse(valueFilters[0]) as NonNullable<PlayCustodyBinding['coreBankValue']>
+    : undefined;
+  const sharedWell = wellFilters.length === 1 && wellFilters[0]
+    ? wellFilters[0] as ConditionDefinition['well'] : undefined;
+  const selectedOutcomes: Array<'bank' | 'drop' | 'loss'> = [
+    ...new Set<'bank' | 'drop' | 'loss'>(outcomes
+      ?? play.coreCustody?.completionOutcomes ?? ['bank']),
+  ];
+  if (selectedOutcomes.length === 0)
+    throw new Error('Choose at least one Core custody completion outcome.');
+  next.orders.conditions[conditionId] = {
+    fact: 'friendly-core-resolutions', operator: 'at-least', value: 1,
+    roles: [...new Set(roleIds)], since: 'node-entry', correlateAcquisition: true,
+    outcomes: selectedOutcomes,
+    ...(sharedValue ? { coreBankValue: sharedValue } : {}),
+    ...(sharedWell ? { well: sharedWell } : {}),
+  };
+  play.ownedConditionIds.push(conditionId);
+  const custody = play.coreCustody ??= { bindings: [] };
+  custody.completionConditionId = conditionId;
+  custody.completionOutcomes = selectedOutcomes;
+  const lifecycle = play.lifecycle ?? {
+    minimumCommitmentTicks: 0,
+    maximumTicks: 180,
+    cooldownTicks: 20,
+    waiting: 'hold-posts' as const,
+    successConditionIds: [],
+  };
+  const completed = configurePlayLifecycle(next, playId, {
+    ...lifecycle,
+    // The current flat Condition grammar cannot say
+    // minimum AND (bank OR some other outcome). Keep one truthful authored
+    // tactical outcome instead of silently turning alternatives into an AND.
+    successConditionIds: [conditionId],
+  });
+  const completedPlay = requirePlay(completed, playId);
+  const minimumId = completedPlay.ownedConditionIds.find((id) =>
+    completed.orders.conditions[id]?.fact === 'self-order-ticks'
+      && id.startsWith(`${completedPlay.id}-minimum-commitment`));
+  const until = expressionOf([
+    ...(minimumId ? [minimumId] : []),
+    ...(completedPlay.lifecycle?.successConditionIds ?? []),
+  ]);
+  // Not every map-first Program uses the contingent recipe's conventional
+  // `*-respond` id. Custody explicitly records its durable hosts, so apply the
+  // same authored lifecycle to those real parents rather than manufacturing a
+  // Program runtime latch.
+  for (const binding of completedPlay.coreCustody?.bindings ?? []) {
+    const projection = requireProjection(completedPlay, binding.projectionId);
+    for (const hostOrderId of binding.hostOrderIds) {
+      const host = findOrderLocation(projection.orders, hostOrderId)?.node;
+      if (!host) continue;
+      host.until = structuredClone(until);
+      host.timeout = completedPlay.lifecycle!.maximumTicks;
+      host.cooldown = completedPlay.lifecycle!.cooldownTicks;
+    }
+  }
+  return requireMaterialized(completed);
+}
+
+export function removeProgramCustodyCompletion(
+  draft: SheetDraft,
+  playId: string,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const conditionId = play.coreCustody?.completionConditionId;
+  if (!conditionId) return next;
+  delete next.orders.conditions[conditionId];
+  play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== conditionId);
+  delete play.coreCustody!.completionConditionId;
+  delete play.coreCustody!.completionOutcomes;
+  if (play.lifecycle) {
+    play.lifecycle.successConditionIds = (play.lifecycle.successConditionIds ?? [])
+      .filter((id) => id !== conditionId);
+  }
+  for (const binding of play.coreCustody?.bindings ?? []) {
+    const projection = requireProjection(play, binding.projectionId);
+    for (const hostOrderId of binding.hostOrderIds) {
+      const host = findOrderLocation(projection.orders, hostOrderId)?.node;
+      if (!host?.until) continue;
+      const remaining = expressionIds(host.until).filter((id) => id !== conditionId);
+      if (remaining.length > 0) host.until = expressionOf(remaining);
+      else delete host.until;
+    }
+  }
   return requireMaterialized(next);
 }
 
@@ -1310,12 +1773,26 @@ export function configurePlayLifecycle(
   if (untilIds.length > 8)
     throw new Error('Commitment and success exceed the eight-Condition flat expression limit.');
   for (const projection of play.projections) {
-    const response = findOrderLocation(projection.orders, `${projection.id}-respond`)?.node;
-    if (!response) continue;
-    if (untilIds.length === 0) delete response.until;
-    else response.until = expressionOf(untilIds);
-    response.timeout = maximum;
-    response.cooldown = Math.max(0, Math.min(1200, Math.trunc(setup.cooldownTicks)));
+    // Contingent Programs conventionally latch on `*-respond`. Program-local
+    // custody may additionally cover another durable root (for example a
+    // preparation or Running Relay host). They are the same authored Program
+    // episode, so one lifecycle edit must update every covered host instead of
+    // leaving stale timeout/exit semantics on the generated copies.
+    const lifecycleHostIds = new Set<string>();
+    if (findOrderLocation(projection.orders, `${projection.id}-respond`))
+      lifecycleHostIds.add(`${projection.id}-respond`);
+    for (const binding of play.coreCustody?.bindings ?? []) {
+      if (binding.projectionId !== projection.id) continue;
+      binding.hostOrderIds.forEach((id) => lifecycleHostIds.add(id));
+    }
+    for (const hostId of lifecycleHostIds) {
+      const host = findOrderLocation(projection.orders, hostId)?.node;
+      if (!host) continue;
+      if (untilIds.length === 0) delete host.until;
+      else host.until = expressionOf(untilIds);
+      host.timeout = maximum;
+      host.cooldown = Math.max(0, Math.min(1200, Math.trunc(setup.cooldownTicks)));
+    }
     for (const slot of play.slots.filter((entry) => entry.roleId === projection.roleId)) {
       if (!slot.hostOrderId) continue;
       const host = findOrderLocation(projection.orders, slot.hostOrderId)?.node;
@@ -1650,6 +2127,68 @@ function requireMaterialized(draft: SheetDraft, force = false): SheetDraft {
   return draft;
 }
 
+function updateCarriedCoreOpportunity(
+  draft: SheetDraft,
+  playId: string,
+  projectionId: string,
+  bindingId: string,
+  coreBankValue: { operator: 'equals' | 'at-least' | 'at-most'; value: number } | undefined,
+  well: ConditionDefinition['well'] | undefined,
+  updateAction: (node: OrderNode) => void,
+): SheetDraft {
+  const next = structuredClone(draft);
+  const play = requirePlay(next, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const node = requireOpportunityNodeAny(projection, binding);
+  const carryingId = binding.ownedConditionIds?.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-carrying');
+  if (!carryingId) throw new Error('Carrying Condition is missing.');
+  let valueId = binding.ownedConditionIds?.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-carried-core-bank-value');
+  if (coreBankValue) {
+    if (!valueId) {
+      valueId = uniqueIdentifier(`${node.id ?? binding.id}-carried-value`,
+        new Set(Object.keys(next.orders.conditions)));
+      binding.ownedConditionIds = [...(binding.ownedConditionIds ?? []), valueId];
+      play.ownedConditionIds.push(valueId);
+    }
+    next.orders.conditions[valueId] = {
+      fact: 'self-carried-core-bank-value',
+      operator: coreBankValue.operator,
+      value: coreBankValue.value,
+    };
+  } else if (valueId) {
+    delete next.orders.conditions[valueId];
+    binding.ownedConditionIds = binding.ownedConditionIds?.filter((id) => id !== valueId);
+    play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== valueId);
+  }
+  let sourceId = binding.ownedConditionIds?.find((id) =>
+    next.orders.conditions[id]?.fact === 'self-carrying-core-from-well');
+  if (well) {
+    if (!sourceId) {
+      sourceId = uniqueIdentifier(`${node.id ?? binding.id}-carried-source`,
+        new Set(Object.keys(next.orders.conditions)));
+      binding.ownedConditionIds = [...(binding.ownedConditionIds ?? []), sourceId];
+      play.ownedConditionIds.push(sourceId);
+    }
+    next.orders.conditions[sourceId] = {
+      fact: 'self-carrying-core-from-well', operator: 'equals', value: 1, well,
+    };
+  } else if (sourceId) {
+    delete next.orders.conditions[sourceId];
+    binding.ownedConditionIds = binding.ownedConditionIds?.filter((id) => id !== sourceId);
+    play.ownedConditionIds = play.ownedConditionIds.filter((id) => id !== sourceId);
+  }
+  node.when = expressionOf([
+    carryingId,
+    ...(valueId ? [valueId] : []),
+    ...(sourceId ? [sourceId] : []),
+  ]);
+  updateAction(node);
+  return requireMaterialized(next);
+}
+
 function synchronizePlayResponseConditions(
   play: LinkedPlay,
   removedBaseIds: ReadonlySet<string> = new Set(),
@@ -1908,33 +2447,7 @@ function insertOpportunity(
   action: OrderNode,
   kind: NonNullable<NonNullable<PlayProjection['signatureOpportunities']>[number]['kind']>,
 ) {
-  const located = findOrderLocation(projection.orders, hostOrderId);
-  if (!located) throw new Error(`Unknown host Instruction '${hostOrderId}'.`);
-  let host = located.node;
-  if (!host.orders) {
-    if (!host.move && !host.fight)
-      throw new Error('Choose a durable Move, Fight, or existing branch as the continuation.');
-    if (located.depth >= 2)
-      throw new Error('This Instruction is already at the maximum branch depth. Choose its nearest parent branch.');
-    const continuationId = uniqueOrderId(`${hostOrderId}-continue`, projection.orders);
-    const continuation: OrderNode = {
-      id: continuationId,
-      ...(host.move ? { move: structuredClone(host.move) } : {}),
-      ...(host.fight ? { fight: structuredClone(host.fight) } : {}),
-      ...(host.capacity !== undefined ? { capacity: host.capacity } : {}),
-    };
-    const parent: OrderNode = {
-      id: host.id,
-      ...(host.when !== undefined ? { when: structuredClone(host.when) } : {}),
-      ...(host.until !== undefined ? { until: structuredClone(host.until) } : {}),
-      ...(host.timeout !== undefined ? { timeout: host.timeout } : {}),
-      ...(host.cooldown !== undefined ? { cooldown: host.cooldown } : {}),
-      ...(host.urgency !== undefined ? { urgency: host.urgency } : {}),
-      orders: [continuation],
-    };
-    located.container[located.index] = parent;
-    host = parent;
-  }
+  const host = ensureBranchHost(projection, hostOrderId);
   const bindings = projection.signatureOpportunities ??= [];
   const boundIds = new Set(bindings.map((entry) => entry.useOrderId));
   const firstContinuation = host.orders!.findIndex((child) =>
@@ -1953,6 +2466,185 @@ function insertOpportunity(
   };
   bindings.push(binding);
   return binding;
+}
+
+function ensureBranchHost(projection: PlayProjection, hostOrderId: string): OrderNode {
+  const located = findOrderLocation(projection.orders, hostOrderId);
+  if (!located) throw new Error(`Unknown host Instruction '${hostOrderId}'.`);
+  if (located.node.orders) return located.node;
+  const host = located.node;
+  if (!host.move && !host.fight)
+    throw new Error('Choose a durable Move, Fight, or existing branch as the continuation.');
+  if (located.depth >= 2)
+    throw new Error('This Instruction is already at the maximum branch depth. Choose its nearest parent branch.');
+  const continuationId = uniqueOrderId(`${hostOrderId}-continue`, projection.orders);
+  const continuation: OrderNode = {
+    id: continuationId,
+    ...(host.move ? { move: structuredClone(host.move) } : {}),
+    ...(host.fight ? { fight: structuredClone(host.fight) } : {}),
+    ...(host.capacity !== undefined ? { capacity: host.capacity } : {}),
+    ...(host.select !== undefined ? { select: host.select } : {}),
+  };
+  const parent: OrderNode = {
+    id: host.id,
+    ...(host.when !== undefined ? { when: structuredClone(host.when) } : {}),
+    ...(host.until !== undefined ? { until: structuredClone(host.until) } : {}),
+    ...(host.timeout !== undefined ? { timeout: host.timeout } : {}),
+    ...(host.cooldown !== undefined ? { cooldown: host.cooldown } : {}),
+    ...(host.urgency !== undefined ? { urgency: host.urgency } : {}),
+    orders: [continuation],
+  };
+  located.container[located.index] = parent;
+  return parent;
+}
+
+function updateCustodyAction(
+  projection: PlayProjection,
+  action: OrderNode,
+  setup: ProgramCustodySetup,
+  when: ConditionExpression,
+  until: ConditionExpression | undefined,
+) {
+  action.when = structuredClone(when);
+  if (until) action.until = structuredClone(until);
+  else delete action.until;
+  if (setup.kind === 'carrier-return') action.urgency = 'urgent';
+  else delete action.urgency;
+  const move: NonNullable<OrderNode['move']> = setup.kind === 'carrier-return'
+    ? {
+      to: 'own-reactor',
+      ...(setup.routeId ? { via: setup.routeId } : {}),
+    }
+    : {
+      follow: {
+        selector: 'nearest-friendly-core-carrier',
+        roles: [...setup.carrierRoleIds],
+        ...(setup.coreBankValue
+          ? { coreBankValue: structuredClone(setup.coreBankValue) } : {}),
+        ...(setup.well ? { well: setup.well } : {}),
+      },
+      posture: 'rear',
+    };
+  if (action.move || !action.orders) action.move = move;
+  else {
+    const continuation = custodyContinuation(projection, action, setup.kind);
+    if (!continuation)
+      throw new Error(`Custody Instruction '${action.id}' lost its ordinary movement continuation.`);
+    continuation.move = move;
+  }
+}
+
+function custodyContinuation(
+  projection: PlayProjection,
+  action: OrderNode,
+  kind: PlayCustodyBinding['kind'],
+): OrderNode | undefined {
+  const bound = new Set((projection.signatureOpportunities ?? [])
+    .filter((entry) => entry.hostOrderId === action.id)
+    .map((entry) => entry.useOrderId));
+  const candidates: OrderNode[] = [];
+  const walk = (orders: OrderNode[]) => {
+    for (const order of orders) {
+      if (!bound.has(order.id ?? '') && order.move) candidates.push(order);
+      if (order.orders) walk(order.orders);
+    }
+  };
+  walk(action.orders ?? []);
+  return candidates.find((candidate) => kind === 'carrier-return'
+    ? candidate.move?.to === 'own-reactor'
+    : typeof candidate.move?.follow === 'object'
+      && 'selector' in candidate.move.follow
+      && candidate.move.follow.selector === 'nearest-friendly-core-carrier')
+    ?? candidates.at(-1);
+}
+
+function insertCustodyAction(
+  play: LinkedPlay,
+  host: OrderNode,
+  action: OrderNode,
+  kind: PlayCustodyBinding['kind'],
+) {
+  const carrierIds = new Set((play.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.kind === 'carrier-return')
+    .flatMap((entry) => entry.actionOrderIds));
+  let index = 0;
+  if (kind === 'escort-carrier') {
+    while (index < host.orders!.length
+      && carrierIds.has(host.orders![index].id ?? '')) index += 1;
+  }
+  host.orders!.splice(index, 0, action);
+}
+
+function sortCustodyActions(play: LinkedPlay, projection: PlayProjection) {
+  const carrierIds = new Set((play.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.projectionId === projection.id
+      && entry.kind === 'carrier-return')
+    .flatMap((entry) => entry.actionOrderIds));
+  const escortIds = new Set((play.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.projectionId === projection.id
+      && entry.kind === 'escort-carrier')
+    .flatMap((entry) => entry.actionOrderIds));
+  const walk = (orders: OrderNode[]) => {
+    orders.sort((left, right) => {
+      const rank = (id?: string) => carrierIds.has(id ?? '') ? 0
+        : escortIds.has(id ?? '') ? 1 : 2;
+      return rank(left.id) - rank(right.id);
+    });
+    orders.forEach((order) => { if (order.orders) walk(order.orders); });
+  };
+  walk(projection.orders);
+}
+
+function removeProgramCustodySources(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  projectionId: string,
+  kind?: PlayCustodyBinding['kind'],
+) {
+  const custody = play.coreCustody ??= { bindings: [] };
+  const removing = custody.bindings.filter((entry) =>
+    entry.projectionId === projectionId && (!kind || entry.kind === kind));
+  if (removing.length === 0) return;
+  const projection = requireProjection(play, projectionId);
+  for (const binding of removing) {
+    for (const actionId of binding.actionOrderIds)
+      removeOrderWithOpportunitySources(draft, play, projection, actionId);
+    for (const id of binding.ownedConditionIds) {
+      delete draft.orders.conditions[id];
+      play.ownedConditionIds = play.ownedConditionIds.filter((entry) => entry !== id);
+    }
+  }
+  custody.bindings = custody.bindings.filter((entry) =>
+    entry.projectionId !== projectionId
+      || (kind !== undefined && entry.kind !== kind));
+}
+
+function removeOrderWithOpportunitySources(
+  draft: SheetDraft,
+  play: LinkedPlay,
+  projection: PlayProjection,
+  actionId: string,
+) {
+  const removedOrderIds = new Set<string>();
+  const located = findOrderLocation(projection.orders, actionId);
+  if (!located) return;
+  collectOrderIds(located.node, removedOrderIds);
+  located.container.splice(located.index, 1);
+  const opportunityBindings = projection.signatureOpportunities ?? [];
+  for (const binding of opportunityBindings.filter((entry) =>
+      removedOrderIds.has(entry.hostOrderId) || removedOrderIds.has(entry.useOrderId))) {
+    for (const id of binding.ownedConditionIds ?? []) {
+      delete draft.orders.conditions[id];
+      play.ownedConditionIds = play.ownedConditionIds.filter((entry) => entry !== id);
+    }
+  }
+  projection.signatureOpportunities = opportunityBindings.filter((entry) =>
+    !removedOrderIds.has(entry.hostOrderId) && !removedOrderIds.has(entry.useOrderId));
+}
+
+function collectOrderIds(order: OrderNode, result: Set<string>) {
+  if (order.id) result.add(order.id);
+  order.orders?.forEach((child) => collectOrderIds(child, result));
 }
 
 /**

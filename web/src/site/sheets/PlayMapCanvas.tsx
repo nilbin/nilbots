@@ -8,9 +8,10 @@ import {
 import clsx from 'clsx';
 import type { TacticalSheetCatalog } from '../api';
 import { BaseMap, type MapPreviewSide } from './MapPlanEditor';
-import type { MapPlanDocument, Point } from './sheetAuthoring';
+import type { MapPlanDocument, Point, RoleDefinition } from './sheetAuthoring';
 import type { UnitTrack } from './sheetTrials';
 import type { LinkedPlay } from './workshopTypes';
+import { playSpatialGuides } from './playGeometry';
 
 const OWN = '#22d3ee';
 const ENEMY = '#fb7185';
@@ -20,6 +21,7 @@ const DERIVED = '#b49cff';
 export default function PlayMapCanvas({
   catalog,
   mapPlan,
+  roles,
   play,
   side,
   selectedId,
@@ -34,6 +36,7 @@ export default function PlayMapCanvas({
 }: {
   catalog: TacticalSheetCatalog;
   mapPlan: MapPlanDocument;
+  roles: RoleDefinition[];
   play: LinkedPlay;
   side: MapPreviewSide;
   selectedId: string | null;
@@ -51,8 +54,16 @@ export default function PlayMapCanvas({
   const [drawing, setDrawing] = useState(false);
   const [zoneStart, setZoneStart] = useState<[number, number] | null>(null);
   const [zonePreview, setZonePreview] = useState<[number, number, number, number] | null>(null);
+  const [zoom, setZoom] = useState<1 | 1.5 | 2>(1);
   const owned = new Map(play.ownedGeometry.map((entry) => [entry.id, entry]));
   const selected = selectedId ? owned.get(selectedId) : undefined;
+  const guides = playSpatialGuides({
+    localId: '', name: '', sheetId: null, revision: null, enterLadder: false,
+    orders: { schema: 'arc-relay-orders-v2', sheetId: '', mapPlan: '',
+      roles, sharedOrders: {}, capacities: {}, conditions: {} },
+    mapPlan,
+    workshop: { schema: 'arc-relay-workshop-v1', plays: [play] },
+  }, play.id, catalog);
   useEffect(() => {
     if (!startDrawingId || startDrawingId !== selectedId
       || side === 'east' || !selected || selected.derivedFrom)
@@ -127,10 +138,18 @@ export default function PlayMapCanvas({
       </button>
       {drawing && selected?.kind === 'route' && <span className="t-micro">Tap in travel order. Each tap adds a visible waypoint.</span>}
       {drawing && selected?.kind === 'zone' && <span className="t-micro">Drag over the area that matters.</span>}
+      <div className="ml-auto flex rounded-sm border border-arena-edge p-1" aria-label="Map zoom">
+        {([1, 1.5, 2] as const).map((value) => <button key={value} type="button"
+          className={clsx('btn min-h-9 min-w-11 border-0', zoom === value && 'btn-on')}
+          aria-pressed={zoom === value} onClick={() => setZoom(value)}>
+          {value === 1 ? 'Fit' : `${value}×`}
+        </button>)}
+      </div>
     </div>
+    <div className="max-w-full overflow-auto overscroll-contain" data-testid="program-map-viewport">
     <svg ref={svg} viewBox={`0 0 ${catalog.map.width} ${catalog.map.height}`}
-      className={clsx('block w-full min-w-[580px] select-none', (dragging || drawing) && 'touch-none')}
-      style={{ aspectRatio: `${catalog.map.width}/${catalog.map.height}` }}
+      className={clsx('block max-w-none select-none', (dragging || drawing) && 'touch-none')}
+      style={{ aspectRatio: `${catalog.map.width}/${catalog.map.height}`, width: `${zoom * 100}%` }}
       role="img" tabIndex={0}
       aria-label={`${play.name} on the ${side} Tapline perspective. Arrow keys move the selected Program object.`}
       onKeyDown={nudge}
@@ -147,6 +166,37 @@ export default function PlayMapCanvas({
       }}
       onPointerDown={beginDraw} onPointerUp={finishDrag} onPointerCancel={finishDrag}>
       <BaseMap catalog={catalog} side={side} transform={transform} />
+      {guides.map((guide) => {
+        const sourceRaw = mapPlan.anchors[guide.sourceAnchorId];
+        const targetRaw = mapPlan.anchors[guide.targetAnchorId];
+        if (!sourceRaw || !targetRaw) return null;
+        const source = transform({ x: sourceRaw[0], y: sourceRaw[1] });
+        const target = transform({ x: targetRaw[0], y: targetRaw[1] });
+        const color = guide.valid ? '#f0a35e' : '#fb7185';
+        return <g key={guide.id} pointerEvents="none">
+          {guide.range !== undefined && <circle cx={source.x + .5} cy={source.y + .5}
+            r={guide.range + .5} fill="none" stroke={color} strokeWidth={.06}
+            strokeDasharray=".24 .2" opacity={.55} />}
+          <line x1={source.x + .5} y1={source.y + .5}
+            x2={target.x + .5} y2={target.y + .5}
+            stroke={color} strokeWidth={.15} strokeDasharray={guide.valid ? undefined : '.25 .16'} />
+          <rect x={target.x + .08} y={target.y + .08} width={.84} height={.84}
+            rx={.12} fill={`${color}22`} stroke={color} strokeWidth={.12} />
+          <title>{guide.label} · {guide.distance} tiles{guide.range ? ` / range ${guide.range}` : ''} · line {guide.lineOfSight}</title>
+        </g>;
+      })}
+      {play.slots.filter((slot) => slot.facingAnchorId).map((slot) => {
+        const postRaw = mapPlan.anchors[slot.anchorId];
+        const facingRaw = mapPlan.anchors[slot.facingAnchorId!];
+        if (!postRaw || !facingRaw) return null;
+        const post = transform({ x: postRaw[0], y: postRaw[1] });
+        const facing = transform({ x: facingRaw[0], y: facingRaw[1] });
+        return <g key={`${slot.id}:facing`} pointerEvents="none">
+          <line x1={post.x + .5} y1={post.y + .5} x2={facing.x + .5} y2={facing.y + .5}
+            stroke="#fff1d8" strokeWidth={.13} />
+          <circle cx={facing.x + .5} cy={facing.y + .5} r={.18} fill="#fff1d8" />
+        </g>;
+      })}
       {zonePreview && (() => {
         const a = transform({ x: zonePreview[0], y: zonePreview[1] });
         const b = transform({ x: zonePreview[2], y: zonePreview[3] });
@@ -217,10 +267,12 @@ export default function PlayMapCanvas({
           strokeOpacity={.8} pointerEvents="none" />;
       })}
     </svg>
+    </div>
     <div className="flex flex-wrap gap-3 border-t border-arena-edge px-2 py-2 t-micro">
       <span className="text-arena-material">● Program point</span>
       <span className="text-[#b49cff]">□ derived readiness zone</span>
       <span className="text-[#39d7f2]">— linked route</span>
+      <span className="text-[#f0a35e]">□ ability target · range guide</span>
       <span className="ml-auto">{side === 'west'
         ? 'Drag a Program point or focus the map and use arrow keys.'
         : 'East is a read-only rotated preview.'}</span>

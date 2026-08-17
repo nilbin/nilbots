@@ -34,15 +34,6 @@
           }
         },
         {
-          "id": "bank-core-relay-a-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-relay-a-field-work",
           "orders": [
             {
@@ -125,15 +116,6 @@
         "vitality"
       ],
       "orders": [
-        {
-          "id": "bank-core-relay-b-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
         {
           "id": "open-field-relay-b-field-work",
           "orders": [
@@ -218,15 +200,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-hook-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-hook-field-work",
           "orders": [
             {
@@ -309,15 +282,6 @@
         "vitality"
       ],
       "orders": [
-        {
-          "id": "bank-core-raider-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
         {
           "id": "open-field-raider-field-work",
           "orders": [
@@ -402,15 +366,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-guard-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-guard-field-work",
           "orders": [
             {
@@ -493,15 +448,6 @@
         "vitality"
       ],
       "orders": [
-        {
-          "id": "bank-core-medic-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
         {
           "id": "open-field-medic-field-work",
           "orders": [
@@ -586,15 +532,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-dampener-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-dampener-field-work",
           "orders": [
             {
@@ -677,15 +614,6 @@
         "vitality"
       ],
       "orders": [
-        {
-          "id": "bank-core-scout-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
         {
           "id": "open-field-scout-field-work",
           "orders": [
@@ -772,16 +700,6 @@
       "value": 1
     },
     "solo-empty": {
-      "fact": "self-carrying",
-      "operator": "equals",
-      "value": 0
-    },
-    "bank-core-carrying": {
-      "fact": "self-carrying",
-      "operator": "equals",
-      "value": 1
-    },
-    "bank-core-empty": {
       "fact": "self-carrying",
       "operator": "equals",
       "value": 0

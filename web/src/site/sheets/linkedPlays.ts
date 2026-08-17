@@ -4,7 +4,7 @@ import type {
   OrderNode,
   OrdersDocument,
   SheetDraft,
-} from './sheetAuthoring';
+} from './sheetAuthoring.ts';
 import type { TacticalSheetCatalog } from '../api';
 import {
   emptyWorkshop,
@@ -15,7 +15,7 @@ import {
   type PlayLinkedValueDefinition,
   type PlayProjection,
   type WorkshopDocument,
-} from './workshopTypes';
+} from './workshopTypes.ts';
 
 export interface PlayDrift {
   playId: string;

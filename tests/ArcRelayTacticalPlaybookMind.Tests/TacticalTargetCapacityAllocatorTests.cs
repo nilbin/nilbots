@@ -54,4 +54,28 @@ public sealed class TacticalTargetCapacityAllocatorTests
 
         Assert.Equal("two", Assert.Single(selected).Value);
     }
+
+    [Fact]
+    public void HighestVeteranSelectionReselectsDeterministicallyFromEligibleBodies()
+    {
+        var candidates = new Dictionary<int, IReadOnlyList<
+            TacticalTargetCapacityAllocator.Candidate<string>>>
+        {
+            [7] = [new("level-two", "spearhead", "post", 1, 2,
+                "highest-veteran", 2)],
+            [2] = [new("level-four", "spearhead", "post", 1, 5,
+                "highest-veteran", 4)],
+            [4] = [new("other-level-four", "spearhead", "post", 1, 3,
+                "highest-veteran", 4)],
+        };
+
+        Dictionary<int, string> selected =
+            TacticalTargetCapacityAllocator.Allocate(candidates);
+
+        Assert.Equal("other-level-four", Assert.Single(selected).Value);
+
+        candidates.Remove(4);
+        selected = TacticalTargetCapacityAllocator.Allocate(candidates);
+        Assert.Equal("level-four", Assert.Single(selected).Value);
+    }
 }

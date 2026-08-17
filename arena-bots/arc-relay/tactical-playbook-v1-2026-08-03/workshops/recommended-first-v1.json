@@ -1,0 +1,1239 @@
+{
+  "schema": "arc-relay-workshop-v1",
+  "plays": [
+    {
+      "id": "open-field",
+      "name": "Tapline fundamentals",
+      "recipe": "blank",
+      "ownedGeometry": [],
+      "geometryGroups": [],
+      "slots": [],
+      "formations": [],
+      "readinessGroups": [],
+      "ownedConditionIds": [
+        "open-field-couriers-field-work-empty-handed",
+        "open-field-couriers-field-work-core-nearby",
+        "open-field-couriers-field-work-health-low",
+        "open-field-couriers-field-work-healing-nearby",
+        "open-field-couriers-field-work-not-carrying",
+        "open-field-couriers-field-work-health-recovered",
+        "open-field-couriers-field-work-became-carrier",
+        "open-field-couriers-field-work-contact",
+        "open-field-builder-field-work-empty-handed",
+        "open-field-builder-field-work-core-nearby",
+        "open-field-builder-field-work-health-low",
+        "open-field-builder-field-work-healing-nearby",
+        "open-field-builder-field-work-not-carrying",
+        "open-field-builder-field-work-health-recovered",
+        "open-field-builder-field-work-became-carrier",
+        "open-field-builder-field-work-contact",
+        "open-field-scout-field-work-empty-handed",
+        "open-field-scout-field-work-core-nearby",
+        "open-field-scout-field-work-health-low",
+        "open-field-scout-field-work-healing-nearby",
+        "open-field-scout-field-work-not-carrying",
+        "open-field-scout-field-work-health-recovered",
+        "open-field-scout-field-work-became-carrier",
+        "open-field-scout-field-work-contact",
+        "open-field-medic-field-work-empty-handed",
+        "open-field-medic-field-work-core-nearby",
+        "open-field-medic-field-work-health-low",
+        "open-field-medic-field-work-healing-nearby",
+        "open-field-medic-field-work-not-carrying",
+        "open-field-medic-field-work-health-recovered",
+        "open-field-medic-field-work-became-carrier",
+        "open-field-medic-field-work-contact",
+        "open-field-skirmisher-field-work-empty-handed",
+        "open-field-skirmisher-field-work-core-nearby",
+        "open-field-skirmisher-field-work-health-low",
+        "open-field-skirmisher-field-work-healing-nearby",
+        "open-field-skirmisher-field-work-not-carrying",
+        "open-field-skirmisher-field-work-health-recovere",
+        "open-field-skirmisher-field-work-became-carrier",
+        "open-field-skirmisher-field-work-contact",
+        "open-field-line-field-work-empty-handed",
+        "open-field-line-field-work-core-nearby",
+        "open-field-line-field-work-health-low",
+        "open-field-line-field-work-healing-nearby",
+        "open-field-line-field-work-not-carrying",
+        "open-field-line-field-work-health-recovered",
+        "open-field-line-field-work-became-carrier",
+        "open-field-line-field-work-contact",
+        "open-field-dampener-field-work-empty-handed",
+        "open-field-dampener-field-work-core-nearby",
+        "open-field-dampener-field-work-health-low",
+        "open-field-dampener-field-work-healing-nearby",
+        "open-field-dampener-field-work-not-carrying",
+        "open-field-dampener-field-work-health-recovered",
+        "open-field-dampener-field-work-became-carrier",
+        "open-field-dampener-field-work-contact",
+        "open-field-couriers-custody-carrying",
+        "open-field-couriers-custody-empty",
+        "open-field-builder-custody-carrying",
+        "open-field-builder-custody-empty",
+        "open-field-scout-custody-carrying",
+        "open-field-scout-custody-empty",
+        "open-field-medic-custody-carrying",
+        "open-field-medic-custody-empty",
+        "open-field-skirmisher-custody-carrying",
+        "open-field-skirmisher-custody-empty",
+        "open-field-line-custody-carrying",
+        "open-field-line-custody-empty",
+        "open-field-dampener-custody-carrying",
+        "open-field-dampener-custody-empty"
+      ],
+      "ownedCapacityIds": [
+        "core-recovery",
+        "healing"
+      ],
+      "projections": [
+        {
+          "id": "open-field-couriers",
+          "roleId": "couriers",
+          "orders": [
+            {
+              "id": "open-field-couriers-field-work",
+              "orders": [
+                {
+                  "id": "open-field-couriers-field-work-carry-home",
+                  "when": "open-field-couriers-custody-carrying",
+                  "until": "open-field-couriers-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-couriers-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-couriers-field-work-empty-handed",
+                      "open-field-couriers-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-couriers-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-couriers-field-work-health-low",
+                      "open-field-couriers-field-work-healing-nearby",
+                      "open-field-couriers-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-couriers-field-work-health-recovered",
+                      "open-field-couriers-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-couriers-field-work-fight",
+                  "when": "open-field-couriers-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-couriers-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "own"
+                    },
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-couriers-field-work",
+              "fingerprint": "fnv1a64:8049a2eed58369e9"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-couriers-field-work-open-field-couriers-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-couriers-field-work",
+              "useOrderId": "open-field-couriers-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-couriers-field-work-empty-handed",
+                "open-field-couriers-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-couriers-field-work-open-field-couriers-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-couriers-field-work",
+              "useOrderId": "open-field-couriers-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-couriers-field-work-health-low",
+                "open-field-couriers-field-work-healing-nearby",
+                "open-field-couriers-field-work-not-carrying",
+                "open-field-couriers-field-work-health-recovered",
+                "open-field-couriers-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-couriers-field-work-open-field-couriers-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-couriers-field-work",
+              "useOrderId": "open-field-couriers-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-couriers-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-field-builder",
+          "roleId": "builder",
+          "orders": [
+            {
+              "id": "open-field-builder-field-work",
+              "orders": [
+                {
+                  "id": "open-field-builder-field-work-carry-home",
+                  "when": "open-field-builder-custody-carrying",
+                  "until": "open-field-builder-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-builder-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-builder-field-work-empty-handed",
+                      "open-field-builder-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-builder-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-builder-field-work-health-low",
+                      "open-field-builder-field-work-healing-nearby",
+                      "open-field-builder-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-builder-field-work-health-recovered",
+                      "open-field-builder-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-builder-field-work-fight",
+                  "when": "open-field-builder-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-builder-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "centre"
+                    },
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-builder-field-work",
+              "fingerprint": "fnv1a64:8f1a9ce7ac543d6f"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-builder-field-work-open-field-builder-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-builder-field-work",
+              "useOrderId": "open-field-builder-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-builder-field-work-empty-handed",
+                "open-field-builder-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-builder-field-work-open-field-builder-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-builder-field-work",
+              "useOrderId": "open-field-builder-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-builder-field-work-health-low",
+                "open-field-builder-field-work-healing-nearby",
+                "open-field-builder-field-work-not-carrying",
+                "open-field-builder-field-work-health-recovered",
+                "open-field-builder-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-builder-field-work-open-field-builder-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-builder-field-work",
+              "useOrderId": "open-field-builder-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-builder-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-field-scout",
+          "roleId": "scout",
+          "orders": [
+            {
+              "id": "open-field-scout-field-work",
+              "orders": [
+                {
+                  "id": "open-field-scout-field-work-carry-home",
+                  "when": "open-field-scout-custody-carrying",
+                  "until": "open-field-scout-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-scout-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-scout-field-work-empty-handed",
+                      "open-field-scout-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-scout-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-scout-field-work-health-low",
+                      "open-field-scout-field-work-healing-nearby",
+                      "open-field-scout-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-scout-field-work-health-recovered",
+                      "open-field-scout-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-scout-field-work-fight",
+                  "when": "open-field-scout-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-scout-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "enemy"
+                    },
+                    "posture": "front"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-scout-field-work",
+              "fingerprint": "fnv1a64:6cc9867b2f00aae8"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-scout-field-work-open-field-scout-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-scout-field-work",
+              "useOrderId": "open-field-scout-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-scout-field-work-empty-handed",
+                "open-field-scout-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-scout-field-work-open-field-scout-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-scout-field-work",
+              "useOrderId": "open-field-scout-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-scout-field-work-health-low",
+                "open-field-scout-field-work-healing-nearby",
+                "open-field-scout-field-work-not-carrying",
+                "open-field-scout-field-work-health-recovered",
+                "open-field-scout-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-scout-field-work-open-field-scout-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-scout-field-work",
+              "useOrderId": "open-field-scout-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-scout-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-field-medic",
+          "roleId": "medic",
+          "orders": [
+            {
+              "id": "open-field-medic-field-work",
+              "orders": [
+                {
+                  "id": "open-field-medic-field-work-carry-home",
+                  "when": "open-field-medic-custody-carrying",
+                  "until": "open-field-medic-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-medic-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-medic-field-work-empty-handed",
+                      "open-field-medic-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-medic-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-medic-field-work-health-low",
+                      "open-field-medic-field-work-healing-nearby",
+                      "open-field-medic-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-medic-field-work-health-recovered",
+                      "open-field-medic-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-medic-field-work-fight",
+                  "when": "open-field-medic-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-medic-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "own"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-medic-field-work",
+              "fingerprint": "fnv1a64:b8b3ae0a9b0b308a"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-medic-field-work-open-field-medic-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-medic-field-work",
+              "useOrderId": "open-field-medic-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-medic-field-work-empty-handed",
+                "open-field-medic-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-medic-field-work-open-field-medic-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-medic-field-work",
+              "useOrderId": "open-field-medic-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-medic-field-work-health-low",
+                "open-field-medic-field-work-healing-nearby",
+                "open-field-medic-field-work-not-carrying",
+                "open-field-medic-field-work-health-recovered",
+                "open-field-medic-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-medic-field-work-open-field-medic-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-medic-field-work",
+              "useOrderId": "open-field-medic-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-medic-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-field-skirmisher",
+          "roleId": "skirmisher",
+          "orders": [
+            {
+              "id": "open-field-skirmisher-field-work",
+              "orders": [
+                {
+                  "id": "open-field-skirmisher-field-work-carry-home",
+                  "when": "open-field-skirmisher-custody-carrying",
+                  "until": "open-field-skirmisher-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-skirmisher-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-skirmisher-field-work-empty-handed",
+                      "open-field-skirmisher-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-skirmisher-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-skirmisher-field-work-health-low",
+                      "open-field-skirmisher-field-work-healing-nearby",
+                      "open-field-skirmisher-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-skirmisher-field-work-health-recovere",
+                      "open-field-skirmisher-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-skirmisher-field-work-fight",
+                  "when": "open-field-skirmisher-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-skirmisher-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "centre"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-skirmisher-field-work",
+              "fingerprint": "fnv1a64:367950580c509da4"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-skirmisher-field-work-open-field-skirmisher-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-skirmisher-field-work",
+              "useOrderId": "open-field-skirmisher-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-skirmisher-field-work-empty-handed",
+                "open-field-skirmisher-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-skirmisher-field-work-open-field-skirmisher-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-skirmisher-field-work",
+              "useOrderId": "open-field-skirmisher-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-skirmisher-field-work-health-low",
+                "open-field-skirmisher-field-work-healing-nearby",
+                "open-field-skirmisher-field-work-not-carrying",
+                "open-field-skirmisher-field-work-health-recovere",
+                "open-field-skirmisher-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-skirmisher-field-work-open-field-skirmisher-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-skirmisher-field-work",
+              "useOrderId": "open-field-skirmisher-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-skirmisher-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-field-line",
+          "roleId": "line",
+          "orders": [
+            {
+              "id": "open-field-line-field-work",
+              "orders": [
+                {
+                  "id": "open-field-line-field-work-carry-home",
+                  "when": "open-field-line-custody-carrying",
+                  "until": "open-field-line-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-line-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-line-field-work-empty-handed",
+                      "open-field-line-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-line-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-line-field-work-health-low",
+                      "open-field-line-field-work-healing-nearby",
+                      "open-field-line-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-line-field-work-health-recovered",
+                      "open-field-line-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-line-field-work-fight",
+                  "when": "open-field-line-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "advance",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-line-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "enemy"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-line-field-work",
+              "fingerprint": "fnv1a64:30def277b598215f"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-line-field-work-open-field-line-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-line-field-work",
+              "useOrderId": "open-field-line-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-line-field-work-empty-handed",
+                "open-field-line-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-line-field-work-open-field-line-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-line-field-work",
+              "useOrderId": "open-field-line-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-line-field-work-health-low",
+                "open-field-line-field-work-healing-nearby",
+                "open-field-line-field-work-not-carrying",
+                "open-field-line-field-work-health-recovered",
+                "open-field-line-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-line-field-work-open-field-line-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-line-field-work",
+              "useOrderId": "open-field-line-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-line-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        },
+        {
+          "id": "open-field-dampener",
+          "roleId": "dampener",
+          "orders": [
+            {
+              "id": "open-field-dampener-field-work",
+              "orders": [
+                {
+                  "id": "open-field-dampener-field-work-carry-home",
+                  "when": "open-field-dampener-custody-carrying",
+                  "until": "open-field-dampener-custody-empty",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                },
+                {
+                  "id": "open-field-dampener-field-work-recover-core",
+                  "when": {
+                    "all": [
+                      "open-field-dampener-field-work-empty-handed",
+                      "open-field-dampener-field-work-core-nearby"
+                    ]
+                  },
+                  "capacity": "core-recovery",
+                  "move": {
+                    "to": "highest-bank-value-visible-loose-core",
+                    "withinWalkingSteps": 5
+                  }
+                },
+                {
+                  "id": "open-field-dampener-field-work-recover-health",
+                  "when": {
+                    "all": [
+                      "open-field-dampener-field-work-health-low",
+                      "open-field-dampener-field-work-healing-nearby",
+                      "open-field-dampener-field-work-not-carrying"
+                    ]
+                  },
+                  "until": {
+                    "any": [
+                      "open-field-dampener-field-work-health-recovered",
+                      "open-field-dampener-field-work-became-carrier"
+                    ]
+                  },
+                  "timeout": 55,
+                  "cooldown": 20,
+                  "capacity": "healing",
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 8
+                  }
+                },
+                {
+                  "id": "open-field-dampener-field-work-fight",
+                  "when": "open-field-dampener-field-work-contact",
+                  "capacity": 3,
+                  "fight": {
+                    "targets": [
+                      "carrier",
+                      "weakest",
+                      "nearest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 5
+                  }
+                },
+                {
+                  "id": "open-field-dampener-field-work-continue",
+                  "move": {
+                    "to": {
+                      "well": "own"
+                    },
+                    "posture": "line"
+                  }
+                }
+              ]
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "open-field-dampener-field-work",
+              "fingerprint": "fnv1a64:dee82529b007bdc0"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "open-field-dampener-field-work-open-field-dampener-field-work-recover-core-core-recovery",
+              "kind": "core-recovery",
+              "hostOrderId": "open-field-dampener-field-work",
+              "useOrderId": "open-field-dampener-field-work-recover-core",
+              "ownedConditionIds": [
+                "open-field-dampener-field-work-empty-handed",
+                "open-field-dampener-field-work-core-nearby"
+              ],
+              "capacityPolicy": {
+                "target": "core",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "core-recovery"
+              }
+            },
+            {
+              "id": "open-field-dampener-field-work-open-field-dampener-field-work-recover-health-health-recovery",
+              "kind": "health-recovery",
+              "hostOrderId": "open-field-dampener-field-work",
+              "useOrderId": "open-field-dampener-field-work-recover-health",
+              "ownedConditionIds": [
+                "open-field-dampener-field-work-health-low",
+                "open-field-dampener-field-work-healing-nearby",
+                "open-field-dampener-field-work-not-carrying",
+                "open-field-dampener-field-work-health-recovered",
+                "open-field-dampener-field-work-became-carrier"
+              ],
+              "capacityPolicy": {
+                "target": "healing",
+                "limit": 1,
+                "scope": "sheet",
+                "groupId": "healing"
+              }
+            },
+            {
+              "id": "open-field-dampener-field-work-open-field-dampener-field-work-fight-fight",
+              "kind": "fight",
+              "hostOrderId": "open-field-dampener-field-work",
+              "useOrderId": "open-field-dampener-field-work-fight",
+              "ownedConditionIds": [
+                "open-field-dampener-field-work-contact"
+              ],
+              "capacityPolicy": {
+                "target": "enemy",
+                "limit": 3,
+                "scope": "local"
+              }
+            }
+          ]
+        }
+      ],
+      "linkedValues": [],
+      "coreCustody": {
+        "bindings": [
+          {
+            "id": "open-field-couriers-carrier-return-custody",
+            "projectionId": "open-field-couriers",
+            "hostOrderIds": [
+              "open-field-couriers-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-couriers-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-couriers-custody-carrying",
+              "open-field-couriers-custody-empty"
+            ]
+          },
+          {
+            "id": "open-field-builder-carrier-return-custody",
+            "projectionId": "open-field-builder",
+            "hostOrderIds": [
+              "open-field-builder-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-builder-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-builder-custody-carrying",
+              "open-field-builder-custody-empty"
+            ]
+          },
+          {
+            "id": "open-field-scout-carrier-return-custody",
+            "projectionId": "open-field-scout",
+            "hostOrderIds": [
+              "open-field-scout-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-scout-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-scout-custody-carrying",
+              "open-field-scout-custody-empty"
+            ]
+          },
+          {
+            "id": "open-field-medic-carrier-return-custody",
+            "projectionId": "open-field-medic",
+            "hostOrderIds": [
+              "open-field-medic-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-medic-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-medic-custody-carrying",
+              "open-field-medic-custody-empty"
+            ]
+          },
+          {
+            "id": "open-field-skirmisher-carrier-return-custody",
+            "projectionId": "open-field-skirmisher",
+            "hostOrderIds": [
+              "open-field-skirmisher-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-skirmisher-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-skirmisher-custody-carrying",
+              "open-field-skirmisher-custody-empty"
+            ]
+          },
+          {
+            "id": "open-field-line-carrier-return-custody",
+            "projectionId": "open-field-line",
+            "hostOrderIds": [
+              "open-field-line-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-line-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-line-custody-carrying",
+              "open-field-line-custody-empty"
+            ]
+          },
+          {
+            "id": "open-field-dampener-carrier-return-custody",
+            "projectionId": "open-field-dampener",
+            "hostOrderIds": [
+              "open-field-dampener-field-work"
+            ],
+            "actionOrderIds": [
+              "open-field-dampener-field-work-carry-home"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "couriers",
+              "builder",
+              "scout",
+              "medic",
+              "skirmisher",
+              "line",
+              "dampener"
+            ],
+            "ownedConditionIds": [
+              "open-field-dampener-custody-carrying",
+              "open-field-dampener-custody-empty"
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -3,7 +3,7 @@ import {
   emptyWorkshop,
   normalizeWorkshop,
   type WorkshopDocument,
-} from './workshopTypes';
+} from './workshopTypes.ts';
 
 export type JsonObject = Record<string, unknown>;
 export interface Point { x: number; y: number }
@@ -17,6 +17,7 @@ export interface ConditionDefinition {
   operator: ConditionOperator;
   value: number;
   role?: string;
+  roles?: string[];
   zone?: string;
   well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
   freshnessTicks?: number;
@@ -24,6 +25,8 @@ export interface ConditionDefinition {
   since?: 'match-start' | 'node-entry';
   signature?: string;
   coreBankValue?: CoreBankValueFilter;
+  correlateAcquisition?: true;
+  outcomes?: Array<'bank' | 'drop' | 'loss'>;
 }
 
 export interface CoreBankValueFilter {
@@ -50,12 +53,18 @@ export interface MoveOrder {
   follow?: string | {
     selector: 'most-experienced-ally' | 'nearest-friendly-core-carrier';
     coreBankValue?: CoreBankValueFilter;
+    roles?: string[];
+    well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
+  } | {
+    role: string;
+    select: 'highest-veteran';
   };
   via?: string;
   posture?: 'front' | 'line' | 'rear';
   face?: { anchor: string };
   withinWalkingSteps?: number;
   coreBankValue?: CoreBankValueFilter;
+  well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
 }
 
 export type MoveIntentKind = 'to' | 'patrol' | 'follow';
@@ -104,6 +113,7 @@ export interface OrderNode {
   cooldown?: number;
   urgency?: OrderUrgency;
   capacity?: number | string;
+  select?: 'highest-veteran';
   orders?: OrderNode[];
   move?: MoveOrder;
   fight?: FightOrder;
@@ -164,7 +174,8 @@ export const CONDITION_FACTS = [
   'self-health-percent', 'self-level', 'self-carrying', 'self-stuck-ticks',
   'self-order-ticks', 'self-in-zone', 'self-nearest-visible-enemy-distance',
   'self-nearest-visible-loose-core-distance', 'self-nearest-heal-zone-distance',
-  'self-carried-core-bank-value', 'self-ticks-since-signature-use',
+  'self-carried-core-bank-value', 'self-carrying-core-from-well',
+  'self-ticks-since-signature-use',
   'signature-ready', 'signature-commitment-active', 'deployment-active',
   'self-deployment-in-zone',
   'deployment-lifetime-percent', 'deployment-durability-percent',
@@ -184,7 +195,10 @@ export const CONDITION_FACTS = [
   'distinct-enemy-lives-observed-in-zone',
   'confirmed-enemy-destructions-in-zone',
   'zone-fully-observed-throughout-interval',
-  'friendly-core-pickups',
+  'friendly-core-pickups', 'friendly-core-acquisitions',
+  'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+  'friendly-core-resolutions',
+  'friendly-carriers-in-roles',
 ] as const;
 export type ConditionFactGroupId = 'body' | 'squad' | 'match' | 'ground' | 'history';
 export const CONDITION_FACT_GROUPS: ReadonlyArray<{
@@ -223,7 +237,9 @@ export const CONDITION_FACT_GROUPS: ReadonlyArray<{
         'distinct-enemy-lives-observed-in-zone',
         'confirmed-enemy-destructions-in-zone',
         'zone-fully-observed-throughout-interval',
-        'friendly-core-pickups',
+        'friendly-core-pickups', 'friendly-core-acquisitions',
+        'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+        'friendly-core-resolutions',
       ].includes(fact)),
   },
   {
@@ -251,7 +267,9 @@ export const CONDITION_FACT_GROUPS: ReadonlyArray<{
       'distinct-enemy-lives-observed-in-zone',
       'confirmed-enemy-destructions-in-zone',
       'zone-fully-observed-throughout-interval',
-      'friendly-core-pickups',
+      'friendly-core-pickups', 'friendly-core-acquisitions',
+      'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+      'friendly-core-resolutions',
     ],
   },
 ];
@@ -273,7 +291,20 @@ const ZONE_FACTS = new Set([
   'confirmed-enemy-destructions-in-zone',
   'zone-fully-observed-throughout-interval',
 ]);
-const WELL_FACTS = new Set(['well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled']);
+const WELL_FACTS = new Set([
+  'well-has-outstanding-core', 'well-ticks-until-birth', 'well-socket-filled',
+  'self-carrying-core-from-well',
+]);
+const CORE_ROLE_FACTS = new Set([
+  'friendly-carriers-in-roles', 'friendly-core-pickups',
+  'friendly-core-acquisitions', 'friendly-core-banks', 'friendly-core-drops',
+  'friendly-core-losses', 'friendly-core-resolutions',
+]);
+const CORE_EVIDENCE_FACTS = new Set([
+  'friendly-core-pickups', 'friendly-core-acquisitions',
+  'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+  'friendly-core-resolutions',
+]);
 const FRESH_FACTS = new Set(['known-enemy-carriers', 'remembered-enemies-in-zone']);
 const HISTORICAL_FACTS = new Set([
   'observed-enemy-entries-in-zone',
@@ -281,13 +312,15 @@ const HISTORICAL_FACTS = new Set([
   'confirmed-enemy-destructions-in-zone',
   'zone-fully-observed-throughout-interval',
   'friendly-core-pickups',
+  'friendly-core-acquisitions', 'friendly-core-banks', 'friendly-core-drops',
+  'friendly-core-losses', 'friendly-core-resolutions',
 ]);
 const PERCENT_FACTS = new Set([
   'self-health-percent', 'role-lowest-health-percent',
   'deployment-lifetime-percent', 'deployment-durability-percent',
 ]);
 const BOOLEAN_FACTS = new Set([
-  'self-carrying', 'self-in-zone', 'signature-ready',
+  'self-carrying', 'self-carrying-core-from-well', 'self-in-zone', 'signature-ready',
   'self-deployment-in-zone',
   'signature-commitment-active', 'deployment-active',
   'zone-fully-observed-throughout-interval',
@@ -606,7 +639,7 @@ export function validateDraft(
     exactKeys(condition as unknown as JsonObject,
       ['fact', 'operator', 'value'], path, error,
       ['role', 'zone', 'well', 'freshnessTicks', 'windowTicks', 'since',
-        'signature', 'coreBankValue']);
+        'signature', 'coreBankValue', 'roles', 'correlateAcquisition', 'outcomes']);
     if (!validId(id)) error(path, 'Condition id must be kebab-case.');
     if (!(CONDITION_FACTS as readonly string[]).includes(condition.fact)) error(`${path}.fact`, 'Choose a published fact.');
     if (!CONDITION_OPERATORS.includes(condition.operator)) error(`${path}.operator`, 'Choose a comparison.');
@@ -631,6 +664,11 @@ export function validateDraft(
       error(`${path}.value`, 'Signature-use age is zero to 1200 ticks.');
     if (ROLE_FACTS.has(condition.fact) && (!condition.role || !roles.has(condition.role)))
       error(`${path}.role`, 'This fact needs a declared role.');
+    if (condition.fact === 'friendly-carriers-in-roles' && !condition.roles?.length)
+      error(`${path}.roles`, 'Choose one or more declared roles.');
+    if (CORE_ROLE_FACTS.has(condition.fact) && condition.roles
+      && condition.roles.some((roleId) => !roles.has(roleId)))
+      error(`${path}.roles`, 'Choose declared roles.');
     if (ZONE_FACTS.has(condition.fact)) {
       if (!condition.zone) error(`${path}.zone`, 'This fact needs a map zone.');
       else usedZones.add(condition.zone);
@@ -646,12 +684,34 @@ export function validateDraft(
       error(`${path}.signature`, 'This fact does not take a signature.');
     }
     if (condition.coreBankValue !== undefined) {
-      if (condition.fact !== 'self-nearest-visible-loose-core-distance')
-        error(`${path}.coreBankValue`, 'Only visible-Core distance takes this value filter.');
+      if (!['self-nearest-visible-loose-core-distance',
+        'friendly-carriers-in-roles', ...CORE_EVIDENCE_FACTS].includes(condition.fact))
+        error(`${path}.coreBankValue`, 'This fact does not take a Core-value filter.');
       validateCoreBankValue(condition.coreBankValue, `${path}.coreBankValue`, error);
     }
     if (WELL_FACTS.has(condition.fact) && !condition.well)
       error(`${path}.well`, 'This fact needs a Well selector.');
+    if (condition.well !== undefined) {
+      if (!['north', 'centre', 'south', 'own', 'enemy'].includes(condition.well))
+        error(`${path}.well`, 'Choose north, centre, south, own or enemy.');
+      if (!WELL_FACTS.has(condition.fact)
+        && !CORE_EVIDENCE_FACTS.has(condition.fact)
+        && condition.fact !== 'friendly-carriers-in-roles')
+        error(`${path}.well`, 'This fact does not take a Core-source filter.');
+    }
+    if (condition.correlateAcquisition
+      && (!['friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+        'friendly-core-resolutions'].includes(condition.fact)
+        || !condition.roles?.length))
+      error(`${path}.correlateAcquisition`, 'Correlation needs role-filtered bank, drop or loss evidence.');
+    if (condition.fact === 'friendly-core-resolutions') {
+      if (!condition.outcomes?.length)
+        error(`${path}.outcomes`, 'Choose at least one bank, drop or loss outcome.');
+      if (new Set(condition.outcomes).size !== condition.outcomes?.length
+        || condition.outcomes?.some((value) => !['bank', 'drop', 'loss'].includes(value)))
+        error(`${path}.outcomes`, 'Resolution outcomes must be unique bank, drop or loss values.');
+    } else if (condition.outcomes !== undefined)
+      error(`${path}.outcomes`, 'Only Core resolution evidence takes outcomes.');
     if (FRESH_FACTS.has(condition.fact)
       && (!Number.isInteger(condition.freshnessTicks) || condition.freshnessTicks! < 1 || condition.freshnessTicks! > 600))
       error(`${path}.freshnessTicks`, 'Remembered facts need freshness from 1 to 600 ticks.');
@@ -731,7 +791,7 @@ function validateOrder(
   else ids.add(id);
   const expected = [...(externalId ? [] : ['id']), found[0]];
   exactKeys(node as unknown as JsonObject, expected,
-    path, error, ['when', 'until', 'timeout', 'cooldown', 'capacity', 'urgency']);
+    path, error, ['when', 'until', 'timeout', 'cooldown', 'capacity', 'urgency', 'select']);
   for (const expression of [['when', node.when], ['until', node.until]] as const)
     validateExpression(expression[1], `${path}.${expression[0]}`, orders, conditionUse, error,
       expression[0] === 'until');
@@ -747,9 +807,17 @@ function validateOrder(
     if (orders.capacities[node.capacity] === undefined) error(`${path}.capacity`, `Unknown capacity '${node.capacity}'.`);
     else capacityUse.set(node.capacity, (capacityUse.get(node.capacity) ?? 0) + 1);
   }
+  if (node.select !== undefined) {
+    if (node.select !== 'highest-veteran')
+      error(`${path}.select`, 'Choose highest-veteran selection.');
+    if (typeof node.capacity !== 'number')
+      error(`${path}.select`, 'Veteran selection needs an inline Capacity.');
+  }
   if (action === 'branch') {
     if (node.capacity !== undefined)
       error(`${path}.capacity`, 'Capacity belongs on an action leaf, not a branch.');
+    if (node.select !== undefined)
+      error(`${path}.select`, 'Selection belongs on a capacity-limited action leaf.');
     if (depth >= 2) error(path, 'Instructions may nest through at most two branches.');
     if (!node.orders?.length) error(`${path}.orders`, 'A branch needs child Instructions.');
     node.orders?.forEach((child, index) => validateOrder(
@@ -768,16 +836,23 @@ function validateOrder(
       : move.patrol !== undefined ? 'patrol' : 'follow';
     exactKeys(move as unknown as JsonObject, [requiredMoveKey],
       `${path}.move`, error,
-      ['via', 'posture', 'face', 'withinWalkingSteps', 'coreBankValue']);
+      ['via', 'posture', 'face', 'withinWalkingSteps', 'coreBankValue', 'well']);
     if (move.patrol) usedRoutes.add(move.patrol);
     if (move.via) usedRoutes.add(move.via);
     // The complete role set is checked after every role has been walked. At
     // this point a valid forward reference may not have been visited yet.
     if (typeof move.follow === 'string' && move.follow === role.id)
       error(`${path}.move.follow`, 'Follow another declared role.');
-    if (typeof move.follow === 'object') {
+    if (typeof move.follow === 'object' && 'role' in move.follow) {
+      exactKeys(move.follow as unknown as JsonObject, ['role', 'select'],
+        `${path}.move.follow`, error);
+      if (move.follow.role === role.id || !roles.has(move.follow.role))
+        error(`${path}.move.follow.role`, 'Follow another declared role.');
+      if (move.follow.select !== 'highest-veteran')
+        error(`${path}.move.follow.select`, 'Choose the highest veteran in that role.');
+    } else if (typeof move.follow === 'object') {
       exactKeys(move.follow as unknown as JsonObject, ['selector'],
-        `${path}.move.follow`, error, ['coreBankValue']);
+        `${path}.move.follow`, error, ['coreBankValue', 'roles', 'well']);
       if (!['most-experienced-ally', 'nearest-friendly-core-carrier']
         .includes(move.follow.selector))
         error(`${path}.move.follow.selector`, 'Choose a published friendly selector.');
@@ -787,6 +862,15 @@ function validateOrder(
         validateCoreBankValue(move.follow.coreBankValue,
           `${path}.move.follow.coreBankValue`, error);
       }
+      if (move.follow.roles !== undefined) {
+        if (move.follow.selector !== 'nearest-friendly-core-carrier'
+          || move.follow.roles.length === 0
+          || move.follow.roles.some((roleId) => !roles.has(roleId)))
+          error(`${path}.move.follow.roles`, 'Choose declared roles for Core-carrier follow.');
+      }
+      if (move.follow.well !== undefined
+        && move.follow.selector !== 'nearest-friendly-core-carrier')
+        error(`${path}.move.follow.well`, 'Only Core-carrier follow takes a Well filter.');
     }
     const dynamicTarget = typeof move.to === 'string' ? move.to : undefined;
     if (move.withinWalkingSteps !== undefined) {
@@ -802,6 +886,13 @@ function validateOrder(
         .includes(dynamicTarget ?? ''))
         error(`${path}.move.coreBankValue`, 'Only visible-Core targets take a value filter.');
       validateCoreBankValue(move.coreBankValue, `${path}.move.coreBankValue`, error);
+    }
+    if (move.well !== undefined) {
+      if (!['nearest-visible-loose-core', 'highest-bank-value-visible-loose-core']
+        .includes(dynamicTarget ?? ''))
+        error(`${path}.move.well`, 'Only visible-Core targets take a source-Well filter.');
+      if (!['north', 'centre', 'south', 'own', 'enemy'].includes(move.well))
+        error(`${path}.move.well`, 'Choose north, centre, south, own or enemy.');
     }
     if (typeof move.to === 'object') {
       if ('zone' in move.to) usedZones.add(move.to.zone);

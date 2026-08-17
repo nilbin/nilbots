@@ -22,6 +22,8 @@ import {
   appendPlayRouteWaypoint,
   configurePlayContingent,
   configurePlayLifecycle,
+  configureProgramCustody,
+  configureProgramCustodyCompletion,
   configurePlayPostDeployment,
   configurePlaySharedTrigger,
   setPlayReadinessGroup,
@@ -39,6 +41,21 @@ import {
 const output = resolve(process.argv[2] ?? '/tmp/arc-player-ready-programs');
 mkdirSync(output, { recursive: true });
 
+const recommendedRoles = [
+  role('couriers', 'relay', 2),
+  role('builder', 'mason'),
+  role('scout', 'lantern'),
+  role('medic', 'patchbay'),
+  role('skirmisher', 'kestrel'),
+  role('line', 'palisade'),
+  role('dampener', 'hush'),
+];
+let recommended = blank('recommended-first', recommendedRoles);
+recommended = addUsefulFallback(recommended, 'Tapline fundamentals');
+recommended = addLocalCustody(recommended,
+  recommended.workshop.plays[0].id);
+writeStarter('recommended-first-v1', recommended);
+
 const midRoles = [
   role('home-mason', 'mason'),
   role('home-lantern', 'lantern'),
@@ -50,10 +67,9 @@ const midRoles = [
   role('raider', 'kestrel'),
 ];
 let mid = blank('mid-overload-fork', midRoles);
-let bank;
-({ draft: mid, playId: bank } = addBankProgram(mid, 'Bank carried Core'));
 mid = buildMidOverload(mid);
-mid = addUsefulFallback(mid, bank, 'Field work');
+mid = addLocalCustody(mid, 'mid-fork');
+mid = addUsefulFallback(mid, 'Field work');
 writeStarter('mid-overload-fork-v1', mid);
 
 const relayRoles = [
@@ -70,9 +86,15 @@ let relay = blank('running-relay', relayRoles);
 relay = addRelayChainPlay(relay, {
   relayARoleId: 'relay-a', relayBRoleId: 'relay-b',
 }, 'Running Relay');
-let relayBank;
-({ draft: relay, playId: relayBank } = addBankProgram(relay, 'Bank carried Core'));
-relay = addUsefulFallback(relay, relayBank, 'Open-field fallback');
+relay = addBlankPlayProjection(relay, 'relay-chain', 'medic');
+let relayMedic = currentPlay(relay, 'relay-chain').projections.find((entry) =>
+  entry.roleId === 'medic')!;
+relay = configureProgramCustody(relay, 'relay-chain', relayMedic.id, {
+  kind: 'escort-carrier', carrierRoleIds: ['relay-a', 'relay-b'],
+});
+relay = configureProgramCustodyCompletion(
+  relay, 'relay-chain', ['relay-a', 'relay-b']);
+relay = addUsefulFallback(relay, 'Open-field fallback');
 writeStarter('running-relay-v1', relay);
 writeSoloRelayControl();
 
@@ -271,32 +293,21 @@ function buildMidOverload(source: SheetDraft) {
   return draft;
 }
 
-function addBankProgram(source: SheetDraft, name: string) {
-  let draft = addNamedBlankPlay(source, name, 'bank-core');
-  const playId = draft.workshop.plays.at(-1)!.id;
-  let condition = addPlayCondition(draft, playId, `${playId}-carrying`, {
-    fact: 'self-carrying', operator: 'equals', value: 1,
-  });
-  draft = condition.draft;
-  const carrying = condition.id;
-  condition = addPlayCondition(draft, playId, `${playId}-empty`, {
-    fact: 'self-carrying', operator: 'equals', value: 0,
-  });
-  draft = condition.draft;
-  const empty = condition.id;
-  for (const entry of draft.orders.roles) {
-    draft = addBlankPlayProjection(draft, playId, entry.id);
-    const projection = currentPlay(draft, playId).projections.find((value) =>
-      value.roleId === entry.id)!;
-    draft = updatePlayProjectionOrders(draft, playId, projection.id, [{
-      id: `${projection.id}-bank`, when: carrying, until: empty,
-      urgency: 'urgent', move: { to: 'own-reactor' },
-    }]);
+function addLocalCustody(source: SheetDraft, playId: string) {
+  let draft = source;
+  const carrierRoles = currentPlay(draft, playId).projections.map((entry) =>
+    entry.roleId);
+  for (const projectionId of currentPlay(draft, playId).projections.map((entry) =>
+    entry.id)) {
+    draft = configureProgramCustody(draft, playId, projectionId, {
+      kind: 'carrier-return',
+      carrierRoleIds: carrierRoles,
+    });
   }
-  return { draft, playId };
+  return draft;
 }
 
-function addUsefulFallback(source: SheetDraft, bankProgramId: string, name: string) {
+function addUsefulFallback(source: SheetDraft, name: string) {
   let draft = addNamedBlankPlay(source, name,
     name === 'Field work' ? 'field-work' : 'open-field');
   const playId = draft.workshop.plays.at(-1)!.id;
@@ -315,7 +326,6 @@ function addUsefulFallback(source: SheetDraft, bankProgramId: string, name: stri
     draft = addCoreRecoveryOpportunity(draft, playId, projection.id, hostId, {
       withinWalkingSteps: 5, preference: 'highest-value',
       pursuersPerCore: 1, coordinateAcrossSheet: true,
-      linkedBankProgramId: bankProgramId,
     });
     draft = addHealthRecoveryOpportunity(draft, playId, projection.id, hostId, {
       startBelow: 35, recoverUntil: 70, withinWalkingSteps: 8,
@@ -414,10 +424,7 @@ function writeSoloRelayControl() {
     { kind: 'anchor', id: homeAnchor, purpose: 'move.to' },
   );
 
-  let bankId;
-  ({ draft: solo, playId: bankId } = addBankProgram(
-    solo, 'Bank carried Core'));
-  solo = addUsefulFallback(solo, bankId, 'Open-field fallback');
+  solo = addUsefulFallback(solo, 'Open-field fallback');
   writeStarter('running-relay-solo-v1', solo);
 }
 

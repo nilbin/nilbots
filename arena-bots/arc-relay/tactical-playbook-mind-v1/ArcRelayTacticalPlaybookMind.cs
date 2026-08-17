@@ -522,7 +522,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 distance = target.WalkingDistance ?? distance;
                 result.Add(new Proposal(
                     body, role, leaf, priority, target, scope, limit, distance,
-                    skippedFight));
+                    CombineTrace(
+                        skippedFight,
+                        leaf.Node.Selection == "highest-veteran"
+                            ? $"selected-highest-veteran-level-{CurrentLevel(body)}"
+                            : null)));
             }
         }
         return result;
@@ -657,22 +661,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             IEnumerable<MindBody> livingAllies = mind.Bodies
                 .Where(candidate => candidate.UnitId != body.UnitId);
             IOrderedEnumerable<MindBody> candidates;
-            if (move.TargetKind == "role")
+            if (move.TargetKind is "role" or "role-highest-veteran")
             {
-                candidates = livingAllies
-                    .Where(candidate => package.RolesByUnit[candidate.UnitId].Id
-                        == move.Target)
-                    .OrderBy(candidate => ArenaBasics.StaticDistance(
-                        contract.Map, body.Position, candidate.Position)
-                        ?? int.MaxValue)
-                    .ThenBy(candidate => candidate.UnitId);
+                IEnumerable<MindBody> roleMembers = livingAllies.Where(candidate =>
+                    package.RolesByUnit[candidate.UnitId].Id == move.Target);
+                candidates = move.TargetKind == "role-highest-veteran"
+                    ? roleMembers.OrderByDescending(CurrentLevel)
+                        .ThenBy(candidate => ArenaBasics.StaticDistance(
+                            contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.UnitId)
+                    : roleMembers.OrderBy(candidate => ArenaBasics.StaticDistance(
+                            contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.UnitId);
             }
             else if (move.Target == "nearest-friendly-core-carrier")
             {
                 int[] distances = WalkingDistanceField(contract, mind, body);
+                HashSet<string>? roleFilter = move.Roles is { Length: > 0 }
+                    ? move.Roles.ToHashSet(StringComparer.Ordinal) : null;
+                string? sourceFilter = move.Well is null ? null
+                    : ResolveWell(contract, arc, move.Well).WellId;
                 candidates = livingAllies
                     .Where(candidate => carried.TryGetValue(
                         candidate.ActorId, out var core)
+                        && (roleFilter is null || roleFilter.Contains(
+                            package.RolesByUnit[candidate.UnitId].Id))
+                        && (sourceFilter is null
+                            || core.CoreId.SourceWellId == sourceFilter)
                         && (move.CoreBankValue is null
                             || move.CoreBankValue.Matches(CoreBankValue(
                                 contract, arc, core.CoreId.SourceWellId))))
@@ -711,8 +728,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                     arc,
                                     carried[candidate.ActorId]
                                         .CoreId.SourceWellId)
+                                + (move.Roles is { Length: > 0 }
+                                    ? "-roles-" + string.Join(
+                                        ",", move.Roles.Order(StringComparer.Ordinal))
+                                    : "-roles-any")
+                                + (move.Well is string scopedWell
+                                    ? $"-well-{scopedWell}"
+                                    : "")
                             : $"most-experienced-level-{CurrentLevel(candidate)}"
-                        : $"role-target-{move.Target}",
+                        : move.TargetKind == "role-highest-veteran"
+                            ? $"role-highest-veteran-{move.Target}-level-{CurrentLevel(candidate)}"
+                            : $"role-target-{move.Target}",
                     move.Target == "nearest-friendly-core-carrier"
                         ? ArenaBasics.DistanceFromField(
                             contract.Map,
@@ -785,6 +811,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     return [];
                 VisibleCoreCandidate[] candidates = VisibleLooseCoreCandidates(
                     contract, mind, arc, body, move.CoreBankValue,
+                    move.Well is null
+                        ? null
+                        : ResolveWell(contract, arc, move.Well).WellId,
                     move.WithinWalkingSteps);
                 IOrderedEnumerable<VisibleCoreCandidate> ordered = move.Target
                     == "highest-bank-value-visible-loose-core"
@@ -1547,6 +1576,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private static string? OptionalTrace(string value) => value;
 
+    private static string? CombineTrace(string? first, string? second) =>
+        first is null ? second : second is null ? first : $"{first}:{second}";
+
     private static bool CanExecuteUse(
         GenericActorResolvedMatchContract contract,
         MindBody body,
@@ -1674,7 +1706,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .ToArray();
     }
 
-    private static Dictionary<int, Proposal> Allocate(
+    private Dictionary<int, Proposal> Allocate(
         IReadOnlyDictionary<int, IReadOnlyList<Proposal>> proposalsByBody) =>
         TacticalTargetCapacityAllocator.Allocate(
             proposalsByBody.ToDictionary(
@@ -1687,7 +1719,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             proposal.CapacityScope,
                             proposal.Target.Key,
                             proposal.CapacityLimit,
-                            proposal.Distance))
+                            proposal.Distance,
+                            proposal.Leaf.Node.Selection,
+                            CurrentLevel(proposal.Body)))
                     .ToArray()));
 
     private Dictionary<int, MovePlan> PrepareMovePlans(
@@ -2385,7 +2419,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (condition.WindowTicks is not null || condition.Since is not null)
             {
                 OrdersEvidenceLedger.EvidenceRead read = _evidence.Read(
-                    package, contract.Map, condition, mind.Tick, orderTicks);
+                    package, contract.Map, condition, mind.Tick, orderTicks,
+                    core => CoreBankValue(contract, arc, core.SourceWellId),
+                    core => condition.Well is null || string.Equals(
+                        ResolveWell(contract, arc, condition.Well).WellId,
+                        core.SourceWellId, StringComparison.Ordinal));
                 actual = read.Actual;
                 trace = read.Trace;
             }
@@ -2446,6 +2484,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     contract, arc, carriedCore.CoreId.SourceWellId)
                 : 0;
         }
+        if (fact == "self-carrying-core-from-well")
+        {
+            if (!carried.TryGetValue(body.ActorId, out var carriedCore))
+                return 0;
+            return string.Equals(
+                carriedCore.CoreId.SourceWellId,
+                ResolveWell(contract, arc, condition.Well!).WellId,
+                StringComparison.Ordinal) ? 1 : 0;
+        }
         if (fact == "self-stuck-ticks")
             return _stationaryTicks.GetValueOrDefault(body.UnitId);
         if (fact == "self-order-ticks")
@@ -2476,6 +2523,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 arc,
                 body,
                 condition.CoreBankValue,
+                condition.Well is null
+                    ? null
+                    : ResolveWell(contract, arc, condition.Well).WellId,
                 maximumWalkingSteps: null);
             return candidates.Length == 0
                 ? 32
@@ -2592,6 +2642,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : int.MaxValue;
         if (fact == "friendly-carriers")
             return carried.Keys.Count(actor => actor.TeamId == _teamId);
+        if (fact == "friendly-carriers-in-roles")
+        {
+            HashSet<string> roles = (condition.Roles ?? [])
+                .ToHashSet(StringComparer.Ordinal);
+            string? source = condition.Well is null ? null
+                : ResolveWell(contract, arc, condition.Well).WellId;
+            return carried.Count(pair => pair.Key.TeamId == _teamId
+                && roles.Contains(package.RolesByUnit[pair.Key.UnitId].Id)
+                && (source is null || pair.Value.CoreId.SourceWellId == source)
+                && (condition.CoreBankValue is null
+                    || condition.CoreBankValue.Matches(CoreBankValue(
+                        contract, arc, pair.Value.CoreId.SourceWellId))));
+        }
         if (fact == "visible-enemy-carriers")
             return arc.VisibleCores.Count(core =>
                 core.CarrierActorId?.TeamId != _teamId
@@ -2906,12 +2969,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         GenericActorContext.ModeObservationState.ArcRelay arc,
         MindBody body,
         OrdersPackage.CoreBankValueFilter? valueFilter,
+        string? sourceWellId,
         int? maximumWalkingSteps)
     {
         int[] distances = WalkingDistanceField(contract, mind, body);
         return arc.VisibleCores
             .Where(core => core.Disposition
-                == GenericActorContext.ArcRelayCoreDisposition.Loose)
+                == GenericActorContext.ArcRelayCoreDisposition.Loose
+                && (sourceWellId is null
+                    || core.CoreId.SourceWellId == sourceWellId))
             .Select(core =>
             {
                 int bankValue = CoreBankValue(

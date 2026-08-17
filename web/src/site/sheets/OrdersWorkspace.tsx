@@ -677,10 +677,16 @@ function MoveEditor({ value, role, allOrders, mapPlan, catalog, onOpenMap, onCha
       </div>)}
     {kind === 'follow' && (followRoleIds.length > 0
       ? <CardPicker label="Body to follow" value={encodeFollowTarget(value.follow)}
-        values={[...followRoleIds.map((id) => `role:${id}`), 'selector:most-experienced-ally']}
+        values={[
+          ...followRoleIds.map((id) => `role:${id}`),
+          ...followRoleIds.map((id) => `veteran-role:${id}`),
+          'selector:most-experienced-ally',
+        ]}
         labeler={(entry) => entry === 'selector:most-experienced-ally'
           ? 'Most experienced ally'
-          : `Role · ${humanize(entry.slice(5))}`}
+          : entry.startsWith('veteran-role:')
+            ? `Highest veteran · ${humanize(entry.slice(13))}`
+            : `Role · ${humanize(entry.slice(5))}`}
         descriptions={{ 'selector:most-experienced-ally': 'Rally around the live veteran; deterministic unit id breaks level ties.' }}
         onChange={(follow) => change((next) => { next.follow = decodeFollowTarget(follow); })} />
       : <p className="t-meta mt-3 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">Add another role in Squad before choosing Follow.</p>)}
@@ -876,10 +882,43 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }:
     'distinct-enemy-lives-observed-in-zone',
     'confirmed-enemy-destructions-in-zone',
     'zone-fully-observed-throughout-interval',
+    'friendly-core-pickups', 'friendly-core-acquisitions',
+    'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+    'friendly-core-resolutions',
+  ].includes(condition.fact);
+  const roleScopedCore = [
+    'friendly-carriers-in-roles', 'friendly-core-pickups',
+    'friendly-core-acquisitions', 'friendly-core-banks', 'friendly-core-drops',
+    'friendly-core-losses', 'friendly-core-resolutions',
+  ].includes(condition.fact);
+  const coreFiltered = [
+    'self-nearest-visible-loose-core-distance', 'friendly-carriers-in-roles',
+    'friendly-core-pickups', 'friendly-core-acquisitions',
+    'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+    'friendly-core-resolutions',
+  ].includes(condition.fact);
+  const sourceFiltered = [
+    'friendly-carriers-in-roles', 'friendly-core-pickups',
+    'friendly-core-acquisitions', 'friendly-core-banks', 'friendly-core-drops',
+    'friendly-core-losses', 'friendly-core-resolutions',
   ].includes(condition.fact);
   const change = (mutate: (next: ConditionDefinition) => void) => { const next = structuredClone(condition); mutate(next); onChange(next); };
   return <div className="mt-3 grid gap-2 sm:grid-cols-2">
     {(kind === 'role' || kind === 'role-zone') && <CardPicker label="Role" value={condition.role ?? ''} values={roles.map((role) => role.id)} onChange={(role) => change((next) => { next.role = role; })} />}
+    {roleScopedCore && <fieldset className="sm:col-span-2 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
+      <legend className="lab px-1">Participant roles in scope</legend>
+      <div className="mt-1 grid gap-1 sm:grid-cols-2">{roles.map((role) => {
+        const selected = condition.roles?.includes(role.id) ?? false;
+        return <label key={role.id} className="flex min-h-11 items-center gap-2 rounded-sm border border-arena-edge px-2 t-meta">
+          <input type="checkbox" checked={selected} onChange={(event) => change((next) => {
+            const current = new Set(next.roles ?? []);
+            if (event.target.checked) current.add(role.id); else current.delete(role.id);
+            if (current.size > 0) next.roles = [...current]; else delete next.roles;
+          })} />{humanize(role.id)}
+        </label>;
+      })}</div>
+      <p className="t-micro mt-2">Programs derive this list from their participants. Advanced editing changes the ordinary role-qualified fact directly.</p>
+    </fieldset>}
     {(kind === 'zone' || kind === 'role-zone') && (zones.length > 0
       ? <div className="min-w-0">
         <CardPicker label="Map zone" value={condition.zone ?? ''} values={zones} allowClear
@@ -898,6 +937,28 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }:
         <button type="button" className="btn btn-secondary mt-2 min-h-11" onClick={() => onOpenMap()}>Open map plan</button>
       </div>)}
     {kind === 'well' && <CardPicker label="Well" value={condition.well ?? ''} values={['north', 'centre', 'south', 'own', 'enemy']} onChange={(well) => change((next) => { next.well = well as ConditionDefinition['well']; })} />}
+    {sourceFiltered && <CardPicker label="Core source · optional" value={condition.well ?? ''}
+      values={['north', 'centre', 'south', 'own', 'enemy']} allowClear
+      onChange={(well) => change((next) => {
+        if (well) next.well = well as ConditionDefinition['well']; else delete next.well;
+      })} />}
+    {coreFiltered && <div className="min-w-0">
+      <span className="lab mb-1 block">Core bank value · optional</span>
+      <select className="field min-h-11" value={condition.coreBankValue
+        ? `${condition.coreBankValue.operator}:${condition.coreBankValue.value}` : ''}
+        onChange={(event) => change((next) => {
+          if (!event.target.value) { delete next.coreBankValue; return; }
+          const [operator, value] = event.target.value.split(':');
+          next.coreBankValue = {
+            operator: operator as 'equals' | 'at-least' | 'at-most',
+            value: Number(value),
+          };
+        })}>
+        <option value="">Any value</option><option value="equals:1">1 point</option>
+        <option value="equals:2">2 points</option><option value="equals:4">4 points</option>
+        <option value="at-least:2">2 or 4 points</option><option value="at-most:2">1 or 2 points</option>
+      </select>
+    </div>}
     {['known-enemy-carriers', 'remembered-enemies-in-zone'].includes(condition.fact) && <OptionalTicks label="Knowledge freshness" value={condition.freshnessTicks} min={1} max={600} placeholder="ticks"
       onChange={(value) => change((next) => { next.freshnessTicks = value ?? 1; })} />}
     {historical && <div className="sm:col-span-2 rounded-sm border border-arena-edge bg-arena-panel/45 p-3">
@@ -918,6 +979,30 @@ function ConditionQualifiers({ condition, roles, mapPlan, onChange, onOpenMap }:
         min={1} max={1200} placeholder="ticks" onChange={(value) => change((next) => { next.windowTicks = value ?? 1; })} />}
       {condition.since === 'node-entry' && <p className="t-micro mt-2 text-arena-material">Episode evidence belongs in an Instruction’s Until trigger; each body gets its own entry tick.</p>}
     </div>}
+    {['friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+      'friendly-core-resolutions'].includes(condition.fact)
+      && (condition.roles?.length ?? 0) > 0 && <label
+        className="sm:col-span-2 flex min-h-11 items-center gap-2 rounded-sm border border-arena-edge px-3 t-meta">
+        <input type="checkbox" checked={condition.correlateAcquisition === true}
+          onChange={(event) => change((next) => {
+            if (event.target.checked) next.correlateAcquisition = true;
+            else delete next.correlateAcquisition;
+          })} />Count only the same Core acquired by these roles during this episode
+      </label>}
+    {condition.fact === 'friendly-core-resolutions' && <fieldset
+      className="sm:col-span-2 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
+      <legend className="lab px-1">What resolves this Core attempt?</legend>
+      <div className="mt-1 grid grid-cols-3 gap-1.5">{(['bank', 'drop', 'loss'] as const)
+        .map((outcome) => <label key={outcome}
+          className="flex min-h-11 items-center gap-2 rounded-sm border border-arena-edge px-2 t-meta">
+          <input type="checkbox" checked={condition.outcomes?.includes(outcome) ?? false}
+            onChange={(event) => change((next) => {
+              const outcomes = new Set(next.outcomes ?? []);
+              if (event.target.checked) outcomes.add(outcome); else outcomes.delete(outcome);
+              next.outcomes = [...outcomes];
+            })} />{humanize(outcome)}
+        </label>)}</div>
+    </fieldset>}
   </div>;
 }
 
@@ -1099,10 +1184,15 @@ function decodeMoveTarget(value: string): MoveTarget {
 
 function encodeFollowTarget(value: MoveOrder['follow']): string {
   if (!value) return '';
-  return typeof value === 'string' ? `role:${value}` : `selector:${value.selector}`;
+  if (typeof value === 'string') return `role:${value}`;
+  return 'role' in value
+    ? `veteran-role:${value.role}`
+    : `selector:${value.selector}`;
 }
 
 function decodeFollowTarget(value: string): NonNullable<MoveOrder['follow']> {
+  if (value.startsWith('veteran-role:'))
+    return { role: value.slice(13), select: 'highest-veteran' };
   return value.startsWith('role:')
     ? value.slice(5)
     : { selector: 'most-experienced-ally' };
@@ -1137,7 +1227,15 @@ function normalizedCondition(fact: string, previous: ConditionDefinition, orders
     'distinct-enemy-lives-observed-in-zone',
     'confirmed-enemy-destructions-in-zone',
     'zone-fully-observed-throughout-interval',
+    'friendly-core-pickups', 'friendly-core-acquisitions',
+    'friendly-core-banks', 'friendly-core-drops', 'friendly-core-losses',
+    'friendly-core-resolutions',
   ].includes(fact)) next.windowTicks = previous.windowTicks ?? 120;
+  if (fact === 'friendly-carriers-in-roles')
+    next.roles = previous.roles?.filter((id) => orders.roles.some((role) => role.id === id))
+      ?? (orders.roles[0] ? [orders.roles[0].id] : []);
+  if (fact === 'friendly-core-resolutions')
+    next.outcomes = previous.outcomes?.length ? [...previous.outcomes] : ['bank'];
   if (fact === 'self-nearest-visible-enemy-distance') {
     next.operator = 'at-most';
     next.value = previous.fact === fact ? previous.value : 7;
@@ -1189,7 +1287,7 @@ function conditionFactGroup(fact: string | undefined): ConditionFactGroupId {
 }
 
 function isBooleanConditionFact(fact: string) {
-  return ['self-carrying', 'self-in-zone', 'signature-ready',
+  return ['self-carrying', 'self-carrying-core-from-well', 'self-in-zone', 'signature-ready',
     'signature-commitment-active',
     'deployment-active', 'well-has-outstanding-core', 'well-socket-filled',
     'zone-fully-observed-throughout-interval'].includes(fact);
@@ -1200,6 +1298,7 @@ function conditionFactLabel(fact: string) {
     'self-health-percent': 'My health',
     'self-level': 'My veteran level',
     'self-carrying': 'I am carrying a Core',
+    'self-carrying-core-from-well': 'My Core came from this Well',
     'self-stuck-ticks': 'Time I have been stuck',
     'self-order-ticks': 'Time on this Instruction',
     'self-in-zone': 'I am inside a zone',
@@ -1218,6 +1317,7 @@ function conditionFactLabel(fact: string) {
     'live-friendlies': 'Allies alive',
     'live-enemies': 'Enemies alive',
     'friendly-carriers': 'Allied Core carriers',
+    'friendly-carriers-in-roles': 'Core carriers in selected roles',
     'known-enemy-carriers': 'Enemy carriers remembered',
     'visible-enemy-carriers': 'Enemy carriers visible now',
     'known-loose-cores': 'Loose Cores known',
@@ -1242,6 +1342,12 @@ function conditionFactLabel(fact: string) {
     'distinct-enemy-lives-observed-in-zone': 'Distinct enemy lives seen here',
     'confirmed-enemy-destructions-in-zone': 'Confirmed enemy losses here',
     'zone-fully-observed-throughout-interval': 'Zone stayed fully watched',
+    'friendly-core-pickups': 'Friendly Core pickups',
+    'friendly-core-acquisitions': 'Core custody acquired by selected roles',
+    'friendly-core-banks': 'Friendly Cores banked',
+    'friendly-core-drops': 'Friendly Cores dropped',
+    'friendly-core-losses': 'Friendly Cores lost',
+    'friendly-core-resolutions': 'Selected Core custody outcomes',
   };
   return labels[fact] ?? humanize(fact);
 }

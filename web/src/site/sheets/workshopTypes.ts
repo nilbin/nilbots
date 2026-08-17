@@ -1,4 +1,4 @@
-import type { OrderNode } from './sheetAuthoring';
+import type { OrderNode } from './sheetAuthoring.ts';
 
 export type PlayRecipe =
   | 'blank'
@@ -131,8 +131,6 @@ export interface PlayOpportunityBinding {
    * old workshop documents normalize without rewriting generated Orders.
    */
   useOrderId: string;
-  /** Program linkage only; runtime selection remains ordinary global order. */
-  linkedBankProgramId?: string;
   /** Visible coordination policy used to normalize inline/shared capacity. */
   capacityPolicy?: {
     target: 'core' | 'healing' | 'enemy' | 'carrier' | 'signature-target';
@@ -171,6 +169,22 @@ export interface PlayProjection {
   lastGenerated: PlayGeneratedOrderFingerprint[];
   /** Editor linkage only; all executable fields remain in orders. */
   signatureOpportunities?: PlayOpportunityBinding[];
+}
+
+export interface PlayCustodyBinding {
+  id: string;
+  projectionId: string;
+  hostOrderIds: string[];
+  actionOrderIds: string[];
+  kind: 'carrier-return' | 'escort-carrier';
+  carrierRoleIds: string[];
+  routeId?: string;
+  coreBankValue?: {
+    operator: 'equals' | 'at-least' | 'at-most';
+    value: number;
+  };
+  well?: 'north' | 'centre' | 'south' | 'own' | 'enemy';
+  ownedConditionIds: string[];
 }
 
 export type PlayLinkedValue =
@@ -221,6 +235,12 @@ export interface LinkedPlay {
   ownedCapacityIds: string[];
   projections: PlayProjection[];
   linkedValues: PlayLinkedValueDefinition[];
+  /** Editor linkage for ordinary custody Instructions nested under active hosts. */
+  coreCustody?: {
+    bindings: PlayCustodyBinding[];
+    completionConditionId?: string;
+    completionOutcomes?: Array<'bank' | 'drop' | 'loss'>;
+  };
 }
 
 export interface WorkshopDocument {
@@ -241,6 +261,7 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
   for (const play of next.plays) {
     play.formations ??= [];
     play.readinessGroups ??= [];
+    play.coreCustody ??= { bindings: [] };
     for (const slot of play.slots) {
       slot.name ??= humanize(slot.id.replace(/-slot$/, ''));
       slot.capacity ??= 1;
@@ -256,7 +277,7 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
         ? 'on-contact' : 'program-response';
       const existing = projection.signatureOpportunities ?? [];
       projection.signatureOpportunities = existing.map((binding) => ({
-        ...binding,
+        ...withoutLegacyBankLink(binding),
         kind: binding.kind ?? 'use',
         ownedConditionIds: [...(binding.ownedConditionIds ?? [])],
       }));
@@ -287,6 +308,12 @@ export function normalizeWorkshop(value: WorkshopDocument): WorkshopDocument {
       });
     }
   }
+  return next;
+}
+
+function withoutLegacyBankLink(binding: PlayOpportunityBinding): PlayOpportunityBinding {
+  const next = { ...binding } as PlayOpportunityBinding & { linkedBankProgramId?: string };
+  delete next.linkedBankProgramId;
   return next;
 }
 

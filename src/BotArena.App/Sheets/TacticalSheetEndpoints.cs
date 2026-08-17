@@ -80,7 +80,9 @@ public static class TacticalSheetEndpoints
                     value.MapPlanJson,
                     value.WorkshopJson
                         ?? throw new InvalidOperationException(
-                            $"Starter '{value.Id}' has no editable workshop source.")))
+                            $"Starter '{value.Id}' has no editable workshop source."),
+                    value.Classification,
+                    value.Recommended))
                     .ToArray(),
                 templates.Stock.Select(value => new TacticalStockSheetResponse(
                     value.Id,

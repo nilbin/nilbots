@@ -3738,6 +3738,13 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string WorkshopJson { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("classification")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string Classification { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("recommended")]
+        public bool Recommended { get; set; } = default!;
+
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
         [System.Text.Json.Serialization.JsonExtensionData]

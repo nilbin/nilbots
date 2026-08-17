@@ -282,10 +282,14 @@ internal sealed class OrdersPackage
                     : new Capacity($"local:{roleId}:{path}",
                         capacityValue.GetInt32())
                 : null;
+        string? selection = value.TryGetProperty(
+            "select", out JsonElement selectionValue)
+                ? selectionValue.GetString()
+                : null;
         if (value.TryGetProperty("orders", out JsonElement children))
         {
             return new OrderNode(
-                id, path, when, until, timeout, cooldown, urgency, null,
+                id, path, when, until, timeout, cooldown, urgency, null, null,
                 ParseOrders(
                     children, shared, roleId, path, branchDepth + 1, urgency),
                 null);
@@ -300,7 +304,8 @@ internal sealed class OrdersPackage
                         ? ParseHandoff(handoff)
                         : new DropAction();
         return new OrderNode(
-            id, path, when, until, timeout, cooldown, urgency, capacity, [], action);
+            id, path, when, until, timeout, cooldown, urgency, capacity,
+            selection, [], action);
     }
 
     private static TacticalMovementUrgency ParseUrgency(string value) =>
@@ -341,6 +346,10 @@ internal sealed class OrdersPackage
                 ? new MoveAction(
                     "follow", "role", follow.GetString()!, null, posture, null,
                     null, null)
+                : follow.TryGetProperty("role", out JsonElement followedRole)
+                    ? new MoveAction(
+                        "follow", "role-highest-veteran", followedRole.GetString()!,
+                        null, posture, null, null, null)
                 : new MoveAction(
                     "follow",
                     "selector",
@@ -352,12 +361,17 @@ internal sealed class OrdersPackage
                     follow.TryGetProperty(
                         "coreBankValue", out JsonElement followBankValue)
                             ? ParseCoreBankValue(followBankValue)
-                            : null);
+                            : null,
+                    follow.TryGetProperty("roles", out JsonElement followedRoles)
+                        ? followedRoles.EnumerateArray()
+                            .Select(entry => entry.GetString()!).ToArray()
+                        : null,
+                    Optional(follow, "well"));
         JsonElement to = value.GetProperty("to");
         if (to.ValueKind == JsonValueKind.String)
             return new MoveAction(
                 "to", "dynamic", to.GetString()!, via, posture, null,
-                withinWalkingSteps, coreBankValue);
+                withinWalkingSteps, coreBankValue, null, Optional(value, "well"));
         JsonProperty target = to.EnumerateObject().Single();
         return new MoveAction(
             "to", target.Name, target.Value.GetString()!, via, posture,
@@ -451,6 +465,14 @@ internal sealed class OrdersPackage
         Optional(value, "signature"),
         value.TryGetProperty("coreBankValue", out JsonElement bankValue)
             ? ParseCoreBankValue(bankValue)
+            : null,
+        value.TryGetProperty("roles", out JsonElement roles)
+            ? roles.EnumerateArray().Select(entry => entry.GetString()!).ToArray()
+            : null,
+        value.TryGetProperty("correlateAcquisition", out JsonElement correlation)
+            && correlation.GetBoolean(),
+        value.TryGetProperty("outcomes", out JsonElement outcomes)
+            ? outcomes.EnumerateArray().Select(entry => entry.GetString()!).ToArray()
             : null);
 
     private static CoreBankValueFilter ParseCoreBankValue(JsonElement value) =>
@@ -549,6 +571,7 @@ internal sealed class OrdersPackage
         int Cooldown,
         TacticalMovementUrgency Urgency,
         Capacity? Capacity,
+        string? Selection,
         OrderNode[] Children,
         OrderAction? Action);
 
@@ -565,7 +588,10 @@ internal sealed class OrdersPackage
         int? WindowTicks,
         string? Since,
         string? Signature,
-        CoreBankValueFilter? CoreBankValue);
+        CoreBankValueFilter? CoreBankValue,
+        string[]? Roles = null,
+        bool CorrelateAcquisition = false,
+        string[]? Outcomes = null);
     internal sealed record CoreBankValueFilter(string Operator, int Value)
     {
         public bool Matches(int actual) => Operator switch
@@ -586,7 +612,9 @@ internal sealed class OrdersPackage
         string? Posture,
         string? FaceAnchor,
         int? WithinWalkingSteps,
-        CoreBankValueFilter? CoreBankValue) : OrderAction;
+        CoreBankValueFilter? CoreBankValue,
+        string[]? Roles = null,
+        string? Well = null) : OrderAction;
     internal sealed record FightAction(
         string[] Targets,
         string Style,

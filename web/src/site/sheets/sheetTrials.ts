@@ -102,6 +102,23 @@ export interface PracticeProgramAttribution {
   action: string;
   reason: string | null;
   higherPrograms: PracticeProgramGate[];
+  localCustody: {
+    kind: 'carrier-return' | 'escort-carrier';
+    carrierRoleIds: string[];
+    bindingId: string;
+  } | null;
+}
+
+export interface PracticeCoreCustodyEvent {
+  tick: number;
+  coreKey: string;
+  coreSource: string;
+  coreValue: number | null;
+  kind: 'deliberate-pickup' | 'incidental-pickup' | 'toss-catch'
+    | 'handoff-out' | 'handoff-in' | 'drop' | 'loss' | 'bank';
+  label: string;
+  programId: string | null;
+  programName: string | null;
 }
 
 export interface PracticeProgramTimelineSegment {
@@ -248,6 +265,13 @@ function practiceProgramAttributionForFrame(
   const orderId = parsed?.orderId ?? published?.orderId ?? null;
   const action = parsed?.action ?? published?.action ?? 'No body action recorded';
   const matched = findProgramForOrder(draft, body.roleId, orderId, reason);
+  const projection = matched?.projections.find((entry) => entry.roleId === body.roleId);
+  const localCustody = projection && orderId
+    ? (matched?.coreCustody?.bindings ?? []).find((binding) =>
+      binding.projectionId === projection.id
+      && binding.hostOrderIds.some((hostId) => orderIsWithin(
+        projection.orders, hostId, orderId)))
+    : undefined;
   const acceptedIndex = matched
     ? draft.workshop.plays.findIndex((entry) => entry.id === matched.id)
     : draft.workshop.plays.length;
@@ -276,7 +300,128 @@ function practiceProgramAttributionForFrame(
     action,
     reason,
     higherPrograms,
+    localCustody: localCustody ? {
+      kind: localCustody.kind,
+      carrierRoleIds: [...localCustody.carrierRoleIds],
+      bindingId: localCustody.id,
+    } : null,
   };
+}
+
+/**
+ * Core events involving one selected body, attributed to the ordinary
+ * Instruction/Program that controlled it at that authoritative tick.
+ */
+export function practiceCoreCustodyEvents(
+  replay: ReplayModel | undefined,
+  draft: SheetDraft,
+  unitId: number,
+): PracticeCoreCustodyEvent[] {
+  if (!replay) return [];
+  const body = practiceProgramBodies(draft).find((entry) => entry.unitId === unitId);
+  if (!body) return [];
+  const result: PracticeCoreCustodyEvent[] = [];
+  const events = replay.ticks.flatMap((frame) => frame.events.map((event) => ({ frame, event })))
+    .sort((left, right) => left.event.tick - right.event.tick
+      || left.event.ordinal - right.event.ordinal);
+  for (const { frame, event } of events) {
+    const fact = event.arcRelayFact;
+    if (!fact) continue;
+    let kind: PracticeCoreCustodyEvent['kind'] | null = null;
+    let label = '';
+    let coreKey = '';
+    let coreSource = '';
+    if (fact.kind === 'core-picked-up'
+      && fact.carrierActor.teamId === 0 && fact.carrierActor.unitId === unitId) {
+      // Pickup is resolved from the movement accepted on the preceding tick.
+      // The new tick may already be running a local carrier branch, which is
+      // the continuation rather than the reason this body acquired the Core.
+      const causeFrame = [...replay.ticks].reverse().find((candidate) =>
+        candidate.tick < event.tick) ?? frame;
+      const attribution = practiceProgramAttributionForFrame(draft, body, causeFrame);
+      const order = attribution.orderId
+        ? findAuthoredOrder(draft, body.roleId, attribution.orderId) : undefined;
+      const tossed = events.some((candidate) => candidate.event.tick <= event.tick
+        && candidate.event.tick >= event.tick - 8
+        && candidate.event.arcRelayFact?.kind === 'core-dropped'
+        && coreIdentity(candidate.event.arcRelayFact.coreId) === coreIdentity(fact.coreId)
+        && candidate.event.arcRelayFact.dropKind === 'signature-departure');
+      kind = tossed ? 'toss-catch'
+        : order?.move?.to === 'nearest-visible-loose-core'
+          || order?.move?.to === 'highest-bank-value-visible-loose-core'
+          ? 'deliberate-pickup' : 'incidental-pickup';
+      label = tossed ? 'Caught an Arc Toss'
+        : kind === 'deliberate-pickup' ? 'Recovered the chosen Core'
+          : 'Picked up a Core incidentally while moving';
+      coreKey = coreIdentity(fact.coreId);
+      coreSource = fact.coreId.sourceWellId;
+    } else if (fact.kind === 'core-handed-off'
+      && fact.sourceActor.teamId === 0 && fact.sourceActor.unitId === unitId) {
+      kind = 'handoff-out';
+      label = `Handed the Core to ${roleForUnit(draft, fact.targetActor.unitId)}`;
+      coreKey = coreIdentity(fact.coreId);
+      coreSource = fact.coreId.sourceWellId;
+    } else if (fact.kind === 'core-handed-off'
+      && fact.targetActor.teamId === 0 && fact.targetActor.unitId === unitId) {
+      kind = 'handoff-in';
+      label = `Received the Core from ${roleForUnit(draft, fact.sourceActor.unitId)}`;
+      coreKey = coreIdentity(fact.coreId);
+      coreSource = fact.coreId.sourceWellId;
+    } else if (fact.kind === 'core-dropped'
+      && fact.sourceActor.teamId === 0 && fact.sourceActor.unitId === unitId) {
+      // Signature departure is only the first half of Arc Toss. The later
+      // catch or loose landing is the custody event a player needs to see.
+      if (fact.dropKind === 'signature-departure') continue;
+      kind = fact.dropKind === 'voluntary' ? 'drop' : 'loss';
+      label = kind === 'drop'
+        ? 'Dropped the Core by authored choice'
+        : `Lost the Core · ${humanizeReason(fact.dropKind)}`;
+      coreKey = coreIdentity(fact.coreId);
+      coreSource = fact.coreId.sourceWellId;
+    } else if (fact.kind === 'core-banked'
+      && fact.carrierActor.teamId === 0 && fact.carrierActor.unitId === unitId) {
+      kind = 'bank';
+      label = `Banked the Core${fact.chargeAwarded ? ` for ${fact.chargeAwarded} charge` : ''}`;
+      coreKey = coreIdentity(fact.coreId);
+      coreSource = fact.coreId.sourceWellId;
+    }
+    if (!kind) continue;
+    const attributionFrame = fact.kind === 'core-picked-up'
+      ? [...replay.ticks].reverse().find((candidate) => candidate.tick < event.tick) ?? frame
+      : frame;
+    const attribution = practiceProgramAttributionForFrame(draft, body, attributionFrame);
+    const value = coreValueBefore(events, coreKey, event.tick, event.ordinal);
+    result.push({
+      tick: event.tick,
+      coreKey,
+      coreSource,
+      coreValue: value,
+      kind,
+      label,
+      programId: attribution.programId,
+      programName: attribution.programName,
+    });
+  }
+  return result;
+}
+
+function coreValueBefore(
+  events: { event: ReplayModel['ticks'][number]['events'][number] }[],
+  coreKey: string,
+  tick: number,
+  ordinal: number,
+): number | null {
+  let value: number | null = null;
+  for (const { event } of events) {
+    if (event.tick > tick || event.tick === tick && event.ordinal > ordinal) break;
+    const fact = event.arcRelayFact;
+    if (!fact || !('coreId' in fact) || coreIdentity(fact.coreId) !== coreKey) continue;
+    if (fact.kind === 'core-born') value = fact.chargeValue;
+    else if (fact.kind === 'core-ripened') value = fact.value;
+    else if (fact.kind === 'core-banked' && fact.chargeAwarded !== undefined)
+      value = fact.chargeAwarded;
+  }
+  return value;
 }
 
 /** Group consecutive ticks so a player can scan Program handoffs, not 600 rows. */
@@ -363,7 +508,6 @@ function findAuthoredOrder(
   orderId: string,
 ): OrderNode | undefined {
   const role = draft.orders.roles.find((candidate) => candidate.id === roleId);
-  if (!role) return undefined;
   const visit = (orders: OrderNode[]): OrderNode | undefined => {
     for (const order of orders) {
       if (order.id === orderId) return order;
@@ -372,7 +516,19 @@ function findAuthoredOrder(
     }
     return undefined;
   };
-  return visit(role.orders);
+  const materialized = role ? visit(role.orders) : undefined;
+  if (materialized) return materialized;
+  // Practice carries the immutable Program source as well as its generated
+  // role Orders. Keep attribution useful if a compact snapshot contains the
+  // source tree but not every generated descendant.
+  for (const program of draft.workshop.plays) {
+    const projection = program.projections.find((candidate) =>
+      candidate.roleId === roleId);
+    if (!projection) continue;
+    const authored = visit(resolveProjectionOrders(program, projection));
+    if (authored) return authored;
+  }
+  return undefined;
 }
 
 /**
@@ -747,6 +903,20 @@ function flattenOrders(orders: OrderNode[]): OrderNode[] {
     if (order.orders) result.push(...flattenOrders(order.orders));
   }
   return result;
+}
+
+function orderIsWithin(orders: OrderNode[], ancestorId: string, orderId: string): boolean {
+  const ancestor = findOrderById(orders, ancestorId);
+  return Boolean(ancestor && findOrderById([ancestor], orderId));
+}
+
+function coreIdentity(core: { sourceWellId: string; sourceOrdinal: number }): string {
+  return `${core.sourceWellId}:${core.sourceOrdinal}`;
+}
+
+function roleForUnit(draft: SheetDraft, unitId: number): string {
+  return humanizeReason(practiceProgramBodies(draft)
+    .find((entry) => entry.unitId === unitId)?.roleId ?? `body-${unitId + 1}`);
 }
 
 function humanizeReason(value: string): string {

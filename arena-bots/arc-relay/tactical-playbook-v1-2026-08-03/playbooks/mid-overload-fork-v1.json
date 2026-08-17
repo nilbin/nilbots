@@ -14,15 +14,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-home-mason-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-home-mason-respond",
           "when": {
             "all": [
@@ -35,6 +26,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-home-mason-respond-carry-home",
+              "when": "mid-fork-home-mason-custody-carrying",
+              "until": "mid-fork-home-mason-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-home-mason-respond-hardlight-block",
               "use": {
@@ -74,6 +74,15 @@
         {
           "id": "mid-fork-home-mason-duty",
           "orders": [
+            {
+              "id": "mid-fork-home-mason-duty-carry-home",
+              "when": "mid-fork-home-mason-custody-carrying",
+              "until": "mid-fork-home-mason-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-home-mason-rebuild",
               "when": {
@@ -204,15 +213,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-home-lantern-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-home-lantern-respond",
           "when": {
             "all": [
@@ -225,6 +225,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-home-lantern-respond-carry-home",
+              "when": "mid-fork-home-lantern-custody-carrying",
+              "until": "mid-fork-home-lantern-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-home-lantern-respond-continue",
               "fight": {
@@ -250,6 +259,15 @@
         {
           "id": "mid-fork-home-lantern-duty",
           "orders": [
+            {
+              "id": "mid-fork-home-lantern-duty-carry-home",
+              "when": "mid-fork-home-lantern-custody-carrying",
+              "until": "mid-fork-home-lantern-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-home-lantern-duty-survey-flare",
               "use": {
@@ -358,15 +376,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-return-mason-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-return-mason-respond",
           "when": {
             "all": [
@@ -382,6 +391,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-return-mason-respond-carry-home",
+              "when": "mid-fork-return-mason-custody-carrying",
+              "until": "mid-fork-return-mason-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-mason-respond-hardlight-block",
               "use": {
@@ -421,6 +439,15 @@
         {
           "id": "mid-fork-return-mason-duty",
           "orders": [
+            {
+              "id": "mid-fork-return-mason-duty-carry-home",
+              "when": "mid-fork-return-mason-custody-carrying",
+              "until": "mid-fork-return-mason-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-mason-rebuild",
               "when": {
@@ -551,15 +578,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-return-rail-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-return-rail-respond",
           "when": {
             "all": [
@@ -575,6 +593,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-return-rail-respond-carry-home",
+              "when": "mid-fork-return-rail-custody-carrying",
+              "until": "mid-fork-return-rail-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-rail-respond-continue",
               "fight": {
@@ -600,6 +627,15 @@
         {
           "id": "mid-fork-return-rail-duty",
           "orders": [
+            {
+              "id": "mid-fork-return-rail-duty-carry-home",
+              "when": "mid-fork-return-rail-custody-carrying",
+              "until": "mid-fork-return-rail-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-rail-stand",
               "capacity": 1,
@@ -699,15 +735,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-return-hush-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-return-hush-respond",
           "when": {
             "all": [
@@ -723,6 +750,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-return-hush-respond-carry-home",
+              "when": "mid-fork-return-hush-custody-carrying",
+              "until": "mid-fork-return-hush-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-hush-respond-continue",
               "fight": {
@@ -748,6 +784,15 @@
         {
           "id": "mid-fork-return-hush-duty",
           "orders": [
+            {
+              "id": "mid-fork-return-hush-duty-carry-home",
+              "when": "mid-fork-return-hush-custody-carrying",
+              "until": "mid-fork-return-hush-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-hush-stand",
               "capacity": 1,
@@ -847,15 +892,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-return-medic-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-return-medic-respond",
           "when": {
             "all": [
@@ -871,6 +907,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-return-medic-respond-carry-home",
+              "when": "mid-fork-return-medic-custody-carrying",
+              "until": "mid-fork-return-medic-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-medic-respond-continue",
               "fight": {
@@ -896,6 +941,15 @@
         {
           "id": "mid-fork-return-medic-duty",
           "orders": [
+            {
+              "id": "mid-fork-return-medic-duty-carry-home",
+              "when": "mid-fork-return-medic-custody-carrying",
+              "until": "mid-fork-return-medic-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-medic-stand",
               "capacity": 1,
@@ -995,15 +1049,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-return-breaker-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-return-breaker-respond",
           "when": {
             "all": [
@@ -1019,6 +1064,15 @@
           "timeout": 110,
           "cooldown": 20,
           "orders": [
+            {
+              "id": "mid-fork-return-breaker-respond-carry-home",
+              "when": "mid-fork-return-breaker-custody-carrying",
+              "until": "mid-fork-return-breaker-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-breaker-respond-continue",
               "fight": {
@@ -1044,6 +1098,15 @@
         {
           "id": "mid-fork-return-breaker-duty",
           "orders": [
+            {
+              "id": "mid-fork-return-breaker-duty-carry-home",
+              "when": "mid-fork-return-breaker-custody-carrying",
+              "until": "mid-fork-return-breaker-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-return-breaker-stand",
               "capacity": 1,
@@ -1143,20 +1206,20 @@
       ],
       "orders": [
         {
-          "id": "bank-core-raider-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "mid-fork-raider-respond",
           "when": "always",
           "timeout": 220,
           "cooldown": 0,
           "orders": [
+            {
+              "id": "mid-fork-raider-respond-carry-home",
+              "when": "mid-fork-raider-custody-carrying",
+              "until": "mid-fork-raider-custody-empty",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
             {
               "id": "mid-fork-raider-respond-vector-dash",
               "use": {
@@ -1261,16 +1324,6 @@
     "healing": 1
   },
   "conditions": {
-    "bank-core-carrying": {
-      "fact": "self-carrying",
-      "operator": "equals",
-      "value": 1
-    },
-    "bank-core-empty": {
-      "fact": "self-carrying",
-      "operator": "equals",
-      "value": 0
-    },
     "mid-fork-response-start": {
       "fact": "remembered-enemies-in-zone",
       "operator": "at-least",
@@ -1412,6 +1465,86 @@
       "operator": "equals",
       "value": 1,
       "zone": "mid-fork-raider-respond-vector-dash-window"
+    },
+    "mid-fork-home-mason-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-home-mason-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-home-lantern-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-home-lantern-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-return-mason-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-return-mason-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-return-rail-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-return-rail-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-return-hush-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-return-hush-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-return-medic-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-return-medic-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-return-breaker-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-return-breaker-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "mid-fork-raider-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "mid-fork-raider-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
     },
     "field-work-home-mason-field-work-empty-handed": {
       "fact": "self-carrying",

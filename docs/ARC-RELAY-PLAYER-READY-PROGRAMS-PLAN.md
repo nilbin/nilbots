@@ -5,6 +5,48 @@ Status: **implemented for owner review** — see
 Date: 2026-08-16  
 Baseline: current `main`, local/review loop profile `tapline-8`
 
+## Authoritative amendment: Program-scoped Core custody
+
+Owner ruling (2026-08-17). This section supersedes every later reference in
+this plan to a linked banking Program, a post-pickup Program transition, or
+`self-carrying = 0` as a universal Program exit. Those passages record the
+earlier design and are not acceptance requirements.
+
+- A Program never calls, links, or jumps to another Program. The one ordered
+  Program list remains the only player-facing priority and ordinary generated
+  Instructions remain the only runtime behavior.
+- A durable Program parent owns its trigger, readiness, commitment, hard
+  timeout, and authored tactical outcome. Once active, its `when` is not
+  re-evaluated while it has an `until`; higher Programs may still pre-empt it
+  through ordinary priority.
+- **If this Program gains a Core** is Program-local authoring. Carrier, escort,
+  transfer, Fight, healing, signature, wall, Handoff, Toss, and Drop branches
+  sit beneath the participant's already-active parent. They inherit the parent
+  episode instead of repeating its trigger or becoming carrying-triggered root
+  Programs.
+- A carrier branch may use current `self-carrying` and end when that individual
+  becomes empty. A Toss or Handoff therefore ends only the old carrier's local
+  branch; the receiving participant's branch starts and the Program continues.
+- Program completion is an authored bank, explicit abandonment/loss, or hard
+  timeout. When completion refers to the Core acquired by this tactic, ordinary
+  historical facts correlate pickup/catch, Handoff/Toss, Drop/loss, and bank by
+  authoritative Core identity and declared participant roles.
+- Role-qualified carrier facts and selectors prevent an escort from attaching
+  to an unrelated tactic. They are ordinary Instruction vocabulary, not an
+  `active Program` runtime fact.
+- Deliberate recovery filters never prevent incidental physical pickup. An
+  active Program may handle an unwanted Core with ordered Drop/Handoff/Toss
+  branches, with a visible warning that the reclaim interval prevents only
+  immediate same-body pickup, not a permanent loop.
+- A standalone Core-custody Program is still legal as an ordinary global
+  fallback or intentional higher override, but nothing references it. The UI
+  explains the real higher/local/lower result of the Program list.
+
+The required proofs are one Program that remains committed across acquisition,
+custody transfer, escort retargeting and banking, plus one incidental unwanted
+Core that is visibly filtered and dropped/transferred before the Program
+resumes or exits. Neither proof may require raw JSON or a second runtime.
+
 ## Directive
 
 Implement this plan as the next Tactical Programs goal. It replaces the unsent
@@ -84,10 +126,10 @@ Preserve these constraints throughout:
   and generated `fight` leaf use one editor/materializer. Ambush readiness and
   trigger may activate that behavior from its parent Program; ambient contact
   may activate it with a local distance Condition.
-- A post-pickup **Bank carried Core** link is editor navigation and validation,
-  not a runtime Program call. Carrying state plus the one top-to-bottom Program
-  order still causes takeover; the linked Program owns its return route,
-  escorts, opportunities, and fallbacks exactly once.
+- Core custody may remain inside the already-active Program. The editor owns
+  one semantic source for its participant-local carrier and escort branches,
+  while the priority lens reports any real higher override and lower fallback.
+  No Program reference or transition is emitted.
 - Core value remains ordinary evidence and target filtering—not a separate
   custody-policy engine. Pickup preference, carrier routing, escorting,
   handoff/Toss, and voluntary drop all materialize through the same Conditions,

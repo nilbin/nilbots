@@ -1,5 +1,17 @@
-import type { SheetDraft, SheetIssue } from './sheetAuthoring';
-import type { LinkedPlay, PlayGeometryGroup } from './workshopTypes';
+import type { TacticalSheetCatalog } from '../api';
+import type { OrderNode, SheetDraft, SheetIssue } from './sheetAuthoring.ts';
+import type { LinkedPlay, PlayGeometryGroup } from './workshopTypes.ts';
+
+export interface ProgramSpatialGuide {
+  id: string;
+  sourceAnchorId: string;
+  targetAnchorId: string;
+  label: string;
+  range?: number;
+  distance: number;
+  lineOfSight: 'clear' | 'blocked' | 'not-required';
+  valid: boolean;
+}
 
 export function synchronizePlayGeometry(
   draft: SheetDraft,
@@ -161,6 +173,7 @@ export function playGeometryIssues(
   draft: SheetDraft,
   playId: string,
   tileRows?: string[],
+  catalog?: TacticalSheetCatalog,
 ): SheetIssue[] {
   const play = requirePlay(draft, playId);
   const issues: SheetIssue[] = [];
@@ -239,7 +252,7 @@ export function playGeometryIssues(
         });
         continue;
       }
-      const wall = tileRows && firstWallBetween(source, receiver, tileRows);
+      const wall = tileRows && firstArcTossWallBetween(source, receiver, tileRows);
       if (wall) issues.push({
         path: `workshop.plays.${playId}.geometry.${link.receiverAnchorId}`,
         severity: 'error',
@@ -273,7 +286,7 @@ export function playGeometryIssues(
         });
         continue;
       }
-      const wall = tileRows && firstWallBetween(left, right, tileRows);
+      const wall = tileRows && firstArcTossWallBetween(left, right, tileRows);
       if (wall) issues.push({
         path: `workshop.plays.${playId}.geometry.${rightId}`,
         severity: 'error',
@@ -281,7 +294,95 @@ export function playGeometryIssues(
       });
     }
   }
+  if (catalog) for (const guide of playSpatialGuides(draft, playId, catalog)) {
+    if (guide.valid) continue;
+    issues.push({
+      path: `workshop.plays.${playId}.geometry.${guide.targetAnchorId}`,
+      severity: 'error',
+      message: guide.range !== undefined && guide.distance > guide.range
+        ? `${guide.label} is ${guide.distance} tiles from its caster Post, outside range ${guide.range}. Move either point on the map.`
+        : `${guide.label} has blocked line of sight. Move its caster Post or target point.`,
+    });
+  }
   return issues;
+}
+
+/** Static visual guidance only. Runtime legality remains authoritative. */
+export function playSpatialGuides(
+  draft: SheetDraft,
+  playId: string,
+  catalog: TacticalSheetCatalog,
+): ProgramSpatialGuide[] {
+  const play = requirePlay(draft, playId);
+  const guides: ProgramSpatialGuide[] = [];
+  for (const slot of play.slots) {
+    const deployment = slot.deployment;
+    if (!deployment) continue;
+    const source = draft.mapPlan.anchors[slot.anchorId];
+    const target = draft.mapPlan.anchors[deployment.targetAnchorId];
+    if (!source || !target) continue;
+    const role = draft.orders.roles.find((entry) => entry.id === slot.roleId);
+    const descriptor = role?.classes.map((classId) => catalog.classes.find((entry) =>
+      entry.id === classId && entry.signatureId === deployment.skill))
+      .find(Boolean)?.signatureAuthoring;
+    const range = descriptor?.engagementRange;
+    const distance = chebyshev(source, target);
+    const wall = firstWallBetween(source, target, catalog.map.tileRows);
+    const lineOfSight = wall ? 'blocked' : 'clear';
+    guides.push({
+      id: `${slot.id}:${deployment.skill}`,
+      sourceAnchorId: slot.anchorId,
+      targetAnchorId: deployment.targetAnchorId,
+      label: `${humanize(deployment.skill)} target`,
+      range,
+      distance,
+      lineOfSight,
+      valid: (range === undefined || distance <= range) && !wall,
+    });
+  }
+  const existingTargets = new Set(guides.map((guide) => guide.targetAnchorId));
+  for (const projection of play.projections) {
+    const role = draft.orders.roles.find((entry) => entry.id === projection.roleId);
+    for (const binding of projection.signatureOpportunities ?? []) {
+      const action = findOrder(projection.orders, binding.useOrderId);
+      if (!action?.use?.at || existingTargets.has(action.use.at)) continue;
+      const host = findOrder(projection.orders, binding.hostOrderId);
+      const post = play.slots.find((entry) => entry.hostOrderId === binding.hostOrderId);
+      const sourceAnchorId = post?.anchorId
+        ?? (host?.move?.to && typeof host.move.to === 'object' && 'anchor' in host.move.to
+          ? host.move.to.anchor : undefined);
+      if (!sourceAnchorId) continue;
+      const source = draft.mapPlan.anchors[sourceAnchorId];
+      const target = draft.mapPlan.anchors[action.use.at];
+      if (!source || !target) continue;
+      const descriptor = role?.classes.map((classId) => catalog.classes.find((entry) =>
+        entry.id === classId && entry.signatureId === action.use!.skill))
+        .find(Boolean)?.signatureAuthoring;
+      const range = descriptor?.engagementRange;
+      const distance = chebyshev(source, target);
+      const wall = firstWallBetween(source, target, catalog.map.tileRows);
+      guides.push({
+        id: `${binding.id}:${action.use.skill}`,
+        sourceAnchorId,
+        targetAnchorId: action.use.at,
+        label: `${humanize(action.use.skill)} target`,
+        range,
+        distance,
+        lineOfSight: wall ? 'blocked' : 'clear',
+        valid: (range === undefined || distance <= range) && !wall,
+      });
+    }
+  }
+  return guides;
+}
+
+function findOrder(orders: OrderNode[], id: string): OrderNode | undefined {
+  for (const order of orders) {
+    if (order.id === id) return order;
+    const nested = order.orders ? findOrder(order.orders, id) : undefined;
+    if (nested) return nested;
+  }
+  return undefined;
 }
 
 function isStraight(from: [number, number], to: [number, number]) {
@@ -295,16 +396,65 @@ function firstWallBetween(
   to: [number, number],
   tileRows: string[],
 ): [number, number] | null {
+  const width = Math.abs(to[0] - from[0]);
+  const height = Math.abs(to[1] - from[1]);
   const dx = Math.sign(to[0] - from[0]);
   const dy = Math.sign(to[1] - from[1]);
   let x = from[0];
   let y = from[1];
-  while (x !== to[0] || y !== to[1]) {
+  let horizontal = 0;
+  let vertical = 0;
+  while (horizontal < width || vertical < height) {
+    const decision = (1 + 2 * horizontal) * height
+      - (1 + 2 * vertical) * width;
+    if (decision === 0) {
+      // Corner-strict supercover: a diagonal ray touches both orthogonal
+      // companions before entering the diagonal tile.
+      if (tileRows[y]?.[x + dx] === '#') return [x + dx, y];
+      if (tileRows[y + dy]?.[x] === '#') return [x, y + dy];
+      x += dx;
+      y += dy;
+      horizontal += 1;
+      vertical += 1;
+    } else if (decision < 0) {
+      x += dx;
+      horizontal += 1;
+    } else {
+      y += dy;
+      vertical += 1;
+    }
+    if (tileRows[y]?.[x] === '#') return [x, y];
+  }
+  return null;
+}
+
+/** Arc Toss follows its authored cardinal/45° ray and clips only when the
+ * landing ray itself enters a wall. It deliberately does not use the combat
+ * line-of-sight supercover rule. */
+function firstArcTossWallBetween(
+  from: [number, number],
+  to: [number, number],
+  tileRows: string[],
+): [number, number] | null {
+  const dx = Math.sign(to[0] - from[0]);
+  const dy = Math.sign(to[1] - from[1]);
+  const distance = chebyshev(from, to);
+  let x = from[0];
+  let y = from[1];
+  for (let step = 0; step < distance; step++) {
     x += dx;
     y += dy;
     if (tileRows[y]?.[x] === '#') return [x, y];
   }
   return null;
+}
+
+function chebyshev(from: [number, number], to: [number, number]) {
+  return Math.max(Math.abs(from[0] - to[0]), Math.abs(from[1] - to[1]));
+}
+
+function humanize(value: string) {
+  return value.replaceAll('-', ' ');
 }
 
 function synchronizeGroup(draft: SheetDraft, group: PlayGeometryGroup) {

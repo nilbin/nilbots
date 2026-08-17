@@ -58,9 +58,13 @@ public sealed class TacticalSheetCompilerTests
     {
         var templates = new TacticalSheetTemplateCatalog();
         Assert.Equal(
-            ["running-relay-v1", "mid-overload-fork-v1"],
+            ["recommended-first-v1", "running-relay-v1", "mid-overload-fork-v1"],
             templates.Starters.Select(value => value.Id));
         Assert.Same(templates.Starters[0], templates.Template);
+        Assert.True(templates.Template.Recommended);
+        Assert.Equal("recommended", templates.Template.Classification);
+        Assert.Equal("experimental", templates.Starters[1].Classification);
+        Assert.Equal("advanced", templates.Starters[2].Classification);
         ActorMapDefinition current = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
 
@@ -117,14 +121,15 @@ public sealed class TacticalSheetCompilerTests
 
         JsonObject insufficientVariety = JsonNode.Parse(
             templates.Template.OrdersJson)!.AsObject();
-        string[] tooLittleVariety =
+        string[][] tooLittleVariety =
         [
-            "relay", "relay", "kestrel", "kestrel",
-            "palisade", "towline", "patchbay", "hush",
+            ["relay", "relay"], ["kestrel"], ["palisade"], ["towline"],
+            ["patchbay"], ["hush"], ["hush"],
         ];
         JsonArray roles = insufficientVariety["roles"]!.AsArray();
         for (int index = 0; index < tooLittleVariety.Length; index++)
-            roles[index]!["classes"] = new JsonArray(tooLittleVariety[index]);
+            roles[index]!["classes"] = new JsonArray(
+                tooLittleVariety[index].Select(value => (JsonNode?)value).ToArray());
         InvalidDataException varietyError = Assert.Throws<InvalidDataException>(
             () => compiler.Compile(
                 insufficientVariety.ToJsonString(),

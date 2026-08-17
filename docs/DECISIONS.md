@@ -8838,3 +8838,33 @@ legacy runs without it remain unattributed rather than guessed.
 This is a local product/editor promotion only. It does not authorize a hosted
 playlist/rating migration, release, deploy, or tracked WASM rebuild; those
 remain explicit checkpoints.
+
+## 330. Core custody remains inside the Program that created its context
+
+Owner amendment (2026-08-17). Programs never call, link, or transition to a
+banking Program. The top-to-bottom Program list remains the sole user-facing
+priority, and materialized ordinary Instructions remain the sole runtime
+language. A standalone Core-custody Program is still an ordinary optional
+fallback or higher override, but no source Program points to it.
+
+An activated durable Program may own participant-local Core continuation below
+its existing parent Instructions. The parent owns trigger, readiness,
+commitment, timeout, and the authored overall outcome. Each participant's
+carrier branch is gated by current carrying state and ends when that body is no
+longer carrying; Handoff or Arc Toss therefore transfers execution to the new
+carrier's branch without ending the Program. Escorts resolve the nearest
+friendly carrier filtered to the Program's declared carrier roles and retarget
+through ordinary target selection.
+
+Program completion may query immutable, team-observed acquisition, bank,
+voluntary-drop, or loss evidence since the parent entered. When requested, the
+ledger correlates those events by authoritative Core identity and declared
+participant roles, so one carrier becoming empty cannot masquerade as the
+tactic's outcome. This adds no active-Program fact, mutable Core claim,
+reservation, phase, transition, or second scheduler.
+
+Deliberate Core filters govern pursuit only. Incidental pickup remains physical
+truth and can be handled inside the active Program by ordered ordinary
+Handoff, Arc Toss, Drop, return, Fight, healing, or signature Instructions.
+The source reclaim interval blocks only immediate same-body recollection; the
+editor warns when authored movement may create a later pickup/drop cycle.

@@ -4,13 +4,13 @@ import type {
   OrderNode,
   RoleDefinition,
   SheetDraft,
-} from './sheetAuthoring';
-import { materializeWorkshop, uniquePlayId } from './linkedPlays';
+} from './sheetAuthoring.ts';
+import { materializeWorkshop, uniquePlayId } from './linkedPlays.ts';
 import type {
   LinkedPlay,
   PlayLinkedValueDefinition,
   PlayProjection,
-} from './workshopTypes';
+} from './workshopTypes.ts';
 
 export interface AmbushRecipeRoles {
   masonRoleId: string;
@@ -66,8 +66,8 @@ export function addBlankPlayProjection(
 ): SheetDraft {
   const next = structuredClone(draft);
   const play = next.workshop.plays.find((entry) => entry.id === playId);
-  if (!play || play.recipe !== 'blank')
-    throw new Error(`Unknown blank Program '${playId}'.`);
+  if (!play)
+    throw new Error(`Unknown Program '${playId}'.`);
   const role = requireRole(next, roleId);
   if (play.projections.some((entry) => entry.roleId === roleId))
     throw new Error(`Role '${roleId}' already participates in this Program.`);
@@ -365,6 +365,7 @@ export function addRelayChainPlay(
     conditionIds,
   );
   const projections = [aProjection, bProjection];
+  const carrierRoleIds = [roles.relayARoleId, roles.relayBRoleId];
   const play: LinkedPlay = {
     id,
     name,
@@ -415,6 +416,18 @@ export function addRelayChainPlay(
     ownedCapacityIds: [],
     projections,
     linkedValues: [],
+    coreCustody: {
+      bindings: projections.map((projection, index) => ({
+        id: `${projection.id}-custody`,
+        projectionId: projection.id,
+        hostOrderIds: [`${id}-${index === 0 ? 'a' : 'b'}-program`],
+        actionOrderIds: [`${id}-${index === 0 ? 'a' : 'b'}-running-return`],
+        kind: 'carrier-return' as const,
+        carrierRoleIds,
+        routeId: corridorRoute,
+        ownedConditionIds: [],
+      })),
+    },
   };
   next.workshop.plays.push(play);
   return applyMaterialization(next);
@@ -426,12 +439,10 @@ export function addVeteranEscortPlay(
   name = 'Veteran route escort',
 ): SheetDraft {
   const next = structuredClone(draft);
-  const veteran = requireRole(next, roles.veteranRoleId);
+  requireRole(next, roles.veteranRoleId);
   const escort = requireRole(next, roles.escortRoleId);
   if (roles.veteranRoleId === roles.escortRoleId)
     throw new Error('Choose a veteran role and a different escort role.');
-  if (veteran.classes.length !== 1)
-    throw new Error('The veteran route needs a one-body role so its authoring is predictable.');
   if (escort.classes.length < 1)
     throw new Error('The escort role needs at least one body.');
 
@@ -467,6 +478,7 @@ export function addVeteranEscortPlay(
     lastGenerated: [],
     orders: [{
       id: `${id}-veteran-route`, when: conditionIds.active,
+      capacity: 1, select: 'highest-veteran',
       move: { patrol: routeId, posture: 'front' },
     }],
   };
@@ -481,7 +493,7 @@ export function addVeteranEscortPlay(
       { id: `${id}-screen-b`, when: conditionIds.active, until: conditionIds.screenB, capacity: capacityId,
         move: { to: { anchor: screenB }, face: { anchor: facingId }, posture: 'front' } },
       { id: `${id}-follow`, when: conditionIds.active, capacity: Math.min(2, escort.classes.length),
-        move: { follow: roles.veteranRoleId, posture: 'rear' } },
+        move: { follow: { role: roles.veteranRoleId, select: 'highest-veteran' }, posture: 'rear' } },
     ],
   };
   const projections = [leaderProjection, escortProjection];
@@ -754,93 +766,82 @@ function relayProjection(
   tossStages: RelayTossStage[],
   conditions: Record<string, string>,
 ): PlayProjection {
+  const activeOrders: OrderNode[] = [
+    ...receiverStages.map((stage, index): OrderNode => ({
+      id: `${playId}-${label}-receive-${index + 1}`,
+      when: {
+        all: [
+          conditions.empty,
+          conditions.justTossed,
+          stage.previousReadyCondition,
+        ],
+      },
+      until: conditions.carrying,
+      // A disrupted catch must not strand the former carrier forever. The
+      // full outer perimeter puts 29 route steps between the first two
+      // passing pockets; 80 preserves that clean run while still bounding
+      // combat or pathing failure.
+      timeout: 80,
+      urgency: 'urgent',
+      // The empty runner has one legible job: reach the next passing
+      // pocket. The pocket lies on the same terrain corridor as the
+      // carrier, while direct point-to-point planning lets the unladen
+      // runner use its cadence advantage instead of replaying the whole
+      // route prefix behind the Core.
+      move: {
+        to: { anchor: stage.anchorId },
+      },
+    })),
+    {
+      id: `${playId}-${label}-running-return`,
+      when: conditions.teamCarrying,
+      orders: [
+        ...tossStages.map((stage, index): OrderNode => ({
+          id: `${playId}-${label}-forward-toss-${index + 1}`,
+          when: {
+            all: [
+              conditions.carrying,
+              conditions.signature,
+              stage.sourceCondition,
+              stage.receiverReadyCondition,
+            ],
+          },
+          use: {
+            skill: 'arc-toss',
+            target: { role: partnerRoleId },
+          },
+        })),
+        {
+          id: `${playId}-${label}-bank-final-approach`,
+          when: { all: [conditions.carrying, conditions.atHome] },
+          until: conditions.empty,
+          urgency: 'urgent',
+          move: { to: { anchor: homeAnchor } },
+        },
+        {
+          id: `${playId}-${label}-carry-forward`,
+          when: conditions.carrying,
+          urgency: 'normal',
+          move: { patrol: corridorRoute },
+        },
+      ],
+    },
+    {
+      id: `${playId}-${label}-run-after-toss`,
+      when: { all: [conditions.empty, conditions.justTossed] },
+      urgency: 'normal',
+      move: { patrol: corridorRoute },
+    },
+    {
+      id: `${playId}-${label}-take-start`,
+      move: { to: { anchor: startAnchor } },
+    },
+  ];
   return {
     id: `${playId}-relay-${label}`,
     roleId,
     lastGenerated: [],
-    orders: [
-      ...receiverStages.map((stage, index): OrderNode => ({
-        id: `${playId}-${label}-receive-${index + 1}`,
-        when: {
-          all: [
-            conditions.empty,
-            conditions.justTossed,
-            stage.previousReadyCondition,
-          ],
-        },
-        until: conditions.carrying,
-        // A disrupted catch must not strand the former carrier forever. The
-        // full outer perimeter puts 29 route steps between the first two
-        // passing pockets; 80 preserves that clean run while still bounding
-        // combat or pathing failure.
-        timeout: 80,
-        urgency: 'urgent',
-        // The empty runner has one legible job: reach the next passing
-        // pocket. The pocket lies on the same terrain corridor as the
-        // carrier, while direct point-to-point planning lets the unladen
-        // runner use its cadence advantage instead of replaying the whole
-        // route prefix behind the Core.
-        move: {
-          to: { anchor: stage.anchorId },
-        },
-      })),
-      {
-        id: `${playId}-${label}-running-return`,
-        when: conditions.teamCarrying,
-        orders: [
-          ...tossStages.map((stage, index): OrderNode => ({
-            id: `${playId}-${label}-forward-toss-${index + 1}`,
-            when: {
-              all: [
-                conditions.carrying,
-                conditions.signature,
-                stage.sourceCondition,
-                stage.receiverReadyCondition,
-              ],
-            },
-            use: {
-              skill: 'arc-toss',
-              // Exact source and receiver Posts already prove the staged
-              // relationship. Keep the executable target an ordinary named
-              // role; route progress is authoring-time geometry, not a
-              // hidden race selector.
-              target: { role: partnerRoleId },
-            },
-          })),
-          {
-            id: `${playId}-${label}-bank-final-approach`,
-            when: { all: [conditions.carrying, conditions.atHome] },
-            // Crossing the approach zone starts one banking episode. Keep it
-            // latched while the carrier walks out of that small trigger zone;
-            // otherwise the route rung wins again and pulls the Core backward.
-            until: conditions.empty,
-            urgency: 'urgent',
-            move: { to: { anchor: homeAnchor } },
-          },
-          {
-            id: `${playId}-${label}-carry-forward`,
-            when: conditions.carrying,
-            urgency: 'normal',
-            move: { patrol: corridorRoute },
-          },
-        ],
-      },
-      {
-        id: `${playId}-${label}-run-after-toss`,
-        when: {
-          all: [
-            conditions.empty,
-            conditions.justTossed,
-          ],
-        },
-        urgency: 'normal',
-        move: { patrol: corridorRoute },
-      },
-      {
-        id: `${playId}-${label}-take-start`,
-        move: { to: { anchor: startAnchor } },
-      },
-    ],
+    orders: [{ id: `${playId}-${label}-program`, orders: activeOrders }],
   };
 }
 

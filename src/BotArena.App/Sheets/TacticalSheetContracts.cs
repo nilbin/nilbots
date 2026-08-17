@@ -128,7 +128,9 @@ public sealed record TacticalStarterSheetResponse(
     IReadOnlyList<string> Composition,
     string OrdersJson,
     string MapPlanJson,
-    string WorkshopJson);
+    string WorkshopJson,
+    string Classification,
+    bool Recommended);
 
 public sealed record TacticalSheetCatalogResponse(
     string PlaylistKey,

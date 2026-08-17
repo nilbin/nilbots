@@ -233,6 +233,11 @@ test('condition categories expose every current fact exactly once', () => {
       'confirmed-enemy-destructions-in-zone',
       'zone-fully-observed-throughout-interval',
       'friendly-core-pickups',
+      'friendly-core-acquisitions',
+      'friendly-core-banks',
+      'friendly-core-drops',
+      'friendly-core-losses',
+      'friendly-core-resolutions',
     ],
   );
 });

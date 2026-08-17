@@ -68,212 +68,14 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": []
         }
       ],
-      "linkedValues": []
-    },
-    {
-      "id": "bank-core",
-      "name": "Bank carried Core",
-      "recipe": "blank",
-      "ownedGeometry": [],
-      "geometryGroups": [],
-      "slots": [],
-      "formations": [],
-      "readinessGroups": [],
-      "ownedConditionIds": [
-        "bank-core-carrying",
-        "bank-core-empty"
-      ],
-      "ownedCapacityIds": [],
-      "projections": [
-        {
-          "id": "bank-core-relay-a",
-          "roleId": "relay-a",
-          "orders": [
-            {
-              "id": "bank-core-relay-a-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-relay-a-bank",
-              "fingerprint": "fnv1a64:5cd145a8002fa9c2"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-relay-b",
-          "roleId": "relay-b",
-          "orders": [
-            {
-              "id": "bank-core-relay-b-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-relay-b-bank",
-              "fingerprint": "fnv1a64:84014c778abedbef"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-hook",
-          "roleId": "hook",
-          "orders": [
-            {
-              "id": "bank-core-hook-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-hook-bank",
-              "fingerprint": "fnv1a64:4c098ed025c8393a"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-raider",
-          "roleId": "raider",
-          "orders": [
-            {
-              "id": "bank-core-raider-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-raider-bank",
-              "fingerprint": "fnv1a64:e81c3912323897e2"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-guard",
-          "roleId": "guard",
-          "orders": [
-            {
-              "id": "bank-core-guard-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-guard-bank",
-              "fingerprint": "fnv1a64:db33a7af3b06d224"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-medic",
-          "roleId": "medic",
-          "orders": [
-            {
-              "id": "bank-core-medic-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-medic-bank",
-              "fingerprint": "fnv1a64:ac43111930f1413f"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-dampener",
-          "roleId": "dampener",
-          "orders": [
-            {
-              "id": "bank-core-dampener-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-dampener-bank",
-              "fingerprint": "fnv1a64:792d538a5b5fb40f"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        },
-        {
-          "id": "bank-core-scout",
-          "roleId": "scout",
-          "orders": [
-            {
-              "id": "bank-core-scout-bank",
-              "when": "bank-core-carrying",
-              "until": "bank-core-empty",
-              "urgency": "urgent",
-              "move": {
-                "to": "own-reactor"
-              }
-            }
-          ],
-          "lastGenerated": [
-            {
-              "orderId": "bank-core-scout-bank",
-              "fingerprint": "fnv1a64:329252a794db4167"
-            }
-          ],
-          "responseActivation": "program-trigger",
-          "signatureOpportunities": []
-        }
-      ],
-      "linkedValues": []
+      "linkedValues": [],
+      "coreCustody": {
+        "bindings": []
+      }
     },
     {
       "id": "open-field",
@@ -432,6 +234,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-relay-a-field-work-open-field-relay-a-field-work-recover-core-core-recovery",
@@ -442,7 +245,6 @@
                 "open-field-relay-a-field-work-empty-handed",
                 "open-field-relay-a-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -562,6 +364,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-relay-b-field-work-open-field-relay-b-field-work-recover-core-core-recovery",
@@ -572,7 +375,6 @@
                 "open-field-relay-b-field-work-empty-handed",
                 "open-field-relay-b-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -692,6 +494,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-hook-field-work-open-field-hook-field-work-recover-core-core-recovery",
@@ -702,7 +505,6 @@
                 "open-field-hook-field-work-empty-handed",
                 "open-field-hook-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -822,6 +624,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-raider-field-work-open-field-raider-field-work-recover-core-core-recovery",
@@ -832,7 +635,6 @@
                 "open-field-raider-field-work-empty-handed",
                 "open-field-raider-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -952,6 +754,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-guard-field-work-open-field-guard-field-work-recover-core-core-recovery",
@@ -962,7 +765,6 @@
                 "open-field-guard-field-work-empty-handed",
                 "open-field-guard-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -1082,6 +884,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-medic-field-work-open-field-medic-field-work-recover-core-core-recovery",
@@ -1092,7 +895,6 @@
                 "open-field-medic-field-work-empty-handed",
                 "open-field-medic-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -1212,6 +1014,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-dampener-field-work-open-field-dampener-field-work-recover-core-core-recovery",
@@ -1222,7 +1025,6 @@
                 "open-field-dampener-field-work-empty-handed",
                 "open-field-dampener-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -1342,6 +1144,7 @@
             }
           ],
           "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
           "signatureOpportunities": [
             {
               "id": "open-field-scout-field-work-open-field-scout-field-work-recover-core-core-recovery",
@@ -1352,7 +1155,6 @@
                 "open-field-scout-field-work-empty-handed",
                 "open-field-scout-field-work-core-nearby"
               ],
-              "linkedBankProgramId": "bank-core",
               "capacityPolicy": {
                 "target": "core",
                 "limit": 1,
@@ -1396,7 +1198,10 @@
           ]
         }
       ],
-      "linkedValues": []
+      "linkedValues": [],
+      "coreCustody": {
+        "bindings": []
+      }
     }
   ]
 }

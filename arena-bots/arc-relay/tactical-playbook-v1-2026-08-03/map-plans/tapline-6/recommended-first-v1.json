@@ -1,0 +1,8 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "recommended-first-v1",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {},
+  "routes": {},
+  "anchors": {}
+}

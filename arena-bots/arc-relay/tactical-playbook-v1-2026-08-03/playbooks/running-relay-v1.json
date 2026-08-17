@@ -14,116 +14,115 @@
       ],
       "orders": [
         {
-          "id": "relay-chain-a-receive-1",
-          "when": {
-            "all": [
-              "relay-chain-empty-handed",
-              "relay-chain-just-tossed",
-              "relay-chain-receiver-1-occupied"
-            ]
-          },
-          "until": "relay-chain-carrying-core",
-          "timeout": 80,
-          "urgency": "urgent",
-          "move": {
-            "to": {
-              "anchor": "relay-chain-receiver-2"
-            }
-          }
-        },
-        {
-          "id": "relay-chain-a-running-return",
-          "when": "relay-chain-team-carrying",
+          "id": "relay-chain-a-program",
           "orders": [
             {
-              "id": "relay-chain-a-forward-toss-1",
+              "id": "relay-chain-a-receive-1",
               "when": {
                 "all": [
-                  "relay-chain-carrying-core",
-                  "relay-chain-signature-ready",
-                  "relay-chain-carrier-1-at-source",
+                  "relay-chain-empty-handed",
+                  "relay-chain-just-tossed",
                   "relay-chain-receiver-1-occupied"
                 ]
               },
-              "use": {
-                "skill": "arc-toss",
-                "target": {
-                  "role": "relay-b"
-                }
-              }
-            },
-            {
-              "id": "relay-chain-a-forward-toss-2",
-              "when": {
-                "all": [
-                  "relay-chain-carrying-core",
-                  "relay-chain-signature-ready",
-                  "relay-chain-carrier-3-at-source",
-                  "relay-chain-receiver-3-occupied"
-                ]
-              },
-              "use": {
-                "skill": "arc-toss",
-                "target": {
-                  "role": "relay-b"
-                }
-              }
-            },
-            {
-              "id": "relay-chain-a-bank-final-approach",
-              "when": {
-                "all": [
-                  "relay-chain-carrying-core",
-                  "relay-chain-at-home-reactor"
-                ]
-              },
-              "until": "relay-chain-empty-handed",
+              "until": "relay-chain-carrying-core",
+              "timeout": 80,
               "urgency": "urgent",
               "move": {
                 "to": {
-                  "anchor": "relay-chain-home-reactor"
+                  "anchor": "relay-chain-receiver-2"
                 }
               }
             },
             {
-              "id": "relay-chain-a-carry-forward",
-              "when": "relay-chain-carrying-core",
+              "id": "relay-chain-a-running-return",
+              "when": "relay-chain-team-carrying",
+              "orders": [
+                {
+                  "id": "relay-chain-a-forward-toss-1",
+                  "when": {
+                    "all": [
+                      "relay-chain-carrying-core",
+                      "relay-chain-signature-ready",
+                      "relay-chain-carrier-1-at-source",
+                      "relay-chain-receiver-1-occupied"
+                    ]
+                  },
+                  "use": {
+                    "skill": "arc-toss",
+                    "target": {
+                      "role": "relay-b"
+                    }
+                  }
+                },
+                {
+                  "id": "relay-chain-a-forward-toss-2",
+                  "when": {
+                    "all": [
+                      "relay-chain-carrying-core",
+                      "relay-chain-signature-ready",
+                      "relay-chain-carrier-3-at-source",
+                      "relay-chain-receiver-3-occupied"
+                    ]
+                  },
+                  "use": {
+                    "skill": "arc-toss",
+                    "target": {
+                      "role": "relay-b"
+                    }
+                  }
+                },
+                {
+                  "id": "relay-chain-a-bank-final-approach",
+                  "when": {
+                    "all": [
+                      "relay-chain-carrying-core",
+                      "relay-chain-at-home-reactor"
+                    ]
+                  },
+                  "until": "relay-chain-empty-handed",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": {
+                      "anchor": "relay-chain-home-reactor"
+                    }
+                  }
+                },
+                {
+                  "id": "relay-chain-a-carry-forward",
+                  "when": "relay-chain-carrying-core",
+                  "urgency": "normal",
+                  "move": {
+                    "patrol": "relay-chain-return-corridor"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "relay-chain-a-run-after-toss",
+              "when": {
+                "all": [
+                  "relay-chain-empty-handed",
+                  "relay-chain-just-tossed"
+                ]
+              },
               "urgency": "normal",
               "move": {
                 "patrol": "relay-chain-return-corridor"
               }
+            },
+            {
+              "id": "relay-chain-a-take-start",
+              "move": {
+                "to": {
+                  "anchor": "relay-chain-enemy-well-pickup"
+                }
+              }
             }
-          ]
-        },
-        {
-          "id": "relay-chain-a-run-after-toss",
-          "when": {
-            "all": [
-              "relay-chain-empty-handed",
-              "relay-chain-just-tossed"
-            ]
-          },
-          "urgency": "normal",
-          "move": {
-            "patrol": "relay-chain-return-corridor"
-          }
-        },
-        {
-          "id": "relay-chain-a-take-start",
-          "move": {
-            "to": {
-              "anchor": "relay-chain-enemy-well-pickup"
-            }
-          }
-        },
-        {
-          "id": "bank-core-relay-a-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
+          ],
+          "until": "relay-chain-acquired-core-resolved",
+          "timeout": 180,
+          "cooldown": 20
         },
         {
           "id": "open-field-relay-a-field-work",
@@ -209,99 +208,98 @@
       ],
       "orders": [
         {
-          "id": "relay-chain-b-receive-1",
-          "when": {
-            "all": [
-              "relay-chain-empty-handed",
-              "relay-chain-just-tossed",
-              "relay-chain-receiver-2-occupied"
-            ]
-          },
-          "until": "relay-chain-carrying-core",
-          "timeout": 80,
-          "urgency": "urgent",
-          "move": {
-            "to": {
-              "anchor": "relay-chain-receiver-3"
-            }
-          }
-        },
-        {
-          "id": "relay-chain-b-running-return",
-          "when": "relay-chain-team-carrying",
+          "id": "relay-chain-b-program",
           "orders": [
             {
-              "id": "relay-chain-b-forward-toss-1",
+              "id": "relay-chain-b-receive-1",
               "when": {
                 "all": [
-                  "relay-chain-carrying-core",
-                  "relay-chain-signature-ready",
-                  "relay-chain-carrier-2-at-source",
+                  "relay-chain-empty-handed",
+                  "relay-chain-just-tossed",
                   "relay-chain-receiver-2-occupied"
                 ]
               },
-              "use": {
-                "skill": "arc-toss",
-                "target": {
-                  "role": "relay-a"
-                }
-              }
-            },
-            {
-              "id": "relay-chain-b-bank-final-approach",
-              "when": {
-                "all": [
-                  "relay-chain-carrying-core",
-                  "relay-chain-at-home-reactor"
-                ]
-              },
-              "until": "relay-chain-empty-handed",
+              "until": "relay-chain-carrying-core",
+              "timeout": 80,
               "urgency": "urgent",
               "move": {
                 "to": {
-                  "anchor": "relay-chain-home-reactor"
+                  "anchor": "relay-chain-receiver-3"
                 }
               }
             },
             {
-              "id": "relay-chain-b-carry-forward",
-              "when": "relay-chain-carrying-core",
+              "id": "relay-chain-b-running-return",
+              "when": "relay-chain-team-carrying",
+              "orders": [
+                {
+                  "id": "relay-chain-b-forward-toss-1",
+                  "when": {
+                    "all": [
+                      "relay-chain-carrying-core",
+                      "relay-chain-signature-ready",
+                      "relay-chain-carrier-2-at-source",
+                      "relay-chain-receiver-2-occupied"
+                    ]
+                  },
+                  "use": {
+                    "skill": "arc-toss",
+                    "target": {
+                      "role": "relay-a"
+                    }
+                  }
+                },
+                {
+                  "id": "relay-chain-b-bank-final-approach",
+                  "when": {
+                    "all": [
+                      "relay-chain-carrying-core",
+                      "relay-chain-at-home-reactor"
+                    ]
+                  },
+                  "until": "relay-chain-empty-handed",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": {
+                      "anchor": "relay-chain-home-reactor"
+                    }
+                  }
+                },
+                {
+                  "id": "relay-chain-b-carry-forward",
+                  "when": "relay-chain-carrying-core",
+                  "urgency": "normal",
+                  "move": {
+                    "patrol": "relay-chain-return-corridor"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "relay-chain-b-run-after-toss",
+              "when": {
+                "all": [
+                  "relay-chain-empty-handed",
+                  "relay-chain-just-tossed"
+                ]
+              },
               "urgency": "normal",
               "move": {
                 "patrol": "relay-chain-return-corridor"
               }
+            },
+            {
+              "id": "relay-chain-b-take-start",
+              "move": {
+                "to": {
+                  "anchor": "relay-chain-receiver-1"
+                }
+              }
             }
-          ]
-        },
-        {
-          "id": "relay-chain-b-run-after-toss",
-          "when": {
-            "all": [
-              "relay-chain-empty-handed",
-              "relay-chain-just-tossed"
-            ]
-          },
-          "urgency": "normal",
-          "move": {
-            "patrol": "relay-chain-return-corridor"
-          }
-        },
-        {
-          "id": "relay-chain-b-take-start",
-          "move": {
-            "to": {
-              "anchor": "relay-chain-receiver-1"
-            }
-          }
-        },
-        {
-          "id": "bank-core-relay-b-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
+          ],
+          "until": "relay-chain-acquired-core-resolved",
+          "timeout": 180,
+          "cooldown": 20
         },
         {
           "id": "open-field-relay-b-field-work",
@@ -387,15 +385,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-hook-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-hook-field-work",
           "orders": [
             {
@@ -478,15 +467,6 @@
         "vitality"
       ],
       "orders": [
-        {
-          "id": "bank-core-raider-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
         {
           "id": "open-field-raider-field-work",
           "orders": [
@@ -571,15 +551,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-guard-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-guard-field-work",
           "orders": [
             {
@@ -663,13 +634,35 @@
       ],
       "orders": [
         {
-          "id": "bank-core-medic-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
+          "id": "relay-chain-medic-move",
+          "orders": [
+            {
+              "id": "relay-chain-medic-move-escort-carrier",
+              "when": "relay-chain-medic-program-carrier",
+              "move": {
+                "follow": {
+                  "selector": "nearest-friendly-core-carrier",
+                  "roles": [
+                    "relay-a",
+                    "relay-b"
+                  ]
+                },
+                "posture": "rear"
+              }
+            },
+            {
+              "id": "relay-chain-medic-move-continue",
+              "move": {
+                "to": {
+                  "well": "centre"
+                },
+                "posture": "line"
+              }
+            }
+          ],
+          "until": "relay-chain-acquired-core-resolved",
+          "timeout": 180,
+          "cooldown": 20
         },
         {
           "id": "open-field-medic-field-work",
@@ -755,15 +748,6 @@
       ],
       "orders": [
         {
-          "id": "bank-core-dampener-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
-        {
           "id": "open-field-dampener-field-work",
           "orders": [
             {
@@ -846,15 +830,6 @@
         "vitality"
       ],
       "orders": [
-        {
-          "id": "bank-core-scout-bank",
-          "when": "bank-core-carrying",
-          "until": "bank-core-empty",
-          "urgency": "urgent",
-          "move": {
-            "to": "own-reactor"
-          }
-        },
         {
           "id": "open-field-scout-field-work",
           "orders": [
@@ -1005,15 +980,28 @@
       "value": 1,
       "zone": "relay-chain-toss-3-source"
     },
-    "bank-core-carrying": {
-      "fact": "self-carrying",
-      "operator": "equals",
-      "value": 1
+    "relay-chain-medic-program-carrier": {
+      "fact": "friendly-carriers-in-roles",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "relay-a",
+        "relay-b"
+      ]
     },
-    "bank-core-empty": {
-      "fact": "self-carrying",
-      "operator": "equals",
-      "value": 0
+    "relay-chain-acquired-core-resolved": {
+      "fact": "friendly-core-resolutions",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "relay-a",
+        "relay-b"
+      ],
+      "since": "node-entry",
+      "correlateAcquisition": true,
+      "outcomes": [
+        "bank"
+      ]
     },
     "open-field-relay-a-field-work-empty-handed": {
       "fact": "self-carrying",

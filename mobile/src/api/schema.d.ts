@@ -3347,6 +3347,8 @@ export interface components {
             ordersJson: string;
             mapPlanJson: string;
             workshopJson: string;
+            classification: string;
+            recommended: boolean;
         };
         TacticalStockSheetResponse: {
             id: string;

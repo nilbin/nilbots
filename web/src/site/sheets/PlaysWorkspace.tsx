@@ -20,6 +20,8 @@ import {
   addCoreRecoveryOpportunity,
   addFightOpportunity,
   addHealthRecoveryOpportunity,
+  addHandoffOpportunity,
+  addDropOpportunity,
   addSignatureOpportunity,
   addSignatureOpportunityActivationZone,
   addSignatureOpportunityAnchor,
@@ -27,6 +29,8 @@ import {
   appendPlayRouteWaypoint,
   configurePlayContingent,
   configurePlayLifecycle,
+  configureProgramCustody,
+  configureProgramCustodyCompletion,
   configurePlayPostDeployment,
   configurePlayResponseFight,
   configurePlaySharedTrigger,
@@ -38,6 +42,8 @@ import {
   removePlayReadinessGroup,
   removeAmbushReserveSlot,
   removeSignatureOpportunity,
+  removeProgramCustody,
+  removeProgramCustodyCompletion,
   renameSignatureOpportunity,
   renamePlayGeometry,
   replacePlayRole,
@@ -55,8 +61,15 @@ import {
   updateCoreRecoveryOpportunity,
   updateFightOpportunity,
   updateHealthRecoveryOpportunity,
+  updateHandoffOpportunity,
+  updateDropOpportunity,
   updateSignatureOpportunityUse,
 } from './playEditing';
+import {
+  analyzeCoreContinuation,
+  analyzeProgramPriority,
+  possibleCoreValues,
+} from './programAnalysis';
 import {
   movePlayGeometryGroup,
   movePlayGeometryObject,
@@ -93,6 +106,7 @@ import {
   practiceProgramAttributionAt,
   practiceProgramBodies,
   practiceProgramTimeline,
+  practiceCoreCustodyEvents,
   signatureOpportunityPracticeSummary,
   type UnitTrack,
 } from './sheetTrials';
@@ -107,7 +121,7 @@ type RecipeChoice = PlayRecipe;
 
 const RECIPE_COPY: Record<RecipeChoice, { title: string; kicker: string; description: string }> = {
   blank: {
-    title: 'Blank Program',
+    title: 'Custom Program',
     kicker: 'Start exact',
     description: 'Draw one response and add its participants without a recipe lens.',
   },
@@ -178,7 +192,7 @@ export default function PlaysWorkspace({
   }, [onSelectPlay, play, selectedPlayId]);
 
   const playIssues = useMemo(() => play ? [
-    ...playGeometryIssues(draft, play.id, catalog.map.tileRows),
+    ...playGeometryIssues(draft, play.id, catalog.map.tileRows, catalog),
     ...playDrifts(draft.orders, draft.workshop, play.id).map((drift): SheetIssue => ({
       path: `workshop.plays.${play.id}.${drift.projectionId}`,
       severity: 'error',
@@ -225,6 +239,9 @@ export default function PlaysWorkspace({
       {plays.length > 0 && <p className="t-micro mt-2">Priority runs top to bottom. Reordering one Program moves every participant’s Instruction block together.</p>}
     </header>
 
+    {plays.length > 0 && <ProgramPriorityGuide draft={draft}
+      onOpenProgram={onSelectPlay} />}
+
     {practiceReplay && practiceDraft && <PracticeProgramLens replay={practiceReplay}
       draft={practiceDraft} onOpenProgram={(programId) => {
         if (!draft.workshop.plays.some((entry) => entry.id === programId)) return;
@@ -253,7 +270,7 @@ export default function PlaysWorkspace({
             </div>
           </div>
           <div className="overflow-auto">
-            <PlayMapCanvas catalog={catalog} mapPlan={draft.mapPlan} play={play} side={side}
+            <PlayMapCanvas catalog={catalog} mapPlan={draft.mapPlan} roles={draft.orders.roles} play={play} side={side}
               selectedId={selectedGeometry} tracks={tracks}
               startDrawingId={placementGeometry}
               onDrawingStarted={() => setPlacementGeometry(null)}
@@ -305,6 +322,13 @@ export default function PlaysWorkspace({
             onChange={commit} />
           {play.recipe === 'blank' && <PlayResponseControls draft={draft} play={play} tracks={tracks}
             onSelectGeometry={setSelectedGeometry} onChange={commit} />}
+          <ProgramCustodyControls draft={draft} play={play}
+            onSelectGeometry={(id) => {
+              setSelectedGeometry(id);
+              document.querySelector('[data-sheet-path="workshop.plays"]')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            onChange={commit} />
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
             practiceReplay={practiceReplay} practiceDraft={practiceDraft}
             onSelectGeometry={(id, startDrawing = false) => {
@@ -313,7 +337,9 @@ export default function PlaysWorkspace({
               document.querySelector('[data-sheet-path="workshop.plays"]')
                 ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
-            onOpenOrders={onOpenOrders} onChange={commit} />
+            onOpenOrders={onOpenOrders}
+            onSelectProgram={(programId) => onSelectPlay(programId)}
+            onChange={commit} />
           <LinkedOrdersControls draft={draft} play={play} onChange={commit} />
           <ConditionControls draft={draft} play={play} onChange={commit} />
           <GeneratedOrders play={play} onOpenOrders={onOpenOrders} />
@@ -346,6 +372,67 @@ export default function PlaysWorkspace({
   </section>;
 }
 
+function ProgramPriorityGuide({ draft, onOpenProgram }: {
+  draft: SheetDraft;
+  onOpenProgram: (playId: string) => void;
+}) {
+  const [roleId, setRoleId] = useState(draft.orders.roles[0]?.id ?? '');
+  const [state, setState] = useState<'idle' | 'carrying-1' | 'carrying-2' | 'carrying-4' | 'injured'>('idle');
+  const role = draft.orders.roles.some((entry) => entry.id === roleId)
+    ? roleId : draft.orders.roles[0]?.id ?? '';
+  const read = analyzeProgramPriority(draft, role, state === 'injured'
+    ? { healthPercent: 25 }
+    : state.startsWith('carrying-')
+      ? { carryingCoreValue: Number(state.slice(-1)) as 1 | 2 | 4 }
+      : { healthPercent: 100 });
+  const after = read.controller
+    ? read.rows.slice(read.rows.indexOf(read.controller) + 1)
+      .find((entry) => entry.status !== 'ineligible')
+    : null;
+  return <details className="panel pad" open>
+    <summary className="flex min-h-11 cursor-pointer items-center gap-2">
+      <span className="lab text-arena-cyan">Priority & fallthrough</span>
+      <span className="pill ml-auto">read-only · real order</span>
+      <span className="disclosure-chevron">›</span>
+    </summary>
+    <p className="t-micro mt-2">This lens reads the generated Instruction order. It does not schedule, link, or change a Program.</p>
+    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+      <label><span className="lab mb-1 block">Role</span><select className="field min-h-11"
+        value={role} onChange={(event) => setRoleId(event.target.value)}>
+        {draft.orders.roles.map((entry) => <option key={entry.id} value={entry.id}>
+          {humanize(entry.id)} · {entry.classes.length} {entry.classes.length === 1 ? 'body' : 'bodies'}
+        </option>)}
+      </select></label>
+      <div><span className="lab mb-1 block">Hypothetical state</span>
+        <div className="grid grid-cols-3 gap-1 sm:grid-cols-5">{([
+          ['idle', 'Idle'], ['carrying-1', 'Carry 1'], ['carrying-2', 'Carry 2'],
+          ['carrying-4', 'Carry 4'], ['injured', 'Injured'],
+        ] as const).map(([value, label]) => <button key={value} type="button"
+          className="choice-card min-h-11" data-selected={state === value}
+          onClick={() => setState(value)}>{label}</button>)}</div>
+      </div>
+    </div>
+    <div className="mt-3 rounded-sm border border-arena-cyan/35 bg-arena-cyan/5 p-3">
+      <p className="t-body"><b>{read.controller
+        ? `${read.controller.playName} controls this role`
+        : 'No useful Program continuation found'}</b></p>
+      <p className="t-micro mt-1">{read.controller?.reason
+        ?? 'This role falls through to advanced unlinked Instructions or holds.'}</p>
+      {after && <p className="t-micro mt-1">If that Program succeeds, times out, dies, or loses its Condition, the next possible Program is <b>{after.playName}</b>.</p>}
+      {read.warning && <p className="t-micro mt-1 text-arena-material">⚠ {read.warning}</p>}
+    </div>
+    <ol className="mt-3 space-y-1.5">{read.rows.map((row, index) => <li key={row.projectionId}
+      className="grid grid-cols-[28px_minmax(0,1fr)_auto] items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/25 p-2">
+      <span className="pill">{index + 1}</span>
+      <span className="min-w-0"><b className="t-body block truncate">{row.playName}</b>
+        <span className="t-micro block">{row.reason}</span></span>
+      <button type="button" className="btn min-h-10" onClick={() => onOpenProgram(row.playId)}>
+        {row.status === 'eligible' ? 'Controls' : row.status === 'depends' ? 'Depends' : 'Blocked'}
+      </button>
+    </li>)}</ol>
+  </details>;
+}
+
 function PracticeProgramLens({ replay, draft, onOpenProgram }: {
   replay: ReplayModel;
   draft: SheetDraft;
@@ -366,6 +453,8 @@ function PracticeProgramLens({ replay, draft, onOpenProgram }: {
     replay, draft, unitId, tick), [draft, replay, tick, unitId]);
   const timeline = useMemo(() => practiceProgramTimeline(
     replay, draft, unitId), [draft, replay, unitId]);
+  const coreEvents = useMemo(() => practiceCoreCustodyEvents(
+    replay, draft, unitId), [draft, replay, unitId]);
   const selectedIndex = timeline.findIndex((segment) =>
     tick >= segment.fromTick && tick <= segment.toTick);
   const nearbyTimeline = timeline.slice(
@@ -378,6 +467,9 @@ function PracticeProgramLens({ replay, draft, onOpenProgram }: {
     ? playReadinessAtTick(replay, draft, program, tick) : null;
   const exactCurrentProgram = point?.programId
     && draft.workshop.plays.some((entry) => entry.id === point.programId);
+  const nearbyCoreEvents = coreEvents.filter((entry) => entry.tick <= tick).slice(-6);
+  const trigger = program?.responseTriggerConditionId
+    ? draft.orders.conditions[program.responseTriggerConditionId] : undefined;
 
   return <section className="panel panel-feature pad" aria-label="Practice Program lens">
     <div className="flex flex-wrap items-start gap-3">
@@ -416,6 +508,28 @@ function PracticeProgramLens({ replay, draft, onOpenProgram }: {
           : point?.orderId
             ? 'This action came from an advanced Instruction that is not linked to a Program.'
             : 'No Program or advanced Instruction supplied an action at this tick.'}</p>
+        {program && <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          <div className="rounded-sm border border-arena-edge bg-arena-deep/35 p-2.5">
+            <span className="lab">Parent activation</span>
+            <p className="t-micro mt-1">{trigger
+              ? `${humanize(trigger.fact)} · ${humanize(program.responseTriggerConditionId!)}`
+              : 'No shared trigger; ordinary Program eligibility.'}</p>
+          </div>
+          <div className="rounded-sm border border-arena-edge bg-arena-deep/35 p-2.5">
+            <span className="lab">Commitment</span>
+            <p className="t-micro mt-1">{program.lifecycle
+              ? `${program.lifecycle.minimumCommitmentTicks} minimum · ${program.lifecycle.maximumTicks} hard maximum`
+              : 'No durable lifecycle authored.'}</p>
+          </div>
+          <div className="rounded-sm border border-arena-edge bg-arena-deep/35 p-2.5">
+            <span className="lab">Local behavior</span>
+            <p className="t-micro mt-1">{point?.localCustody
+              ? point.localCustody.kind === 'carrier-return'
+                ? 'Carrier branch inside this active parent'
+                : `Escort follows carrier roles ${point.localCustody.carrierRoleIds.map(humanize).join(', ')}`
+              : 'Ordinary participant Instruction'}</p>
+          </div>
+        </div>}
         {readiness && readiness.total > 0 && <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-2.5">
           <div className="flex items-center gap-2"><span className="t-body mr-auto">Required Posts now</span>
             <strong>{readiness.ready}/{readiness.total}</strong></div>
@@ -431,6 +545,19 @@ function PracticeProgramLens({ replay, draft, onOpenProgram }: {
             <span className={clsx('pill ml-2', gate.status === 'ineligible' && 'text-arena-material')}>{gate.status}</span>
             <p className="t-micro mt-1">{gate.reason}</p>
           </li>)}</ul>
+        </div>}
+        {nearbyCoreEvents.length > 0 && <div className="mt-3">
+          <div className="flex items-center gap-2"><p className="lab mr-auto">Core custody evidence</p>
+            <span className="pill">selected body</span></div>
+          <ol className="mt-2 space-y-1.5">{nearbyCoreEvents.map((entry) => <li
+            key={`${entry.tick}:${entry.coreKey}:${entry.kind}`}
+            className="rounded-sm border border-arena-edge bg-arena-deep/25 p-2.5">
+            <div className="flex items-center gap-2"><span className="pill">t{entry.tick}</span>
+              <b className="t-body">{entry.label}</b></div>
+            <p className="t-micro mt-1">{humanize(entry.coreSource)} Core{entry.coreValue === null
+              ? '' : ` · ${entry.coreValue} charge`} · {entry.programName
+              ? `inside ${entry.programName}` : 'advanced / incidental context'}</p>
+          </li>)}</ol>
         </div>}
         {point?.reason && <details className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/25">
           <summary className="flex min-h-11 cursor-pointer items-center gap-2 px-3"><span className="t-body mr-auto">Exact executor evidence</span><span className="pill">advanced</span><span className="disclosure-chevron">›</span></summary>
@@ -488,9 +615,9 @@ function CreatePlayPanel({ recipe, draft, error, onRecipe, onCreate, onCancel, o
   const [reserveRoleId, setReserve] = useState(reserves[0]?.id ?? '');
   const [relayARoleId, setRelayA] = useState(relays[0]?.id ?? '');
   const [relayBRoleId, setRelayB] = useState(relays[1]?.id ?? '');
-  const [veteranRoleId, setVeteran] = useState(oneBodyRoles[0]?.id ?? '');
+  const [veteranRoleId, setVeteran] = useState(draft.orders.roles[0]?.id ?? '');
   const [escortRoleId, setEscort] = useState(
-    draft.orders.roles.find((role) => role.id !== oneBodyRoles[0]?.id)?.id ?? '',
+    draft.orders.roles.find((role) => role.id !== draft.orders.roles[0]?.id)?.id ?? '',
   );
   const [carrierRoleId, setCarrier] = useState(oneBodyRoles[0]?.id ?? '');
   const [safeRelayRoleId, setSafeRelay] = useState(
@@ -545,7 +672,7 @@ function CreatePlayPanel({ recipe, draft, error, onRecipe, onCreate, onCancel, o
       <RoleChoice label="Relay B role" value={relayBRoleId} roles={relays.filter((role) => role.id !== relayARoleId)} onChange={setRelayB} />
     </div>}
     {recipe === 'veteran-escort' && <div className="mt-4 grid gap-2 sm:grid-cols-2">
-      <RoleChoice label="Veteran role" value={veteranRoleId} roles={oneBodyRoles} onChange={setVeteran} />
+      <RoleChoice label="Spearhead pool" value={veteranRoleId} roles={draft.orders.roles} onChange={setVeteran} />
       <RoleChoice label="Escort role" value={escortRoleId}
         roles={draft.orders.roles.filter((role) => role.id !== veteranRoleId)} onChange={setEscort} />
     </div>}
@@ -696,7 +823,7 @@ function ParticipantControls({ draft, play, catalog, onChange }: {
         </details>}
       </article>;
     })}</div>
-    {play.recipe === 'blank' && available.length > 0 && <div className="mt-3 grid gap-2 rounded-sm border border-dashed border-arena-material/40 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
+    {available.length > 0 && <div className="mt-3 grid gap-2 rounded-sm border border-dashed border-arena-material/40 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
       <label><span className="lab mb-1 block">Add a participating role</span>
         <select className="field min-h-11" value={selectedBlankRole} onChange={(event) => setBlankRole(event.target.value)}>
           {available.map((role) => <option key={role.id} value={role.id}>{humanize(role.id)}</option>)}
@@ -931,7 +1058,9 @@ function ProgramLifecycleControls({ draft, play, onChange }: {
   const [maximum, setMaximum] = useState(current?.maximumTicks ?? 90);
   const [cooldown, setCooldown] = useState(current?.cooldownTicks ?? 15);
   const [waiting, setWaiting] = useState(current?.waiting ?? 'hold-posts');
-  const [success, setSuccess] = useState(current?.successConditionIds?.[0] ?? '');
+  const custodyCompletion = play.coreCustody?.completionConditionId ?? '';
+  const [success, setSuccess] = useState(custodyCompletion
+    || current?.successConditionIds?.[0] || '');
   const conditions = Object.keys(draft.orders.conditions).filter((id) =>
     !id.startsWith(`${play.id}-minimum-commitment`));
   return <details className="mt-3 rounded-sm border border-arena-edge bg-arena-panel/35" open={Boolean(current)}>
@@ -953,11 +1082,13 @@ function ProgramLifecycleControls({ draft, play, onChange }: {
             onChange={(event) => setCooldown(Number(event.target.value))} /></label>
       </div>
       <label><span className="lab mb-1 block">Success</span>
-        <select className="field min-h-11" value={success}
+        <select className="field min-h-11" value={custodyCompletion || success}
+          disabled={Boolean(custodyCompletion)}
           onChange={(event) => setSuccess(event.target.value)}>
           <option value="">Minimum commitment or timeout only</option>
           {conditions.map((id) => <option key={id} value={id}>{programSourceName(id, play.id)}</option>)}
         </select></label>
+      {custodyCompletion && <p className="t-micro">This Program’s authored outcome is the same Core acquired by its participant roles being banked. Remove that outcome in <b>If this Program gains a Core</b> before choosing a different success Condition.</p>}
       <div><span className="lab mb-1 block">Before the response is ready</span>
         <div className="grid gap-1.5 sm:grid-cols-3">{([
           ['hold-posts', 'Hold Posts', 'Stay set and visible'],
@@ -973,7 +1104,8 @@ function ProgramLifecycleControls({ draft, play, onChange }: {
         disabled={maximum < minimum}
         onClick={() => onChange(configurePlayLifecycle(draft, play.id, {
           minimumCommitmentTicks: minimum,
-          successConditionIds: success ? [success] : [],
+          successConditionIds: custodyCompletion
+            ? [custodyCompletion] : success ? [success] : [],
           maximumTicks: maximum,
           cooldownTicks: cooldown,
           waiting,
@@ -1253,6 +1385,267 @@ function readinessParticipants(draft: SheetDraft, play: LinkedPlay) {
   });
 }
 
+function ProgramCustodyControls({ draft, play, onSelectGeometry, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  onSelectGeometry: (id: string) => void;
+  onChange: (next: SheetDraft) => void;
+}) {
+  const bindings = play.coreCustody?.bindings ?? [];
+  const carrierRoles = [...new Set(bindings.filter((entry) =>
+    entry.kind === 'carrier-return').map((entry) =>
+    play.projections.find((projection) => projection.id === entry.projectionId)?.roleId)
+    .filter((id): id is string => Boolean(id)))];
+  const uncovered = play.projections.filter((projection) =>
+    !bindings.some((entry) => entry.projectionId === projection.id
+      && entry.kind === 'carrier-return')
+    && !(projection.signatureOpportunities ?? []).some((entry) =>
+      entry.kind === 'handoff' || entry.kind === 'drop'));
+  const completion = play.coreCustody?.completionConditionId
+    ? draft.orders.conditions[play.coreCustody.completionConditionId] : undefined;
+  const completionOutcomes = play.coreCustody?.completionOutcomes ?? ['bank'];
+  const unsafeCompletion = (play.lifecycle?.successConditionIds ?? [])
+    .map((id) => draft.orders.conditions[id])
+    .some((condition) => condition?.fact === 'self-carrying');
+  const teamWideFollow = play.projections.some((projection) =>
+    projection.orders.some(containsUnscopedCarrierFollow));
+  const shortestAuthoredReturn = bindings.filter((entry) => entry.kind === 'carrier-return')
+    .map((entry) => entry.routeId ? routeLength(draft.mapPlan.routes[entry.routeId]?.waypoints) : 0)
+    .reduce((longest, value) => Math.max(longest, value), 0);
+  const timeoutTooShort = Boolean(play.lifecycle && shortestAuthoredReturn > 0
+    && play.lifecycle.maximumTicks <= shortestAuthoredReturn);
+  const pickupDropLoop = play.projections.some((projection) => {
+    const kinds = new Set((projection.signatureOpportunities ?? []).map((entry) => entry.kind));
+    return kinds.has('drop') && kinds.has('core-recovery');
+  });
+  const shadowedRoles = carrierRoles.filter((roleId) => [1, 2, 4].some((value) => {
+    const read = analyzeCoreContinuation(draft, roleId, value as 1 | 2 | 4, play.id);
+    return read.controller && read.controller.playId !== play.id;
+  }));
+  return <section className="panel panel-feature pad">
+    <p className="lab text-arena-cyan">If this Program gains a Core</p>
+    <h3 className="type-display mt-1 text-[19px]">Keep custody inside the active tactic</h3>
+    <p className="t-micro mt-1">Carrier, escort, transfer, Fight and signature Instructions live beneath each already-activated participant host. Emptying one carrier ends that body’s branch—not the Program.</p>
+    <div className="mt-3 grid gap-2 sm:grid-cols-3">
+      <div className="rounded-sm border border-arena-edge bg-arena-deep/30 p-2.5">
+        <span className="lab">Carrier pool</span><p className="t-body mt-1">{carrierRoles.length
+          ? carrierRoles.map(humanize).join(', ') : 'Not authored yet'}</p>
+      </div>
+      <div className="rounded-sm border border-arena-edge bg-arena-deep/30 p-2.5">
+        <span className="lab">Completion</span><p className="t-body mt-1">{completion
+          ? `That acquired Core is ${completionOutcomes.map((outcome) =>
+            outcome === 'bank' ? 'banked' : outcome === 'drop' ? 'explicitly dropped' : 'lost').join(' or ')}`
+          : 'Timeout / authored outcome only'}</p>
+      </div>
+      <div className="rounded-sm border border-arena-edge bg-arena-deep/30 p-2.5">
+        <span className="lab">Hard maximum</span><p className="t-body mt-1">{play.lifecycle
+          ? `${play.lifecycle.maximumTicks} ticks` : 'Not durable yet'}</p>
+      </div>
+    </div>
+    {(uncovered.length > 0 || unsafeCompletion || teamWideFollow || !play.lifecycle
+      || timeoutTooShort || pickupDropLoop || shadowedRoles.length > 0) && <div
+      className="mt-3 rounded-sm border border-arena-material/45 bg-arena-material/8 p-3">
+      <p className="lab text-arena-material">Custody checks</p>
+      <ul className="mt-2 space-y-1 t-micro">
+        {uncovered.length > 0 && <li>⚠ {uncovered.map((entry) => humanize(entry.roleId)).join(', ')} can pick up an incidental Core but has no Program-local handling.</li>}
+        {!play.lifecycle && <li>⚠ Without an authored outcome/timeout, the trigger is not a durable Program episode.</li>}
+        {unsafeCompletion && <li>⚠ Current carrying state is used as Program completion; a Handoff or Toss could end the parent when only one carrier branch should end.</li>}
+        {teamWideFollow && <li>⚠ A team-wide carrier selector can follow a carrier from an unrelated tactic. Scope it to this Program’s carrier roles.</li>}
+        {timeoutTooShort && <li>⚠ The {play.lifecycle!.maximumTicks}-tick hard maximum is no longer than the authored return route’s {shortestAuthoredReturn}-step lower bound.</li>}
+        {pickupDropLoop && <li>⚠ A participant can both recover and Drop a Core in this Program. If its route crosses the loose Core again, source reclaim only prevents immediate—not repeated—pickup.</li>}
+        {shadowedRoles.length > 0 && <li>⚠ Higher Programs can pre-empt local custody for {shadowedRoles.map(humanize).join(', ')}. Review the real priority lens before treating this return as guaranteed.</li>}
+      </ul>
+    </div>}
+    <fieldset className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/30 p-3">
+      <legend className="lab px-1">What completes this Core attempt?</legend>
+      <p className="t-micro mt-1">These are immutable same-Core outcomes since this Program host activated. A carrier merely becoming empty-handed never completes the parent.</p>
+      <div className="mt-2 grid gap-2 sm:grid-cols-3">{([
+        ['bank', 'Banked', 'The acquired Core reaches our reactor'],
+        ['drop', 'Explicitly abandoned', 'A participant deliberately Drops it'],
+        ['loss', 'Lost', 'Carrier destruction or an uncaught Toss'],
+      ] as const).map(([outcome, label, copy]) => {
+        const selected = completionOutcomes.includes(outcome);
+        return <button key={outcome} type="button" className="choice-card min-h-16 text-left"
+          data-selected={selected} aria-pressed={selected} disabled={carrierRoles.length === 0}
+          onClick={() => {
+            const nextOutcomes = selected
+              ? completionOutcomes.filter((entry) => entry !== outcome)
+              : [...completionOutcomes, outcome];
+            if (nextOutcomes.length > 0)
+              onChange(configureProgramCustodyCompletion(
+                draft, play.id, carrierRoles, nextOutcomes));
+          }}><b className="t-body block">{label}</b><span className="t-micro mt-1 block">{copy}</span></button>;
+      })}</div>
+    </fieldset>
+    <div className="mt-3 space-y-2">{play.projections.map((projection) =>
+      <CustodyParticipantCard key={projection.id} draft={draft} play={play}
+        projection={projection} carrierRoles={carrierRoles}
+        bindings={bindings.filter((entry) => entry.projectionId === projection.id)}
+        onSelectGeometry={onSelectGeometry}
+        onChange={(next, configuredCarrierRoles) => {
+          let result = synchronizeProgramEscortCarrierRoles(
+            next, play.id, configuredCarrierRoles);
+          if (configuredCarrierRoles.length > 0)
+            result = configureProgramCustodyCompletion(result, play.id, configuredCarrierRoles);
+          else
+            result = removeProgramCustodyCompletion(result, play.id);
+          onChange(result);
+        }} />)}</div>
+  </section>;
+}
+
+function routeLength(points: Array<[number, number]> | undefined): number {
+  if (!points || points.length < 2) return 0;
+  return points.slice(1).reduce((total, point, index) => total + Math.max(
+    Math.abs(point[0] - points[index][0]),
+    Math.abs(point[1] - points[index][1]),
+  ), 0);
+}
+
+function CustodyParticipantCard({ draft, play, projection, bindings, carrierRoles,
+  onSelectGeometry, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  projection: PlayProjection;
+  bindings: NonNullable<LinkedPlay['coreCustody']>['bindings'];
+  carrierRoles: string[];
+  onSelectGeometry: (id: string) => void;
+  onChange: (next: SheetDraft, carrierRoles: string[]) => void;
+}) {
+  const carrier = bindings.find((entry) => entry.kind === 'carrier-return');
+  const escort = bindings.find((entry) => entry.kind === 'escort-carrier');
+  return <details className="rounded-sm border border-arena-edge bg-arena-deep/25"
+    open={bindings.length > 0}>
+    <summary className="flex min-h-14 cursor-pointer items-center gap-2 px-3">
+      <ClassIcon classId={draft.orders.roles.find((entry) => entry.id === projection.roleId)?.classes[0] ?? ''} size={34} decorative />
+      <span className="mr-auto"><b className="t-body block">{humanize(projection.roleId)}</b>
+        <span className="t-micro">{bindings.length === 0
+          ? 'No local custody behavior'
+          : [carrier && 'may carry', escort && 'escorts current carrier'].filter(Boolean).join(' · ')}</span></span>
+      <span className="pill">{bindings.length}/2 branches</span><span className="disclosure-chevron">›</span>
+    </summary>
+    <div className="grid gap-3 border-t border-arena-edge p-3 lg:grid-cols-2">
+      <CustodyBehaviorEditor draft={draft} play={play} projection={projection}
+        kind="carrier-return" binding={carrier} carrierRoles={carrierRoles}
+        onSelectGeometry={onSelectGeometry} onChange={onChange} />
+      <CustodyBehaviorEditor draft={draft} play={play} projection={projection}
+        kind="escort-carrier" binding={escort} carrierRoles={carrierRoles}
+        onSelectGeometry={onSelectGeometry} onChange={onChange} />
+    </div>
+  </details>;
+}
+
+function CustodyBehaviorEditor({ draft, play, projection, binding, carrierRoles,
+  kind, onSelectGeometry, onChange }: {
+  draft: SheetDraft;
+  play: LinkedPlay;
+  projection: PlayProjection;
+  binding?: NonNullable<LinkedPlay['coreCustody']>['bindings'][number];
+  carrierRoles: string[];
+  kind: 'carrier-return' | 'escort-carrier';
+  onSelectGeometry: (id: string) => void;
+  onChange: (next: SheetDraft, carrierRoles: string[]) => void;
+}) {
+  const [routeId, setRouteId] = useState(binding?.routeId ?? '');
+  const [coreBankValue, setCoreBankValue] = useState(binding?.coreBankValue);
+  const [well, setWell] = useState(binding?.well);
+  const [hostIds, setHostIds] = useState(binding?.hostOrderIds
+    ?? projection.orders.map((entry) => entry.id).filter((id): id is string => Boolean(id)));
+  useEffect(() => {
+    setRouteId(binding?.routeId ?? '');
+    setCoreBankValue(binding?.coreBankValue);
+    setWell(binding?.well);
+    setHostIds(binding?.hostOrderIds
+      ?? projection.orders.map((entry) => entry.id).filter((id): id is string => Boolean(id)));
+  }, [binding?.id, binding?.routeId, JSON.stringify(binding?.coreBankValue),
+    binding?.well, binding?.hostOrderIds.join('|')]);
+  const hostChoices = projection.orders.map((entry) => ({
+    id: entry.id!, label: playOrderName(entry.id!, projection.id),
+  })).filter((entry) => entry.id);
+  const projectedCarrierRoles = kind === 'carrier-return'
+    ? [...new Set([...carrierRoles, projection.roleId])] : carrierRoles;
+  const disabled = kind === 'escort-carrier' && carrierRoles.length === 0;
+  return <section className="space-y-3 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
+      <div><p className="lab text-arena-material">{kind === 'carrier-return' ? 'When this role carries' : 'While another participant carries'}</p>
+        <p className="t-micro mt-1">{kind === 'carrier-return'
+          ? 'This branch ends when this body is empty-handed; the Program stays active.'
+          : carrierRoles.length > 0
+            ? `Follow and retarget among ${carrierRoles.map(humanize).join(', ')}.`
+            : 'Add at least one carrier branch before scoping an escort.'}</p></div>
+      {hostChoices.length > 1 && <div><span className="lab mb-1 block">Active participant continuations</span>
+        <div className="grid gap-1 sm:grid-cols-2">{hostChoices.map((host) => <label key={host.id}
+          className="flex min-h-11 items-center gap-2 rounded-sm border border-arena-edge px-2 t-meta">
+          <input type="checkbox" checked={hostIds.includes(host.id)}
+            onChange={(event) => setHostIds((current) => event.target.checked
+              ? [...current, host.id] : current.filter((id) => id !== host.id))} />{host.label}
+        </label>)}</div>
+        <p className="t-micro mt-1">All active hosts are covered by default. Generated copies remain one editable Program source.</p>
+      </div>}
+      {kind === 'carrier-return' && <>
+        <label><span className="lab mb-1 block">Authored return route · optional</span>
+          <select className="field min-h-11" value={routeId} onChange={(event) => setRouteId(event.target.value)}>
+            <option value="">Direct path to our reactor</option>
+            {Object.keys(draft.mapPlan.routes).map((id) => <option key={id} value={id}>{humanize(id)}</option>)}
+          </select></label>
+        {routeId && <button type="button" className="btn btn-secondary min-h-10 w-full"
+          onClick={() => onSelectGeometry(routeId)}>Refine route on map</button>}
+        <CoreValueFilterControl value={coreBankValue} label="Handle which carried Core values?" onChange={setCoreBankValue} />
+        <CoreSourceFilterControl value={well} label="Handle Cores from which Well?" onChange={setWell} />
+      </>}
+      {kind === 'escort-carrier' && <>
+        <p className="t-meta">Handoff or Toss retargets this ordinary follow branch on the next tick. If this body receives the Core, its carrier branch above wins first.</p>
+        <CoreValueFilterControl value={coreBankValue} label="Escort which carried Core values?" onChange={setCoreBankValue} />
+        <CoreSourceFilterControl value={well} label="Escort Cores from which Well?" onChange={setWell} />
+      </>}
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" className="btn btn-primary min-h-11"
+          onClick={() => onChange(configureProgramCustody(draft, play.id, projection.id, {
+            kind, hostOrderIds: hostIds,
+            carrierRoleIds: kind === 'carrier-return' ? [projection.roleId] : carrierRoles,
+            ...(routeId ? { routeId } : {}), ...(coreBankValue ? { coreBankValue } : {}),
+            ...(well ? { well } : {}),
+          }), projectedCarrierRoles)} disabled={disabled || hostIds.length === 0}>{binding ? 'Update branch' : 'Add branch'}</button>
+        <button type="button" className="btn min-h-11 text-arena-hot" disabled={!binding}
+          onClick={() => onChange(removeProgramCustody(draft, play.id, projection.id, kind),
+            kind === 'carrier-return'
+              ? carrierRoles.filter((id) => id !== projection.roleId)
+              : carrierRoles)}>Remove</button>
+      </div>
+      <p className="t-micro">Fight, healing, Handoff, Drop and signature Opportunities can be nested into this generated branch below; editing this card preserves them.</p>
+  </section>;
+}
+
+function synchronizeProgramEscortCarrierRoles(
+  draft: SheetDraft,
+  playId: string,
+  carrierRoles: string[],
+): SheetDraft {
+  let next = draft;
+  const play = next.workshop.plays.find((entry) => entry.id === playId);
+  const escorts = (play?.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.kind === 'escort-carrier');
+  for (const binding of escorts) {
+    if (carrierRoles.length === 0) {
+      next = removeProgramCustody(next, playId, binding.projectionId, 'escort-carrier');
+      continue;
+    }
+    next = configureProgramCustody(next, playId, binding.projectionId, {
+      kind: 'escort-carrier', hostOrderIds: binding.hostOrderIds,
+      carrierRoleIds: carrierRoles,
+      ...(binding.coreBankValue ? { coreBankValue: binding.coreBankValue } : {}),
+      ...(binding.well ? { well: binding.well } : {}),
+    });
+  }
+  return next;
+}
+
+function containsUnscopedCarrierFollow(order: OrderNode): boolean {
+  if (typeof order.move?.follow === 'object' && 'selector' in order.move.follow
+    && order.move.follow.selector === 'nearest-friendly-core-carrier'
+    && !order.move.follow.roles?.length) return true;
+  return order.orders?.some(containsUnscopedCarrierFollow) ?? false;
+}
+
 function AlongTheWayControls({
   draft,
   play,
@@ -1261,6 +1654,7 @@ function AlongTheWayControls({
   practiceDraft,
   onSelectGeometry,
   onOpenOrders,
+  onSelectProgram,
   onChange,
 }: {
   draft: SheetDraft;
@@ -1270,6 +1664,7 @@ function AlongTheWayControls({
   practiceDraft?: SheetDraft;
   onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
+  onSelectProgram: (playId: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   return <section className="panel pad">
@@ -1283,6 +1678,7 @@ function AlongTheWayControls({
         projection={projection} role={role} catalog={catalog}
         practiceReplay={practiceReplay} practiceDraft={practiceDraft}
         onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
+        onSelectProgram={onSelectProgram}
         onChange={onChange} />;
     })}</div>
   </section>;
@@ -1298,6 +1694,7 @@ function OpportunityProjection({
   practiceDraft,
   onSelectGeometry,
   onOpenOrders,
+  onSelectProgram,
   onChange,
 }: {
   draft: SheetDraft;
@@ -1309,6 +1706,7 @@ function OpportunityProjection({
   practiceDraft?: SheetDraft;
   onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
+  onSelectProgram: (playId: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const views = opportunityViews(projection, draft.orders.conditions);
@@ -1316,7 +1714,7 @@ function OpportunityProjection({
   const skills = [...new Set(role.classes.map((classId) =>
     skillForClass(catalog, classId)).filter((entry): entry is string => Boolean(entry)))];
   const [adding, setAdding] = useState(false);
-  const [kind, setKind] = useState<'use' | 'fight' | 'core-recovery' | 'health-recovery'>('use');
+  const [kind, setKind] = useState<'use' | 'fight' | 'core-recovery' | 'health-recovery' | 'handoff' | 'drop'>('use');
   const [hostId, setHostId] = useState(hosts[0]?.id ?? '');
   const [skill, setSkill] = useState(skills[0] ?? '');
   const selectedHost = hosts.some((entry) => entry.id === hostId)
@@ -1334,12 +1732,14 @@ function OpportunityProjection({
     </div>
     {adding && <div className="mt-3 rounded-sm border border-arena-material/35 bg-arena-material/5 p-3">
       <p className="lab text-arena-material">Choose the interruption</p>
-      <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+      <div className="mt-2 grid grid-cols-2 gap-1.5 sm:grid-cols-3">
         {([
           ['use', 'Use skill', 'Signature timing and target'],
           ['fight', 'Fight', 'Contact, targets and chase'],
           ['core-recovery', 'Nearby Core', 'Visible Core within a detour'],
           ['health-recovery', 'Recover health', 'Heal with real hysteresis'],
+          ['handoff', 'Hand off Core', 'Pass carried value to an ally'],
+          ['drop', 'Drop Core', 'Release carried value here'],
         ] as const).map(([value, label, description]) => <button key={value}
           type="button" className="choice-card min-h-20 text-left" data-selected={kind === value}
           aria-pressed={kind === value} onClick={() => setKind(value)}>
@@ -1384,15 +1784,21 @@ function OpportunityProjection({
               withinWalkingSteps: 5, preference: 'closest',
               pursuersPerCore: 1, coordinateAcrossSheet: true,
             });
-          else next = addHealthRecoveryOpportunity(
+          else if (kind === 'health-recovery') next = addHealthRecoveryOpportunity(
             draft, play.id, projection.id, selectedHost, {
               startBelow: 30, recoverUntil: 70, withinWalkingSteps: 8,
               timeout: 60, cooldown: 20, patientsPerTile: 1,
               coordinateAcrossSheet: true, allowCoreCarriers: false,
             });
+          else if (kind === 'handoff') next = addHandoffOpportunity(
+            draft, play.id, projection.id, selectedHost, {
+              target: 'nearest-ally-toward-own-reactor',
+            });
+          else next = addDropOpportunity(
+            draft, play.id, projection.id, selectedHost);
           onChange(next);
           setAdding(false);
-        }}>Add {kind === 'use' ? 'skill' : kind === 'fight' ? 'Fight' : kind === 'core-recovery' ? 'Core recovery' : 'health recovery'}</button>
+        }}>Add {kind === 'use' ? 'skill' : kind === 'fight' ? 'Fight' : kind === 'core-recovery' ? 'Core recovery' : kind === 'health-recovery' ? 'health recovery' : kind === 'handoff' ? 'handoff' : 'drop'}</button>
     </div>}
     <div className="mt-3 space-y-2">{views.map((view) => {
       const use = view.action.use;
@@ -1474,7 +1880,8 @@ function OpportunityProjection({
               onSelectGeometry(result.zoneId);
             }}>▣ Mark an activation window on the map</button>}
           </> : <GenericOpportunityEditor draft={draft} play={play}
-            projection={projection} view={view} onChange={onChange} />}
+            projection={projection} view={view}
+            onSelectProgram={onSelectProgram} onChange={onChange} />}
           <div className="mt-3 rounded-sm border border-arena-edge bg-arena-deep/35 p-2">
             <p className="lab">Otherwise</p>
             <p className="t-meta mt-1">{orderName(view.continuation, projection.id)}</p>
@@ -1565,11 +1972,12 @@ function FightBehaviorFields({ draft, setup, showContactDistance = true, onChang
   </div>;
 }
 
-function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
+function GenericOpportunityEditor({ draft, play, projection, view, onSelectProgram, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   projection: PlayProjection;
   view: ReturnType<typeof opportunityViews>[number];
+  onSelectProgram: (playId: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const kind = view.binding.kind;
@@ -1600,10 +2008,18 @@ function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
       withinWalkingSteps: view.action.move.withinWalkingSteps ?? null,
       preference,
       coreBankValue: distance?.coreBankValue,
+      well: distance?.well,
       pursuersPerCore: view.binding.capacityPolicy?.limit ?? null,
       coordinateAcrossSheet: view.binding.capacityPolicy?.scope !== 'local',
-      linkedBankProgramId: view.binding.linkedBankProgramId,
     };
+    const values = possibleCoreValues(setup.coreBankValue);
+    const continuations = values.map((value) => ({
+      value,
+      read: analyzeCoreContinuation(draft, projection.roleId, value, play.id),
+    }));
+    const localCustody = play.coreCustody?.bindings.find((entry) =>
+      entry.projectionId === projection.id && entry.kind === 'carrier-return');
+    const currentIndex = draft.workshop.plays.findIndex((entry) => entry.id === play.id);
     const update = (patch: Partial<typeof setup>) => onChange(updateCoreRecoveryOpportunity(
       draft, play.id, projection.id, view.binding.id, { ...setup, ...patch }));
     return <div className="space-y-3">
@@ -1621,6 +2037,12 @@ function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
             <option value="highest-value">Highest bank value</option>
           </select></label>
       </div>
+      <CoreValueFilterControl value={setup.coreBankValue}
+        label="Which Core values may interrupt?"
+        onChange={(coreBankValue) => update({ coreBankValue })} />
+      <CoreSourceFilterControl value={setup.well}
+        label="Which source Well may interrupt?"
+        onChange={(well) => update({ well })} />
       <div className="grid gap-2 sm:grid-cols-2">
         <label><span className="lab mb-1 block">Bodies per Core</span>
           <select className="field min-h-11" value={setup.pursuersPerCore ?? ''}
@@ -1635,15 +2057,42 @@ function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
           <span className="t-meta">Share that cap across the sheet</span>
         </label>
       </div>
-      <label><span className="lab mb-1 block">Continue into a banking Program</span>
-        <select className="field min-h-11" value={setup.linkedBankProgramId ?? ''}
-          onChange={(event) => update({ linkedBankProgramId: event.target.value || undefined })}>
-          <option value="">No linked banking Program</option>
-          {draft.workshop.plays.filter((candidate) => candidate.id !== play.id).map((candidate) =>
-            <option key={candidate.id} value={candidate.id}>{candidate.name}</option>)}
-        </select>
-        <span className="t-micro mt-1 block">Linkage is an authoring explanation only; ordinary Instruction order remains authoritative.</span>
-      </label>
+      <div className="rounded-sm border border-arena-cyan/35 bg-arena-cyan/5 p-3">
+        <p className="lab text-arena-cyan">After pickup · real Program priority</p>
+        {continuations.map(({ value, read }) => <div key={value} className="mt-2">
+          {(() => {
+            const higher = read.rows.slice(0, currentIndex)
+              .find((entry) => entry.status !== 'ineligible');
+            const fallback = read.rows.slice(currentIndex + 1)
+              .find((entry) => entry.handlesCarriedCore && entry.status !== 'ineligible');
+            return <><p className="t-body"><b>{value}-point Core:</b> {localCustody
+              ? `handled inside ${play.name} while its parent remains active.`
+              : 'this Program has no local carrier continuation.'}</p>
+            {higher && <p className="t-micro mt-1 text-arena-material">⚠ Higher Program {higher.playName} can pre-empt this local custody.</p>}
+            <p className="t-micro mt-1">After this Program exits, {fallback
+              ? `${fallback.playName} can take over as fallback.`
+              : 'no compatible lower fallback is visible.'}</p></>;
+          })()}
+        </div>)}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {!localCustody && <button type="button" className="btn btn-primary min-h-10"
+            onClick={() => {
+              let next = configureProgramCustody(draft, play.id, projection.id, {
+                kind: 'carrier-return', carrierRoleIds: [projection.roleId],
+                coreBankValue: setup.coreBankValue,
+              });
+              const existingRoles = play.coreCustody?.bindings.filter((entry) =>
+                entry.kind === 'carrier-return').map((entry) =>
+                play.projections.find((candidate) => candidate.id === entry.projectionId)?.roleId)
+                .filter((id): id is string => Boolean(id)) ?? [];
+              next = configureProgramCustodyCompletion(next, play.id,
+                [...new Set([...existingRoles, projection.roleId])]);
+              onChange(next);
+            }}>Handle inside this Program</button>}
+          <button type="button" className="btn btn-secondary min-h-10"
+            onClick={() => onSelectProgram(play.id)}>Open Program custody</button>
+        </div>
+      </div>
     </div>;
   }
   if (kind === 'health-recovery' && view.action.move) {
@@ -1692,8 +2141,129 @@ function GenericOpportunityEditor({ draft, play, projection, view, onChange }: {
       <p className="t-micro">{allowCoreCarriers ? 'Core carriers may use this recovery.' : 'A body carrying a Core falls through instead of abandoning its delivery.'}</p>
     </div>;
   }
+  if (kind === 'handoff' && view.action.handoff) {
+    const valueCondition = carriedValueCondition(draft, view.binding);
+    const target = view.action.handoff.target;
+    const encoded = typeof target === 'string' ? target : `role:${target.role}`;
+    const currentValue = conditionValueFilter(valueCondition);
+    const currentWell = carriedSourceCondition(draft, view.binding)?.well;
+    return <div className="space-y-3">
+      <label><span className="lab mb-1 block">Hand to</span>
+        <select className="field min-h-11" value={encoded}
+          onChange={(event) => onChange(updateHandoffOpportunity(
+            draft, play.id, projection.id, view.binding.id, {
+              target: event.target.value.startsWith('role:')
+                ? { role: event.target.value.slice(5) }
+                : event.target.value as 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally',
+              coreBankValue: currentValue,
+              well: currentWell,
+            }))}>
+          <option value="nearest-ally-toward-own-reactor">Closest ally nearer our reactor</option>
+          <option value="nearest-empty-handed-ally">Closest empty-handed ally</option>
+          {draft.orders.roles.filter((entry) => entry.id !== projection.roleId).map((entry) =>
+            <option key={entry.id} value={`role:${entry.id}`}>Role · {humanize(entry.id)}</option>)}
+        </select></label>
+      <CoreValueFilterControl value={currentValue} label="Hand off which Core values?"
+        onChange={(coreBankValue) => onChange(updateHandoffOpportunity(
+          draft, play.id, projection.id, view.binding.id,
+          { target, coreBankValue, well: currentWell }))} />
+      <CoreSourceFilterControl value={currentWell} label="Hand off Cores from which Well?"
+        onChange={(well) => onChange(updateHandoffOpportunity(
+          draft, play.id, projection.id, view.binding.id,
+          { target, coreBankValue: currentValue, well }))} />
+    </div>;
+  }
+  if (kind === 'drop' && view.action.drop) {
+    const currentValue = conditionValueFilter(
+      carriedValueCondition(draft, view.binding));
+    const currentWell = carriedSourceCondition(draft, view.binding)?.well;
+    return <div className="space-y-3"><CoreValueFilterControl value={currentValue}
+      label="Drop which Core values?"
+      onChange={(coreBankValue) => onChange(updateDropOpportunity(
+        draft, play.id, projection.id, view.binding.id,
+        { coreBankValue, well: currentWell }))} />
+      <CoreSourceFilterControl value={currentWell} label="Drop Cores from which Well?"
+        onChange={(well) => onChange(updateDropOpportunity(
+          draft, play.id, projection.id, view.binding.id,
+          { coreBankValue: currentValue, well }))} /></div>;
+  }
   return <p className="t-micro">This advanced Opportunity remains an ordinary Instruction. Open its source for fields not yet represented by the guided card.</p>;
 }
+
+function CoreValueFilterControl({ value, label, onChange }: {
+  value?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
+  label: string;
+  onChange: (value: { operator: 'equals' | 'at-least' | 'at-most'; value: number } | undefined) => void;
+}) {
+  const encoded = !value ? 'any' : `${value.operator}:${value.value}`;
+  return <div><span className="lab mb-1 block">{label}</span>
+    <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+      {([
+        ['any', 'Any · 1/2/4'], ['equals:1', 'Own · 1'],
+        ['equals:2', 'Centre · 2'], ['equals:4', 'Enemy · 4'],
+      ] as const).map(([candidate, copy]) => <button key={candidate} type="button"
+        className="choice-card min-h-12" data-selected={encoded === candidate}
+        aria-pressed={encoded === candidate} onClick={() => {
+          if (candidate === 'any') onChange(undefined);
+          else {
+            const [operator, raw] = candidate.split(':');
+            onChange({ operator: operator as 'equals', value: Number(raw) });
+          }
+        }}>{copy}</button>)}
+    </div>
+    <details className="mt-2"><summary className="t-micro cursor-pointer">More value filters</summary>
+      <div className="mt-2 grid grid-cols-2 gap-1.5">
+        {([['at-least:2', 'Centre or enemy · 2+'], ['at-most:2', 'Own or centre · up to 2']] as const)
+          .map(([candidate, copy]) => <button key={candidate} type="button"
+            className="choice-card min-h-11" data-selected={encoded === candidate}
+            onClick={() => {
+              const [operator, raw] = candidate.split(':');
+              onChange({ operator: operator as 'at-least' | 'at-most', value: Number(raw) });
+            }}>{copy}</button>)}
+      </div>
+    </details>
+  </div>;
+}
+
+function CoreSourceFilterControl({ value, label, onChange }: {
+  value?: ConditionDefinition['well'];
+  label: string;
+  onChange: (value: ConditionDefinition['well'] | undefined) => void;
+}) {
+  return <div><span className="lab mb-1 block">{label}</span>
+    <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-6">
+      {([['', 'Any'], ['own', 'Own'], ['centre', 'Centre'], ['enemy', 'Enemy'],
+        ['north', 'North'], ['south', 'South']] as const).map(([candidate, copy]) =>
+        <button key={candidate || 'any'} type="button" className="choice-card min-h-11"
+          data-selected={(value ?? '') === candidate} aria-pressed={(value ?? '') === candidate}
+          onClick={() => onChange(candidate ? candidate : undefined)}>{copy}</button>)}
+    </div>
+  </div>;
+}
+
+function carriedValueCondition(
+  draft: SheetDraft,
+  binding: NonNullable<PlayProjection['signatureOpportunities']>[number],
+): ConditionDefinition | undefined {
+  return binding.ownedConditionIds?.map((id) => draft.orders.conditions[id])
+    .find((condition) => condition?.fact === 'self-carried-core-bank-value');
+}
+
+function carriedSourceCondition(
+  draft: SheetDraft,
+  binding: NonNullable<PlayProjection['signatureOpportunities']>[number],
+): ConditionDefinition | undefined {
+  return binding.ownedConditionIds?.map((id) => draft.orders.conditions[id])
+    .find((condition) => condition?.fact === 'self-carrying-core-from-well');
+}
+
+function conditionValueFilter(condition?: ConditionDefinition) {
+  return condition ? {
+    operator: condition.operator as 'equals' | 'at-least' | 'at-most',
+    value: condition.value,
+  } : undefined;
+}
+
 
 function opportunityTitle(action: OrderNode, kind: string) {
   if (kind === 'use') return action.use ? `Use ${humanize(action.use.skill)}` : 'Use skill';
@@ -1941,7 +2511,7 @@ function compatibleRoles(draft: SheetDraft, play: LinkedPlay, projection: PlayPr
 }
 
 function recipeName(recipe: PlayRecipe) {
-  return recipe === 'relay-chain' ? 'Running Relay' : recipe === 'ambush' ? 'Ambush pattern' : recipe === 'blank' ? 'Blank Program' : humanize(recipe);
+  return recipe === 'relay-chain' ? 'Running Relay' : recipe === 'ambush' ? 'Ambush pattern' : recipe === 'blank' ? 'Custom Program' : humanize(recipe);
 }
 
 function geometryExists(draft: SheetDraft, kind: PlayGeometryKind, id: string) {
