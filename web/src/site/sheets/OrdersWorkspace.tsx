@@ -758,15 +758,27 @@ function UseEditor({ node, role, allOrders, catalog, mapPlan, onOpenMap, onChang
 }
 
 function HandoffEditor({ value, roles, onChange }: { value: NonNullable<OrderNode['handoff']>; roles: RoleDefinition[]; onChange: (next: NonNullable<OrderNode['handoff']>) => void }) {
-  const encoded = typeof value.target === 'string' ? value.target : `role:${value.target.role}`;
-  const values = ['nearest-ally-toward-own-reactor', 'nearest-empty-handed-ally', ...roles.map((role) => `role:${role.id}`)];
+  const encoded = typeof value.target === 'string' ? value.target
+    : 'role' in value.target ? `role:${value.target.role}` : 'scoped-forward';
+  const values = [
+    ...(typeof value.target === 'object' && 'roles' in value.target ? ['scoped-forward'] : []),
+    'nearest-ally-toward-own-reactor', 'nearest-empty-handed-ally',
+    ...roles.map((role) => `role:${role.id}`),
+  ];
   return <div className="mt-4"><CardPicker label="Adjacent receiver" value={encoded} values={values}
-    labeler={(entry) => entry.startsWith('role:') ? `Role · ${humanize(entry.slice(5))}` : humanize(entry)}
+    labeler={(entry) => entry === 'scoped-forward' && typeof value.target === 'object' && 'roles' in value.target
+      ? `Advance within ${value.target.roles.map(humanize).join(' / ')}`
+      : entry.startsWith('role:') ? `Role · ${humanize(entry.slice(5))}` : humanize(entry)}
     descriptions={{
       'nearest-ally-toward-own-reactor': 'Advance the Core toward home',
       'nearest-empty-handed-ally': 'Pass to the closest legal ally',
     }}
-    onChange={(target) => onChange({ target: target.startsWith('role:') ? { role: target.slice(5) } : target as typeof value.target })} />
+    onChange={(target) => {
+      if (target === 'scoped-forward') return;
+      onChange({ target: target.startsWith('role:')
+        ? { role: target.slice(5) }
+        : target as 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' });
+    }} />
     <p className="t-micro mt-2">The receiver does not need a matching Instruction. Handoff never implies movement.</p>
   </div>;
 }
@@ -1154,7 +1166,10 @@ function orderSummary(node: OrderNode, orders: OrdersDocument): string {
   if (node.use) return node.use.at
     ? `${humanize(node.use.skill)} at ${humanize(node.use.at)}`
     : `${humanize(node.use.skill)} on ${useTargetLabel(node.use.target)}`;
-  if (node.handoff) return `pass to ${humanize(typeof node.handoff.target === 'string' ? node.handoff.target : node.handoff.target.role)}`;
+  if (node.handoff) return `pass to ${humanize(typeof node.handoff.target === 'string'
+    ? node.handoff.target
+    : 'role' in node.handoff.target ? node.handoff.target.role
+      : `forward ${node.handoff.target.roles.join(' ')}`)}`;
   if (node.drop) return 'release carried Core toward home';
   return 'Choose an action';
 }

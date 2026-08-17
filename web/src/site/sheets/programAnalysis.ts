@@ -120,6 +120,7 @@ export function possibleCoreValues(filter?: {
 export interface ProgramCustodyShadowWarning {
   caseId: string;
   shadowedByCaseId: string;
+  bindingIds: string[];
   message: string;
 }
 
@@ -131,13 +132,38 @@ export function programCustodyShadowWarnings(
   const result: ProgramCustodyShadowWarning[] = [];
   for (let index = 1; index < cases.length; index++) {
     const current = cases[index];
-    const earlier = cases.slice(0, index).find((candidate) =>
-      custodyCaseCovers(candidate, current));
-    if (earlier) result.push({
-      caseId: current.id,
-      shadowedByCaseId: earlier.id,
-      message: `${earlier.name} matches every Core that ${current.name} can match, so ordinary top-to-bottom priority makes ${current.name} unreachable.`,
-    });
+    const currentBindings = (play.coreCustody?.bindings ?? [])
+      .filter((binding) => binding.caseId === current.id);
+    const groups = new Map<string, {
+      earlier: PlayCustodyCase;
+      bindings: typeof currentBindings;
+    }>();
+    for (const binding of currentBindings) {
+      const earlier = cases.slice(0, index).find((candidate) => {
+        if (!custodyCaseCovers(candidate, current)) return false;
+        return (play.coreCustody?.bindings ?? []).some((entry) =>
+          entry.caseId === candidate.id
+          && entry.projectionId === binding.projectionId
+          && entry.kind === binding.kind);
+      });
+      if (!earlier) continue;
+      const group = groups.get(earlier.id) ?? { earlier, bindings: [] };
+      group.bindings.push(binding);
+      groups.set(earlier.id, group);
+    }
+    for (const { earlier, bindings: shadowed } of groups.values()) {
+      const labels = [...new Set(shadowed.map((binding) => {
+        const roleId = play.projections.find((projection) =>
+          projection.id === binding.projectionId)?.roleId ?? binding.projectionId;
+        return `${humanize(roleId)} ${binding.kind === 'carrier-return' ? 'carrying' : 'escorting'}`;
+      }))];
+      result.push({
+        caseId: current.id,
+        shadowedByCaseId: earlier.id,
+        bindingIds: shadowed.map((binding) => binding.id),
+        message: `${earlier.name} matches every Core that ${current.name} can match for ${labels.join(', ')}, so those later behaviors are unreachable.`,
+      });
+    }
   }
   return result;
 }
@@ -152,6 +178,23 @@ function custodyCaseCovers(earlier: PlayCustodyCase, later: PlayCustodyCase) {
 
 export function projectionForRole(play: LinkedPlay, roleId: string): PlayProjection | undefined {
   return play.projections.find((entry) => entry.roleId === roleId);
+}
+
+export function programOpportunityHostLabel(
+  play: LinkedPlay,
+  projectionId: string,
+  hostOrderId: string,
+): string | null {
+  const binding = play.coreCustody?.bindings.find((entry) =>
+    entry.projectionId === projectionId
+    && entry.actionOrderIds.includes(hostOrderId));
+  const custodyCase = binding && play.coreCustody?.cases?.find((entry) =>
+    entry.id === binding.caseId);
+  const roleId = play.projections.find((projection) =>
+    projection.id === projectionId)?.roleId;
+  if (!binding || !custodyCase || !roleId) return null;
+  return `${custodyCase.name} · ${humanize(roleId)} ${binding.kind === 'carrier-return'
+    ? 'carrying' : 'escorting'}`;
 }
 
 function evaluateOrder(
@@ -263,5 +306,6 @@ function operator(value: ConditionDefinition['operator']): string {
 }
 
 function humanize(value: string): string {
-  return value.replaceAll('-', ' ');
+  return value.replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }

@@ -63,6 +63,31 @@ matching case becomes eligible, and role-scoped escorts resolve the new
 carrier. No scheduler, reservation, transition, or additional Instruction
 depth was introduced.
 
+### Receiver safety and exact custody context
+
+The final review follow-up closes the receiver ambiguity without adding a
+policy beside ordinary Handoff:
+
+- A named Handoff receiver inside a Core case must already have carrier
+  behavior in that same case. The case card and its exact Opportunity editor
+  offer one-click creation of that behavior when it is missing.
+- **Pass Forward** now materializes the ordinary
+  `nearest-ally-toward-own-reactor` selector with the exact eligible carrier
+  role list from that case. That list updates when carrier behavior is added or
+  removed. Another body in the same multi-body role remains eligible. Removing
+  the behavior behind a named receiver also removes that now-invalid generated
+  Handoff and its owned Conditions.
+- Opening Opportunities from a custody card selects that exact role and
+  carrier host. Player-facing labels name the source—for example,
+  **Premium four · Couriers carrying**—instead of exposing a generated id.
+- Core-case shadow analysis now compares both the filter and the exact
+  participant behavior binding. An Any Core behavior for one role no longer
+  claims that an unrelated role's later 4-point behavior is unreachable.
+
+The scoped selector is normal compiled Instruction data, not Program runtime
+state. An unavailable named or Pass Forward Handoff still proposes nothing;
+the carrier's next ordinary custody sibling remains eligible in that tick.
+
 The controlled site-review fixture had drifted behind the current editor
 contract (starter catalogue, class signature authoring, distinct-class floor,
 and current map id), leaving the review page stuck while restoring a draft. It
@@ -220,6 +245,43 @@ playbook, map-plan, and workshop files byte-for-byte without a test-only loader.
 
 ## Deterministic acceptance evidence
 
+### Premium named Handoff
+
+`premium-transfer-proof` versus `idle-field-v1`, seed 9001:
+
+- Courier A hands the south Well's 4-point Core to Courier B at tick 53;
+- Courier B selects the same premium return branch at tick 54;
+- the escort changes its role-scoped target from A to B at tick 54; and
+- Courier B banks that same Core at tick 171.
+
+Replay hash:
+`88089c8722ea787da9c026b880bb31809d646a0d950c8312bcbf7a0a0f386870`.
+Gameplay-state digest:
+`50665f55a10cb1b55aea7c0b37185e3d3662b6530f09f5e2df56b2414b18119f`.
+The tracked scene asserts source, receiver, same-Core identity, value, route
+continuation, escort retarget, and bank rather than only checking a final
+score.
+
+### Carrier recovery inside premium custody
+
+`premium-carrier-recovery-proof` versus the bounded
+`premium-carrier-recovery-drill`, seed 9001:
+
+- Courier B receives the 4-point Core through the same Handoff;
+- one bounded combat episode damages it at ticks 75 and 78, down to 20 health;
+- its recovery Opportunity, nested beneath the premium carrier host, takes
+  control at tick 108 and reaches the healing tile at tick 132;
+- health first rises after tick 134 and is full after tick 137;
+- the same premium return resumes at tick 138; and
+- Courier B banks the same Core at tick 190.
+
+Replay hash:
+`e6c4b7653e431342476983dc9790736a84820035f3e3e9decf722adde9513d02`.
+Gameplay-state digest:
+`b2678c5d6439c3cb5e2b25d0e4a06180b13b547902fb6e55968d6366d803515d`.
+The drill exists only to make one recovery episode deterministic; it is not a
+strategy or balance opponent.
+
 ### Program-scoped Running Relay
 
 `running-relay-v1` versus `idle-field-v1`, seed 9001:
@@ -314,24 +376,29 @@ horizontal overflow (`1728 / 1728` client/scroll width) or error boundary. Its
 narrow-column filter and behavior panels were stacked after visual review so
 labels remain readable at inspector and phone widths. Running Relay and its
 proof gallery were deliberately not regenerated or refined in this follow-up.
+The final custody deep-link was also exercised from its case card: it opened
+the exact participant and carrier host, whose selector read **Any Core ·
+Couriers carrying** rather than a generated Instruction id.
 
 ## Validation
 
 | Check | Result |
 | --- | --- |
 | `dotnet build BotArena.sln -c Release` | passed, 0 warnings / 0 errors |
-| full solution tests, Release, serial | 2,349 passed; 3 environment-gated skips |
+| full solution after custody follow-up, Release, serial | 2,269 passed; 88 PostgreSQL/S3/toolchain environment-gated skips |
 | Engine tests | 1,539 passed |
-| tactical-mind tests | 39 passed |
-| CLI/compiler tests | 259 passed |
-| App tests with PostgreSQL | 303 passed; 3 environment-gated S3/toolchain skips |
+| tactical-mind tests | 41 passed |
+| CLI/compiler tests | 262 passed |
+| App tests in the follow-up environment | 218 passed; 88 integration skips; no App source changed |
+| original player-ready App pass with PostgreSQL | 303 passed; 3 environment-gated S3/toolchain skips |
 | Determinism tests | 17 passed |
 | Runtime.Wasm tests | 69 passed |
 | SDK / Guest tests | 87 / 36 passed |
-| `cd web && npm test` | 600 passed |
+| `cd web && npm test` | 602 passed |
 | `cd web && npm run build` | passed |
 | `bash scripts/generate-api-clients.sh` | passed, no generated-client drift |
 | direct starter generator comparison | 14 / 14 tracked outputs byte-identical |
+| Program custody proof generator comparison | 11 / 11 tracked outputs byte-identical |
 | `git diff --check` | passed |
 
 The full solution's first parallel invocation made the App's 1.6-second hosted

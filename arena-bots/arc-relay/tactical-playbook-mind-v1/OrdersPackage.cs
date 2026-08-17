@@ -431,9 +431,15 @@ internal sealed class OrdersPackage
     private static HandoffAction ParseHandoff(JsonElement value)
     {
         JsonElement target = value.GetProperty("target");
-        return target.ValueKind == JsonValueKind.String
-            ? new HandoffAction("selector", target.GetString()!)
-            : new HandoffAction("role", target.GetProperty("role").GetString()!);
+        if (target.ValueKind == JsonValueKind.String)
+            return new HandoffAction("selector", target.GetString()!, null);
+        if (target.TryGetProperty("role", out JsonElement role))
+            return new HandoffAction("role", role.GetString()!, null);
+        return new HandoffAction(
+            "selector",
+            target.GetProperty("selector").GetString()!,
+            target.GetProperty("roles").EnumerateArray()
+                .Select(entry => entry.GetString()!).ToArray());
     }
 
     private static ConditionExpression ParseExpression(JsonElement value)
@@ -627,7 +633,10 @@ internal sealed class OrdersPackage
         string? AheadVia,
         int MinimumForwardTiles,
         string? AtAnchor) : OrderAction;
-    internal sealed record HandoffAction(string TargetKind, string Target)
+    internal sealed record HandoffAction(
+        string TargetKind,
+        string Target,
+        string[]? Roles)
         : OrderAction;
     internal sealed record DropAction : OrderAction;
 

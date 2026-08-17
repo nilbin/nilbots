@@ -1686,6 +1686,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (handoff.TargetKind == "role")
             candidates = candidates.Where(candidate =>
                 package.RolesByUnit[candidate.UnitId].Id == handoff.Target);
+        if (handoff.Roles is { Length: > 0 })
+            candidates = candidates.Where(candidate => HandoffAllowsRole(
+                handoff, package.RolesByUnit[candidate.UnitId].Id));
         if (handoff.Target == "nearest-ally-toward-own-reactor")
         {
             int sourceDistance = ArenaBasics.StaticDistance(
@@ -1705,6 +1708,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 [candidate.Position], candidate.ActorId, null))
             .ToArray();
     }
+
+    internal static bool HandoffAllowsRole(
+        OrdersPackage.HandoffAction handoff,
+        string roleId) => handoff.Roles is not { Length: > 0 }
+        || handoff.Roles.Contains(roleId, StringComparer.Ordinal);
 
     private Dictionary<int, Proposal> Allocate(
         IReadOnlyDictionary<int, IReadOnlyList<Proposal>> proposalsByBody) =>

@@ -10,10 +10,14 @@ import {
 } from '../web/src/site/sheets/sheetAuthoring.ts';
 import {
   addDropOpportunity,
+  addHealthRecoveryOpportunity,
   addPlayGeometry,
+  addProgramCustodyCase,
+  appendPlayRouteWaypoint,
   configurePlayLifecycle,
   configureProgramCustody,
   configureProgramCustodyCompletion,
+  configureProgramCustodyHandoff,
   updatePlayProjectionOrders,
 } from '../web/src/site/sheets/playEditing.ts';
 import {
@@ -70,6 +74,124 @@ write('unwanted-core-proof.json', unwanted.orders);
 write('unwanted-core-proof-map.json', unwanted.mapPlan);
 write('unwanted-core-proof-workshop.json', unwanted.workshop);
 
+// A separate proof—not a refinement of Running Relay—uses two couriers to
+// exercise the exact Program case semantics. Courier A acquires the 4-point
+// Core and names Courier B, which has carrier behavior in the same case. The
+// receiver inherits the same premium route. The escort follows
+// the role-scoped current carrier, so a transfer retarget is observable.
+let transfer = programProofBlank('premium-transfer-proof');
+transfer = addBlankPlay(transfer, 'Premium transfer proof');
+const transferPlayId = transfer.workshop.plays[0].id;
+transfer = addBlankPlayProjection(transfer, transferPlayId, 'courier-a');
+transfer = addBlankPlayProjection(transfer, transferPlayId, 'courier-b');
+transfer = addBlankPlayProjection(transfer, transferPlayId, 'escort');
+const transferPlay = () => transfer.workshop.plays[0];
+const transferProjection = (roleId: string) => transferPlay().projections
+  .find((entry) => entry.roleId === roleId)!;
+transfer = updatePlayProjectionOrders(
+  transfer, transferPlayId, transferProjection('courier-a').id, [{
+    id: 'premium-courier-a-steal',
+    move: { to: { well: 'enemy' } },
+  }]);
+const receiverPost = addPlayGeometry(transfer, transferPlayId, 'anchor');
+transfer = receiverPost.draft;
+transfer.mapPlan.anchors[receiverPost.id] = [18, 19];
+transfer = updatePlayProjectionOrders(
+  transfer, transferPlayId, transferProjection('courier-b').id, [{
+    id: 'premium-courier-b-stage',
+    move: { to: { anchor: receiverPost.id } },
+  }]);
+transfer = updatePlayProjectionOrders(
+  transfer, transferPlayId, transferProjection('escort').id, [{
+    id: 'premium-escort-stage',
+    move: { to: 'current-position', posture: 'rear' },
+  }]);
+const route = addPlayGeometry(transfer, transferPlayId, 'route');
+transfer = route.draft;
+for (const waypoint of premiumReturnWaypoints())
+  transfer = appendPlayRouteWaypoint(
+    transfer, transferPlayId, route.id, waypoint);
+const premium = addProgramCustodyCase(transfer, transferPlayId, {
+  name: 'Premium four',
+  coreBankValue: { operator: 'equals', value: 4 },
+  well: 'enemy',
+});
+transfer = premium.draft;
+transfer = configureProgramCustody(
+  transfer, transferPlayId, transferProjection('courier-a').id, {
+    caseId: premium.caseId,
+    kind: 'carrier-return',
+    carrierRoleIds: ['courier-a'],
+    routeId: route.id,
+  });
+transfer = configureProgramCustody(
+  transfer, transferPlayId, transferProjection('courier-b').id, {
+    caseId: premium.caseId,
+    kind: 'carrier-return',
+    carrierRoleIds: ['courier-b'],
+    routeId: route.id,
+  });
+transfer = configureProgramCustody(
+  transfer, transferPlayId, transferProjection('escort').id, {
+    caseId: premium.caseId,
+    kind: 'escort-carrier',
+    carrierRoleIds: ['courier-a', 'courier-b'],
+  });
+let transferBinding = transferPlay().coreCustody!.bindings.find((entry) =>
+  entry.caseId === premium.caseId && entry.kind === 'carrier-return'
+    && entry.projectionId === transferProjection('courier-a').id)!;
+transfer = configureProgramCustodyHandoff(
+  transfer, transferPlayId, transferBinding.id,
+  { role: 'courier-b' });
+transfer = configureProgramCustodyCompletion(
+  transfer, transferPlayId, ['courier-a', 'courier-b']);
+transfer = configurePlayLifecycle(transfer, transferPlayId, {
+  minimumCommitmentTicks: 0,
+  successConditionIds: [transferPlay().coreCustody!.completionConditionId!],
+  maximumTicks: 260,
+  cooldownTicks: 1200,
+  waiting: 'fall-through',
+});
+write('premium-transfer-proof.json', transfer.orders);
+write('premium-transfer-proof-map.json', transfer.mapPlan);
+write('premium-transfer-proof-workshop.json', transfer.workshop);
+
+// The recovery variant is produced through the same visible Opportunity helper.
+// Its focused runtime test drives low -> healing -> recovered and proves that
+// the next ordinary sibling is the same premium route, not a different Program.
+let recovery = structuredClone(transfer);
+const recoveryPlay = recovery.workshop.plays[0];
+const recoveryProjection = recoveryPlay.projections.find((entry) =>
+  entry.roleId === 'courier-b')!;
+const recoveryBinding = recoveryPlay.coreCustody!.bindings.find((entry) =>
+  entry.caseId === premium.caseId && entry.kind === 'carrier-return'
+    && entry.projectionId === recoveryProjection.id)!;
+recovery = addHealthRecoveryOpportunity(
+  recovery, recoveryPlay.id, recoveryProjection.id,
+  recoveryBinding.actionOrderIds[0], {
+    startBelow: 80,
+    recoverUntil: 100,
+    withinWalkingSteps: 12,
+    timeout: 80,
+    cooldown: 10,
+    patientsPerTile: 1,
+    coordinateAcrossSheet: true,
+    allowCoreCarriers: true,
+  });
+recovery.orders.sheetId = 'premium-carrier-recovery-proof';
+recovery.orders.mapPlan = 'premium-carrier-recovery-proof-map.json';
+recovery.mapPlan.mapPlanId = 'premium-carrier-recovery-proof';
+write('premium-carrier-recovery-proof.json', recovery.orders);
+write('premium-carrier-recovery-proof-map.json', recovery.mapPlan);
+write('premium-carrier-recovery-proof-workshop.json', recovery.workshop);
+
+// A deterministic mechanics opponent gives the premium carrier one bounded
+// combat episode, then yields. It exists only to make the recovery branch
+// observable; it is not a strategy or balance opponent.
+const recoveryDrill = carrierRecoveryDrill();
+write('premium-carrier-recovery-drill.json', recoveryDrill.orders);
+write('premium-carrier-recovery-drill-map.json', recoveryDrill.mapPlan);
+
 function blank() {
   const orders: OrdersDocument = {
     schema: 'arc-relay-orders-v2',
@@ -108,6 +230,123 @@ function blank() {
     'Unwanted Core proof', null, null,
     stringifyDocument(orders), stringifyDocument(mapPlan), false,
   );
+}
+
+function programProofBlank(sheetId: string) {
+  const orders: OrdersDocument = {
+    schema: 'arc-relay-orders-v2',
+    sheetId,
+    mapPlan: `${sheetId}-map.json`,
+    roles: [
+      {
+        id: 'courier-a', classes: ['relay'],
+        upgradePath: ['reach', 'vitality'],
+        orders: [{
+          id: 'courier-a-fallback', move: { to: 'own-reactor' },
+        }],
+      },
+      {
+        id: 'courier-b', classes: ['relay'],
+        upgradePath: ['reach', 'vitality'],
+        orders: [{
+          id: 'courier-b-fallback', move: { to: 'own-reactor' },
+        }],
+      },
+      {
+        id: 'escort', classes: ['patchbay'],
+        upgradePath: ['reach', 'vitality'],
+        orders: [{
+          id: 'escort-fallback', move: { to: 'own-reactor' },
+        }],
+      },
+      {
+        id: 'observers',
+        classes: ['kestrel', 'palisade', 'towline', 'mortar', 'minesmith'],
+        upgradePath: ['reach', 'vitality'],
+        orders: [{
+          id: 'observers-remain-idle', when: 'impossible-health',
+          move: { to: 'own-reactor' },
+        }],
+      },
+    ],
+    sharedOrders: {}, capacities: {},
+    conditions: {
+      'impossible-health': {
+        fact: 'self-health-percent', operator: 'less-than', value: 0,
+      },
+    },
+  };
+  const mapPlan: MapPlanDocument = {
+    schema: 'arc-relay-map-plan-v2',
+    mapPlanId: sheetId,
+    mapId: 'arc-relay-tapline-02',
+    zones: {}, routes: {}, anchors: {},
+  };
+  return parseDraft(
+    sheetId, null, null,
+    stringifyDocument(orders), stringifyDocument(mapPlan), false,
+  );
+}
+
+function carrierRecoveryDrill() {
+  const orders: OrdersDocument = {
+    schema: 'arc-relay-orders-v2',
+    sheetId: 'premium-carrier-recovery-drill',
+    mapPlan: 'premium-carrier-recovery-drill-map.json',
+    roles: [
+      {
+        id: 'bounded-shooter', classes: ['hush'],
+        upgradePath: ['reach', 'vitality'],
+        orders: [{
+          id: 'tag-visible-carrier-once',
+          when: 'carrier-visible',
+          timeout: 8,
+          cooldown: 1200,
+          fight: {
+            targets: ['carrier', 'nearest'],
+            style: 'hold',
+            chaseLimit: 0,
+          },
+        }],
+      },
+      {
+        id: 'observers',
+        classes: ['kestrel', 'palisade', 'towline', 'patchbay',
+          'lantern', 'mortar', 'minesmith'],
+        upgradePath: ['reach', 'vitality'],
+        orders: [{
+          id: 'observers-remain-idle', when: 'impossible-health',
+          move: { to: 'own-reactor' },
+        }],
+      },
+    ],
+    sharedOrders: {}, capacities: {},
+    conditions: {
+      'carrier-visible': {
+        fact: 'visible-enemy-carriers', operator: 'at-least', value: 1,
+      },
+      'impossible-health': {
+        fact: 'self-health-percent', operator: 'less-than', value: 0,
+      },
+    },
+  };
+  const mapPlan: MapPlanDocument = {
+    schema: 'arc-relay-map-plan-v2',
+    mapPlanId: 'premium-carrier-recovery-drill',
+    mapId: 'arc-relay-tapline-02',
+    zones: {}, routes: {}, anchors: {},
+  };
+  return parseDraft(
+    'Premium carrier recovery drill', null, null,
+    stringifyDocument(orders), stringifyDocument(mapPlan), false,
+  );
+}
+
+function premiumReturnWaypoints(): Array<[number, number]> {
+  return [
+    [19, 20], [22, 23], [25, 25], [16, 25], [5, 25], [3, 23],
+    [3, 19], [4, 16], [5, 12], [4, 9], [2, 5],
+  ];
 }
 
 function write(name: string, value: unknown) {

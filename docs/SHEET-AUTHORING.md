@@ -517,10 +517,28 @@ semantic anchor; no companion staging anchor or duplicate zone is needed.
 ```
 
 Targets are `nearest-ally-toward-own-reactor`,
-`nearest-empty-handed-ally`, or `{ "role": "id" }`. Resolution uses terrain
-path distance, then unit id. The receiver must be alive, empty-handed,
-adjacent, and eligible to reclaim that Core. Handoff moves neither body and
-does not require a matching receiver order.
+`nearest-empty-handed-ally`, `{ "role": "id" }`, or the Program-generated
+role-scoped selector:
+
+```json
+{
+  "selector": "nearest-ally-toward-own-reactor",
+  "roles": ["couriers", "relay"]
+}
+```
+
+The scoped form is ordinary Instruction data. Program authoring uses it for
+**Pass Forward**, deriving `roles` from the carrier behaviors in that exact
+Core-handling case; another body in the same multi-body role is eligible.
+Named Program-case receivers must likewise have carrier behavior in that case,
+so the receiver has an authored continuation after transfer. Advanced
+unscoped Handoff remains available outside Program custody.
+
+Resolution uses terrain path distance, then unit id. The receiver must be
+alive, empty-handed, adjacent, and eligible to reclaim that Core. Handoff moves
+neither body and does not require a matching receiver order. When no eligible
+receiver is adjacent, the leaf proposes nothing and ordinary sibling
+Instructions continue in the same tick.
 
 ### `drop`
 

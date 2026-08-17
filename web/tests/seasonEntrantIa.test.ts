@@ -98,6 +98,9 @@ test('Program Core custody is ordered cases with ordinary adjacent Handoff and c
   assert.match(programs, /Handoff is adjacent-only/);
   assert.match(programs, /falls through in the same tick/);
   assert.match(programs, /Allow Core carriers to recover/);
+  assert.match(programs, /Named receivers are limited to roles with carrier behavior/);
+  assert.match(programs, /Add .* carrier behavior and pass/);
+  assert.match(programs, /programOpportunityHostLabel/);
   assert.doesNotMatch(programs, /linkedBankProgramId|custody scheduler/i);
 });
 

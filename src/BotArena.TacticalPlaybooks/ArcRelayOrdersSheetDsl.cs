@@ -1177,10 +1177,25 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (target.ValueKind != JsonValueKind.Object)
             throw Error($"{path}.handoff.target", "expected selector or role object.");
-        Object(target, $"{path}.handoff.target", ["role"]);
-        string role = RequiredString(target, "role", $"{path}.handoff.target");
-        if (!roles.ContainsKey(role))
-            throw Error($"{path}.handoff.target", $"unknown role '{role}'.");
+        if (target.TryGetProperty("role", out _))
+        {
+            Object(target, $"{path}.handoff.target", ["role"]);
+            string role = RequiredString(target, "role", $"{path}.handoff.target");
+            if (!roles.ContainsKey(role))
+                throw Error($"{path}.handoff.target", $"unknown role '{role}'.");
+            return;
+        }
+        Object(target, $"{path}.handoff.target", ["selector", "roles"]);
+        Exact(target, "selector", "nearest-ally-toward-own-reactor",
+            $"{path}.handoff.target");
+        JsonElement[] roleValues = BoundedArray(
+            target.GetProperty("roles"), $"{path}.handoff.target.roles", 1, 8);
+        foreach (JsonElement roleValue in roleValues)
+        {
+            string role = StringValue(roleValue, $"{path}.handoff.target.roles");
+            if (!roles.ContainsKey(role))
+                throw Error($"{path}.handoff.target.roles", $"unknown role '{role}'.");
+        }
     }
 
     private static MapPlanValidation ValidateMapPlan(

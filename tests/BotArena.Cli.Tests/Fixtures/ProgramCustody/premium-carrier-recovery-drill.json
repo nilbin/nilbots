@@ -1,0 +1,72 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "premium-carrier-recovery-drill",
+  "mapPlan": "premium-carrier-recovery-drill-map.json",
+  "roles": [
+    {
+      "id": "bounded-shooter",
+      "classes": [
+        "hush"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "tag-visible-carrier-once",
+          "when": "carrier-visible",
+          "timeout": 8,
+          "cooldown": 1200,
+          "fight": {
+            "targets": [
+              "carrier",
+              "nearest"
+            ],
+            "style": "hold",
+            "chaseLimit": 0
+          }
+        }
+      ]
+    },
+    {
+      "id": "observers",
+      "classes": [
+        "kestrel",
+        "palisade",
+        "towline",
+        "patchbay",
+        "lantern",
+        "mortar",
+        "minesmith"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "observers-remain-idle",
+          "when": "impossible-health",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {},
+  "capacities": {},
+  "conditions": {
+    "carrier-visible": {
+      "fact": "visible-enemy-carriers",
+      "operator": "at-least",
+      "value": 1
+    },
+    "impossible-health": {
+      "fact": "self-health-percent",
+      "operator": "less-than",
+      "value": 0
+    }
+  }
+}

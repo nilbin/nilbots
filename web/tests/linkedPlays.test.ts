@@ -48,6 +48,7 @@ import {
   setPlayPostFacing,
   renamePlayGeometry,
   removeAmbushReserveSlot,
+  removeProgramCustody,
   removeProgramCustodyCase,
   removePlayReadinessGroup,
   removeSignatureOpportunity,
@@ -80,6 +81,7 @@ import {
 } from '../src/site/sheets/playGeometry';
 import {
   analyzeCoreContinuation,
+  programOpportunityHostLabel,
   programCustodyShadowWarnings,
 } from '../src/site/sheets/programAnalysis';
 import {
@@ -530,6 +532,14 @@ test('ordered Core cases materialize premium, cheap and fallback handling as ord
       && linked.orders.conditions[id]?.value === 1));
   const premiumEscort = play().coreCustody!.bindings.find((entry) =>
     entry.caseId === premiumId && entry.kind === 'escort-carrier')!;
+  assert.equal(programOpportunityHostLabel(
+    play(), projection('relay-a').id, binding(premiumId).actionOrderIds[0]),
+  'Premium four · Relay A carrying');
+  assert.throws(() => addHandoffOpportunity(
+    linked, playId, projection('relay-a').id,
+    binding(premiumId).actionOrderIds[0], { target: { role: 'support' } }),
+  /needs carrier behavior/,
+  'the advanced Opportunity path cannot bypass same-case receiver safety');
   assert.deepEqual(allOrders(projection('support').orders).find((entry) =>
     entry.id === premiumEscort.actionOrderIds[0])?.move?.follow, {
     selector: 'nearest-friendly-core-carrier',
@@ -547,12 +557,40 @@ test('ordered Core cases materialize premium, cheap and fallback handling as ord
   linked = configureProgramCustodyHandoff(
     linked, playId, binding(premiumId).id, null);
   assert.equal(allOrders(projection('relay-a').orders).some((entry) => entry.handoff), false);
+  assert.throws(() => configureProgramCustodyHandoff(
+    linked, playId, binding(premiumId).id, { role: 'support' }),
+  /needs carrier behavior/);
   linked = configureProgramCustodyHandoff(
     linked, playId, binding(premiumId).id, 'nearest-ally-toward-own-reactor');
-  assert.equal(allOrders(projection('relay-a').orders).find((entry) => entry.handoff)
-    ?.handoff?.target, 'nearest-ally-toward-own-reactor');
+  assert.deepEqual(allOrders(projection('relay-a').orders).find((entry) => entry.handoff)
+    ?.handoff?.target, {
+    selector: 'nearest-ally-toward-own-reactor',
+    roles: ['relay-a', 'relay-b'],
+  });
+  linked = removeProgramCustody(
+    linked, playId, projection('relay-b').id, 'carrier-return', premiumId);
+  assert.deepEqual(allOrders(projection('relay-a').orders).find((entry) => entry.handoff)
+    ?.handoff?.target, {
+    selector: 'nearest-ally-toward-own-reactor',
+    roles: ['relay-a'],
+  }, 'removing carrier behavior must narrow an existing Pass Forward selector');
+  linked = configureProgramCustody(linked, playId, projection('relay-b').id, {
+    caseId: premiumId, kind: 'carrier-return', carrierRoleIds: ['relay-b'],
+  });
+  assert.deepEqual(allOrders(projection('relay-a').orders).find((entry) => entry.handoff)
+    ?.handoff?.target, {
+    selector: 'nearest-ally-toward-own-reactor',
+    roles: ['relay-a', 'relay-b'],
+  }, 'adding carrier behavior must widen an existing Pass Forward selector');
   linked = configureProgramCustodyHandoff(
     linked, playId, binding(premiumId).id, { role: 'relay-b' });
+  linked = removeProgramCustody(
+    linked, playId, projection('relay-b').id, 'carrier-return', premiumId);
+  assert.equal(allOrders(projection('relay-a').orders).some((entry) => entry.handoff), false,
+    'removing named receiver behavior must remove its now-invalid Handoff and owned Conditions');
+  linked = configureProgramCustody(linked, playId, projection('relay-b').id, {
+    caseId: premiumId, kind: 'carrier-return', carrierRoleIds: ['relay-b'],
+  });
   assert.deepEqual(linked.orders.conditions[play().coreCustody!.completionConditionId!], {
     fact: 'friendly-core-resolutions', operator: 'at-least', value: 1,
     roles: ['relay-a', 'relay-b'], since: 'node-entry', correlateAcquisition: true,
@@ -571,7 +609,8 @@ test('ordered Core cases materialize premium, cheap and fallback handling as ord
   linked = moveProgramCustodyCase(linked, playId, fallbackId, -1);
   linked = moveProgramCustodyCase(linked, playId, fallbackId, -1);
   assert.ok(programCustodyShadowWarnings(play()).some((warning) =>
-    warning.shadowedByCaseId === fallbackId && warning.caseId === premiumId));
+    warning.shadowedByCaseId === fallbackId && warning.caseId === premiumId
+      && warning.message.includes('Relay A carrying')));
 
   const reloaded = parseDraft(
     linked.name, null, null, stringifyDocument(linked.orders),
@@ -586,6 +625,81 @@ test('ordered Core cases materialize premium, cheap and fallback handling as ord
     roles: ['relay-a', 'relay-b'], since: 'node-entry', correlateAcquisition: true,
     outcomes: ['bank'], coreBankValue: { operator: 'equals', value: 4 }, well: 'enemy',
   }, 'case removal must refresh the same-Core completion filter without a UI caller');
+});
+
+test('Core-case shadow warnings require an overlapping role binding', () => {
+  let linked = addBlankPlay(draft(), 'Binding-aware cases');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'relay-a');
+  linked = addBlankPlayProjection(linked, playId, 'relay-b');
+  let added = addProgramCustodyCase(linked, playId, { name: 'Any A' });
+  linked = added.draft;
+  const anyA = added.caseId;
+  added = addProgramCustodyCase(linked, playId, {
+    name: 'Premium B', coreBankValue: { operator: 'equals', value: 4 },
+  });
+  linked = added.draft;
+  const premiumB = added.caseId;
+  const projection = (roleId: string) => linked.workshop.plays[0].projections
+    .find((entry) => entry.roleId === roleId)!;
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    caseId: anyA, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  linked = configureProgramCustody(linked, playId, projection('relay-b').id, {
+    caseId: premiumB, kind: 'carrier-return', carrierRoleIds: ['relay-b'],
+  });
+  assert.equal(programCustodyShadowWarnings(linked.workshop.plays[0]).length, 0,
+    'a filter cannot shadow a behavior owned by a different role binding');
+  linked = configureProgramCustody(linked, playId, projection('relay-a').id, {
+    caseId: premiumB, kind: 'carrier-return', carrierRoleIds: ['relay-a'],
+  });
+  const warning = programCustodyShadowWarnings(linked.workshop.plays[0])[0];
+  assert.equal(warning.shadowedByCaseId, anyA);
+  assert.match(warning.message, /Relay A carrying/);
+  assert.doesNotMatch(warning.message, /Relay B carrying/);
+
+  added = addProgramCustodyCase(linked, playId, { name: 'Any B' });
+  linked = moveProgramCustodyCase(added.draft, playId, added.caseId, -1);
+  linked = configureProgramCustody(linked, playId, projection('relay-b').id, {
+    caseId: added.caseId, kind: 'carrier-return', carrierRoleIds: ['relay-b'],
+  });
+  const splitWarnings = programCustodyShadowWarnings(
+    linked.workshop.plays[0]).filter((entry) => entry.caseId === premiumB);
+  assert.equal(splitWarnings.length, 2);
+  assert.deepEqual(splitWarnings.flatMap((entry) => entry.bindingIds).sort(),
+    linked.workshop.plays[0].coreCustody!.bindings
+      .filter((entry) => entry.caseId === premiumB)
+      .map((entry) => entry.id).sort());
+});
+
+test('a multi-body carrier role keeps its friendly custody label and may pass forward internally', () => {
+  let linked = draft();
+  linked.orders.roles.find((entry) => entry.id === 'reserve')!.id = 'couriers';
+  linked = addBlankPlay(linked, 'Premium route');
+  const playId = linked.workshop.plays[0].id;
+  linked = addBlankPlayProjection(linked, playId, 'couriers');
+  const projectionId = linked.workshop.plays[0].projections[0].id;
+  const added = addProgramCustodyCase(linked, playId, {
+    name: 'Premium four', coreBankValue: { operator: 'equals', value: 4 },
+  });
+  linked = configureProgramCustody(
+    added.draft, playId, projectionId, {
+      caseId: added.caseId,
+      kind: 'carrier-return',
+      carrierRoleIds: ['couriers'],
+    });
+  const custody = linked.workshop.plays[0].coreCustody!.bindings[0];
+  linked = configureProgramCustodyHandoff(
+    linked, playId, custody.id, 'nearest-ally-toward-own-reactor');
+
+  const play = linked.workshop.plays[0];
+  assert.equal(programOpportunityHostLabel(
+    play, projectionId, custody.actionOrderIds[0]),
+  'Premium four · Couriers carrying');
+  assert.deepEqual(allOrders(play.projections[0].orders)
+    .find((entry) => entry.handoff)?.handoff?.target, {
+    selector: 'nearest-ally-toward-own-reactor', roles: ['couriers'],
+  });
 });
 
 test('an unwanted incidental Core is visibly authored as an ordinary local Drop branch', () => {

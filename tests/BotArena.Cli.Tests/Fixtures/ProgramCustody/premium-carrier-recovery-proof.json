@@ -1,0 +1,322 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "premium-carrier-recovery-proof",
+  "mapPlan": "premium-carrier-recovery-proof-map.json",
+  "roles": [
+    {
+      "id": "courier-a",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "premium-courier-a-steal",
+          "orders": [
+            {
+              "id": "premium-courier-a-steal-premium-four-carry-home",
+              "when": {
+                "all": [
+                  "untitled-play-courier-a-custody-carrying",
+                  "untitled-play-courier-a-custody-value",
+                  "untitled-play-courier-a-custody-source"
+                ]
+              },
+              "until": "untitled-play-courier-a-custody-empty",
+              "urgency": "urgent",
+              "orders": [
+                {
+                  "id": "premium-courier-a-steal-premium-four-carry-hom-3",
+                  "when": "premium-courier-a-steal-premium-four-carry-home",
+                  "handoff": {
+                    "target": {
+                      "role": "courier-b"
+                    }
+                  }
+                },
+                {
+                  "id": "premium-courier-a-steal-premium-four-carry-hom-2",
+                  "move": {
+                    "to": "own-reactor",
+                    "via": "untitled-play-route"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "premium-courier-a-steal-continue",
+              "move": {
+                "to": {
+                  "well": "enemy"
+                }
+              }
+            }
+          ],
+          "until": "untitled-play-acquired-core-resolved",
+          "timeout": 260,
+          "cooldown": 1200
+        },
+        {
+          "id": "courier-a-fallback",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "courier-b",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "premium-courier-b-stage",
+          "orders": [
+            {
+              "id": "premium-courier-b-stage-premium-four-carry-home",
+              "when": {
+                "all": [
+                  "untitled-play-courier-b-custody-carrying",
+                  "untitled-play-courier-b-custody-value",
+                  "untitled-play-courier-b-custody-source"
+                ]
+              },
+              "until": "untitled-play-courier-b-custody-empty",
+              "urgency": "urgent",
+              "orders": [
+                {
+                  "id": "premium-courier-b-stage-premium-four-carry-hom-3",
+                  "when": {
+                    "all": [
+                      "premium-courier-b-stage-premium-four-carry-home",
+                      "premium-courier-b-stage-premium-four-carry-hom-3"
+                    ]
+                  },
+                  "until": "premium-courier-b-stage-premium-four-carry-hom-2",
+                  "timeout": 80,
+                  "cooldown": 10,
+                  "capacity": 1,
+                  "move": {
+                    "to": "nearest-heal-zone",
+                    "withinWalkingSteps": 12
+                  }
+                },
+                {
+                  "id": "premium-courier-b-stage-premium-four-carry-hom-2",
+                  "move": {
+                    "to": "own-reactor",
+                    "via": "untitled-play-route"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "premium-courier-b-stage-continue",
+              "move": {
+                "to": {
+                  "anchor": "untitled-play-anchor"
+                }
+              }
+            }
+          ],
+          "until": "untitled-play-acquired-core-resolved",
+          "timeout": 260,
+          "cooldown": 1200
+        },
+        {
+          "id": "courier-b-fallback",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "escort",
+      "classes": [
+        "patchbay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "premium-escort-stage",
+          "orders": [
+            {
+              "id": "premium-escort-stage-premium-four-escort-carrier",
+              "when": "untitled-play-escort-program-carrier",
+              "move": {
+                "follow": {
+                  "selector": "nearest-friendly-core-carrier",
+                  "roles": [
+                    "courier-a",
+                    "courier-b"
+                  ],
+                  "coreBankValue": {
+                    "operator": "equals",
+                    "value": 4
+                  },
+                  "well": "enemy"
+                },
+                "posture": "rear"
+              }
+            },
+            {
+              "id": "premium-escort-stage-continue",
+              "move": {
+                "to": "current-position",
+                "posture": "rear"
+              }
+            }
+          ],
+          "until": "untitled-play-acquired-core-resolved",
+          "timeout": 260,
+          "cooldown": 1200
+        },
+        {
+          "id": "escort-fallback",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "observers",
+      "classes": [
+        "kestrel",
+        "palisade",
+        "towline",
+        "mortar",
+        "minesmith"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "observers-remain-idle",
+          "when": "impossible-health",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {},
+  "capacities": {},
+  "conditions": {
+    "impossible-health": {
+      "fact": "self-health-percent",
+      "operator": "less-than",
+      "value": 0
+    },
+    "untitled-play-courier-a-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "untitled-play-courier-a-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "untitled-play-courier-a-custody-value": {
+      "fact": "self-carried-core-bank-value",
+      "operator": "equals",
+      "value": 4
+    },
+    "untitled-play-courier-a-custody-source": {
+      "fact": "self-carrying-core-from-well",
+      "operator": "equals",
+      "value": 1,
+      "well": "enemy"
+    },
+    "untitled-play-courier-b-custody-carrying": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "untitled-play-courier-b-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "untitled-play-courier-b-custody-value": {
+      "fact": "self-carried-core-bank-value",
+      "operator": "equals",
+      "value": 4
+    },
+    "untitled-play-courier-b-custody-source": {
+      "fact": "self-carrying-core-from-well",
+      "operator": "equals",
+      "value": 1,
+      "well": "enemy"
+    },
+    "untitled-play-escort-program-carrier": {
+      "fact": "friendly-carriers-in-roles",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "courier-a",
+        "courier-b"
+      ],
+      "coreBankValue": {
+        "operator": "equals",
+        "value": 4
+      },
+      "well": "enemy"
+    },
+    "premium-courier-a-steal-premium-four-carry-home": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "untitled-play-acquired-core-resolved": {
+      "fact": "friendly-core-resolutions",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "courier-a",
+        "courier-b"
+      ],
+      "since": "node-entry",
+      "correlateAcquisition": true,
+      "outcomes": [
+        "bank"
+      ],
+      "coreBankValue": {
+        "operator": "equals",
+        "value": 4
+      },
+      "well": "enemy"
+    },
+    "premium-courier-b-stage-premium-four-carry-home": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 80
+    },
+    "premium-courier-b-stage-premium-four-carry-hom-2": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 100
+    },
+    "premium-courier-b-stage-premium-four-carry-hom-3": {
+      "fact": "self-nearest-heal-zone-distance",
+      "operator": "at-most",
+      "value": 12
+    }
+  }
+}

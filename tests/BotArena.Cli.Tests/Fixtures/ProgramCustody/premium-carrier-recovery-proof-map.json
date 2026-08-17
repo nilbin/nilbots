@@ -1,0 +1,62 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "premium-carrier-recovery-proof",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {},
+  "routes": {
+    "untitled-play-route": {
+      "waypoints": [
+        [
+          19,
+          20
+        ],
+        [
+          22,
+          23
+        ],
+        [
+          25,
+          25
+        ],
+        [
+          16,
+          25
+        ],
+        [
+          5,
+          25
+        ],
+        [
+          3,
+          23
+        ],
+        [
+          3,
+          19
+        ],
+        [
+          4,
+          16
+        ],
+        [
+          5,
+          12
+        ],
+        [
+          4,
+          9
+        ],
+        [
+          2,
+          5
+        ]
+      ]
+    }
+  },
+  "anchors": {
+    "untitled-play-anchor": [
+      18,
+      19
+    ]
+  }
+}

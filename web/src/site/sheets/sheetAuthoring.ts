@@ -100,8 +100,16 @@ export type UseTarget = string
       minimumForwardTiles: number;
     };
 export interface UseOrder { skill: string; target: UseTarget; at?: string }
+export type HandoffTarget =
+  | 'nearest-ally-toward-own-reactor'
+  | 'nearest-empty-handed-ally'
+  | { role: string }
+  | {
+      selector: 'nearest-ally-toward-own-reactor';
+      roles: string[];
+    };
 export interface HandoffOrder {
-  target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
+  target: HandoffTarget;
 }
 
 export interface OrderNode {
@@ -476,8 +484,13 @@ export function renameRole(orders: OrdersDocument, previous: string, next: strin
   walkOrders(orders, (node) => {
     if (typeof node.move?.follow === 'string' && node.move.follow === previous)
       node.move.follow = next;
-    if (typeof node.handoff?.target === 'object' && node.handoff.target.role === previous)
-      node.handoff.target.role = next;
+    if (typeof node.handoff?.target === 'object') {
+      if ('role' in node.handoff.target && node.handoff.target.role === previous)
+        node.handoff.target.role = next;
+      if ('roles' in node.handoff.target)
+        node.handoff.target.roles = node.handoff.target.roles.map((role) =>
+          role === previous ? next : role);
+    }
     if (typeof node.use?.target === 'object' && 'role' in node.use.target
       && node.use.target.role === previous)
       node.use.target.role = next;
@@ -613,8 +626,18 @@ export function validateDraft(
   walkOrders(orders, (node) => {
     if (typeof node.move?.follow === 'string' && !roles.has(node.move.follow))
       error('orders.roles', `Follow names unknown role '${node.move.follow}'.`);
-    if (typeof node.handoff?.target === 'object' && !roles.has(node.handoff.target.role))
-      error('orders.roles', `Handoff names unknown role '${node.handoff.target.role}'.`);
+    if (typeof node.handoff?.target === 'object') {
+      if ('role' in node.handoff.target && !roles.has(node.handoff.target.role))
+        error('orders.roles', `Handoff names unknown role '${node.handoff.target.role}'.`);
+      if ('roles' in node.handoff.target) {
+        if (node.handoff.target.roles.length === 0)
+          error('orders.roles', 'A role-scoped Handoff selector needs at least one role.');
+        for (const role of node.handoff.target.roles) {
+          if (!roles.has(role))
+            error('orders.roles', `Handoff names unknown role '${role}'.`);
+        }
+      }
+    }
     if (typeof node.use?.target === 'object' && 'role' in node.use.target
       && !roles.has(node.use.target.role))
       error('orders.roles', `Use names unknown role '${node.use.target.role}'.`);

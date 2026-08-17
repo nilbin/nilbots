@@ -8,6 +8,7 @@ import {
   identifierFromName,
   type ConditionDefinition,
   type ConditionExpression,
+  type HandoffTarget,
   type OrderNode,
   type SheetDraft,
   type UseOrder,
@@ -235,7 +236,7 @@ export function addHealthRecoveryOpportunity(
 }
 
 export interface HandoffOpportunitySetup {
-  target: 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally' | { role: string };
+  target: HandoffTarget;
   coreBankValue?: { operator: 'equals' | 'at-least' | 'at-most'; value: number };
   well?: ConditionDefinition['well'];
 }
@@ -250,6 +251,8 @@ export function addHandoffOpportunity(
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
   const projection = requireProjection(play, projectionId);
+  const target = normalizeProgramCustodyHandoffTarget(
+    play, projectionId, hostOrderId, setup.target);
   const ids = new Set(Object.keys(next.orders.conditions));
   const carryingId = uniqueIdentifier(`${hostOrderId}-carrying`, ids);
   next.orders.conditions[carryingId] = {
@@ -280,7 +283,7 @@ export function addHandoffOpportunity(
   const binding = insertOpportunity(play, projection, hostOrderId, {
     id: orderId,
     when: expressionOf(whenIds),
-    handoff: { target: structuredClone(setup.target) },
+    handoff: { target: structuredClone(target) },
   }, 'handoff');
   binding.ownedConditionIds = whenIds;
   return requireMaterialized(next);
@@ -344,9 +347,14 @@ export function updateHandoffOpportunity(
   bindingId: string,
   setup: HandoffOpportunitySetup,
 ): SheetDraft {
+  const play = requirePlay(draft, playId);
+  const projection = requireProjection(play, projectionId);
+  const binding = requireBinding(projection, bindingId);
+  const target = normalizeProgramCustodyHandoffTarget(
+    play, projectionId, binding.hostOrderId, setup.target);
   return updateCarriedCoreOpportunity(draft, playId, projectionId, bindingId,
     setup.coreBankValue, setup.well, (node) => {
-      node.handoff = { target: structuredClone(setup.target) };
+      node.handoff = { target: structuredClone(target) };
     });
 }
 
@@ -1035,12 +1043,21 @@ export function configureProgramCustodyHandoff(
     entry.id === custodyBindingId);
   if (!sourceBinding || sourceBinding.kind !== 'carrier-return')
     throw new Error('Choose a carrier Core handling case.');
+  const carrierRoles = programCustodyCarrierRoles(sourcePlay, sourceBinding.caseId);
+  if (carrierRoles.length === 0)
+    throw new Error('This Core handling case needs at least one carrier role.');
+  const scopedTarget = target === null ? null
+    : normalizeProgramCustodyHandoffTarget(
+      sourcePlay,
+      sourceBinding.projectionId,
+      sourceBinding.actionOrderIds[0],
+      target);
   for (const actionOrderId of sourceBinding.actionOrderIds) {
     let play = requirePlay(next, playId);
     let projection = requireProjection(play, sourceBinding.projectionId);
     const existing = (projection.signatureOpportunities ?? []).filter((entry) =>
       entry.kind === 'handoff' && entry.hostOrderId === actionOrderId);
-    if (!target) {
+    if (!scopedTarget) {
       for (const handoff of existing)
         next = removeSignatureOpportunity(
           next, playId, projection.id, handoff.id);
@@ -1048,7 +1065,7 @@ export function configureProgramCustodyHandoff(
     }
     if (existing.length > 0) {
       next = updateHandoffOpportunity(next, playId, projection.id, existing[0].id, {
-        target,
+        target: scopedTarget,
       });
       for (const duplicate of existing.slice(1)) {
         play = requirePlay(next, playId);
@@ -1058,7 +1075,99 @@ export function configureProgramCustodyHandoff(
       }
     } else {
       next = addHandoffOpportunity(
-        next, playId, projection.id, actionOrderId, { target });
+        next, playId, projection.id, actionOrderId, { target: scopedTarget });
+    }
+  }
+  return next;
+}
+
+export function programCustodyCarrierRoles(
+  play: LinkedPlay,
+  caseId: string | undefined,
+): string[] {
+  return [...new Set((play.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.caseId === caseId
+      && entry.kind === 'carrier-return')
+    .map((entry) => play.projections.find((projection) =>
+      projection.id === entry.projectionId)?.roleId)
+    .filter((role): role is string => Boolean(role)))];
+}
+
+export function programCustodyBindingForHost(
+  play: LinkedPlay,
+  projectionId: string,
+  hostOrderId: string,
+): PlayCustodyBinding | undefined {
+  return play.coreCustody?.bindings.find((entry) =>
+    entry.projectionId === projectionId
+    && entry.kind === 'carrier-return'
+    && entry.actionOrderIds.includes(hostOrderId));
+}
+
+function normalizeProgramCustodyHandoffTarget(
+  play: LinkedPlay,
+  projectionId: string,
+  hostOrderId: string,
+  target: HandoffTarget,
+): HandoffTarget {
+  const custody = programCustodyBindingForHost(play, projectionId, hostOrderId);
+  if (!custody) return structuredClone(target);
+  const carrierRoles = programCustodyCarrierRoles(play, custody.caseId);
+  if (carrierRoles.length === 0)
+    throw new Error('This Core handling case needs at least one carrier role.');
+  if (target === 'nearest-ally-toward-own-reactor'
+      || typeof target === 'object' && 'roles' in target) {
+    if (typeof target === 'object' && 'roles' in target
+        && (target.roles.length === 0
+          || target.roles.some((role) => !carrierRoles.includes(role)))) {
+      throw new Error('Pass Forward may target only carrier roles in this Core handling case.');
+    }
+    return {
+      selector: 'nearest-ally-toward-own-reactor',
+      roles: carrierRoles,
+    };
+  }
+  if (typeof target === 'object' && 'role' in target
+      && !carrierRoles.includes(target.role)) {
+    throw new Error(`Role '${target.role}' needs carrier behavior in this Core handling case before it can receive a Handoff.`);
+  }
+  return structuredClone(target);
+}
+
+function synchronizeProgramCustodyHandoffTargets(
+  draft: SheetDraft,
+  playId: string,
+  caseIds?: ReadonlySet<string>,
+): SheetDraft {
+  let next = draft;
+  const bindings = (requirePlay(next, playId).coreCustody?.bindings ?? []).filter((entry) =>
+    entry.kind === 'carrier-return'
+    && (!caseIds || caseIds.has(entry.caseId ?? '')))
+    .map((entry) => ({ id: entry.id }));
+  for (const descriptor of bindings) {
+    const play = requirePlay(next, playId);
+    const binding = play.coreCustody?.bindings.find((entry) =>
+      entry.id === descriptor.id);
+    if (!binding) continue;
+    const carrierRoles = programCustodyCarrierRoles(play, binding.caseId);
+    const projection = requireProjection(play, binding.projectionId);
+    for (const actionOrderId of binding.actionOrderIds) {
+      const opportunity = (projection.signatureOpportunities ?? []).find((entry) =>
+        entry.kind === 'handoff' && entry.hostOrderId === actionOrderId);
+      if (!opportunity) continue;
+      const node = findOrderLocation(projection.orders, opportunity.useOrderId)?.node;
+      if (node?.handoff && typeof node.handoff.target === 'object'
+          && 'roles' in node.handoff.target) {
+        node.handoff.target = {
+          selector: 'nearest-ally-toward-own-reactor',
+          roles: carrierRoles,
+        };
+      } else if (node?.handoff && typeof node.handoff.target === 'object'
+          && 'role' in node.handoff.target
+          && !carrierRoles.includes(node.handoff.target.role)) {
+        next = removeSignatureOpportunity(
+          next, playId, projection.id, opportunity.id);
+      }
     }
   }
   return next;
@@ -1213,7 +1322,8 @@ export function configureProgramCustody(
   if (existing) custody.bindings[custody.bindings.indexOf(existing)] = binding;
   else custody.bindings.push(binding);
   sortCustodyActions(play, projection);
-  return requireMaterialized(next);
+  return requireMaterialized(synchronizeProgramCustodyHandoffTargets(
+    next, playId, new Set([custodyCase.id])));
 }
 
 export function removeProgramCustody(
@@ -1225,8 +1335,14 @@ export function removeProgramCustody(
 ): SheetDraft {
   const next = structuredClone(draft);
   const play = requirePlay(next, playId);
+  const affectedCaseIds = new Set((play.coreCustody?.bindings ?? [])
+    .filter((entry) => entry.projectionId === projectionId
+      && (!kind || entry.kind === kind)
+      && (!caseId || entry.caseId === caseId))
+    .map((entry) => entry.caseId ?? ''));
   removeProgramCustodySources(next, play, projectionId, kind, caseId);
-  return requireMaterialized(next);
+  return requireMaterialized(synchronizeProgramCustodyHandoffTargets(
+    next, playId, affectedCaseIds));
 }
 
 export function configureProgramCustodyCompletion(
@@ -2695,8 +2811,13 @@ function replaceRoleReference(order: OrderNode, previous: string, nextId: string
   if (typeof order.use?.target === 'object' && 'role' in order.use.target
     && order.use.target.role === previous)
     order.use.target.role = nextId;
-  if (typeof order.handoff?.target === 'object' && order.handoff.target.role === previous)
-    order.handoff.target.role = nextId;
+  if (typeof order.handoff?.target === 'object') {
+    if ('role' in order.handoff.target && order.handoff.target.role === previous)
+      order.handoff.target.role = nextId;
+    if ('roles' in order.handoff.target)
+      order.handoff.target.roles = order.handoff.target.roles.map((role) =>
+        role === previous ? nextId : role);
+  }
 }
 
 function updateOpportunityNode(

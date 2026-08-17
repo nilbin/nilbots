@@ -1,0 +1,139 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "unwanted-core-proof",
+  "mapPlan": "unwanted-core-proof-map.json",
+  "roles": [
+    {
+      "id": "runner",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "reject-incidental-own-core-approach",
+          "orders": [
+            {
+              "id": "reject-incidental-own-core-approach-any-core-car",
+              "when": "reject-incidental-own-core-runner-custody-carryi",
+              "until": "reject-incidental-own-core-runner-custody-empty",
+              "urgency": "urgent",
+              "orders": [
+                {
+                  "id": "reject-incidental-own-core-approach-any-core-c-3",
+                  "when": {
+                    "all": [
+                      "reject-incidental-own-core-approach-any-core-car",
+                      "reject-incidental-own-core-approach-any-core-c-2",
+                      "reject-incidental-own-core-approach-any-core-c-3"
+                    ]
+                  },
+                  "drop": true
+                },
+                {
+                  "id": "reject-incidental-own-core-approach-any-core-c-2",
+                  "move": {
+                    "to": "own-reactor"
+                  }
+                }
+              ]
+            },
+            {
+              "id": "reject-incidental-own-core-approach-continue",
+              "move": {
+                "to": {
+                  "anchor": "reject-incidental-own-core-anchor"
+                }
+              }
+            }
+          ],
+          "until": "reject-incidental-own-core-acquired-core-resolve",
+          "timeout": 120,
+          "cooldown": 1200
+        },
+        {
+          "id": "runner-fallback",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    {
+      "id": "observers",
+      "classes": [
+        "kestrel",
+        "palisade",
+        "towline",
+        "patchbay",
+        "lantern",
+        "mortar",
+        "minesmith"
+      ],
+      "upgradePath": [
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "observers-remain-idle",
+          "when": "impossible-health",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {},
+  "capacities": {},
+  "conditions": {
+    "impossible-health": {
+      "fact": "self-health-percent",
+      "operator": "less-than",
+      "value": 0
+    },
+    "reject-incidental-own-core-runner-custody-carryi": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "reject-incidental-own-core-runner-custody-empty": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "reject-incidental-own-core-approach-any-core-car": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "reject-incidental-own-core-approach-any-core-c-2": {
+      "fact": "self-carried-core-bank-value",
+      "operator": "equals",
+      "value": 1
+    },
+    "reject-incidental-own-core-approach-any-core-c-3": {
+      "fact": "self-carrying-core-from-well",
+      "operator": "equals",
+      "value": 1,
+      "well": "own"
+    },
+    "reject-incidental-own-core-acquired-core-resolve": {
+      "fact": "friendly-core-resolutions",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "runner"
+      ],
+      "since": "node-entry",
+      "correlateAcquisition": true,
+      "outcomes": [
+        "drop"
+      ]
+    }
+  }
+}

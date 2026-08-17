@@ -1,0 +1,143 @@
+{
+  "schema": "arc-relay-workshop-v1",
+  "plays": [
+    {
+      "id": "reject-incidental-own-core",
+      "name": "Reject an incidental own Core",
+      "recipe": "blank",
+      "ownedGeometry": [
+        {
+          "kind": "anchor",
+          "id": "reject-incidental-own-core-anchor",
+          "purpose": "available to this Program"
+        }
+      ],
+      "geometryGroups": [],
+      "slots": [],
+      "formations": [],
+      "readinessGroups": [],
+      "ownedConditionIds": [
+        "reject-incidental-own-core-runner-custody-carryi",
+        "reject-incidental-own-core-runner-custody-empty",
+        "reject-incidental-own-core-approach-any-core-car",
+        "reject-incidental-own-core-approach-any-core-c-2",
+        "reject-incidental-own-core-approach-any-core-c-3",
+        "reject-incidental-own-core-acquired-core-resolve"
+      ],
+      "ownedCapacityIds": [],
+      "projections": [
+        {
+          "id": "reject-incidental-own-core-runner",
+          "roleId": "runner",
+          "orders": [
+            {
+              "id": "reject-incidental-own-core-approach",
+              "orders": [
+                {
+                  "id": "reject-incidental-own-core-approach-any-core-car",
+                  "when": "reject-incidental-own-core-runner-custody-carryi",
+                  "until": "reject-incidental-own-core-runner-custody-empty",
+                  "urgency": "urgent",
+                  "orders": [
+                    {
+                      "id": "reject-incidental-own-core-approach-any-core-c-3",
+                      "when": {
+                        "all": [
+                          "reject-incidental-own-core-approach-any-core-car",
+                          "reject-incidental-own-core-approach-any-core-c-2",
+                          "reject-incidental-own-core-approach-any-core-c-3"
+                        ]
+                      },
+                      "drop": true
+                    },
+                    {
+                      "id": "reject-incidental-own-core-approach-any-core-c-2",
+                      "move": {
+                        "to": "own-reactor"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "id": "reject-incidental-own-core-approach-continue",
+                  "move": {
+                    "to": {
+                      "anchor": "reject-incidental-own-core-anchor"
+                    }
+                  }
+                }
+              ],
+              "until": "reject-incidental-own-core-acquired-core-resolve",
+              "timeout": 120,
+              "cooldown": 1200
+            }
+          ],
+          "lastGenerated": [
+            {
+              "orderId": "reject-incidental-own-core-approach",
+              "fingerprint": "fnv1a64:7c8d4fc3eddc2903"
+            }
+          ],
+          "responseActivation": "program-trigger",
+          "responseFightActivation": "program-response",
+          "signatureOpportunities": [
+            {
+              "id": "reject-incidental-own-core-approach-any-core-car-reject-incidental-own-core-approach-any-core-c-3-drop",
+              "kind": "drop",
+              "hostOrderId": "reject-incidental-own-core-approach-any-core-car",
+              "useOrderId": "reject-incidental-own-core-approach-any-core-c-3",
+              "ownedConditionIds": [
+                "reject-incidental-own-core-approach-any-core-car",
+                "reject-incidental-own-core-approach-any-core-c-2",
+                "reject-incidental-own-core-approach-any-core-c-3"
+              ]
+            }
+          ]
+        }
+      ],
+      "linkedValues": [],
+      "coreCustody": {
+        "bindings": [
+          {
+            "id": "reject-incidental-own-core-runner-any-core-carrier-return-custody",
+            "caseId": "any-core",
+            "projectionId": "reject-incidental-own-core-runner",
+            "hostOrderIds": [
+              "reject-incidental-own-core-approach"
+            ],
+            "actionOrderIds": [
+              "reject-incidental-own-core-approach-any-core-car"
+            ],
+            "kind": "carrier-return",
+            "carrierRoleIds": [
+              "runner"
+            ],
+            "ownedConditionIds": [
+              "reject-incidental-own-core-runner-custody-carryi",
+              "reject-incidental-own-core-runner-custody-empty"
+            ]
+          }
+        ],
+        "cases": [
+          {
+            "id": "any-core",
+            "name": "Any Core"
+          }
+        ],
+        "completionConditionId": "reject-incidental-own-core-acquired-core-resolve",
+        "completionOutcomes": [
+          "drop"
+        ]
+      },
+      "lifecycle": {
+        "minimumCommitmentTicks": 0,
+        "maximumTicks": 120,
+        "cooldownTicks": 1200,
+        "waiting": "fall-through",
+        "successConditionIds": [
+          "reject-incidental-own-core-acquired-core-resolve"
+        ]
+      }
+    }
+  ]
+}

@@ -129,6 +129,12 @@ test('roles are the one source of composition and role renames follow semantic r
     id: 'pass-support', when: 'support-hurt', handoff: { target: { role: 'support' } },
   });
   source.roles[0].orders.unshift({
+    id: 'pass-forward-support', when: 'support-hurt',
+    handoff: {
+      target: { selector: 'nearest-ally-toward-own-reactor', roles: ['support'] },
+    },
+  });
+  source.roles[0].orders.unshift({
     id: 'repair-support', when: 'support-hurt',
     use: { skill: 'repair-beam', target: { role: 'support' } },
   });
@@ -139,9 +145,11 @@ test('roles are the one source of composition and role renames follow semantic r
   assert.equal(source.roles[1].id, 'field-support');
   assert.equal(source.conditions['support-hurt'].role, 'field-support');
   assert.deepEqual(source.roles[0].orders[0].use?.target, { role: 'field-support' });
-  assert.equal(source.roles[0].orders[1].handoff?.target && typeof source.roles[0].orders[1].handoff?.target === 'object'
-    ? source.roles[0].orders[1].handoff?.target.role : '', 'field-support');
-  assert.equal(source.roles[0].orders[2].move?.follow, 'field-support');
+  assert.deepEqual(source.roles[0].orders[2].handoff?.target, { role: 'field-support' });
+  assert.deepEqual(source.roles[0].orders[1].handoff?.target, {
+    selector: 'nearest-ally-toward-own-reactor', roles: ['field-support'],
+  });
+  assert.equal(source.roles[0].orders[3].move?.follow, 'field-support');
 });
 
 test('condition renames preserve bare shared references while rewriting definitions', () => {

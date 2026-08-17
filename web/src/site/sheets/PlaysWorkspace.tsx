@@ -31,6 +31,8 @@ import {
   configurePlayContingent,
   configurePlayLifecycle,
   configureProgramCustody,
+  programCustodyBindingForHost,
+  programCustodyCarrierRoles,
   configureProgramCustodyCompletion,
   configureProgramCustodyHandoff,
   configurePlayPostDeployment,
@@ -74,6 +76,7 @@ import {
   analyzeCoreContinuation,
   analyzeProgramPriority,
   possibleCoreValues,
+  programOpportunityHostLabel,
   programCustodyShadowWarnings,
 } from './programAnalysis';
 import {
@@ -190,6 +193,11 @@ export default function PlaysWorkspace({
   const [side, setSide] = useState<'west' | 'east'>('west');
   const [createError, setCreateError] = useState<string | null>(null);
   const [removeSources, setRemoveSources] = useState(true);
+  const [opportunityFocus, setOpportunityFocus] = useState<{
+    projectionId: string;
+    hostOrderId: string;
+    request: number;
+  } | null>(null);
   const plays = draft.workshop.plays;
   const play = plays.find((entry) => entry.id === selectedPlayId) ?? plays[0] ?? null;
 
@@ -335,10 +343,17 @@ export default function PlaysWorkspace({
               document.querySelector('[data-sheet-path="workshop.plays"]')
                 ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
+            onOpenOpportunities={(projectionId, hostOrderId) =>
+              setOpportunityFocus((current) => ({
+                projectionId,
+                hostOrderId,
+                request: (current?.request ?? 0) + 1,
+              }))}
             onOpenOrders={onOpenOrders}
             onChange={commit} />
           <AlongTheWayControls draft={draft} play={play} catalog={catalog}
             practiceReplay={practiceReplay} practiceDraft={practiceDraft}
+            focus={opportunityFocus}
             onSelectGeometry={(id, startDrawing = false) => {
               setSelectedGeometry(id);
               if (startDrawing) setPlacementGeometry(id);
@@ -1393,10 +1408,12 @@ function readinessParticipants(draft: SheetDraft, play: LinkedPlay) {
   });
 }
 
-function ProgramCustodyControls({ draft, play, onSelectGeometry, onOpenOrders, onChange }: {
+function ProgramCustodyControls({ draft, play, onSelectGeometry, onOpenOpportunities,
+  onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   onSelectGeometry: (id: string) => void;
+  onOpenOpportunities: (projectionId: string, hostOrderId: string) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
@@ -1525,8 +1542,10 @@ function ProgramCustodyControls({ draft, play, onSelectGeometry, onOpenOrders, o
         <CustodyCaseCard key={custodyCase.id} draft={draft} play={play}
           custodyCase={custodyCase} index={index} caseCount={cases.length}
           bindings={bindings.filter((entry) => entry.caseId === custodyCase.id)}
-          warning={shadowWarnings.find((entry) => entry.caseId === custodyCase.id)?.message}
-          onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
+          warning={shadowWarnings.filter((entry) => entry.caseId === custodyCase.id)
+            .map((entry) => entry.message).join(' ') || undefined}
+          onSelectGeometry={onSelectGeometry} onOpenOpportunities={onOpenOpportunities}
+          onOpenOrders={onOpenOrders}
           onChange={finishCustodyChange} />)}</div>}
   </section>;
 }
@@ -1540,7 +1559,7 @@ function routeLength(points: Array<[number, number]> | undefined): number {
 }
 
 function CustodyCaseCard({ draft, play, custodyCase, index, caseCount, bindings,
-  warning, onSelectGeometry, onOpenOrders, onChange }: {
+  warning, onSelectGeometry, onOpenOpportunities, onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   custodyCase: PlayCustodyCase;
@@ -1549,6 +1568,7 @@ function CustodyCaseCard({ draft, play, custodyCase, index, caseCount, bindings,
   bindings: NonNullable<LinkedPlay['coreCustody']>['bindings'];
   warning?: string;
   onSelectGeometry: (id: string) => void;
+  onOpenOpportunities: (projectionId: string, hostOrderId: string) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
@@ -1614,13 +1634,14 @@ function CustodyCaseCard({ draft, play, custodyCase, index, caseCount, bindings,
       <CustodyParticipantCard key={projection.id} draft={draft} play={play}
         projection={projection} custodyCase={custodyCase} carrierRoles={carrierRoles}
         bindings={bindings.filter((entry) => entry.projectionId === projection.id)}
-        onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
+        onSelectGeometry={onSelectGeometry} onOpenOpportunities={onOpenOpportunities}
+        onOpenOrders={onOpenOrders}
         onChange={onChange} />)}</div>
   </article>;
 }
 
 function CustodyParticipantCard({ draft, play, projection, custodyCase, bindings,
-  carrierRoles, onSelectGeometry, onOpenOrders, onChange }: {
+  carrierRoles, onSelectGeometry, onOpenOpportunities, onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   projection: PlayProjection;
@@ -1628,6 +1649,7 @@ function CustodyParticipantCard({ draft, play, projection, custodyCase, bindings
   bindings: NonNullable<LinkedPlay['coreCustody']>['bindings'];
   carrierRoles: string[];
   onSelectGeometry: (id: string) => void;
+  onOpenOpportunities: (projectionId: string, hostOrderId: string) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
@@ -1647,17 +1669,19 @@ function CustodyParticipantCard({ draft, play, projection, custodyCase, bindings
       <CustodyBehaviorEditor draft={draft} play={play} projection={projection}
         custodyCase={custodyCase} kind="carrier-return" binding={carrier}
         carrierRoles={carrierRoles} onSelectGeometry={onSelectGeometry}
+        onOpenOpportunities={onOpenOpportunities}
         onOpenOrders={onOpenOrders} onChange={onChange} />
       <CustodyBehaviorEditor draft={draft} play={play} projection={projection}
         custodyCase={custodyCase} kind="escort-carrier" binding={escort}
         carrierRoles={carrierRoles} onSelectGeometry={onSelectGeometry}
+        onOpenOpportunities={onOpenOpportunities}
         onOpenOrders={onOpenOrders} onChange={onChange} />
     </div>
   </details>;
 }
 
 function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
-  carrierRoles, kind, onSelectGeometry, onOpenOrders, onChange }: {
+  carrierRoles, kind, onSelectGeometry, onOpenOpportunities, onOpenOrders, onChange }: {
   draft: SheetDraft;
   play: LinkedPlay;
   projection: PlayProjection;
@@ -1666,6 +1690,7 @@ function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
   carrierRoles: string[];
   kind: 'carrier-return' | 'escort-carrier';
   onSelectGeometry: (id: string) => void;
+  onOpenOpportunities: (projectionId: string, hostOrderId: string) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
@@ -1688,7 +1713,19 @@ function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
   const handoffTargets = handoffViews.map((view) => view.action.handoff?.target)
     .filter((target): target is NonNullable<OrderNode['handoff']>['target'] => Boolean(target));
   const handoffTarget = handoffTargets[0];
-  const selectedRole = typeof handoffTarget === 'object' ? handoffTarget.role : '';
+  const selectedRole = handoffTarget && typeof handoffTarget === 'object'
+    && 'role' in handoffTarget ? handoffTarget.role : '';
+  const passForward = handoffTarget === 'nearest-ally-toward-own-reactor'
+    || Boolean(handoffTarget && typeof handoffTarget === 'object'
+      && 'selector' in handoffTarget
+      && handoffTarget.selector === 'nearest-ally-toward-own-reactor');
+  const ownRoleBodies = draft.orders.roles.find((entry) =>
+    entry.id === projection.roleId)?.classes.length ?? 0;
+  const eligibleReceiverRoles = carrierRoles.filter((roleId) =>
+    roleId !== projection.roleId || ownRoleBodies > 1);
+  const missingCarrierProjections = play.projections.filter((candidate) =>
+    !carrierRoles.includes(candidate.roleId)
+    && candidate.id !== projection.id);
   return <section className="space-y-3 rounded-sm border border-arena-edge bg-arena-panel/35 p-3">
       <div><p className="lab text-arena-material">{kind === 'carrier-return' ? 'When this role carries' : 'While another participant carries'}</p>
         <p className="t-micro mt-1">{kind === 'carrier-return'
@@ -1718,10 +1755,12 @@ function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
           <p className="t-micro mb-2">Handoff is adjacent-only. If no eligible ally is beside this carrier, it falls through in the same tick to the next Opportunity or return movement.</p>
           <div className="grid gap-2 sm:grid-cols-2">
             <button type="button" className="choice-card min-h-14 text-left"
-              data-selected={handoffTarget === 'nearest-ally-toward-own-reactor'}
+              data-selected={passForward}
               onClick={() => onChange(configureProgramCustodyHandoff(
                 draft, play.id, binding.id, 'nearest-ally-toward-own-reactor'))}>
-              <b className="t-body block">Pass forward</b><span className="t-micro">Any adjacent ally closer to our reactor</span>
+              <b className="t-body block">Pass forward</b><span className="t-micro">Adjacent {eligibleReceiverRoles.length
+                ? eligibleReceiverRoles.map(humanize).join(' or ')
+                : 'case carrier'} closer to our reactor</span>
             </button>
             <button type="button" className="choice-card min-h-14 text-left"
               data-selected={handoffViews.length === 0}
@@ -1737,9 +1776,25 @@ function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
                   draft, play.id, binding.id, { role: event.target.value }));
               }}>
               <option value="">Choose role…</option>
-              {draft.orders.roles.filter((entry) => entry.id !== projection.roleId)
-                .map((entry) => <option key={entry.id} value={entry.id}>{humanize(entry.id)}</option>)}
+              {eligibleReceiverRoles.map((roleId) =>
+                <option key={roleId} value={roleId}>{humanize(roleId)}</option>)}
             </select></label>
+          {missingCarrierProjections.length > 0 && <div className="mt-2 rounded-sm border border-arena-edge bg-arena-deep/35 p-2">
+            <p className="t-micro">A named receiver needs its own carrier behavior in {custodyCase.name}.</p>
+            <div className="mt-2 flex flex-wrap gap-1.5">{missingCarrierProjections.map((candidate) =>
+              <button key={candidate.id} type="button" className="btn btn-secondary min-h-10"
+                onClick={() => {
+                  let next = configureProgramCustody(draft, play.id, candidate.id, {
+                    caseId: custodyCase.id,
+                    kind: 'carrier-return',
+                    carrierRoleIds: [candidate.roleId],
+                    ...(binding.routeId ? { routeId: binding.routeId } : {}),
+                  });
+                  next = configureProgramCustodyHandoff(
+                    next, play.id, binding.id, { role: candidate.roleId });
+                  onChange(next);
+                }}>＋ Add {humanize(candidate.roleId)} carrier behavior and pass</button>)}</div>
+          </div>}
         </fieldset>}
       </>}
       {kind === 'escort-carrier' && <>
@@ -1757,9 +1812,14 @@ function CustodyBehaviorEditor({ draft, play, projection, custodyCase, binding,
             draft, play.id, projection.id, kind, custodyCase.id))}>Remove</button>
       </div>
       <div className="flex flex-wrap items-center gap-2"><p className="t-micro mr-auto">Fight, healing, Handoff, Drop and signature Opportunities can be nested into this case’s generated behavior; editing the case preserves them.</p>
-        {binding && <button type="button" className="btn btn-secondary min-h-10"
-          onClick={() => document.getElementById(`program-${play.id}-opportunities`)
-            ?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>Open Opportunities</button>}
+        {binding?.actionOrderIds.map((actionOrderId, index) =>
+          <button key={actionOrderId} type="button" className="btn btn-secondary min-h-10"
+            onClick={() => onOpenOpportunities(projection.id, actionOrderId)}>
+            {binding.actionOrderIds.length === 1
+              ? 'Open Opportunities'
+              : `Opportunities · ${playOrderName(
+                binding.hostOrderIds[index] ?? actionOrderId, projection.id)}`}
+          </button>)}
         {binding && <button type="button" className="btn min-h-10"
           onClick={() => onOpenOrders(play.id, projection.id)}>Inspect Instructions</button>}
       </div>
@@ -1814,6 +1874,7 @@ function AlongTheWayControls({
   catalog,
   practiceReplay,
   practiceDraft,
+  focus,
   onSelectGeometry,
   onOpenOrders,
   onSelectProgram,
@@ -1824,6 +1885,7 @@ function AlongTheWayControls({
   catalog: TacticalSheetCatalog;
   practiceReplay?: ReplayModel;
   practiceDraft?: SheetDraft;
+  focus: { projectionId: string; hostOrderId: string; request: number } | null;
   onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onSelectProgram: (playId: string) => void;
@@ -1839,6 +1901,7 @@ function AlongTheWayControls({
       return <OpportunityProjection key={projection.id} draft={draft} play={play}
         projection={projection} role={role} catalog={catalog}
         practiceReplay={practiceReplay} practiceDraft={practiceDraft}
+        focus={focus?.projectionId === projection.id ? focus : null}
         onSelectGeometry={onSelectGeometry} onOpenOrders={onOpenOrders}
         onSelectProgram={onSelectProgram}
         onChange={onChange} />;
@@ -1854,6 +1917,7 @@ function OpportunityProjection({
   catalog,
   practiceReplay,
   practiceDraft,
+  focus,
   onSelectGeometry,
   onOpenOrders,
   onSelectProgram,
@@ -1866,13 +1930,14 @@ function OpportunityProjection({
   catalog: TacticalSheetCatalog;
   practiceReplay?: ReplayModel;
   practiceDraft?: SheetDraft;
+  focus: { projectionId: string; hostOrderId: string; request: number } | null;
   onSelectGeometry: (id: string, startDrawing?: boolean) => void;
   onOpenOrders: (playId: string, projectionId?: string) => void;
   onSelectProgram: (playId: string) => void;
   onChange: (next: SheetDraft) => void;
 }) {
   const views = opportunityViews(projection, draft.orders.conditions);
-  const hosts = opportunityHosts(projection.orders, projection.id);
+  const hosts = opportunityHosts(projection.orders, projection.id, play);
   const skills = [...new Set(role.classes.map((classId) =>
     skillForClass(catalog, classId)).filter((entry): entry is string => Boolean(entry)))];
   const [adding, setAdding] = useState(false);
@@ -1882,7 +1947,15 @@ function OpportunityProjection({
   const selectedHost = hosts.some((entry) => entry.id === hostId)
     ? hostId : hosts[0]?.id ?? '';
   const selectedSkill = skills.includes(skill) ? skill : skills[0] ?? '';
-  return <article className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
+  useEffect(() => {
+    if (!focus || !hosts.some((entry) => entry.id === focus.hostOrderId)) return;
+    setHostId(focus.hostOrderId);
+    setAdding(true);
+    document.getElementById(`program-${play.id}-opportunities-${projection.id}`)
+      ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [focus?.request, focus?.hostOrderId, hosts.map((entry) => entry.id).join('|')]);
+  return <article id={`program-${play.id}-opportunities-${projection.id}`}
+    className="rounded-sm border border-arena-edge bg-arena-deep/25 p-3">
     <div className="flex flex-wrap items-center gap-2">
       <span className="flex -space-x-1">{role.classes.map((classId, index) =>
         <ClassIcon key={`${classId}:${index}`} classId={classId} size={32} decorative />)}</span>
@@ -2316,25 +2389,68 @@ function GenericOpportunityEditor({ draft, play, projection, view, onSelectProgr
   if (kind === 'handoff' && view.action.handoff) {
     const valueCondition = carriedValueCondition(draft, view.binding);
     const target = view.action.handoff.target;
-    const encoded = typeof target === 'string' ? target : `role:${target.role}`;
+    const custodyBinding = programCustodyBindingForHost(
+      play, projection.id, view.binding.hostOrderId);
+    const carrierRoles = custodyBinding
+      ? programCustodyCarrierRoles(play, custodyBinding.caseId) : [];
+    const ownRoleBodies = draft.orders.roles.find((entry) =>
+      entry.id === projection.roleId)?.classes.length ?? 0;
+    const namedReceiverRoles = custodyBinding
+      ? carrierRoles.filter((roleId) =>
+        roleId !== projection.roleId || ownRoleBodies > 1)
+      : draft.orders.roles.filter((entry) => entry.id !== projection.roleId)
+        .map((entry) => entry.id);
+    const missingCarrierProjections = custodyBinding
+      ? play.projections.filter((candidate) =>
+        candidate.id !== projection.id
+        && !carrierRoles.includes(candidate.roleId)) : [];
+    const encoded = typeof target === 'string' ? target
+      : 'role' in target ? `role:${target.role}` : 'scoped-forward';
     const currentValue = conditionValueFilter(valueCondition);
     const currentWell = carriedSourceCondition(draft, view.binding)?.well;
     return <div className="space-y-3">
       <label><span className="lab mb-1 block">Hand to</span>
         <select className="field min-h-11" value={encoded}
-          onChange={(event) => onChange(updateHandoffOpportunity(
-            draft, play.id, projection.id, view.binding.id, {
-              target: event.target.value.startsWith('role:')
-                ? { role: event.target.value.slice(5) }
-                : event.target.value as 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally',
-              coreBankValue: currentValue,
-              well: currentWell,
-            }))}>
+          onChange={(event) => {
+            if (event.target.value === 'scoped-forward') return;
+            onChange(updateHandoffOpportunity(
+              draft, play.id, projection.id, view.binding.id, {
+                target: event.target.value.startsWith('role:')
+                  ? { role: event.target.value.slice(5) }
+                  : event.target.value as 'nearest-ally-toward-own-reactor' | 'nearest-empty-handed-ally',
+                coreBankValue: currentValue,
+                well: currentWell,
+              }));
+          }}>
           <option value="nearest-ally-toward-own-reactor">Closest ally nearer our reactor</option>
           <option value="nearest-empty-handed-ally">Closest empty-handed ally</option>
-          {draft.orders.roles.filter((entry) => entry.id !== projection.roleId).map((entry) =>
-            <option key={entry.id} value={`role:${entry.id}`}>Role · {humanize(entry.id)}</option>)}
+          {typeof target === 'object' && 'roles' in target
+            && <option value="scoped-forward">Closer carrier in {target.roles.map(humanize).join(' / ')}</option>}
+          {namedReceiverRoles.map((roleId) =>
+            <option key={roleId} value={`role:${roleId}`}>Role · {humanize(roleId)}</option>)}
         </select></label>
+      {custodyBinding && <p className="t-micro">Named receivers are limited to roles with carrier behavior in this Core case. Pass Forward is automatically scoped to those same roles.</p>}
+      {custodyBinding && missingCarrierProjections.length > 0 && <div
+        className="rounded-sm border border-arena-edge bg-arena-deep/35 p-2">
+        <p className="lab">Need another receiver?</p>
+        <div className="mt-2 flex flex-wrap gap-1.5">{missingCarrierProjections.map((candidate) =>
+          <button key={candidate.id} type="button" className="btn btn-secondary min-h-10"
+            onClick={() => {
+              let next = configureProgramCustody(draft, play.id, candidate.id, {
+                caseId: custodyBinding.caseId,
+                kind: 'carrier-return',
+                carrierRoleIds: [candidate.roleId],
+                ...(custodyBinding.routeId ? { routeId: custodyBinding.routeId } : {}),
+              });
+              next = updateHandoffOpportunity(
+                next, play.id, projection.id, view.binding.id, {
+                  target: { role: candidate.roleId },
+                  coreBankValue: currentValue,
+                  well: currentWell,
+                });
+              onChange(next);
+            }}>＋ Add {humanize(candidate.roleId)} carrier behavior and pass</button>)}</div>
+      </div>}
       <CoreValueFilterControl value={currentValue} label="Hand off which Core values?"
         onChange={(coreBankValue) => onChange(updateHandoffOpportunity(
           draft, play.id, projection.id, view.binding.id,
@@ -2488,11 +2604,17 @@ function OpportunityPracticeSummary({ summary }: {
   </section>;
 }
 
-function opportunityHosts(orders: OrderNode[], projectionId: string) {
+function opportunityHosts(orders: OrderNode[], projectionId: string, play?: LinkedPlay) {
   const result: Array<{ id: string; label: string }> = [];
   const walk = (nodes: OrderNode[], depth: number) => nodes.forEach((node) => {
-    if (node.id && (node.orders || depth < 2 && (node.move || node.fight)))
-      result.push({ id: node.id, label: `${playOrderName(node.id, projectionId)} · ${node.orders ? 'branch' : node.move ? 'Move' : 'Fight'}` });
+    if (node.id && (node.orders || depth < 2 && (node.move || node.fight))) {
+      const custodyLabel = play
+        ? programOpportunityHostLabel(play, projectionId, node.id) : null;
+      const label = custodyLabel
+        ? custodyLabel
+        : `${playOrderName(node.id, projectionId)} · ${node.orders ? 'branch' : node.move ? 'Move' : 'Fight'}`;
+      result.push({ id: node.id, label });
+    }
     if (node.orders) walk(node.orders, depth + 1);
   });
   walk(orders, 0);

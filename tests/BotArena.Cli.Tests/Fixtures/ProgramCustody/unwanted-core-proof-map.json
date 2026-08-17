@@ -1,0 +1,13 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "unwanted-core-proof",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {},
+  "routes": {},
+  "anchors": {
+    "reject-incidental-own-core-anchor": [
+      11,
+      6
+    ]
+  }
+}

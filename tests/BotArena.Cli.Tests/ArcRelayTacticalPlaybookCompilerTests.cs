@@ -197,6 +197,36 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void PassForwardMayBeScopedToDeclaredCarrierRoles()
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject home = source["roles"]![0]!.AsObject();
+        var target = new JsonObject
+        {
+            ["selector"] = "nearest-ally-toward-own-reactor",
+            ["roles"] = new JsonArray("home-team", "centre-team"),
+        };
+        home["orders"]!.AsArray().Insert(0, new JsonObject
+        {
+            ["id"] = "pass-forward-among-carriers",
+            ["when"] = "carrying-core",
+            ["handoff"] = new JsonObject { ["target"] = target },
+        });
+
+        Assert.True(Compile(
+            source, MapPlan("starter-tapline-v2")).UsesOrderTree);
+
+        target["roles"] = new JsonArray();
+        Assert.Contains("expected 1..8 entries",
+            Assert.Throws<InvalidDataException>(() => Compile(
+                source, MapPlan("starter-tapline-v2"))).Message);
+        target["roles"] = new JsonArray("missing-role");
+        Assert.Contains("unknown role 'missing-role'",
+            Assert.Throws<InvalidDataException>(() => Compile(
+                source, MapPlan("starter-tapline-v2"))).Message);
+    }
+
+    [Fact]
     public void ArcTossMayRequireItsNamedReceiverToBeAheadOnAConsumedRoute()
     {
         JsonObject source = Source("starter-tapline-v2");

@@ -18,6 +18,198 @@ namespace BotArena.Cli.Tests;
 public sealed class OrdersMovementSceneTests
 {
     [Fact]
+    public void PremiumCustodyHandoffRetargetsEscortAndBanksTheSameCore()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation transfer = CompileProgramCustodyFixture(
+            root, "premium-transfer-proof");
+        TacticalPlaybookCompilation idle = Compile(root, "idle-field-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            transfer.Composition,
+            idle.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline8);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, transfer), Participant(1, idle)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        ArcRelayEvent.CoreHandedOff? handoff = null;
+        ArcRelayEvent.CoreBanked? bank = null;
+        int handoffTick = -1;
+        int bankTick = -1;
+        int escortSourceTick = -1;
+        int escortReceiverTick = -1;
+        int receiverReturnTick = -1;
+        while (!session.IsCompleted && bank is null)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericMindCommandResolution command in step.MindTurns
+                .Single(turn => turn.TeamId == 0).Commands)
+            {
+                string reason = command.Command.DebugMessage ?? "";
+                Assert.False(string.IsNullOrWhiteSpace(reason));
+                if (command.Command.UnitId == 2
+                    && reason.Contains("escort-carrier", StringComparison.Ordinal))
+                {
+                    if (reason.Contains(
+                            "move:body:0:0:0", StringComparison.Ordinal))
+                    {
+                        escortSourceTick = step.Tick;
+                    }
+                    if (escortReceiverTick < 0 && reason.Contains(
+                            "move:body:0:1:0", StringComparison.Ordinal))
+                    {
+                        escortReceiverTick = step.Tick;
+                    }
+                }
+                if (receiverReturnTick < 0
+                    && command.Command.UnitId == 1
+                    && reason.Contains(
+                        "premium-four-carry-home", StringComparison.Ordinal))
+                {
+                    receiverReturnTick = step.Tick;
+                }
+            }
+            foreach (GenericActorAuthoritativeEvent fact
+                     in step.AuthoritativeEvents)
+            {
+                if (handoff is null
+                    && fact.Payload is GenericActorRuntimeObservation
+                        .EventPayload.ArcRelay
+                        { Fact: ArcRelayEvent.CoreHandedOff transferred }
+                    && transferred.SourceActorId.TeamId == 0)
+                {
+                    handoff = transferred;
+                    handoffTick = step.Tick;
+                }
+                if (handoff is not null
+                    && fact.Payload is GenericActorRuntimeObservation
+                        .EventPayload.ArcRelay
+                        { Fact: ArcRelayEvent.CoreBanked banked }
+                    && banked.CoreId == handoff.CoreId)
+                {
+                    bank = banked;
+                    bankTick = step.Tick;
+                }
+            }
+        }
+
+        Assert.NotNull(handoff);
+        Assert.Equal(new ActorIdentity(0, 0, 0), handoff.SourceActorId);
+        Assert.Equal(new ActorIdentity(0, 1, 0), handoff.TargetActorId);
+        Assert.Equal(53, handoffTick);
+        Assert.Equal(54, receiverReturnTick);
+        Assert.True(escortSourceTick >= 0 && escortSourceTick <= handoffTick);
+        Assert.Equal(54, escortReceiverTick);
+        Assert.NotNull(bank);
+        Assert.Equal(handoff.CoreId, bank.CoreId);
+        Assert.Equal(handoff.TargetActorId, bank.CarrierActorId);
+        Assert.Equal(4, bank.ChargeAwarded);
+        Assert.Equal(171, bankTick);
+    }
+
+    [Fact]
+    public void PremiumCarrierRecoversThenResumesItsSameCustodyRouteAndBanks()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation recovery = CompileProgramCustodyFixture(
+            root, "premium-carrier-recovery-proof");
+        TacticalPlaybookCompilation drill = CompileProgramCustodyFixture(
+            root, "premium-carrier-recovery-drill");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            recovery.Composition,
+            drill.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline8);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, recovery), Participant(1, drill)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        ArcRelayEvent.CoreHandedOff? handoff = null;
+        ArcRelayEvent.CoreBanked? bank = null;
+        int healStartTick = -1;
+        int firstHealthGainTick = -1;
+        int returnResumeTick = -1;
+        int bankTick = -1;
+        int minimumCarrierHealth = int.MaxValue;
+        int previousCarrierHealth = int.MaxValue;
+        while (!session.IsCompleted && bank is null)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindCommandResolution receiver = step.MindTurns
+                .Single(turn => turn.TeamId == 0).Commands
+                .Single(command => command.Command.UnitId == 1);
+            string reason = receiver.Command.DebugMessage ?? "";
+            Assert.False(string.IsNullOrWhiteSpace(reason));
+            if (healStartTick < 0
+                && reason.Contains("move:heal:", StringComparison.Ordinal))
+            {
+                healStartTick = step.Tick;
+            }
+            else if (healStartTick >= 0 && returnResumeTick < 0
+                && reason.Contains("carry-home", StringComparison.Ordinal)
+                && !reason.Contains("move:heal:", StringComparison.Ordinal))
+            {
+                returnResumeTick = step.Tick;
+            }
+
+            GenericActorWorldSnapshot.LifeSnapshot? carrier = step.PostState
+                .ActiveLives.FirstOrDefault(life =>
+                    life.ActorId.TeamId == 0 && life.ActorId.UnitId == 1);
+            if (carrier is not null)
+            {
+                minimumCarrierHealth = Math.Min(
+                    minimumCarrierHealth, carrier.Health);
+                if (healStartTick >= 0 && firstHealthGainTick < 0
+                    && previousCarrierHealth < int.MaxValue
+                    && carrier.Health > previousCarrierHealth)
+                {
+                    firstHealthGainTick = step.Tick;
+                }
+                previousCarrierHealth = carrier.Health;
+            }
+
+            foreach (GenericActorAuthoritativeEvent fact
+                     in step.AuthoritativeEvents)
+            {
+                if (handoff is null
+                    && fact.Payload is GenericActorRuntimeObservation
+                        .EventPayload.ArcRelay
+                        { Fact: ArcRelayEvent.CoreHandedOff transferred }
+                    && transferred.SourceActorId.TeamId == 0)
+                {
+                    handoff = transferred;
+                }
+                if (handoff is not null
+                    && fact.Payload is GenericActorRuntimeObservation
+                        .EventPayload.ArcRelay
+                        { Fact: ArcRelayEvent.CoreBanked banked }
+                    && banked.CoreId == handoff.CoreId)
+                {
+                    bank = banked;
+                    bankTick = step.Tick;
+                }
+            }
+        }
+
+        Assert.NotNull(handoff);
+        Assert.Equal(new ActorIdentity(0, 1, 0), handoff.TargetActorId);
+        Assert.Equal(20, minimumCarrierHealth);
+        Assert.Equal(108, healStartTick);
+        Assert.Equal(134, firstHealthGainTick);
+        Assert.Equal(138, returnResumeTick);
+        Assert.NotNull(bank);
+        Assert.Equal(handoff.CoreId, bank.CoreId);
+        Assert.Equal(handoff.TargetActorId, bank.CarrierActorId);
+        Assert.Equal(4, bank.ChargeAwarded);
+        Assert.Equal(190, bankTick);
+    }
+
+    [Fact]
     public void PracticeReasonNamesRejectedHigherProgramGate()
     {
         string root = FindRepoRoot();
@@ -1611,6 +1803,25 @@ public sealed class OrdersMovementSceneTests
             "tactical-playbook-v1-2026-08-03",
             "playbooks",
             fileName));
+
+    private static TacticalPlaybookCompilation CompileProgramCustodyFixture(
+        string root,
+        string fixtureId)
+    {
+        string directory = Path.Combine(
+            root,
+            "tests",
+            "BotArena.Cli.Tests",
+            "Fixtures",
+            "ProgramCustody");
+        string playbook = Path.Combine(directory, $"{fixtureId}.json");
+        string mapPlan = Path.Combine(directory, $"{fixtureId}-map.json");
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            File.ReadAllBytes(playbook),
+            File.ReadAllBytes(mapPlan),
+            playbook,
+            mapPlan);
+    }
 
     private static Position[] RoutePoints(
         JsonElement routes,
