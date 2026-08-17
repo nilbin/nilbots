@@ -358,7 +358,8 @@ function writeDrill() {
       },
       {
         id: `${entry.id}-enter-mid`, timeout: 110,
-        cooldown: 600, move: { to: { well: 'centre' }, posture: 'front' },
+        cooldown: 600,
+        move: { to: { zone: 'overload-gather' }, posture: 'front' },
       },
       {
         id: `${entry.id}-return-through-ambush`,
@@ -374,7 +375,9 @@ function writeDrill() {
   const drillMap: MapPlanDocument = {
     schema: 'arc-relay-map-plan-v2', mapPlanId: 'mid-overload-drill-v1',
     mapId: 'arc-relay-tapline-02',
-    zones: {},
+    zones: {
+      'overload-gather': { rect: [5, 11, 9, 15] },
+    },
     anchors: {}, routes: {},
   };
   write('playbooks/mid-overload-drill-v1.json', drillOrders);

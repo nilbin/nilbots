@@ -27,7 +27,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -65,7 +65,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -103,7 +103,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -141,7 +141,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -179,7 +179,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -217,7 +217,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -255,7 +255,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }
@@ -293,7 +293,7 @@
           "cooldown": 600,
           "move": {
             "to": {
-              "well": "centre"
+              "zone": "overload-gather"
             },
             "posture": "front"
           }

@@ -2,7 +2,16 @@
   "schema": "arc-relay-map-plan-v2",
   "mapPlanId": "mid-overload-drill-v1",
   "mapId": "arc-relay-tapline-02",
-  "zones": {},
+  "zones": {
+    "overload-gather": {
+      "rect": [
+        5,
+        11,
+        9,
+        15
+      ]
+    }
+  },
   "anchors": {},
   "routes": {}
 }
