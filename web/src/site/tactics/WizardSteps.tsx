@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BotChip } from './BotChip';
 import { ChoiceCards } from './ChoiceCards';
+import { CountStepper, TickRow, ZoneSelect } from './conditionControls';
 import { ConditionRows } from './ConditionRows';
 import { GeoStatusRow } from './GeoStatusRow';
 import { PhaseStrip } from './PhaseStrip';
@@ -17,7 +18,7 @@ import {
   ACT_KINDS, CORE_RULES, DELIVERY_PLANS, MAX_ATTEMPTS, POSTURES, RECOVERIES,
   STAGE_KINDS, groupColor, signatureMarkGeometry, viaLegal, type ActKind,
   type DrawKind, type Posture, type Recovery, type StageKind, type Tactic,
-  type TacticGroup, type TacticsDocument, type ZoneRef,
+  type TacticGroup, type TacticsDocument,
 } from './tacticsDocument';
 import {
   actComplete, assignedCount, stageComplete, unassignedSlots, type WizardState,
@@ -543,40 +544,7 @@ export function FinishStep({ document, wizard, change, addDeliverCore }: StepPro
     on: boolean,
     toggle: () => void,
     extra?: React.ReactNode,
-  ) => (
-    <button key={key} type="button" onClick={toggle}
-      className={`flex min-h-9 w-full items-center gap-2 rounded-sm border px-2 py-1 text-left transition-colors ${on
-        ? 'border-arena-ok/45 bg-arena-ok/10 text-arena-text'
-        : 'border-arena-edge text-arena-dim hover:text-arena-text'}`}>
-      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border text-[10px] font-bold ${on
-        ? 'border-arena-ok bg-arena-ok/15 text-arena-ok'
-        : 'border-arena-text/35 text-transparent'}`}>✓</span>
-      <span className="t-micro grow">{label}</span>
-      {on && extra}
-    </button>
-  );
-  const stepper = (value: number, apply: (value: number) => void) => (
-    <span className="flex items-center gap-1 rounded-sm border border-arena-edge"
-      onClick={(event) => event.stopPropagation()} role="presentation">
-      <button type="button" className="min-h-7 px-2" onClick={() => apply(Math.max(1, value - 1))}>−</button>
-      <span className="tabular t-micro w-4 text-center">{value}</span>
-      <button type="button" className="min-h-7 px-2" onClick={() => apply(Math.min(8, value + 1))}>＋</button>
-    </span>
-  );
-  const zoneSelect = (zone: ZoneRef, apply: (zone: ZoneRef) => void) => (
-    <select className="field !min-h-7 !w-auto !py-0 t-micro"
-      value={ZONE_OPTIONS.find((option) =>
-        option.rect.every((value, index) => value === zone.rect[index]))?.id ?? 'custom'}
-      onClick={(event) => event.stopPropagation()}
-      onChange={(event) => {
-        const option = ZONE_OPTIONS.find((value) => value.id === event.target.value);
-        if (option) apply({ name: option.id, rect: option.rect });
-      }}>
-      {!ZONE_OPTIONS.some((option) => option.rect.every((value, index) => value === zone.rect[index]))
-        && <option value="custom">the drawn box</option>}
-      {ZONE_OPTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-    </select>
-  );
+  ) => <TickRow key={key} on={on} label={label} extra={extra} onToggle={toggle} />;
   return <>
     <p className="t-meta">And last: <b>when is this Tactic finished?</b>{' '}
       Any selected outcome ends it, and the Sheet moves on.</p>
@@ -591,8 +559,8 @@ export function FinishStep({ document, wizard, change, addDeliverCore }: StepPro
           if (next.finish.outcomes.kills) delete next.finish.outcomes.kills;
           else next.finish.outcomes.kills = { count: 3 };
         }),
-        outcomes.kills && stepper(outcomes.kills.count, (value) =>
-          change((next) => { next.finish.outcomes.kills = { count: value }; })))}
+        outcomes.kills && <CountStepper value={outcomes.kills.count} onChange={(value) =>
+          change((next) => { next.finish.outcomes.kills = { count: value }; })} />)}
       {row('losses',
         `We have lost ${numberWord(outcomes.losses?.count ?? 2)} bot${(outcomes.losses?.count ?? 2) === 1 ? '' : 's'}`,
         Boolean(outcomes.losses),
@@ -600,8 +568,8 @@ export function FinishStep({ document, wizard, change, addDeliverCore }: StepPro
           if (next.finish.outcomes.losses) delete next.finish.outcomes.losses;
           else next.finish.outcomes.losses = { count: 2 };
         }),
-        outcomes.losses && stepper(outcomes.losses.count, (value) =>
-          change((next) => { next.finish.outcomes.losses = { count: value }; })))}
+        outcomes.losses && <CountStepper value={outcomes.losses.count} onChange={(value) =>
+          change((next) => { next.finish.outcomes.losses = { count: value }; })} />)}
       {row('cleared',
         outcomes.cleared
           ? `${capital(ZONE_OPTIONS.find((option) =>
@@ -613,8 +581,8 @@ export function FinishStep({ document, wizard, change, addDeliverCore }: StepPro
           if (next.finish.outcomes.cleared) delete next.finish.outcomes.cleared;
           else next.finish.outcomes.cleared = { zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
         }),
-        outcomes.cleared && zoneSelect(outcomes.cleared.zone, (zone) =>
-          change((next) => { next.finish.outcomes.cleared = { zone }; })))}
+        outcomes.cleared && <ZoneSelect zone={outcomes.cleared.zone} onChange={(zone) =>
+          change((next) => { next.finish.outcomes.cleared = { zone }; })} />)}
       {row('coreAcquired', 'A Core is acquired', Boolean(outcomes.coreAcquired),
         () => change((next) => {
           if (next.finish.outcomes.coreAcquired) delete next.finish.outcomes.coreAcquired;
