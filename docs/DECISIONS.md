@@ -8994,3 +8994,16 @@ second ring until a goal opens, rather than circling for a tile that
 cannot free up. Single-tile goals (posts, anchors) keep their
 exact-tile contract. Occupancy reads own live bodies plus visible
 enemies, recomputed per tick, so a freed tile resumes the march.
+
+## 337. Wedged marches rest and probe
+
+Companion to #336, surfaced by the same exhibit gate: a stock body
+marching at a zone held by enemies outside its vision cone pressed a
+fully-blocked step for 40+ ticks — a stationary "move episode" the
+motion gate rightly flags, and one the open-tile course cannot see
+(visible occupancy only). Eight consecutive fully-blocked presses on
+one move order now settle the body where it stands; it rests twelve
+ticks and probes four, so a cleared path resumes the march within a
+bounded window. The counter is per body, scoped to the order path
+(a fresh order always presses anew), cleared by any successful move,
+and never applies to carriers, who press home regardless.

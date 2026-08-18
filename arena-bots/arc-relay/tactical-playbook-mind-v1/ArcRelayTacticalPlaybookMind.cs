@@ -18,6 +18,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly TacticalIngressGovernor _ingress = new();
     private readonly Dictionary<int, string> _selectedPaths = [];
     private readonly Dictionary<int, int> _stationaryTicks = [];
+    // Consecutive fully-blocked presses per body for one move order: the
+    // signal that a march is wedged against something no queue will clear
+    // (often bodies its vision cone cannot see), scoped to the order path so
+    // a fresh order always presses anew. Cleared by any successful move.
+    private readonly Dictionary<int, (string Path, int Ticks)> _wedgedPresses = [];
     private readonly Dictionary<int, (ActorIdentity Actor, int Level)> _levels = [];
     private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<int, (ActorIdentity Actor, int Spent)> _invested = [];
@@ -1877,9 +1882,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 && goals.Any(value =>
                     Math.Abs(value.X - body.Position.X) <= 1
                     && Math.Abs(value.Y - body.Position.Y) <= 1);
+            // A wedged march rests too: eight straight fully-blocked presses
+            // on one order mean no queue is going to clear the way (the
+            // blockers are often outside this body's vision cone, so the
+            // open-tile read cannot know). Rest twelve ticks, probe four —
+            // a successful probe step clears the counter and the march
+            // resumes; carriers never wedge (they press home regardless).
+            bool wedged = false;
+            if (!standing
+                && _wedgedPresses.TryGetValue(
+                    unitId, out (string Path, int Ticks) press)
+                && press.Path == proposal.Leaf.Node.Path
+                && press.Ticks >= 8)
+            {
+                if (press.Ticks % 16 < 12)
+                {
+                    wedged = true;
+                    _wedgedPresses[unitId] = (press.Path, press.Ticks + 1);
+                }
+            }
             result.Add(unitId, new MovePlan(
                 proposal.Leaf.Node.Path, goal, goals, null,
-                standing || crowded));
+                standing || crowded || wedged));
         }
         return result;
     }
@@ -2286,7 +2310,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && ArenaBasics.TryMoveDirect(
                         contract, mind, body, alternate, claims,
                         $"{movement}:{detour.Trace}"))
+                {
+                    _wedgedPresses.Remove(body.UnitId);
                     return;
+                }
             }
             if (ArenaBasics.TryMoveDirect(
                     contract, mind, body, step, claims,
@@ -2294,7 +2321,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     carrying
                         ? TacticalMovementAuthority.Safety
                         : TacticalMovementAuthority.Tactical))
+            {
+                _wedgedPresses.Remove(body.UnitId);
                 return;
+            }
+            PressWedge(body, proposal, carrying);
             body.Hold($"{movement}:{plan.Course.Trace}:blocked");
             return;
         }
@@ -2305,8 +2336,29 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             : ArenaBasics.TryMoveToward(
                 contract, mind, body, plan.Goals, claims,
                 $"{movement}:move:{proposal.Target.Key}");
-        if (!moved)
-            body.Hold($"{movement}:move-blocked:{proposal.Target.Key}");
+        if (moved)
+        {
+            _wedgedPresses.Remove(body.UnitId);
+            return;
+        }
+        PressWedge(body, proposal, carrying);
+        body.Hold($"{movement}:move-blocked:{proposal.Target.Key}");
+    }
+
+    private void PressWedge(MindBody body, Proposal proposal, bool carrying)
+    {
+        if (carrying)
+        {
+            _wedgedPresses.Remove(body.UnitId);
+            return;
+        }
+        string path = proposal.Leaf.Node.Path;
+        _wedgedPresses[body.UnitId] =
+            _wedgedPresses.TryGetValue(
+                body.UnitId, out (string Path, int Ticks) press)
+                && press.Path == path
+                ? (path, press.Ticks + 1)
+                : (path, 1);
     }
 
     private void ExecuteFight(
@@ -2969,6 +3021,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _ingressCursors.Remove(stale);
             _ingress.Reset(stale);
             _routes.Reset(stale);
+            _wedgedPresses.Remove(stale);
         }
         foreach ((ActorIdentity actor, string path) in _fightAnchors.Keys
                      .Where(key => !liveActors.Contains(key.Actor)).ToArray())
