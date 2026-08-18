@@ -122,6 +122,9 @@ async function commitTactic(page, expectedSummary) {
 const specs = {
   async pincer(page) {
     await startRecipe(page, 'pincer');
+    await assertVisible(page,
+      page.getByTestId('tactics-map').locator('text', { hasText: 'MID' }),
+      'map place labels drawn into the ground');
     await nextStep(page); // Start → Groups
     await distributeGroups(page, 8);
     await nextStep(page); // Groups → Stage
@@ -130,6 +133,11 @@ const specs = {
     await page.getByRole('button', { name: 'Draw on map' }).first().click();
     await clickTile(page, 14, 12);
     await clickTile(page, 16, 14);
+    await assertVisible(page,
+      page.getByTestId('tactics-map').locator('image'),
+      'pincer: posted bots render their class sprites');
+    await assertVisible(page, page.getByText('drag its arrow tip to turn it'),
+      'pincer: facing gesture hint under the posts row');
     // Flankers assemble behind their lines.
     await page.getByRole('button', { name: 'Draw on map' }).first().click();
     await dragRect(page, 22, 3, 26, 7);
@@ -210,6 +218,9 @@ const specs = {
     await nextStep(page); // Release
     await assertVisible(page, page.getByText('A Core is up for grabs'),
       'core-raid: core-loose trigger row present');
+    await assertVisible(page,
+      page.getByTestId('tactics-map').locator('text', { hasText: 'CORE UP HERE' }),
+      'core-raid: watched Well ring chip on the map');
     await nextStep(page); // Act
     await nextStep(page); // Cores
     await assertVisible(page, page.getByText('Carrier breaks off and banks'),
