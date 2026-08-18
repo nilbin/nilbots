@@ -120,7 +120,23 @@ test('a post on a wall is caught before the server sees it', () => {
   }));
   document.tactics.push(tactic);
   const messages = validateDocument(document, catalog).map((issue) => issue.message);
-  assert.ok(messages.some((message) => /open floor/.test(message)));
+  assert.ok(messages.some((message) => /post at \(0,5\) stands on a wall/.test(message)));
+});
+
+test('a post facing into a wall is named with its fix', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const { tactic } = instantiateRecipe(recipeById('hold-area'), document);
+  tactic.groups[0].slots = [0, 1, 2, 3, 4, 5, 6, 7];
+  tactic.groups[0].stage.posts = Array.from({ length: 8 }, (_, index) => ({
+    at: [1 + index * 3, 5] as [number, number],
+    // The first post stands beside the west wall and stares straight into it.
+    facing: (index === 0 ? 'w' : 'e') as 'w' | 'e',
+  }));
+  document.tactics.push(tactic);
+  const messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) =>
+    /post at \(1,5\) faces a wall — turn its arrow/.test(message)));
 });
 
 test('an approach route validates on legal kinds and reads back in the summary', () => {

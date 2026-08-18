@@ -138,7 +138,51 @@ public sealed class TacticalSheetCompilerTests
             compiler.CompileTactics(
                 tactics.ToJsonString(), unlocked, "post-on-wall"));
 
-        Assert.Contains("must be traversable", error.Message);
+        // The pre-materialization pass names the drawn geometry, never a
+        // generated anchor id.
+        Assert.Contains("tactics[1].groups[0].stage.posts[0]", error.Message);
+        Assert.Contains("stands on a wall", error.Message);
+    }
+
+    [Fact]
+    public void Tactics_path_names_the_post_whose_facing_points_into_a_wall()
+    {
+        var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current);
+        HashSet<Position> reserved = map.SpawnAnchors
+            .Select(value => value.Spawn.Position).ToHashSet();
+        bool Floor(int x, int y) =>
+            x >= 0 && y >= 0 && x < map.Width && y < map.Height
+            && !map.IsWall(x, y);
+        // A tile that is a legal post from both seats but faces east into a
+        // wall — the exact shape the owner hit.
+        Position at = Enumerable.Range(1, map.Height - 2)
+            .SelectMany(y => Enumerable.Range(1, map.Width - 2)
+                .Select(x => new Position(x, y)))
+            .First(p => Floor(p.X, p.Y)
+                && Floor(map.Width - 1 - p.X, map.Height - 1 - p.Y)
+                && !reserved.Contains(p)
+                && !reserved.Contains(new Position(
+                    map.Width - 1 - p.X, map.Height - 1 - p.Y))
+                && map.IsWall(p.X + 1, p.Y));
+        JsonObject tactics = JsonNode.Parse(
+            templates.Starters[0].TacticsJson!)!.AsObject();
+        JsonObject post = tactics["tactics"]![1]!["groups"]![0]!["stage"]!
+            ["posts"]!.AsArray()[0]!.AsObject();
+        post["at"] = new JsonArray(at.X, at.Y);
+        post["facing"] = "e";
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            compiler.CompileTactics(
+                tactics.ToJsonString(), unlocked, "post-facing-wall"));
+
+        Assert.Contains("tactics[1].groups[0].stage.posts[0]", error.Message);
+        Assert.Contains($"faces ({at.X + 1},{at.Y})", error.Message);
+        Assert.Contains("turn its facing", error.Message);
     }
 
     [Fact]

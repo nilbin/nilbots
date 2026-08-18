@@ -6,7 +6,8 @@ import { makePathfinder } from './pathing';
 import { describePlace } from './places';
 import type { MapTask } from './useMapTask';
 import {
-  groupColor, signatureMarkGeometry,
+  FACING_DELTAS, groupColor, postFacingIssue, signatureMarkGeometry,
+  tilePlacementIssue,
   type Facing, type Point, type Rect, type SquadBot, type Tactic,
   type TacticGroup, type TacticPhase, type TacticsDocument, type WellChoice,
 } from './tacticsDocument';
@@ -38,14 +39,11 @@ export interface GeometryEdit {
   apply: (tactic: Tactic) => void;
 }
 
-const FACING_DELTA: Record<Facing, Point> = {
-  n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0],
-};
 
 export function TacticsMapCanvas({
   catalog, document, editingTacticId, selectedTacticId, showAll, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
-  onSelect, onTaskDone, onWallPicked, onPostsSwapped,
+  onSelect, onTaskDone, onTileRejected, onPostsSwapped,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
@@ -62,8 +60,8 @@ export function TacticsMapCanvas({
   onSelect: (ref: MapSelectRef) => void;
   /** Finish an open route task (double-click, mirroring the Done button). */
   onTaskDone?: () => void;
-  /** A draw-task click landed on a wall tile. */
-  onWallPicked?: () => void;
+  /** A draw-task click landed on an illegal tile; the reason is ready to show. */
+  onTileRejected?: (reason: string) => void;
   /** A post drop landed on a groupmate and the two swapped tiles. */
   onPostsSwapped?: () => void;
 }) {
@@ -118,7 +116,7 @@ export function TacticsMapCanvas({
       && (task.kind === 'watch' ? true : task.draw === 'rect');
     if (wantsRect && tile) {
       if (!path.floor(tile[0], tile[1])) {
-        onWallPicked?.();
+        onTileRejected?.('That tile is a wall.');
         return;
       }
       setRectDraft({ start: tile, cur: tile });
@@ -127,11 +125,24 @@ export function TacticsMapCanvas({
     }
   }
 
+  /** Whether a live drag may land here, per what the drag is moving. */
+  function dragTileLegal(drag: DragTarget, tile: Point): boolean {
+    if (drag.kind === 'postface') return true; // direction, not a landing tile
+    if (!path.floor(tile[0], tile[1])) return false;
+    if (drag.kind === 'post' || drag.kind === 'point' || drag.kind === 'sigpoint') {
+      return !tilePlacementIssue(catalog, tile, 'anchor');
+    }
+    if (drag.kind === 'waypoint') {
+      return !tilePlacementIssue(catalog, tile, 'route');
+    }
+    return true;
+  }
+
   function onPointerMove(event: React.PointerEvent) {
     const tile = clientToTile(event);
     const drag = dragRef.current;
     if (drag) {
-      if (tile && path.floor(tile[0], tile[1])) applyDrag(drag, tile);
+      if (tile && dragTileLegal(drag, tile)) applyDrag(drag, tile);
       return;
     }
     if (rectDraft && tile) {
@@ -164,8 +175,18 @@ export function TacticsMapCanvas({
     if (moved) return;
     const tile = clientToTile(event);
     if (task && tile && task.kind !== 'watch' && task.draw !== 'rect') {
-      if (path.floor(tile[0], tile[1])) onTilePicked(tile[0], tile[1]);
-      else onWallPicked?.();
+      // Phase routes are walked, so waypoints follow the route rule; posts,
+      // points and signature marks become anchors.
+      const placement = task.kind === 'phase' && task.draw === 'route'
+        ? 'route' as const
+        : 'anchor' as const;
+      const issue = tilePlacementIssue(catalog, tile, placement);
+      if (issue === null) onTilePicked(tile[0], tile[1]);
+      else {
+        onTileRejected?.(issue === 'a wall'
+          ? 'That tile is a wall.'
+          : `That tile is ${issue}.`);
+      }
       return;
     }
     const selectable = (event.target as Element).closest('[data-select]');
@@ -209,9 +230,13 @@ export function TacticsMapCanvas({
         const dx = x - post.at[0];
         const dy = y - post.at[1];
         if (!dx && !dy) return;
-        post.facing = Math.abs(dx) >= Math.abs(dy)
+        const candidate: Facing = Math.abs(dx) >= Math.abs(dy)
           ? (dx > 0 ? 'e' : 'w')
           : (dy > 0 ? 's' : 'n');
+        // The tip only snaps to directions whose watched tile is legal — a
+        // post cannot be turned to stare into a wall or spawn ground.
+        if (postFacingIssue(catalog, { at: post.at, facing: candidate })) return;
+        post.facing = candidate;
         return;
       }
       if (drag.kind === 'sigpoint') {
@@ -466,7 +491,7 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
       const [x, y] = post.at;
       const cx = x + .5;
       const cy = y + .5;
-      const [fx, fy] = FACING_DELTA[post.facing];
+      const [fx, fy] = FACING_DELTAS[post.facing];
       const angle = Math.atan2(fy, fx);
       const a1 = angle - Math.PI / 4;
       const a2 = angle + Math.PI / 4;

@@ -188,6 +188,66 @@ export const BUILDS: { id: Build; label: string; blurb: string }[] = [
 
 export type DrawKind = 'posts' | 'rect' | 'route' | 'point';
 
+export const FACING_DELTAS: Record<Facing, Point> = {
+  n: [0, -1], e: [1, 0], s: [0, 1], w: [-1, 0],
+};
+
+export type TilePlacement = 'anchor' | 'route';
+
+/** Why this tile cannot host the placement — null when legal. Mirrors the
+ * server sheet compiler exactly: geometry must be legal from BOTH seats,
+ * because the same plan runs mirrored when the entrant is seated east.
+ * Anchors (posts, facing targets, points, marks) must be open, unreserved
+ * ground; route waypoints additionally avoid protected home regions. */
+export function tilePlacementIssue(
+  catalog: TacticalSheetCatalog,
+  [x, y]: Point,
+  placement: TilePlacement,
+): string | null {
+  const width = catalog.map.width;
+  const height = catalog.map.height;
+  const floor = (px: number, py: number) =>
+    px >= 0 && py >= 0 && px < width && py < height
+    && catalog.map.tileRows[py]?.[px] !== '#';
+  const eitherSeat = (points: { x: number; y: number }[]) =>
+    points.some((point) => (point.x === x && point.y === y)
+      || (point.x === width - 1 - x && point.y === height - 1 - y));
+  if (!floor(x, y)) return 'a wall';
+  if (!floor(width - 1 - x, height - 1 - y)) {
+    return 'a wall once the plan mirrors to the east seat';
+  }
+  if (eitherSeat(catalog.map.spawnAnchors.map((spawn) => spawn.position))) {
+    return 'reserved spawn ground';
+  }
+  if (placement === 'route') {
+    const protectedTiles = [
+      ...catalog.map.tileTags
+        .filter((tag) => tag.kind === 'SpawnProtected')
+        .flatMap((tag) => tag.tiles),
+      ...catalog.map.regions
+        .filter((region) => region.id.startsWith('home-'))
+        .flatMap((region) => region.tiles),
+    ];
+    if (eitherSeat(protectedTiles)) return 'inside a protected home region';
+  }
+  return null;
+}
+
+/** The post's facing-target problem, if any: out-of-bounds targets are fine
+ * (no facing anchor is minted), everything else follows the anchor rule. */
+export function postFacingIssue(
+  catalog: TacticalSheetCatalog,
+  post: TacticPost,
+): string | null {
+  const [dx, dy] = FACING_DELTAS[post.facing];
+  const target: Point = [post.at[0] + dx, post.at[1] + dy];
+  if (target[0] < 0 || target[1] < 0
+    || target[0] >= catalog.map.width || target[1] >= catalog.map.height) {
+    return null;
+  }
+  return tilePlacementIssue(catalog, target, 'anchor');
+}
+
 export const GROUP_COLORS = ['#22d3ee', '#f0a35e', '#b49cff'];
 
 export function groupColor(tactic: Tactic, groupId: string): string {
@@ -315,11 +375,8 @@ export function validateDocument(
   if (document.tactics.length > 8) {
     error('tactics', 'A Sheet carries at most eight Tactics.');
   }
-  const width = document.mapWidth;
-  const height = document.mapHeight;
-  const inBounds = ([x, y]: Point) => x >= 0 && y >= 0 && x < width && y < height;
-  const floor = ([x, y]: Point) =>
-    inBounds([x, y]) && catalog.map.tileRows[y]?.[x] !== '#';
+  const anchorIssue = (point: Point) =>
+    tilePlacementIssue(catalog, point, 'anchor');
 
   document.tactics.forEach((tactic, tacticIndex) => {
     const at = `tactics[${tacticIndex}]`;
@@ -336,8 +393,8 @@ export function validateDocument(
         if (assigned.has(slot)) error(groupAt, `A bot is assigned to two Groups in ${tactic.name}.`);
         assigned.add(slot);
       }
-      validatePhaseGeometry(group.stage, true, group, groupAt, floor, error);
-      validatePhaseGeometry(group.act, false, group, `${groupAt}.act`, floor, error);
+      validatePhaseGeometry(group.stage, true, group, groupAt, catalog, error);
+      validatePhaseGeometry(group.act, false, group, `${groupAt}.act`, catalog, error);
       if (group.stage.kind === 'none' && group.act.kind === 'none'
         && tactic.groups.length === 1) {
         error(groupAt, `${group.name} has no plan in either phase.`);
@@ -357,8 +414,12 @@ export function validateDocument(
             continue;
           }
           const points = 'points' in mark ? mark.points : mark.line;
-          if (points.some((point) => !floor(point))) {
-            error(`${groupAt}.sigs`, `${classId}'s marks must sit on open floor.`);
+          for (const point of points) {
+            const bad = anchorIssue(point);
+            if (bad) {
+              error(`${groupAt}.sigs`,
+                `${possessive(classId)} mark at (${point[0]},${point[1]}) is ${bad}.`);
+            }
           }
           if ('line' in mark) {
             const [first] = mark.line;
@@ -406,29 +467,49 @@ function validatePhaseGeometry(
   isStage: boolean,
   group: TacticGroup,
   at: string,
-  floor: (point: Point) => boolean,
+  catalog: TacticalSheetCatalog,
   error: (path: string, message: string) => void,
 ) {
   const expected = expectedGeometry(phase.kind);
+  const anchorIssue = (point: Point) => tilePlacementIssue(catalog, point, 'anchor');
+  const routeIssue = (point: Point) => tilePlacementIssue(catalog, point, 'route');
   if (expected === 'posts') {
     if (!phase.posts || phase.posts.length !== group.slots.length) {
       error(at, `${group.name} needs one post per bot (${phase.posts?.length ?? 0}/${group.slots.length}).`);
-    } else if (phase.posts.some((post) => !floor(post.at))) {
-      error(at, `${possessive(group.name)} posts must sit on open floor.`);
+    } else {
+      for (const post of phase.posts) {
+        const standing = anchorIssue(post.at);
+        if (standing) {
+          error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) stands on ${standing}.`);
+          continue;
+        }
+        const faced = postFacingIssue(catalog, post);
+        if (faced) {
+          error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) faces ${faced} — turn its arrow.`);
+        }
+      }
     }
   } else if (expected === 'rect') {
     if (!phase.rect) error(at, `${group.name} needs its ${isStage ? 'staging area' : 'area'} drawn.`);
   } else if (expected === 'path') {
     if (!phase.path || phase.path.length < 2) {
       error(at, `${group.name} needs its ${phase.kind === 'line' ? 'line' : 'route'} drawn (two or more points).`);
-    } else if (phase.path.some((point) => !floor(point))) {
-      error(at, `${possessive(group.name)} ${phase.kind === 'line' ? 'line' : 'route'} points must sit on open floor.`);
+    } else {
+      for (const point of phase.path) {
+        const bad = routeIssue(point);
+        if (bad) {
+          error(at, `${possessive(group.name)} ${phase.kind === 'line' ? 'line' : 'route'} point (${point[0]},${point[1]}) is ${bad}.`);
+        }
+      }
     }
   } else if (expected === 'point') {
     if (!phase.point) {
       error(at, `${group.name} needs its ${phase.kind === 'approach' ? 'approach point' : 'destination'} picked.`);
-    } else if (!floor(phase.point)) {
-      error(at, `${possessive(group.name)} ${phase.kind === 'approach' ? 'approach point' : 'destination'} must be open floor.`);
+    } else {
+      const bad = anchorIssue(phase.point);
+      if (bad) {
+        error(at, `${possessive(group.name)} ${phase.kind === 'approach' ? 'approach point' : 'destination'} at (${phase.point[0]},${phase.point[1]}) is ${bad}.`);
+      }
     }
   }
   if (phase.via) {
@@ -438,8 +519,13 @@ function validatePhaseGeometry(
       error(at, `${possessive(group.name)} approach route needs two or more points.`);
     } else if (phase.via.length > 16) {
       error(at, `${possessive(group.name)} approach route takes at most 16 points.`);
-    } else if (phase.via.some((point) => !floor(point))) {
-      error(at, `${possessive(group.name)} approach route points must sit on open floor.`);
+    } else {
+      for (const point of phase.via) {
+        const bad = routeIssue(point);
+        if (bad) {
+          error(at, `${possessive(group.name)} approach route point (${point[0]},${point[1]}) is ${bad}.`);
+        }
+      }
     }
   }
 }

@@ -16,10 +16,10 @@ import { groupClause, possessive, summarize } from './summary';
 import { TacticsMapCanvas, type GeometryEdit, type MapSelectRef } from './TacticsMapCanvas';
 import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
-  parseDocument, signatureMarkGeometry, stringifyDocument, validateDocument,
-  sheetIssueFromCompilerError,
-  type Build, type SheetIssue, type SquadBot, type Tactic, type TacticsDraft,
-  type TacticsDocument,
+  parseDocument, postFacingIssue, signatureMarkGeometry, stringifyDocument,
+  validateDocument, sheetIssueFromCompilerError,
+  type Build, type Facing, type SheetIssue, type SquadBot, type Tactic,
+  type TacticsDraft, type TacticsDocument,
 } from './tacticsDocument';
 import { loadLocalDraft, useSheetDraft } from './useSheetDraft';
 import { useMapTask, type MapTask } from './useMapTask';
@@ -309,7 +309,15 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         targetPhase.posts = targetPhase.posts ?? [];
         const existing = targetPhase.posts.findIndex((post) => post.at[0] === x && post.at[1] === y);
         if (existing >= 0) targetPhase.posts.splice(existing, 1);
-        else targetPhase.posts.push({ at: [x, y], facing: x < document.mapWidth / 2 ? 'e' : 'w' });
+        else {
+          // Default facing prefers the enemy's direction, but never points a
+          // fresh post into a wall or spawn ground.
+          const order: Facing[] = x < document.mapWidth / 2
+            ? ['e', 'n', 's', 'w'] : ['w', 'n', 's', 'e'];
+          const facing = order.find((value) =>
+            !postFacingIssue(catalog, { at: [x, y], facing: value })) ?? order[0];
+          targetPhase.posts.push({ at: [x, y], facing });
+        }
       });
       if (!removing && posts.length + 1 >= cap) endTask();
       return;
@@ -621,7 +629,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 onGestureEnd={() => undefined}
                 onSelect={onSelect}
                 onTaskDone={endTask}
-                onWallPicked={() => toast('That tile is a wall.', 'hot')}
+                onTileRejected={(reason) => toast(reason, 'hot')}
                 onPostsSwapped={() => toast('Swapped posts.')}
               />
             </div>

@@ -62,10 +62,245 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         ValidateDeclaredMap(tactics, map);
+        ValidateTacticsGeometry(tactics, map);
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.CompileTactics(
                 tactics, $"{diagnosticName}/tactics.json");
         return ValidateCompiled(compilation, unlockedClassIds);
+    }
+
+    /// <summary>
+    /// Player-language geometry validation for the Tactics document, run
+    /// before materialization so an illegal tile is reported as the post,
+    /// facing, waypoint or mark the player drew — never as a generated
+    /// anchor id. Predicates mirror ValidateMapPlanGeometry's exactly:
+    /// geometry must be legal for both team bindings, because the same plan
+    /// runs mirrored when the entrant is seated east. Malformed shapes fall
+    /// through silently — the Tactics DSL reports those with real paths.
+    /// </summary>
+    private static void ValidateTacticsGeometry(
+        byte[] tactics,
+        ActorMapDefinition map)
+    {
+        JsonDocument parsed;
+        try
+        {
+            parsed = JsonDocument.Parse(tactics);
+        }
+        catch (JsonException)
+        {
+            return;
+        }
+        using JsonDocument document = parsed;
+        if (document.RootElement.ValueKind != JsonValueKind.Object
+            || !document.RootElement.TryGetProperty(
+                "tactics", out JsonElement tacticList)
+            || tacticList.ValueKind != JsonValueKind.Array)
+        {
+            return;
+        }
+
+        bool IsFloor(int x, int y) =>
+            x >= 0 && y >= 0 && x < map.Width && y < map.Height
+            && !map.IsWall(x, y);
+        HashSet<Position> reservedSpawns = map.SpawnAnchors
+            .Select(value => value.Spawn.Position)
+            .ToHashSet();
+        HashSet<Position> spawnProtected = map.TileTags
+            .Where(value => value.Kind
+                == ActorMapTileTagDefinition.TileTagKind.SpawnProtected)
+            .SelectMany(value => value.Tiles)
+            .ToHashSet();
+        HashSet<Position> westProtected = TaggedComponentContaining(
+            spawnProtected,
+            map.Regions.Single(value => value.RegionId == "reactor-west")
+                .Tiles.Single());
+        HashSet<Position> eastProtected = TaggedComponentContaining(
+            spawnProtected,
+            map.Regions.Single(value => value.RegionId == "reactor-east")
+                .Tiles.Single());
+        var westForbidden = new HashSet<Position>(westProtected);
+        westForbidden.UnionWith(map.Regions.Single(
+            value => value.RegionId == "home-west").Tiles);
+        var eastForbidden = new HashSet<Position>(eastProtected);
+        eastForbidden.UnionWith(map.Regions.Single(
+            value => value.RegionId == "home-east").Tiles);
+        string? AnchorIssue(int x, int y) =>
+            !IsFloor(x, y)
+                ? "a wall"
+                : !IsFloor(map.Width - 1 - x, map.Height - 1 - y)
+                    ? "a wall once the plan mirrors to the east seat"
+                    : reservedSpawns.Contains(new Position(x, y))
+                        || reservedSpawns.Contains(new Position(
+                            map.Width - 1 - x, map.Height - 1 - y))
+                        ? "reserved spawn ground"
+                        : null;
+        string? RouteIssue(int x, int y) =>
+            AnchorIssue(x, y)
+            ?? (eastForbidden.Contains(new Position(x, y))
+                || westForbidden.Contains(new Position(
+                    map.Width - 1 - x, map.Height - 1 - y))
+                ? "inside a protected home region"
+                : null);
+        bool TryPoint(JsonElement value, out int x, out int y)
+        {
+            x = 0;
+            y = 0;
+            if (value.ValueKind != JsonValueKind.Array
+                || value.GetArrayLength() != 2)
+            {
+                return false;
+            }
+            JsonElement[] parts = value.EnumerateArray().ToArray();
+            return parts[0].TryGetInt32(out x) && parts[1].TryGetInt32(out y);
+        }
+        void CheckRoute(JsonElement phase, string property, string path)
+        {
+            if (!phase.TryGetProperty(property, out JsonElement route)
+                || route.ValueKind != JsonValueKind.Array)
+            {
+                return;
+            }
+            int index = 0;
+            foreach (JsonElement waypoint in route.EnumerateArray())
+            {
+                if (TryPoint(waypoint, out int x, out int y)
+                    && RouteIssue(x, y) is string reason)
+                {
+                    throw new InvalidDataException(
+                        $"tactics.json {path}.{property}[{index}]: the "
+                        + $"waypoint at ({x},{y}) is {reason} — routes must "
+                        + "stay on open ground that is legal from both seats.");
+                }
+                index++;
+            }
+        }
+
+        int tacticIndex = 0;
+        foreach (JsonElement tactic in tacticList.EnumerateArray())
+        {
+            string tacticPath = $"tactics[{tacticIndex}]";
+            tacticIndex++;
+            if (tactic.ValueKind != JsonValueKind.Object
+                || !tactic.TryGetProperty("groups", out JsonElement groups)
+                || groups.ValueKind != JsonValueKind.Array)
+            {
+                continue;
+            }
+            int groupIndex = 0;
+            foreach (JsonElement group in groups.EnumerateArray())
+            {
+                string groupPath = $"{tacticPath}.groups[{groupIndex}]";
+                groupIndex++;
+                if (group.ValueKind != JsonValueKind.Object)
+                    continue;
+                foreach (string phaseName in (string[])["stage", "act"])
+                {
+                    if (!group.TryGetProperty(
+                            phaseName, out JsonElement phase)
+                        || phase.ValueKind != JsonValueKind.Object)
+                    {
+                        continue;
+                    }
+                    string phasePath = $"{groupPath}.{phaseName}";
+                    if (phase.TryGetProperty("posts", out JsonElement posts)
+                        && posts.ValueKind == JsonValueKind.Array)
+                    {
+                        int postIndex = 0;
+                        foreach (JsonElement post in posts.EnumerateArray())
+                        {
+                            string postPath =
+                                $"{phasePath}.posts[{postIndex}]";
+                            postIndex++;
+                            if (post.ValueKind != JsonValueKind.Object
+                                || !post.TryGetProperty(
+                                    "at", out JsonElement at)
+                                || !TryPoint(at, out int x, out int y))
+                            {
+                                continue;
+                            }
+                            if (AnchorIssue(x, y) is string standing)
+                            {
+                                throw new InvalidDataException(
+                                    $"tactics.json {postPath}: the post at "
+                                    + $"({x},{y}) stands on {standing} — "
+                                    + "posts need open, unreserved ground "
+                                    + "from both seats.");
+                            }
+                            (int dx, int dy) = post.TryGetProperty(
+                                    "facing", out JsonElement facing)
+                                ? facing.GetString() switch
+                                {
+                                    "n" => (0, -1),
+                                    "s" => (0, 1),
+                                    "w" => (-1, 0),
+                                    _ => (1, 0),
+                                }
+                                : (1, 0);
+                            int fx = x + dx;
+                            int fy = y + dy;
+                            if (fx >= 0 && fy >= 0 && fx < map.Width
+                                && fy < map.Height
+                                && AnchorIssue(fx, fy) is string faced)
+                            {
+                                throw new InvalidDataException(
+                                    $"tactics.json {postPath}: the post at "
+                                    + $"({x},{y}) faces ({fx},{fy}), which "
+                                    + $"is {faced} — turn its facing.");
+                            }
+                        }
+                    }
+                    if (phase.TryGetProperty("point", out JsonElement point)
+                        && TryPoint(point, out int px, out int py)
+                        && AnchorIssue(px, py) is string reason)
+                    {
+                        throw new InvalidDataException(
+                            $"tactics.json {phasePath}.point: the "
+                            + $"{(phaseName == "stage" ? "approach point" : "destination")} "
+                            + $"at ({px},{py}) is {reason}.");
+                    }
+                    CheckRoute(phase, "path", phasePath);
+                    CheckRoute(phase, "via", phasePath);
+                }
+                if (!group.TryGetProperty("sigs", out JsonElement sigs)
+                    || sigs.ValueKind != JsonValueKind.Object)
+                {
+                    continue;
+                }
+                foreach (JsonProperty sigPhase in sigs.EnumerateObject())
+                {
+                    if (sigPhase.Value.ValueKind != JsonValueKind.Object)
+                        continue;
+                    foreach (JsonProperty mark in
+                        sigPhase.Value.EnumerateObject())
+                    {
+                        foreach (string shape in (string[])["points", "line"])
+                        {
+                            if (mark.Value.ValueKind != JsonValueKind.Object
+                                || !mark.Value.TryGetProperty(
+                                    shape, out JsonElement marks)
+                                || marks.ValueKind != JsonValueKind.Array)
+                            {
+                                continue;
+                            }
+                            foreach (JsonElement entry in
+                                marks.EnumerateArray())
+                            {
+                                if (TryPoint(entry, out int mx, out int my)
+                                    && AnchorIssue(mx, my) is string bad)
+                                {
+                                    throw new InvalidDataException(
+                                        "tactics.json "
+                                        + $"{groupPath}.sigs.{sigPhase.Name}"
+                                        + $".{mark.Name}: the mark at "
+                                        + $"({mx},{my}) is {bad}.");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private ValidatedTacticalSheet ValidateCompiled(
