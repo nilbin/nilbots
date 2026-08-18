@@ -694,16 +694,49 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (value.ValueKind != JsonValueKind.Object)
             throw Error(path, "expected condition name or all/any object.");
+        ValidateCombination(value, path, conditions, consumers, isUntil, depth: 0);
+    }
+
+    private static void ValidateCombination(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers,
+        bool isUntil,
+        int depth)
+    {
         string[] operators = ["all", "any"];
         string[] found = operators.Where(name => value.TryGetProperty(name, out _))
             .ToArray();
         if (found.Length != 1)
             throw Error(path, "condition combination needs exactly one of all/any.");
         Object(value, path, [found[0]]);
-        string[] names = StringArray(
-            value.GetProperty(found[0]), $"{path}.{found[0]}", 2, 8);
-        foreach (string name in names)
+        JsonElement entries = value.GetProperty(found[0]);
+        string entriesPath = $"{path}.{found[0]}";
+        if (entries.ValueKind != JsonValueKind.Array)
+            throw Error(entriesPath, "expected array.");
+        int count = entries.GetArrayLength();
+        if (count is < 2 or > 8)
+            throw Error(entriesPath, "expected 2 to 8 entries.");
+        int index = 0;
+        foreach (JsonElement entry in entries.EnumerateArray())
         {
+            string entryPath = $"{entriesPath}[{index}]";
+            index++;
+            if (entry.ValueKind == JsonValueKind.Object)
+            {
+                // One nesting level: an all may carry an any (and vice
+                // versa) so a latch can say "ready AND any trigger", but
+                // groups never nest further.
+                if (depth > 0)
+                    throw Error(entryPath, "condition groups nest at most one level.");
+                ValidateCombination(
+                    entry, entryPath, conditions, consumers, isUntil, depth + 1);
+                continue;
+            }
+            if (entry.ValueKind != JsonValueKind.String)
+                throw Error(entryPath, "expected condition name or all/any object.");
+            string name = entry.GetString()!;
             if (name == "always" || !conditions.ContainsKey(name))
                 throw Error(path, $"unknown condition '{name}'.");
             if (conditions[name].Since == "node-entry" && !isUntil)

@@ -48,7 +48,7 @@ booleans.
   "id": "pincer-1", "name": "Pincer", "recipe": "pincer",   // recipe = provenance only
   "start":   { "mode": "always" } | { "mode": "when", "conds": { …rows… } },
   "release": { "mode": "immediate" } | { "mode": "ready" }
-           | { "mode": "ready-when", "conds": { …exactly one row… } },
+           | { "mode": "ready-when", "conds": { …rows… } },
   "finish":  { "outcomes": { …flags… }, "maxAttempt": "none|brief|standard|long" },
   "delivery": { "plan": "none|solo|escort", "preferredSlots": [6] },
   "groups":  [ … 1..3 … ]
@@ -69,8 +69,9 @@ must have a plan (stage or act kind other than `none`).
 | `losses` | `{ "count": 1..7 }` | we are down N bots |
 
 Start rows OR together; `carrier` is start-only, `contact` release-only.
-**`ready-when` takes exactly one active row** — the runtime release latch is a
-single flat condition and cannot latch an OR of rows.
+Release rows OR together too: the latch materializes as
+`all(readiness…, any(rows…))`, using the order grammar's one nesting level,
+so any ticked trigger lets go once every group is in position.
 
 Named zones (`mid`, `their-well`, …) are an editor concept: the document
 always stores the resolved rect (plus the name for display), so the

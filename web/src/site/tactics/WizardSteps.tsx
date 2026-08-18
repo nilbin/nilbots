@@ -70,6 +70,8 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         conds={tactic.start.conds ?? {}}
         kinds={['enemiesAt', 'coreLoose', 'carrier', 'losses']}
         accent="#e6ddd4"
+        watchSymbol="▶"
+        watchAdjective="pale"
         watching={task?.kind === 'watch' && task.which === 'start'}
         onChange={(conds) => change((next) => { next.start.conds = conds; })}
         onDrawWatch={() => startWatchTask('start')}
@@ -453,7 +455,7 @@ export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: S
   const modes = [
     { id: 'immediate' as const, label: 'Immediately', blurb: 'They go as soon as this Tactic starts.' },
     { id: 'ready' as const, label: 'When every Group is ready', blurb: 'Staged, in position, then go together.' },
-    { id: 'ready-when' as const, label: 'Ready, plus a trigger', blurb: 'Hold the leash until the moment is right — one ticked condition lets go.' },
+    { id: 'ready-when' as const, label: 'Ready, plus a trigger', blurb: 'Hold the leash until the moment is right — any ticked condition lets go.' },
   ];
   return <>
     <p className="t-meta">Between Stage and Act sits one shared moment: <b>when do they go?</b>{' '}
@@ -469,8 +471,8 @@ export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: S
       <ConditionRows
         conds={tactic.release.conds ?? {}}
         kinds={['enemiesAt', 'contact', 'coreLoose']}
-        single
         accent="#c8763c"
+        watchAdjective="orange"
         watching={task?.kind === 'watch' && task.which === 'release'}
         onChange={(conds) => change((next) => { next.release.conds = conds; })}
         onDrawWatch={() => startWatchTask('release')}

@@ -376,10 +376,9 @@ export function validateDocument(
     if (tactic.start.mode === 'when' && activeCondCount(tactic.start.conds) === 0) {
       error(`${at}.start`, `${tactic.name} starts “only when…” but no condition is ticked.`);
     }
-    if (tactic.release.mode === 'ready-when') {
-      const count = activeCondCount(tactic.release.conds);
-      if (count === 0) error(`${at}.release`, `${tactic.name}'s release needs its condition ticked.`);
-      if (count > 1) error(`${at}.release`, `${tactic.name}'s release takes exactly one condition.`);
+    if (tactic.release.mode === 'ready-when'
+      && activeCondCount(tactic.release.conds) === 0) {
+      error(`${at}.release`, `${possessive(tactic.name)} release needs at least one condition ticked.`);
     }
     const outcomes = tactic.finish.outcomes;
     const anyOutcome = Object.keys(outcomes).length > 0;

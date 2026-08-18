@@ -84,6 +84,45 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void ReleaseOrsSeveralTriggerRowsInsideTheReadinessGate()
+    {
+        // Two ticked release rows OR together inside the readiness all():
+        // the one place the orders grammar's single nesting level exists for.
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["tactics"]![0]!["release"] = JsonNode.Parse(
+            """
+            {"mode":"ready-when","conds":{
+              "enemiesAt":{"count":2,"zone":{"rect":[13,11,17,15]}},
+              "contact":true}}
+            """);
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement ember = orders.RootElement.GetProperty("roles")
+            .EnumerateArray()
+            .Single(role => role.GetProperty("id").GetString() == "ember");
+        JsonElement release = ember.GetProperty("orders").EnumerateArray()
+            .First().GetProperty("orders").EnumerateArray()
+            .Single(node => node.TryGetProperty("id", out JsonElement id)
+                && id.GetString() == "t1-go");
+        JsonElement[] gate = release.GetProperty("when").GetProperty("all")
+            .EnumerateArray().ToArray();
+        string[] readiness = gate
+            .Where(entry => entry.ValueKind == JsonValueKind.String)
+            .Select(entry => entry.GetString()!).ToArray();
+        Assert.Contains("c-t1-g1-at-post-0", readiness);
+        Assert.Contains("c-t1-g2-ready", readiness);
+        JsonElement trigger = Assert.Single(
+            gate, entry => entry.ValueKind == JsonValueKind.Object);
+        string[] rows = trigger.GetProperty("any").EnumerateArray()
+            .Select(entry => entry.GetString()!).ToArray();
+        Assert.Equal(2, rows.Length);
+        Assert.Contains("c-t1-release-enemies", rows);
+    }
+
+    [Fact]
     public void PincerEncodesTheLifecycleContract()
     {
         TacticalPlaybookCompilation compilation =
@@ -136,9 +175,8 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Theory]
-    [InlineData("release.conds",
-        """{"enemiesAt":{"count":2,"zone":{"rect":[13,11,17,15]}},"contact":true}""",
-        "exactly one active condition row")]
+    [InlineData("release.conds", """{}""",
+        "at least one active condition row")]
     [InlineData("groups[1].slots", "[0, 1, 3, 4, 6, 7, 5]",
         "belongs to more than one group")]
     [InlineData("finish", """{"outcomes":{},"maxAttempt":"none"}""",

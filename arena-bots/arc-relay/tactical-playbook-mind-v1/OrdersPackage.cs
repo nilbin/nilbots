@@ -447,12 +447,28 @@ internal sealed class OrdersPackage
     private static ConditionExpression ParseExpression(JsonElement value)
     {
         if (value.ValueKind == JsonValueKind.String)
-            return new ConditionExpression("one", [value.GetString()!]);
+            return new ConditionExpression("one", [value.GetString()!], []);
         JsonProperty expression = value.EnumerateObject().Single();
+        // Entries are condition names, plus at most one level of nested
+        // all/any groups (the release latch's "ready AND any trigger").
+        var names = new List<string>();
+        var groups = new List<ConditionExpression>();
+        foreach (JsonElement entry in expression.Value.EnumerateArray())
+        {
+            if (entry.ValueKind == JsonValueKind.String)
+            {
+                names.Add(entry.GetString()!);
+                continue;
+            }
+            JsonProperty nested = entry.EnumerateObject().Single();
+            groups.Add(new ConditionExpression(
+                nested.Name,
+                nested.Value.EnumerateArray()
+                    .Select(name => name.GetString()!).ToArray(),
+                []));
+        }
         return new ConditionExpression(
-            expression.Name,
-            expression.Value.EnumerateArray()
-                .Select(name => name.GetString()!).ToArray());
+            expression.Name, names.ToArray(), groups.ToArray());
     }
 
     private static Condition ParseCondition(string id, JsonElement value) => new(
@@ -583,7 +599,8 @@ internal sealed class OrdersPackage
         OrderNode[] Children,
         OrderAction? Action);
 
-    internal sealed record ConditionExpression(string Kind, string[] Names);
+    internal sealed record ConditionExpression(
+        string Kind, string[] Names, ConditionExpression[]? Groups = null);
     internal sealed record Condition(
         string Id,
         string Fact,

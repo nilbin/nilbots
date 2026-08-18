@@ -8908,3 +8908,19 @@ the map-plan geometry tables were raised 64→128 (KiB / entries) in lockstep �
 an owner-approved capacity change so a maximal eight-tactic sheet fits; the
 tracked WASM mirror picks the new cap up at the next release checkpoint as
 usual.
+
+## 332. The order expression grammar nests one level so release rows can OR
+
+#331 constrained `ready-when` to exactly one condition row because the flat
+`all`/`any` expression could not latch "ready AND (A OR B)". That read as an
+arbitrary product limitation in the editor (owner call, 2026-08-18), so the
+grammar gained exactly the missing shape and nothing more: an `all`/`any`
+array entry may now be one nested `all`/`any` group of plain names — one
+level, validated by the orders DSL, written by the tactics materializer as
+`all(readiness…, any(rows…))`, and evaluated recursively by the mind and the
+lifecycle-test harness. Multiple ticked release rows OR together exactly like
+start rows; a single row still materializes flat, so every previously valid
+document compiles byte-identically and no playlist version or rating-era
+change occurs. The editor drops its single-select release cap and the specs
+pin the nested gate (`ReleaseOrsSeveralTriggerRowsInsideTheReadinessGate`,
+`ReleaseFiresOnAnyOfSeveralTriggers`).

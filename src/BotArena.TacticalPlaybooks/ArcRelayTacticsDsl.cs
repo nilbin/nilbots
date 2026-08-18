@@ -214,11 +214,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             releaseRows = ValidateConditionRows(
                 releaseConds, $"{path}.release.conds", width, height,
                 allowCarrier: false, allowContact: true);
-            if (releaseRows.ActiveCount != 1)
+            if (releaseRows.ActiveCount == 0)
             {
                 throw Error($"{path}.release.conds",
-                    "release takes exactly one active condition row; the "
-                    + "release latch cannot express a flat OR over rows.");
+                    "mode 'ready-when' needs at least one active condition row.");
             }
         }
         else if (release.TryGetProperty("conds", out _))

@@ -2454,8 +2454,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        if (expression.Names.Length == 1 && expression.Names[0] == "always")
+        if (expression.Names.Length == 1 && expression.Names[0] == "always"
+            && (expression.Groups?.Length ?? 0) == 0)
+        {
             return OrderTreeRuntime.ConditionEvaluation.True;
+        }
         var results = expression.Names.Select(name =>
         {
             if (name == "always")
@@ -2485,7 +2488,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 matches,
                 trace,
                 $"{name}-{actual}-{condition.Operator}-{condition.Value}"));
-        }).ToArray();
+        }).ToList();
+        // Nested groups (one level by grammar) evaluate as their own
+        // expression and join the combination like any other entry.
+        foreach (OrdersPackage.ConditionExpression group in expression.Groups ?? [])
+        {
+            results.Add((Name: group.Kind, Evaluation: Evaluate(
+                contract, mind, arc, package, body, role, group, orderTicks,
+                carried)));
+        }
         bool value = expression.Kind == "any"
             ? results.Any(result => result.Evaluation.Value)
             : results.All(result => result.Evaluation.Value);

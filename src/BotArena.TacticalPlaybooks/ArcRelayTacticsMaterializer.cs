@@ -386,13 +386,15 @@ internal static class ArcRelayTacticsMaterializer
 
             // Exact-post readiness binds each assigned bot to its own post via
             // its single-bot role; the aggregate form is the fallback when the
-            // flat all[] name budget cannot carry the exact conditions.
+            // flat all[] name budget cannot carry the exact conditions. Two or
+            // more trigger rows fold into one nested any() entry.
+            int rowEntryCount = Math.Min(rowNames.Count, 1);
             List<ArcRelayTacticGroup> stagedGroups = tactic.Groups
                 .Where(group => group.Stage.HasGeometry).ToList();
             int exactCount = stagedGroups.Sum(group =>
                 group.Stage.Kind == "posts" ? group.Slots.Count : 1);
             bool exactPosts = stagedGroups.Any(group => group.Stage.Kind == "posts")
-                && exactCount + rowNames.Count <= 8;
+                && exactCount + rowEntryCount <= 8;
             var names = new List<string>();
             for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
             {
@@ -418,10 +420,16 @@ internal static class ArcRelayTacticsMaterializer
                     names.Add(aggregate);
                 }
             }
-            names.AddRange(rowNames);
+            if (rowNames.Count <= 1)
+            {
+                names.AddRange(rowNames);
+                return names.Count == 0 ? null : Expr.All(names.ToArray());
+            }
+            // Several trigger rows OR together; readiness still ANDs in
+            // front, as a nested group when both halves are present.
             if (names.Count == 0)
-                return null;
-            return Expr.All(names.ToArray());
+                return Expr.Any(rowNames);
+            return Expr.AllWith(names, Expr.Any(rowNames));
         }
 
         private string? AggregateReadiness(
@@ -1569,8 +1577,11 @@ internal static class ArcRelayTacticsMaterializer
         }
     }
 
-    /// <summary>Flat condition expression: one name or an all/any of names.</summary>
-    private sealed record Expr(string? Op, IReadOnlyList<string> Names)
+    /// <summary>Condition expression: one name, or an all/any of names with
+    /// at most one level of nested groups — the release latch's
+    /// "ready AND any trigger" is the shape that needs the nesting.</summary>
+    private sealed record Expr(
+        string? Op, IReadOnlyList<string> Names, IReadOnlyList<Expr>? Groups = null)
     {
         public static Expr One(string name) => new(null, [name]);
 
@@ -1580,10 +1591,15 @@ internal static class ArcRelayTacticsMaterializer
         public static Expr Any(IReadOnlyList<string> names) =>
             names.Count == 1 ? One(names[0]) : new Expr("any", names);
 
+        /// <summary>all(names…, group). The group must be a real combination
+        /// (two or more names), never a bare One.</summary>
+        public static Expr AllWith(IReadOnlyList<string> names, Expr group) =>
+            new("all", names, [group]);
+
         public void Write(Utf8JsonWriter writer, string property)
         {
             writer.WritePropertyName(property);
-            if (Names.Count == 1)
+            if (Names.Count == 1 && (Groups?.Count ?? 0) == 0)
             {
                 writer.WriteStringValue(Names[0]);
                 return;
@@ -1592,6 +1608,15 @@ internal static class ArcRelayTacticsMaterializer
             writer.WriteStartArray(Op!);
             foreach (string name in Names)
                 writer.WriteStringValue(name);
+            foreach (Expr group in Groups ?? [])
+            {
+                writer.WriteStartObject();
+                writer.WriteStartArray(group.Op!);
+                foreach (string name in group.Names)
+                    writer.WriteStringValue(name);
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+            }
             writer.WriteEndArray();
             writer.WriteEndObject();
         }

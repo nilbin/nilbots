@@ -88,6 +88,8 @@ test('an instantiated pincer with drawn geometry validates cleanly', () => {
   tactic.groups[1].slots = [0, 1, 3, 4, 6, 7];
   tactic.groups[1].stage.rect = [22, 3, 26, 7];
   tactic.groups[1].act.point = [15, 12];
+  // Release rows OR together — several ticked triggers are legal.
+  tactic.release.conds = { ...tactic.release.conds, contact: true };
   document.tactics.push(tactic);
   const issues = validateDocument(document, catalog);
   assert.deepEqual(issues.filter((issue) => issue.severity === 'error'), []);

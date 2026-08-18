@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using BotArena.Sdk;
 using BotArena.TacticalPlaybooks;
 
@@ -36,6 +37,29 @@ public sealed class TacticsEncodingLifecycleTests
         harness.World.FlankersReady = _ => false;
         Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(11));
         Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(40));
+    }
+
+    [Fact]
+    public void ReleaseFiresOnAnyOfSeveralTriggers()
+    {
+        // Two ticked release rows: enemies at Mid OR any contact. The gate
+        // materializes as all(readiness…, any(rows…)) — one nested group —
+        // and either trigger alone must release once everyone is ready.
+        Harness harness = Harness.ForRole("vex", tactics =>
+        {
+            JsonObject document = JsonNode.Parse(tactics)!.AsObject();
+            document["tactics"]![0]!["release"]!["conds"]!["contact"] = true;
+            return document.ToJsonString();
+        });
+        harness.World.GuardsAtPosts = _ => true;
+        harness.World.FlankersReady = tick => tick >= 8;
+        harness.World.EnemiesAtMid = _ => false;
+        harness.World.Contact = tick => tick >= 10;
+
+        // Ready but neither trigger yet: still staging.
+        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(9));
+        // Contact alone releases — the enemies row never fired.
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(10));
     }
 
     [Fact]
@@ -160,12 +184,19 @@ public sealed class TacticsEncodingLifecycleTests
 
         private Harness(OrdersPackage.Role role) => _role = role;
 
-        public static Harness ForRole(string roleId)
+        public static Harness ForRole(
+            string roleId,
+            Func<string, string>? mutateTactics = null)
         {
             string root = RepositoryRoot();
             byte[] tactics = File.ReadAllBytes(Path.Combine(
                 root, "tests", "BotArena.Cli.Tests", "Fixtures", "tactics",
                 "pincer.tactics.json"));
+            if (mutateTactics is not null)
+            {
+                tactics = System.Text.Encoding.UTF8.GetBytes(
+                    mutateTactics(System.Text.Encoding.UTF8.GetString(tactics)));
+            }
             TacticalPlaybookCompilation compilation =
                 ArcRelayTacticalPlaybookCompiler.CompileTactics(tactics);
             using JsonDocument orders = JsonDocument.Parse(
@@ -207,9 +238,14 @@ public sealed class TacticsEncodingLifecycleTests
             int tick,
             int elapsed)
         {
-            bool[] values = expression.Names
+            List<bool> values = expression.Names
                 .Select(name => World.Truth(name, tick, elapsed))
-                .ToArray();
+                .ToList();
+            foreach (OrdersPackage.ConditionExpression group
+                in expression.Groups ?? [])
+            {
+                values.Add(Evaluate(group, tick, elapsed).Value);
+            }
             bool value = expression.Kind switch
             {
                 "all" => values.All(entry => entry),
@@ -219,7 +255,7 @@ public sealed class TacticsEncodingLifecycleTests
             string explanation = expression.Kind == "one"
                 ? $"{expression.Names[0]}-{(value ? "true" : "false")}"
                 : string.Join('-', expression.Names.Where(
-                    (_, index) => values[index] == value).Take(2));
+                    (name, index) => values[index] == value).Take(2));
             return new(value, null, explanation);
         }
 
@@ -298,10 +334,25 @@ public sealed class TacticsEncodingLifecycleTests
                 return new OrdersPackage.ConditionExpression(
                     "one", [value.GetString()!]);
             JsonProperty combined = value.EnumerateObject().Single();
+            // Mirror the mind's parser: entries are names plus at most one
+            // level of nested all/any groups.
+            var names = new List<string>();
+            var groups = new List<OrdersPackage.ConditionExpression>();
+            foreach (JsonElement entry in combined.Value.EnumerateArray())
+            {
+                if (entry.ValueKind == JsonValueKind.String)
+                {
+                    names.Add(entry.GetString()!);
+                    continue;
+                }
+                JsonProperty nested = entry.EnumerateObject().Single();
+                groups.Add(new OrdersPackage.ConditionExpression(
+                    nested.Name,
+                    nested.Value.EnumerateArray()
+                        .Select(inner => inner.GetString()!).ToArray()));
+            }
             return new OrdersPackage.ConditionExpression(
-                combined.Name,
-                combined.Value.EnumerateArray()
-                    .Select(entry => entry.GetString()!).ToArray());
+                combined.Name, names.ToArray(), groups.ToArray());
         }
 
         private static string RepositoryRoot()
@@ -322,6 +373,7 @@ public sealed class TacticsEncodingLifecycleTests
         public Func<int, bool> GuardAtPost { get; set; } = _ => true;
         public Func<int, bool> FlankersReady { get; set; } = _ => false;
         public Func<int, bool> EnemiesAtMid { get; set; } = _ => false;
+        public Func<int, bool> Contact { get; set; } = _ => false;
         public Func<int, bool> Hurt { get; set; } = _ => false;
         public Func<int, bool> Carrying { get; set; } = _ => false;
         public Func<int, bool> CoreInReach { get; set; } = _ => false;
@@ -333,6 +385,7 @@ public sealed class TacticsEncodingLifecycleTests
             "c-t1-g1-at-post-1" => GuardsAtPosts(tick) && GuardAtPost(1),
             "c-t1-g2-ready" => FlankersReady(tick),
             "c-t1-release-enemies" => EnemiesAtMid(tick),
+            "enemy-contact" => Contact(tick),
             // Historical evidence with since node-entry: the runtime passes
             // the node's elapsed ticks, so only kills inside that window
             // count — this is exactly the counts-from-release contract.

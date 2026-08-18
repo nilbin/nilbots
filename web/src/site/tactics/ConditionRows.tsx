@@ -7,14 +7,11 @@ export type ConditionRowKind = 'enemiesAt' | 'contact' | 'coreLoose' | 'carrier'
 /**
  * THE condition editor: one tick row per available condition, parameters
  * inline on ticked rows, any ticked row satisfies the question (OR). Start,
- * Release and Finish all speak this idiom (via conditionControls); Release
- * additionally caps active rows at one — the runtime release latch is a
- * single condition — and wears the radio dot to say so.
+ * Release and Finish all speak this idiom (via conditionControls).
  */
-export function ConditionRows({ conds, kinds, single, accent, watchSymbol = '⚡', watchAdjective, watching, onChange, onDrawWatch, onStopWatch }: {
+export function ConditionRows({ conds, kinds, accent, watchSymbol = '⚡', watchAdjective, watching, onChange, onDrawWatch, onStopWatch }: {
   conds: TacticConds;
   kinds: ConditionRowKind[];
-  single?: boolean;
   accent?: string;
   /** The watch chrome's glyph: ▶ for a start watch, ⚡ for a release watch. */
   watchSymbol?: string;
@@ -28,28 +25,12 @@ export function ConditionRows({ conds, kinds, single, accent, watchSymbol = '⚡
   const set = (change: (next: TacticConds) => void) => {
     const next = structuredClone(conds);
     change(next);
-    if (single) {
-      const active: ConditionRowKind[] = [];
-      if (next.enemiesAt) active.push('enemiesAt');
-      if (next.contact) active.push('contact');
-      if (next.coreLoose) active.push('coreLoose');
-      if (next.carrier) active.push('carrier');
-      if (next.losses) active.push('losses');
-      // Keep only the newest tick: the release latch carries one condition.
-      if (active.length > 1) {
-        for (const kind of active) {
-          if (!justToggled.includes(kind)) delete next[kind];
-        }
-      }
-    }
     onChange(next);
   };
-  let justToggled: ConditionRowKind[] = [];
 
   const row = (kind: ConditionRowKind, label: string, extra?: React.ReactNode, on?: boolean) => (
-    <TickRow key={kind} on={Boolean(on)} radio={single} label={label} extra={extra}
+    <TickRow key={kind} on={Boolean(on)} label={label} extra={extra}
       onToggle={() => {
-        justToggled = [kind];
         set((next) => {
           if (on) delete next[kind];
           else if (kind === 'enemiesAt') next.enemiesAt = { count: 5, zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };

@@ -95,8 +95,11 @@ test('release and start share the one tick-row condition idiom', () => {
   assert.match(conditions, /any ticked row satisfies the question \(OR\)/i);
   assert.match(steps, /kinds={\['enemiesAt', 'coreLoose', 'carrier', 'losses'\]}/);
   assert.match(steps, /kinds={\['enemiesAt', 'contact', 'coreLoose'\]}/);
-  assert.match(steps, /single/,
-    'the release latch carries exactly one condition row');
+  // Release rows OR together like start rows since the order grammar's one
+  // nesting level (DECISIONS #332); no single-select cap survives anywhere.
+  assert.match(steps, /any ticked condition lets go/);
+  assert.doesNotMatch(conditions, /single/,
+    'the release latch ORs its rows — no single-select cap');
 });
 
 test('the readback speaks player language with real places', () => {

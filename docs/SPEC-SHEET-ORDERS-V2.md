@@ -239,9 +239,12 @@ names:
 ```json
 { "all": ["hurt", "heal-zone-known"] }
 { "any": ["carrier-visible", "reactor-threatened"] }
+{ "all": ["ready", { "any": ["enemies-here", "enemy-contact"] }] }
 ```
 
-`all`/`any` contain 2–8 unique names and cannot nest. `always` is the only
+`all`/`any` contain 2–8 entries: condition names, plus at most one level of
+nested `all`/`any` groups (whose own entries are names only) — the shape a
+release latch needs to say "ready AND any trigger". `always` is the only
 built-in condition name. Opposites are expressed with an atomic comparison,
 not textual negation. This removes string parsing and ambiguous precedence
 while keeping the editor's AND/OR control honest.
