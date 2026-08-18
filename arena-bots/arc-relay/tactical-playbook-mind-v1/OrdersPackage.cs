@@ -12,7 +12,7 @@ internal sealed class OrdersPackage
     private const int OptionsMagic = 0x50455453; // STEP.
     // In lockstep with the shared compiler's MaximumLinkedBytes and the
     // MindStart evaluation wire cap (raised for Tactics materialization).
-    private const int MaximumPayloadBytes = 128 * 1024;
+    private const int MaximumPayloadBytes = 160 * 1024;
     private const string SheetSchema = "arc-relay-orders-v2";
     private const string MapPlanSchema = "arc-relay-map-plan-v2";
 

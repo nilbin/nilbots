@@ -110,6 +110,35 @@ public sealed class TacticsEncodingLifecycleTests
     }
 
     [Fact]
+    public void ADeadGuardExcusesItsOwnReadiness()
+    {
+        Harness harness = Harness.ForRole("vex");
+        harness.World.GuardsAtPosts = _ => true;
+        // Gantry's post is empty because Gantry is down; the pair
+        // any(at-post, down) excuses it, so the release fires without him.
+        harness.World.GuardAtPost = post => post == 0;
+        harness.World.GuardDown = post => post == 1;
+        harness.World.FlankersReady = _ => true;
+        harness.World.EnemiesAtMid = _ => true;
+
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(5));
+    }
+
+    [Fact]
+    public void AShortHandedGroupCannotHoldTheReleaseHostage()
+    {
+        Harness harness = Harness.ForRole("vex");
+        harness.World.GuardsAtPosts = _ => true;
+        harness.World.FlankersReady = _ => false;
+        // Too many flankers are dead to ever assemble the two-thirds quorum
+        // — the short-handed excuse releases the survivors.
+        harness.World.FlankersShort = _ => true;
+        harness.World.EnemiesAtMid = _ => true;
+
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(5));
+    }
+
+    [Fact]
     public void ExactPostReadinessGatesOnEachAssignedGuard()
     {
         Harness harness = Harness.ForRole("vex");
@@ -371,7 +400,9 @@ public sealed class TacticsEncodingLifecycleTests
     {
         public Func<int, bool> GuardsAtPosts { get; set; } = _ => false;
         public Func<int, bool> GuardAtPost { get; set; } = _ => true;
+        public Func<int, bool> GuardDown { get; set; } = _ => false;
         public Func<int, bool> FlankersReady { get; set; } = _ => false;
+        public Func<int, bool> FlankersShort { get; set; } = _ => false;
         public Func<int, bool> EnemiesAtMid { get; set; } = _ => false;
         public Func<int, bool> Contact { get; set; } = _ => false;
         public Func<int, bool> Hurt { get; set; } = _ => false;
@@ -383,7 +414,10 @@ public sealed class TacticsEncodingLifecycleTests
         {
             "c-t1-g1-at-post-0" => GuardsAtPosts(tick) && GuardAtPost(0),
             "c-t1-g1-at-post-1" => GuardsAtPosts(tick) && GuardAtPost(1),
+            "dn-ember" => GuardDown(0),
+            "dn-gantry" => GuardDown(1),
             "c-t1-g2-ready" => FlankersReady(tick),
+            "c-t1-g2-short" => FlankersShort(tick),
             "c-t1-release-enemies" => EnemiesAtMid(tick),
             "enemy-contact" => Contact(tick),
             // Historical evidence with since node-entry: the runtime passes

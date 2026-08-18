@@ -344,8 +344,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "outcomes", out JsonElement outcomes);
             if (RoleFacts.Contains(fact))
             {
-                if (!hasRole || role.ValueKind != JsonValueKind.String
-                    || !roles.Contains(role.GetString()!))
+                // role-live-count alone may count across a roles list
+                // instead of a single role (the release gate's short-handed
+                // excuse names a whole group).
+                bool listInstead = fact == "role-live-count"
+                    && !hasRole && hasRoles;
+                if (!listInstead
+                    && (!hasRole || role.ValueKind != JsonValueKind.String
+                        || !roles.Contains(role.GetString()!)))
                 {
                     throw Error(at, $"'{fact}' needs a declared role.");
                 }
@@ -354,7 +360,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error(at, $"'{fact}' does not take role.");
             if (fact == "friendly-carriers-in-roles" && !hasRoles)
                 throw Error(at, $"'{fact}' needs declared roles.");
-            if (RoleListFacts.Contains(fact) && hasRoles)
+            bool takesRoleList = RoleListFacts.Contains(fact)
+                || fact == "role-live-count";
+            if (takesRoleList && hasRoles)
             {
                 string[] selectedRoles = StringArray(roleList, $"{at}.roles", 1, 8);
                 if (selectedRoles.Distinct(StringComparer.Ordinal).Count()
@@ -362,7 +370,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     || selectedRoles.Any(value => !roles.Contains(value)))
                     throw Error(at, $"'{fact}' needs unique declared roles.");
             }
-            else if (!RoleListFacts.Contains(fact) && hasRoles)
+            else if (!takesRoleList && hasRoles)
                 throw Error(at, $"'{fact}' does not take roles.");
             if (fact == "friendly-core-resolutions")
             {

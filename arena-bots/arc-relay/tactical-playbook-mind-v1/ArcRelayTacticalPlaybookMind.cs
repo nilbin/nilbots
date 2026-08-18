@@ -2653,8 +2653,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         if (fact.StartsWith("role-", StringComparison.Ordinal))
         {
+            // role-live-count may name a roles list instead of one role; the
+            // members are the union of both spellings.
             MindBody[] members = mind.Bodies.Where(candidate =>
-                    package.RolesByUnit[candidate.UnitId].Id == condition.Role)
+                {
+                    string id = package.RolesByUnit[candidate.UnitId].Id;
+                    return id == condition.Role
+                        || (condition.Roles?.Contains(id) ?? false);
+                })
                 .ToArray();
             if (fact == "role-live-count")
                 return members.Length;

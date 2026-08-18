@@ -58,13 +58,13 @@ public sealed class ArcRelayTacticsMaterializerTests
     public void MaximalDocumentStaysInsideTheRuntimeEnvelope()
     {
         // Eight tactics, three groups each, every feature on every tactic:
-        // the 128 KiB ATL2 envelope and the 128-entry map-plan tables are the
+        // the 160 KiB ATL2 envelope and the 128-entry map-plan tables are the
         // binding budgets, and Compile throws past either — so a clean
         // compile IS the budget assertion.
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.CompileTactics(
                 MaximalDocument(everyFeatureEverywhere: true));
-        Assert.True(compilation.LinkedData.Length <= 128 * 1024);
+        Assert.True(compilation.LinkedData.Length <= 160 * 1024);
     }
 
     [Fact]
@@ -109,17 +109,21 @@ public sealed class ArcRelayTacticsMaterializerTests
                 && id.GetString() == "t1-go");
         JsonElement[] gate = release.GetProperty("when").GetProperty("all")
             .EnumerateArray().ToArray();
-        string[] readiness = gate
-            .Where(entry => entry.ValueKind == JsonValueKind.String)
-            .Select(entry => entry.GetString()!).ToArray();
-        Assert.Contains("c-t1-g1-at-post-0", readiness);
-        Assert.Contains("c-t1-g2-ready", readiness);
+        string[] gateNames = gate
+            .SelectMany(entry => entry.ValueKind == JsonValueKind.String
+                ? (IEnumerable<string>)[entry.GetString()!]
+                : entry.GetProperty("any").EnumerateArray()
+                    .Select(name => name.GetString()!))
+            .ToArray();
+        Assert.Contains("c-t1-g1-at-post-0", gateNames);
+        Assert.Contains("c-t1-g2-ready", gateNames);
         JsonElement trigger = Assert.Single(
-            gate, entry => entry.ValueKind == JsonValueKind.Object);
+            gate, entry => entry.ValueKind == JsonValueKind.Object
+                && entry.GetProperty("any").EnumerateArray().Any(name =>
+                    name.GetString() == "c-t1-release-enemies"));
         string[] rows = trigger.GetProperty("any").EnumerateArray()
             .Select(entry => entry.GetString()!).ToArray();
         Assert.Equal(2, rows.Length);
-        Assert.Contains("c-t1-release-enemies", rows);
     }
 
     [Fact]
@@ -143,11 +147,20 @@ public sealed class ArcRelayTacticsMaterializerTests
                 && id.GetString() == "t1-go");
         // The release gate is exact-post readiness (each guard bot bound to
         // its own post through its single-bot role) plus the enemies trigger.
+        // Each readiness entry pairs with its dead-excuse in a nested any, so
+        // a fallen bot never holds the release hostage.
         string[] gate = release.GetProperty("when").GetProperty("all")
-            .EnumerateArray().Select(value => value.GetString()!).ToArray();
+            .EnumerateArray()
+            .SelectMany(entry => entry.ValueKind == JsonValueKind.String
+                ? (IEnumerable<string>)[entry.GetString()!]
+                : entry.GetProperty("any").EnumerateArray()
+                    .Select(name => name.GetString()!))
+            .ToArray();
         Assert.Contains("c-t1-g1-at-post-0", gate);
+        Assert.Contains("dn-ember", gate);
         Assert.Contains("c-t1-g1-at-post-1", gate);
         Assert.Contains("c-t1-g2-ready", gate);
+        Assert.Contains("c-t1-g2-short", gate);
         Assert.Contains("c-t1-release-enemies", gate);
         // The release latch is the outcome until; evidence counts from entry.
         Assert.True(release.TryGetProperty("until", out JsonElement until));

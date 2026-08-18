@@ -71,7 +71,12 @@ must have a plan (stage or act kind other than `none`).
 Start rows OR together; `carrier` is start-only, `contact` release-only.
 Release rows OR together too: the latch materializes as
 `all(readiness…, any(rows…))`, using the order grammar's one nesting level,
-so any ticked trigger lets go once every group is in position.
+so any ticked trigger lets go once every group is in position. Every
+readiness entry is itself `any(in-position, expectation-dead)` — an
+exact-post gate pairs each post with that bot's `role-live-count 0`, and an
+aggregate gate pairs its two-thirds quorum with a short-handed excuse — so a
+death never holds the release hostage; the fallen rejoin on respawn after
+the tactic has gone.
 
 Named zones (`mid`, `their-well`, …) are an editor concept: the document
 always stores the resolved rect (plus the name for display), so the

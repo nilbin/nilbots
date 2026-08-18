@@ -14,10 +14,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     public const string PlaybookSchema = "arc-relay-orders-v2";
     public const string LayoutSchema = "arc-relay-map-plan-v2";
     public const int DirectEnvelopeMagic = 0x324C5441; // ATL2, little-endian.
-    // Raised from 64 KiB for whole-team Tactics materialization
-    // (owner call, 2026-08-18); the mind payload cap and the MindStart
-    // evaluation wire cap move in lockstep.
-    private const int MaximumLinkedBytes = 128 * 1024;
+    // Raised from 64 KiB for whole-team Tactics materialization and again
+    // 128→160 KiB for the release gate's dead-excuse pairs (owner call,
+    // 2026-08-18); the mind payload cap and the MindStart evaluation wire
+    // cap move in lockstep.
+    private const int MaximumLinkedBytes = 160 * 1024;
 
     public static TacticalPlaybookCompilation Compile(string playbookPath)
     {

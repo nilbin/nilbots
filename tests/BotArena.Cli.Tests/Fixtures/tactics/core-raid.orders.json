@@ -33,9 +33,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -73,9 +83,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -148,9 +168,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -191,9 +221,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -266,9 +306,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -309,9 +359,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -384,9 +444,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -427,9 +497,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -502,9 +582,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -545,9 +635,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -620,9 +720,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -663,9 +773,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -757,9 +877,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -796,9 +926,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -870,9 +1010,19 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -907,9 +1057,19 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-ready",
-                  "c-t1-g2-ready",
-                  "core-up-at-enemy"
+                  "core-up-at-enemy",
+                  {
+                    "any": [
+                      "c-t1-g1-ready",
+                      "c-t1-g1-short"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -1236,11 +1396,33 @@
       "value": 2,
       "zone": "g-t1-g1-set"
     },
+    "c-t1-g1-short": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 1,
+      "roles": [
+        "vex",
+        "piston"
+      ]
+    },
     "c-t1-g2-ready": {
       "fact": "friendlies-in-zone",
       "operator": "at-least",
       "value": 4,
       "zone": "g-t1-g2-set"
+    },
+    "c-t1-g2-short": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 3,
+      "roles": [
+        "solder",
+        "gantry",
+        "flux",
+        "ratchet",
+        "ember",
+        "cinder"
+      ]
     },
     "we-hold-a-core": {
       "fact": "friendly-carriers",

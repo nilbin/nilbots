@@ -25,7 +25,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -59,7 +64,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -111,7 +121,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -145,7 +160,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -197,7 +217,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -231,7 +256,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -283,7 +313,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -317,7 +352,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -369,7 +409,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -403,7 +448,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -455,7 +505,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -489,7 +544,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -541,7 +601,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -574,7 +639,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -626,7 +696,12 @@
             },
             {
               "id": "t1-go",
-              "when": "c-t1-g1-ready",
+              "when": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "until": {
                 "any": [
                   "c-t1-kills",
@@ -654,7 +729,12 @@
             },
             {
               "id": "t1-s",
-              "until": "c-t1-g1-ready",
+              "until": {
+                "any": [
+                  "c-t1-g1-ready",
+                  "c-t1-g1-short"
+                ]
+              },
               "cooldown": 120,
               "orders": [
                 {
@@ -849,6 +929,21 @@
       "operator": "at-least",
       "value": 6,
       "zone": "g-t1-g1-set"
+    },
+    "c-t1-g1-short": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 5,
+      "roles": [
+        "vex",
+        "solder",
+        "gantry",
+        "flux",
+        "ratchet",
+        "ember",
+        "piston",
+        "cinder"
+      ]
     },
     "c-t1-kills": {
       "fact": "confirmed-enemy-destructions-in-zone",

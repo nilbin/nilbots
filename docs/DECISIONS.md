@@ -8924,3 +8924,23 @@ document compiles byte-identically and no playlist version or rating-era
 change occurs. The editor drops its single-select release cap and the specs
 pin the nested gate (`ReleaseOrsSeveralTriggerRowsInsideTheReadinessGate`,
 `ReleaseFiresOnAnyOfSeveralTriggers`).
+
+## 333. Release readiness never waits for the dead
+
+"When every Group is ready" could be held hostage by a death: an
+exact-post gate demanded each named bot at its post, so a downed guard
+stalled release until the respawn wave returned him across the map, and
+a two-thirds quorum became unreachable whenever too many of a group
+died. Every readiness entry now pairs with its own excuse via the #332
+nesting — `any(at-post, role-live-count 0)` per post (the excuse interns
+role-scoped as `dn-<role>` so a maximal sheet stays affordable), and
+`any(quorum, short-handed)` per aggregate group, where short-handed is
+`role-live-count` over the group's roles at most quorum−1; that fact
+alone now accepts a `roles` list, summing across it (grammar + mind in
+lockstep). The dead rejoin on respawn after the tactic has gone.
+Tactic activation itself was never all-alive-gated: each body walks its
+own role tree and enters independently; only the shared release couples
+them, and now only through the living. The paired gate pushed a maximal
+eight-tactic sheet past the runtime envelope, so the #331 lockstep caps
+(ATL2 envelope, mind payload, MindStart wire) rise 128→160 KiB — owner
+session call, revisit if runtime memory ever matters.

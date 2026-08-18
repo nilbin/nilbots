@@ -395,7 +395,12 @@ internal static class ArcRelayTacticsMaterializer
                 group.Stage.Kind == "posts" ? group.Slots.Count : 1);
             bool exactPosts = stagedGroups.Any(group => group.Stage.Kind == "posts")
                 && exactCount + rowEntryCount <= 8;
+            // Every readiness entry is "in position OR that expectation is
+            // dead": a fallen bot excuses its own slot in the gate, so a
+            // death never holds the whole release hostage — it rejoins on
+            // respawn and the tactic has already gone.
             var names = new List<string>();
+            var groups = new List<Expr>();
             for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
             {
                 ArcRelayTacticGroup group = tactic.Groups[groupIndex];
@@ -410,29 +415,38 @@ internal static class ArcRelayTacticsMaterializer
                     bool perPostZones = group.Slots.Count <= 3;
                     for (int post = 0; post < group.Stage.Posts!.Count; post++)
                     {
-                        names.Add(PostReadiness(
-                            prefix, groupTag, group, post, perPostZones));
+                        string ready = PostReadiness(
+                            prefix, groupTag, group, post, perPostZones);
+                        // Role-scoped name: the same bot's excuse interns
+                        // once and every tactic's gate references it, which
+                        // keeps a maximal sheet inside the runtime envelope.
+                        string down = Condition(
+                            new ConditionShape(
+                                "role-live-count", "at-most", 0,
+                                Role: RoleId(group.Slots[post])),
+                            $"dn-{RoleId(group.Slots[post])}");
+                        groups.Add(new Expr("any", [ready, down]));
                     }
                 }
                 else if (AggregateReadiness(prefix, groupTag, group)
-                    is string aggregate)
+                    is Expr aggregate)
                 {
-                    names.Add(aggregate);
+                    groups.Add(aggregate);
                 }
             }
-            if (rowNames.Count <= 1)
-            {
-                names.AddRange(rowNames);
-                return names.Count == 0 ? null : Expr.All(names.ToArray());
-            }
-            // Several trigger rows OR together; readiness still ANDs in
-            // front, as a nested group when both halves are present.
-            if (names.Count == 0)
-                return Expr.Any(rowNames);
-            return Expr.AllWith(names, Expr.Any(rowNames));
+            if (rowNames.Count == 1)
+                names.Add(rowNames[0]);
+            else if (rowNames.Count > 1)
+                groups.Add(Expr.Any(rowNames));
+            int entryCount = names.Count + groups.Count;
+            if (entryCount == 0)
+                return null;
+            if (entryCount == 1)
+                return groups.Count == 1 ? groups[0] : Expr.One(names[0]);
+            return new Expr("all", names, groups);
         }
 
-        private string? AggregateReadiness(
+        private Expr? AggregateReadiness(
             string prefix,
             string groupTag,
             ArcRelayTacticGroup group)
@@ -457,10 +471,18 @@ internal static class ArcRelayTacticsMaterializer
             // jostles bodies at the footprint edge, and demanding all-but-one
             // let a single straggler hold the whole release hostage.
             int required = Math.Max(1, (group.Slots.Count * 2 + 2) / 3);
-            return Condition(
+            string ready = Condition(
                 new ConditionShape(
                     "friendlies-in-zone", "at-least", required, ZoneId: zone),
                 $"c-{prefix}-{groupTag}-ready");
+            // Short-handed excuse: with fewer live members than the quorum,
+            // the group can never assemble it — release without them.
+            string shortHanded = Condition(
+                new ConditionShape(
+                    "role-live-count", "at-most", required - 1,
+                    Roles: group.Slots.Select(RoleId).ToArray()),
+                $"c-{prefix}-{groupTag}-short");
+            return new Expr("any", [ready, shortHanded]);
         }
 
         private string PostReadiness(

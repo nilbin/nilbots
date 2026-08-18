@@ -27,10 +27,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -68,10 +83,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -127,10 +157,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -168,10 +213,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -224,10 +284,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -291,10 +366,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -401,10 +491,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -437,10 +542,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -496,10 +616,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -537,10 +672,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -593,10 +743,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -660,10 +825,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -759,10 +939,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -799,10 +994,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -858,10 +1068,25 @@
               "id": "t1-go",
               "when": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "until": {
@@ -893,10 +1118,25 @@
               "id": "t1-s",
               "until": {
                 "all": [
-                  "c-t1-g1-at-post-0",
-                  "c-t1-g1-at-post-1",
-                  "c-t1-g2-ready",
-                  "c-t1-release-enemies"
+                  "c-t1-release-enemies",
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-0",
+                      "dn-ember"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g1-at-post-1",
+                      "dn-gantry"
+                    ]
+                  },
+                  {
+                    "any": [
+                      "c-t1-g2-ready",
+                      "c-t1-g2-short"
+                    ]
+                  }
                 ]
               },
               "cooldown": 120,
@@ -1121,6 +1361,12 @@
       "role": "ember",
       "zone": "g-t1-g1-near-post-0"
     },
+    "dn-ember": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "ember"
+    },
     "c-t1-g1-at-post-1": {
       "fact": "role-in-zone-count",
       "operator": "at-least",
@@ -1128,11 +1374,30 @@
       "role": "gantry",
       "zone": "g-t1-g1-near-post-1"
     },
+    "dn-gantry": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "gantry"
+    },
     "c-t1-g2-ready": {
       "fact": "friendlies-in-zone",
       "operator": "at-least",
       "value": 4,
       "zone": "g-t1-g2-set"
+    },
+    "c-t1-g2-short": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 3,
+      "roles": [
+        "vex",
+        "solder",
+        "flux",
+        "ratchet",
+        "piston",
+        "cinder"
+      ]
     },
     "c-t1-kills": {
       "fact": "confirmed-enemy-destructions-in-zone",

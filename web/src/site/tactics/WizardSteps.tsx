@@ -481,6 +481,10 @@ export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: S
     )}
     <Readback label="Readback">{releaseClause(tactic)}.</Readback>
     <p className="t-micro text-arena-dim">Groups with no Act just keep holding after release — nobody wanders off.</p>
+    {tactic.release.mode !== 'immediate' && (
+      <p className="t-micro text-arena-dim">Readiness never waits for the dead: a downed bot
+        excuses its own post or slot, and rejoins on respawn.</p>
+    )}
   </>;
 }
 
