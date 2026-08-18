@@ -1,5 +1,10 @@
 # Arc Relay player-ready Tactical Programs follow-up
 
+> **Historical (2026-08-18).** Superseded by whole-team Tactics —
+> `DECISIONS.md` #331, `ARC-RELAY-TACTICS-IMPLEMENTATION-PLAN.md`,
+> `SPEC-SHEET-TACTICS-V1.md`. Kept as design history; nothing here is
+> current product guidance.
+
 Status: **implemented for owner review** — see
 [`ARC-RELAY-PLAYER-READY-PROGRAMS-REPORT.md`](reports/ARC-RELAY-PLAYER-READY-PROGRAMS-REPORT.md)
 Date: 2026-08-16  

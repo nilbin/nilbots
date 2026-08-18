@@ -632,242 +632,61 @@ This is a game-contract invariant that prevents physical ping-pong. It is not
 configurable sheet micro. An author may still put a longer tactical cooldown
 on an order.
 
-## 10. Workshop and hosted loop
+## 10. Tactics and the hosted loop
 
 The product loop is **change → practice → watch → change**.
 
-- `GET /api/sheets/catalog` supplies the Tapline map, class/signature catalog,
-  stable `signatureId`/`actionId` ownership, resolved timing/mechanics,
-  signature-authoring descriptors, unlocks, starter pair, and stock opponents.
-  The workshop consumes that catalog; it does not maintain another
-  class-to-signature or target-capability table.
-- `GET/POST/PUT/DELETE /api/sheets` persists owner-scoped source pairs and
-  optimistic revisions. Every save compiles on the server through the shared
-  compiler. The stored source-size ceilings are 192 KiB for Orders and 96 KiB
-  for the map plan.
-- `POST /api/sheets/{id}/trial` runs the saved draft against a selected frozen
-  stock sheet and opens its fully revealed replay as soon as execution finishes.
-  Practice has no causal broadcast countdown or paced prefix: the author can pause,
-  seek and inspect the whole match immediately.
+The player-owned document is `arc-relay-tactics-v1`
+([SPEC-SHEET-TACTICS-V1.md](SPEC-SHEET-TACTICS-V1.md)): a squad of eight
+named bots plus an ordered list of whole-team **Tactics**. Each Tactic splits
+the eight into one to three temporary Groups, stages them on the map (exact
+Posts with facing, an area, a picket line, or a quiet approach), releases
+every Group at one shared moment, and runs an optional Act — converge,
+advance, patrol, return and bank, or stay on the carrier. The Tactic owns one
+shared Start/Release/Finish condition set in a single tick-row idiom, a
+delivery plan with a dynamic carrier, per-group Core rules and recovery
+presets, and spatial signature marks where the class descriptor admits them.
+Outcomes count only after release. Tactics read top to bottom; a finished
+tactic yields and the list is reevaluated.
+
+The server is the only materializer: every save validates the document,
+deterministically materializes the Orders v2 + map-plan pair, compiles it
+through the shared compiler, and stores all three. The client never generates
+Orders, generated output is never editable, and there is no drift apparatus —
+the Programs workshop sidecar (`arc-relay-workshop-v1`) is retired
+(`DECISIONS.md` #331 supersedes the editor-ownership model of #325–#330;
+sections 1–9 of this document remain normative for the materialization
+TARGET).
+
+- `GET /api/sheets/catalog` supplies the Tapline map, class/signature catalog
+  with authoring descriptors, unlocks, tactics-native starters, and stock
+  opponents. The editor derives signature mark geometry from descriptor
+  capabilities; it maintains no class-id table.
+- `GET/POST/PUT/DELETE /api/sheets` persists owner-scoped Tactics documents
+  with optimistic revisions: `{name, expectedRevision, tacticsJson,
+  enterLadder?}` in, the document plus the materialized pair out. The raw
+  tactics ceiling is 192 KiB.
+- `POST /api/sheets/{id}/trial` runs the saved sheet against a frozen stock
+  opponent and opens the fully revealed replay immediately; the match
+  snapshots the exact tactics revision for attribution.
 - Saving fields a sheet in the current ladder by default, subject to the
   account cap; opting out is deliberate.
 
-The browser keeps a local draft before save, trial, or navigation, so compile
-failure, match failure, and phone-tab eviction do not erase work. Compiler
-diagnostics retain source paths and attach to the card, condition, capacity, or
-map object that caused them.
+The editor is map-first: rail (the Sheet), map (the editor), drawer (the
+questions). Creating a Tactic opens one guided wizard —
+**Start → Groups → Stage → Release → Act → Cores → Finish → Review** — whose
+answers are the document; reopening a Tactic reopens the same answers, and
+nothing is reverse-engineered from generated output. Recipes (Hold Area,
+Centre Rush, Pincer, Core Raid, Patrol, Deliver Core, Blank) prefill the same
+structure and are provenance only. Every Tactic card reads its whole
+operation back as one plain-language sentence, and every drawn footprint
+stays draggable on the map. The browser keeps a local draft, so compile
+failure and phone-tab eviction do not erase work; server diagnostics attach
+back to document fields.
 
-The primary workshop is card-and-map based:
-
-- class/signature cards cast the eight bodies into exact roles;
-- each role shows a nested, draggable priority tree;
-- only the selected node and its ancestor chain are expanded;
-- map-referencing orders open beside the map;
-- conditions, capacities, and exact shared orders use reusable libraries;
-- one persistent Practice action opens setup rather than duplicating actions;
-- the last replay's actual tracks can overlay authored geometry;
-- all controls are reachable by keyboard and touch at 390 px without
-  hover-only behavior.
-
-Raw JSON import/export is an advanced utility. Authored hashes are not shown or
-edited. The workshop never exposes retired vocabulary.
-
-### Tactical Programs are editor ownership, not a gameplay document
-
-The optional `arc-relay-workshop-v1` sidecar lets the web editor link several
-ordinary **Instructions** and map objects into one editable **Program**. The
-persisted implementation names remain `plays`, `PlayProjection`, `OrderNode`
-and `arc-relay-orders-v2` for compatibility; those are not player vocabulary.
-The sidecar is stored with the owning sheet so linkage survives refresh,
-another device, and duplication. It is deliberately excluded from the
-compiler, ATL2, content hash, match identity, and replay. Instructions plus map
-plan remain complete standalone gameplay sources.
-
-Programs are the normal map-first authoring surface. The Program list is read
-top-to-bottom and is the sole user-facing priority order. Materialization is
-deterministic authoring sugar:
-
-1. for each role, filter the ordered Program list to Programs containing that
-   role;
-2. flatten that participant's generated Instruction block in the same Program
-   order; and
-3. place advanced unlinked compatibility Instructions after the Program band.
-
-If a participant has no executable Instruction in one Program, ordinary
-first-executable-leaf selection falls through to that role's next Program.
-Reordering one Program therefore moves every participant block together. There
-is no participant-specific insertion point, runtime Program state, atomic team
-activation, reservation, or second scheduler.
-
-Normal Program controls also derive the Condition wiring. The author chooses a
-shared situation (for example, five visible enemies in a drawn area), each
-participant's area or route, required body count, timeout, signature activation
-area, and whether a signature commitment should be maintained. The editor
-creates and links the corresponding named Conditions; the player does not copy
-Condition ids between participants. Generated Conditions remain collapsed
-under **Advanced** and can be edited there as the exact-source escape hatch.
-
-Area contingents are independently ready by default. The author may combine
-two or more of them into one readiness group. Each role retains one ordinary
-`role-in-zone-count` Condition, while every selected participant receives the
-same flat `all` expression over the shared trigger and all selected readiness
-Conditions. The editor shows both each role's count and the combined body
-total, such as a mixed 1+1+1+2 formation reading 5/5. This linkage remains
-sidecar-only authoring sugar; execution sees only ordinary Conditions and
-Instructions. The current flat expression limit permits at most eight named
-Conditions in one gate.
-
-The product starts from two complete editable Program sheets:
-
-- **Mid Overload Fork** fields a legal eight-body, seven-class roster with two
-  Masons. One remembered enemy-pressure trigger coordinates a 2/2 home
-  defense and a separately armed 5/5 return ambush, while Kestrel raids
-  immediately through one authored route and uses contextual Vector Dash.
-- **Running Relay** is an Experimental coordination/mechanics example with a
-  legal eight-body, seven-class roster and two Relays. One durable Program
-  keeps custody local while the pair moves along a drawn corridor, transfers
-  the same Core through ordinary Arc Toss opportunities, retargets its escort,
-  and completes on the correlated bank event. It is not the recommended first
-  strategy.
-
-The starter catalog classifies one straightforward balanced sheet as
-**Recommended first**, Mid Overload Fork as **Advanced**, and Running Relay as
-**Experimental**. Recommendation is explicit metadata, never catalogue order.
-
-The editor also offers one blank Program and guided lenses for Ambush, Running
-Relay, Veteran escort, Safe return, and Lane closure. A lens is only an
-authoring convenience. Its generated Instructions use the same five action
-names and the same `when`, `until`, `timeout`, `cooldown`, `urgency`, and
-`capacity` fields as the advanced Instructions workspace.
-
-Each Program records stable ownership ids and fingerprints for the
-Instructions, conditions, capacities, anchors, zones, and routes it generated.
-A normal edit regenerates only those owned values deterministically. Generated
-Instructions are an advanced read-only explanation; completing ordinary
-Program authoring never requires visiting them. If materialized source no
-longer matches the recorded fingerprint, save stops and asks the author to
-choose:
-
-- **Regenerate Instructions** replaces only the Program-owned blocks.
-- **Detach to unlinked Instructions** preserves the materialized Instructions
-  and map objects, removes the linkage, and makes that advanced source editable.
-
-Deleting a Program previews its owned sources and can retain geometry. Atomic
-multi-object edits use the editor's normal undo/redo transaction. Stale clients
-that omit workshop fields preserve existing metadata; an explicit replace flag
-is required to clear or change it.
-
-Practice restores the active workspace, selected Program, opponent, and seed.
-The map can overlay actual tracks for only that Program's participating roles;
-an Ambush-style Program also reports the best observed required-slot readiness
-frame. Starting Practice stores an immutable owner-only authoring snapshot:
-sheet revision, normalized workshop, Orders and map plan. It does not enter
-ATL2, the gameplay/content hash, opponent input, or public replay data.
-
-The **Program lens** maps the selected body and replay tick back through that
-snapshot to the accepted generated Instruction. It shows the owning Program,
-the body action, current required-Post occupancy, higher Programs that yielded,
-and the executor's exact recorded gate values. A compact timeline groups
-consecutive ticks by Program/action. Renaming, reordering, or deleting a
-Program later cannot rewrite old attribution; the editor labels the revision
-mismatch and offers both **Open revision used** and **Rerun current draft**.
-Legacy Practice without a snapshot says Program attribution is unavailable
-instead of guessing. These diagnostics interpret the replay for the author and
-never feed back into the match.
-
-### Opportunities remain ordinary Instructions
-
-A participant block may link a durable plan branch to one or more
-**Opportunities**. The focused Program view calls this list **Along the way**.
-The current generic cards are signature use, Fight on contact, Recover health,
-Recover a nearby Core, Handoff, and Drop. Each is a normal sibling in the exact
-displayed order; the durable host continuation stays last.
-
-A signature opportunity points at a real direct-child `use` leaf under that
-branch; it
-stores no second copy of the skill, target, conditions, capacity, lifecycle, or
-Instruction. The use leaf's actual sibling position is its local priority. The
-first following ordinary sibling is its continuation.
-
-If a durable movement/fight leaf needs an opportunity, the editor may scaffold
-one parent branch atomically: opportunity `use` leaves first, one optional
-commitment hold when the catalog calls for it, then the original continuation.
-If a use is unavailable, selection reaches that continuation in the same tick.
-If accepted, it consumes that tick's action and the same parent resumes later.
-There is no compound move-and-use action.
-
-The map-first editor can link an opportunity to a visible activation zone,
-exact anchor, named role/selector, or descriptor-authorized route relation. It
-uses the same map objects and the same reusable signature control as direct
-Instructions. Removing a binding removes only the linked use leaf; detaching
-the Program keeps the exact materialized Instructions editable. Opportunity ids and internal Play ids
-remain in the workshop sidecar and never enter ATL2, execution, match state, or
-replay.
-
-Fight Opportunities use the same `fight` shape as a Program response: optional
-encounter and target areas, ordered target preferences, style, chase limit,
-and per-target capacity. Health recovery derives low/high hysteresis, a bounded
-walking detour, retry lifecycle, carrying policy, and the sheet-wide default of
-one patient per healing tile. **Allow Core carriers to recover** is off by
-default. Turning it on removes both the empty-handed entry gate and the
-became-carrier abort from that ordinary recovery leaf, so a carrier can heal
-and then fall back to the same Program-local custody return; it does not create
-a new carrier routine. Nearby-Core recovery derives a bounded visible
-Core target, optional bank-value filter/ranking, and the sheet-wide default of
-one pursuer per resolved Core. Handoff and Drop are likewise ordinary one-shot
-leaves whose illegal or false case reaches the visible continuation in the
-same tick.
-
-A Program can own a visible **If this Program gains a Core** continuation.
-That continuation is not a Program call or a second priority layer. The
-Program's existing durable participant root owns its trigger, readiness,
-commitment, hard timeout, and authored overall outcome. Beneath that root, each
-participant may have ordinary local carrier and escort branches grouped into
-visible **Core-handling cases**. Cases are evaluated top-to-bottom and may
-filter by bank value and source Well. A specific case normally precedes an
-optional **Any Core** fallback. Reordering a case reorders every participant's
-generated branch together; there is no case scheduler or runtime case state.
-
-Within each case:
-
-- a carrier branch is gated by this participant's current carrying/value/source
-  Conditions and ends when this participant becomes empty-handed;
-- another participant may Follow the nearest current Core carrier filtered to
-  the Program's declared carrier roles, value, and source;
-- Fight, healing, Handoff, Drop, and signature Opportunities remain ordinary
-  siblings inside either local branch; and
-- the parent Program ends only on its authored same-Core bank/drop/loss outcome
-  or hard timeout—not merely because one carrier became empty during Handoff or
-  Arc Toss.
-
-An earlier case that covers every value/source accepted by a later case makes
-the later case unreachable; the editor reports that ordinary-priority shadow.
-The common Handoff controls are only shortcuts for the same direct-child
-`handoff` leaf described above: adjacent ally closer to our reactor, adjacent
-member of a named role, or no Handoff leaf. If the configured receiver is not
-adjacent and eligible, target resolution yields no proposal and evaluation
-continues to the case's next Opportunity or return movement in the same tick.
-
-The Program supplies role filters to ordinary facts and selectors; execution
-has no active-Program fact. Same-Core completion correlates immutable
-pickup/catch/Handoff and bank/drop/loss events by Core identity since the
-durable node entered. A standalone Core-custody Program is still legal as an
-ordinary higher override or lower fallback, but no source Program links or
-jumps to it. The editor explains the actual top-to-bottom result instead.
-
-Core pursuit filters govern deliberate pursuit only. A body can still acquire
-an incidental Core through physical movement. A Program may therefore put a
-value/source-filtered Drop or transfer before its wanted-Core return. An
-accepted Drop consumes the tick and uses the engine's adjacent homeward landing
-plus source-life reclaim delay; it is not discard or permanent avoidance. The
-editor warns when the authored route can repeat the pickup/drop cycle.
-
-Posts are also authoring sugar. A Post owns a standing anchor, readiness zone,
-tolerance, optional cardinal facing point, capacity, and optional maintained
-deployment. **Rebuild when missing** derives `self-deployment-in-zone`;
-**Required before arming** derives the role/signature/zone deployment count
-into shared readiness. The runtime still sees only move/use leaves and
-Conditions. A Post cannot reserve a body or tile.
+Practice attribution needs no sidecar: the materializer mints ordinal ids
+(`vex > t2 > t2-go > t2-g1-a-move`), so executor `debugMessage` paths map
+straight back to Tactic, Group and phase.
 
 ## 11. Runtime and determinism
 

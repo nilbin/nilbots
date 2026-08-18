@@ -8868,3 +8868,43 @@ truth and can be handled inside the active Program by ordered ordinary
 Handoff, Arc Toss, Drop, return, Fight, healing, or signature Instructions.
 The source reclaim interval blocks only immediate same-body recollection; the
 editor warns when authored movement may create a later pickup/drop cycle.
+
+## 331. Tactics replace Programs as the authoring layer, materialized on the server
+
+Owner direction executed 2026-08-18 (design:
+`ARC-RELAY-WHOLE-TEAM-TACTICS-EDITOR-REDESIGN.md`; plan:
+`ARC-RELAY-TACTICS-IMPLEMENTATION-PLAN.md`). The player-owned document is
+`arc-relay-tactics-v1`: a squad of eight named bots plus an ordered list of
+whole-team **Tactics**, each splitting the eight into 1–3 temporary Groups
+with Stage/Act phases, postures, recovery presets, Core rules and spatial
+signature marks, one shared Start/Release/Finish condition set, and a delivery
+plan. A **deterministic server-side materializer** in
+`BotArena.TacticalPlaybooks` turns it into today's `arc-relay-orders-v2` +
+`arc-relay-map-plan-v2` pair (one single-bot role per squad slot, named after
+the bot), which the existing shared compiler compiles to ATL2 unchanged. The
+client never generates Orders, so the entire Programs drift apparatus
+(fingerprints, inspection, Regenerate/Detach, the `arc-relay-workshop-v1`
+sidecar and its validator) is deleted rather than ported.
+
+Encoding facts proved against the real order-tree lifecycle
+(`TacticsEncodingLifecycleTests`): the release sub-branch latches through its
+authored until, so a momentary trigger cannot un-release; outcome evidence
+anchors `since: node-entry` at the release branch, so outcomes count only
+after release; the stage wrapper's until is the release expression, so a
+finished tactic yields no-child-eligible and the next tactic takes over; rearm
+is deterministic (stage/release cooldown 120 ticks, root 40); small posts
+groups gate release on each assigned bot's own post through its single-bot
+role. Attempt timers are brief 60 / standard 180 / long 420 ticks. The
+`ready-when` release carries exactly one condition row, because the flat
+condition grammar cannot latch an OR of rows.
+
+Because Tactics materialize *into* Orders v2 and every embedded stock resource
+is untouched, **no playlist version or rating-era change occurs** — the same
+editor-promotion boundary as #329. Pre-Tactics sheet rows keep a NULL
+`TacticsJson` and turn inert (pre-prod, no migration owed); historical
+Practice workshop snapshots lose attribution with the dropped column. The
+ATL2 envelope, the mind's payload cap, the MindStart evaluation wire cap and
+the map-plan geometry tables were raised 64→128 (KiB / entries) in lockstep —
+an owner-approved capacity change so a maximal eight-tactic sheet fits; the
+tracked WASM mirror picks the new cap up at the next release checkpoint as
+usual.

@@ -210,12 +210,28 @@ Facts are named once under `conditions`. An atomic condition is:
 ```
 
 Operators are `at-least`, `at-most`, `equals`, `less-than`, and
-`greater-than`. Qualifiers are legal only for facts that require them:
+`greater-than`. Qualifiers are legal only for facts that require (or
+optionally admit) them:
 
 - `role` for a declared role;
-- `zone` for a declared zone;
-- `well` for `north`, `centre`, `south`, `own`, or `enemy`;
-- `freshnessTicks` (`1..600`) for remembered facts.
+- `zone` for a declared zone (`self-nearest-visible-enemy-distance` may take
+  an optional zone);
+- `well` for `north`, `centre`, `south`, `own`, or `enemy` (optional on the
+  Core-evidence facts and `friendly-carriers-in-roles`);
+- `freshnessTicks` (`1..600`) for remembered facts;
+- `windowTicks` (`1..1200`) **or** `since` (`match-start` | `node-entry`) —
+  exactly one — for historical evidence facts; `since: "node-entry"` is legal
+  only inside `until`;
+- `roles` (1..8 unique declared roles) for `friendly-carriers-in-roles`
+  (required) and the Core-evidence facts (optional);
+- `signature` (a current signature id) for `role-deployments-in-zone-count`;
+- `coreBankValue` (`{ "operator": equals|at-least|at-most, "value": 1..4 }`)
+  for `self-nearest-visible-loose-core-distance`,
+  `friendly-carriers-in-roles`, and the Core-evidence facts;
+- `correlateAcquisition: true` only on role-filtered bank/drop/loss/resolution
+  evidence, correlating events by authoritative Core identity;
+- `outcomes` (1..3 unique of `bank`, `drop`, `loss`) required on
+  `friendly-core-resolutions`.
 
 An order expression is one condition name, or an explicit combination of
 names:
@@ -234,11 +250,12 @@ The v2 fact catalog is intentionally finite:
 
 | scope | facts |
 | --- | --- |
-| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent` |
-| role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count` |
-| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
+| body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-carrying-core-from-well`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent`, `self-deployment-in-zone` |
+| role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count`, `role-deployments-in-zone-count` |
+| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `friendly-carriers-in-roles`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
+| Core evidence | `friendly-core-pickups`, `friendly-core-acquisitions`, `friendly-core-banks`, `friendly-core-drops`, `friendly-core-losses`, `friendly-core-resolutions` |
 
 `self-order-ticks` is legal in a node's `when`/`until` only. Remembered facts
 require `freshnessTicks`; the sheet therefore states how old knowledge may be.
@@ -314,7 +331,7 @@ authoritative commitment; a higher root priority can still pre-empt and move.
 ```
 
 - `targets` is 1–5 unique values from `carrier`, `weakest`, `nearest`,
-  `medic`, and `marked` in desired order. The order applies among actionable
+  `medic`, `marked`, `veteran`, and `deployment` in desired order. The order applies among actionable
   targets: an enemy with no reachable firing tile inside the current chase
   leash, after known durable blockers, does not mask a later actionable
   preference. Body occupancy remains traffic. If no target is actionable, the
@@ -384,7 +401,9 @@ rejoins monotonically and cannot reset route progress behind the body.
 ```
 
 The supported targets are `nearest-ally-toward-own-reactor`,
-`nearest-empty-handed-ally`, or `{ "role": id }`. Resolution is terrain path
+`nearest-empty-handed-ally`, `{ "role": id }`, or
+`{ "selector": "nearest-ally-toward-own-reactor", "roles": [ … ] }` to
+restrict the receiver to declared roles. Resolution is terrain path
 distance, then unit id. A handoff is a direct adjacent transfer. It never drops
 the Core and it never moves either body. If no legal receiver exists, the next
 order runs.
@@ -420,7 +439,10 @@ Capacity means exactly:
 > At most N bodies may concurrently claim the same resolved target through
 > leaves sharing this capacity.
 
-The range is `1..8`. A named capacity must have at least two expanded leaf
+The range is `1..8`. An inline-capacity leaf may add
+`"select": "highest-veteran"` to prefer veteran level (then walking distance,
+then unit id) among claimants of its explicit selection group. A named
+capacity must have at least two expanded leaf
 consumers; a one-off is inline. It has no variants, lifecycle, selectors,
 orders, fight fields, or role overrides.
 
@@ -490,7 +512,10 @@ from expressing a longer tactical cooldown on an order.
 
 ## 10. Compiler and runtime contract
 
-The shared compiler validates the source pair and emits `ATL2`, containing:
+The shared compiler validates the source pair and emits `ATL2` (the linked
+envelope is capped at 128 KiB; the map plan carries at most 128 zones, 128
+routes and 128 anchors — raised from 64 for whole-team Tactics
+materialization, `DECISIONS.md` #331), containing:
 
 - the exact role/class/upgrade assignment;
 - the exact expanded order tree, with source paths and authored ids;

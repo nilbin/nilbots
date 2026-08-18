@@ -1,5 +1,11 @@
 # Arc Relay linked Plays authoring plan
 
+> **Historical (2026-08-18).** The Programs authoring layer this plan built
+> was replaced by whole-team Tactics with server-side materialization —
+> `DECISIONS.md` #331, `ARC-RELAY-TACTICS-IMPLEMENTATION-PLAN.md`,
+> `SPEC-SHEET-TACTICS-V1.md`. Kept as design history; nothing here is
+> current product guidance.
+
 Status: **implemented on `main` on 2026-08-16, then corrected after owner
 replay review. Running Relay now uses Tapline's registered 58-step outer return
 rather than the shorter inner/lower route. The corrections add one generic
