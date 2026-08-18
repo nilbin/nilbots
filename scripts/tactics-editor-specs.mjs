@@ -258,6 +258,26 @@ const specs = {
     await commitTactic(page, ['the Core home to your reactor', 'the carrier the whole way']);
   },
 
+  async 'squad-caps'(page) {
+    // The roster rule at pick time: one class may field a pair, every other
+    // class is a single, and nothing exceeds the per-class cap.
+    await page.getByTestId('open-squad').click();
+    await page.getByTestId('squad-row-0').click(); // arm Vex · Kestrel
+    await page.getByTestId('class-switchback').click(); // swap → Switchback ×2
+    await assertVisible(page, page.getByTestId('class-grid').getByText('×2'),
+      'the doubled class wears its ×2 badge');
+    await page.getByTestId('squad-row-2').click(); // arm Gantry · Longshot
+    await page.getByTestId('class-mason').click(); // would make a second pair
+    await assertVisible(page,
+      page.getByText('Only one class may field a pair — Switchback already does.'),
+      'a second pair is refused with the reason');
+    await page.getByTestId('class-switchback').click(); // would be a third copy
+    await assertVisible(page,
+      page.getByText('Switchback already fields its pair — 2 is the cap.'),
+      'a third copy is refused with the cap');
+    await page.getByTestId('squad-done').click();
+  },
+
   async 'kind-switch'(page) {
     // Switching a Group's setup kind arms the draw task for the NEW kind —
     // the wizard state hasn't flushed yet when the task starts, so this

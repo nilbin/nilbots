@@ -1130,7 +1130,46 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
   };
   const normalize = (bots: SquadBot[]) =>
     bots.map((bot, index) => ({ ...bot, slot: index }));
+  const counts = new Map<string, number>();
+  for (const bot of squad) counts.set(bot.class, (counts.get(bot.class) ?? 0) + 1);
+  // The roster rule, derived from the catalog's numbers: at most
+  // maximumCopiesPerClass of one class, and the distinct-classes floor
+  // leaves a doubling budget (8 slots, 7 distinct → one pair total).
+  const duplicateBudget = catalog.slotCount - catalog.minimumDistinctClasses;
+  const className = (classId: string) =>
+    catalog.classes.find((value) => value.id === classId)?.name ?? classId;
+  /** Why picking this class now is illegal — null when it's fine. Evaluates
+   * the composition that would result, so swaps account for the freed slot. */
+  const blockReason = (classId: string): string | null => {
+    const next = new Map(counts);
+    if (selected !== null && squad[selected]) {
+      const from = squad[selected].class;
+      if (from === classId) return null;
+      next.set(from, (next.get(from) ?? 1) - 1);
+    }
+    const mine = next.get(classId) ?? 0;
+    if (mine >= catalog.maximumCopiesPerClass) {
+      return `${className(classId)} already fields its pair — ${catalog.maximumCopiesPerClass} is the cap.`;
+    }
+    if (mine >= 1) {
+      const duplicatesAfter = [...next.entries()].reduce((sum, [id, count]) =>
+        sum + Math.max(0, (id === classId ? count + 1 : count) - 1), 0);
+      if (duplicatesAfter > duplicateBudget) {
+        const doubled = [...next.entries()]
+          .find(([id, count]) => id !== classId && count >= 2)?.[0];
+        return doubled
+          ? `Only one class may field a pair — ${className(doubled)} already does.`
+          : 'Only one class may field a pair.';
+      }
+    }
+    return null;
+  };
   const pickClass = (classId: string) => {
+    const blocked = blockReason(classId);
+    if (blocked) {
+      notify?.(blocked, 'hot');
+      return;
+    }
     if (selected !== null && squad[selected]) {
       onChange(normalize(squad.map((bot, index) =>
         index === selected ? { ...bot, class: classId } : bot)));
@@ -1143,8 +1182,6 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
     }
     onChange(normalize([...squad, makeBot(filled, classId)]));
   };
-  const counts = new Map<string, number>();
-  for (const bot of squad) counts.set(bot.class, (counts.get(bot.class) ?? 0) + 1);
   const autoFill = () => {
     onChange(autoFillSquad(catalog, squad));
     notify?.('Squad filled out.');
@@ -1159,18 +1196,21 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
           data-testid="squad-autofill">Auto-fill the rest</button>
         <button type="button" className="btn btn-primary" onClick={onClose} data-testid="squad-done">Done</button>
       </div>
+      <p className="t-micro mb-1.5 text-arena-dim">
+        One class may field a pair — every other class is a single.
+      </p>
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4" data-testid="class-grid">
         {catalog.classes.map((entry) => {
-          const capped = (counts.get(entry.id) ?? 0) >= catalog.maximumCopiesPerClass
-            && selected === null;
+          const count = counts.get(entry.id) ?? 0;
+          const blocked = entry.unlocked ? blockReason(entry.id) : null;
           const swapping = selected !== null && squad[selected]?.class === entry.id;
           const sprite = classSprite(entry.id);
           return (
             <button key={entry.id} type="button"
-              className={`choice-card flex items-center gap-2 text-left ${swapping ? '!border-arena-material' : ''}`}
-              disabled={!entry.unlocked || (capped && filled >= 8)}
+              className={`choice-card flex items-center gap-2 text-left ${swapping ? '!border-arena-material' : ''} ${blocked ? 'opacity-45' : ''}`}
+              disabled={!entry.unlocked}
               data-testid={`class-${entry.id}`}
-              title={entry.signatureName}
+              title={blocked ?? entry.signatureName}
               onClick={() => pickClass(entry.id)}>
               {sprite && <img src={sprite} alt=""
                 className={`h-8 w-8 shrink-0 object-contain drop-shadow ${entry.unlocked ? '' : 'opacity-40 grayscale'}`} />}
@@ -1180,6 +1220,9 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
                 </span>
                 <span className="block t-micro leading-tight text-arena-dim">{entry.fantasy}</span>
               </span>
+              {count > 0 && (
+                <span className="pill ml-auto shrink-0 !text-[9px] text-arena-text">×{count}</span>
+              )}
             </button>
           );
         })}
@@ -1195,6 +1238,7 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
               <div key={index}
                 className={`flex min-h-9 items-center gap-2 rounded-sm border px-2 ${selected === index ? 'border-arena-material' : 'border-arena-edge'}`}>
                 <button type="button" className="flex grow items-center gap-2 text-left"
+                  data-testid={`squad-row-${index}`}
                   onClick={() => setSelected(selected === index ? null : index)}>
                   {classSprite(bot.class) && <img src={classSprite(bot.class)} alt=""
                     className="h-7 w-7 shrink-0 object-contain drop-shadow" />}
