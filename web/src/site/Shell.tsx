@@ -16,7 +16,10 @@ export default function Shell() {
   const navigate = useNavigate();
 
   return (
-    <div className="mx-auto flex min-h-screen w-full min-w-0 max-w-6xl flex-col px-4 pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[640px]:pb-0 md:px-6">
+    // The masthead bar spans the full window (its content stays at reading
+    // width); main owns the reading column, and full-bleed workbench pages
+    // break out of main without leaving a stranded-looking header above.
+    <div className="flex min-h-screen w-full min-w-0 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[640px]:pb-0">
         <ScrollToHash />
         <a
           href="#main-content"
@@ -25,48 +28,51 @@ export default function Shell() {
           Skip to content
         </a>
         <NotificationCenter />
-        <header className="flex flex-nowrap items-center gap-3.5 border-b border-arena-edge bg-arena-panel px-3.5 py-2.5 max-[359px]:gap-2 max-[359px]:px-2.5">
-          <Link to="/" className="shrink-0 text-arena-material">
-            <Logo size={17} />
-          </Link>
-          <nav
-            className="ml-auto hidden flex-nowrap items-center gap-0.5 min-[640px]:flex"
-            aria-label="Primary navigation"
-          >
-            <TopLink to="/">Season</TopLink>
-            <TopLink to="/entrants">Entrants</TopLink>
-            <TopLink to="/watch">Watch</TopLink>
-            <TopLink to="/docs">Docs</TopLink>
-          </nav>
-          <div className="ml-auto flex min-w-0 items-center gap-2 max-[359px]:gap-1">
-            {user ? (
-              <>
+        <header className="border-b border-arena-edge bg-arena-panel">
+          <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-nowrap items-center gap-3.5 px-4 py-2.5 max-[359px]:gap-2 max-[359px]:px-2.5 md:px-6">
+            <Link to="/" className="shrink-0 text-arena-material">
+              <Logo size={17} />
+            </Link>
+            <nav
+              className="ml-auto hidden flex-nowrap items-center gap-0.5 min-[640px]:flex"
+              aria-label="Primary navigation"
+            >
+              <TopLink to="/">Season</TopLink>
+              <TopLink to="/entrants">Entrants</TopLink>
+              <TopLink to="/watch">Watch</TopLink>
+              <TopLink to="/docs">Docs</TopLink>
+            </nav>
+            <div className="ml-auto flex min-w-0 items-center gap-2 max-[359px]:gap-1">
+              {user ? (
+                <>
+                  <Link
+                    to="/entrants"
+                    aria-label={`${user.displayName}'s entrants`}
+                    className="t-meta hidden min-h-11 min-w-0 items-center truncate transition-colors hover:text-arena-text sm:inline-flex"
+                  >
+                    {user.displayName}
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => void logout().then(() => navigate('/'))}
+                    className="btn min-h-11 shrink-0 text-arena-dim hover:text-arena-text max-[359px]:px-2"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
                 <Link
-                  to="/entrants"
-                  aria-label={`${user.displayName}'s entrants`}
-                  className="t-meta hidden min-h-11 min-w-0 items-center truncate transition-colors hover:text-arena-text sm:inline-flex"
+                  to="/login"
+                  className="btn btn-primary shrink-0"
                 >
-                  {user.displayName}
+                  Sign in
                 </Link>
-                <button
-                  type="button"
-                  onClick={() => void logout().then(() => navigate('/'))}
-                  className="btn min-h-11 shrink-0 text-arena-dim hover:text-arena-text max-[359px]:px-2"
-                >
-                  Sign out
-                </button>
-              </>
-            ) : (
-              <Link
-                to="/login"
-                className="btn btn-primary shrink-0"
-              >
-                Sign in
-              </Link>
-            )}
+              )}
+            </div>
           </div>
         </header>
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 py-6">
+        <main id="main-content" tabIndex={-1}
+          className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 md:px-6">
           <Outlet />
         </main>
         <nav

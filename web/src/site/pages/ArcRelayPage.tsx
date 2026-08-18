@@ -68,7 +68,7 @@ export default function ArcRelayPage({
     // shell's reading width to a full-bleed, viewport-height three-pane
     // layout (the design mock's shell), with a slim one-row masthead.
     return (
-      <div className="mx-[calc(50%-50vw)] flex flex-col gap-3 overflow-x-clip px-3 md:px-4">
+      <div className="mx-[calc(50%-50vw)] flex flex-col gap-3 overflow-x-clip px-4 md:px-6">
         <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
           <p className="lab">Tactics editor</p>
           <h1 className="type-display text-[16px]">Change. Run. Watch. Adjust.</h1>
