@@ -148,6 +148,7 @@ public sealed class OrderTreeRuntimeTests
             Until: until,
             Timeout: null,
             Cooldown: 0,
+            Rejoin: false,
             Urgency: TacticalMovementUrgency.Normal,
             Capacity: null,
             Selection: null,

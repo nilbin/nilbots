@@ -8962,3 +8962,20 @@ the help text's hosted line. The hosted-execution gate is recalibrated
 for the deeper bank-gated matches (the reference cell ends ~tick 541:
 Debug coarse gate 5s→8s, Release steady gate 1.6s→3s against a 2.220s
 measurement).
+
+## 335. Release branches are squad-rejoinable
+
+Owner scene report (2026-08-19, practice replay `bb1131ce`): a bot that
+died before its tactic released respawned, walked back to its post, and
+camped there alone while six squadmates fought on in the released act —
+its own release gate could never re-form because readiness demands the
+squad at its posts and the squad had left them. The order grammar gains
+an opt-in `rejoin` flag (requires `when`; matched by order id across
+roles because role trees are per-body), and the runtime keeps a
+squad-wide holder set per rejoin id: while any squadmate holds the node
+active, a fresh body enters it without the gate, bypassing the `when`
+only — never its own cooldown. The tactics materializer sets the flag
+on every generated release branch, making the release latch squad-wide:
+respawned bodies catch up with the released squad, and only a full wipe
+clears the latch back to staging. Per-body evidence windows (outcome
+counting from each body's own entry) are unchanged.

@@ -124,6 +124,9 @@ public sealed class ArcRelayTacticsMaterializerTests
         string[] rows = trigger.GetProperty("any").EnumerateArray()
             .Select(entry => entry.GetString()!).ToArray();
         Assert.Equal(2, rows.Length);
+        // The gated release branch is squad-rejoinable: a body respawning
+        // after the squad has gone catches up instead of re-staging alone.
+        Assert.True(release.GetProperty("rejoin").GetBoolean());
     }
 
     [Fact]

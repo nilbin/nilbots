@@ -593,13 +593,20 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             : new[] { found[0] };
         var optional = new[]
         {
-            "when", "until", "timeout", "cooldown", "capacity", "urgency",
-            "select",
+            "when", "until", "timeout", "cooldown", "rejoin", "capacity",
+            "urgency", "select",
         };
         Object(value, path, required, optional);
         ValidateLifecycle(value, path, conditions, consumers);
         if (value.TryGetProperty("urgency", out _))
             OneOf(value, "urgency", path, "routine", "normal", "urgent");
+        if (value.TryGetProperty("rejoin", out JsonElement rejoin))
+        {
+            if (rejoin.ValueKind != JsonValueKind.True)
+                throw Error(path, "rejoin must be true when present.");
+            if (!value.TryGetProperty("when", out _))
+                throw Error(path, "rejoin needs a when gate to bypass.");
+        }
 
         if (found[0] == "orders")
         {

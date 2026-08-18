@@ -339,6 +339,11 @@ internal static class ArcRelayTacticsMaterializer
                         // a lapsed trigger cannot un-release the tactic.
                         Until = outcomes ?? Expr.One(Never()),
                         Cooldown = PhaseCooldown,
+                        // Rejoin makes the latch squad-wide: a body respawning
+                        // after the release finds its squadmates gone from the
+                        // posts, so its own gate can never re-form — it joins
+                        // the released phase instead of re-staging alone.
+                        Rejoin = true,
                         Children = actLeaves,
                     });
                 }
@@ -397,8 +402,9 @@ internal static class ArcRelayTacticsMaterializer
                 && exactCount + rowEntryCount <= 8;
             // Every readiness entry is "in position OR that expectation is
             // dead": a fallen bot excuses its own slot in the gate, so a
-            // death never holds the whole release hostage — it rejoins on
-            // respawn and the tactic has already gone.
+            // death never holds the whole release hostage — and the go
+            // branch's rejoin flag lets it catch up with the released squad
+            // on respawn instead of re-staging at an abandoned post.
             var names = new List<string>();
             var groups = new List<Expr>();
             for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
@@ -1675,6 +1681,7 @@ internal static class ArcRelayTacticsMaterializer
         public Expr? Until { get; set; }
         public int? Timeout { get; set; }
         public int? Cooldown { get; set; }
+        public bool Rejoin { get; set; }
         public string? Urgency { get; set; }
         public string? CapacityName { get; set; }
         public List<Node>? Children { get; set; }
@@ -1698,6 +1705,8 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteNumber("timeout", timeout);
             if (Cooldown is int cooldown)
                 writer.WriteNumber("cooldown", cooldown);
+            if (Rejoin)
+                writer.WriteBoolean("rejoin", true);
             if (CapacityName is not null)
                 writer.WriteString("capacity", CapacityName);
             if (Urgency is not null)

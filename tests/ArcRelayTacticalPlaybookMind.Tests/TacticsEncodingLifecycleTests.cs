@@ -139,6 +139,34 @@ public sealed class TacticsEncodingLifecycleTests
     }
 
     [Fact]
+    public void ARespawnedFlankerRejoinsItsReleasedSquad()
+    {
+        Harness harness = Harness.ForRole("vex");
+        harness.World.GuardsAtPosts = _ => true;
+        harness.World.FlankersReady = tick => tick >= 8;
+        harness.World.EnemiesAtMid = tick => tick == 10;
+        var veteran = new ActorIdentity(0, 0, 0);
+        var respawn = new ActorIdentity(0, 1, 1);
+        var lateWave = new ActorIdentity(0, 2, 0);
+
+        // The veteran releases at tick 10, then trigger and readiness lapse.
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(veteran, 10));
+        harness.World.FlankersReady = _ => false;
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(veteran, 11));
+        // A squadmate's fresh life evaluates a closed gate — readiness can
+        // never re-form around the departed squad — but the go branch is
+        // rejoin-flagged, so it catches up instead of re-staging alone.
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(respawn, 12));
+        // The veteran falls: the rejoined body keeps acting on its own latch.
+        harness.Prune(respawn);
+        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(respawn, 13));
+        // Full wipe clears the squad latch: the next fresh life re-stages and
+        // waits for a genuine release like the opening did.
+        harness.Prune(lateWave);
+        Assert.Equal("t1-g2-s-move", harness.EligibleLeafFor(lateWave, 14));
+    }
+
+    [Fact]
     public void ExactPostReadinessGatesOnEachAssignedGuard()
     {
         Harness harness = Harness.ForRole("vex");
@@ -248,18 +276,26 @@ public sealed class TacticsEncodingLifecycleTests
         }
 
         public string EligibleLeaf(int tick) =>
-            Eligible(tick).Leaves[0].Node.Id;
+            Eligible(_actor, tick).Leaves[0].Node.Id;
+
+        public string EligibleLeafFor(ActorIdentity actor, int tick) =>
+            Eligible(actor, tick).Leaves[0].Node.Id;
+
+        public void Prune(params ActorIdentity[] live) =>
+            _runtime.Prune(live.ToHashSet());
 
         public (string Root, string Leaf) FirstEligible(int tick)
         {
-            OrderTreeRuntime.EligibilityResult result = Eligible(tick);
+            OrderTreeRuntime.EligibilityResult result = Eligible(_actor, tick);
             OrderTreeRuntime.EligibleLeaf first = result.Leaves[0];
             string root = first.Node.Path.Split(" > ")[1];
             return (root, first.Node.Id);
         }
 
-        private OrderTreeRuntime.EligibilityResult Eligible(int tick) =>
-            _runtime.Eligible(_actor, _role, tick,
+        private OrderTreeRuntime.EligibilityResult Eligible(
+            ActorIdentity actor,
+            int tick) =>
+            _runtime.Eligible(actor, _role, tick,
                 (expression, elapsed) => Evaluate(expression, tick, elapsed));
 
         private OrderTreeRuntime.ConditionEvaluation Evaluate(
@@ -327,6 +363,8 @@ public sealed class TacticsEncodingLifecycleTests
                 Cooldown: node.TryGetProperty("cooldown", out JsonElement cooldown)
                     ? cooldown.GetInt32()
                     : 0,
+                Rejoin: node.TryGetProperty("rejoin", out JsonElement rejoin)
+                    && rejoin.ValueKind == JsonValueKind.True,
                 Urgency: TacticalMovementUrgency.Normal,
                 Capacity: null,
                 Selection: null,

@@ -9,6 +9,12 @@ internal sealed class OrderTreeRuntime
 {
     private readonly Dictionary<(ActorIdentity Actor, string Path), State> _states = [];
 
+    // Squad-wide holders of each rejoin-flagged node, keyed by order id: role
+    // trees are per-body, so the same squad phase appears under a different
+    // path per role, and the shared generated id is what identifies it.
+    private readonly Dictionary<string, HashSet<ActorIdentity>> _rejoinHolders =
+        new(StringComparer.Ordinal);
+
     public EligibilityResult Eligible(
         ActorIdentity actor,
         OrdersPackage.Role role,
@@ -37,6 +43,8 @@ internal sealed class OrderTreeRuntime
         foreach ((ActorIdentity actor, string path) in _states.Keys
                      .Where(key => !live.Contains(key.Actor)).ToArray())
             _states.Remove((actor, path));
+        foreach (HashSet<ActorIdentity> holders in _rejoinHolders.Values)
+            holders.RemoveWhere(holder => !live.Contains(holder));
     }
 
     public void Complete(
@@ -48,6 +56,7 @@ internal sealed class OrderTreeRuntime
         State state = _states.GetValueOrDefault(key)
             ?? new State(false, tick, 0, null);
         _states[key] = Exit(state, node, tick);
+        ReleaseRejoin(node, actor);
     }
 
     private string? Visit(
@@ -83,6 +92,7 @@ internal sealed class OrderTreeRuntime
             if (timedOut || until || whenEnded)
             {
                 state = Exit(state, node, tick);
+                ReleaseRejoin(node, actor);
                 left = true;
                 rejection = timedOut
                     ? "timeout"
@@ -98,6 +108,18 @@ internal sealed class OrderTreeRuntime
                 ? ConditionEvaluation.True
                 : evaluate(node.When, 0)
             : ConditionEvaluation.False;
+        // A rejoin-flagged phase admits a body whose own gate says no while a
+        // squadmate already holds it: the phase has gone, so a respawned or
+        // late body catches up instead of re-staging for a release that
+        // cannot re-form around the departed squad.
+        if (!entry.Value
+            && !state.Active
+            && !left
+            && tick >= state.ReadyTick
+            && SquadHolds(node, actor))
+        {
+            entry = new ConditionEvaluation(true, "rejoin", "rejoin-squad-active");
+        }
         if (!state.Active
             && !left
             && tick >= state.ReadyTick
@@ -105,6 +127,7 @@ internal sealed class OrderTreeRuntime
         {
             state = new State(true, tick, state.ReadyTick, entry.Trace);
             currentEvidence = entry.Trace;
+            HoldRejoin(node, actor);
         }
         _states[key] = state;
         if (!state.Active)
@@ -143,10 +166,33 @@ internal sealed class OrderTreeRuntime
         {
             (ActorIdentity, string) key = (actor, child.Path);
             if (_states.TryGetValue(key, out State? state) && state.Active)
+            {
                 _states[key] = Exit(state, child, tick);
+                ReleaseRejoin(child, actor);
+            }
             DeactivateChildren(actor, child.Children, tick);
         }
     }
+
+    private void HoldRejoin(OrdersPackage.OrderNode node, ActorIdentity actor)
+    {
+        if (!node.Rejoin)
+            return;
+        if (!_rejoinHolders.TryGetValue(node.Id, out HashSet<ActorIdentity>? holders))
+            _rejoinHolders[node.Id] = holders = [];
+        holders.Add(actor);
+    }
+
+    private void ReleaseRejoin(OrdersPackage.OrderNode node, ActorIdentity actor)
+    {
+        if (node.Rejoin)
+            _rejoinHolders.GetValueOrDefault(node.Id)?.Remove(actor);
+    }
+
+    private bool SquadHolds(OrdersPackage.OrderNode node, ActorIdentity actor) =>
+        node.Rejoin
+            && _rejoinHolders.GetValueOrDefault(node.Id) is { } holders
+            && holders.Any(holder => !holder.Equals(actor));
 
     private static State Exit(
         State state,

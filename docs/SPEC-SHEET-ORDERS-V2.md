@@ -155,6 +155,7 @@ Every branch and leaf uses the same optional fields:
 | `until` | once entered, latch until this expression becomes true |
 | `timeout` | maximum active match ticks, `1..1200` |
 | `cooldown` | match ticks before this same node may enter again, `0..1200` |
+| `rejoin` | `true` makes the `when` gate squad-latched: while any squadmate holds a node with this order id active, a body may enter its own without the gate; requires `when` |
 | `urgency` | allied movement weight: `routine`, `normal`, or `urgent`; inherited, top-level default `normal` |
 
 Rules:
@@ -165,6 +166,12 @@ Rules:
    the node. Cooldown starts on exit, not on temporary pre-emption.
 3. A higher-priority sibling may pre-empt a node without resetting it. Its
    wall-clock timeout continues, and it resumes if still active.
+4. `rejoin` matches by order id across roles — role trees are per-body, and
+   marking the same id in several roles declares one squad phase. It bypasses
+   only the gate, never the body's own cooldown, and the latch empties when
+   every holder exits or dies. The tactics materializer sets it on each
+   generated release branch so a respawned body catches up with its released
+   squad instead of re-staging at an abandoned post.
 4. `move`, `fight`, and branches are ongoing until their lifecycle exits.
    A `move.to` leaf holds at its destination, so zone defence and healing do
    not repeatedly exit and re-enter. `use`, `handoff`, and `drop` succeed only

@@ -145,8 +145,8 @@ Example:
 }
 ```
 
-Branches and leaves may use `when`, `until`, `timeout`, `cooldown`, and
-`urgency`. Only a leaf may use `capacity`. A leaf has exactly one of `move`,
+Branches and leaves may use `when`, `until`, `timeout`, `cooldown`, `rejoin`,
+and `urgency`. Only a leaf may use `capacity`. A leaf has exactly one of `move`,
 `fight`, `use`, `handoff`, or `drop`. Two branch levels plus a leaf is the
 maximum depth.
 
@@ -164,10 +164,15 @@ priority position.
 | `until` | once entered, latches the node until this becomes true |
 | `timeout` | active wall-clock ticks, `1..1200` |
 | `cooldown` | ticks before this same node may enter again, `0..1200` |
+| `rejoin` | `true` squad-latches the gate: while any squadmate holds a node with this id active, a body enters without its `when`; requires `when` |
 | `urgency` | allied movement weight: `routine`, `normal`, or `urgent` |
 
 - Without `until`, `when` remains the node's ongoing eligibility.
 - With `until`, `when` gates entry and `until` owns exit.
+- `rejoin` matches by order id across roles and bypasses only the gate, never
+  the body's own cooldown; the latch empties when every holder exits or dies.
+  Generated tactics release branches carry it, so a bot respawning after the
+  squad has gone catches up instead of re-staging at an abandoned post.
 - Timeout, successful one-shot action, death, or ancestor exit ends the node.
   Cooldown starts on exit.
 - Higher-priority work may pre-empt an active node without resetting it; its

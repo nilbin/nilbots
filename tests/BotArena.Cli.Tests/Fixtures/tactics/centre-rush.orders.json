@@ -39,6 +39,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -135,6 +136,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -231,6 +233,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -327,6 +330,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -423,6 +427,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -519,6 +524,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -615,6 +621,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"
@@ -710,6 +717,7 @@
                 ]
               },
               "cooldown": 120,
+              "rejoin": true,
               "orders": [
                 {
                   "shared": "t1-g1-a-fight"

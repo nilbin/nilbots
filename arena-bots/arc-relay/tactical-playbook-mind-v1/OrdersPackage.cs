@@ -273,6 +273,8 @@ internal sealed class OrdersPackage
         int cooldown = value.TryGetProperty("cooldown", out JsonElement cooldownValue)
             ? cooldownValue.GetInt32()
             : 0;
+        bool rejoin = value.TryGetProperty("rejoin", out JsonElement rejoinValue)
+            && rejoinValue.ValueKind == JsonValueKind.True;
         TacticalMovementUrgency urgency = value.TryGetProperty(
             "urgency", out JsonElement urgencyValue)
                 ? ParseUrgency(urgencyValue.GetString()!)
@@ -291,7 +293,8 @@ internal sealed class OrdersPackage
         if (value.TryGetProperty("orders", out JsonElement children))
         {
             return new OrderNode(
-                id, path, when, until, timeout, cooldown, urgency, null, null,
+                id, path, when, until, timeout, cooldown, rejoin, urgency,
+                null, null,
                 ParseOrders(
                     children, shared, roleId, path, branchDepth + 1, urgency),
                 null);
@@ -306,8 +309,8 @@ internal sealed class OrdersPackage
                         ? ParseHandoff(handoff)
                         : new DropAction();
         return new OrderNode(
-            id, path, when, until, timeout, cooldown, urgency, capacity,
-            selection, [], action);
+            id, path, when, until, timeout, cooldown, rejoin, urgency,
+            capacity, selection, [], action);
     }
 
     private static TacticalMovementUrgency ParseUrgency(string value) =>
@@ -593,6 +596,7 @@ internal sealed class OrdersPackage
         ConditionExpression? Until,
         int? Timeout,
         int Cooldown,
+        bool Rejoin,
         TacticalMovementUrgency Urgency,
         Capacity? Capacity,
         string? Selection,

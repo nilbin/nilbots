@@ -520,7 +520,8 @@ export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: S
     <p className="t-micro text-arena-dim">Groups with no Act just keep holding after release — nobody wanders off.</p>
     {tactic.release.mode !== 'immediate' && (
       <p className="t-micro text-arena-dim">Readiness never waits for the dead: a downed bot
-        excuses its own post or slot, and rejoins on respawn.</p>
+        excuses its own post or slot. On respawn it rejoins the squad wherever it is —
+        catching up with a released squad rather than re-staging at an empty post.</p>
     )}
   </>;
 }

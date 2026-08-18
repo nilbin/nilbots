@@ -78,8 +78,12 @@ so any ticked trigger lets go once every group is in position. Every
 readiness entry is itself `any(in-position, expectation-dead)` — an
 exact-post gate pairs each post with that bot's `role-live-count 0`, and an
 aggregate gate pairs its two-thirds quorum with a short-handed excuse — so a
-death never holds the release hostage; the fallen rejoin on respawn after
-the tactic has gone.
+death never holds the release hostage. The generated release branch carries
+the order grammar's `rejoin` flag: a body respawning after the squad has
+gone enters the released phase directly — its own gate could never re-form
+around squadmates who left their posts — instead of re-staging alone. Only
+a full squad wipe clears that latch and returns survivors to staging for a
+fresh release.
 
 Named zones (`mid`, `their-well`, …) are an editor concept: the document
 always stores the resolved rect (plus the name for display), so the
