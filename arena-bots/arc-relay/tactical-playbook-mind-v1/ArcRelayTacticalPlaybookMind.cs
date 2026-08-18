@@ -1853,10 +1853,33 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             Position[] goals = PostureGoals(
                 proposal.Target.Goals, move.Posture);
-            Position goal = Nearest(contract.Map, body.Position, goals);
+            bool standing = goals.Contains(body.Position);
+            // Course toward a goal tile nobody holds: aiming at the nearest
+            // goal regardless of occupancy parks the body against a resting
+            // squadmate's tile and orbits it there, even while other goal
+            // tiles sit free around the ring.
+            Position[] open = goals.Where(value =>
+                    value == body.Position
+                    || (!mind.Bodies.Any(other =>
+                            other.UnitId != body.UnitId
+                            && other.Position == value)
+                        && !mind.Enemies.Any(enemy =>
+                            enemy.Position == value)))
+                .ToArray();
+            Position goal = Nearest(
+                contract.Map, body.Position, open.Length > 0 ? open : goals);
+            // And a fully held goal set settles its overflow: standing
+            // beside it beats circling for a tile that cannot free up.
+            // Single goals (posts, anchors) keep their exact-tile contract.
+            bool crowded = !standing
+                && goals.Length > 1
+                && open.Length == 0
+                && goals.Any(value =>
+                    Math.Abs(value.X - body.Position.X) <= 1
+                    && Math.Abs(value.Y - body.Position.Y) <= 1);
             result.Add(unitId, new MovePlan(
                 proposal.Leaf.Node.Path, goal, goals, null,
-                goals.Contains(body.Position)));
+                standing || crowded));
         }
         return result;
     }

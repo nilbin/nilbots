@@ -8979,3 +8979,18 @@ on every generated release branch, making the release latch squad-wide:
 respawned bodies catch up with the released squad, and only a full wipe
 clears the latch back to staging. Per-body evidence windows (outcome
 counting from each body's own entry) are unchanged.
+
+## 336. Crowded goal sets: open-tile courses and second-ring settling
+
+Surfaced by #335's exhibit gate (pre-existing, reproduced at the
+pre-#335 commit): with eight bodies converging on one drawn point, a
+mover aimed at its nearest adjacent-stand tile even when a resting
+squadmate held it, orbiting a four-tile pocket beside the ring while
+free ring tiles sat open — a motion-gate local-orbit failure. Movement
+plans now course toward the nearest OPEN goal tile (occupied ones are
+candidates only when nothing is free), and a fully held multi-tile goal
+set settles its overflow: a body standing beside the set rests in the
+second ring until a goal opens, rather than circling for a tile that
+cannot free up. Single-tile goals (posts, anchors) keep their
+exact-tile contract. Occupancy reads own live bodies plus visible
+enemies, recomputed per tick, so a freed tile resumes the march.
