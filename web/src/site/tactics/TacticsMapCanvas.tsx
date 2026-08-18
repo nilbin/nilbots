@@ -1,13 +1,14 @@
 import { useMemo, useRef, useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BaseMap } from './BaseMap';
+import { classSprite } from './classArt';
 import { makePathfinder } from './pathing';
 import { describePlace } from './places';
 import type { MapTask } from './useMapTask';
 import {
   groupColor, signatureMarkGeometry,
   type Facing, type Point, type Rect, type SquadBot, type Tactic,
-  type TacticGroup, type TacticPhase, type TacticsDocument,
+  type TacticGroup, type TacticPhase, type TacticsDocument, type WellChoice,
 } from './tacticsDocument';
 
 /**
@@ -43,7 +44,8 @@ const FACING_DELTA: Record<Facing, Point> = {
 
 export function TacticsMapCanvas({
   catalog, document, editingTacticId, selectedTacticId, showAll, task, hints,
-  onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd, onSelect,
+  onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
+  onSelect, onTaskDone, onWallPicked, onPostsSwapped,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
@@ -58,6 +60,12 @@ export function TacticsMapCanvas({
   onGestureStart: () => void;
   onGestureEnd: () => void;
   onSelect: (ref: MapSelectRef) => void;
+  /** Finish an open route task (double-click, mirroring the Done button). */
+  onTaskDone?: () => void;
+  /** A draw-task click landed on a wall tile. */
+  onWallPicked?: () => void;
+  /** A post drop landed on a groupmate and the two swapped tiles. */
+  onPostsSwapped?: () => void;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
@@ -151,6 +159,7 @@ export function TacticsMapCanvas({
     const tile = clientToTile(event);
     if (task && tile && task.kind !== 'watch' && task.draw !== 'rect') {
       if (path.floor(tile[0], tile[1])) onTilePicked(tile[0], tile[1]);
+      else onWallPicked?.();
       return;
     }
     const selectable = (event.target as Element).closest('[data-select]');
@@ -177,10 +186,11 @@ export function TacticsMapCanvas({
         if (drag.kind === 'watchsize') {
           row.zone = { rect: [rect[0], rect[1], Math.max(rect[0], x), Math.max(rect[1], y)] };
         } else {
+          // Clamp inside the border wall ring, not just the map bounds.
           const w = rect[2] - rect[0];
           const h = rect[3] - rect[1];
-          const nx = Math.min(Math.max(x, 0), width - 1 - w);
-          const ny = Math.min(Math.max(y, 0), height - 1 - h);
+          const nx = Math.min(Math.max(x, 1), width - 2 - w);
+          const ny = Math.min(Math.max(y, 1), height - 2 - h);
           row.zone = { rect: [nx, ny, nx + w, ny + h] };
         }
         return;
@@ -219,8 +229,8 @@ export function TacticsMapCanvas({
       } else if (drag.kind === 'rectmove' && phase.rect) {
         const w = phase.rect[2] - phase.rect[0];
         const h = phase.rect[3] - phase.rect[1];
-        const nx = Math.min(Math.max(x, 0), width - 1 - w);
-        const ny = Math.min(Math.max(y, 0), height - 1 - h);
+        const nx = Math.min(Math.max(x, 1), width - 2 - w);
+        const ny = Math.min(Math.max(y, 1), height - 2 - h);
         phase.rect = [nx, ny, nx + w, ny + h];
       }
     });
@@ -229,6 +239,16 @@ export function TacticsMapCanvas({
   /** Dropping a posted bot onto a groupmate's tile swaps their posts. */
   function finishDrag(drag: DragTarget) {
     if (drag.kind !== 'post') return;
+    // The live drag already moved the post in the document, so a shared tile
+    // here means the drop is a swap — detect before the edit, announce after.
+    const liveGroup = document.tactics
+      .find((value) => value.id === editingTacticId)
+      ?.groups.find((value) => value.id === drag.groupId);
+    const livePost = liveGroup?.stage.posts?.[drag.index];
+    const willSwap = Boolean(liveGroup && livePost
+      && liveGroup.stage.posts!.some((candidate, index) =>
+        index !== drag.index
+        && candidate.at[0] === livePost.at[0] && candidate.at[1] === livePost.at[1]));
     editGeometry((tactic) => {
       const group = tactic.groups.find((value) => value.id === drag.groupId);
       const post = group?.stage.posts?.[drag.index];
@@ -238,6 +258,7 @@ export function TacticsMapCanvas({
         && candidate.at[0] === post.at[0] && candidate.at[1] === post.at[1]);
       if (other >= 0) group.stage.posts![other].at = drag.origin;
     });
+    if (willSwap) onPostsSwapped?.();
   }
 
   const bots = document.squad;
@@ -257,28 +278,46 @@ export function TacticsMapCanvas({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={() => setHover(null)}
+      onDoubleClick={(event) => {
+        const draw = task && task.kind !== 'watch' ? task.draw : null;
+        if (draw !== 'route' || !onTaskDone) return;
+        event.preventDefault();
+        onTaskDone();
+      }}
     >
       <BaseMap catalog={catalog} />
-      {displayed.map(({ tactic, dim, tag }) => (
-        <g key={tactic.id} opacity={dim ? .32 : 1}>
-          <ConditionFootprints tactic={tactic} dim={dim} editable={editable(tactic)}
-            startDrag={startDrag} pathfinder={path} />
-          {tactic.groups.map((group) => (
-            <GroupOverlay key={group.id} tactic={tactic} group={group} bots={bots}
-              catalog={catalog} dim={dim} editable={editable(tactic)}
-              startDrag={startDrag} pathfinder={path} />
-          ))}
-          {dim && tag && <ChipLabel x={2.5} y={1.6} text={tag} color="#7694a8" />}
-        </g>
-      ))}
+      {displayed.map(({ tactic, dim, tag }) => {
+        // A dimmed tactic's tag sits on its first drawn geometry, so three
+        // overlays in "show every Tactic" stay tellable apart.
+        const tagAnchor = dim && tag
+          ? tactic.groups.map((group) => stageAnchor(group) ?? actAnchor(group))
+            .find((value): value is Point => Boolean(value)) ?? [2, 2] as Point
+          : null;
+        return (
+          <g key={tactic.id}>
+            <g opacity={dim ? .32 : 1}>
+              <ConditionFootprints tactic={tactic} catalog={catalog} dim={dim}
+                editable={editable(tactic)} startDrag={startDrag} pathfinder={path} />
+              {tactic.groups.map((group) => (
+                <GroupOverlay key={group.id} tactic={tactic} group={group} bots={bots}
+                  catalog={catalog} dim={dim} editable={editable(tactic)}
+                  startDrag={startDrag} pathfinder={path} />
+              ))}
+            </g>
+            {tagAnchor && tag && <ChipLabel x={tagAnchor[0] + .5} y={tagAnchor[1] - .35}
+              text={tag} color="#7694a8" opacity={.9} mapWidth={width} mapHeight={height} />}
+          </g>
+        );
+      })}
       <TaskLayer task={task} hover={hover} rectDraft={rectDraft}
         hints={hints} pathfinder={path} document={document} />
     </svg>
   );
 }
 
-function ConditionFootprints({ tactic, dim, editable, startDrag, pathfinder }: {
+function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfinder }: {
   tactic: Tactic;
+  catalog: TacticalSheetCatalog;
   dim: boolean;
   editable: boolean;
   startDrag: (event: React.PointerEvent, target: DragTarget) => void;
@@ -303,6 +342,17 @@ function ConditionFootprints({ tactic, dim, editable, startDrag, pathfinder }: {
           <Handle cx={x1 + 1} cy={y1 + 1} onDown={(event) => startDrag(event, { kind: 'watchsize', which })} />
         </>}
       </g>);
+    }
+    if (source.conds.coreLoose) {
+      const at = wellCentre(catalog, source.conds.coreLoose.well);
+      if (at) {
+        parts.push(<g key={`${which}-core`}>
+          <circle cx={at[0]} cy={at[1]} r={.95} fill="none" stroke={color}
+            strokeWidth={.1} strokeDasharray=".14 .18" data-select={select} cursor="pointer" />
+          {!dim && <ChipLabel x={at[0]} y={at[1] + 2.1} text={`${symbol} CORE UP HERE`}
+            color={color} select={select} />}
+        </g>);
+      }
     }
   };
   watch('start', '#e6ddd4', '▶', true);
@@ -419,6 +469,10 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
       const tipY = cy + Math.sin(angle) * .88;
       const bot = bots[group.slots[index]];
       const entry = bot ? catalog.classes.find((value) => value.id === bot.class) : null;
+      const sprite = bot ? classSprite(bot.class) : undefined;
+      // Facing angle in degrees: sprites are authored facing east (0°), the
+      // same convention as the arena renderer.
+      const deg = Math.round(angle * 180 / Math.PI);
       parts.push(<g key={`post-${index}`}>
         <path d={`M ${cx} ${cy}
             L ${cx + Math.cos(a1) * wr} ${cy + Math.sin(a1) * wr}
@@ -426,12 +480,22 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
           fill={color} fillOpacity=".13" pointerEvents="none" />
         <polygon points={`${tipX + Math.cos(angle) * .14},${tipY + Math.sin(angle) * .14} ${tipX - Math.cos(angle - .6) * .3},${tipY - Math.sin(angle - .6) * .3} ${tipX - Math.cos(angle + .6) * .3},${tipY - Math.sin(angle + .6) * .3}`}
           fill={color} opacity=".9" pointerEvents="none" />
-        <g data-select={select} cursor="pointer">
-          <circle cx={cx} cy={cy} r={.4} fill="#10272f" stroke={color} strokeWidth={.12} />
-          <text x={cx} y={y + .68} textAnchor="middle" fontSize=".4" fontWeight="800"
-            fill="#e9fbff" pointerEvents="none">{bot ? bot.name[0] : index + 1}</text>
-          <title>{bot ? `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it` : `${group.name} post ${index + 1}`}</title>
-        </g>
+        {bot && sprite
+          ? <g data-select={select} cursor="pointer">
+            <rect x={x + .04} y={y + .04} width={.92} height={.92} rx={.16}
+              fill="#06090c" fillOpacity=".55" stroke={color} strokeWidth={.07} />
+            <image href={sprite} x={x - .04} y={y - .04} width={1.08} height={1.08}
+              transform={`rotate(${deg} ${cx} ${cy})`} />
+            <title>{`${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`}</title>
+          </g>
+          : <g data-select={select} cursor="pointer">
+            <circle cx={cx} cy={cy} r={.36} fill="#10272f" stroke={color} strokeWidth={.12} />
+            <text x={cx} y={y + .64} textAnchor="middle" fontSize=".38" fontWeight="800"
+              fill="#e9fbff" pointerEvents="none">{index + 1}</text>
+            <title>{bot
+              ? `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`
+              : `${group.name} post ${index + 1}`}</title>
+          </g>}
         {editable && <>
           <Handle cx={cx} cy={cy} r={.42}
             onDown={(event) => startDrag(event, { kind: 'post', groupId: group.id, index, origin: [x, y] })} />
@@ -516,9 +580,11 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
       const run = pathfinder.findPath(from, best);
       parts.push(<g key="heal-link">
         {run && <polyline points={run.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
-          fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".08 .22" opacity=".55" />}
+          fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".08 .22" opacity=".55"
+          data-select={select} cursor="pointer" />}
         <circle cx={best[0] + .5} cy={best[1] + .5} r={.68} fill="none" stroke="#8ff0cd"
-          strokeWidth={.08} strokeDasharray=".16 .14" opacity=".9" />
+          strokeWidth={.08} strokeDasharray=".16 .14" opacity=".9"
+          data-select={select} cursor="pointer" />
       </g>);
     }
   }
@@ -539,8 +605,8 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
           <g data-select={select} cursor="pointer">
             <circle cx={x + .5} cy={y + .5} r={.34} fill="#06090c" fillOpacity=".72"
               stroke={color} strokeWidth={.09} {...dashProps} />
-            <text x={x + .5} y={y + .68} textAnchor="middle" fontSize=".38" fill={color}
-              pointerEvents="none">✦</text>
+            <text x={x + .5} y={y + .68} textAnchor="middle" fontSize=".44" fill={color}
+              pointerEvents="none">{geometry.icon}</text>
             <title>{`${group.name} — ${geometry.label} (${phaseKey})`}</title>
           </g>
           {editable && <Handle cx={x + .5} cy={y + .5} r={.42}
@@ -575,10 +641,26 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
 }) {
   if (!task) return null;
   const parts: React.ReactNode[] = [];
-  const hint = task.kind === 'phase'
+  const tactic = document.tactics.find((value) => value.id === task.tacticId);
+  // The in-progress geometry draws in the task's own colour: the group's for
+  // phase and signature tasks, the watch chrome's for condition boxes.
+  const taskColor = task.kind === 'watch'
+    ? (task.which === 'start' ? '#e6ddd4' : '#c8763c')
+    : (tactic ? groupColor(tactic, task.groupId) : '#e6ddd4');
+  let hint = task.kind === 'phase'
     ? task.hint ?? (hints?.get(task.groupId) ?? null)
     : null;
-  const hasGeometry = task.kind === 'phase' && taskGeometryExists(task, document);
+  let hasGeometry = task.kind === 'phase' && taskGeometryExists(task, document);
+  if (task.kind === 'watch' && tactic) {
+    // A watch task pulses the currently watched preset zone until a custom
+    // box has been dragged in its place.
+    const conds = task.which === 'start' ? tactic.start.conds : tactic.release.conds;
+    const row = conds?.enemiesAt;
+    if (row) {
+      hint = { rect: row.zone.rect, text: 'Enemies are counted inside the box.' };
+      hasGeometry = !row.zone.name && Boolean(row.zone.rect);
+    }
+  }
   if (hint && !hasGeometry) {
     const [x0, y0, x1, y1] = hint.rect;
     parts.push(<rect key="hint" x={x0} y={y0} width={x1 - x0 + 1} height={y1 - y0 + 1}
@@ -591,7 +673,7 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
     const x1 = Math.max(rectDraft.start[0], rectDraft.cur[0]);
     const y1 = Math.max(rectDraft.start[1], rectDraft.cur[1]);
     parts.push(<rect key="rect-draft" x={x0} y={y0} width={x1 - x0 + 1} height={y1 - y0 + 1}
-      fill="#fff1d835" stroke="#fff1d8" strokeWidth={.14} pointerEvents="none" />);
+      fill={`${taskColor}35`} stroke="#fff1d8" strokeWidth={.14} pointerEvents="none" />);
   }
   if (hover) {
     const [x, y] = hover;
@@ -654,17 +736,19 @@ function Handle({ cx, cy, onDown, cursor = 'grab', r = .3 }: {
     cursor={cursor} onPointerDown={onDown} />;
 }
 
-function ChipLabel({ x, y, text, color, select, opacity = 1 }: {
+function ChipLabel({ x, y, text, color, select, opacity = 1, mapWidth = 31, mapHeight = 27 }: {
   x: number;
   y: number;
   text: string;
   color: string;
   select?: string;
   opacity?: number;
+  mapWidth?: number;
+  mapHeight?: number;
 }) {
   const w = text.length * .27 + .5;
-  const cx = Math.min(Math.max(x - w / 2, .2), 31 - w - .2);
-  const cy = Math.max(y - .62, .2);
+  const cx = Math.min(Math.max(x - w / 2, .2), mapWidth - w - .2);
+  const cy = Math.min(Math.max(y - .62, .2), mapHeight - 1);
   return <g opacity={opacity} data-select={select} cursor={select ? 'pointer' : undefined}>
     <rect x={cx} y={cy} width={w} height={.78} rx={.16} fill="#06090c" fillOpacity=".82"
       stroke={color} strokeWidth={.05} />
@@ -731,6 +815,19 @@ function convergeStarts(group: TacticGroup, pathfinder: ReturnType<typeof makePa
 
 function chebyshev([ax, ay]: Point, [bx, by]: Point): number {
   return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+/** The watched Well's map centre for a core-loose ring. Team-relative
+ * choices resolve from the west perspective the whole canvas draws. */
+function wellCentre(catalog: TacticalSheetCatalog, choice: WellChoice): Point | null {
+  const id = choice === 'centre' ? 'well-centre'
+    : choice === 'north' || choice === 'own' ? 'well-north'
+      : 'well-south';
+  const region = catalog.map.regions.find((value) => value.id === id);
+  if (!region || region.tiles.length === 0) return null;
+  const cx = region.tiles.reduce((sum, tile) => sum + tile.x + .5, 0) / region.tiles.length;
+  const cy = region.tiles.reduce((sum, tile) => sum + tile.y + .5, 0) / region.tiles.length;
+  return [cx, cy];
 }
 
 export function describeGeometry(phase: TacticPhase, group: TacticGroup): string {

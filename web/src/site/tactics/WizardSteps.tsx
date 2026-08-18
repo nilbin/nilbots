@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BotChip } from './BotChip';
 import { ChoiceCards } from './ChoiceCards';
@@ -7,7 +8,8 @@ import { PhaseStrip } from './PhaseStrip';
 import { SegChips } from './SegChips';
 import { freshGroup } from './recipes';
 import {
-  actClause, deliveryClause, groupClause, releaseClause, startClause, summarize,
+  actClause, deliveryClause, groupClause, numberWord, releaseClause,
+  startClause, summarize,
 } from './summary';
 import { describeGeometry } from './TacticsMapCanvas';
 import type { MapTask } from './useMapTask';
@@ -20,7 +22,7 @@ import {
 import {
   actComplete, assignedCount, stageComplete, unassignedSlots, type WizardState,
 } from './wizardState';
-import { ZONE_OPTIONS } from './places';
+import { describePlace, ZONE_OPTIONS } from './places';
 
 /**
  * The wizard's eight steps. Each is a pure view over the wizard's working
@@ -39,6 +41,9 @@ export interface StepProps {
   startSigTask: (groupId: string, phase: 'stage' | 'act', classId: string) => void;
   startWatchTask: (which: 'start' | 'release') => void;
   endTask: () => void;
+  /** Append a prefilled Deliver Core Tactic to the sheet (carrier picked,
+   * escorts and screen auto-assigned) without leaving this wizard. */
+  addDeliverCore?: () => void;
 }
 
 export function StartStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
@@ -48,7 +53,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
     { id: 'when' as const, label: 'Only when…', blurb: 'Gated behind conditions on top of Sheet order.' },
   ];
   return <>
-    <p className="t-body">First things first: <b>when does this Tactic apply at all?</b>{' '}
+    <p className="t-meta">First things first: <b>when does this Tactic apply at all?</b>{' '}
       The Sheet still reads top to bottom — this only gates it further.</p>
     <SegChips options={modes} value={tactic.start.mode}
       onChange={(mode) => change((next) => {
@@ -79,25 +84,74 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
   const unassigned = unassignedSlots(tactic, document);
   const assigned = assignedCount(tactic);
   const squadReady = document.squad.length === 8;
+  // HTML5 drag state: which slot is airborne, and which box would take it.
+  const [dragSlot, setDragSlot] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<string | null>(null);
   const place = (slot: number, groupId: string | null) => change((next) => {
     for (const group of next.groups) {
       group.slots = group.slots.filter((value) => value !== slot);
     }
     if (groupId) next.groups.find((group) => group.id === groupId)?.slots.push(slot);
   });
+  /** Dropping one bot onto another swaps their group memberships. */
+  const swap = (a: number, b: number) => change((next) => {
+    if (a === b) return;
+    const home = (slot: number) =>
+      next.groups.find((group) => group.slots.includes(slot)) ?? null;
+    const homeA = home(a);
+    const homeB = home(b);
+    for (const group of next.groups) {
+      group.slots = group.slots.filter((value) => value !== a && value !== b);
+    }
+    homeA?.slots.push(b);
+    homeB?.slots.push(a);
+  });
+  const endDrag = () => { setDragSlot(null); setDropTarget(null); };
+  const chipDragProps = (slot: number) => ({
+    draggable: true,
+    onDragStart: (event: React.DragEvent) => {
+      event.dataTransfer.setData('text/plain', String(slot));
+      event.dataTransfer.effectAllowed = 'move';
+      setDragSlot(slot);
+    },
+    onDragEnd: endDrag,
+  });
+  const dropProps = (target: string | null) => ({
+    onDragOver: (event: React.DragEvent) => {
+      if (dragSlot === null) return;
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+      if (dropTarget !== target) setDropTarget(target);
+    },
+    onDragLeave: (event: React.DragEvent) => {
+      if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+      if (dropTarget === target) setDropTarget(null);
+    },
+    onDrop: (event: React.DragEvent) => {
+      event.preventDefault();
+      const slot = Number(event.dataTransfer.getData('text/plain'));
+      if (Number.isInteger(slot)) place(slot, target);
+      endDrag();
+      arm(null);
+    },
+  });
+  const hot = (target: string | null) =>
+    dragSlot !== null && dropTarget === target;
   return <>
-    <p className="t-body">Split the whole team into up to three temporary Groups. They live only
+    <p className="t-meta">Split the whole team into up to three temporary Groups. They live only
       inside this Tactic — every bot belongs to exactly one.</p>
     <div className="flex items-center gap-2">
       <span className="lab">Assigned</span>
       <div className="h-1.5 grow overflow-hidden rounded bg-arena-deep">
-        <div className="h-full bg-arena-material transition-all" style={{ width: `${(assigned / 8) * 100}%` }} />
+        <div className="h-full bg-arena-ok transition-all" style={{ width: `${(assigned / 8) * 100}%` }} />
       </div>
       <span className="val">{assigned}/8</span>
     </div>
     <div>
       <div className="lab mb-1">Unassigned</div>
-      <div className="flex min-h-9 flex-wrap gap-1 rounded-sm border border-dashed border-arena-edge p-1">
+      <div {...dropProps(null)}
+        className={`flex min-h-9 flex-wrap gap-1 rounded-sm border border-dashed p-1 transition-colors ${hot(null)
+          ? 'border-arena-material bg-arena-material/10' : 'border-arena-edge'}`}>
         {unassigned.length === 0 && (
           <span className="t-micro self-center text-arena-dim">
             {squadReady ? 'Everyone is assigned.' : 'Fill the squad on the left to get all eight in the tray.'}
@@ -106,13 +160,17 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
         {unassigned.map((slot) => (
           <BotChip key={slot} bot={document.squad[slot]} catalog={catalog}
             armed={wizard.armedSlot === slot}
+            {...chipDragProps(slot)}
             onClick={() => arm(wizard.armedSlot === slot ? null : slot)} />
         ))}
       </div>
     </div>
     {tactic.groups.map((group) => (
       <div key={group.id}
-        className={`rounded-sm border p-2 ${wizard.armedSlot !== null ? 'cursor-pointer border-arena-material/60' : 'border-arena-edge'}`}
+        {...dropProps(group.id)}
+        className={`rounded-sm border p-2 transition-colors ${hot(group.id)
+          ? 'border-arena-material bg-arena-material/10'
+          : wizard.armedSlot !== null ? 'cursor-pointer border-arena-material/60' : 'border-arena-edge'}`}
         onClick={() => {
           if (wizard.armedSlot === null) return;
           place(wizard.armedSlot, group.id);
@@ -121,9 +179,9 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
         role="presentation"
       >
         <div className="mb-1 flex items-center gap-2">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ background: groupColor(tactic, group.id) }} />
+          <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: groupColor(tactic, group.id) }} />
           <input
-            className="field !min-h-7 grow !py-0"
+            className="min-w-0 grow border-b border-dashed border-transparent bg-transparent text-[13px] font-semibold text-arena-text outline-none transition-colors hover:border-arena-edge2 focus:border-arena-material"
             value={group.name}
             aria-label="Group name"
             onClick={(event) => event.stopPropagation()}
@@ -132,7 +190,9 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
               if (target) target.name = event.target.value;
             })}
           />
-          <span className="val">{group.slots.length} bots</span>
+          <span className="val">
+            {group.slots.length}{wizard.hints.targetSizes.get(group.id) ? `/${wizard.hints.targetSizes.get(group.id)}` : ''} bots
+          </span>
           {tactic.groups.length > 1 && (
             <button type="button" className="btn" title="Dissolve group"
               onClick={(event) => {
@@ -145,14 +205,30 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
         </div>
         <div className="flex min-h-8 flex-wrap gap-1">
           {group.slots.map((slot) => (
-            <BotChip key={slot} bot={document.squad[slot]} catalog={catalog}
-              onClick={() => { place(slot, null); arm(null); }} />
+            <span key={slot}
+              onDragOver={(event) => {
+                if (dragSlot === null || dragSlot === slot) return;
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+              onDrop={(event) => {
+                if (dragSlot === null || dragSlot === slot) return;
+                event.preventDefault();
+                event.stopPropagation();
+                swap(dragSlot, slot);
+                endDrag();
+                arm(null);
+              }}>
+              <BotChip bot={document.squad[slot]} catalog={catalog}
+                {...chipDragProps(slot)}
+                onClick={() => { place(slot, null); arm(null); }} />
+            </span>
           ))}
           {group.slots.length === 0 && (
             <span className="t-micro self-center text-arena-dim">
               {wizard.armedSlot !== null
                 ? 'Click to place the armed bot here.'
-                : 'Empty — arm a bot above, then click this box.'}
+                : 'Empty — arm or drag a bot into this box.'}
             </span>
           )}
         </div>
@@ -178,8 +254,8 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
         Distribute the rest
       </button>
     </div>
-    <p className="t-micro text-arena-dim">Click a bot to arm it, then click its Group.
-      Clicking an assigned bot returns it to the tray.</p>
+    <p className="t-micro text-arena-dim">Drag bots between the tray and Groups — dropping one bot on
+      another swaps them. Clicking works too: arm a bot, then click its Group.</p>
   </>;
 }
 
@@ -187,7 +263,7 @@ export function PhaseStep(props: StepProps & { phase: 'stage' | 'act' }) {
   const { wizard, phase } = props;
   const isStage = phase === 'stage';
   return <>
-    <p className="t-body">{isStage
+    <p className="t-meta">{isStage
       ? <><b>Every Group stages its own way.</b> Where does each one set up, and how does it behave while it waits?</>
       : <><b>Each Group can carry its own second plan</b> for after release. A Group with no Act keeps doing its Stage job.</>}</p>
     {wizard.tactic.groups.map((group) => (
@@ -235,15 +311,20 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
     if (def?.draw) startPhaseTask(group.id, phase);
     else endTask();
   };
-  const spatialClasses = [...new Set(group.slots
+  const groupClasses = [...new Set(group.slots
     .map((slot) => document.squad[slot]?.class)
-    .filter((classId): classId is string => Boolean(classId)))]
+    .filter((classId): classId is string => Boolean(classId)))];
+  const spatialClasses = groupClasses
     .filter((classId) => signatureMarkGeometry(catalog, classId));
+  const passiveClasses = groupClasses
+    .filter((classId) => !signatureMarkGeometry(catalog, classId));
+  const className = (classId: string) =>
+    catalog.classes.find((value) => value.id === classId)?.name ?? classId;
   return (
     <div className="rounded-sm border border-arena-edge p-2" id={`section-${group.id}-${phase}`}
       style={{ borderLeft: `3px solid ${color}` }}>
       <div className="mb-1 flex items-center gap-2">
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} />
+        <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: color }} />
         <b className="t-body">{group.name}</b>
         <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
       </div>
@@ -252,7 +333,7 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
         onChange={(kind) => setKind(kind as StageKind & ActKind)} />
       <p className="t-micro mb-1 text-arena-dim">{kindDef?.blurb}</p>
       {kindDef?.draw
-        ? <GeoStatusRow complete={complete} accent={color}
+        ? <GeoStatusRow complete={complete}
           label={describeGeometry(geo, group)}
           drawing={drawing}
           onDraw={() => startPhaseTask(group.id, phase)}
@@ -273,10 +354,13 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
             : !isStage && geo.kind === 'none'
               ? `${group.name} keeps its Stage behavior — staged Groups don’t wander off.`
               : 'Nothing to draw for this choice.'} drawing={false} />}
+      {geo.kind === 'posts' && (geo.posts?.length ?? 0) > 0 && (
+        <p className="t-micro mt-1 text-arena-dim">Each posted bot stands on its tile facing one of
+          four ways — drag its arrow tip to turn it; the wedge is what it watches.</p>
+      )}
       {viaLegal(geo.kind, isStage) && (
         <GeoStatusRow
           complete={(geo.via?.length ?? 0) >= 2}
-          accent={color}
           label={geo.via?.length
             ? `Approach route — ${geo.via.length} waypoints walked in first.`
             : 'Approach route (optional) — swing wide instead of the direct path.'}
@@ -306,27 +390,41 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
           if (target) (phase === 'stage' ? target.stage : target.act).recovery = recovery as Recovery;
         })} />
       <p className="t-micro text-arena-dim">{RECOVERIES.find((value) => value.id === geo.recovery)?.blurb}</p>
-      {spatialClasses.length > 0 && <>
+      {(spatialClasses.length > 0 || passiveClasses.length > 0) && (
         <div className="lab mt-2">Signatures — {isStage ? 'set while staging' : 'used after release'}</div>
-        {spatialClasses.map((classId) => {
-          const geometry = signatureMarkGeometry(catalog, classId)!;
-          const mark = group.sigs?.[phase]?.[classId];
-          const has = Boolean(mark && ('points' in mark ? mark.points.length : mark.line.length));
-          const mine = task?.kind === 'sig' && task.groupId === group.id
-            && task.phase === phase && task.classId === classId;
-          const entry = catalog.classes.find((value) => value.id === classId);
-          return <GeoStatusRow key={classId} complete={has} accent={color}
-            label={`${entry?.name ?? classId} — ${geometry.label}${has ? '' : ' · no marks yet — optional'}`}
-            drawLabel="Place marks"
-            drawing={mine}
-            onDraw={() => startSigTask(group.id, phase, classId)}
-            onStop={endTask}
-            onClear={has ? () => change((next) => {
-              const target = next.groups.find((value) => value.id === group.id);
-              if (target?.sigs?.[phase]) delete target.sigs[phase]![classId];
-            }) : undefined} />;
-        })}
-      </>}
+      )}
+      {spatialClasses.map((classId) => {
+        const geometry = signatureMarkGeometry(catalog, classId)!;
+        const mark = group.sigs?.[phase]?.[classId];
+        const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
+        const has = points.length > 0;
+        const mine = task?.kind === 'sig' && task.groupId === group.id
+          && task.phase === phase && task.classId === classId;
+        const placed = has
+          ? geometry.kind === 'points'
+            ? ` · ${points.length}/${geometry.max} marks at ${describePlace(...points[0])}`
+            : ` · lane through ${describePlace(...points[0])}`
+          : ' · no marks yet — optional';
+        return <GeoStatusRow key={classId} complete={has}
+          label={`${geometry.icon} ${className(classId)} — ${geometry.label}${placed}`}
+          drawLabel="Place marks"
+          drawing={mine}
+          onDraw={() => startSigTask(group.id, phase, classId)}
+          onStop={endTask}
+          onClear={has ? () => change((next) => {
+            const target = next.groups.find((value) => value.id === group.id);
+            if (target?.sigs?.[phase]) delete target.sigs[phase]![classId];
+          }) : undefined} />;
+      })}
+      {spatialClasses.length === 0 && passiveClasses.length > 0 && (
+        <p className="t-micro text-arena-dim">No spatial signatures in this Group — their skills
+          are bundled by posture.</p>
+      )}
+      {spatialClasses.length > 0 && passiveClasses.length > 0 && (
+        <p className="t-micro mt-1 text-arena-dim">
+          {passiveClasses.map(className).join(', ')}: signatures run themselves, bundled by posture.
+        </p>
+      )}
     </div>
   );
 }
@@ -351,7 +449,7 @@ export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: S
     { id: 'ready-when' as const, label: 'Ready, plus a trigger', blurb: 'Hold the leash until the moment is right — one ticked condition lets go.' },
   ];
   return <>
-    <p className="t-body">Between Stage and Act sits one shared moment: <b>when do they go?</b>{' '}
+    <p className="t-meta">Between Stage and Act sits one shared moment: <b>when do they go?</b>{' '}
       Release ends every Group's Stage at the same time.</p>
     <SegChips options={modes} value={tactic.release.mode}
       onChange={(mode) => change((next) => {
@@ -381,7 +479,7 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
   const tactic = wizard.tactic;
   const preferred = tactic.delivery.preferredSlots ?? [];
   return <>
-    <p className="t-body"><b>Cores.</b> Pickup is each Group's own habit, and ⭑ marks preferred
+    <p className="t-meta"><b>Cores.</b> Pickup is each Group's own habit, and ⭑ marks preferred
       carriers. Delivery is one shared plan — the real carrier is whoever ends up holding it.</p>
     {tactic.groups.map((group) => (
       <div key={group.id} className="rounded-sm border border-arena-edge p-2"
@@ -429,9 +527,10 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
   </>;
 }
 
-export function FinishStep({ document, wizard, change }: StepProps) {
+export function FinishStep({ document, wizard, change, addDeliverCore }: StepProps) {
   const tactic = wizard.tactic;
   const outcomes = tactic.finish.outcomes;
+  const capital = (value: string) => value.replace(/^\w/, (letter) => letter.toUpperCase());
   const row = (
     key: keyof typeof outcomes,
     label: string,
@@ -441,9 +540,11 @@ export function FinishStep({ document, wizard, change }: StepProps) {
   ) => (
     <button key={key} type="button" onClick={toggle}
       className={`flex min-h-9 w-full items-center gap-2 rounded-sm border px-2 py-1 text-left transition-colors ${on
-        ? 'border-arena-text/40 bg-arena-deep/50 text-arena-text'
+        ? 'border-arena-ok/45 bg-arena-ok/10 text-arena-text'
         : 'border-arena-edge text-arena-dim hover:text-arena-text'}`}>
-      <span className={on ? 'font-bold' : 'opacity-30'}>✓</span>
+      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border text-[10px] font-bold ${on
+        ? 'border-arena-ok bg-arena-ok/15 text-arena-ok'
+        : 'border-arena-text/35 text-transparent'}`}>✓</span>
       <span className="t-micro grow">{label}</span>
       {on && extra}
     </button>
@@ -471,27 +572,37 @@ export function FinishStep({ document, wizard, change }: StepProps) {
     </select>
   );
   return <>
-    <p className="t-body">And last: <b>when is this Tactic finished?</b>{' '}
+    <p className="t-meta">And last: <b>when is this Tactic finished?</b>{' '}
       Any selected outcome ends it, and the Sheet moves on.</p>
     <PhaseStrip tactic={tactic} big />
     <p className="t-micro text-arena-dim">Outcomes start counting once the Tactic releases —
       a holding Group can’t finish it while the others are still staging.</p>
     <div className="flex flex-col gap-1.5">
-      {row('kills', `${outcomes.kills?.count ?? 3} enemies destroyed`, Boolean(outcomes.kills),
+      {row('kills',
+        `${capital(numberWord(outcomes.kills?.count ?? 3))} enem${(outcomes.kills?.count ?? 3) === 1 ? 'y' : 'ies'} destroyed`,
+        Boolean(outcomes.kills),
         () => change((next) => {
           if (next.finish.outcomes.kills) delete next.finish.outcomes.kills;
           else next.finish.outcomes.kills = { count: 3 };
         }),
         outcomes.kills && stepper(outcomes.kills.count, (value) =>
           change((next) => { next.finish.outcomes.kills = { count: value }; })))}
-      {row('losses', `We have lost ${outcomes.losses?.count ?? 2} bots`, Boolean(outcomes.losses),
+      {row('losses',
+        `We have lost ${numberWord(outcomes.losses?.count ?? 2)} bot${(outcomes.losses?.count ?? 2) === 1 ? '' : 's'}`,
+        Boolean(outcomes.losses),
         () => change((next) => {
           if (next.finish.outcomes.losses) delete next.finish.outcomes.losses;
           else next.finish.outcomes.losses = { count: 2 };
         }),
         outcomes.losses && stepper(outcomes.losses.count, (value) =>
           change((next) => { next.finish.outcomes.losses = { count: value }; })))}
-      {row('cleared', 'An area is cleared', Boolean(outcomes.cleared),
+      {row('cleared',
+        outcomes.cleared
+          ? `${capital(ZONE_OPTIONS.find((option) =>
+            option.rect.every((value, index) => value === outcomes.cleared!.zone.rect[index]))?.label
+            ?? 'the drawn box')} cleared`
+          : 'An area is cleared',
+        Boolean(outcomes.cleared),
         () => change((next) => {
           if (next.finish.outcomes.cleared) delete next.finish.outcomes.cleared;
           else next.finish.outcomes.cleared = { zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
@@ -531,18 +642,19 @@ export function FinishStep({ document, wizard, change }: StepProps) {
     </div>
     <div>
       <div className="lab mb-1">Maximum attempt</div>
-      <ChoiceCards options={MAX_ATTEMPTS} value={tactic.finish.maxAttempt} columns={2}
+      <ChoiceCards options={MAX_ATTEMPTS} value={tactic.finish.maxAttempt} columns={4}
         onChange={(maxAttempt) => change((next) => { next.finish.maxAttempt = maxAttempt; })} />
     </div>
-    <DeliverCoreSuggestion document={document} tactic={tactic} change={change} />
+    <DeliverCoreSuggestion document={document} tactic={tactic} change={change}
+      addDeliverCore={addDeliverCore} />
   </>;
 }
 
-export function ReviewStep({ catalog, document, wizard, change }: StepProps) {
+export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }: StepProps) {
   const tactic = wizard.tactic;
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
   return <>
-    <p className="t-body">Read it back. If the sentence says what you meant, it’s ready.</p>
+    <p className="t-meta">Read it back. If the sentence says what you meant, it’s ready.</p>
     <div className="panel-feature pad">
       <div className="lab mb-1.5">The whole operation</div>
       <p className="t-body leading-relaxed">{summarize(tactic, botName)}</p>
@@ -568,18 +680,21 @@ export function ReviewStep({ catalog, document, wizard, change }: StepProps) {
         </div>
       </div>
     ))}
-    <DeliverCoreSuggestion document={document} tactic={tactic} change={change} />
+    <DeliverCoreSuggestion document={document} tactic={tactic} change={change}
+      addDeliverCore={addDeliverCore} />
     <p className="t-micro text-arena-dim">The overlays stay live after creating — drag posts, corners,
       waypoints and destinations on the map any time this Tactic is open.</p>
   </>;
 }
 
 /** Content-keyed nudge: an aggressive Tactic that can finish holding a Core,
- * with no plan for the run home, gets offered one. */
-function DeliverCoreSuggestion({ document, tactic, change }: {
+ * with no plan for the run home, gets offered one — in place, or as a
+ * one-click separate Deliver Core Tactic. */
+function DeliverCoreSuggestion({ document, tactic, change, addDeliverCore }: {
   document: TacticsDocument;
   tactic: Tactic;
   change: (apply: (tactic: Tactic) => void) => void;
+  addDeliverCore?: () => void;
 }) {
   const wantsCore = Boolean(tactic.finish.outcomes.coreAcquired)
     && tactic.delivery.plan === 'none';
@@ -590,12 +705,20 @@ function DeliverCoreSuggestion({ document, tactic, change }: {
   return (
     <div className="panel-quiet pad">
       <div className="t-body mb-1 font-semibold">Your tactic may finish while carrying a Core.</div>
-      <p className="t-micro text-arena-dim">Plan the run home inside this Tactic — or add a
-        separate Deliver Core tactic from the recipe chooser afterwards.</p>
-      <button type="button" className="btn btn-secondary mt-2"
-        onClick={() => change((next) => { next.delivery.plan = 'escort'; })}>
-        Plan the delivery in this Tactic
-      </button>
+      <p className="t-micro text-arena-dim">Plan the run home inside this Tactic, or add a separate
+        Deliver Core tactic — prefilled, carrier and escorts picked from your squad.</p>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <button type="button" className="btn btn-secondary"
+          onClick={() => change((next) => { next.delivery.plan = 'escort'; })}>
+          Plan the delivery in this Tactic
+        </button>
+        {addDeliverCore && (
+          <button type="button" className="btn"
+            onClick={addDeliverCore}>
+            Add a separate Deliver Core tactic
+          </button>
+        )}
+      </div>
     </div>
   );
 }

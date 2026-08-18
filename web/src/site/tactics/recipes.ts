@@ -93,7 +93,7 @@ export const RECIPES: Recipe[] = [
     ],
     release: {
       mode: 'ready-when',
-      conds: { enemiesAt: { count: 2, zone: { name: MID.id, rect: MID.rect } } },
+      conds: { enemiesAt: { count: 5, zone: { name: MID.id, rect: MID.rect } } },
     },
     outcomes: {
       kills: { count: 3 },

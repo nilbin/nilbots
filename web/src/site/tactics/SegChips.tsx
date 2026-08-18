@@ -15,9 +15,12 @@ export function SegChips<T extends string>({ options, value, accent, onChange }:
             type="button"
             onClick={() => onChange(option.id)}
             className={`min-h-8 rounded-sm border px-2.5 t-micro transition-colors ${on
-              ? 'border-transparent font-semibold text-[#06121a]'
+              ? 'bg-arena-raise font-semibold text-arena-text'
               : 'border-arena-edge text-arena-dim hover:text-arena-text'}`}
-            style={on ? { background: accent ?? 'var(--color-arena-text)' } : undefined}
+            style={on ? {
+              borderColor: `color-mix(in oklab, ${accent ?? 'var(--color-arena-text)'} 55%, var(--color-arena-edge2))`,
+              boxShadow: `inset 0 -2px 0 ${accent ?? 'var(--color-arena-text)'}`,
+            } : undefined}
           >
             {option.label}
           </button>

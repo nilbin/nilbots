@@ -2,11 +2,11 @@
 export function ChoiceCards<T extends string>({ options, value, columns = 1, onChange }: {
   options: { id: T; label: string; blurb: string }[];
   value: T | null;
-  columns?: 1 | 2;
+  columns?: 1 | 2 | 4;
   onChange: (id: T) => void;
 }) {
   return (
-    <div className={`grid gap-1.5 ${columns === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+    <div className={`grid gap-1.5 ${columns === 4 ? 'grid-cols-4' : columns === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
       {options.map((option) => (
         <button
           key={option.id}

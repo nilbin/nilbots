@@ -31,6 +31,9 @@
    only chroma that identifies a player is their server-owned accent. */
 @theme {
   --color-arena-bg: #0b0705;
+  /* The map chrome's near-black, for surfaces that sit visually on the arena
+     ground (chips, post backings, ticked rows) rather than on a panel. */
+  --color-arena-deep: #06090c;
   --color-arena-panel: #191210;
   --color-arena-raise: #221913;
   --color-arena-edge: #3b2a20;

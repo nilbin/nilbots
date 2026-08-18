@@ -15,10 +15,11 @@ import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './reci
 import { groupClause, summarize } from './summary';
 import { TacticsMapCanvas, type GeometryEdit, type MapSelectRef } from './TacticsMapCanvas';
 import {
-  blankDocument, expectedGeometry, freshLocalId, identifierFromName,
+  blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
   parseDocument, signatureMarkGeometry, stringifyDocument, validateDocument,
   sheetIssueFromCompilerError,
   type Build, type SheetIssue, type SquadBot, type Tactic, type TacticsDraft,
+  type TacticsDocument,
 } from './tacticsDocument';
 import { loadLocalDraft, useSheetDraft } from './useSheetDraft';
 import { useMapTask, type MapTask } from './useMapTask';
@@ -62,7 +63,18 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [serverIssues, setServerIssues] = useState<SheetIssue[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<{ id: number; text: string; tone: 'ok' | 'hot' }[]>([]);
+  const [dragTactic, setDragTactic] = useState<{ id: string; over: number | null; below: boolean }| null>(null);
+  const toastSeq = useRef(0);
   const bootstrapped = useRef(false);
+
+  // The mock's toast rack: transient action feedback, self-clearing.
+  const toast = useCallback((text: string, tone: 'ok' | 'hot' = 'ok') => {
+    const id = ++toastSeq.current;
+    setToasts((current) => [...current.slice(-3), { id, text, tone }]);
+    window.setTimeout(() =>
+      setToasts((current) => current.filter((value) => value.id !== id)), 2600);
+  }, []);
 
   // Bootstrap the draft: a fresh sheet immediately; an existing one when its
   // server copy arrives, preferring this device's newer unsent local work.
@@ -130,6 +142,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         else undo();
       } else if (event.key === 'Escape' && task) {
         endTask();
+      } else if (event.key === 'Enter' && task && task.kind !== 'watch'
+        && task.draw === 'route') {
+        endTask();
       }
     };
     window.addEventListener('keydown', onKey);
@@ -159,7 +174,42 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setWizard(null);
     endTask();
     setSelectedTacticId(finished.id);
-    setNotice(wizard.editing ? 'Tactic updated.' : `“${finished.name}” added to the Sheet.`);
+    toast(wizard.editing ? 'Tactic updated.' : `“${finished.name}” added to the Sheet.`);
+  };
+
+  /** Reopening an existing Tactic rebuilds its recipe's draw hints and target
+   * sizes by group position, so edits keep the pulses and the distribute
+   * weighting the recipe originally suggested. */
+  const hintsFor = (tactic: Tactic): RecipeHints => {
+    const recipe = recipeById(tactic.recipe);
+    const hints: RecipeHints = { groups: new Map(), targetSizes: new Map() };
+    recipe.groups.forEach((prefill, index) => {
+      const group = tactic.groups[index];
+      if (!group) return;
+      if (prefill.hint) hints.groups.set(group.id, prefill.hint);
+      hints.targetSizes.set(group.id, prefill.size);
+    });
+    return hints;
+  };
+
+  /** One-click prefilled Deliver Core: carrier from the runner classes,
+   * escorts and screen auto-assigned, the screen's lane pre-drawn. */
+  const addDeliverCore = () => {
+    mutate((next) => {
+      const { tactic } = instantiateRecipe(recipeById('deliver-core'), next.document);
+      const squad = next.document.squad;
+      const runners = ['relay', 'towline'];
+      const carrierSlot = squad.find((bot) => runners.includes(bot.class))?.slot
+        ?? squad[0]?.slot ?? 0;
+      const rest = squad.map((bot) => bot.slot).filter((slot) => slot !== carrierSlot);
+      tactic.groups[0].slots = [carrierSlot];
+      tactic.groups[1].slots = rest.slice(0, 3);
+      tactic.groups[2].slots = rest.slice(3);
+      tactic.groups[2].stage.rect = [4, 10, 9, 16];
+      tactic.delivery.preferredSlots = [carrierSlot];
+      next.document.tactics.push(tactic);
+    });
+    toast('Deliver Core added — it runs whenever a carrier exists.');
   };
 
   const openWizard = (tactic: Tactic, hints: RecipeHints, editing: boolean) => {
@@ -190,7 +240,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       if (!draw) return;
       startTask({
         kind: 'phase', tacticId: wizard.tactic.id, groupId, phase, draw, field,
-        hint: field === 'via' ? null : wizard.hints.groups.get(groupId) ?? null,
+        // Recipe hints point at staging ground; showing one while drawing the
+        // Act would aim the player at the wrong box.
+        hint: field === 'via' || phase === 'act'
+          ? null : wizard.hints.groups.get(groupId) ?? null,
         needed: group.slots.length,
       });
     },
@@ -209,51 +262,79 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       startTask({ kind: 'watch', tacticId: wizard.tactic.id, which });
     },
     endTask,
+    addDeliverCore,
   };
 
   const onTilePicked = (x: number, y: number) => {
     if (!task || !wizard) return;
-    changeWizard((tactic) => {
-      if (task.kind === 'phase') {
-        const group = tactic.groups.find((value) => value.id === task.groupId);
-        if (!group) return;
-        const phase = task.phase === 'stage' ? group.stage : group.act;
-        if (task.draw === 'posts') {
-          phase.posts = phase.posts ?? [];
-          const existing = phase.posts.findIndex((post) => post.at[0] === x && post.at[1] === y);
-          if (existing >= 0) phase.posts.splice(existing, 1);
-          else if (phase.posts.length < Math.max(1, group.slots.length)) {
-            phase.posts.push({ at: [x, y], facing: x < document.mapWidth / 2 ? 'e' : 'w' });
-          }
-        } else if (task.draw === 'route') {
-          if (task.field === 'via') phase.via = [...(phase.via ?? []), [x, y]];
-          else phase.path = [...(phase.path ?? []), [x, y]];
-        } else if (task.draw === 'point') {
-          phase.point = [x, y];
-        }
-      } else if (task.kind === 'sig') {
-        const group = tactic.groups.find((value) => value.id === task.groupId);
-        if (!group) return;
-        group.sigs = group.sigs ?? {};
-        group.sigs[task.phase] = group.sigs[task.phase] ?? {};
-        const store = group.sigs[task.phase]!;
-        const geometry = signatureMarkGeometry(catalog, task.classId)!;
-        const mark = store[task.classId];
-        const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
-        const existing = points.findIndex((point) => point[0] === x && point[1] === y);
-        if (existing >= 0) points.splice(existing, 1);
-        else if (points.length < task.max) points.push([x, y]);
-        store[task.classId] = geometry.kind === 'points'
-          ? { points } : { line: points };
-      }
-    });
-    // Point tasks and full mark/post sets complete themselves.
-    if (task.kind === 'phase' && task.draw === 'point') endTask();
+    // Completion checks read the click's actual effect: a click that REMOVED
+    // a post or mark must not count as placing one.
     if (task.kind === 'phase' && task.draw === 'posts') {
       const group = wizard.tactic.groups.find((value) => value.id === task.groupId);
-      const placed = (group && task.phase === 'stage' ? group.stage.posts?.length ?? 0 : 0) + 1;
-      if (group && placed >= Math.max(1, group.slots.length)) endTask();
+      if (!group) return;
+      const phase = task.phase === 'stage' ? group.stage : group.act;
+      const posts = phase.posts ?? [];
+      const cap = Math.max(1, group.slots.length);
+      const removing = posts.some((post) => post.at[0] === x && post.at[1] === y);
+      if (!removing && posts.length >= cap) {
+        toast('Every bot has a post — drag one to move it.', 'hot');
+        return;
+      }
+      changeWizard((tactic) => {
+        const target = tactic.groups.find((value) => value.id === task.groupId);
+        if (!target) return;
+        const targetPhase = task.phase === 'stage' ? target.stage : target.act;
+        targetPhase.posts = targetPhase.posts ?? [];
+        const existing = targetPhase.posts.findIndex((post) => post.at[0] === x && post.at[1] === y);
+        if (existing >= 0) targetPhase.posts.splice(existing, 1);
+        else targetPhase.posts.push({ at: [x, y], facing: x < document.mapWidth / 2 ? 'e' : 'w' });
+      });
+      if (!removing && posts.length + 1 >= cap) endTask();
+      return;
     }
+    if (task.kind === 'sig') {
+      const group = wizard.tactic.groups.find((value) => value.id === task.groupId);
+      const mark = group?.sigs?.[task.phase]?.[task.classId];
+      const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
+      const removing = points.some((point) => point[0] === x && point[1] === y);
+      if (!removing && points.length >= task.max) {
+        toast(`That’s every mark — drag one to move it.`, 'hot');
+        return;
+      }
+      changeWizard((tactic) => {
+        const target = tactic.groups.find((value) => value.id === task.groupId);
+        if (!target) return;
+        target.sigs = target.sigs ?? {};
+        target.sigs[task.phase] = target.sigs[task.phase] ?? {};
+        const store = target.sigs[task.phase]!;
+        const geometry = signatureMarkGeometry(catalog, task.classId)!;
+        const stored = store[task.classId];
+        const marks = stored ? ('points' in stored ? stored.points : stored.line) : [];
+        const existing = marks.findIndex((point) => point[0] === x && point[1] === y);
+        if (existing >= 0) marks.splice(existing, 1);
+        else marks.push([x, y]);
+        store[task.classId] = geometry.kind === 'points'
+          ? { points: marks } : { line: marks };
+      });
+      if (!removing && points.length + 1 >= task.max) {
+        endTask();
+        toast(`${task.max}/${task.max} marks placed.`);
+      }
+      return;
+    }
+    changeWizard((tactic) => {
+      if (task.kind !== 'phase') return;
+      const group = tactic.groups.find((value) => value.id === task.groupId);
+      if (!group) return;
+      const phase = task.phase === 'stage' ? group.stage : group.act;
+      if (task.draw === 'route') {
+        if (task.field === 'via') phase.via = [...(phase.via ?? []), [x, y]];
+        else phase.path = [...(phase.path ?? []), [x, y]];
+      } else if (task.draw === 'point') {
+        phase.point = [x, y];
+      }
+    });
+    if (task.kind === 'phase' && task.draw === 'point') endTask();
   };
 
   const onRectDrawn = (rect: [number, number, number, number]) => {
@@ -279,11 +360,20 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const onSelect = (ref: MapSelectRef) => {
     if (wizard && wizard.tactic.id === ref.tacticId) {
-      const step: WizardStepId = ref.part === 'group' ? 'stage'
+      // Clicking a group overlay keeps you on Act if you were there, and
+      // scrolls that group's section into view.
+      const step: WizardStepId = ref.part === 'group'
+        ? (wizard.step === 'act' ? 'act' : 'stage')
         : ref.part === 'cores' ? 'cores'
           : ref.part === 'finish' ? 'finish'
             : ref.part;
       setWizard({ ...wizard, step });
+      if (ref.part === 'group') {
+        window.setTimeout(() => {
+          window.document.getElementById(`section-${ref.groupId}-${step}`)
+            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }, 40);
+      }
       return;
     }
     setSelectedTacticId(ref.tacticId);
@@ -345,7 +435,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[280px_minmax(0,1fr)_360px]">
+    <div className="grid gap-3 lg:grid-cols-[316px_minmax(0,1fr)_396px]">
       {/* ------------------------------------------------------- the rail --- */}
       <section className="flex flex-col gap-3">
         <div className="panel pad">
@@ -353,7 +443,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             <span className="lab">The Sheet</span>
             <span className="pill">{document.tactics.length} tactic{document.tactics.length === 1 ? '' : 's'}</span>
             <span className="grow" />
-            <button type="button" className="btn btn-primary" disabled={blocking || save.isPending}
+            <button type="button" className="btn btn-strong" disabled={blocking || save.isPending}
               onClick={saveSheet} data-testid="save-sheet">
               {save.isPending ? 'Saving…' : draft.sheetId ? 'Save' : 'Save sheet'}
             </button>
@@ -365,16 +455,14 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               onChange={(event) => mutate((next) => { next.enterLadder = event.target.checked; })} />
             Field for ranked Season play
           </label>
-          <div className="flex gap-2">
-            <button type="button" className="btn btn-secondary grow" disabled={wizard !== null}
-              onClick={() => setRecipeOpen(true)} data-testid="create-tactic">
-              ＋ Create Tactic
-            </button>
-            <button type="button" className="btn" disabled={!draft.sheetId || trial.isPending}
-              onClick={practice}>
-              {trial.isPending ? 'Starting…' : 'Practice'}
-            </button>
-          </div>
+          <button type="button" className="btn btn-primary mb-2 w-full" disabled={wizard !== null}
+            onClick={() => setRecipeOpen(true)} data-testid="create-tactic">
+            ＋ Create Tactic
+          </button>
+          <button type="button" className="btn w-full" disabled={!draft.sheetId || trial.isPending}
+            onClick={practice}>
+            {trial.isPending ? 'Starting…' : 'Practice'}
+          </button>
           {notice && <p className="t-micro mt-2 text-arena-material" role="status">{notice}</p>}
         </div>
         <IssueSummary issues={issues} />
@@ -389,6 +477,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               total={draft.document.tactics.length}
               selected={tactic.id === selectedTacticId && !wizard}
               confirmDelete={confirmDeleteId === tactic.id}
+              squadSize={document.squad.length}
               botName={botName}
               onSelect={() => {
                 if (wizard) return;
@@ -402,10 +491,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 const [moved] = next.document.tactics.splice(from, 1);
                 next.document.tactics.splice(to, 0, moved);
               })}
-              onEdit={() => openWizard(tactic, { groups: new Map(), targetSizes: new Map() }, true)}
+              onEdit={() => openWizard(tactic, hintsFor(tactic), true)}
               onDelete={() => {
                 if (confirmDeleteId !== tactic.id) {
                   setConfirmDeleteId(tactic.id);
+                  // The armed confirm disarms itself, like the mock's.
+                  window.setTimeout(() => setConfirmDeleteId((current) =>
+                    current === tactic.id ? null : current), 2600);
                   return;
                 }
                 mutate((next) => {
@@ -413,11 +505,48 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 });
                 setConfirmDeleteId(null);
                 if (selectedTacticId === tactic.id) setSelectedTacticId(null);
+                toast('Tactic removed.');
+              }}
+              dropIndicator={dragTactic?.over === index
+                ? (dragTactic.below ? 'below' : 'above') : null}
+              onDragStart={() => setDragTactic({ id: tactic.id, over: null, below: false })}
+              onDragEnd={() => setDragTactic(null)}
+              onDragOver={(below) => setDragTactic((current) =>
+                current && { ...current, over: index, below })}
+              onDrop={(below) => {
+                const source = dragTactic?.id;
+                setDragTactic(null);
+                if (!source || source === tactic.id) return;
+                mutate((next) => {
+                  const from = next.document.tactics.findIndex((value) => value.id === source);
+                  if (from < 0) return;
+                  const [moved] = next.document.tactics.splice(from, 1);
+                  let to = next.document.tactics.findIndex((value) => value.id === tactic.id);
+                  if (to < 0) to = next.document.tactics.length;
+                  else if (below) to += 1;
+                  next.document.tactics.splice(to, 0, moved);
+                });
               }} />
           ))}
         </div>
+        {!wizard && needsDeliverCore(draft.document) && (
+          <div className="panel-quiet pad">
+            <div className="t-body mb-1 font-semibold">A Tactic can finish holding a Core.</div>
+            <p className="t-micro text-arena-dim">Nothing in this Sheet plans the run home —
+              add a prefilled Deliver Core tactic, carrier and escorts picked from your squad.</p>
+            <button type="button" className="btn btn-secondary mt-2" onClick={addDeliverCore}>
+              Add a Deliver Core tactic
+            </button>
+          </div>
+        )}
         <SquadRail catalog={catalog} squad={document.squad}
-          onOpen={() => setSquadOpen(true)} />
+          onOpen={() => setSquadOpen(true)}
+          onAutoFill={document.squad.length < 8 ? () => {
+            mutate((next) => {
+              next.document.squad = autoFillSquad(catalog, next.document.squad);
+            });
+            toast('Squad filled out.');
+          } : undefined} />
       </section>
 
       {/* -------------------------------------------------------- the map --- */}
@@ -440,42 +569,57 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             ))}
           </span>
         </div>
-        <div className={`overflow-auto rounded-sm border border-arena-edge bg-[#06090c] ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
-          <div style={{ width: `${zoom * 100}%` }}>
-            <TacticsMapCanvas
-              catalog={catalog}
-              document={document}
-              editingTacticId={editingTacticId}
-              selectedTacticId={selectedTacticId}
-              showAll={showAll}
-              task={task}
-              hints={wizard?.hints.groups ?? null}
-              onTilePicked={onTilePicked}
-              onRectDrawn={onRectDrawn}
-              onGeometryLive={onGeometryLive}
-              onGestureStart={beginGesture}
-              onGestureEnd={() => undefined}
-              onSelect={onSelect}
-            />
+        <div className="relative">
+          <div className={`overflow-auto rounded-sm border border-arena-edge bg-arena-deep ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
+            <div style={{ width: `${zoom * 100}%` }}>
+              <TacticsMapCanvas
+                catalog={catalog}
+                document={document}
+                editingTacticId={editingTacticId}
+                selectedTacticId={selectedTacticId}
+                showAll={showAll}
+                task={task}
+                hints={wizard?.hints.groups ?? null}
+                onTilePicked={onTilePicked}
+                onRectDrawn={onRectDrawn}
+                onGeometryLive={onGeometryLive}
+                onGestureStart={beginGesture}
+                onGestureEnd={() => undefined}
+                onSelect={onSelect}
+                onTaskDone={endTask}
+                onWallPicked={() => toast('That tile is a wall.', 'hot')}
+                onPostsSwapped={() => toast('Swapped posts.')}
+              />
+            </div>
           </div>
-        </div>
-        {task && <TaskBanner task={task} wizard={wizard} onDone={endTask}
-          onUndoPoint={() => changeWizard((tactic) => {
-            if (task.kind === 'phase') {
-              const group = tactic.groups.find((value) => value.id === task.groupId);
-              const phase = group && (task.phase === 'stage' ? group.stage : group.act);
-              if (!phase) return;
-              if (task.draw === 'posts') phase.posts?.pop();
-              if (task.draw === 'route') {
-                if (task.field === 'via') phase.via?.pop();
-                else phase.path?.pop();
+          {task && <TaskBanner task={task} wizard={wizard} onDone={endTask}
+            onUndoPoint={() => changeWizard((tactic) => {
+              if (task.kind === 'phase') {
+                const group = tactic.groups.find((value) => value.id === task.groupId);
+                const phase = group && (task.phase === 'stage' ? group.stage : group.act);
+                if (!phase) return;
+                if (task.draw === 'posts') phase.posts?.pop();
+                if (task.draw === 'route') {
+                  if (task.field === 'via') phase.via?.pop();
+                  else phase.path?.pop();
+                }
+              } else if (task.kind === 'sig') {
+                const group = tactic.groups.find((value) => value.id === task.groupId);
+                const mark = group?.sigs?.[task.phase]?.[task.classId];
+                if (mark) ('points' in mark ? mark.points : mark.line).pop();
               }
-            } else if (task.kind === 'sig') {
-              const group = tactic.groups.find((value) => value.id === task.groupId);
-              const mark = group?.sigs?.[task.phase]?.[task.classId];
-              if (mark) ('points' in mark ? mark.points : mark.line).pop();
-            }
-          })} />}
+            })} />}
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 t-micro text-arena-dim">
+          <span><span style={{ color: '#22d3ee' }}>●</span> Group post</span>
+          <span><span style={{ color: '#22d3ee' }}>▭</span> staging area</span>
+          <span><span style={{ color: '#22d3ee' }}>→</span> Act route</span>
+          <span><span style={{ color: '#c8763c' }}>⚡▭</span> release watch</span>
+          <span><span style={{ color: '#b49cff' }}>◐</span> Wells</span>
+          <span><span style={{ color: '#22d3ee' }}>◆</span> reactors — Cores bank here</span>
+        </div>
+        <p className="t-micro text-arena-dim">Click overlays to jump to their Group. Drag posts,
+          corners and destinations while editing.</p>
       </section>
 
       {/* ----------------------------------------------------- the drawer --- */}
@@ -485,24 +629,27 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             <div className="flex flex-wrap gap-1" data-testid="wizard-steps">
               {WIZARD_STEPS.map((step) => (
                 <button key={step.id} type="button"
-                  className={`btn !min-h-7 ${wizard.step === step.id ? 'btn-on' : ''}`}
+                  className={`btn !min-h-7 !px-2 !text-[10.5px] uppercase tracking-[0.1em] ${wizard.step === step.id ? 'btn-on' : ''}`}
                   data-done={stepDone(wizard, step.id)}
                   onClick={() => { setWizard({ ...wizard, step: step.id }); endTask(); }}>
-                  {stepDone(wizard, step.id) ? '· ' : ''}{step.label}
+                  <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${stepDone(wizard, step.id) ? 'bg-arena-ok' : 'bg-arena-edge2'}`} />
+                  {step.label}
                 </button>
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <h2 className="type-display text-[18px]">{wizard.tactic.name}</h2>
+              <h2 className="type-display text-[15px]">{wizard.tactic.name}</h2>
               <span className="pill">{recipeById(wizard.tactic.recipe).label}</span>
               <span className="grow" />
               <button type="button" className="btn" onClick={() => {
                 setWizard(null);
                 endTask();
                 if (wizard.editing) setSelectedTacticId(wizard.originalId);
+                else toast('Draft discarded.');
               }}>Cancel</button>
             </div>
-            <div className="flex flex-col gap-2.5 overflow-y-auto pr-1" style={{ maxHeight: '72vh' }}>
+            <div className="flex flex-col gap-2.5 overflow-y-auto pr-1"
+              style={{ maxHeight: 'calc(100dvh - 230px)' }}>
               {wizard.step === 'start' && <StartStep {...stepProps} />}
               {wizard.step === 'groups' && <GroupsStep {...stepProps} />}
               {wizard.step === 'stage' && <PhaseStep {...stepProps} phase="stage" />}
@@ -532,15 +679,27 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           <TacticInspector tactic={selected} botName={botName}
             catalog={catalog} document={document}
             onClose={() => setSelectedTacticId(null)}
-            onEdit={() => openWizard(selected, { groups: new Map(), targetSizes: new Map() }, true)} />
+            onEdit={() => openWizard(selected, hintsFor(selected), true)} />
         ) : (
           <DrawerIntro />
         )}
       </section>
 
+      <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-64 flex-col gap-1.5"
+        aria-live="polite">
+        {toasts.map((entry) => (
+          <div key={entry.id} role="status"
+            className={`unlock-toast panel px-3 py-2 t-micro shadow-lg ${entry.tone === 'hot'
+              ? 'border-arena-hot/60 text-arena-hot' : 'text-arena-text'}`}>
+            {entry.text}
+          </div>
+        ))}
+      </div>
+
       {squadOpen && (
         <SquadModal catalog={catalog} squad={document.squad}
           onClose={() => setSquadOpen(false)}
+          notify={toast}
           onChange={(squad) => mutate((next) => { next.document.squad = squad; })} />
       )}
       {recipeOpen && (
@@ -551,9 +710,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             <span className="grow" />
             <button type="button" className="btn" onClick={() => setRecipeOpen(false)}>✕</button>
           </div>
-          <div className="grid gap-2 sm:grid-cols-2" data-testid="recipe-chooser">
+          <div className="grid gap-2 sm:grid-cols-3" data-testid="recipe-chooser">
             {RECIPES.map((recipe) => (
-              <button key={recipe.id} type="button" className="choice-card text-left"
+              <button key={recipe.id} type="button"
+                className="choice-card flex min-h-[108px] flex-col text-left"
                 data-testid={`recipe-${recipe.id}`}
                 onClick={() => {
                   const { tactic, hints } = instantiateRecipe(recipe, draft.document);
@@ -565,7 +725,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                   <span className="text-[13px] font-semibold">{recipe.label}</span>
                 </span>
                 <span className="mt-0.5 block t-micro text-arena-dim">{recipe.tagline}</span>
-                <span className="mt-1 flex flex-wrap gap-1">
+                <span className="mt-auto flex flex-wrap gap-1 pt-1">
                   {recipe.groups.map((group) => (
                     <span key={group.name} className="pill !text-[9px]">{group.name}{group.size ? ` · ${group.size}` : ''}</span>
                   ))}
@@ -611,23 +771,103 @@ function drawKindFor(kind: Tactic['groups'][number]['stage']['kind']) {
           : null;
 }
 
-function TacticCard({ tactic, index, total, selected, confirmDelete, botName, onSelect, onMove, onEdit, onDelete }: {
+/** True when some committed Tactic can finish holding a Core with no plan for
+ * the run home — the sheet-level version of the wizard's nudge. */
+function needsDeliverCore(document: TacticsDocument): boolean {
+  const hasDeliver = document.tactics.some((tactic) =>
+    tactic.start.conds?.carrier
+    && tactic.groups.some((group) => group.act.kind === 'return'));
+  if (hasDeliver) return false;
+  return document.tactics.some((tactic) =>
+    tactic.finish.outcomes.coreAcquired && tactic.delivery.plan === 'none');
+}
+
+/** Round-robin over unlocked classes, one copy each before seconds, so the
+ * result respects the copy cap and lands on a wide composition. */
+function autoFillSquad(catalog: TacticalSheetCatalog, squad: SquadBot[]): SquadBot[] {
+  const next = [...squad];
+  const unlocked = catalog.classes.filter((entry) => entry.unlocked);
+  const freshName = (bots: SquadBot[], slot: number) => {
+    const used = new Set(bots.map((bot) => bot.name));
+    return BOT_NAMES.find((candidate) => !used.has(candidate)) ?? `Unit ${slot + 1}`;
+  };
+  let round = 0;
+  while (next.length < 8 && round < catalog.maximumCopiesPerClass) {
+    for (const entry of unlocked) {
+      if (next.length >= 8) break;
+      const used = next.filter((bot) => bot.class === entry.id).length;
+      if (used > round) continue;
+      next.push({
+        slot: next.length, class: entry.id, build: 'balanced',
+        name: freshName(next, next.length),
+      });
+    }
+    round += 1;
+  }
+  return next.map((bot, index) => ({ ...bot, slot: index }));
+}
+
+/** Per-card problems, so a broken Tactic names itself in the list. */
+function tacticProblems(tactic: Tactic, squadSize: number): string[] {
+  const problems: string[] = [];
+  const assigned = new Set(tactic.groups.flatMap((group) => group.slots));
+  if (squadSize === 8 && assigned.size !== 8) {
+    problems.push(`${assigned.size}/8 bots assigned`);
+  }
+  if ([...assigned].some((slot) => slot >= squadSize)) {
+    problems.push('a squad slot was emptied');
+  }
+  return problems;
+}
+
+function TacticCard({
+  tactic, index, total, selected, confirmDelete, squadSize, botName, dropIndicator,
+  onSelect, onMove, onEdit, onDelete, onDragStart, onDragEnd, onDragOver, onDrop,
+}: {
   tactic: Tactic;
   index: number;
   total: number;
   selected: boolean;
   confirmDelete: boolean;
+  squadSize: number;
   botName: (slot: number) => string | null;
+  dropIndicator: 'above' | 'below' | null;
   onSelect: () => void;
   onMove: (delta: number) => void;
   onEdit: () => void;
   onDelete: () => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDragOver: (below: boolean) => void;
+  onDrop: (below: boolean) => void;
 }) {
+  const problems = tacticProblems(tactic, squadSize);
+  const belowHalf = (event: React.DragEvent) => {
+    const box = event.currentTarget.getBoundingClientRect();
+    return event.clientY > box.top + box.height / 2;
+  };
   return (
     <article
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart();
+      }}
+      onDragEnd={onDragEnd}
+      onDragOver={(event) => {
+        event.preventDefault();
+        event.dataTransfer.dropEffect = 'move';
+        onDragOver(belowHalf(event));
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        onDrop(belowHalf(event));
+      }}
       className={`flex cursor-pointer gap-2 rounded-sm border p-2 transition-colors ${selected
-        ? 'border-arena-material/70 bg-arena-deep/60'
-        : 'border-arena-edge bg-arena-deep/30 hover:border-arena-dim'}`}
+        ? 'border-arena-material/70 bg-arena-deep/60 shadow-[inset_3px_0_0_var(--color-arena-material)]'
+        : 'border-arena-edge bg-arena-deep/30 hover:border-arena-dim'} ${dropIndicator === 'above'
+        ? '!shadow-[0_-2px_0_var(--color-arena-material)]'
+        : dropIndicator === 'below' ? '!shadow-[0_2px_0_var(--color-arena-material)]' : ''}`}
       onClick={onSelect}
       data-testid={`tactic-card-${index + 1}`}
     >
@@ -638,7 +878,18 @@ function TacticCard({ tactic, index, total, selected, confirmDelete, botName, on
           <span className="pill !text-[9px]">{recipeById(tactic.recipe).label}</span>
         </div>
         <PhaseStrip tactic={tactic} />
-        <p className="t-micro mt-1 text-arena-dim">{summarize(tactic, botName)}</p>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {tactic.groups.map((group) => (
+            <span key={group.id} className="flex items-center gap-1 rounded-full border border-arena-edge px-1.5 py-px text-[9.5px] text-arena-dim">
+              <span className="h-1.5 w-1.5 rounded-full" style={{ background: groupColor(tactic, group.id) }} />
+              {group.name} · {group.slots.length}
+            </span>
+          ))}
+        </div>
+        <p className="t-micro mt-1 line-clamp-3 text-arena-dim">{summarize(tactic, botName)}</p>
+        {problems.map((problem) => (
+          <p key={problem} className="t-micro mt-0.5 text-arena-hot">⚠ {problem}</p>
+        ))}
       </div>
       <div className="flex flex-col gap-0.5" onClick={(event) => event.stopPropagation()} role="presentation">
         <button type="button" className="btn !min-h-6 !px-1.5" title="Move up" disabled={index === 0}
@@ -665,7 +916,7 @@ function TacticInspector({ tactic, botName, catalog, document, onClose, onEdit }
 }) {
   return <>
     <div className="flex items-center gap-2">
-      <h2 className="type-display text-[18px]">{tactic.name}</h2>
+      <h2 className="type-display text-[15px]">{tactic.name}</h2>
       <span className="pill">{recipeById(tactic.recipe).label}</span>
       <span className="grow" />
       <button type="button" className="btn" onClick={onClose}>✕</button>
@@ -676,7 +927,8 @@ function TacticInspector({ tactic, botName, catalog, document, onClose, onEdit }
       <PhaseStrip tactic={tactic} big />
     </div>
     {tactic.groups.map((group) => (
-      <div key={group.id} className="panel pad">
+      <div key={group.id} className="panel pad"
+        style={{ borderLeft: `3px solid ${groupColor(tactic, group.id)}` }}>
         <div className="mb-1 flex items-center gap-2">
           <b className="t-body">{group.name}</b>
           <span className="val">{group.slots.length} bots</span>
@@ -748,10 +1000,26 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
       }[task.draw];
   const undoable = (task.kind === 'phase' && (task.draw === 'route' || task.draw === 'posts'))
     || task.kind === 'sig';
+  // Group-accent left rail; forge orange for the release watch, pale for start.
+  const accent = task.kind === 'watch'
+    ? (task.which === 'start' ? '#e6ddd4' : '#c8763c')
+    : wizard ? groupColor(wizard.tactic, task.groupId) : '#e6ddd4';
+  // A live placed/needed readout for the countable tasks.
+  let progress: string | null = null;
+  if (task.kind === 'phase' && task.draw === 'posts' && group) {
+    const phase = task.phase === 'stage' ? group.stage : group.act;
+    progress = `${phase.posts?.length ?? 0}/${Math.max(1, group.slots.length)}`;
+  } else if (task.kind === 'sig' && group) {
+    const mark = group.sigs?.[task.phase]?.[task.classId];
+    const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
+    progress = `${points.length}/${task.max}`;
+  }
   return (
-    <div className="flex items-center gap-2 rounded-sm border border-arena-material/50 bg-arena-deep/70 px-2 py-1.5"
+    <div className="absolute inset-x-2 top-2 z-10 flex items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/80 px-2 py-1.5 backdrop-blur"
+      style={{ borderLeft: `3px solid ${accent}` }}
       data-testid="task-banner" role="status">
       <span className="t-micro">{what}</span>
+      {progress && <span className="val">{progress}</span>}
       {task.kind === 'phase' && task.hint && <span className="t-micro text-arena-dim">· {task.hint.text}</span>}
       <span className="grow" />
       {undoable && <button type="button" className="btn" onClick={onUndoPoint}>Undo</button>}
@@ -760,10 +1028,11 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
   );
 }
 
-function SquadRail({ catalog, squad, onOpen }: {
+function SquadRail({ catalog, squad, onOpen, onAutoFill }: {
   catalog: TacticalSheetCatalog;
   squad: SquadBot[];
   onOpen: () => void;
+  onAutoFill?: () => void;
 }) {
   return (
     <div className="panel pad" data-testid="squad-rail">
@@ -771,6 +1040,9 @@ function SquadRail({ catalog, squad, onOpen }: {
         <span className="lab">Squad</span>
         <span className="val">{squad.length}/8</span>
         <span className="grow" />
+        {onAutoFill && (
+          <button type="button" className="btn" onClick={onAutoFill}>Auto-fill</button>
+        )}
         <button type="button" className="btn" onClick={onOpen} data-testid="open-squad">Pick eight</button>
       </div>
       <div className="grid grid-cols-2 gap-1.5">
@@ -805,20 +1077,20 @@ function SquadRail({ catalog, squad, onOpen }: {
   );
 }
 
-function SquadModal({ catalog, squad, onClose, onChange }: {
+function SquadModal({ catalog, squad, onClose, onChange, notify }: {
   catalog: TacticalSheetCatalog;
   squad: SquadBot[];
   onClose: () => void;
   onChange: (squad: SquadBot[]) => void;
+  notify?: (text: string, tone?: 'ok' | 'hot') => void;
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const filled = squad.length;
-  const makeBotIn = (bots: SquadBot[], slot: number, classId: string): SquadBot => {
-    const used = new Set(bots.map((bot) => bot.name));
+  const makeBot = (slot: number, classId: string): SquadBot => {
+    const used = new Set(squad.map((bot) => bot.name));
     const name = BOT_NAMES.find((candidate) => !used.has(candidate)) ?? `Unit ${slot + 1}`;
     return { slot, class: classId, build: 'balanced', name };
   };
-  const makeBot = (slot: number, classId: string): SquadBot => makeBotIn(squad, slot, classId);
   const normalize = (bots: SquadBot[]) =>
     bots.map((bot, index) => ({ ...bot, slot: index }));
   const pickClass = (classId: string) => {
@@ -828,27 +1100,17 @@ function SquadModal({ catalog, squad, onClose, onChange }: {
       setSelected(null);
       return;
     }
-    if (filled >= 8) return;
+    if (filled >= 8) {
+      notify?.('The squad is full — select a bot to swap its class.', 'hot');
+      return;
+    }
     onChange(normalize([...squad, makeBot(filled, classId)]));
   };
   const counts = new Map<string, number>();
   for (const bot of squad) counts.set(bot.class, (counts.get(bot.class) ?? 0) + 1);
   const autoFill = () => {
-    // Round-robin over unlocked classes, one copy each before seconds, so the
-    // result respects the copy cap and lands on a wide composition.
-    const next = [...squad];
-    const unlocked = catalog.classes.filter((entry) => entry.unlocked);
-    let round = 0;
-    while (next.length < 8 && round < catalog.maximumCopiesPerClass) {
-      for (const entry of unlocked) {
-        if (next.length >= 8) break;
-        const used = next.filter((bot) => bot.class === entry.id).length;
-        if (used > round) continue;
-        next.push(makeBotIn(next, next.length, entry.id));
-      }
-      round += 1;
-    }
-    onChange(normalize(next));
+    onChange(autoFillSquad(catalog, squad));
+    notify?.('Squad filled out.');
   };
   return (
     <Modal onClose={onClose} wide>

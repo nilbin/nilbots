@@ -1,20 +1,16 @@
 /** One line of drawn-geometry status: done tick, description, draw controls. */
-export function GeoStatusRow({ complete, label, drawing, onDraw, onStop, onClear, accent, drawLabel }: {
+export function GeoStatusRow({ complete, label, drawing, onDraw, onStop, onClear, drawLabel }: {
   complete: boolean;
   label: string;
   drawing: boolean;
   onDraw?: () => void;
   onStop?: () => void;
   onClear?: () => void;
-  accent?: string;
   drawLabel?: string;
 }) {
   return (
     <div className="flex min-h-9 items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/30 px-2 py-1">
-      <span
-        className={complete ? 'font-semibold' : 'text-arena-dim'}
-        style={complete ? { color: accent ?? 'var(--color-arena-ok)' } : undefined}
-      >
+      <span className={complete ? 'font-semibold text-arena-ok' : 'text-arena-material'}>
         {complete ? '✓' : '◌'}
       </span>
       <span className="t-micro">{label}</span>

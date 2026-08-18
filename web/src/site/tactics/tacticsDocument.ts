@@ -194,24 +194,38 @@ export function groupColor(tactic: Tactic, groupId: string): string {
   return GROUP_COLORS[Math.max(0, index) % GROUP_COLORS.length];
 }
 
+/** Anchor-mark budgets, mirroring the server compile's
+ * `TacticAnchorMarkBudgets` (ArcRelayTacticsDsl.cs) byte for byte — the
+ * editor must not let a player place a mark the compile then rejects. */
+const ANCHOR_MARK_BUDGETS: Record<string, number> = {
+  lantern: 2, mortar: 2, minesmith: 3, mason: 2, veil: 2, nest: 2,
+};
+
+/** Each spatial signature's map glyph, from the design mock's vocabulary. */
+const SIGNATURE_ICONS: Record<string, string> = {
+  mason: '▬', nest: '◎', minesmith: '▴', lantern: '✳', mortar: '✛',
+  veil: '☁', kestrel: '》', longshot: '━',
+};
+
 /** Which spatial signature geometry a class draws, derived from the
  * catalog's descriptor capabilities — never from a class-id switch. */
 export function signatureMarkGeometry(
   catalog: TacticalSheetCatalog,
   classId: string,
-): { kind: 'points' | 'line'; max: number; label: string } | null {
+): { kind: 'points' | 'line'; max: number; label: string; icon: string } | null {
   const entry = catalog.classes.find((value) => value.id === classId);
   if (!entry) return null;
   const authoring = entry.signatureAuthoring;
+  const icon = SIGNATURE_ICONS[classId] ?? '✦';
   if (authoring.allowsExactAnchor) {
-    const max = classId === 'minesmith' ? 3 : 2;
-    return { kind: 'points', max, label: entry.signatureName };
+    const max = ANCHOR_MARK_BUDGETS[classId] ?? 2;
+    return { kind: 'points', max, label: entry.signatureName, icon };
   }
   if (authoring.allowsRouteForward) {
-    return { kind: 'line', max: 8, label: entry.signatureName };
+    return { kind: 'line', max: 8, label: entry.signatureName, icon };
   }
   if (classId === 'longshot') {
-    return { kind: 'line', max: 2, label: entry.signatureName };
+    return { kind: 'line', max: 2, label: entry.signatureName, icon };
   }
   return null;
 }

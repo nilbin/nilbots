@@ -21,12 +21,12 @@ export function BotChip({ bot, catalog, armed, note, onClick, draggable, onDragS
       draggable={draggable}
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className={`flex min-h-8 items-center gap-1.5 rounded-sm border px-2 t-micro transition-colors ${armed
+      className={`flex min-h-8 items-center gap-1.5 rounded-full border px-2.5 t-micro transition-colors ${armed
         ? 'border-arena-material bg-arena-material/15 text-arena-text'
-        : 'border-arena-edge bg-arena-deep/40 text-arena-dim hover:text-arena-text'}`}
+        : 'border-arena-edge bg-arena-bg text-arena-dim hover:text-arena-text'}`}
     >
       {classSprite(bot.class) && <img src={classSprite(bot.class)} alt=""
-        className="h-5 w-5 shrink-0 object-contain" />}
+        className="h-[22px] w-[22px] shrink-0 object-contain" />}
       <span className="font-semibold text-arena-text">{bot.name}</span>
       <span className="text-arena-dim">{entry?.name ?? bot.class}</span>
       {note && <span className="text-arena-material">{note}</span>}

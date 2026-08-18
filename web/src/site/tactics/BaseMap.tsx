@@ -1,4 +1,5 @@
 import type { TacticalSheetCatalog } from '../api';
+import { ZONE_OPTIONS } from './places';
 import {
   mapRegionPresentation, nearestSpawnTeam, relationForPhysicalSide,
   relationForSpawn, relationForTeam, type MapTeamRelation, type MapViewSide,
@@ -95,5 +96,47 @@ export function BaseMap({ catalog, side = 'west', compact = false }: {
           d={`M ${point.x + .69} ${point.y + .1} L ${point.x + .9} ${point.y + .31} M ${point.x + .9} ${point.y + .1} L ${point.x + .69} ${point.y + .31}`}
           stroke="#dc8a4d" strokeWidth={.075} />
       )))}
+    {!compact && <MapPlaceLabels catalog={catalog} side={side} />}
+  </>;
+}
+
+/** Stroked place names drawn into the ground — MID and the three Wells in the
+ * player's own language — so the drawer's readback ("hold ground at Mid",
+ * "their Well") has something on the map to point at. */
+function MapPlaceLabels({ catalog, side }: {
+  catalog: TacticalSheetCatalog;
+  side: MapViewSide;
+}) {
+  const height = catalog.map.height;
+  const labels: { key: string; text: string; x: number; y: number; size: number }[] = [];
+  const mid = ZONE_OPTIONS.find((zone) => zone.id === 'mid');
+  if (mid) {
+    labels.push({
+      key: 'mid', text: 'MID', size: .62,
+      x: (mid.rect[0] + mid.rect[2] + 1) / 2, y: mid.rect[1] - .65,
+    });
+  }
+  const ownWell = side === 'west' ? 'well-north' : 'well-south';
+  for (const region of catalog.map.regions) {
+    if (!region.id.startsWith('well-') || region.tiles.length === 0) continue;
+    const cx = region.tiles.reduce((sum, point) => sum + point.x + .5, 0) / region.tiles.length;
+    const cy = region.tiles.reduce((sum, point) => sum + point.y + .5, 0) / region.tiles.length;
+    const text = region.id === 'well-centre' ? 'CENTRE WELL'
+      : region.id === ownWell ? 'YOUR WELL' : 'THEIR WELL';
+    labels.push({
+      key: region.id, text,
+      size: region.id === 'well-centre' ? .44 : .5,
+      // Label above a well in the top half, below otherwise, clear of MID.
+      x: cx, y: cy < height / 2 ? cy - 1.95 : cy + 2.1,
+    });
+  }
+  return <>
+    {labels.map((label) => (
+      <text key={label.key} x={label.x} y={label.y} textAnchor="middle"
+        fontSize={label.size} fontWeight={600} letterSpacing=".06"
+        style={{ fontStretch: '82%' }} fill="#7694a8" opacity=".8"
+        paintOrder="stroke" stroke="#06090c" strokeWidth={.12}
+        pointerEvents="none">{label.text}</text>
+    ))}
   </>;
 }
