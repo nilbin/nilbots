@@ -1,4 +1,5 @@
 import type { TacticalSheetCatalog } from '../api';
+import { classSprite } from './classArt';
 import type { SquadBot } from './tacticsDocument';
 
 /** One squad bot as a draggable/selectable chip: name plus class. */
@@ -24,6 +25,8 @@ export function BotChip({ bot, catalog, armed, note, onClick, draggable, onDragS
         ? 'border-arena-material bg-arena-material/15 text-arena-text'
         : 'border-arena-edge bg-arena-deep/40 text-arena-dim hover:text-arena-text'}`}
     >
+      {classSprite(bot.class) && <img src={classSprite(bot.class)} alt=""
+        className="h-5 w-5 shrink-0 object-contain" />}
       <span className="font-semibold text-arena-text">{bot.name}</span>
       <span className="text-arena-dim">{entry?.name ?? bot.class}</span>
       {note && <span className="text-arena-material">{note}</span>}

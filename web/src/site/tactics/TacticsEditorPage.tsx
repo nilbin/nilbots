@@ -10,6 +10,7 @@ import { IssueSummary } from './IssueSummary';
 import { Modal } from './Modal';
 import { PhaseStrip } from './PhaseStrip';
 import { BotChip } from './BotChip';
+import { classSprite, slotAccent } from './classArt';
 import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './recipes';
 import { groupClause, summarize } from './summary';
 import { TacticsMapCanvas, type GeometryEdit, type MapSelectRef } from './TacticsMapCanvas';
@@ -772,20 +773,30 @@ function SquadRail({ catalog, squad, onOpen }: {
         <span className="grow" />
         <button type="button" className="btn" onClick={onOpen} data-testid="open-squad">Pick eight</button>
       </div>
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-2 gap-1.5">
         {Array.from({ length: 8 }, (_, slot) => {
           const bot = squad[slot];
           if (!bot) {
             return <button key={slot} type="button" onClick={onOpen}
-              className="min-h-9 rounded-sm border border-dashed border-arena-edge t-micro text-arena-dim">
+              className="min-h-[54px] rounded-sm border border-dashed border-arena-edge t-micro text-arena-dim">
               ＋ Slot {slot + 1}
             </button>;
           }
           const entry = catalog.classes.find((value) => value.id === bot.class);
+          const sprite = classSprite(bot.class);
           return <button key={slot} type="button" onClick={onOpen}
-            className="flex min-h-9 flex-col items-start rounded-sm border border-arena-edge px-1.5 py-1 text-left">
-            <span className="t-micro font-semibold">{bot.name}</span>
-            <span className="text-[10px] text-arena-dim">{entry?.name ?? bot.class} · {BUILDS.find((value) => value.id === bot.build)?.label}</span>
+            title={entry ? `${entry.name} — ${entry.fantasy}` : bot.class}
+            className="relative flex min-h-[54px] items-center gap-2 rounded-sm border border-arena-edge px-2 py-1.5 text-left transition-colors hover:border-arena-edge2">
+            <span className="absolute inset-y-1 left-0 w-[3px] rounded-full"
+              style={{ background: slotAccent(slot) }} />
+            {sprite && <img src={sprite} alt="" className="h-[34px] w-[34px] shrink-0 object-contain drop-shadow" />}
+            <span className="min-w-0">
+              <span className="block truncate t-micro font-semibold leading-tight">{bot.name}</span>
+              <span className="block text-[10.5px] leading-tight text-arena-dim">{entry?.name ?? bot.class}</span>
+            </span>
+            <span className="absolute right-1 top-1 text-[8.5px] uppercase tracking-widest text-arena-dim">
+              {BUILDS.find((value) => value.id === bot.build)?.label}
+            </span>
           </button>;
         })}
       </div>
@@ -802,11 +813,12 @@ function SquadModal({ catalog, squad, onClose, onChange }: {
 }) {
   const [selected, setSelected] = useState<number | null>(null);
   const filled = squad.length;
-  const makeBot = (slot: number, classId: string): SquadBot => {
-    const used = new Set(squad.map((bot) => bot.name));
+  const makeBotIn = (bots: SquadBot[], slot: number, classId: string): SquadBot => {
+    const used = new Set(bots.map((bot) => bot.name));
     const name = BOT_NAMES.find((candidate) => !used.has(candidate)) ?? `Unit ${slot + 1}`;
     return { slot, class: classId, build: 'balanced', name };
   };
+  const makeBot = (slot: number, classId: string): SquadBot => makeBotIn(squad, slot, classId);
   const normalize = (bots: SquadBot[]) =>
     bots.map((bot, index) => ({ ...bot, slot: index }));
   const pickClass = (classId: string) => {
@@ -821,27 +833,54 @@ function SquadModal({ catalog, squad, onClose, onChange }: {
   };
   const counts = new Map<string, number>();
   for (const bot of squad) counts.set(bot.class, (counts.get(bot.class) ?? 0) + 1);
+  const autoFill = () => {
+    // Round-robin over unlocked classes, one copy each before seconds, so the
+    // result respects the copy cap and lands on a wide composition.
+    const next = [...squad];
+    const unlocked = catalog.classes.filter((entry) => entry.unlocked);
+    let round = 0;
+    while (next.length < 8 && round < catalog.maximumCopiesPerClass) {
+      for (const entry of unlocked) {
+        if (next.length >= 8) break;
+        const used = next.filter((bot) => bot.class === entry.id).length;
+        if (used > round) continue;
+        next.push(makeBotIn(next, next.length, entry.id));
+      }
+      round += 1;
+    }
+    onChange(normalize(next));
+  };
   return (
     <Modal onClose={onClose} wide>
       <div className="mb-2 flex items-center gap-2">
         <h2 className="type-display text-[16px]">Squad — pick eight</h2>
         <span className="val">{filled}/8</span>
         <span className="grow" />
+        <button type="button" className="btn" onClick={autoFill} disabled={filled >= 8}
+          data-testid="squad-autofill">Auto-fill the rest</button>
         <button type="button" className="btn btn-primary" onClick={onClose} data-testid="squad-done">Done</button>
       </div>
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4" data-testid="class-grid">
         {catalog.classes.map((entry) => {
           const capped = (counts.get(entry.id) ?? 0) >= catalog.maximumCopiesPerClass
             && selected === null;
+          const swapping = selected !== null && squad[selected]?.class === entry.id;
+          const sprite = classSprite(entry.id);
           return (
-            <button key={entry.id} type="button" className="choice-card text-left"
+            <button key={entry.id} type="button"
+              className={`choice-card flex items-center gap-2 text-left ${swapping ? '!border-arena-material' : ''}`}
               disabled={!entry.unlocked || (capped && filled >= 8)}
               data-testid={`class-${entry.id}`}
+              title={entry.signatureName}
               onClick={() => pickClass(entry.id)}>
-              <span className="block text-[12px] font-semibold">
-                {entry.name}{!entry.unlocked && ' 🔒'}
+              {sprite && <img src={sprite} alt=""
+                className={`h-8 w-8 shrink-0 object-contain drop-shadow ${entry.unlocked ? '' : 'opacity-40 grayscale'}`} />}
+              <span className="min-w-0">
+                <span className="block text-[12px] font-semibold leading-tight">
+                  {entry.name}{!entry.unlocked && ' 🔒'}
+                </span>
+                <span className="block t-micro leading-tight text-arena-dim">{entry.fantasy}</span>
               </span>
-              <span className="block t-micro text-arena-dim">{entry.signatureName}</span>
             </button>
           );
         })}
@@ -856,10 +895,14 @@ function SquadModal({ catalog, squad, onClose, onChange }: {
             return (
               <div key={index}
                 className={`flex min-h-9 items-center gap-2 rounded-sm border px-2 ${selected === index ? 'border-arena-material' : 'border-arena-edge'}`}>
-                <button type="button" className="grow text-left"
+                <button type="button" className="flex grow items-center gap-2 text-left"
                   onClick={() => setSelected(selected === index ? null : index)}>
-                  <span className="t-micro font-semibold">{bot.name}</span>
-                  <span className="t-micro text-arena-dim"> · {entry?.name ?? bot.class}</span>
+                  {classSprite(bot.class) && <img src={classSprite(bot.class)} alt=""
+                    className="h-7 w-7 shrink-0 object-contain drop-shadow" />}
+                  <span>
+                    <span className="t-micro font-semibold">{bot.name}</span>
+                    <span className="t-micro text-arena-dim"> · {entry?.name ?? bot.class}</span>
+                  </span>
                 </button>
                 <input className="field !min-h-7 w-24 !py-0 t-micro" value={bot.name}
                   aria-label="Bot name" maxLength={24}
@@ -889,6 +932,26 @@ function SquadModal({ catalog, squad, onClose, onChange }: {
           )}
         </div>
       </div>
+      {selected !== null && squad[selected] ? (
+        <div className="mt-3">
+          <div className="lab mb-1">Build for {squad[selected].name}</div>
+          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            {BUILDS.map((build) => (
+              <button key={build.id} type="button"
+                className={`choice-card text-left ${squad[selected]?.build === build.id ? '!border-arena-material' : ''}`}
+                onClick={() => onChange(normalize(squad.map((value, i) =>
+                  i === selected ? { ...value, build: build.id } : value)))}>
+                <span className="block text-[12px] font-semibold">{build.label}</span>
+                <span className="block t-micro text-arena-dim">{build.blurb}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : filled > 0 && (
+        <p className="t-micro mt-3 text-arena-dim">New bots arrive <b>Balanced</b>. Select one to set its
+          build here, or tap the build tag on its row to cycle. The upgrade path itself is generated —
+          you never see it.</p>
+      )}
     </Modal>
   );
 }
