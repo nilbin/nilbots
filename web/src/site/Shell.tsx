@@ -16,9 +16,9 @@ export default function Shell() {
   const navigate = useNavigate();
 
   return (
-    // The masthead bar spans the full window (its content stays at reading
-    // width); main owns the reading column, and full-bleed workbench pages
-    // break out of main without leaving a stranded-looking header above.
+    // Full-bleed everywhere (owner call): the bar and every page span the
+    // window; text-heavy pages cap their own prose width (e.g. DocsPage's
+    // max-w-3xl), and workbenches get the whole viewport.
     <div className="flex min-h-screen w-full min-w-0 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] min-[640px]:pb-0">
         <ScrollToHash />
         <a
@@ -29,7 +29,7 @@ export default function Shell() {
         </a>
         <NotificationCenter />
         <header className="border-b border-arena-edge bg-arena-panel">
-          <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-nowrap items-center gap-3.5 px-4 py-2.5 max-[359px]:gap-2 max-[359px]:px-2.5 md:px-6">
+          <div className="flex w-full min-w-0 flex-nowrap items-center gap-3.5 px-4 py-2.5 max-[359px]:gap-2 max-[359px]:px-2.5 md:px-6">
             <Link to="/" className="shrink-0 text-arena-material">
               <Logo size={17} />
             </Link>
@@ -72,7 +72,7 @@ export default function Shell() {
           </div>
         </header>
         <main id="main-content" tabIndex={-1}
-          className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-4 py-6 md:px-6">
+          className="w-full min-w-0 flex-1 px-4 py-6 md:px-6">
           <Outlet />
         </main>
         <nav
