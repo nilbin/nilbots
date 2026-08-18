@@ -55,6 +55,8 @@ export interface TacticOutcomes {
 export interface TacticPost {
   at: Point;
   facing: Facing;
+  /** This post's own drawn way in — overrides the group route for its bot. */
+  via?: Point[];
 }
 
 export interface TacticPhase {
@@ -220,17 +222,63 @@ export function tilePlacementIssue(
     return 'reserved spawn ground';
   }
   if (placement === 'route') {
-    const protectedTiles = [
-      ...catalog.map.tileTags
-        .filter((tag) => tag.kind === 'SpawnProtected')
-        .flatMap((tag) => tag.tiles),
-      ...catalog.map.regions
-        .filter((region) => region.id.startsWith('home-'))
-        .flatMap((region) => region.tiles),
-    ];
-    if (eitherSeat(protectedTiles)) return 'inside a protected home region';
+    // Only the OPPONENT's protected home ground blocks a route — you may
+    // route through your own pad. Mirrors the server exactly:
+    // eastForbidden(tile) OR westForbidden(mirrored tile).
+    const forbidden = opponentForbidden(catalog);
+    if (forbidden.east.has(`${x},${y}`)
+      || forbidden.west.has(`${width - 1 - x},${height - 1 - y}`)) {
+      return 'inside a protected home region';
+    }
   }
   return null;
+}
+
+const forbiddenCache = new WeakMap<
+  TacticalSheetCatalog, { west: Set<string>; east: Set<string> }>();
+
+/** Each side's forbidden ground: the SpawnProtected component containing
+ * that side's reactor (4-neighbour flood, like the server) plus its home
+ * region. Cached per catalog — validation runs on every edit. */
+function opponentForbidden(
+  catalog: TacticalSheetCatalog,
+): { west: Set<string>; east: Set<string> } {
+  const cached = forbiddenCache.get(catalog);
+  if (cached) return cached;
+  const tagged = new Set(catalog.map.tileTags
+    .filter((tag) => tag.kind === 'SpawnProtected')
+    .flatMap((tag) => tag.tiles)
+    .map((tile) => `${tile.x},${tile.y}`));
+  const side = (reactorId: string, homeId: string) => {
+    const out = new Set<string>();
+    const seed = catalog.map.regions
+      .find((region) => region.id === reactorId)?.tiles[0];
+    if (seed && tagged.has(`${seed.x},${seed.y}`)) {
+      out.add(`${seed.x},${seed.y}`);
+      const queue: Point[] = [[seed.x, seed.y]];
+      while (queue.length > 0) {
+        const [cx, cy] = queue.pop()!;
+        for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]] as Point[]) {
+          const key = `${cx + dx},${cy + dy}`;
+          if (tagged.has(key) && !out.has(key)) {
+            out.add(key);
+            queue.push([cx + dx, cy + dy]);
+          }
+        }
+      }
+    }
+    for (const tile of catalog.map.regions
+      .find((region) => region.id === homeId)?.tiles ?? []) {
+      out.add(`${tile.x},${tile.y}`);
+    }
+    return out;
+  };
+  const value = {
+    west: side('reactor-west', 'home-west'),
+    east: side('reactor-east', 'home-east'),
+  };
+  forbiddenCache.set(catalog, value);
+  return value;
 }
 
 /** The post's facing-target problem, if any: out-of-bounds targets are fine
@@ -486,6 +534,20 @@ function validatePhaseGeometry(
         const faced = postFacingIssue(catalog, post);
         if (faced) {
           error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) faces ${faced} — turn its arrow.`);
+        }
+        if (post.via) {
+          if (post.via.length < 2) {
+            error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with fewer than two points.`);
+          } else if (post.via.length > 16) {
+            error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with more than 16 points.`);
+          } else {
+            for (const point of post.via) {
+              const bad = routeIssue(point);
+              if (bad) {
+                error(at, `${possessive(group.name)} way-in point (${point[0]},${point[1]}) is ${bad}.`);
+              }
+            }
+          }
         }
       }
     }

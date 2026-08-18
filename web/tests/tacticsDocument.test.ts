@@ -158,6 +158,18 @@ test('an approach route validates on legal kinds and reads back in the summary',
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence, /coming in by the drawn route/);
 
+  // A post's own way in validates and reads back like the group route.
+  tactic.groups[0].stage.posts![0].via = [[10, 10], [12, 11]];
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  assert.match(
+    summarize(tactic, (slot) => document.squad[slot]?.name ?? null),
+    /posts at Mid, coming in by drawn routes/);
+  tactic.groups[0].stage.posts![0].via = [[10, 10]];
+  assert.ok(validateDocument(document, catalog).some((issue) =>
+    /way in with fewer than two points/.test(issue.message)));
+  delete tactic.groups[0].stage.posts![0].via;
+
   // A one-point route and a route on a no-draw kind are both named.
   tactic.groups[1].stage.via = [[14, 3]];
   let messages = validateDocument(document, catalog).map((issue) => issue.message);

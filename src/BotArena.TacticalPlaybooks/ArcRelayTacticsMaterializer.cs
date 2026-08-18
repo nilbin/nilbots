@@ -1098,6 +1098,11 @@ internal static class ArcRelayTacticsMaterializer
                     string? face = faceTile is null
                         ? null
                         : Anchor(faceTile, $"g-{geometryPrefix}-face-{member}");
+                    // A post's own drawn way in overrides the group route:
+                    // this bot walks its route, groupmates keep theirs.
+                    string? wayIn = post.Via is null
+                        ? via
+                        : Route(post.Via, $"g-{geometryPrefix}-in-{member}");
                     leaves.Add(Latched(latch, new Node
                     {
                         Id = scope.Id("move"),
@@ -1107,8 +1112,8 @@ internal static class ArcRelayTacticsMaterializer
                             writer.WriteStartObject("to");
                             writer.WriteString("anchor", anchor);
                             writer.WriteEndObject();
-                            if (via is not null)
-                                writer.WriteString("via", via);
+                            if (wayIn is not null)
+                                writer.WriteString("via", wayIn);
                             if (face is not null)
                             {
                                 writer.WriteStartObject("face");

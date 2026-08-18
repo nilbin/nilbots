@@ -527,6 +527,17 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
               ? `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`
               : `${group.name} post ${index + 1}`}</title>
           </g>}
+        {post.via && post.via.length > 1 && (
+          <g>
+            <polyline points={pathfinder.connect([...post.via, post.at])
+              .map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
+              fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".1 .22"
+              strokeLinejoin="round" strokeLinecap="round" opacity=".75"
+              data-select={select} cursor="pointer" />
+            {post.via.map(([wx, wy], wi) =>
+              <circle key={wi} cx={wx + .5} cy={wy + .5} r={.1} fill={color} opacity=".75" />)}
+          </g>
+        )}
         {editable && <>
           <Handle cx={cx} cy={cy} r={.42}
             onDown={(event) => startDrag(event, { kind: 'post', groupId: group.id, index, origin: [x, y] })} />
@@ -724,7 +735,11 @@ function taskGeometryExists(
   const group = tactic?.groups.find((value) => value.id === task.groupId);
   if (!group) return false;
   const phase = task.phase === 'stage' ? group.stage : group.act;
-  if (task.field === 'via') return (phase.via?.length ?? 0) > 0;
+  if (task.field === 'via') {
+    return task.postIndex != null
+      ? (phase.posts?.[task.postIndex]?.via?.length ?? 0) > 0
+      : (phase.via?.length ?? 0) > 0;
+  }
   return Boolean(phase.posts?.length || phase.rect || (phase.path?.length ?? 0) > 0 || phase.point);
 }
 

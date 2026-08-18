@@ -63,10 +63,15 @@ export function stageClause(group: TacticGroup, plural = true): string {
   const v = (word: string) => verb(word, plural);
   const via = viaPhrase(stage);
   switch (stage.kind) {
-    case 'posts':
-      if (posture === 'hold') return `${v('hold')} posts at ${place}${via}${recoveryPhrase(stage)}`;
-      if (posture === 'observe') return `${v('watch')} from posts at ${place}${via}${recoveryPhrase(stage)}`;
-      return `${v('wait')} at posts near ${place}${via}${recoveryPhrase(stage)}`;
+    case 'posts': {
+      // A post's own drawn way in reads back like the group route does.
+      const ways = stage.posts?.some((post) => (post.via?.length ?? 0) > 1)
+        ? ', coming in by drawn routes'
+        : via;
+      if (posture === 'hold') return `${v('hold')} posts at ${place}${ways}${recoveryPhrase(stage)}`;
+      if (posture === 'observe') return `${v('watch')} from posts at ${place}${ways}${recoveryPhrase(stage)}`;
+      return `${v('wait')} at posts near ${place}${ways}${recoveryPhrase(stage)}`;
+    }
     case 'area':
       if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
       if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${via}${recoveryPhrase(stage)}`;

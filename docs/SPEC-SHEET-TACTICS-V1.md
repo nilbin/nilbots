@@ -100,7 +100,7 @@ higher tactic takes over.
              "posture": "wait|hold|aggressive|steal|escort|observe",
              "recovery": "fight-on|patch|heal-tile",
              // exactly the geometry key its kind requires:
-             "posts": [ { "at": [14,12], "facing": "n|e|s|w" }, … ],  // one per slot, aligned with slots order
+             "posts": [ { "at": [14,12], "facing": "n|e|s|w", "via"?: [[x,y]…2..16] }, … ],  // one per slot, aligned with slots order; a post's own via overrides the phase via for its bot
              "rect": [x1,y1,x2,y2], "path": [[x,y]… 2..16], "point": [x,y],
              "via": [[x,y]… 2..16] },   // optional drawn approach route
   "act":   { "kind": "none|converge|advance|patrol|return|escort",

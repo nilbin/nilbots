@@ -248,6 +248,27 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                                     + $"({x},{y}) faces ({fx},{fy}), which "
                                     + $"is {faced} — turn its facing.");
                             }
+                            if (post.TryGetProperty(
+                                    "via", out JsonElement postVia)
+                                && postVia.ValueKind == JsonValueKind.Array)
+                            {
+                                int viaIndex = 0;
+                                foreach (JsonElement waypoint in
+                                    postVia.EnumerateArray())
+                                {
+                                    if (TryPoint(waypoint, out int vx, out int vy)
+                                        && RouteIssue(vx, vy) is string blocked)
+                                    {
+                                        throw new InvalidDataException(
+                                            $"tactics.json {postPath}"
+                                            + $".via[{viaIndex}]: the waypoint "
+                                            + $"at ({vx},{vy}) is {blocked} — "
+                                            + "routes must stay on open ground "
+                                            + "that is legal from both seats.");
+                                    }
+                                    viaIndex++;
+                                }
+                            }
                         }
                     }
                     if (phase.TryGetProperty("point", out JsonElement point)

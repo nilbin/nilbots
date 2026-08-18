@@ -127,6 +127,41 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void APostsOwnWayInOverridesTheGroupRoute()
+    {
+        // Ember's post gains a drawn way in; Gantry keeps the direct path.
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        JsonArray posts = document["tactics"]![0]!["groups"]![0]!["stage"]!
+            ["posts"]!.AsArray();
+        posts[0]!["via"] = new JsonArray(
+            new JsonArray(6, 21), new JsonArray(10, 23));
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        string RoleStageVia(string roleId)
+        {
+            JsonElement role = orders.RootElement.GetProperty("roles")
+                .EnumerateArray()
+                .Single(value => value.GetProperty("id").GetString() == roleId);
+            JsonElement move = role.GetProperty("orders").EnumerateArray()
+                .First().GetProperty("orders").EnumerateArray()
+                .Single(node => node.TryGetProperty("id", out JsonElement id)
+                    && id.GetString() == "t1-s")
+                .GetProperty("orders").EnumerateArray()
+                .Single(node => node.TryGetProperty("id", out JsonElement id)
+                    && id.GetString()!.EndsWith("-s-move", StringComparison.Ordinal));
+            return move.GetProperty("move").TryGetProperty(
+                    "via", out JsonElement via)
+                ? via.GetString()!
+                : "none";
+        }
+        Assert.Equal("g-t1-g1-in-0", RoleStageVia("ember"));
+        Assert.Equal("none", RoleStageVia("gantry"));
+    }
+
+    [Fact]
     public void PincerEncodesTheLifecycleContract()
     {
         TacticalPlaybookCompilation compilation =

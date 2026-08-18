@@ -138,6 +138,15 @@ const specs = {
       'pincer: posted bots render their class sprites');
     await assertVisible(page, page.getByText('drag its arrow tip to turn it'),
       'pincer: facing gesture hint under the posts row');
+    // Each post offers its own way in; a drawn one reads back on its row.
+    await assertVisible(page, page.getByText('— way in (direct)').first(),
+      'pincer: per-post way-in rows appear once posts are placed');
+    await page.getByRole('button', { name: 'Draw route' }).first().click();
+    await clickTile(page, 7, 6);
+    await clickTile(page, 12, 8);
+    await page.getByRole('button', { name: 'Done' }).click();
+    await assertVisible(page, page.getByText('way in · 2 waypoints'),
+      'pincer: a drawn way in reads back on its post row');
     // Flankers assemble behind their lines.
     await page.getByRole('button', { name: 'Draw on map' }).first().click();
     await dragRect(page, 22, 3, 26, 7);

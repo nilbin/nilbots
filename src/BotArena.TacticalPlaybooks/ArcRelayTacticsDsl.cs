@@ -414,7 +414,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             for (int index = 0; index < postValues.Length; index++)
             {
                 string at = $"{path}.posts[{index}]";
-                Object(postValues[index], at, ["at", "facing"]);
+                Object(postValues[index], at, ["at", "facing"], ["via"]);
                 int[] tile = BoundedPoint(
                     postValues[index].GetProperty("at"), $"{at}.at",
                     width, height);
@@ -422,7 +422,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     throw Error(at, "two posts share the same tile.");
                 string facing = OneOf(postValues[index], "facing", at,
                     "n", "e", "s", "w");
-                posts.Add(new ArcRelayTacticPost(tile, facing));
+                // A post's own drawn way in: the bot walks this route to its
+                // post instead of the direct path (overrides the group via).
+                List<int[]>? postVia = null;
+                if (postValues[index].TryGetProperty(
+                        "via", out JsonElement postViaValue))
+                {
+                    JsonElement[] viaPoints = BoundedArray(
+                        postViaValue, $"{at}.via", 2, 16);
+                    postVia = [];
+                    foreach (JsonElement pointValue in viaPoints)
+                    {
+                        postVia.Add(BoundedPoint(
+                            pointValue, $"{at}.via", width, height));
+                    }
+                }
+                posts.Add(new ArcRelayTacticPost(tile, facing, postVia));
             }
         }
         else if (expectedGeometry == "rect")
@@ -828,7 +843,8 @@ internal sealed record ArcRelayTacticPhase(
         || Point is not null;
 }
 
-internal sealed record ArcRelayTacticPost(int[] At, string Facing);
+internal sealed record ArcRelayTacticPost(
+    int[] At, string Facing, IReadOnlyList<int[]>? Via = null);
 
 internal sealed record ArcRelayTacticSignatureMark(
     string ClassId,

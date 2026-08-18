@@ -267,6 +267,14 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       });
       revealMap();
     },
+    startPostViaTask: (groupId, phase, postIndex) => {
+      if (!wizard) return;
+      startTask({
+        kind: 'phase', tacticId: wizard.tactic.id, groupId, phase,
+        draw: 'route', field: 'via', postIndex, hint: null,
+      });
+      revealMap();
+    },
     startSigTask: (groupId, phase, classId) => {
       if (!wizard) return;
       const geometry = signatureMarkGeometry(catalog, classId);
@@ -358,8 +366,16 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       if (!group) return;
       const phase = task.phase === 'stage' ? group.stage : group.act;
       if (task.draw === 'route') {
-        if (task.field === 'via') phase.via = [...(phase.via ?? []), [x, y]];
-        else phase.path = [...(phase.path ?? []), [x, y]];
+        if (task.field === 'via') {
+          if (task.postIndex != null) {
+            const post = phase.posts?.[task.postIndex];
+            if (post) post.via = [...(post.via ?? []), [x, y]];
+          } else {
+            phase.via = [...(phase.via ?? []), [x, y]];
+          }
+        } else {
+          phase.path = [...(phase.path ?? []), [x, y]];
+        }
       } else if (task.draw === 'point') {
         phase.point = [x, y];
       }
@@ -642,8 +658,12 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 if (!phase) return;
                 if (task.draw === 'posts') phase.posts?.pop();
                 if (task.draw === 'route') {
-                  if (task.field === 'via') phase.via?.pop();
-                  else phase.path?.pop();
+                  if (task.field === 'via') {
+                    if (task.postIndex != null) phase.posts?.[task.postIndex]?.via?.pop();
+                    else phase.via?.pop();
+                  } else {
+                    phase.path?.pop();
+                  }
                 }
               } else if (task.kind === 'sig') {
                 const group = tactic.groups.find((value) => value.id === task.groupId);
@@ -1037,7 +1057,9 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
         posts: `Placing ${group?.name ?? ''} posts — click ${group?.slots.length || 'a few'} tiles`,
         rect: `Drag a box for ${whose} ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
         route: task.field === 'via'
-          ? `Click ${whose} approach waypoints in travel order — they walk this in before the job`
+          ? task.postIndex != null
+            ? `Click the way in for ${group?.name ?? ''} post ${task.postIndex + 1} — waypoints in travel order, ending near its tile`
+            : `Click ${whose} approach waypoints in travel order — they walk this in before the job`
           : `Click waypoints for ${whose} ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
         point: `Click ${whose} ${task.phase === 'stage' ? 'approach point' : 'destination'}`,
       }[task.draw];

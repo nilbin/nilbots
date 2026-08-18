@@ -41,6 +41,8 @@ export interface StepProps {
   /** `draw` overrides the task's draw kind — required when arming right after
    * a kind change, before the wizard state has flushed. */
   startPhaseTask: (groupId: string, phase: 'stage' | 'act', field?: 'via', draw?: DrawKind) => void;
+  /** Draw one post's own way in (overrides the group route for that bot). */
+  startPostViaTask: (groupId: string, phase: 'stage' | 'act', postIndex: number) => void;
   startSigTask: (groupId: string, phase: 'stage' | 'act', classId: string) => void;
   startWatchTask: (which: 'start' | 'release') => void;
   endTask: () => void;
@@ -282,7 +284,7 @@ export function PhaseStep(props: StepProps & { phase: 'stage' | 'act' }) {
 function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: TacticGroup }) {
   const {
     catalog, document, wizard, phase, group, task, change,
-    startPhaseTask, startSigTask, endTask,
+    startPhaseTask, startPostViaTask, startSigTask, endTask,
   } = props;
   const tactic = wizard.tactic;
   const isStage = phase === 'stage';
@@ -367,14 +369,39 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
         <p className="t-micro mt-1 text-arena-dim">Each posted bot stands on its tile facing one of
           four ways — drag its arrow tip to turn it; the wedge is what it watches.</p>
       )}
-      {viaLegal(geo.kind, isStage) && (
+      {geo.kind === 'posts' && (geo.posts?.length ?? 0) > 0 ? (
+        // Per-post ways in: each bot can sneak to its own post by its own
+        // drawn route instead of the direct path through the middle.
+        geo.posts!.map((post, index) => {
+          const bot = document.squad[group.slots[index]];
+          const mine = task?.kind === 'phase' && task.groupId === group.id
+            && task.phase === phase && task.field === 'via'
+            && task.postIndex === index;
+          return <GeoStatusRow key={index}
+            complete={(post.via?.length ?? 0) >= 2}
+            label={`${bot?.name ?? `Post ${index + 1}`} — way in${post.via?.length
+              ? ` · ${post.via.length} waypoints` : ' (direct)'}`}
+            drawing={mine}
+            drawLabel="Draw route"
+            onDraw={() => startPostViaTask(group.id, phase, index)}
+            onStop={endTask}
+            onClear={post.via ? () => change((next) => {
+              const target = next.groups.find((value) => value.id === group.id);
+              const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
+              const targetPost = targetGeo?.posts?.[index];
+              if (targetPost) delete targetPost.via;
+            }) : undefined}
+          />;
+        })
+      ) : viaLegal(geo.kind, isStage) && (
         <GeoStatusRow
           complete={(geo.via?.length ?? 0) >= 2}
           label={geo.via?.length
             ? `Approach route — ${geo.via.length} waypoints walked in first.`
             : 'Approach route (optional) — swing wide instead of the direct path.'}
           drawing={task?.kind === 'phase' && task.groupId === group.id
-            && task.phase === phase && task.field === 'via'}
+            && task.phase === phase && task.field === 'via'
+            && task.postIndex == null}
           drawLabel="Draw route"
           onDraw={() => startPhaseTask(group.id, phase, 'via')}
           onStop={endTask}
