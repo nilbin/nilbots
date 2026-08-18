@@ -223,12 +223,12 @@ Project boundaries that must not be violated:
   combat and 600-tick horizon, but replaces every later global Well beat with
   source-local supply: banking the Well's sole active Core into either reactor
   starts a public 46-tick recharge. Pickup, carry, toss, drop and steal leave
-  the clock stopped, and an active Core publishes no birth countdown. This
-  local/review identity does not rewrite the hosted lane.
-  Immutable hosted entrant playlist v24 pins `tapline-6`, Tapline-native
+  the clock stopped, and an active Core publishes no birth countdown.
+  Immutable hosted entrant playlist v25 pins `tapline-8`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
-  the delayed centre opening, the equal-return map fork, and the parity-proven
-  ATL2 WASM mirror. v23 remains immutable, replay-only Tapline-5 history. v7
+  the delayed centre opening, the equal-return map fork, bank-triggered
+  source-local Well supply, and the parity-proven ATL2 WASM mirror. v24
+  remains immutable, replay-only Tapline-6 history, and v23 Tapline-5. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -272,6 +272,11 @@ Project boundaries that must not be violated:
   centre shortcut and changes the registered stock gameplay; v23 ratings are
   never copied into v24. The tactical mind bytes and Tempered Standard Orders
   source are unchanged; the native map plan and map fingerprint are new.
+  v25 starts fresh because Tapline-8's bank-triggered source-local Well
+  supply changes the registered stock gameplay; v24 ratings are never copied
+  into v25. The tactical mind bytes, Tempered Standard Orders source, map
+  plan and map are unchanged; only the pinned ruleset moves to
+  `arc-relay-tapline-08`.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

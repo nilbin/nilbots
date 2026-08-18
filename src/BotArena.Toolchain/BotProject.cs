@@ -465,9 +465,11 @@ public static class ToolchainInfo
     /// and hosted default while preserving Tapline-5 as immutable history.
     /// 0.9.64 promotes Tapline-8's bank-triggered 46-tick Well recharge as the
     /// local/editor default while preserving Tapline-7 and hosted v24.
+    /// 0.9.65 promotes Tapline-8 to the hosted lane as immutable playlist v25
+    /// (v24 stays exact history).
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.64";
+    public const string CliVersion = "0.9.65";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

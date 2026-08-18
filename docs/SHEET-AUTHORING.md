@@ -706,11 +706,12 @@ broadcasts carry neither the clause nor private Program attribution.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v24 is the promoted Orders v2/Tapline-6 line. It pins
+Hosted entrant playlist v25 is the promoted Orders v2/Tapline-8 line. It pins
 the coordinated EPIBT executor, body-local signature orders, the unchanged
 controlled WASM artifact and Tempered Standard sheet, the combined depth rules,
-the delayed centre opening, the equal-return map fork, and a fresh rating book.
-Playlist v23 remains immutable Tapline-5 history.
+the delayed centre opening, the equal-return map fork, bank-triggered
+source-local Well supply, and a fresh rating book. Playlists v23 (Tapline-5)
+and v24 (Tapline-6) remain immutable history.
 
 ## 12. Executor-owned squad micro
 

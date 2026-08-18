@@ -8944,3 +8944,21 @@ them, and now only through the living. The paired gate pushed a maximal
 eight-tactic sheet past the runtime envelope, so the #331 lockstep caps
 (ATL2 envelope, mind payload, MindStart wire) rise 128→160 KiB — owner
 session call, revisit if runtime memory ever matters.
+
+## 334. Hosted playlist v25 promotes Tapline-8
+
+Owner deployment authorization (2026-08-18) — the checkpoint #328
+reserved. Immutable hosted entrant playlist v25 pins `tapline-8`
+(`arc-relay-tapline-08` on the unchanged `arc-relay-tapline-02` map):
+bank-triggered source-local Well supply now runs everywhere — ranked,
+practice, the Tactics editor's trials, and the local CLI line, which
+already defaulted to it. v25 starts a fresh rating book because the
+registered stock gameplay changes; v24 ratings are never copied
+forward, and v24 (Tapline-6) joins v23 as immutable, replay-only
+history with its provenance bytes preserved exactly. The tactical mind
+bytes, Tempered Standard Orders source, stock map plan, and map are all
+reused unchanged — only the pinned ruleset moves. CLI 0.9.65 refreshes
+the help text's hosted line. The hosted-execution gate is recalibrated
+for the deeper bank-gated matches (the reference cell ends ~tick 541:
+Debug coarse gate 5s→8s, Release steady gate 1.6s→3s against a 2.220s
+measurement).

@@ -50,13 +50,13 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v24 and the local <code>nilbots arc-relay</code>
-          default both run tapline-6 on the accepted equal-return Tapline with
+          Hosted playlist v25 and the local <code>nilbots arc-relay</code>
+          default both run tapline-8 on the accepted equal-return Tapline with
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
           remain match history but are not accepted by the current editor;
-          coordinates are never projected between maps. Tapline-6 values a Core at 1, 2,
+          coordinates are never projected between maps. Tapline-8 values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
           requires at least seven distinct classes, and makes deployments durable targets.
@@ -64,16 +64,15 @@ export default function DocsPage() {
           the first beat for scouting and counter-positioning before the two-charge Core.
           Its two practical centre-Core returns are both 19 terrain steps, so committing
           north or south is a tactical choice rather than a hidden distance tax.
-          Playlist v24 opens a fresh rating book at 1200; playlist v23 remains readable
-          Tapline-5 history and its ratings are not carried into v24.
+          Playlist v25 opens a fresh rating book at 1200; playlists v23 and v24 remain
+          readable history and their ratings are not carried into v25.
         </p>
         <p className="mt-2 text-arena-dim">
-          Practice, the Tactics editor and the local CLI now use immutable Tapline-8 on
-          that same map. Each Well keeps its existing public opening, then owns one active
-          Core until it is banked into either reactor. That bank starts an exact public
-          46-tick recharge. Carrying, tossing, dropping and stealing do not start the
-          clock, and an active Core has no birth countdown. Ranked playlist v24 remains
-          Tapline-6 until a separately authorized deployment advances it.
+          Ranked, practice, the Tactics editor and the local CLI all run that same
+          source-local supply. Each Well keeps its existing public opening, then owns one
+          active Core until it is banked into either reactor. That bank starts an exact
+          public 46-tick recharge. Carrying, tossing, dropping and stealing do not start
+          the clock, and an active Core has no birth countdown.
         </p>
       </Doc>
 

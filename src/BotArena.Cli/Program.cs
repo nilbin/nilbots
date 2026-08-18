@@ -312,7 +312,7 @@ static int CommandHelp(string command)
             opening, then owns one active Core until that Core is banked into
             either reactor. Banking starts a public 46-tick source-local
             recharge; carrying, tossing, dropping and stealing do not.
-            Hosted v24 still pins `tapline-6`; v7 through v24 remain exact history, and all
+            Hosted v25 pins `tapline-8` too; v7 through v24 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

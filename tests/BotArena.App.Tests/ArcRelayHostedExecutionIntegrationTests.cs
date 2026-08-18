@@ -60,7 +60,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Tapline6.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Tapline8.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(10, catalog.StockOpponents.Count);
@@ -152,9 +152,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Tapline6.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Tapline8.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Tapline6.RulesetId,
+                ArcRelayLoopProfile.Tapline8.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -189,7 +189,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Tapline6.RulesetId,
+                ArcRelayLoopProfile.Tapline8.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)
@@ -426,14 +426,19 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         // benchmark; its unoptimized planner measured about 2.5s on the
         // hand-authored stock sheet and about 3.4s on the materialized
         // Tactics starter, whose per-bot post and fight leaves evaluate a
-        // larger order tree.
+        // larger order tree. Tapline-8's bank-gated supply makes matches run
+        // deeper into the 600-tick horizon (the reference cell ends ~541),
+        // which measured about 5.0s in Debug.
 #if DEBUG
         Assert.True(
-            steadyElapsed.Elapsed < TimeSpan.FromSeconds(5),
+            steadyElapsed.Elapsed < TimeSpan.FromSeconds(8),
             $"Debug hosted entrant execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
 #else
+        // The Tapline-8 reference cell measured 2.220s steady in Release —
+        // the bank-gated economy runs matches deeper into the horizon than
+        // the 1.241s Tapline-3 reference this gate was first cut for.
         Assert.True(
-            steadyElapsed.Elapsed < TimeSpan.FromSeconds(1.6),
+            steadyElapsed.Elapsed < TimeSpan.FromSeconds(3),
             $"Steady hosted entrant execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
 #endif
     }
