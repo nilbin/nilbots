@@ -41,6 +41,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private IArenaStepper _stepper = new SquadArenaPlanner();
     private SquadArenaPlanner? _squadPlanner;
     private Position _ownReactor;
+    private Position[] _ownReactorApproach = [];
     private Position _enemyReactor;
     private Position[] _healTiles = [];
     private bool _mirrored;
@@ -84,6 +85,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .OrderBy(value => value.Y)
             .ThenBy(value => value.X)
             .ToArray();
+        _ownReactorApproach = AdjacentEnterableTiles(
+            start.Contract.Map, _ownReactor);
         _mirrored = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
         _package = OrdersPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
@@ -486,6 +489,27 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             && (targetKey.StartsWith("well:", StringComparison.Ordinal)
                 || targetKey.StartsWith("heal:", StringComparison.Ordinal));
 
+    private static Position[] AdjacentEnterableTiles(
+        GenericActorMapContract map,
+        Position tile)
+    {
+        var ring = new List<Position>();
+        for (int dy = -1; dy <= 1; dy++)
+        {
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+                var candidate = new Position(tile.X + dx, tile.Y + dy);
+                if (ArenaBasics.CanEnter(map, candidate))
+                    ring.Add(candidate);
+            }
+        }
+        return [.. ring
+            .OrderBy(value => value.Y)
+            .ThenBy(value => value.X)];
+    }
+
     public void EndMatch(MindEnd end) => _ = end;
 
     private List<Proposal> BuildProposals(
@@ -751,8 +775,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (move.TargetKind == "dynamic")
         {
             if (move.Target == "own-reactor")
+            {
+                // Banking consumes a Core only while the carrier STANDS on
+                // the reactor tile, which makes that tile shared bank
+                // infrastructure: an empty-handed body ordered home holds
+                // the approach ring instead, so a parked returner can never
+                // blockade its own team's deliveries.
+                if (carried.ContainsKey(body.ActorId)
+                    || _ownReactorApproach.Length == 0)
+                {
+                    return [new ResolvedTarget(
+                        "reactor:own", _ownReactor, [_ownReactor],
+                        null, null)];
+                }
                 return [new ResolvedTarget(
-                    "reactor:own", _ownReactor, [_ownReactor], null, null)];
+                    "reactor:own-approach", _ownReactor,
+                    _ownReactorApproach, null, null)];
+            }
             if (move.Target == "current-position")
                 return [new ResolvedTarget(
                     "hold:current-position", body.Position,

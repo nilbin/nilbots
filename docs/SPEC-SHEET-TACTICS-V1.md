@@ -189,8 +189,11 @@ t{n} (when = start rows any-joined; timeout = maxAttempt; cooldown 40)
   facing; area → `move.to {zone}`; line → members round-robin onto the
   clicked anchors; approach → `adjacentTo` the point, posture rear;
   converge → `adjacentTo`; advance → route `via` + goal zone; patrol →
-  `move.patrol`; return → `own-reactor`; escort → follow the nearest friendly
-  carrier. An act of `none` re-emits the stage floor inside the release
+  `move.patrol`; return → `own-reactor` (the mind resolves that dynamic to
+  the reactor's approach ring for an empty-handed body — banking consumes a
+  Core only while the carrier stands ON the reactor tile, so the tile itself
+  is carrier infrastructure and a parked returner must never blockade it);
+  escort → follow the nearest friendly carrier. An act of `none` re-emits the stage floor inside the release
   branch, so stage-only groups keep holding after release.
 - Attempt timers: brief 60 / standard 180 / long 420 ticks; timers run from
   branch eligibility (the engine's wall-clock model).

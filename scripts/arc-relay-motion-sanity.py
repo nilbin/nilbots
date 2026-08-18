@@ -7,6 +7,11 @@ movement cycle, a recovery order that makes no geographic/health progress,
 and a planner move trace that silently degrades into an actual Wait command.
 It also rejects a body spending a sustained move episode orbiting a tiny patch
 without reaching the named destination; rotating in place is the one-tile case.
+A stationary episode whose every stalled tick names an explicit executor yield
+(planner wait/turn, a blocked or denied destination, right-of-way, or a follow
+target) is reported as a held yield rather than an orbit while it stays under a
+hard ceiling: posts, escorts, and converge queues legitimately stand in place
+with intent, and the ceiling keeps a queue that never clears failing loudly.
 Enemy occupancy pauses the recovery clock; contesting a scarce healer is play,
 not a planner fault. Loaded returns are checked here because aggregate Core
 score bars cannot distinguish a carrier waiting for right-of-way from one that
@@ -36,6 +41,24 @@ RECOVERY_CONTEST_DISTANCE = 1
 # orbit; the owner-caught failures ran for 100+ ticks and remain far over this
 # bar.
 LOCAL_MOVE_ORBIT_BAR = 18
+# A stationary episode is a held yield, not an orbit, while the body stays
+# within this many tiles, every stalled tick names an explicit executor yield,
+# and the stall stays under the ceiling. Two tiles covers one polite side-step;
+# 45 ticks is far past the 12-tick traffic-debt escalation, so a queue that
+# genuinely never clears still fails.
+LOCAL_MOVE_YIELD_TILE_SPAN = 2
+LOCAL_MOVE_YIELD_CEILING = 45
+LOCAL_MOVE_YIELD_MARKERS = (
+    ":epibt-wait:",
+    ":epibt-turn:",
+    ":move-blocked:",
+    ":avoid-denied-",
+    ":traffic-right-of-way-",
+    ":traffic-detour-",
+    ":planner-movement-lease@",
+    ":planner-oscillation-yield@",
+    ":move:body:",
+)
 CARRIER_ROUTE_REGRESSION_BAR = 3
 CARRIER_PAIR_REVERSAL_BAR = 2
 HEADINGS = {
@@ -158,6 +181,9 @@ def analyze(path: Path) -> dict:
     contradictory_traffic_traces: list[dict] = []
     move_windows: dict[tuple[int, int, int], dict] = {}
     local_move_orbits: list[dict] = []
+    held_yields: list[dict] = []
+    reported_held_episodes: set[
+        tuple[int, int, int, tuple[int, int]]] = set()
     carrier_route_trips: list[dict] = []
     carrier_regression_debt: dict[tuple[int, int, int], int] = {}
     tripped_carrier_routes: set[tuple[int, int, int]] = set()
@@ -303,6 +329,7 @@ def analyze(path: Path) -> dict:
                             "repeatPositions": {position},
                             "bestDistance": distance,
                             "repeatTicks": 0,
+                            "unreasonedRepeatTicks": 0,
                         }
                     else:
                         state = prior_move
@@ -314,15 +341,19 @@ def analyze(path: Path) -> dict:
                         if novel or closer:
                             state["repeatTicks"] = 0
                             state["repeatPositions"] = {position}
+                            state["unreasonedRepeatTicks"] = 0
                         else:
                             state["repeatTicks"] += 1
                             state["repeatPositions"].add(position)
+                            if not any(marker in reason for marker
+                                       in LOCAL_MOVE_YIELD_MARKERS):
+                                state["unreasonedRepeatTicks"] += 1
                         state["lastTick"] = tick["tick"]
                     move_windows[actor_key] = state
                     episode = (*actor_key, goal)
                     if state["repeatTicks"] >= LOCAL_MOVE_ORBIT_BAR \
                             and episode not in tripped_move_episodes:
-                        local_move_orbits.append({
+                        window = {
                             "fromTick": tick["tick"]
                                 - state["repeatTicks"] + 1,
                             "toTick": tick["tick"],
@@ -332,8 +363,18 @@ def analyze(path: Path) -> dict:
                             "goal": goal,
                             "distinctTiles": len(state["repeatPositions"]),
                             "reason": reason,
-                        })
-                        tripped_move_episodes.add(episode)
+                        }
+                        held = state["unreasonedRepeatTicks"] == 0 \
+                            and len(state["repeatPositions"]) \
+                                <= LOCAL_MOVE_YIELD_TILE_SPAN \
+                            and state["repeatTicks"] < LOCAL_MOVE_YIELD_CEILING
+                        if held:
+                            if episode not in reported_held_episodes:
+                                held_yields.append(window)
+                                reported_held_episodes.add(episode)
+                        else:
+                            local_move_orbits.append(window)
+                            tripped_move_episodes.add(episode)
                 # Suppression governors deliberately turn a proposed move
                 # into a Wait and name why (lease/oscillation). The broken
                 # seam this catches retained the generic move-blocked suffix:
@@ -418,6 +459,8 @@ def analyze(path: Path) -> dict:
         "contradictoryTrafficTraces": contradictory_traffic_traces,
         "localMoveOrbitBar": LOCAL_MOVE_ORBIT_BAR,
         "localMoveOrbits": local_move_orbits,
+        "localMoveYieldCeiling": LOCAL_MOVE_YIELD_CEILING,
+        "heldYields": held_yields,
         "carrierRouteTrips": carrier_route_trips,
         "mechanicallyClean": not cycle_ticks and not trips
             and not false_move_traces and not contradictory_traffic_traces
@@ -447,6 +490,7 @@ def main() -> int:
             f"contradictory traffic traces "
             f"{len(result['contradictoryTrafficTraces'])}; "
             f"local move orbits {len(result['localMoveOrbits'])}; "
+            f"held yields {len(result['heldYields'])}; "
             f"carrier route trips {len(result['carrierRouteTrips'])}; "
             f"{'CLEAN' if result['mechanicallyClean'] else 'FAIL'}"
         )
@@ -478,6 +522,13 @@ def main() -> int:
                 f"t{trip['teamId']} u{trip['unitId']} l{trip['lifeId']} "
                 f"remained in {trip['distinctTiles']} tiles while moving "
                 f"toward {tuple(trip['goal'])}: {trip['reason']}"
+            )
+        for trip in result["heldYields"][:8]:
+            print(
+                f"  held yield t{trip['fromTick']}-t{trip['toTick']} "
+                f"t{trip['teamId']} u{trip['unitId']} l{trip['lifeId']} "
+                f"stood within {trip['distinctTiles']} tiles toward "
+                f"{tuple(trip['goal'])}: {trip['reason']}"
             )
         for trip in result["carrierRouteTrips"][:8]:
             print(
