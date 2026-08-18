@@ -31,21 +31,22 @@ export function TickRow({ on, radio, label, extra, onToggle }: {
   );
 }
 
-/** A bounded count parameter ("N enemies", "N bots"). */
-export function CountStepper({ value, min = 1, max = 8, onChange }: {
+/** A bounded count parameter ("N enemies", "N ticks"). */
+export function CountStepper({ value, min = 1, max = 8, step = 1, onChange }: {
   value: number;
   min?: number;
   max?: number;
+  step?: number;
   onChange: (value: number) => void;
 }) {
   return (
     <span className="flex items-center gap-1 rounded-sm border border-arena-edge"
       onClick={(event) => event.stopPropagation()} role="presentation">
       <button type="button" className="min-h-7 px-2"
-        onClick={() => onChange(Math.max(min, value - 1))}>−</button>
-      <span className="tabular t-micro w-4 text-center">{value}</span>
+        onClick={() => onChange(Math.max(min, value - step))}>−</button>
+      <span className={`tabular t-micro text-center ${max > 9 ? 'w-7' : 'w-4'}`}>{value}</span>
       <button type="button" className="min-h-7 px-2"
-        onClick={() => onChange(Math.min(max, value + 1))}>＋</button>
+        onClick={() => onChange(Math.min(max, value + step))}>＋</button>
     </span>
   );
 }

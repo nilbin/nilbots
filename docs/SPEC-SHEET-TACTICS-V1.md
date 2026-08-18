@@ -65,10 +65,13 @@ must have a plan (stage or act kind other than `none`).
 | `enemiesAt` | `{ "count": 1..8, "zone": { "name"?, "rect": [x1,y1,x2,y2] } }` | ≥N enemies known in the box (team memory, 40-tick freshness) |
 | `contact` | `true` | any enemy visible to the team |
 | `coreLoose` | `{ "well": "north|centre|south|own|enemy" }` | that Well's Core is up for grabs |
+| `coreSoon` | `{ "well": …, "ticks": 1..120 }` | that Well's next Core births within N ticks — its one effective clock: the initial opening, then the bank-triggered recharge |
+| `enemiesDown` | `{ "count": 1..8 }` | at least N enemy bots are down right now |
 | `carrier` | `true` | a friendly carrier exists |
 | `losses` | `{ "count": 1..7 }` | we are down N bots |
 
-Start rows OR together; `carrier` is start-only, `contact` release-only.
+Start rows OR together; `carrier` is start-only, `contact` release-only,
+`coreSoon` and `enemiesDown` are legal in both.
 Release rows OR together too: the latch materializes as
 `all(readiness…, any(rows…))`, using the order grammar's one nesting level,
 so any ticked trigger lets go once every group is in position. Every

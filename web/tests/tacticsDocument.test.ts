@@ -188,6 +188,31 @@ test('signature mark geometry derives from descriptor capabilities', () => {
   assert.equal(signatureMarkGeometry(catalog, 'palisade'), null);
 });
 
+test('core-soon and enemies-down rows validate and read back', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const { tactic } = instantiateRecipe(recipeById('pincer'), document);
+  tactic.groups[0].slots = [5, 2];
+  tactic.groups[0].stage.posts = [
+    { at: [14, 12], facing: 'e' },
+    { at: [16, 14], facing: 'n' },
+  ];
+  tactic.groups[1].slots = [0, 1, 3, 4, 6, 7];
+  tactic.groups[1].stage.rect = [22, 3, 26, 7];
+  tactic.groups[1].act.point = [15, 12];
+  tactic.start = { mode: 'when', conds: { enemiesDown: { count: 3 } } };
+  tactic.release = {
+    mode: 'ready-when',
+    conds: { coreSoon: { well: 'centre', ticks: 20 } },
+  };
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /at least three enemies are down/);
+  assert.match(sentence, /the Centre Well births its next Core within 20 ticks/);
+});
+
 test('the readback summarizes a pincer as one whole operation', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

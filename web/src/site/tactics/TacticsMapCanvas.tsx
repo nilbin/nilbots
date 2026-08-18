@@ -31,8 +31,8 @@ type DragTarget =
   | { kind: 'rectmove'; groupId: string; phase: 'stage' | 'act' }
   | { kind: 'rectsize'; groupId: string; phase: 'stage' | 'act' }
   | { kind: 'sigpoint'; groupId: string; phase: 'stage' | 'act'; classId: string; index: number }
-  | { kind: 'watchmove'; which: 'start' | 'release' }
-  | { kind: 'watchsize'; which: 'start' | 'release' };
+  | { kind: 'watchmove'; which: 'start' | 'release' | 'cleared' }
+  | { kind: 'watchsize'; which: 'start' | 'release' | 'cleared' };
 
 export interface GeometryEdit {
   tacticId: string;
@@ -206,19 +206,20 @@ export function TacticsMapCanvas({
   function applyDrag(drag: DragTarget, [x, y]: Point) {
     editGeometry((tactic) => {
       if (drag.kind === 'watchmove' || drag.kind === 'watchsize') {
-        const conds = drag.which === 'start' ? tactic.start.conds : tactic.release.conds;
-        const row = conds?.enemiesAt;
-        if (!row) return;
-        const rect: Rect = [...row.zone.rect];
+        const holder = drag.which === 'cleared'
+          ? tactic.finish.outcomes.cleared
+          : (drag.which === 'start' ? tactic.start.conds : tactic.release.conds)?.enemiesAt;
+        if (!holder) return;
+        const rect: Rect = [...holder.zone.rect];
         if (drag.kind === 'watchsize') {
-          row.zone = { rect: [rect[0], rect[1], Math.max(rect[0], x), Math.max(rect[1], y)] };
+          holder.zone = { rect: [rect[0], rect[1], Math.max(rect[0], x), Math.max(rect[1], y)] };
         } else {
           // Clamp inside the border wall ring, not just the map bounds.
           const w = rect[2] - rect[0];
           const h = rect[3] - rect[1];
           const nx = Math.min(Math.max(x, 1), width - 2 - w);
           const ny = Math.min(Math.max(y, 1), height - 2 - h);
-          row.zone = { rect: [nx, ny, nx + w, ny + h] };
+          holder.zone = { rect: [nx, ny, nx + w, ny + h] };
         }
         return;
       }
@@ -398,6 +399,12 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
         data-select={`${tactic.id}:finish`} cursor="pointer" />
       {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text="✓ CLEAR TO FINISH" color={color}
         select={`${tactic.id}:finish`} opacity={.95} />}
+      {editable && <>
+        <Handle cx={x0} cy={y0} cursor="move"
+          onDown={(event) => startDrag(event, { kind: 'watchmove', which: 'cleared' })} />
+        <Handle cx={x1 + 1} cy={y1 + 1}
+          onDown={(event) => startDrag(event, { kind: 'watchsize', which: 'cleared' })} />
+      </>}
     </g>);
   }
 
@@ -687,7 +694,8 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
   // The in-progress geometry draws in the task's own colour: the group's for
   // phase and signature tasks, the watch chrome's for condition boxes.
   const taskColor = task.kind === 'watch'
-    ? (task.which === 'start' ? '#e6ddd4' : '#c8763c')
+    ? (task.which === 'start' ? '#e6ddd4'
+      : task.which === 'cleared' ? '#38d9c5' : '#c8763c')
     : (tactic ? groupColor(tactic, task.groupId) : '#e6ddd4');
   let hint = task.kind === 'phase'
     ? task.hint ?? (hints?.get(task.groupId) ?? null)
@@ -696,11 +704,17 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
   if (task.kind === 'watch' && tactic) {
     // A watch task pulses the currently watched preset zone until a custom
     // box has been dragged in its place.
-    const conds = task.which === 'start' ? tactic.start.conds : tactic.release.conds;
-    const row = conds?.enemiesAt;
-    if (row) {
-      hint = { rect: row.zone.rect, text: 'Enemies are counted inside the box.' };
-      hasGeometry = !row.zone.name && Boolean(row.zone.rect);
+    const holder = task.which === 'cleared'
+      ? tactic.finish.outcomes.cleared
+      : (task.which === 'start' ? tactic.start.conds : tactic.release.conds)?.enemiesAt;
+    if (holder) {
+      hint = {
+        rect: holder.zone.rect,
+        text: task.which === 'cleared'
+          ? 'This ground must be clear of enemies to finish.'
+          : 'Enemies are counted inside the box.',
+      };
+      hasGeometry = !holder.zone.name && Boolean(holder.zone.rect);
     }
   }
   if (hint && !hasGeometry) {

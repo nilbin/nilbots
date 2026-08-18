@@ -44,7 +44,7 @@ export interface StepProps {
   /** Draw one post's own way in (overrides the group route for that bot). */
   startPostViaTask: (groupId: string, phase: 'stage' | 'act', postIndex: number) => void;
   startSigTask: (groupId: string, phase: 'stage' | 'act', classId: string) => void;
-  startWatchTask: (which: 'start' | 'release') => void;
+  startWatchTask: (which: 'start' | 'release' | 'cleared') => void;
   endTask: () => void;
   /** Append a prefilled Deliver Core Tactic to the sheet (carrier picked,
    * escorts and screen auto-assigned) without leaving this wizard. */
@@ -70,7 +70,8 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
     {tactic.start.mode === 'when' && (
       <ConditionRows
         conds={tactic.start.conds ?? {}}
-        kinds={['enemiesAt', 'coreLoose', 'carrier', 'losses']}
+        kinds={['enemiesAt', 'coreLoose', 'coreSoon', 'carrier']}
+        moreKinds={['enemiesDown', 'losses']}
         accent="#e6ddd4"
         watchSymbol="▶"
         watchAdjective="pale"
@@ -497,7 +498,8 @@ export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: S
     {tactic.release.mode === 'ready-when' && (
       <ConditionRows
         conds={tactic.release.conds ?? {}}
-        kinds={['enemiesAt', 'contact', 'coreLoose']}
+        kinds={['enemiesAt', 'contact', 'coreLoose', 'coreSoon']}
+        moreKinds={['enemiesDown']}
         accent="#c8763c"
         watchAdjective="orange"
         watching={task?.kind === 'watch' && task.which === 'release'}
@@ -567,7 +569,7 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
   </>;
 }
 
-export function FinishStep({ document, wizard, change, addDeliverCore }: StepProps) {
+export function FinishStep({ document, wizard, change, addDeliverCore, task, startWatchTask, endTask }: StepProps) {
   const tactic = wizard.tactic;
   const outcomes = tactic.finish.outcomes;
   const capital = (value: string) => value.replace(/^\w/, (letter) => letter.toUpperCase());
@@ -614,8 +616,20 @@ export function FinishStep({ document, wizard, change, addDeliverCore }: StepPro
           if (next.finish.outcomes.cleared) delete next.finish.outcomes.cleared;
           else next.finish.outcomes.cleared = { zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
         }),
-        outcomes.cleared && <ZoneSelect zone={outcomes.cleared.zone} onChange={(zone) =>
-          change((next) => { next.finish.outcomes.cleared = { zone }; })} />)}
+        outcomes.cleared && <>
+          <ZoneSelect zone={outcomes.cleared.zone} onChange={(zone) =>
+            change((next) => { next.finish.outcomes.cleared = { zone }; })} />
+          {task?.kind === 'watch' && task.which === 'cleared'
+            ? <button type="button" className="btn btn-on !min-h-7"
+              onClick={(event) => { event.stopPropagation(); endTask(); }}>
+              Stop
+            </button>
+            : <button type="button" className="btn !min-h-7"
+              title="Drag your own box on the map instead of a named area"
+              onClick={(event) => { event.stopPropagation(); startWatchTask('cleared'); }}>
+              Draw it
+            </button>}
+        </>)}
       {row('coreAcquired', 'A Core is acquired', Boolean(outcomes.coreAcquired),
         () => change((next) => {
           if (next.finish.outcomes.coreAcquired) delete next.finish.outcomes.coreAcquired;

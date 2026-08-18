@@ -147,6 +147,13 @@ export function condClauses(conds: TacticConds | undefined): string[] {
     const well = WELL_OPTIONS.find((value) => value.id === conds.coreLoose!.well);
     out.push(`a Core is up for grabs at ${well?.label ?? 'a Well'}`);
   }
+  if (conds.coreSoon) {
+    const well = WELL_OPTIONS.find((value) => value.id === conds.coreSoon!.well);
+    out.push(`${well?.label ?? 'a Well'} births its next Core within ${conds.coreSoon.ticks} ticks`);
+  }
+  if (conds.enemiesDown) {
+    out.push(`at least ${numberWord(conds.enemiesDown.count)} enem${conds.enemiesDown.count === 1 ? 'y is' : 'ies are'} down`);
+  }
   if (conds.carrier) out.push('we hold a Core');
   if (conds.losses) {
     out.push(`we have lost ${numberWord(conds.losses.count)} bot${conds.losses.count === 1 ? '' : 's'}`);

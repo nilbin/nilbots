@@ -36,6 +36,11 @@ export interface TacticConds {
   enemiesAt?: { count: number; zone: ZoneRef };
   contact?: true;
   coreLoose?: { well: WellChoice };
+  /** That Well's next Core births within N ticks — its one effective clock:
+   * the initial opening, then the bank-triggered recharge. */
+  coreSoon?: { well: WellChoice; ticks: number };
+  /** At least N enemy bots are down right now (team-wide fact). */
+  enemiesDown?: { count: number };
   carrier?: true;
   losses?: { count: number };
 }
@@ -618,7 +623,8 @@ export function phaseHasGeometry(phase: TacticPhase): boolean {
 export function activeCondCount(conds: TacticConds | undefined): number {
   if (!conds) return 0;
   return (conds.enemiesAt ? 1 : 0) + (conds.contact ? 1 : 0)
-    + (conds.coreLoose ? 1 : 0) + (conds.carrier ? 1 : 0)
+    + (conds.coreLoose ? 1 : 0) + (conds.coreSoon ? 1 : 0)
+    + (conds.enemiesDown ? 1 : 0) + (conds.carrier ? 1 : 0)
     + (conds.losses ? 1 : 0);
 }
 

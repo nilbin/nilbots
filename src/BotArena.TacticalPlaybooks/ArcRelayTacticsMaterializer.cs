@@ -629,6 +629,24 @@ internal static class ArcRelayTacticsMaterializer
                         "well-has-outstanding-core", "equals", 1, Well: well),
                     $"core-up-at-{well}"));
             }
+            if (rows.CoreSoon is ArcRelayTacticCoreSoonRow coreSoon)
+            {
+                // The Well's one effective public clock (#328): initial
+                // opening before the first Core, then the bank-triggered
+                // recharge — so "births soon" reads the same field always.
+                names.Add(Condition(
+                    new ConditionShape(
+                        "well-ticks-until-birth", "at-most", coreSoon.Ticks,
+                        Well: coreSoon.Well),
+                    $"c-{prefix}-{section}-core-soon"));
+            }
+            if (rows.EnemiesDown is int enemiesDown)
+            {
+                names.Add(Condition(
+                    new ConditionShape(
+                        "live-enemies", "at-most", 8 - enemiesDown),
+                    $"c-{prefix}-{section}-enemies-down"));
+            }
             if (rows.Carrier)
             {
                 names.Add(Condition(

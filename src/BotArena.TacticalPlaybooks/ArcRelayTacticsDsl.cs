@@ -569,7 +569,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         bool allowCarrier,
         bool allowContact)
     {
-        var optional = new List<string> { "enemiesAt", "coreLoose", "losses" };
+        var optional = new List<string>
+        {
+            "enemiesAt", "coreLoose", "coreSoon", "enemiesDown", "losses",
+        };
         if (allowCarrier)
             optional.Add("carrier");
         if (allowContact)
@@ -603,6 +606,24 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             if (!TacticWells.Contains(coreLooseWell))
                 throw Error(at, "well must be north/centre/south/own/enemy.");
         }
+        ArcRelayTacticCoreSoonRow? coreSoon = null;
+        if (value.TryGetProperty("coreSoon", out JsonElement coreSoonValue))
+        {
+            string at = $"{path}.coreSoon";
+            Object(coreSoonValue, at, ["well", "ticks"]);
+            string well = RequiredString(coreSoonValue, "well", at);
+            if (!TacticWells.Contains(well))
+                throw Error(at, "well must be north/centre/south/own/enemy.");
+            coreSoon = new ArcRelayTacticCoreSoonRow(
+                well, Range(coreSoonValue, "ticks", at, 1, 120));
+        }
+        int? enemiesDown = null;
+        if (value.TryGetProperty("enemiesDown", out JsonElement enemiesDownValue))
+        {
+            string at = $"{path}.enemiesDown";
+            Object(enemiesDownValue, at, ["count"]);
+            enemiesDown = Range(enemiesDownValue, "count", at, 1, 8);
+        }
         bool carrier = false;
         if (value.TryGetProperty("carrier", out JsonElement carrierValue))
         {
@@ -618,7 +639,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             losses = Range(lossesValue, "count", at, 1, 7);
         }
         return new ArcRelayTacticConditionRows(
-            enemiesAt, contact, coreLooseWell, carrier, losses);
+            enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
+            carrier, losses);
     }
 
     private static ArcRelayTacticOutcomes ValidateFinish(
@@ -784,14 +806,21 @@ internal sealed record ArcRelayTacticConditionRows(
     ArcRelayTacticEnemiesAtRow? EnemiesAt,
     bool Contact,
     string? CoreLooseWell,
+    ArcRelayTacticCoreSoonRow? CoreSoon,
+    int? EnemiesDown,
     bool Carrier,
     int? Losses)
 {
     public int ActiveCount =>
         (EnemiesAt is null ? 0 : 1) + (Contact ? 1 : 0)
-        + (CoreLooseWell is null ? 0 : 1) + (Carrier ? 1 : 0)
+        + (CoreLooseWell is null ? 0 : 1) + (CoreSoon is null ? 0 : 1)
+        + (EnemiesDown is null ? 0 : 1) + (Carrier ? 1 : 0)
         + (Losses is null ? 0 : 1);
 }
+
+/// <summary>"A Core births at {well} within {ticks}": the Well's one
+/// effective public clock — initial opening or bank-triggered recharge.</summary>
+internal sealed record ArcRelayTacticCoreSoonRow(string Well, int Ticks);
 
 internal sealed record ArcRelayTacticEnemiesAtRow(
     int Count,

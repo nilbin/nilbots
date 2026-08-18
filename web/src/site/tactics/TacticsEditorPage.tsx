@@ -387,6 +387,12 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     if (!task) return;
     changeWizard((tactic) => {
       if (task.kind === 'watch') {
+        if (task.which === 'cleared') {
+          if (tactic.finish.outcomes.cleared) {
+            tactic.finish.outcomes.cleared.zone = { rect };
+          }
+          return;
+        }
         const conds = task.which === 'start' ? tactic.start.conds : tactic.release.conds;
         if (conds?.enemiesAt) conds.enemiesAt.zone = { rect };
       } else if (task.kind === 'phase') {
@@ -1052,7 +1058,9 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
     : task.kind === 'watch'
       ? task.which === 'start'
         ? 'Drag the box this Tactic watches to Start — it applies once enemies gather inside'
-        : 'Drag the box the Release watches — enemies are counted inside it'
+        : task.which === 'cleared'
+          ? 'Drag the box that must be clear of enemies to finish'
+          : 'Drag the box the Release watches — enemies are counted inside it'
       : {
         posts: `Placing ${group?.name ?? ''} posts — click ${group?.slots.length || 'a few'} tiles`,
         rect: `Drag a box for ${whose} ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
@@ -1065,9 +1073,11 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
       }[task.draw];
   const undoable = (task.kind === 'phase' && (task.draw === 'route' || task.draw === 'posts'))
     || task.kind === 'sig';
-  // Group-accent left rail; forge orange for the release watch, pale for start.
+  // Group-accent left rail; forge orange for the release watch, pale for
+  // start, zone teal for the cleared-to-finish box.
   const accent = task.kind === 'watch'
-    ? (task.which === 'start' ? '#e6ddd4' : '#c8763c')
+    ? (task.which === 'start' ? '#e6ddd4'
+      : task.which === 'cleared' ? '#38d9c5' : '#c8763c')
     : wizard ? groupColor(wizard.tactic, task.groupId) : '#e6ddd4';
   // A live placed/needed readout for the countable tasks.
   let progress: string | null = null;

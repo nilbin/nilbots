@@ -127,6 +127,32 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void CoreSoonAndEnemiesDownRowsMaterialize()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["tactics"]![0]!["start"] = JsonNode.Parse(
+            """{"mode":"when","conds":{"enemiesDown":{"count":3}}}""");
+        document["tactics"]![0]!["release"] = JsonNode.Parse(
+            """{"mode":"ready-when","conds":{"coreSoon":{"well":"centre","ticks":20}}}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement conditions = orders.RootElement.GetProperty("conditions");
+        JsonElement coreSoon = conditions.GetProperty("c-t1-release-core-soon");
+        Assert.Equal(
+            "well-ticks-until-birth", coreSoon.GetProperty("fact").GetString());
+        Assert.Equal("at-most", coreSoon.GetProperty("operator").GetString());
+        Assert.Equal(20, coreSoon.GetProperty("value").GetInt32());
+        Assert.Equal("centre", coreSoon.GetProperty("well").GetString());
+        JsonElement enemiesDown = conditions.GetProperty("c-t1-start-enemies-down");
+        Assert.Equal("live-enemies", enemiesDown.GetProperty("fact").GetString());
+        Assert.Equal("at-most", enemiesDown.GetProperty("operator").GetString());
+        Assert.Equal(5, enemiesDown.GetProperty("value").GetInt32());
+    }
+
+    [Fact]
     public void APostsOwnWayInOverridesTheGroupRoute()
     {
         // Ember's post gains a drawn way in; Gantry keeps the direct path.

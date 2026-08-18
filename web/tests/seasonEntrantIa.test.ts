@@ -93,8 +93,12 @@ test('release and start share the one tick-row condition idiom', () => {
   assert.match(conditions, /A Core is up for grabs/);
   assert.match(conditions, /We hold a Core — a friendly carrier exists/);
   assert.match(conditions, /any ticked row satisfies the question \(OR\)/i);
-  assert.match(steps, /kinds={\['enemiesAt', 'coreLoose', 'carrier', 'losses'\]}/);
-  assert.match(steps, /kinds={\['enemiesAt', 'contact', 'coreLoose'\]}/);
+  assert.match(steps, /kinds={\['enemiesAt', 'coreLoose', 'coreSoon', 'carrier'\]}/);
+  assert.match(steps, /kinds={\['enemiesAt', 'contact', 'coreLoose', 'coreSoon'\]}/);
+  // Less-common rows fold behind "More conditions" so the everyday set
+  // stays approachable.
+  assert.match(steps, /moreKinds={\['enemiesDown', 'losses'\]}/);
+  assert.match(conditions, /More conditions/);
   // Release rows OR together like start rows since the order grammar's one
   // nesting level (DECISIONS #332); no single-select cap survives anywhere.
   assert.match(steps, /any ticked condition lets go/);

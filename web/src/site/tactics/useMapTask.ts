@@ -35,7 +35,8 @@ export type MapTask =
   | {
     kind: 'watch';
     tacticId: string;
-    which: 'start' | 'release';
+    /** Which drawn box: a start/release watch, or the cleared-to-finish zone. */
+    which: 'start' | 'release' | 'cleared';
   };
 
 export function useMapTask() {
