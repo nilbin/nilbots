@@ -65,6 +65,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [notice, setNotice] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: number; text: string; tone: 'ok' | 'hot' }[]>([]);
   const [dragTactic, setDragTactic] = useState<{ id: string; over: number | null; below: boolean }| null>(null);
+  // Clicking a posted bot on the map flashes its way-in row in the drawer.
+  const [postFlash, setPostFlash] = useState<{ groupId: string; postIndex: number; seq: number } | null>(null);
+  const flashSeq = useRef(0);
   const toastSeq = useRef(0);
   const bootstrapped = useRef(false);
 
@@ -293,6 +296,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     },
     endTask,
     addDeliverCore,
+    highlightPost: postFlash,
   };
 
   const onTilePicked = (x: number, y: number) => {
@@ -412,6 +416,21 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const onSelect = (ref: MapSelectRef) => {
     if (wizard && wizard.tactic.id === ref.tacticId) {
+      if (ref.part === 'post') {
+        // A posted bot lights up its own way-in row: jump to Stage, scroll
+        // the row into view, and flash it briefly.
+        setWizard({ ...wizard, step: 'stage' });
+        const seq = ++flashSeq.current;
+        setPostFlash({ groupId: ref.groupId, postIndex: ref.postIndex, seq });
+        window.setTimeout(() => setPostFlash((current) =>
+          current?.seq === seq ? null : current), 1800);
+        window.setTimeout(() => {
+          window.document
+            .getElementById(`way-in-${ref.groupId}-${ref.postIndex}`)
+            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }, 40);
+        return;
+      }
       // Clicking a group overlay keeps you on Act if you were there, and
       // scrolls that group's section into view.
       const step: WizardStepId = ref.part === 'group'
@@ -656,7 +675,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               />
             </div>
           </div>
-          {task && <TaskBanner task={task} wizard={wizard} onDone={endTask}
+          {task && <TaskBanner task={task} wizard={wizard} botName={botName} onDone={endTask}
             onUndoPoint={() => changeWizard((tactic) => {
               if (task.kind === 'phase') {
                 const group = tactic.groups.find((value) => value.id === task.groupId);
@@ -687,8 +706,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           <span><span style={{ color: '#b49cff' }}>◐</span> Wells</span>
           <span><span style={{ color: '#22d3ee' }}>◆</span> reactors — Cores bank here</span>
         </div>
-        <p className="t-micro text-arena-dim">Click overlays to jump to their Group. Drag posts,
-          corners and destinations while editing.</p>
+        <p className="t-micro text-arena-dim">Click overlays to jump to their Group — a posted bot
+          lights up its own way-in row. Drag posts, corners and destinations while editing.</p>
       </section>
 
       {/* ----------------------------------------------------- the drawer --- */}
@@ -1043,9 +1062,10 @@ function DrawerIntro() {
   </>;
 }
 
-function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
+function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
   task: MapTask;
   wizard: WizardState | null;
+  botName: (slot: number) => string | null;
   onDone: () => void;
   onUndoPoint: () => void;
 }) {
@@ -1066,7 +1086,10 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
         rect: `Drag a box for ${whose} ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
         route: task.field === 'via'
           ? task.postIndex != null
-            ? `Click the way in for ${group?.name ?? ''} post ${task.postIndex + 1} — waypoints in travel order, ending near its tile`
+            ? `Click ${possessive(
+              (group && botName(group.slots[task.postIndex] ?? -1))
+                ?? `${group?.name ?? ''} post ${task.postIndex + 1}`,
+            )} way in — waypoints in travel order, ending near its post`
             : `Click ${whose} approach waypoints in travel order — they walk this in before the job`
           : `Click waypoints for ${whose} ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
         point: `Click ${whose} ${task.phase === 'stage' ? 'approach point' : 'destination'}`,

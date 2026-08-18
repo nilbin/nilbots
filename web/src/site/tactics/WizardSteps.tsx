@@ -49,6 +49,8 @@ export interface StepProps {
   /** Append a prefilled Deliver Core Tactic to the sheet (carrier picked,
    * escorts and screen auto-assigned) without leaving this wizard. */
   addDeliverCore?: () => void;
+  /** A map click on a posted bot briefly flashes its way-in row. */
+  highlightPost?: { groupId: string; postIndex: number } | null;
 }
 
 export function StartStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
@@ -285,7 +287,7 @@ export function PhaseStep(props: StepProps & { phase: 'stage' | 'act' }) {
 function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: TacticGroup }) {
   const {
     catalog, document, wizard, phase, group, task, change,
-    startPhaseTask, startPostViaTask, startSigTask, endTask,
+    startPhaseTask, startPostViaTask, startSigTask, endTask, highlightPost,
   } = props;
   const tactic = wizard.tactic;
   const isStage = phase === 'stage';
@@ -378,21 +380,27 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
           const mine = task?.kind === 'phase' && task.groupId === group.id
             && task.phase === phase && task.field === 'via'
             && task.postIndex === index;
-          return <GeoStatusRow key={index}
-            complete={(post.via?.length ?? 0) >= 2}
-            label={`${bot?.name ?? `Post ${index + 1}`} — way in${post.via?.length
-              ? ` · ${post.via.length} waypoints` : ' (direct)'}`}
-            drawing={mine}
-            drawLabel="Draw route"
-            onDraw={() => startPostViaTask(group.id, phase, index)}
-            onStop={endTask}
-            onClear={post.via ? () => change((next) => {
-              const target = next.groups.find((value) => value.id === group.id);
-              const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
-              const targetPost = targetGeo?.posts?.[index];
-              if (targetPost) delete targetPost.via;
-            }) : undefined}
-          />;
+          const flashed = highlightPost?.groupId === group.id
+            && highlightPost.postIndex === index;
+          return <div key={index} id={`way-in-${group.id}-${index}`}
+            className={flashed
+              ? 'animate-pulse rounded-sm ring-2 ring-arena-material' : undefined}>
+            <GeoStatusRow
+              complete={(post.via?.length ?? 0) >= 2}
+              label={`${bot?.name ?? `Post ${index + 1}`} — way in${post.via?.length
+                ? ` · ${post.via.length} waypoints` : ' (direct)'}`}
+              drawing={mine}
+              drawLabel="Draw route"
+              onDraw={() => startPostViaTask(group.id, phase, index)}
+              onStop={endTask}
+              onClear={post.via ? () => change((next) => {
+                const target = next.groups.find((value) => value.id === group.id);
+                const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
+                const targetPost = targetGeo?.posts?.[index];
+                if (targetPost) delete targetPost.via;
+              }) : undefined}
+            />
+          </div>;
         })
       ) : viaLegal(geo.kind, isStage) && (
         <GeoStatusRow

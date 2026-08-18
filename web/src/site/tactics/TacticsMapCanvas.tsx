@@ -21,7 +21,8 @@ import {
 
 export type MapSelectRef =
   | { tacticId: string; part: 'start' | 'release' | 'finish' | 'cores' }
-  | { tacticId: string; part: 'group'; groupId: string };
+  | { tacticId: string; part: 'group'; groupId: string }
+  | { tacticId: string; part: 'post'; groupId: string; postIndex: number };
 
 type DragTarget =
   | { kind: 'post'; groupId: string; index: number; origin: Point }
@@ -100,11 +101,14 @@ export function TacticsMapCanvas({
     return [Math.floor(point.x), Math.floor(point.y)];
   }
 
+  const dragPressRef = useRef<[number, number] | null>(null);
+
   function startDrag(event: React.PointerEvent, target: DragTarget) {
     if (task) return;
     event.stopPropagation();
     event.preventDefault();
     dragRef.current = target;
+    dragPressRef.current = [event.clientX, event.clientY];
     onGestureStart();
     svgRef.current?.setPointerCapture(event.pointerId);
   }
@@ -156,6 +160,20 @@ export function TacticsMapCanvas({
     const drag = dragRef.current;
     if (drag) {
       dragRef.current = null;
+      const pressed = dragPressRef.current;
+      dragPressRef.current = null;
+      // The drag handle sits on top of the post, so a stationary press on it
+      // IS the click — surface it as the post's select instead of a no-op.
+      const stationary = pressed && Math.hypot(
+        event.clientX - pressed[0], event.clientY - pressed[1]) <= 7;
+      if (stationary && drag.kind === 'post' && editingTacticId) {
+        onGestureEnd();
+        onSelect({
+          tacticId: editingTacticId, part: 'post',
+          groupId: drag.groupId, postIndex: drag.index,
+        });
+        return;
+      }
       finishDrag(drag);
       onGestureEnd();
       return;
@@ -192,9 +210,13 @@ export function TacticsMapCanvas({
     const selectable = (event.target as Element).closest('[data-select]');
     if (selectable) {
       const raw = selectable.getAttribute('data-select')!;
-      const [tacticId, part, groupId] = raw.split(':');
+      const [tacticId, part, groupId, index] = raw.split(':');
       if (part === 'group') onSelect({ tacticId, part, groupId });
-      else onSelect({ tacticId, part: part as 'start' | 'release' | 'finish' | 'cores' });
+      else if (part === 'post') {
+        onSelect({ tacticId, part, groupId, postIndex: Number(index) });
+      } else {
+        onSelect({ tacticId, part: part as 'start' | 'release' | 'finish' | 'cores' });
+      }
     }
   }
 
@@ -511,6 +533,9 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
       // Facing angle in degrees: sprites are authored facing east (0°), the
       // same convention as the arena renderer.
       const deg = Math.round(angle * 180 / Math.PI);
+      // Post-scoped select: clicking a posted bot lights up its own way-in
+      // row in the drawer, not just the group section.
+      const postSelect = `${tactic.id}:post:${group.id}:${index}`;
       parts.push(<g key={`post-${index}`}>
         <path d={`M ${cx} ${cy}
             L ${cx + Math.cos(a1) * wr} ${cy + Math.sin(a1) * wr}
@@ -519,14 +544,14 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
         <polygon points={`${tipX + Math.cos(angle) * .14},${tipY + Math.sin(angle) * .14} ${tipX - Math.cos(angle - .6) * .3},${tipY - Math.sin(angle - .6) * .3} ${tipX - Math.cos(angle + .6) * .3},${tipY - Math.sin(angle + .6) * .3}`}
           fill={color} opacity=".9" pointerEvents="none" />
         {bot && sprite
-          ? <g data-select={select} cursor="pointer">
+          ? <g data-select={postSelect} cursor="pointer">
             <rect x={x + .04} y={y + .04} width={.92} height={.92} rx={.16}
               fill="#06090c" fillOpacity=".55" stroke={color} strokeWidth={.07} />
             <image href={sprite} x={x - .04} y={y - .04} width={1.08} height={1.08}
               transform={`rotate(${deg} ${cx} ${cy})`} />
             <title>{`${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`}</title>
           </g>
-          : <g data-select={select} cursor="pointer">
+          : <g data-select={postSelect} cursor="pointer">
             <circle cx={cx} cy={cy} r={.36} fill="#10272f" stroke={color} strokeWidth={.12} />
             <text x={cx} y={y + .64} textAnchor="middle" fontSize=".38" fontWeight="800"
               fill="#e9fbff" pointerEvents="none">{index + 1}</text>
@@ -722,6 +747,26 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
     parts.push(<rect key="hint" x={x0} y={y0} width={x1 - x0 + 1} height={y1 - y0 + 1}
       fill="none" stroke="#fff1d8" strokeWidth={.09} strokeDasharray=".4 .26" rx={.2}
       pointerEvents="none" className="animate-pulse" />);
+  }
+  if (task.kind === 'phase' && task.field === 'via' && task.postIndex != null
+    && tactic) {
+    // Drawing one post's way in: ring the target post and name its bot, so
+    // there is never a doubt whose route the clicks belong to.
+    const group = tactic.groups.find((value) => value.id === task.groupId);
+    const post = group?.stage.posts?.[task.postIndex];
+    if (group && post) {
+      const [px, py] = post.at;
+      const bot = document.squad[group.slots[task.postIndex]];
+      parts.push(<g key="via-target" pointerEvents="none">
+        <circle cx={px + .5} cy={py + .5} r={.85} fill="none" stroke="#fff1d8"
+          strokeWidth={.1} className="animate-pulse" />
+        <circle cx={px + .5} cy={py + .5} r={.62} fill="none" stroke={taskColor}
+          strokeWidth={.08} strokeDasharray=".18 .12" />
+      </g>);
+      parts.push(<ChipLabel key="via-target-chip" x={px + .5} y={py - .85}
+        text={`${(bot?.name ?? `POST ${task.postIndex + 1}`).toUpperCase()} — WAY IN`}
+        color="#fff1d8" />);
+    }
   }
   if (rectDraft) {
     const x0 = Math.min(rectDraft.start[0], rectDraft.cur[0]);
