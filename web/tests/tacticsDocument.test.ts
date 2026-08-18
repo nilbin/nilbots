@@ -95,6 +95,31 @@ test('an instantiated pincer with drawn geometry validates cleanly', () => {
   assert.deepEqual(issues.filter((issue) => issue.severity === 'error'), []);
 });
 
+test('a triggered release with a persistent-only finish warns that it springs once', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const { tactic } = instantiateRecipe(recipeById('pincer'), document);
+  tactic.groups[0].slots = [5, 2];
+  tactic.groups[0].stage.posts = [
+    { at: [14, 12], facing: 'e' },
+    { at: [16, 14], facing: 'n' },
+  ];
+  tactic.groups[1].slots = [0, 1, 3, 4, 6, 7];
+  tactic.groups[1].stage.rect = [22, 3, 26, 7];
+  tactic.groups[1].act.point = [15, 12];
+  tactic.release = { mode: 'ready-when', conds: { contact: true } };
+  tactic.finish = { outcomes: { persistent: true }, maxAttempt: 'none' };
+  document.tactics.push(tactic);
+  const issues = validateDocument(document, catalog);
+  const springs = issues.filter((issue) => /springs once/.test(issue.message));
+  assert.equal(springs.length, 1);
+  assert.equal(springs[0].severity, 'warning');
+  // Any real ending gives the squad a way back to its posts — no warning.
+  tactic.finish.outcomes.coreBanked = true;
+  const after = validateDocument(document, catalog);
+  assert.ok(!after.some((issue) => /springs once/.test(issue.message)));
+});
+
 test('missing geometry, double assignment and empty finish are named in player language', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

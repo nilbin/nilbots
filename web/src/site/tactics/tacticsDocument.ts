@@ -511,6 +511,12 @@ export function validateDocument(
       && !document.tactics.some((other) => other.recipe === 'deliver-core')) {
       warn(`${at}.finish`, `${tactic.name} can finish holding a Core with no delivery plan — add a Deliver Core tactic or plan the run here.`);
     }
+    if (tactic.release.mode === 'ready-when'
+      && outcomes.persistent
+      && Object.keys(outcomes).length === 1
+      && tactic.finish.maxAttempt === 'none') {
+      warn(`${at}.finish`, `${tactic.name} springs once: persistent bots never return to their posts, so the release trigger can’t catch the next window. Tick an ending (“A Core is banked”, “The Core is lost”) or a time limit if it should re-arm.`);
+    }
   });
   return issues;
 }
