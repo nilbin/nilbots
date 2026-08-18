@@ -243,7 +243,22 @@
                   "shared": "t1-g1-a-patch"
                 },
                 {
-                  "shared": "t1-g1-a-fight"
+                  "id": "t1-g1-a-fight",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "enemy-nearby",
+                      "c-t1-g1-at-post-1-self"
+                    ]
+                  },
+                  "fight": {
+                    "targets": [
+                      "nearest",
+                      "weakest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 1
+                  }
                 },
                 {
                   "id": "t1-g1-a-sig",
@@ -288,7 +303,22 @@
                   "shared": "t1-g1-s-patch"
                 },
                 {
-                  "shared": "t1-g1-s-fight"
+                  "id": "t1-g1-s-fight",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "enemy-nearby",
+                      "c-t1-g1-at-post-1-self"
+                    ]
+                  },
+                  "fight": {
+                    "targets": [
+                      "nearest",
+                      "weakest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 1
+                  }
                 },
                 {
                   "id": "t1-g1-s-rail",
@@ -582,7 +612,22 @@
                   "shared": "t1-g1-a-patch"
                 },
                 {
-                  "shared": "t1-g1-a-fight"
+                  "id": "t1-g1-a-fight",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "enemy-nearby",
+                      "c-t1-g1-at-post-0-self"
+                    ]
+                  },
+                  "fight": {
+                    "targets": [
+                      "nearest",
+                      "weakest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 1
+                  }
                 },
                 {
                   "id": "t1-g1-a-sig",
@@ -627,7 +672,22 @@
                   "shared": "t1-g1-s-patch"
                 },
                 {
-                  "shared": "t1-g1-s-fight"
+                  "id": "t1-g1-s-fight",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "enemy-nearby",
+                      "c-t1-g1-at-post-0-self"
+                    ]
+                  },
+                  "fight": {
+                    "targets": [
+                      "nearest",
+                      "weakest"
+                    ],
+                    "style": "hold",
+                    "chaseLimit": 1
+                  }
                 },
                 {
                   "id": "t1-g1-s-sig",
@@ -932,9 +992,7 @@
     },
     "hold-ground": {
       "move": {
-        "to": {
-          "well": "own"
-        },
+        "to": "current-position",
         "posture": "line"
       }
     },
@@ -1004,22 +1062,6 @@
         "posture": "rear"
       }
     },
-    "t1-g1-a-fight": {
-      "when": {
-        "all": [
-          "empty-handed",
-          "enemy-nearby"
-        ]
-      },
-      "fight": {
-        "targets": [
-          "nearest",
-          "weakest"
-        ],
-        "style": "hold",
-        "chaseLimit": 1
-      }
-    },
     "t1-g1-s-patch": {
       "when": "hurt",
       "until": "patched-up",
@@ -1028,22 +1070,6 @@
       "move": {
         "to": "current-position",
         "posture": "rear"
-      }
-    },
-    "t1-g1-s-fight": {
-      "when": {
-        "all": [
-          "empty-handed",
-          "enemy-nearby"
-        ]
-      },
-      "fight": {
-        "targets": [
-          "nearest",
-          "weakest"
-        ],
-        "style": "hold",
-        "chaseLimit": 1
       }
     }
   },
@@ -1105,7 +1131,7 @@
     "c-t1-g2-ready": {
       "fact": "friendlies-in-zone",
       "operator": "at-least",
-      "value": 5,
+      "value": 4,
       "zone": "g-t1-g2-set"
     },
     "c-t1-kills": {
@@ -1140,6 +1166,18 @@
       "fact": "self-health-percent",
       "operator": "at-least",
       "value": 60
+    },
+    "c-t1-g1-at-post-1-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-near-post-1"
+    },
+    "c-t1-g1-at-post-0-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-near-post-0"
     }
   }
 }

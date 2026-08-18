@@ -246,9 +246,11 @@ internal static class ArcRelayTacticsMaterializer
                 When = Expr.All(EmptyHanded(), EnemyNearby()),
                 Action = Fight(["weakest", "carrier", "nearest"], "advance", 4),
             }));
+            // Holding ground in place: a shared well target would knot eight
+            // bodies onto one tile and orbit forever at the destination.
             SharedOrders.Add(("hold-ground", new Node
             {
-                Action = MoveToWell("own", "line"),
+                Action = MoveToDynamic("current-position", posture: "line"),
             }));
         }
 
@@ -443,10 +445,13 @@ internal static class ArcRelayTacticsMaterializer
             if (rect is null)
                 return null;
             string zone = Zone(rect, $"g-{prefix}-{groupTag}-set");
+            // Two-thirds assembled is “in position”: staging under fire
+            // jostles bodies at the footprint edge, and demanding all-but-one
+            // let a single straggler hold the whole release hostage.
+            int required = Math.Max(1, (group.Slots.Count * 2 + 2) / 3);
             return Condition(
                 new ConditionShape(
-                    "friendlies-in-zone", "at-least",
-                    Math.Max(1, group.Slots.Count - 1), ZoneId: zone),
+                    "friendlies-in-zone", "at-least", required, ZoneId: zone),
                 $"c-{prefix}-{groupTag}-ready");
         }
 
@@ -623,7 +628,8 @@ internal static class ArcRelayTacticsMaterializer
             var scope = new LeafScope(prefix, groupTag, group.Slots.Count, "s");
             var leaves = new List<Node>();
             AddRecovery(leaves, scope, group.Stage.Recovery);
-            AddPostureFight(leaves, scope, group.Stage.Posture);
+            AddPostureFight(leaves, scope, group.Stage.Posture,
+                () => OnStationCondition(prefix, groupTag, group, bot));
             AddSignatureLeaves(
                 leaves, scope, group, bot, group.Stage.Posture, group.StageSigs,
                 latch: null);
@@ -643,7 +649,12 @@ internal static class ArcRelayTacticsMaterializer
             var scope = new LeafScope(prefix, groupTag, group.Slots.Count, "a");
             var leaves = new List<Node>();
             AddRecovery(leaves, scope, group.Act.Recovery);
-            AddPostureFight(leaves, scope, group.Act.Posture);
+            // A stage-only group's continuation still fights for its ground,
+            // not for every corridor on the way back to it.
+            AddPostureFight(leaves, scope, group.Act.Posture,
+                group.Act.Kind == "none"
+                    ? () => OnStationCondition(prefix, groupTag, group, bot)
+                    : null);
             AddSignatureLeaves(
                 leaves, scope, group, bot, group.Act.Posture, group.ActSigs,
                 latch: null);
@@ -815,7 +826,8 @@ internal static class ArcRelayTacticsMaterializer
         private void AddPostureFight(
             List<Node> leaves,
             LeafScope scope,
-            string posture)
+            string posture,
+            Func<string?>? stationCondition = null)
         {
             (string[] Targets, string Style, int Chase)? fight = posture switch
             {
@@ -827,12 +839,69 @@ internal static class ArcRelayTacticsMaterializer
             };
             if (fight is null)
                 return;
-            leaves.Add(GroupLeaf(scope, "fight", () => new Node
+            // A staged posture fights for its ground: gating on being at the
+            // station keeps a fight episode from anchoring the bot short of
+            // its post on the march in. Minted only when the fight leaf
+            // exists — consumer honesty. Posts groups gate per bot (its own
+            // post), so the leaf inlines instead of sharing.
+            string? onStation = stationCondition?.Invoke();
+            Node Define() => new()
             {
-                When = Expr.All(EmptyHanded(), EnemyNearby()),
+                When = onStation is null
+                    ? Expr.All(EmptyHanded(), EnemyNearby())
+                    : Expr.All(EmptyHanded(), EnemyNearby(), onStation),
                 Action = Fight(fight.Value.Targets, fight.Value.Style,
                     fight.Value.Chase),
-            }));
+            };
+            if (onStation is not null && onStation.Contains("-at-post-"))
+            {
+                Node inline = Define();
+                inline.Id = scope.Id("fight");
+                leaves.Add(inline);
+                return;
+            }
+            leaves.Add(GroupLeaf(scope, "fight", Define));
+        }
+
+        /// <summary>The body-scoped “I am at my station” fact: a posts group
+        /// gates each bot on its own post (±1); other kinds use the group
+        /// footprint. Null when the group has no stage geometry.</summary>
+        private string? OnStationCondition(
+            string prefix,
+            string groupTag,
+            ArcRelayTacticGroup group,
+            ArcRelayTacticsSquadBot bot)
+        {
+            if (group.Stage.Kind == "posts" && group.Stage.Posts is not null)
+            {
+                int member = group.Slots.ToList().IndexOf(bot.Slot);
+                ArcRelayTacticPost post = group.Stage.Posts[member];
+                int[] postRect = PadBounds(
+                    [post.At[0], post.At[1], post.At[0], post.At[1]], 1);
+                string postZone = Zone(
+                    postRect, $"g-{prefix}-{groupTag}-post-{member}");
+                return Condition(
+                    new ConditionShape("self-in-zone", "equals", 1,
+                        ZoneId: postZone),
+                    $"c-{prefix}-{groupTag}-at-post-{member}-self");
+            }
+            int[]? rect = group.Stage.Kind switch
+            {
+                "area" => group.Stage.Rect,
+                "line" => PadBounds(BoundingBox(group.Stage.Path!), 1),
+                "approach" => PadBounds(
+                    [
+                        group.Stage.Point![0], group.Stage.Point[1],
+                        group.Stage.Point[0], group.Stage.Point[1],
+                    ], 2),
+                _ => null,
+            };
+            if (rect is null)
+                return null;
+            string zone = Zone(rect, $"g-{prefix}-{groupTag}-set");
+            return Condition(
+                new ConditionShape("self-in-zone", "equals", 1, ZoneId: zone),
+                $"c-{prefix}-{groupTag}-on-station");
         }
 
         private void AddSignatureLeaves(
@@ -1256,17 +1325,6 @@ internal static class ArcRelayTacticsMaterializer
             writer.WriteEndObject();
         };
 
-        private static Action<Utf8JsonWriter> MoveToWell(
-            string well,
-            string posture) => writer =>
-        {
-            writer.WriteStartObject("move");
-            writer.WriteStartObject("to");
-            writer.WriteString("well", well);
-            writer.WriteEndObject();
-            writer.WriteString("posture", posture);
-            writer.WriteEndObject();
-        };
 
         private static Action<Utf8JsonWriter> FollowCarrier() => writer =>
         {

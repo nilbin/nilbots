@@ -3,7 +3,7 @@
   "mapPlanId": "proof-deliver-core-v1-plan",
   "mapId": "arc-relay-tapline-02",
   "zones": {
-    "g-t1-g3-hold": {
+    "g-t1-g3-set": {
       "rect": [
         4,
         10,

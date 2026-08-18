@@ -748,9 +748,7 @@
     },
     "hold-ground": {
       "move": {
-        "to": {
-          "well": "own"
-        },
+        "to": "current-position",
         "posture": "line"
       }
     },
@@ -849,7 +847,7 @@
     "c-t1-g1-ready": {
       "fact": "friendlies-in-zone",
       "operator": "at-least",
-      "value": 7,
+      "value": 6,
       "zone": "g-t1-g1-set"
     },
     "c-t1-kills": {

@@ -395,9 +395,7 @@
     },
     "hold-ground": {
       "move": {
-        "to": {
-          "well": "own"
-        },
+        "to": "current-position",
         "posture": "line"
       }
     },

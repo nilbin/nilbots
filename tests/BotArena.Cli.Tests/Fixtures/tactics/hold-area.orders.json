@@ -23,7 +23,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-0-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -43,7 +58,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-0"
+                  "anchor": "g-t1-g1-post-0-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-0"
@@ -89,7 +104,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-1-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -109,7 +139,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-1"
+                  "anchor": "g-t1-g1-post-1-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-1"
@@ -155,7 +185,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-2-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -175,7 +220,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-2"
+                  "anchor": "g-t1-g1-post-2-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-2"
@@ -221,7 +266,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-3-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -241,7 +301,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-3"
+                  "anchor": "g-t1-g1-post-3-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-3"
@@ -287,7 +347,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-4-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -307,7 +382,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-4"
+                  "anchor": "g-t1-g1-post-4-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-4"
@@ -353,7 +428,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-5-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -373,7 +463,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-5"
+                  "anchor": "g-t1-g1-post-5-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-5"
@@ -419,7 +509,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-6-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -438,7 +543,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-6"
+                  "anchor": "g-t1-g1-post-6-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-6"
@@ -484,7 +589,22 @@
               "shared": "t1-g1-a-heal"
             },
             {
-              "shared": "t1-g1-a-fight"
+              "id": "t1-g1-a-fight",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "c-t1-g1-at-post-7-self"
+                ]
+              },
+              "fight": {
+                "targets": [
+                  "nearest",
+                  "weakest"
+                ],
+                "style": "hold",
+                "chaseLimit": 1
+              }
             },
             {
               "id": "t1-g1-a-sig",
@@ -498,7 +618,7 @@
               "id": "t1-g1-a-move",
               "move": {
                 "to": {
-                  "anchor": "g-t1-g1-post-7"
+                  "anchor": "g-t1-g1-post-7-2"
                 },
                 "face": {
                   "anchor": "g-t1-g1-face-7"
@@ -588,9 +708,7 @@
     },
     "hold-ground": {
       "move": {
-        "to": {
-          "well": "own"
-        },
+        "to": "current-position",
         "posture": "line"
       }
     },
@@ -603,22 +721,6 @@
       "move": {
         "to": "nearest-heal-zone",
         "posture": "rear"
-      }
-    },
-    "t1-g1-a-fight": {
-      "when": {
-        "all": [
-          "empty-handed",
-          "enemy-nearby"
-        ]
-      },
-      "fight": {
-        "targets": [
-          "nearest",
-          "weakest"
-        ],
-        "style": "hold",
-        "chaseLimit": 1
       }
     }
   },
@@ -656,10 +758,58 @@
       "operator": "at-most",
       "value": 7
     },
+    "c-t1-g1-at-post-0-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-0"
+    },
     "signature-ready": {
       "fact": "signature-ready",
       "operator": "equals",
       "value": 1
+    },
+    "c-t1-g1-at-post-1-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-1"
+    },
+    "c-t1-g1-at-post-2-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-2"
+    },
+    "c-t1-g1-at-post-3-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-3"
+    },
+    "c-t1-g1-at-post-4-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-4"
+    },
+    "c-t1-g1-at-post-5-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-5"
+    },
+    "c-t1-g1-at-post-6-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-6"
+    },
+    "c-t1-g1-at-post-7-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-7"
     }
   }
 }

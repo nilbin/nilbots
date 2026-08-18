@@ -423,10 +423,13 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         // the production-shaped warm-worker gate: the reference Tapline-3
         // cell measured 1.241s end to end (1.136s in simulation). Debug is a
         // correctness lane with a coarse wrong-path guard, not a latency
-        // benchmark; its unoptimized planner measured about 2.5s.
+        // benchmark; its unoptimized planner measured about 2.5s on the
+        // hand-authored stock sheet and about 3.4s on the materialized
+        // Tactics starter, whose per-bot post and fight leaves evaluate a
+        // larger order tree.
 #if DEBUG
         Assert.True(
-            steadyElapsed.Elapsed < TimeSpan.FromSeconds(3),
+            steadyElapsed.Elapsed < TimeSpan.FromSeconds(5),
             $"Debug hosted entrant execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
 #else
         Assert.True(

@@ -1016,9 +1016,7 @@
     },
     "hold-ground": {
       "move": {
-        "to": {
-          "well": "own"
-        },
+        "to": "current-position",
         "posture": "line"
       }
     },
@@ -1092,7 +1090,8 @@
       "when": {
         "all": [
           "empty-handed",
-          "enemy-nearby"
+          "enemy-nearby",
+          "c-t1-g1-on-station"
         ]
       },
       "fight": {
@@ -1133,7 +1132,8 @@
       "when": {
         "all": [
           "empty-handed",
-          "enemy-nearby"
+          "enemy-nearby",
+          "c-t1-g2-on-station"
         ]
       },
       "fight": {
@@ -1167,7 +1167,8 @@
       "when": {
         "all": [
           "empty-handed",
-          "enemy-nearby"
+          "enemy-nearby",
+          "c-t1-g2-on-station"
         ]
       },
       "fight": {
@@ -1231,13 +1232,13 @@
     "c-t1-g1-ready": {
       "fact": "friendlies-in-zone",
       "operator": "at-least",
-      "value": 1,
+      "value": 2,
       "zone": "g-t1-g1-set"
     },
     "c-t1-g2-ready": {
       "fact": "friendlies-in-zone",
       "operator": "at-least",
-      "value": 5,
+      "value": 4,
       "zone": "g-t1-g2-set"
     },
     "we-hold-a-core": {
@@ -1271,6 +1272,18 @@
       "fact": "self-health-percent",
       "operator": "at-least",
       "value": 60
+    },
+    "c-t1-g1-on-station": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-set"
+    },
+    "c-t1-g2-on-station": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g2-set"
     }
   }
 }
