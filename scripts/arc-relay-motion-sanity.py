@@ -58,6 +58,10 @@ LOCAL_MOVE_YIELD_MARKERS = (
     ":planner-movement-lease@",
     ":planner-oscillation-yield@",
     ":move:body:",
+    # A loaded carrier queueing at its own reactor. The stock sheets' spelling
+    # of the same wait ("return-to-reactor") is carved out of orbit tracking
+    # entirely; the materialized spelling stays under the yield ceiling.
+    ":carry-home",
 )
 CARRIER_ROUTE_REGRESSION_BAR = 3
 CARRIER_PAIR_REVERSAL_BAR = 2

@@ -20,6 +20,9 @@
           "cooldown": 40,
           "orders": [
             {
+              "shared": "t1-g1-bank"
+            },
+            {
               "shared": "t1-g1-a-patch"
             },
             {
@@ -60,6 +63,9 @@
           "id": "t1",
           "cooldown": 40,
           "orders": [
+            {
+              "shared": "t1-g1-bank"
+            },
             {
               "shared": "t1-g1-a-patch"
             },
@@ -102,6 +108,9 @@
           "cooldown": 40,
           "orders": [
             {
+              "shared": "t1-g1-bank"
+            },
+            {
               "shared": "t1-g1-a-patch"
             },
             {
@@ -142,6 +151,9 @@
           "id": "t1",
           "cooldown": 40,
           "orders": [
+            {
+              "shared": "t1-g1-bank"
+            },
             {
               "shared": "t1-g1-a-patch"
             },
@@ -184,6 +196,9 @@
           "cooldown": 40,
           "orders": [
             {
+              "shared": "t1-g1-bank"
+            },
+            {
               "shared": "t1-g1-a-patch"
             },
             {
@@ -224,6 +239,9 @@
           "id": "t1",
           "cooldown": 40,
           "orders": [
+            {
+              "shared": "t1-g1-bank"
+            },
             {
               "shared": "t1-g1-a-patch"
             },
@@ -266,6 +284,9 @@
           "cooldown": 40,
           "orders": [
             {
+              "shared": "t1-g1-bank"
+            },
+            {
               "shared": "t1-g1-a-patch"
             },
             {
@@ -306,6 +327,9 @@
           "id": "t1",
           "cooldown": 40,
           "orders": [
+            {
+              "shared": "t1-g1-bank"
+            },
             {
               "shared": "t1-g1-a-patch"
             },
@@ -397,6 +421,13 @@
       "move": {
         "to": "current-position",
         "posture": "line"
+      }
+    },
+    "t1-g1-bank": {
+      "when": "carrying-core",
+      "urgency": "urgent",
+      "move": {
+        "to": "own-reactor"
       }
     },
     "t1-g1-a-patch": {

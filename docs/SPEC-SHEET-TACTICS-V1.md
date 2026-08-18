@@ -182,7 +182,10 @@ t{n} (when = start rows any-joined; timeout = maxAttempt; cooldown 40)
   for a relay, an arc-toss pass toward the first preferred carrier);
   `escort` adds a follow-the-carrier screen gated on the carrier being in
   this group (`friendly-carriers-in-roles`). `none` means the job continues
-  and banking waits for the tactic to end (the baseline banker below).
+  and banking waits for the tactic to end (the baseline banker below) —
+  except in a `persistent` tactic, which never ends and would trap an
+  accidental carrier, so its branch carries the same urgent bank escape the
+  organized plans get.
   `coreAcquired` as an outcome ends the tactic on acquisition, yielding to a
   lower Deliver Core tactic or the baseline banker.
 - Floors: posts → per-bot `move.to {anchor}` + `face` one tile along the

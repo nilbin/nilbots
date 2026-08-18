@@ -730,7 +730,24 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticsSquadBot bot)
         {
             if (tactic.Delivery.Plan == "none")
+            {
+                // "None" means the job continues and banking waits for the
+                // baseline banker once the tactic ends — but a persistent
+                // tactic never ends, so an accidental carrier (a Core landing
+                // on a bot with no grab rule) would hold it forever. The
+                // persistent branch carries the same urgent bank escape the
+                // organized plans get.
+                if (tactic.Outcomes.Persistent)
+                {
+                    leaves.Add(GroupLeaf(scope, "bank", () => new Node
+                    {
+                        When = Expr.One(CarryingCore()),
+                        Urgency = "urgent",
+                        Action = MoveToDynamic("own-reactor"),
+                    }));
+                }
                 return;
+            }
             if (bot.ClassId == "relay")
             {
                 int preferred = tactic.Delivery.PreferredSlots
