@@ -65,12 +65,12 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(10, catalog.StockOpponents.Count);
         Assert.Equal(
-            ["recommended-first-v1", "running-relay-v1", "mid-overload-fork-v1"],
+            ["first-stand-v1", "mid-pincer-v1"],
             catalog.StarterSheets.Select(value => value.Id));
         Assert.All(catalog.StarterSheets, starter =>
         {
             Assert.Equal(8, starter.Composition.Count);
-            Assert.Contains("arc-relay-workshop-v1", starter.WorkshopJson);
+            Assert.Contains("arc-relay-tactics-v1", starter.TacticsJson);
         });
         Assert.Equal(16, catalog.Classes.Count);
         Assert.All(catalog.Classes, entry =>
@@ -102,23 +102,19 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         TacticalSheetResponse first = await SaveAsync(
             client,
             "First line",
-            catalog.TemplateOrdersJson,
-            catalog.TemplateMapPlanJson,
-            "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[{\"id\":\"opening\"}]}");
+            catalog.StarterSheets[0].TacticsJson);
         JsonObject counterPlan = JsonNode.Parse(
-            catalog.TemplateOrdersJson)!.AsObject();
-        // Change a real executable value. Running Relay already starts its
-        // first upgrade path with `reach`, so assigning the same value was a
-        // no-op and could not prove that distinct drafts get distinct hashes.
-        counterPlan["roles"]![0]!["orders"]![0]!["timeout"] = 79;
+            catalog.StarterSheets[0].TacticsJson)!.AsObject();
+        // Change a real executable value so distinct drafts get distinct
+        // materializations and therefore distinct hashes.
+        counterPlan["tactics"]![1]!["finish"]!["maxAttempt"] = "long";
         TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
             counterPlan.ToJsonString(new JsonSerializerOptions
             {
                 WriteIndented = true,
-            }),
-            catalog.TemplateMapPlanJson);
+            }));
         Assert.NotEqual(first.ContentHash, second.ContentHash);
 
         HttpResponseMessage queued = await client.PostAsJsonAsync(
@@ -340,22 +336,22 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         PracticeAuthoringSnapshotResponse authoring = Assert.IsType<PracticeAuthoringSnapshotResponse>(
             await client.GetFromJsonAsync<PracticeAuthoringSnapshotResponse>(
                 $"/api/sheets/trials/{trialMatch.Id}/authoring"));
-        Assert.True(authoring.ProgramAttributionAvailable);
+        Assert.True(authoring.AttributionAvailable);
         Assert.Equal(first.Id, authoring.SheetId);
         Assert.Equal(first.Revision, authoring.Revision);
-        Assert.Contains("opening", authoring.WorkshopJson, StringComparison.Ordinal);
+        Assert.Contains(
+            "arc-relay-tactics-v1", authoring.TacticsJson,
+            StringComparison.Ordinal);
 
+        JsonObject edited = JsonNode.Parse(first.TacticsJson)!.AsObject();
+        edited["tactics"]![1]!["finish"]!["maxAttempt"] = "brief";
         HttpResponseMessage editedResponse = await client.PutAsJsonAsync(
             $"/api/sheets/{first.Id}",
             new SaveTacticalSheetRequest(
                 first.Name,
                 first.Revision,
-                first.OrdersJson,
-                first.MapPlanJson,
-                EnterLadder: true,
-                WorkshopJson:
-                    "{\"schema\":\"arc-relay-workshop-v1\",\"plays\":[{\"id\":\"renamed-after-run\"}]}",
-                ReplaceWorkshop: true));
+                edited.ToJsonString(),
+                EnterLadder: true));
         editedResponse.EnsureSuccessStatusCode();
         PracticeAuthoringSnapshotResponse unchanged = Assert.IsType<PracticeAuthoringSnapshotResponse>(
             await client.GetFromJsonAsync<PracticeAuthoringSnapshotResponse>(
@@ -458,20 +454,15 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
     private static async Task<TacticalSheetResponse> SaveAsync(
         HttpClient client,
         string name,
-        string ordersJson,
-        string mapPlanJson,
-        string? workshopJson = null)
+        string tacticsJson)
     {
         HttpResponseMessage response = await client.PostAsJsonAsync(
             "/api/sheets",
             new SaveTacticalSheetRequest(
                 name,
                 ExpectedRevision: null,
-                ordersJson,
-                mapPlanJson,
-                EnterLadder: true,
-                WorkshopJson: workshopJson,
-                ReplaceWorkshop: workshopJson is not null));
+                tacticsJson,
+                EnterLadder: true));
         Assert.True(response.IsSuccessStatusCode,
             $"Sheet save failed with {(int)response.StatusCode}: "
             + await response.Content.ReadAsStringAsync());

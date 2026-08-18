@@ -256,9 +256,9 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             // Layout pins hash bytes, so whitespace rewriting is corruption.
             entity.Property(sheet => sheet.PlaybookJson).HasColumnType("json");
             entity.Property(sheet => sheet.LayoutJson).HasColumnType("json");
-            // Workshop metadata is editor-only and deliberately excluded from
-            // the compiled ATL2 identity. jsonb normalization is therefore safe.
-            entity.Property(sheet => sheet.WorkshopJson).HasColumnType("jsonb");
+            // The Tactics document is the player-owned source; json (not
+            // jsonb) hands the editor back exactly the bytes it saved.
+            entity.Property(sheet => sheet.TacticsJson).HasColumnType("json");
             entity.Property(sheet => sheet.ContentHash)
                 .HasMaxLength(64)
                 .IsFixedLength();
@@ -439,8 +439,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
             entity.Property(m => m.PresentationTicksPerSecond)
                 .HasPrecision(6, 3);
             entity.Property(m => m.ArcRelayLane).HasMaxLength(20);
-            entity.Property(m => m.PracticeWorkshopJsonSnapshot)
-                .HasColumnType("jsonb");
+            entity.Property(m => m.PracticeTacticsJsonSnapshot)
+                .HasColumnType("json");
             entity.HasMany(m => m.Participants).WithOne().HasForeignKey(p => p.MatchId);
             entity.HasMany(m => m.TeamResults)
                 .WithOne()

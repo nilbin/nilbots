@@ -917,8 +917,8 @@ namespace BotArena.App.Migrations
                     b.Property<int?>("PracticeAuthoringSnapshotVersion")
                         .HasColumnType("integer");
 
-                    b.Property<string>("PracticeWorkshopJsonSnapshot")
-                        .HasColumnType("jsonb");
+                    b.Property<string>("PracticeTacticsJsonSnapshot")
+                        .HasColumnType("json");
 
                     b.Property<double>("PresentationTicksPerSecond")
                         .HasPrecision(6, 3)
@@ -1396,11 +1396,11 @@ namespace BotArena.App.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("integer");
 
+                    b.Property<string>("TacticsJson")
+                        .HasColumnType("json");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WorkshopJson")
-                        .HasColumnType("jsonb");
 
                     b.HasKey("Id");
 

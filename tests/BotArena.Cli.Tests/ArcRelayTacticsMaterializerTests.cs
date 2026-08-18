@@ -227,7 +227,7 @@ public sealed class ArcRelayTacticsMaterializerTests
             Assert.True(File.Exists(
                 Path.Combine(output, "materialized-orders.json")));
             Assert.True(File.Exists(
-                Path.Combine(output, "materialized-map-plan.json")));
+                Path.Combine(output, "map-plan.json")));
             using JsonDocument explain = JsonDocument.Parse(
                 File.ReadAllBytes(Path.Combine(output, "explain.json")));
             JsonElement provenance = explain.RootElement

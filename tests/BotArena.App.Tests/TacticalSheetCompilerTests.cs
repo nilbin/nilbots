@@ -54,42 +54,91 @@ public sealed class TacticalSheetCompilerTests
     }
 
     [Fact]
-    public void Starters_are_complete_editable_order_trees_on_current_tapline()
+    public void Starters_are_tactics_native_and_reproduce_through_the_save_path()
     {
         var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
         Assert.Equal(
-            ["recommended-first-v1", "running-relay-v1", "mid-overload-fork-v1"],
+            ["first-stand-v1", "mid-pincer-v1"],
             templates.Starters.Select(value => value.Id));
-        Assert.Same(templates.Starters[0], templates.Template);
-        Assert.True(templates.Template.Recommended);
-        Assert.Equal("recommended", templates.Template.Classification);
-        Assert.Equal("experimental", templates.Starters[1].Classification);
-        Assert.Equal("advanced", templates.Starters[2].Classification);
+        Assert.True(templates.Starters[0].Recommended);
+        Assert.Equal("recommended", templates.Starters[0].Classification);
+        Assert.Equal("advanced", templates.Starters[1].Classification);
         ActorMapDefinition current = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
 
         foreach (TacticalSheetSource starter in templates.Starters)
         {
-            using JsonDocument sheet = JsonDocument.Parse(starter.OrdersJson);
+            string tacticsJson = Assert.IsType<string>(starter.TacticsJson);
+            using JsonDocument tactics = JsonDocument.Parse(tacticsJson);
+            Assert.Equal("arc-relay-tactics-v1",
+                tactics.RootElement.GetProperty("schema").GetString());
+            Assert.Equal(8,
+                tactics.RootElement.GetProperty("squad").GetArrayLength());
             using JsonDocument mapPlan = JsonDocument.Parse(starter.MapPlanJson);
-            using JsonDocument workshop = JsonDocument.Parse(
-                Assert.IsType<string>(starter.WorkshopJson));
-            Assert.Equal("arc-relay-orders-v2",
-                sheet.RootElement.GetProperty("schema").GetString());
-            Assert.Equal("arc-relay-workshop-v1",
-                workshop.RootElement.GetProperty("schema").GetString());
-            Assert.NotEmpty(workshop.RootElement.GetProperty("plays")
-                .EnumerateArray());
-            IReadOnlyList<string> composition = TacticalSheetCompiler.ReadRoleClasses(
-                starter.OrdersJson);
-            Assert.Equal(8, composition.Count);
-            Assert.Equal(7, composition.Distinct(StringComparer.Ordinal).Count());
-            Assert.Single(
-                composition.GroupBy(value => value, StringComparer.Ordinal),
-                group => group.Count() == 2);
             Assert.Equal(current.Id,
                 mapPlan.RootElement.GetProperty("mapId").GetString());
+            IReadOnlyList<string> composition =
+                TacticalSheetCompiler.ReadRoleClasses(starter.OrdersJson);
+            Assert.Equal(8, composition.Count);
+            Assert.True(
+                composition.Distinct(StringComparer.Ordinal).Count() >= 7);
+            // The hosted save path reproduces the embedded materialization
+            // byte for byte.
+            ValidatedTacticalSheet saved = compiler.CompileTactics(
+                tacticsJson, unlocked, starter.Id);
+            Assert.Equal(starter.ContentHash, saved.ContentHash);
+            Assert.Equal(
+                starter.OrdersJson,
+                System.Text.Encoding.UTF8.GetString(
+                    saved.Compilation.MaterializedOrders!));
         }
+    }
+
+    [Fact]
+    public void Tactics_path_rejects_a_wrongly_declared_map_size()
+    {
+        var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        JsonObject tactics = JsonNode.Parse(
+            templates.Starters[0].TacticsJson!)!.AsObject();
+        tactics["mapWidth"] = 21;
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            compiler.CompileTactics(
+                tactics.ToJsonString(), unlocked, "wrong-map-size"));
+
+        Assert.Contains("declares a 21x27 map", error.Message);
+    }
+
+    [Fact]
+    public void Tactics_path_rejects_a_post_on_a_wall_with_real_map_geometry()
+    {
+        var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current);
+        Position wall = Enumerable.Range(1, map.Height - 2)
+            .SelectMany(y => Enumerable.Range(1, map.Width - 2)
+                .Select(x => new Position(x, y)))
+            .First(map.IsWall);
+        JsonObject tactics = JsonNode.Parse(
+            templates.Starters[0].TacticsJson!)!.AsObject();
+        JsonArray posts = tactics["tactics"]![1]!["groups"]![0]!["stage"]!
+            ["posts"]!.AsArray();
+        posts[0]!["at"] = new JsonArray(wall.X, wall.Y);
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            compiler.CompileTactics(
+                tactics.ToJsonString(), unlocked, "post-on-wall"));
+
+        Assert.Contains("must be traversable", error.Message);
     }
 
     [Fact]
@@ -100,51 +149,44 @@ public sealed class TacticalSheetCompilerTests
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
-        JsonObject retired = JsonNode.Parse(
-            templates.Template.OrdersJson)!.AsObject();
+        TacticalSheetSource tempered = templates.GetStock("tempered-standard-v2");
+        JsonObject retired = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
         retired["layout"] = new JsonObject();
         InvalidDataException retiredError = Assert.Throws<InvalidDataException>(
             () => compiler.Compile(
-                retired.ToJsonString(), templates.Template.MapPlanJson,
+                retired.ToJsonString(), tempered.MapPlanJson,
                 unlocked, "retired-layout"));
         Assert.Contains("unknown field 'layout'", retiredError.Message);
 
-        JsonObject copies = JsonNode.Parse(
-            templates.Template.OrdersJson)!.AsObject();
+        JsonObject copies = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
         copies["roles"]![0]!["classes"] = new JsonArray(
             "relay", "relay", "relay");
         InvalidDataException copyError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                copies.ToJsonString(), templates.Template.MapPlanJson,
+                copies.ToJsonString(), tempered.MapPlanJson,
                 unlocked, "copy-cap"));
         Assert.Contains("two-copy class cap", copyError.Message);
 
+        TacticalSheetSource idleField = templates.GetStock("idle-field-v1");
         JsonObject insufficientVariety = JsonNode.Parse(
-            templates.Template.OrdersJson)!.AsObject();
-        string[][] tooLittleVariety =
-        [
-            ["relay", "relay"], ["kestrel"], ["palisade"], ["towline"],
-            ["patchbay"], ["hush"], ["hush"],
-        ];
-        JsonArray roles = insufficientVariety["roles"]!.AsArray();
-        for (int index = 0; index < tooLittleVariety.Length; index++)
-            roles[index]!["classes"] = new JsonArray(
-                tooLittleVariety[index].Select(value => (JsonNode?)value).ToArray());
+            idleField.OrdersJson)!.AsObject();
+        insufficientVariety["roles"]![0]!["classes"] = new JsonArray(
+            "relay", "relay", "kestrel", "kestrel", "palisade", "palisade",
+            "towline", "towline");
         InvalidDataException varietyError = Assert.Throws<InvalidDataException>(
             () => compiler.Compile(
                 insufficientVariety.ToJsonString(),
-                templates.Template.MapPlanJson,
+                idleField.MapPlanJson,
                 unlocked,
                 "roster-variety"));
         Assert.Contains("at least 7 distinct classes", varietyError.Message);
 
-        JsonObject wrongMap = JsonNode.Parse(
-            templates.Template.MapPlanJson)!.AsObject();
+        JsonObject wrongMap = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
         wrongMap["mapId"] = ArcRelayLoopProfile.ForwardCombat.MapId;
         string wrongMapJson = wrongMap.ToJsonString();
         InvalidDataException mapError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                templates.Template.OrdersJson, wrongMapJson,
+                tempered.OrdersJson, wrongMapJson,
                 unlocked, "wrong-map"));
         Assert.Contains("never migrated", mapError.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -159,10 +201,9 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        JsonObject orders = JsonNode.Parse(
-            templates.Template.OrdersJson)!.AsObject();
-        JsonObject mapPlan = JsonNode.Parse(
-            templates.Template.MapPlanJson)!.AsObject();
+        TacticalSheetSource tempered = templates.GetStock("tempered-standard-v2");
+        JsonObject orders = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
+        JsonObject mapPlan = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         Position wall = Enumerable.Range(0, map.Height)
@@ -178,7 +219,7 @@ public sealed class TacticalSheetCompilerTests
                 new JsonArray(1, 1),
             },
         };
-        FirstMove(orders)["via"] = "wall-route";
+        FirstMoveWithoutVia(orders)["via"] = "wall-route";
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
@@ -195,10 +236,9 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        JsonObject orders = JsonNode.Parse(
-            templates.Template.OrdersJson)!.AsObject();
-        JsonObject mapPlan = JsonNode.Parse(
-            templates.Template.MapPlanJson)!.AsObject();
+        TacticalSheetSource tempered = templates.GetStock("tempered-standard-v2");
+        JsonObject orders = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
+        JsonObject mapPlan = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         Position spawn = map.SpawnAnchors[0].Spawn.Position;
@@ -211,7 +251,7 @@ public sealed class TacticalSheetCompilerTests
                 new JsonArray(8, 3),
             },
         };
-        FirstMove(orders)["via"] = "spawn-route";
+        FirstMoveWithoutVia(orders)["via"] = "spawn-route";
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
@@ -300,42 +340,44 @@ public sealed class TacticalSheetCompilerTests
         Assert.Contains("can send 3 bodies", error.Message);
     }
 
-    private static JsonObject FirstMove(JsonNode node)
+    private static JsonObject FirstMoveWithoutVia(JsonNode node)
     {
-        if (node is JsonObject value)
-        {
-            if (value["move"] is JsonObject move)
-                return move;
-            foreach ((_, JsonNode? child) in value)
-                if (child is not null && TryFirstMove(child, out JsonObject? found))
-                    return found!;
-        }
-        else if (node is JsonArray array)
-        {
-            foreach (JsonNode? child in array)
-                if (child is not null && TryFirstMove(child, out JsonObject? found))
-                    return found!;
-        }
+        JsonObject move = FirstMove(node, requireNoVia: true);
+        return move;
+    }
+
+    private static JsonObject FirstMove(JsonNode node, bool requireNoVia = false)
+    {
+        if (TryFirstMove(node, requireNoVia, out JsonObject? found))
+            return found!;
         throw new InvalidOperationException("Fixture contains no movement Instruction.");
     }
 
-    private static bool TryFirstMove(JsonNode node, out JsonObject? move)
+    private static bool TryFirstMove(
+        JsonNode node,
+        bool requireNoVia,
+        out JsonObject? move)
     {
         if (node is JsonObject value)
         {
-            if (value["move"] is JsonObject candidate)
+            // Attaching an ingress to a move that already has one would
+            // orphan its original route and trip consumer honesty instead of
+            // the geometry check under test.
+            if (value["move"] is JsonObject candidate
+                && candidate["to"] is not null
+                && (!requireNoVia || candidate["via"] is null))
             {
                 move = candidate;
                 return true;
             }
             foreach ((_, JsonNode? child) in value)
-                if (child is not null && TryFirstMove(child, out move))
+                if (child is not null && TryFirstMove(child, requireNoVia, out move))
                     return true;
         }
         else if (node is JsonArray array)
         {
             foreach (JsonNode? child in array)
-                if (child is not null && TryFirstMove(child, out move))
+                if (child is not null && TryFirstMove(child, requireNoVia, out move))
                     return true;
         }
         move = null;

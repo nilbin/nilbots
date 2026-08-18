@@ -1,0 +1,270 @@
+{
+  "schema": "arc-relay-tactics-v1",
+  "sheetId": "first-stand-v1",
+  "mapId": "arc-relay-tapline-02",
+  "mapWidth": 31,
+  "mapHeight": 27,
+  "squad": [
+    {
+      "slot": 0,
+      "class": "palisade",
+      "build": "durable",
+      "name": "Anvil"
+    },
+    {
+      "slot": 1,
+      "class": "towline",
+      "build": "durable",
+      "name": "Ingot"
+    },
+    {
+      "slot": 2,
+      "class": "switchback",
+      "build": "balanced",
+      "name": "Gantry"
+    },
+    {
+      "slot": 3,
+      "class": "hush",
+      "build": "durable",
+      "name": "Bellows"
+    },
+    {
+      "slot": 4,
+      "class": "patchbay",
+      "build": "balanced",
+      "name": "Cinder"
+    },
+    {
+      "slot": 5,
+      "class": "lantern",
+      "build": "scout",
+      "name": "Ratchet"
+    },
+    {
+      "slot": 6,
+      "class": "relay",
+      "build": "scout",
+      "name": "Piston"
+    },
+    {
+      "slot": 7,
+      "class": "kestrel",
+      "build": "aggressive",
+      "name": "Ember"
+    }
+  ],
+  "tactics": [
+    {
+      "id": "deliver-home",
+      "name": "Bring It Home",
+      "recipe": "deliver-core",
+      "start": {
+        "mode": "when",
+        "conds": {
+          "carrier": true
+        }
+      },
+      "release": {
+        "mode": "immediate"
+      },
+      "finish": {
+        "outcomes": {
+          "coreBanked": true,
+          "coreLost": true
+        },
+        "maxAttempt": "none"
+      },
+      "delivery": {
+        "plan": "escort",
+        "preferredSlots": [
+          6
+        ]
+      },
+      "groups": [
+        {
+          "id": "runner",
+          "name": "Runner",
+          "slots": [
+            6
+          ],
+          "coreRule": "grab",
+          "stage": {
+            "kind": "none",
+            "posture": "wait",
+            "recovery": "patch"
+          },
+          "act": {
+            "kind": "return",
+            "posture": "wait",
+            "recovery": "fight-on"
+          }
+        },
+        {
+          "id": "guards",
+          "name": "Guards",
+          "slots": [
+            4,
+            7
+          ],
+          "coreRule": "ignore",
+          "stage": {
+            "kind": "none",
+            "posture": "escort",
+            "recovery": "patch"
+          },
+          "act": {
+            "kind": "escort",
+            "posture": "escort",
+            "recovery": "fight-on"
+          }
+        },
+        {
+          "id": "line",
+          "name": "The Line",
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            5
+          ],
+          "coreRule": "ignore",
+          "stage": {
+            "kind": "area",
+            "posture": "hold",
+            "recovery": "patch",
+            "rect": [
+              7,
+              10,
+              12,
+              15
+            ]
+          },
+          "act": {
+            "kind": "none",
+            "posture": "hold",
+            "recovery": "patch"
+          }
+        }
+      ]
+    },
+    {
+      "id": "hold-mid",
+      "name": "Hold Mid",
+      "recipe": "hold-area",
+      "start": {
+        "mode": "always"
+      },
+      "release": {
+        "mode": "immediate"
+      },
+      "finish": {
+        "outcomes": {
+          "persistent": true
+        },
+        "maxAttempt": "none"
+      },
+      "delivery": {
+        "plan": "none"
+      },
+      "groups": [
+        {
+          "id": "holders",
+          "name": "Holders",
+          "slots": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ],
+          "coreRule": "grab",
+          "stage": {
+            "kind": "posts",
+            "posture": "hold",
+            "recovery": "heal-tile",
+            "posts": [
+              {
+                "at": [
+                  13,
+                  12
+                ],
+                "facing": "e"
+              },
+              {
+                "at": [
+                  15,
+                  12
+                ],
+                "facing": "s"
+              },
+              {
+                "at": [
+                  17,
+                  12
+                ],
+                "facing": "e"
+              },
+              {
+                "at": [
+                  14,
+                  14
+                ],
+                "facing": "e"
+              },
+              {
+                "at": [
+                  16,
+                  13
+                ],
+                "facing": "e"
+              },
+              {
+                "at": [
+                  13,
+                  14
+                ],
+                "facing": "s"
+              },
+              {
+                "at": [
+                  17,
+                  14
+                ],
+                "facing": "s"
+              },
+              {
+                "at": [
+                  15,
+                  15
+                ],
+                "facing": "s"
+              }
+            ]
+          },
+          "act": {
+            "kind": "none",
+            "posture": "hold",
+            "recovery": "heal-tile"
+          },
+          "sigs": {
+            "stage": {
+              "lantern": {
+                "points": [
+                  [
+                    19,
+                    13
+                  ]
+                ]
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

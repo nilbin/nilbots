@@ -3099,10 +3099,10 @@ export interface components {
             contentHash: string;
             ordersJson: string;
             mapPlanJson: string;
-            workshopJson: null | string;
+            tacticsJson: null | string;
             /** Format: date-time */
             createdAt: string;
-            programAttributionAvailable: boolean;
+            attributionAvailable: boolean;
         };
         RankedArenaAllowanceResponse: {
             /** Format: int32 */
@@ -3153,11 +3153,8 @@ export interface components {
             name: string;
             /** Format: int32 */
             expectedRevision: null | number;
-            ordersJson: string;
-            mapPlanJson: string;
+            tacticsJson: string;
             enterLadder?: null | boolean;
-            workshopJson?: null | string;
-            replaceWorkshop?: null | boolean;
         };
         SetArcRelayCrestRequest: {
             /** Format: int32 */
@@ -3222,8 +3219,6 @@ export interface components {
             /** Format: int32 */
             minimumDistinctClasses: number;
             classes: components["schemas"]["TacticalSheetClassResponse"][];
-            templateOrdersJson: string;
-            templateMapPlanJson: string;
             starterSheets: components["schemas"]["TacticalStarterSheetResponse"][];
             stockOpponents: components["schemas"]["TacticalStockSheetResponse"][];
         };
@@ -3289,9 +3284,9 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            tacticsJson: string;
             ordersJson: string;
             mapPlanJson: string;
-            workshopJson: null | string;
             entrant: components["schemas"]["ArcRelayEntrantCardResponse"];
         };
         TacticalSheetSignatureAuthoringResponse: {
@@ -3344,9 +3339,7 @@ export interface components {
             name: string;
             description: string;
             composition: string[];
-            ordersJson: string;
-            mapPlanJson: string;
-            workshopJson: string;
+            tacticsJson: string;
             classification: string;
             recommended: boolean;
         };

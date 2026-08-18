@@ -69,18 +69,14 @@ public static class TacticalSheetEndpoints
                     unlocked.Contains(value.Id),
                     TacticalSheetSignatureAuthoringProjection.Project(
                         signatures[value.Id]))).ToArray(),
-                templates.Template.OrdersJson,
-                templates.Template.MapPlanJson,
                 templates.Starters.Select(value => new TacticalStarterSheetResponse(
                     value.Id,
                     value.Name,
                     value.Description,
                     value.Composition,
-                    value.OrdersJson,
-                    value.MapPlanJson,
-                    value.WorkshopJson
+                    value.TacticsJson
                         ?? throw new InvalidOperationException(
-                            $"Starter '{value.Id}' has no editable workshop source."),
+                            $"Starter '{value.Id}' has no tactics source."),
                     value.Classification,
                     value.Recommended))
                     .ToArray(),
@@ -105,7 +101,8 @@ public static class TacticalSheetEndpoints
                 return Results.Unauthorized();
             Guid ladderId = await projector.LadderIdAsync(cancellationToken);
             TacticalSheet[] sheets = await db.TacticalSheets.AsNoTracking()
-                .Where(value => value.OwnerUserId == userId)
+                .Where(value => value.OwnerUserId == userId
+                    && value.TacticsJson != null)
                 .OrderByDescending(value => value.UpdatedAt)
                 .ThenBy(value => value.Id)
                 .ToArrayAsync(cancellationToken);
@@ -138,7 +135,8 @@ public static class TacticalSheetEndpoints
                 return Results.Unauthorized();
             TacticalSheet? sheet = await db.TacticalSheets.AsNoTracking()
                 .SingleOrDefaultAsync(value => value.Id == sheetId
-                    && value.OwnerUserId == userId, cancellationToken);
+                    && value.OwnerUserId == userId
+                    && value.TacticsJson != null, cancellationToken);
             if (sheet is null)
                 return Results.NotFound();
             ArcRelayEntrant entrant = await db.ArcRelayEntrants.AsNoTracking()
@@ -168,10 +166,8 @@ public static class TacticalSheetEndpoints
             ValidatedTacticalSheet compiled;
             try
             {
-                ValidateWorkshopRequest(request);
-                compiled = compiler.Compile(
-                    request.OrdersJson,
-                    request.MapPlanJson,
+                compiled = compiler.CompileTactics(
+                    request.TacticsJson,
                     await entitlements.UnlockedAsync(userId, cancellationToken),
                     "new-sheet");
             }
@@ -211,11 +207,9 @@ public static class TacticalSheetEndpoints
                 Id = id,
                 OwnerUserId = userId,
                 Name = name,
-                PlaybookJson = request.OrdersJson,
-                LayoutJson = request.MapPlanJson,
-                WorkshopJson = request.ReplaceWorkshop == true
-                    ? request.WorkshopJson
-                    : null,
+                TacticsJson = request.TacticsJson,
+                PlaybookJson = MaterializedOrders(compiled),
+                LayoutJson = MaterializedMapPlan(compiled),
                 ContentHash = compiled.ContentHash,
                 CreatedAt = now,
                 UpdatedAt = now,
@@ -272,7 +266,8 @@ public static class TacticalSheetEndpoints
             await db.Database.TakeAdmissionLockAsync(
                 AdmissionLocks.ArcRelayLadder(userId), cancellationToken);
             TacticalSheet? sheet = await db.TacticalSheets.SingleOrDefaultAsync(
-                value => value.Id == sheetId && value.OwnerUserId == userId,
+                value => value.Id == sheetId && value.OwnerUserId == userId
+                    && value.TacticsJson != null,
                 cancellationToken);
             ArcRelayEntrant? entrant = await db.ArcRelayEntrants
                 .SingleOrDefaultAsync(value => value.Id == sheetId
@@ -291,10 +286,8 @@ public static class TacticalSheetEndpoints
             ValidatedTacticalSheet compiled;
             try
             {
-                ValidateWorkshopRequest(request);
-                compiled = compiler.Compile(
-                    request.OrdersJson,
-                    request.MapPlanJson,
+                compiled = compiler.CompileTactics(
+                    request.TacticsJson,
                     await entitlements.UnlockedAsync(userId, cancellationToken),
                     $"{sheet.Id}:r{sheet.Revision + 1}");
             }
@@ -326,10 +319,9 @@ public static class TacticalSheetEndpoints
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             sheet.Name = entrant.Name = name;
             sheet.Revision++;
-            sheet.PlaybookJson = request.OrdersJson;
-            sheet.LayoutJson = request.MapPlanJson;
-            if (request.ReplaceWorkshop == true)
-                sheet.WorkshopJson = request.WorkshopJson;
+            sheet.TacticsJson = request.TacticsJson;
+            sheet.PlaybookJson = MaterializedOrders(compiled);
+            sheet.LayoutJson = MaterializedMapPlan(compiled);
             sheet.ContentHash = compiled.ContentHash;
             sheet.UpdatedAt = entrant.UpdatedAt = now;
             entrant.LadderOptedIn = enterLadder;
@@ -452,9 +444,8 @@ public static class TacticalSheetEndpoints
             {
                 return Invalid(exception.Message);
             }
-            match.PracticeAuthoringSnapshotVersion = 1;
-            match.PracticeWorkshopJsonSnapshot =
-                TacticalSheetWorkshopValidator.Normalize(sheet.WorkshopJson);
+            match.PracticeAuthoringSnapshotVersion = 2;
+            match.PracticeTacticsJsonSnapshot = sheet.TacticsJson;
             await db.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return Results.Ok(new CreatedMatchResponse(match.Id));
@@ -485,8 +476,8 @@ public static class TacticalSheetEndpoints
                 || participant.SheetCanonicalJsonSnapshot is null
                 || participant.SheetLayoutJsonSnapshot is null)
                 return Results.NotFound();
-            bool available = match.PracticeAuthoringSnapshotVersion == 1
-                && match.PracticeWorkshopJsonSnapshot is not null;
+            bool available = match.PracticeAuthoringSnapshotVersion == 2
+                && match.PracticeTacticsJsonSnapshot is not null;
             return Results.Ok(new PracticeAuthoringSnapshotResponse(
                 match.Id,
                 sheetId,
@@ -495,7 +486,7 @@ public static class TacticalSheetEndpoints
                 contentHash,
                 participant.SheetCanonicalJsonSnapshot!,
                 participant.SheetLayoutJsonSnapshot!,
-                available ? match.PracticeWorkshopJsonSnapshot : null,
+                available ? match.PracticeTacticsJsonSnapshot : null,
                 match.CreatedAt,
                 available));
         }).Produces<PracticeAuthoringSnapshotResponse>();
@@ -515,9 +506,9 @@ public static class TacticalSheetEndpoints
             sheet.ContentHash,
             sheet.CreatedAt,
             sheet.UpdatedAt,
+            sheet.TacticsJson!,
             sheet.PlaybookJson,
             sheet.LayoutJson,
-            sheet.WorkshopJson,
             await projector.ProjectAsync(
                 entrant, userId, ladderId, cancellationToken));
 
@@ -569,18 +560,17 @@ public static class TacticalSheetEndpoints
             or System.Text.Json.JsonException
             or ArgumentException;
 
-    private static void ValidateWorkshopRequest(
-        SaveTacticalSheetRequest request)
-    {
-        if (request.WorkshopJson is not null
-            && request.ReplaceWorkshop != true)
-        {
-            throw new InvalidDataException(
-                "workshopJson requires replaceWorkshop=true.");
-        }
-        if (request.ReplaceWorkshop == true)
-            TacticalSheetWorkshopValidator.Validate(request.WorkshopJson);
-    }
+    private static string MaterializedOrders(ValidatedTacticalSheet compiled) =>
+        System.Text.Encoding.UTF8.GetString(
+            compiled.Compilation.MaterializedOrders
+            ?? throw new InvalidOperationException(
+                "Tactics compilation produced no materialized orders."));
+
+    private static string MaterializedMapPlan(ValidatedTacticalSheet compiled) =>
+        System.Text.Encoding.UTF8.GetString(
+            compiled.Compilation.MaterializedMapPlan
+            ?? throw new InvalidOperationException(
+                "Tactics compilation produced no materialized map plan."));
 
     private static IResult Invalid(string detail) => Results.Problem(
         detail,

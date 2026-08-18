@@ -2750,15 +2750,15 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string MapPlanJson { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
-        public string? WorkshopJson { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("tacticsJson")]
+        public string? TacticsJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("createdAt")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset CreatedAt { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("programAttributionAvailable")]
-        public bool ProgramAttributionAvailable { get; set; } = default!;
+        [System.Text.Json.Serialization.JsonPropertyName("attributionAvailable")]
+        public bool AttributionAvailable { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -2940,22 +2940,12 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("expectedRevision")]
         public int? ExpectedRevision { get; set; } = default!;
 
-        [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("tacticsJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string OrdersJson { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string MapPlanJson { get; set; } = default!;
+        public string TacticsJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("enterLadder")]
         public bool? EnterLadder { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
-        public string? WorkshopJson { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("replaceWorkshop")]
-        public bool? ReplaceWorkshop { get; set; } = default!;
 
         private System.Collections.Generic.IDictionary<string, object>? _additionalProperties;
 
@@ -3251,14 +3241,6 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<TacticalSheetClassResponse> Classes { get; set; } = new System.Collections.Generic.List<TacticalSheetClassResponse>();
 
-        [System.Text.Json.Serialization.JsonPropertyName("templateOrdersJson")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string TemplateOrdersJson { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("templateMapPlanJson")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string TemplateMapPlanJson { get; set; } = default!;
-
         [System.Text.Json.Serialization.JsonPropertyName("starterSheets")]
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<TacticalStarterSheetResponse> StarterSheets { get; set; } = new System.Collections.Generic.List<TacticalStarterSheetResponse>();
@@ -3522,6 +3504,10 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public System.DateTimeOffset UpdatedAt { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("tacticsJson")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string TacticsJson { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string OrdersJson { get; set; } = default!;
@@ -3529,9 +3515,6 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
         public string MapPlanJson { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
-        public string? WorkshopJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("entrant")]
         [System.ComponentModel.DataAnnotations.Required]
@@ -3726,17 +3709,9 @@ namespace BotArena.Cli.Generated
         [System.ComponentModel.DataAnnotations.Required]
         public System.Collections.Generic.IReadOnlyList<string> Composition { get; set; } = new System.Collections.Generic.List<string>();
 
-        [System.Text.Json.Serialization.JsonPropertyName("ordersJson")]
+        [System.Text.Json.Serialization.JsonPropertyName("tacticsJson")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string OrdersJson { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("mapPlanJson")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string MapPlanJson { get; set; } = default!;
-
-        [System.Text.Json.Serialization.JsonPropertyName("workshopJson")]
-        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
-        public string WorkshopJson { get; set; } = default!;
+        public string TacticsJson { get; set; } = default!;
 
         [System.Text.Json.Serialization.JsonPropertyName("classification")]
         [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]

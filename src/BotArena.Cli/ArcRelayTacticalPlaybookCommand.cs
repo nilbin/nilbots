@@ -42,10 +42,13 @@ public static class ArcRelayTacticalPlaybookCommand
             Pretty(compilation.NormalizedLayout));
         if (compilation.MaterializedOrders is not null)
         {
+            // The pair is written under the exact names the materialized
+            // orders reference, so `nilbots arc-relay --sheet
+            // <out>/materialized-orders.json` plays it directly.
             File.WriteAllBytes(Path.Combine(output, "materialized-orders.json"),
                 compilation.MaterializedOrders);
             File.WriteAllBytes(
-                Path.Combine(output, "materialized-map-plan.json"),
+                Path.Combine(output, "map-plan.json"),
                 compilation.MaterializedMapPlan!);
         }
         File.WriteAllBytes(Path.Combine(output, "explain.json"),

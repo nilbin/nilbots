@@ -4650,9 +4650,9 @@
           "contentHash",
           "ordersJson",
           "mapPlanJson",
-          "workshopJson",
+          "tacticsJson",
           "createdAt",
-          "programAttributionAvailable"
+          "attributionAvailable"
         ],
         "type": "object",
         "properties": {
@@ -4680,7 +4680,7 @@
           "mapPlanJson": {
             "type": "string"
           },
-          "workshopJson": {
+          "tacticsJson": {
             "type": [
               "null",
               "string"
@@ -4690,7 +4690,7 @@
             "type": "string",
             "format": "date-time"
           },
-          "programAttributionAvailable": {
+          "attributionAvailable": {
             "type": "boolean"
           }
         }
@@ -4857,8 +4857,7 @@
         "required": [
           "name",
           "expectedRevision",
-          "ordersJson",
-          "mapPlanJson"
+          "tacticsJson"
         ],
         "type": "object",
         "properties": {
@@ -4872,25 +4871,10 @@
             ],
             "format": "int32"
           },
-          "ordersJson": {
-            "type": "string"
-          },
-          "mapPlanJson": {
+          "tacticsJson": {
             "type": "string"
           },
           "enterLadder": {
-            "type": [
-              "null",
-              "boolean"
-            ]
-          },
-          "workshopJson": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "replaceWorkshop": {
             "type": [
               "null",
               "boolean"
@@ -5108,8 +5092,6 @@
           "maximumCopiesPerClass",
           "minimumDistinctClasses",
           "classes",
-          "templateOrdersJson",
-          "templateMapPlanJson",
           "starterSheets",
           "stockOpponents"
         ],
@@ -5142,12 +5124,6 @@
             "items": {
               "$ref": "#/components/schemas/TacticalSheetClassResponse"
             }
-          },
-          "templateOrdersJson": {
-            "type": "string"
-          },
-          "templateMapPlanJson": {
-            "type": "string"
           },
           "starterSheets": {
             "type": "array",
@@ -5365,9 +5341,9 @@
           "contentHash",
           "createdAt",
           "updatedAt",
+          "tacticsJson",
           "ordersJson",
           "mapPlanJson",
-          "workshopJson",
           "entrant"
         ],
         "type": "object",
@@ -5394,17 +5370,14 @@
             "type": "string",
             "format": "date-time"
           },
+          "tacticsJson": {
+            "type": "string"
+          },
           "ordersJson": {
             "type": "string"
           },
           "mapPlanJson": {
             "type": "string"
-          },
-          "workshopJson": {
-            "type": [
-              "null",
-              "string"
-            ]
           },
           "entrant": {
             "$ref": "#/components/schemas/ArcRelayEntrantCardResponse"
@@ -5578,9 +5551,7 @@
           "name",
           "description",
           "composition",
-          "ordersJson",
-          "mapPlanJson",
-          "workshopJson",
+          "tacticsJson",
           "classification",
           "recommended"
         ],
@@ -5601,13 +5572,7 @@
               "type": "string"
             }
           },
-          "ordersJson": {
-            "type": "string"
-          },
-          "mapPlanJson": {
-            "type": "string"
-          },
-          "workshopJson": {
+          "tacticsJson": {
             "type": "string"
           },
           "classification": {

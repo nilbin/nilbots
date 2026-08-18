@@ -41,6 +41,37 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                 mapPlan,
                 $"{diagnosticName}/orders.json",
                 $"{diagnosticName}/map-plan.json");
+        return ValidateCompiled(compilation, unlockedClassIds);
+    }
+
+    /// <summary>
+    /// The player save path: validate the whole-team Tactics document,
+    /// materialize the Orders v2 pair on the server, then run the same
+    /// real-map validation the direct Orders path gets.
+    /// </summary>
+    public ValidatedTacticalSheet CompileTactics(
+        string tacticsJson,
+        IReadOnlySet<string> unlockedClassIds,
+        string diagnosticName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(tacticsJson);
+        byte[] tactics = Encoding.UTF8.GetBytes(tacticsJson);
+        if (tactics.Length > MaximumOrdersBytes)
+            throw new InvalidDataException(
+                $"Tactics document exceeds {MaximumOrdersBytes} UTF-8 bytes.");
+        ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
+            ArcRelayLoopProfile.Current);
+        ValidateDeclaredMap(tactics, map);
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                tactics, $"{diagnosticName}/tactics.json");
+        return ValidateCompiled(compilation, unlockedClassIds);
+    }
+
+    private ValidatedTacticalSheet ValidateCompiled(
+        TacticalPlaybookCompilation compilation,
+        IReadOnlySet<string> unlockedClassIds)
+    {
         string mapId = MapPlanMapId(compilation.NormalizedLayout);
         if (!string.Equals(
                 mapId,
@@ -75,6 +106,27 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             compilation,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)),
             composition);
+    }
+
+    private static void ValidateDeclaredMap(
+        ReadOnlyMemory<byte> tacticsJson,
+        ActorMapDefinition map)
+    {
+        using JsonDocument document = JsonDocument.Parse(tacticsJson);
+        if (document.RootElement.ValueKind != JsonValueKind.Object)
+            throw new InvalidDataException("Tactics document must be an object.");
+        if (document.RootElement.TryGetProperty(
+                "mapWidth", out JsonElement width)
+            && width.TryGetInt32(out int declaredWidth)
+            && document.RootElement.TryGetProperty(
+                "mapHeight", out JsonElement height)
+            && height.TryGetInt32(out int declaredHeight)
+            && (declaredWidth != map.Width || declaredHeight != map.Height))
+        {
+            throw new InvalidDataException(
+                $"Tactics document declares a {declaredWidth}x{declaredHeight} "
+                + $"map; the hosted arena is {map.Width}x{map.Height}.");
+        }
     }
 
     public static bool IsAdmissibleToCurrentPlaylist(string mapPlanJson)

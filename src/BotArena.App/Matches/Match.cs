@@ -51,14 +51,14 @@ public class Match
     /// Owner-only editor attribution captured when a Practice match starts.
     /// It never enters participant input, replay content, or gameplay hashes.
     /// Null identifies a historical Practice match without revision-safe
-    /// Program attribution.
+    /// authoring attribution.
     /// </summary>
     public int? PracticeAuthoringSnapshotVersion { get; set; }
     /// <summary>
-    /// Normalized workshop linkage for the exact sheet revision used by this
+    /// The Tactics document for the exact sheet revision used by this
     /// Practice match. Source identity lives on the immutable participant.
     /// </summary>
-    public string? PracticeWorkshopJsonSnapshot { get; set; }
+    public string? PracticeTacticsJsonSnapshot { get; set; }
     /// <summary>1-based game number inside a ranked set.</summary>
     public int? SetGame { get; set; }
     public List<MatchParticipant> Participants { get; set; } = [];

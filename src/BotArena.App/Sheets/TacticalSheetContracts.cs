@@ -18,19 +18,16 @@ public sealed record TacticalSheetResponse(
     string ContentHash,
     DateTime CreatedAt,
     DateTime UpdatedAt,
+    string TacticsJson,
     string OrdersJson,
     string MapPlanJson,
-    string? WorkshopJson,
     ArcRelayEntrantCardResponse Entrant);
 
 public sealed record SaveTacticalSheetRequest(
     string Name,
     int? ExpectedRevision,
-    string OrdersJson,
-    string MapPlanJson,
-    bool? EnterLadder = null,
-    string? WorkshopJson = null,
-    bool? ReplaceWorkshop = null);
+    string TacticsJson,
+    bool? EnterLadder = null);
 
 public sealed record TrialTacticalSheetRequest(
     string StockSheetId,
@@ -44,9 +41,9 @@ public sealed record PracticeAuthoringSnapshotResponse(
     string ContentHash,
     string OrdersJson,
     string MapPlanJson,
-    string? WorkshopJson,
+    string? TacticsJson,
     DateTime CreatedAt,
-    bool ProgramAttributionAvailable);
+    bool AttributionAvailable);
 
 public sealed record TacticalSheetSignatureOpportunityPresetResponse(
     string Id,
@@ -126,9 +123,7 @@ public sealed record TacticalStarterSheetResponse(
     string Name,
     string Description,
     IReadOnlyList<string> Composition,
-    string OrdersJson,
-    string MapPlanJson,
-    string WorkshopJson,
+    string TacticsJson,
     string Classification,
     bool Recommended);
 
@@ -140,8 +135,6 @@ public sealed record TacticalSheetCatalogResponse(
     int MaximumCopiesPerClass,
     int MinimumDistinctClasses,
     IReadOnlyList<TacticalSheetClassResponse> Classes,
-    string TemplateOrdersJson,
-    string TemplateMapPlanJson,
     IReadOnlyList<TacticalStarterSheetResponse> StarterSheets,
     IReadOnlyList<TacticalStockSheetResponse> StockOpponents);
 

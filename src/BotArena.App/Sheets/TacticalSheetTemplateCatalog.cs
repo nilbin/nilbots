@@ -19,13 +19,13 @@ public sealed record TacticalSheetSource(
     string[] Composition,
     byte[] LinkedData,
     string ContentHash,
-    string? WorkshopJson = null,
+    string? TacticsJson = null,
     string Classification = "practice",
     bool Recommended = false);
 
 /// <summary>
-/// Reproducible two-file product templates derived from tracked Orders v2
-/// sources.
+/// Reproducible product sheet sources: tactics-native starters materialized
+/// and verified at construction, and tracked Orders v2 stock opponents.
 /// </summary>
 public sealed class TacticalSheetTemplateCatalog
 {
@@ -40,34 +40,21 @@ public sealed class TacticalSheetTemplateCatalog
     {
         TacticalSheetSource[] starters =
         [
-            Resolve(
-                "recommended-first-v1",
-                "Tapline Fundamentals",
-                "A clear first sheet: bodies split across the three Wells, recover nearby Cores, return cargo, take sensible fights, and heal when needed.",
-                Resource("BotArena.Sheets.recommended-first-v1.sheet.json"),
-                Resource("BotArena.Sheets.recommended-first-v1.map-plan.json"),
-                Resource("BotArena.Sheets.recommended-first-v1.workshop.json"),
+            ResolveTactics(
+                "first-stand-v1",
+                "Tapline First Stand",
+                "A clear first sheet: post up on Mid, hold the ground, and when a Core lands in your hands the runner brings it home under escort.",
+                Resource("BotArena.Sheets.first-stand-v1.tactics.json"),
                 classification: "recommended",
                 recommended: true),
-            Resolve(
-                "running-relay-v1",
-                "Running Relay",
-                "Two Relay runners carry a Core through a drawn corridor with forward Arc Tosses, while six bodies work the field.",
-                Resource("BotArena.Sheets.running-relay-v1.sheet.json"),
-                Resource("BotArena.Sheets.running-relay-v1.map-plan.json"),
-                Resource("BotArena.Sheets.running-relay-v1.workshop.json"),
-                classification: "experimental"),
-            Resolve(
-                "mid-overload-fork-v1",
-                "Mid Overload Fork",
-                "A complete map-first Program: two home defenders, a five-body return ambush, and an independent Kestrel raid.",
-                Resource("BotArena.Sheets.mid-overload-fork-v1.sheet.json"),
-                Resource("BotArena.Sheets.mid-overload-fork-v1.map-plan.json"),
-                Resource("BotArena.Sheets.mid-overload-fork-v1.workshop.json"),
+            ResolveTactics(
+                "mid-pincer-v1",
+                "Mid Pincer",
+                "A small guard baits at Mid while six stage behind their lines; once everyone is on station and enemies commit, the flankers converge.",
+                Resource("BotArena.Sheets.mid-pincer-v1.tactics.json"),
                 classification: "advanced"),
         ];
         Starters = starters;
-        Template = starters[0];
         TacticalSheetSource[] opponents =
         [
             Resolve(
@@ -135,7 +122,6 @@ public sealed class TacticalSheetTemplateCatalog
         Stock = opponents;
     }
 
-    public TacticalSheetSource Template { get; }
     public IReadOnlyList<TacticalSheetSource> Starters { get; }
     public IReadOnlyList<TacticalSheetSource> Stock { get; }
 
@@ -145,13 +131,43 @@ public sealed class TacticalSheetTemplateCatalog
             : throw new InvalidDataException(
                 $"Unknown stock opponent sheet '{id}'.");
 
+    private static TacticalSheetSource ResolveTactics(
+        string id,
+        string name,
+        string description,
+        string tacticsJson,
+        string classification,
+        bool recommended = false)
+    {
+        JsonObject tactics = JsonNode.Parse(tacticsJson)?.AsObject()
+            ?? throw new InvalidDataException(
+                $"Embedded tactics starter '{id}' is empty.");
+        tactics["sheetId"] = id;
+        string resolvedTactics = tactics.ToJsonString(Pretty);
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(resolvedTactics),
+                $"starters/{id}/tactics.json");
+        return new TacticalSheetSource(
+            id,
+            name,
+            description,
+            Encoding.UTF8.GetString(compilation.MaterializedOrders!),
+            Encoding.UTF8.GetString(compilation.MaterializedMapPlan!),
+            compilation.Composition,
+            compilation.LinkedData,
+            Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)),
+            resolvedTactics,
+            classification,
+            recommended);
+    }
+
     private static TacticalSheetSource Resolve(
         string id,
         string name,
         string description,
         string ordersJson,
         string mapPlanJson,
-        string? workshopJson = null,
         string classification = "practice",
         bool recommended = false)
     {
@@ -197,7 +213,7 @@ public sealed class TacticalSheetTemplateCatalog
             compilation.Composition,
             compilation.LinkedData,
             Convert.ToHexStringLower(SHA256.HashData(compilation.LinkedData)),
-            TacticalSheetWorkshopValidator.Normalize(workshopJson),
+            TacticsJson: null,
             classification,
             recommended);
     }
