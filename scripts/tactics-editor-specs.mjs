@@ -144,6 +144,12 @@ const specs = {
     await nextStep(page); // Stage → Release
     await assertVisible(page, page.getByText('Enemies gather somewhere'),
       'pincer: release trigger row present');
+    // A custom watch box drawn on the map replaces the preset zone: the
+    // readback re-places the trigger from Mid to the drawn ground.
+    await page.getByRole('button', { name: 'Draw it instead' }).click();
+    await dragRect(page, 5, 16, 10, 20);
+    await assertVisible(page, page.getByText('known in your backfield'),
+      'pincer: drawn release watch box replaces the preset zone');
     await nextStep(page); // Release → Act
     await page.getByRole('button', { name: 'Draw on map' }).first().click();
     await clickTile(page, 15, 12);
@@ -157,6 +163,8 @@ const specs = {
     // the sheet's own edit URL and reloads the same draft from the server.
     await page.getByTestId('save-sheet').click();
     await page.waitForURL(/\/entrants\/sheets\/[0-9a-f-]+\/edit/, { timeout: 8000 });
+    await assertVisible(page, page.getByText('Saved · revision 1.'),
+      'pincer: the save announces itself across the URL change');
     await assertVisible(page,
       page.getByTestId('tactic-list').getByText('hold posts at Mid'),
       'pincer: saved sheet reloads with the same Tactic');
@@ -248,6 +256,22 @@ const specs = {
     await nextStep(page); // Finish
     await nextStep(page); // Review
     await commitTactic(page, ['the Core home to your reactor', 'the carrier the whole way']);
+  },
+
+  async 'kind-switch'(page) {
+    // Switching a Group's setup kind arms the draw task for the NEW kind —
+    // the wizard state hasn't flushed yet when the task starts, so this
+    // regressed once into arming the previous kind's task.
+    await startRecipe(page, 'pincer');
+    await nextStep(page); // Start → Groups
+    await distributeGroups(page, 8);
+    await nextStep(page); // Groups → Stage
+    await page.getByRole('button', { name: 'Take up posts' }).nth(1).click();
+    await assertVisible(page, page.getByText('Placing Flankers posts — click 6 tiles'),
+      'kind switch arms the new kind’s draw task');
+    await clickTile(page, 17, 16);
+    await assertVisible(page, page.getByText('1/6'),
+      'a post lands under the switched kind');
   },
 
   async patrol(page) {

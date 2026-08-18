@@ -1,4 +1,5 @@
 import type { TacticalSheetCatalog } from '../api';
+import { possessive } from './summary';
 
 /**
  * The player-owned `arc-relay-tactics-v1` document, mirrored from the server
@@ -414,7 +415,7 @@ function validatePhaseGeometry(
     if (!phase.posts || phase.posts.length !== group.slots.length) {
       error(at, `${group.name} needs one post per bot (${phase.posts?.length ?? 0}/${group.slots.length}).`);
     } else if (phase.posts.some((post) => !floor(post.at))) {
-      error(at, `${group.name}'s posts must sit on open floor.`);
+      error(at, `${possessive(group.name)} posts must sit on open floor.`);
     }
   } else if (expected === 'rect') {
     if (!phase.rect) error(at, `${group.name} needs its ${isStage ? 'staging area' : 'area'} drawn.`);
@@ -422,24 +423,24 @@ function validatePhaseGeometry(
     if (!phase.path || phase.path.length < 2) {
       error(at, `${group.name} needs its ${phase.kind === 'line' ? 'line' : 'route'} drawn (two or more points).`);
     } else if (phase.path.some((point) => !floor(point))) {
-      error(at, `${group.name}'s ${phase.kind === 'line' ? 'line' : 'route'} points must sit on open floor.`);
+      error(at, `${possessive(group.name)} ${phase.kind === 'line' ? 'line' : 'route'} points must sit on open floor.`);
     }
   } else if (expected === 'point') {
     if (!phase.point) {
       error(at, `${group.name} needs its ${phase.kind === 'approach' ? 'approach point' : 'destination'} picked.`);
     } else if (!floor(phase.point)) {
-      error(at, `${group.name}'s ${phase.kind === 'approach' ? 'approach point' : 'destination'} must be open floor.`);
+      error(at, `${possessive(group.name)} ${phase.kind === 'approach' ? 'approach point' : 'destination'} must be open floor.`);
     }
   }
   if (phase.via) {
     if (!viaLegal(phase.kind, isStage)) {
-      error(at, `${group.name}'s ${phase.kind} ${isStage ? 'staging' : 'act'} does not take an approach route.`);
+      error(at, `${possessive(group.name)} ${phase.kind} ${isStage ? 'staging' : 'act'} does not take an approach route.`);
     } else if (phase.via.length < 2) {
-      error(at, `${group.name}'s approach route needs two or more points.`);
+      error(at, `${possessive(group.name)} approach route needs two or more points.`);
     } else if (phase.via.length > 16) {
-      error(at, `${group.name}'s approach route takes at most 16 points.`);
+      error(at, `${possessive(group.name)} approach route takes at most 16 points.`);
     } else if (phase.via.some((point) => !floor(point))) {
-      error(at, `${group.name}'s approach route points must sit on open floor.`);
+      error(at, `${possessive(group.name)} approach route points must sit on open floor.`);
     }
   }
 }

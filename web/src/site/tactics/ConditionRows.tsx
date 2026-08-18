@@ -63,9 +63,10 @@ export function ConditionRows({ conds, kinds, single, accent, watchSymbol = '⚡
         ? 'border-arena-ok/45 bg-arena-ok/10 text-arena-text'
         : 'border-arena-edge text-arena-dim hover:text-arena-text'}`}
     >
-      <span className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-[3px] border text-[10px] font-bold ${on
+      <span className={`flex h-4 w-4 shrink-0 items-center justify-center border text-[10px] font-bold ${single
+        ? 'rounded-full' : 'rounded-[3px]'} ${on
         ? 'border-arena-ok bg-arena-ok/15 text-arena-ok'
-        : 'border-arena-text/35 text-transparent'}`}>✓</span>
+        : 'border-arena-text/35 text-transparent'}`}>{single ? '●' : '✓'}</span>
       <span className="t-micro grow">{label}</span>
       {on && extra}
     </button>

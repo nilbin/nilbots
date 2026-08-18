@@ -1,4 +1,5 @@
 import type { RecipeHints } from './recipes';
+import { possessive } from './summary';
 import type { Tactic, TacticsDocument } from './tacticsDocument';
 
 export type WizardStepId =
@@ -89,7 +90,7 @@ export function createGate(state: WizardState, document: TacticsDocument): strin
   if (unstaged) return `${unstaged.name} needs its Stage drawn on the map.`;
   const unacted = tactic.groups.find((group) => !actComplete(tactic, group.id));
   if (unacted) {
-    return `${unacted.name}'s Act needs its ${unacted.act.kind === 'converge' ? 'destination' : 'route'} drawn.`;
+    return `${possessive(unacted.name)} Act needs its ${unacted.act.kind === 'converge' ? 'destination' : 'route'} drawn.`;
   }
   if (Object.keys(tactic.finish.outcomes).length === 0
     && tactic.finish.maxAttempt === 'none') {

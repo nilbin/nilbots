@@ -16,8 +16,8 @@ import type { MapTask } from './useMapTask';
 import {
   ACT_KINDS, CORE_RULES, DELIVERY_PLANS, MAX_ATTEMPTS, POSTURES, RECOVERIES,
   STAGE_KINDS, groupColor, signatureMarkGeometry, viaLegal, type ActKind,
-  type Posture, type Recovery, type StageKind, type Tactic, type TacticGroup,
-  type TacticsDocument, type ZoneRef,
+  type DrawKind, type Posture, type Recovery, type StageKind, type Tactic,
+  type TacticGroup, type TacticsDocument, type ZoneRef,
 } from './tacticsDocument';
 import {
   actComplete, assignedCount, stageComplete, unassignedSlots, type WizardState,
@@ -37,7 +37,9 @@ export interface StepProps {
   task: MapTask | null;
   change: (apply: (tactic: Tactic) => void) => void;
   arm: (slot: number | null) => void;
-  startPhaseTask: (groupId: string, phase: 'stage' | 'act', field?: 'via') => void;
+  /** `draw` overrides the task's draw kind — required when arming right after
+   * a kind change, before the wizard state has flushed. */
+  startPhaseTask: (groupId: string, phase: 'stage' | 'act', field?: 'via', draw?: DrawKind) => void;
   startSigTask: (groupId: string, phase: 'stage' | 'act', classId: string) => void;
   startWatchTask: (which: 'start' | 'release') => void;
   endTask: () => void;
@@ -74,7 +76,9 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
       />
     )}
     <Readback label="Readback">
-      {startClause(tactic) ?? 'Always available — the Sheet order alone decides when it runs.'}
+      {startClause(tactic) ?? (tactic.start.mode === 'when'
+        ? 'No condition ticked yet — tick one below, or this Tactic never applies.'
+        : 'Always available — the Sheet order alone decides when it runs.')}
     </Readback>
   </>;
 }
@@ -308,7 +312,9 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
       }
     });
     const def = (isStage ? STAGE_KINDS : ACT_KINDS).find((value) => value.id === kind);
-    if (def?.draw) startPhaseTask(group.id, phase);
+    // Arm for the kind just chosen — the wizard state hasn't flushed yet, so
+    // without the override the task would draw the PREVIOUS kind's geometry.
+    if (def?.draw) startPhaseTask(group.id, phase, undefined, def.draw);
     else endTask();
   };
   const groupClasses = [...new Set(group.slots
@@ -325,7 +331,7 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
       style={{ borderLeft: `3px solid ${color}` }}>
       <div className="mb-1 flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: color }} />
-        <b className="t-body">{group.name}</b>
+        <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
         <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
       </div>
       <div className="lab">{isStage ? 'Setup' : 'On release'}</div>
@@ -485,7 +491,7 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
       <div key={group.id} className="rounded-sm border border-arena-edge p-2"
         style={{ borderLeft: `3px solid ${groupColor(tactic, group.id)}` }}>
         <div className="mb-1 flex items-center gap-2">
-          <b className="t-body">{group.name}</b>
+          <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
           <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
         </div>
         <SegChips options={CORE_RULES} value={group.coreRule} accent={groupColor(tactic, group.id)}
@@ -640,6 +646,12 @@ export function FinishStep({ document, wizard, change, addDeliverCore }: StepPro
           else next.finish.outcomes.persistent = true;
         }))}
     </div>
+    {outcomes.persistent
+      && (Object.keys(outcomes).length > 1 || tactic.finish.maxAttempt !== 'none') && (
+      <p className="t-micro text-arena-dim">Persistent only fills the gaps — the ticked outcomes
+        and the attempt timer still end this Tactic; persistent means it never finishes on
+        its own between them.</p>
+    )}
     <div>
       <div className="lab mb-1">Maximum attempt</div>
       <ChoiceCards options={MAX_ATTEMPTS} value={tactic.finish.maxAttempt} columns={4}
@@ -664,7 +676,7 @@ export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }
       <div key={group.id} className="panel pad"
         style={{ borderLeft: `3px solid ${groupColor(tactic, group.id)}` }}>
         <div className="mb-1 flex items-center gap-2">
-          <b className="t-body">{group.name}</b>
+          <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
           <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
           <span className="grow" />
           <span className="pill">

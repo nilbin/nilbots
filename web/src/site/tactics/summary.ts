@@ -21,6 +21,11 @@ function verb(word: string, plural: boolean): string {
   return /(?:ch|sh|s|x)$/.test(word) ? `${word}es` : `${word}s`;
 }
 
+/** "Flankers’" rather than "Flankers’s". */
+export function possessive(name: string): string {
+  return /s$/i.test(name.trim()) ? `${name}’` : `${name}’s`;
+}
+
 function inPlace(place: string): string {
   if (place === 'Mid') return 'at Mid';
   if (/(?:Well|Bank)$/.test(place)) return `at ${place}`;
@@ -94,8 +99,12 @@ export function actClause(group: TacticGroup, plural = true): string {
     wait: '',
   }[act.posture] ?? '';
   switch (act.kind) {
-    case 'converge':
-      return `${v('converge')} on ${act.point ? describePlace(...act.point) : 'the target'}${adverb}${viaPhrase(act)}${recoveryPhrase(act)}`;
+    case 'converge': {
+      const target = act.point ? describePlace(...act.point) : 'the target';
+      // "converge behind their lines", never "converge on behind their lines".
+      const joined = /^behind/i.test(target) ? target : `on ${target}`;
+      return `${v('converge')} ${joined}${adverb}${viaPhrase(act)}${recoveryPhrase(act)}`;
+    }
     case 'advance':
       return `${v('push')} ${act.path && act.path.length > 1 ? `toward ${describePlace(...act.path[act.path.length - 1])}` : 'forward'}${adverb}${recoveryPhrase(act)}`;
     case 'patrol':

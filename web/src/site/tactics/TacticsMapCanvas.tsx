@@ -85,7 +85,9 @@ export function TacticsMapCanvas({
     }
     document.tactics.forEach((tactic, index) => {
       if (tactic.id === selectedTacticId) out.push({ tactic, dim: false, tag: null });
-      else if (showAll) out.push({ tactic, dim: true, tag: `T${index + 1}` });
+      // With nothing selected the map would otherwise be blank; every Tactic
+      // shows dimmed with its tag until one is picked.
+      else if (showAll || !selectedTacticId) out.push({ tactic, dim: true, tag: `T${index + 1}` });
     });
     return out;
   }, [document, editingTacticId, selectedTacticId, showAll]);
@@ -114,7 +116,11 @@ export function TacticsMapCanvas({
     pressRef.current = tile ? [event.clientX, event.clientY] : null;
     const wantsRect = task
       && (task.kind === 'watch' ? true : task.draw === 'rect');
-    if (wantsRect && tile && path.floor(tile[0], tile[1])) {
+    if (wantsRect && tile) {
+      if (!path.floor(tile[0], tile[1])) {
+        onWallPicked?.();
+        return;
+      }
       setRectDraft({ start: tile, cur: tile });
       svgRef.current?.setPointerCapture(event.pointerId);
       event.preventDefault();

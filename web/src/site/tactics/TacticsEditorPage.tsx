@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { TacticalSheetCatalog } from '../api';
 import { ErrorState, LoadingState } from '../components/StateView';
 import { errorMessage } from '../errorMessage';
@@ -12,7 +12,7 @@ import { PhaseStrip } from './PhaseStrip';
 import { BotChip } from './BotChip';
 import { classSprite, slotAccent } from './classArt';
 import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './recipes';
-import { groupClause, summarize } from './summary';
+import { groupClause, possessive, summarize } from './summary';
 import { TacticsMapCanvas, type GeometryEdit, type MapSelectRef } from './TacticsMapCanvas';
 import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
@@ -74,6 +74,25 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setToasts((current) => [...current.slice(-3), { id, text, tone }]);
     window.setTimeout(() =>
       setToasts((current) => current.filter((value) => value.id !== id)), 2600);
+  }, []);
+
+  // A first save navigates to the sheet's own URL, remounting this page; the
+  // "Saved" toast rides across in the navigation state.
+  const location = useLocation();
+  useEffect(() => {
+    const state = location.state as { savedRevision?: number } | null;
+    if (state?.savedRevision) {
+      toast(`Saved · revision ${state.savedRevision}.`);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate, toast]);
+
+  /** On narrow layouts the drawer sits far below the map; arming a draw task
+   * brings the map (and its floating banner) back on screen. */
+  const revealMap = useCallback(() => {
+    if (window.innerWidth >= 1024) return;
+    window.document.querySelector('[data-testid="tactics-map"]')
+      ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   }, []);
 
   // Bootstrap the draft: a fresh sheet immediately; an existing one when its
@@ -232,11 +251,11 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     task,
     change: changeWizard,
     arm: (slot) => setWizard((current) => current && { ...current, armedSlot: slot }),
-    startPhaseTask: (groupId, phase, field) => {
+    startPhaseTask: (groupId, phase, field, drawOverride) => {
       const group = wizard?.tactic.groups.find((value) => value.id === groupId);
       if (!group || !wizard) return;
       const geo = phase === 'stage' ? group.stage : group.act;
-      const draw = field === 'via' ? 'route' : drawKindFor(geo.kind);
+      const draw = field === 'via' ? 'route' : drawOverride ?? drawKindFor(geo.kind);
       if (!draw) return;
       startTask({
         kind: 'phase', tacticId: wizard.tactic.id, groupId, phase, draw, field,
@@ -246,6 +265,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           ? null : wizard.hints.groups.get(groupId) ?? null,
         needed: group.slots.length,
       });
+      revealMap();
     },
     startSigTask: (groupId, phase, classId) => {
       if (!wizard) return;
@@ -256,10 +276,12 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         draw: geometry.kind === 'points' ? 'posts' : 'route',
         max: geometry.max,
       });
+      revealMap();
     },
     startWatchTask: (which) => {
       if (!wizard) return;
       startTask({ kind: 'watch', tacticId: wizard.tactic.id, which });
+      revealMap();
     },
     endTask,
     addDeliverCore,
@@ -405,7 +427,14 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           document: parseDocument(saved.tacticsJson),
         });
         setNotice(`Saved · revision ${saved.revision}.`);
-        if (!draft.sheetId) navigate(`/entrants/sheets/${saved.id}/edit`, { replace: true });
+        toast(`Saved · revision ${saved.revision}.`);
+        if (!draft.sheetId) {
+          // The first save remounts on its new URL, which would eat the toast
+          // — hand the fact across through the navigation state instead.
+          navigate(`/entrants/sheets/${saved.id}/edit`, {
+            replace: true, state: { savedRevision: saved.revision },
+          });
+        }
       },
       onError: (cause) => {
         setServerIssues([sheetIssueFromCompilerError(
@@ -930,7 +959,7 @@ function TacticInspector({ tactic, botName, catalog, document, onClose, onEdit }
       <div key={group.id} className="panel pad"
         style={{ borderLeft: `3px solid ${groupColor(tactic, group.id)}` }}>
         <div className="mb-1 flex items-center gap-2">
-          <b className="t-body">{group.name}</b>
+          <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
           <span className="val">{group.slots.length} bots</span>
           <span className="grow" />
           <span className="pill">
@@ -984,19 +1013,20 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
   const group = task.kind !== 'watch' && wizard
     ? wizard.tactic.groups.find((value) => value.id === task.groupId)
     : null;
+  const whose = possessive(group?.name?.trim() || 'the group');
   const what = task.kind === 'sig'
-    ? `Placing ${group?.name ?? 'the group'}’s signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
+    ? `Placing ${whose} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
     : task.kind === 'watch'
       ? task.which === 'start'
         ? 'Drag the box this Tactic watches to Start — it applies once enemies gather inside'
         : 'Drag the box the Release watches — enemies are counted inside it'
       : {
         posts: `Placing ${group?.name ?? ''} posts — click ${group?.slots.length || 'a few'} tiles`,
-        rect: `Drag a box for ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
+        rect: `Drag a box for ${whose} ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
         route: task.field === 'via'
-          ? `Click ${group?.name ?? ''}’s approach waypoints in travel order — they walk this in before the job`
-          : `Click waypoints for ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
-        point: `Click ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'approach point' : 'destination'}`,
+          ? `Click ${whose} approach waypoints in travel order — they walk this in before the job`
+          : `Click waypoints for ${whose} ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
+        point: `Click ${whose} ${task.phase === 'stage' ? 'approach point' : 'destination'}`,
       }[task.draw];
   const undoable = (task.kind === 'phase' && (task.draw === 'route' || task.draw === 'posts'))
     || task.kind === 'sig';
@@ -1015,15 +1045,17 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
     progress = `${points.length}/${task.max}`;
   }
   return (
-    <div className="absolute inset-x-2 top-2 z-10 flex items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/80 px-2 py-1.5 backdrop-blur"
+    // pointer-events pass through everywhere but the buttons, so the banner
+    // never blocks drawing on the map rows underneath it.
+    <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/80 px-2 py-1.5 backdrop-blur"
       style={{ borderLeft: `3px solid ${accent}` }}
       data-testid="task-banner" role="status">
       <span className="t-micro">{what}</span>
       {progress && <span className="val">{progress}</span>}
       {task.kind === 'phase' && task.hint && <span className="t-micro text-arena-dim">· {task.hint.text}</span>}
       <span className="grow" />
-      {undoable && <button type="button" className="btn" onClick={onUndoPoint}>Undo</button>}
-      <button type="button" className="btn btn-secondary" onClick={onDone}>Done</button>
+      {undoable && <button type="button" className="btn pointer-events-auto" onClick={onUndoPoint}>Undo</button>}
+      <button type="button" className="btn btn-secondary pointer-events-auto" onClick={onDone}>Done</button>
     </div>
   );
 }
