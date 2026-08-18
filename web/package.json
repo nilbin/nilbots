@@ -19,7 +19,8 @@
     "atlas:variants": "node ../scripts/generate-atlas-variants.mjs",
     "atlas:clean": "node ../scripts/generate-atlas-variants.mjs --clean",
     "harness": "vite build --ssr tests/support/harness.entry.ts --outDir tests/.harness --logLevel error",
-    "build:cli": "npm run atlas:clean && tsc -b && node ../scripts/build-cli-viewers.mjs"
+    "build:cli": "npm run atlas:clean && tsc -b && node ../scripts/build-cli-viewers.mjs",
+    "tactics-specs": "node ../scripts/tactics-editor-specs.mjs"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",

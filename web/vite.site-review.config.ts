@@ -24,48 +24,14 @@ const sourceReplay = readFileSync(
   new URL('./tests/fixtures/golden-replay.json', import.meta.url),
   'utf8',
 ).trim();
-const taplineTemplatePlaybook = readFileSync(
+const firstStandTactics = readFileSync(
   new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/starter-tapline-v2.json',
+    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/tactics/first-stand-v1.json',
     import.meta.url,
   ),
   'utf8',
 ).trim();
-const taplineTemplateLayout = readFileSync(
-  new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/starter-tapline-v2.json',
-    import.meta.url,
-  ),
-  'utf8',
-).trim();
-const recommendedFirstOrders = readFileSync(
-  new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/recommended-first-v1.json',
-    import.meta.url,
-  ),
-  'utf8',
-).trim();
-const recommendedFirstMapPlan = readFileSync(
-  new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-6/recommended-first-v1.json',
-    import.meta.url,
-  ),
-  'utf8',
-).trim();
-const recommendedFirstWorkshop = readFileSync(
-  new URL(
-    '../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/workshops/recommended-first-v1.json',
-    import.meta.url,
-  ),
-  'utf8',
-).trim();
-const taplineReviewCatalog = makeTaplineReviewCatalog(
-  taplineTemplatePlaybook,
-  taplineTemplateLayout,
-  recommendedFirstOrders,
-  recommendedFirstMapPlan,
-  recommendedFirstWorkshop,
-);
+const taplineReviewCatalog = makeTaplineReviewCatalog(firstStandTactics);
 const completedReviewReplays = new Map<string, string>(
   reviewSetGameSpecs.map((spec) => [
     `/api/matches/${spec.id}/replay`,
@@ -234,6 +200,7 @@ interface ReviewSheet {
   contentHash: string;
   createdAt: string;
   updatedAt: string;
+  tacticsJson: string;
   ordersJson: string;
   mapPlanJson: string;
   entrant: Record<string, unknown>;
@@ -279,21 +246,14 @@ async function handleSheetReviewMutation(
     }
     if (!isRecord(body)) throw new Error('The sheet body must be an object.');
     const name = body.name;
-    const ordersJson = body.ordersJson;
-    const mapPlanJson = body.mapPlanJson;
-    if (
-      typeof name !== 'string' ||
-      typeof ordersJson !== 'string' ||
-      typeof mapPlanJson !== 'string'
-    ) {
-      throw new Error('Name, ordersJson and mapPlanJson are required.');
+    const tacticsJson = body.tacticsJson;
+    if (typeof name !== 'string' || typeof tacticsJson !== 'string') {
+      throw new Error('Name and tacticsJson are required.');
     }
     const now = new Date().toISOString();
     const revision = mutation === 'update' ? (savedSheet?.revision ?? 0) + 1 : 1;
     const contentHash = createHash('sha256')
-      .update(ordersJson)
-      .update('\0')
-      .update(mapPlanJson)
+      .update(tacticsJson)
       .digest('hex');
     const next: ReviewSheet = {
       id: REVIEW_SHEET_ID,
@@ -302,13 +262,15 @@ async function handleSheetReviewMutation(
       contentHash,
       createdAt: savedSheet?.createdAt ?? now,
       updatedAt: now,
-      ordersJson,
-      mapPlanJson,
+      tacticsJson,
+      // The harness has no compiler; the review pair is a labelled stand-in.
+      ordersJson: '{"schema":"arc-relay-orders-v2"}',
+      mapPlanJson: '{"schema":"arc-relay-map-plan-v2"}',
       entrant: reviewSheetEntrant(
         name,
         revision,
         contentHash,
-        ordersJson,
+        tacticsJson,
         body.enterLadder !== false,
       ),
     };
@@ -330,13 +292,13 @@ function reviewSheetEntrant(
   name: string,
   revision: number,
   contentHash: string,
-  ordersJson: string,
+  tacticsJson: string,
   ladderOptedIn: boolean,
 ): Record<string, unknown> {
-  const source = JSON.parse(ordersJson) as {
-    roles?: Array<{ classes?: string[] }>;
+  const source = JSON.parse(tacticsJson) as {
+    squad?: Array<{ class?: string }>;
   };
-  const classIds = source.roles?.flatMap((role) => role.classes ?? []) ?? [];
+  const classIds = source.squad?.map((bot) => bot.class ?? '') ?? [];
   const classNames = new Map(
     taplineReviewCatalog.classes.map((entry) => [entry.id, entry.name]),
   );
@@ -416,13 +378,7 @@ function sheetReviewResponse(
   return undefined;
 }
 
-function makeTaplineReviewCatalog(
-  templateOrdersJson: string,
-  templateMapPlanJson: string,
-  starterOrdersJson: string,
-  starterMapPlanJson: string,
-  starterWorkshopJson: string,
-) {
+function makeTaplineReviewCatalog(starterTacticsJson: string) {
   const classes = [
     ['kestrel', 'Kestrel', 'Vector Dash', 'Rapid interceptor built to abandon one lane and answer another.'],
     ['palisade', 'Palisade', 'Prism Wall', 'Convoy shield whose projector face blanks a firing lane.'],
@@ -462,18 +418,14 @@ function makeTaplineReviewCatalog(
     maximumCopiesPerClass: 2,
     minimumDistinctClasses: 7,
     classes,
-    templateOrdersJson,
-    templateMapPlanJson,
     starterSheets: [{
-      id: 'recommended-first-v1',
-      name: 'Recommended First',
-      description: 'A straightforward Tapline sheet with clear field work and Core returns.',
-      composition: (JSON.parse(starterOrdersJson) as {
-        roles: Array<{ classes: string[] }>;
-      }).roles.flatMap((role) => role.classes),
-      ordersJson: starterOrdersJson,
-      mapPlanJson: starterMapPlanJson,
-      workshopJson: starterWorkshopJson,
+      id: 'first-stand-v1',
+      name: 'Tapline First Stand',
+      description: 'A clear first sheet: post up on Mid, hold the ground, and bring a held Core home under escort.',
+      composition: (JSON.parse(starterTacticsJson) as {
+        squad: Array<{ class: string }>;
+      }).squad.map((bot) => bot.class),
+      tacticsJson: starterTacticsJson,
       classification: 'recommended',
       recommended: true,
     }],

@@ -16,7 +16,7 @@ import {
   useSetArcRelayCrest,
   useTacticalSheetCatalog,
 } from '../queries';
-import TacticalSheetEditor from '../sheets/TacticalSheetEditor';
+import TacticsEditorPage from '../tactics/TacticsEditorPage';
 
 export default function ArcRelayPage({
   view = 'overview',
@@ -67,13 +67,13 @@ export default function ArcRelayPage({
     <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="lab mb-2">{view === 'sheets' ? 'Sheet workshop' : 'Season roster'}</p>
+          <p className="lab mb-2">{view === 'sheets' ? 'Tactics editor' : 'Season roster'}</p>
           <h1 className="type-display text-[30px]">
             {view === 'sheets' ? 'Change. Run. Watch. Adjust.' : 'Build and manage entrants.'}
           </h1>
           <p className="t-meta mt-2 max-w-3xl">
             {view === 'sheets'
-              ? 'Cast eight class bodies into roles, build map-first Programs on Tapline and compare what actually happened.'
+              ? 'Draw whole-team Tactics straight on Tapline, release them together and compare what actually happened.'
               : 'Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.'}
           </p>
         </div>
@@ -87,7 +87,7 @@ export default function ArcRelayPage({
         />
       ) : (
         <>
-          <TacticalSheetEditor catalog={catalog} initialSheetId={sheetId} />
+          <TacticsEditorPage catalog={catalog} initialSheetId={sheetId} />
           <details className="panel pad">
             <summary className="lab min-h-11 cursor-pointer">Class reference · {catalog.classes.length} launch classes</summary>
             <div className="mt-3"><ClassCatalog catalog={catalog} /></div>

@@ -2,21 +2,33 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+/**
+ * Pins the Season/entrant information architecture and the Tactics editor's
+ * player-facing language. These are source-text pins on purpose: copy IS the
+ * product model here, and a drive-by rename quietly shipping engine
+ * vocabulary ("Instructions", "roles", "workshop") to players is exactly what
+ * this suite exists to catch.
+ */
+
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
 const shell = read('../src/site/Shell.tsx');
 const site = read('../src/site/Site.tsx');
 const season = read('../src/site/pages/SeasonPage.tsx');
 const entrants = read('../src/site/pages/ArcRelayPage.tsx');
-const workshop = read('../src/site/sheets/TacticalSheetEditor.tsx');
-const orders = read('../src/site/sheets/OrdersWorkspace.tsx');
-const programs = read('../src/site/sheets/PlaysWorkspace.tsx');
-const programMap = read('../src/site/sheets/PlayMapCanvas.tsx');
-const programRecipes = read('../src/site/sheets/playRecipes.ts');
-const map = read('../src/site/sheets/MapPlanEditor.tsx');
+const editor = read('../src/site/tactics/TacticsEditorPage.tsx');
+const steps = read('../src/site/tactics/WizardSteps.tsx');
+const wizard = read('../src/site/tactics/wizardState.ts');
+const recipes = read('../src/site/tactics/recipes.ts');
+const conditions = read('../src/site/tactics/ConditionRows.tsx');
+const canvas = read('../src/site/tactics/TacticsMapCanvas.tsx');
+const summary = read('../src/site/tactics/summary.ts');
+const documentModel = read('../src/site/tactics/tacticsDocument.ts');
 const docs = read('../src/site/pages/DocsPage.tsx');
 const styles = read('../src/index.css');
 const siteReview = read('../vite.site-review.config.ts');
 const siteShots = read('../../scripts/site-shots.mjs');
+
+const allEditorSource = [editor, steps, wizard, recipes, conditions, canvas, summary];
 
 test('primary navigation has one season-centred hierarchy on desktop and phone', () => {
   const desktop = [...shell.matchAll(/<TopLink to="([^"]+)">([^<]+)<\/TopLink>/g)].map((match) => [match[1], match[2]]);
@@ -40,148 +52,103 @@ test('the home screen reads the authoritative season projection', () => {
   assert.match(season, /baselineMatchesPerEntrantPerDay/);
 });
 
-test('ranked enrollment and immediate practice use different visible verbs', () => {
-  assert.match(entrants, /Ranked runs automatically/);
-  assert.match(entrants, /There is no ranked queue button/);
-  assert.match(entrants, /Field for ranked/);
-  assert.match(workshop, /Practice & watch/);
-  assert.match(workshop, /Practice is immediate and unranked/);
+test('a sheet is an ordered list of whole-team Tactics, and the copy says so', () => {
+  assert.match(editor, /An ordered list of whole-team <b>Tactics<\/b>/);
+  assert.match(editor, /No Tactics yet\. The Sheet runs top to bottom/);
+  assert.match(editor, /＋ Create Tactic/);
+  assert.match(editor, /The map is the editor — the drawer only asks the questions\./);
+  assert.match(editor, /Editing reopens the same answers you gave/);
 });
 
-test('responsive practice docks never render two visible actions at one breakpoint', () => {
-  assert.match(workshop, /btn btn-secondary hidden[^\n]+sm:inline-flex/);
-  assert.match(workshop, /fixed inset-x-0 bottom-0[^\n]+sm:hidden/);
-  assert.match(workshop, /Scenario/);
-  assert.match(workshop, /Practice again/);
-  assert.doesNotMatch(workshop, /Import JSON pair|Export pinned pair|layout sha256/i);
+test('the wizard runs Start → Groups → Stage → Release → Act → Cores → Finish → Review', () => {
+  assert.match(wizard,
+    /'start'[\s\S]*?'groups'[\s\S]*?'stage'[\s\S]*?'release'[\s\S]*?'act'[\s\S]*?'cores'[\s\S]*?'finish'[\s\S]*?'review'/);
+  assert.match(steps, /when does this Tactic apply at all\?/);
+  assert.match(steps, /Split the whole team into up to three temporary Groups/);
+  assert.match(steps, /Every Group stages its own way\./);
+  assert.match(steps, /when do they go\?/);
+  assert.match(steps, /Release ends every Group's Stage at the same time\./);
+  assert.match(steps, /when is this Tactic finished\?/);
+  assert.match(steps, /Read it back\. If the sentence says what you meant, it’s ready\./);
 });
 
-test('the workshop presents Programs first and Instructions as advanced source', () => {
-  assert.match(workshop, /id: 'squad'.*id: 'plays'.*id: 'map'.*id: 'orders'/s);
-  assert.match(workshop, /label: 'Programs'/);
-  assert.match(workshop, /label: 'Instructions'/);
-  assert.match(orders, /What this role tries, in order/);
-  assert.match(orders, /first executable leaf wins/i);
-  assert.match(orders, /Named conditions/);
-  assert.match(orders, /Shared capacity rules/);
-  assert.match(orders, /Shared exact Instructions/);
-  assert.match(orders, /Move/);
-  assert.match(orders, /Fight/);
-  assert.match(orders, /Use skill/);
-  assert.match(orders, /next\.operator = 'equals'/);
-  assert.match(orders, /Handoff/);
-  assert.match(orders, /Drop Core/);
-  assert.doesNotMatch(`${workshop}\n${orders}`, /custodyPolicies|doctrines|muster|escort|assignment order/i);
+test('recipes prefill one universal structure and pruning keys off content, never the recipe', () => {
+  assert.match(editor, /Recipes prefill the same structure — they are shortcuts, not systems\./);
+  for (const label of ['Hold Area', 'Centre Rush', 'Pincer', 'Core Raid', 'Patrol', 'Deliver Core', 'Blank Tactic']) {
+    assert.match(recipes, new RegExp(`label: '${label}'`));
+  }
+  assert.match(recipes, /recipe id is provenance only/);
+  assert.doesNotMatch(steps, /recipeId|\.recipe\b/,
+    'wizard pruning must key off document content, never the creating recipe');
 });
 
-test('Programs expose one top-to-bottom priority and generated Instructions stay read-only', () => {
-  assert.match(programs, /Priority runs top to bottom/);
-  assert.match(programs, /moveProgram\(draft, entry\.id/);
-  assert.match(programs, /Generated Instructions/);
-  assert.match(programs, /advanced · read-only/);
-  assert.match(programRecipes, /Untitled Program/);
-  assert.doesNotMatch(programRecipes, /Untitled Play/);
-  assert.doesNotMatch(programs, /Insert projection|There is no Play priority|setPlayProjectionPlacement|projectionPriorityOptions/);
-  assert.match(programs, /configurePlaySharedTrigger/);
-  assert.match(programs, /Readiness relationships/);
-  assert.match(programs, /Combine participant readiness/);
-  assert.match(programs, /Generated Conditions/);
-  assert.match(programs, /Advanced explicit exit/);
-  assert.doesNotMatch(programs, /Condition used as the shared start|addPlayCondition/);
+test('outcomes count after release and every Group keeps a continuation', () => {
+  assert.match(steps, /Outcomes start counting once the Tactic releases/);
+  assert.match(steps, /a holding Group can’t finish it while the others are still staging\./);
+  assert.match(steps, /Groups with no Act just keep holding after release — nobody wanders off\./);
 });
 
-test('Program Core custody is ordered cases with ordinary adjacent Handoff and carrier recovery', () => {
-  assert.match(programs, /Ordered Core-handling cases/);
-  assert.match(programs, /First matching case wins through ordinary Instruction order/);
-  assert.match(programs, /Core value matched by this case/);
-  assert.match(programs, /Source Well matched by this case/);
-  assert.match(programs, /Handoff is adjacent-only/);
-  assert.match(programs, /falls through in the same tick/);
-  assert.match(programs, /Allow Core carriers to recover/);
-  assert.match(programs, /Named receivers are limited to roles with carrier behavior/);
-  assert.match(programs, /Add .* carrier behavior and pass/);
-  assert.match(programs, /programOpportunityHostLabel/);
-  assert.match(programs, /warning\.caseId.*warning\.shadowedByCaseId.*warning\.bindingIds/s,
-    'separate binding-aware shadow warnings need separate React identities');
-  assert.doesNotMatch(programs, /linkedBankProgramId|custody scheduler/i);
+test('release and start share the one tick-row condition idiom', () => {
+  assert.match(conditions, /Enemies gather somewhere/);
+  assert.match(conditions, /A Core is up for grabs/);
+  assert.match(conditions, /We hold a Core — a friendly carrier exists/);
+  assert.match(conditions, /any ticked row satisfies the question \(OR\)/i);
+  assert.match(steps, /kinds={\['enemiesAt', 'coreLoose', 'carrier', 'losses'\]}/);
+  assert.match(steps, /kinds={\['enemiesAt', 'contact', 'coreLoose'\]}/);
+  assert.match(steps, /single/,
+    'the release latch carries exactly one condition row');
 });
 
-test('conditions, lifecycle and capacities are explicit game controls rather than opaque strings', () => {
-  assert.match(orders, /Enter \/ remain while/);
-  assert.match(orders, /Latch until/);
-  assert.match(orders, /AND · all true/);
-  assert.match(orders, /OR · any true/);
-  assert.match(orders, /Bodies per resolved target/);
-  assert.match(orders, /Target priorities are read left to right/);
-  assert.doesNotMatch(orders, /advanced settings/i);
+test('the readback speaks player language with real places', () => {
+  assert.match(summary, /hold.*posts at/s);
+  assert.match(summary, /converge/);
+  assert.match(summary, /run.*the Core home to your reactor/);
+  assert.match(summary, /screen.*the carrier the whole way/);
+  assert.match(summary, /Finish when/);
+  assert.match(summary, /Otherwise it persists until a higher Tactic takes over\./);
 });
 
-test('the shared-Instruction library can author every physical action and a nested sequence', () => {
-  assert.match(orders, /ACTIONS\.map\(\(action\)/);
-  assert.match(orders, /add\(\{ orders: \[freshOrder\('move', 'opening-move'\)\] \}\)/);
-  for (const label of ['Move', 'Fight', 'Use skill', 'Handoff', 'Drop Core', 'Nested sequence'])
-    assert.match(orders, new RegExp(label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+test('the map draws condition footprints under grabbable group geometry', () => {
+  assert.match(canvas, /Condition footprints render[\s\S]*under group geometry/);
+  assert.match(canvas, /ENEMIES HERE/);
+  assert.match(canvas, /CLEAR TO FINISH/);
+  assert.match(canvas, /CORE RUN/);
+  assert.match(canvas, /data-testid="tactics-map"/);
 });
 
-test('roles directly cast exact class bodies and surface signature identity', () => {
-  assert.match(orders, /The eight bodies/);
-  assert.match(orders, /Bodies sharing a role run the exact same ordered plan/);
-  assert.match(orders, /ClassIcon/);
-  assert.match(orders, /signatureName/);
-  assert.match(orders, /Upgrade rhythm/);
-  assert.doesNotMatch(orders,
-    /candidateClasses|overflowRoleId|\.minimum\b|\.preferred\b|\.maximum\b/);
+test('engine vocabulary never reaches the player surface', () => {
+  for (const source of allEditorSource) {
+    assert.doesNotMatch(source,
+      /Instructions|sharedOrders|workshop|arc-relay-orders-v2|custody|doctrine|projection/i);
+  }
+  assert.doesNotMatch(`${editor}${steps}`, /\bRoles\b/,
+    'Groups replaced roles on the player surface');
 });
 
-test('map planning renders all authoritative social landmarks and opens inside movement cards', () => {
-  assert.match(orders, /MapTargetPreview/);
-  assert.match(map, /Healing/);
-  assert.match(map, /Delivery/);
-  assert.match(map, /Protected spawn/);
-  assert.match(map, /Skill blocked/);
-  assert.match(map, /relationForSpawn/);
-  assert.match(map, /nearestSpawnTeam/);
-  assert.match(map, /Draw the ground your Instructions name/);
-  assert.match(orders, /Plot a route before this patrol can run/);
-  assert.match(orders, /Open map and add route/);
-  assert.doesNotMatch(orders, /value=\{value\.to!\}/);
+test('the document model mirrors the server grammar and stays the only saved content', () => {
+  assert.match(documentModel, /arc-relay-tactics-v1/);
+  assert.match(documentModel, /descriptor capabilities — never from a class-id switch/);
+  assert.match(editor, /tacticsJson: stringifyDocument/);
+  assert.doesNotMatch(editor, /ordersJson:|mapPlanJson:/,
+    'the client never generates or submits Orders');
 });
 
-test('Program map edits have a keyboard-equivalent one-tile nudge', () => {
-  assert.match(programMap, /tabIndex=\{0\}/);
-  assert.match(programMap, /Arrow keys move the selected Program object/);
-  assert.match(programMap, /onKeyDown=\{nudge\}/);
-  assert.match(programs, /movePlayGeometryObject/);
-});
-
-test('Post deployment policy remains editable on the normal Program surface', () => {
-  assert.match(programs, /Rebuild when missing/);
-  assert.match(programs, /Required before response/);
-  assert.match(programs, /configurePlayPostDeployment/);
-});
-
-test('sheet tools contain player-facing entrant controls only', () => {
-  assert.match(workshop, /Sheet tools/);
-  assert.match(workshop, /Field this entrant when saved/);
-  assert.match(workshop, /Save as a new entrant/);
-  assert.doesNotMatch(workshop, /import source|export source|portable source|type="file"|sha256|content hash/i);
-});
-
-test('custom-mind authoring stays dormant on the launch web surface', () => {
-  assert.doesNotMatch(entrants, /custom mind|custom-mind|preflight|C# source/i);
-  assert.doesNotMatch(docs, /custom mind|custom-mind|preflight|C# source/i);
+test('docs describe Tactics, not the retired Programs workshop', () => {
+  assert.match(docs, /whole-team[\s\S]{0,20}<b> Tactics<\/b>/);
+  assert.match(docs, /outcomes count only after release/);
+  assert.match(docs, /deterministically materializes your Tactics/);
+  assert.doesNotMatch(docs, /Programs|workshop|Instructions/);
 });
 
 test('primary and practice actions use the established forge controls', () => {
   assert.match(styles, /\.btn-primary\s*\{[^}]*background:\s*var\(--color-arena-material\)/s);
   assert.match(styles, /\.btn-secondary\s*\{[^}]*background:/s);
-  assert.match(styles, /\.btn-secondary-symbol\s*\{[^}]*color:\s*var\(--color-arena-material\)/s);
   assert.doesNotMatch(shell, /<footer|deterministic Arc Relay/);
 });
 
-test('the controlled browser review opens the current Orders v2 Tapline workshop', () => {
-  assert.match(siteReview, /starter-tapline-v2\.json/);
-  assert.match(siteReview, /map-plans\/tapline-6\/starter-tapline-v2\.json/);
+test('the controlled browser review opens the Tactics editor on a tactics starter', () => {
+  assert.match(siteReview, /tactics\/first-stand-v1\.json/);
+  assert.match(siteReview, /tacticsJson/);
   assert.match(siteReview, /\/api\/sheets\/catalog/);
-  assert.match(siteShots, /\['sheet-workshop', '\/entrants\/sheets\/new'\]/);
+  assert.match(siteShots, /\['tactics-editor', '\/entrants\/sheets\/new'\]/);
 });

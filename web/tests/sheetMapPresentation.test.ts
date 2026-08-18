@@ -5,7 +5,7 @@ import {
   nearestSpawnTeam,
   relationForPhysicalSide,
   relationForSpawn,
-} from '../src/site/sheets/sheetMapPresentation';
+} from '../src/site/tactics/sheetMapPresentation';
 
 test('every Tapline landmark gets an explicit player-facing role', () => {
   assert.deepEqual(mapRegionPresentation('well-north'), {

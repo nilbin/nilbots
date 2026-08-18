@@ -19,28 +19,29 @@ export default function DocsPage() {
       <Doc title="Quick start">
         <ol className="list-decimal space-y-1 pl-5">
           <li><Link to="/login?mode=register" className="text-link">Create an account</Link>.</li>
-          <li>Open the <Link to="/entrants/sheets/new" className="text-link">sheet workshop</Link> and save an eight-slot sheet.</li>
+          <li>Open the <Link to="/entrants/sheets/new" className="text-link">Tactics editor</Link>, pick your eight bots and save a sheet.</li>
           <li>Pick a crest and field up to three sheets in Season 1.</li>
           <li>Ranked play is automatic. The Season finds similarly rated sheets from other accounts and schedules up to six games per sheet in a rolling 24 hours.</li>
-          <li>For an immediate unranked game, use <b>Practice &amp; watch</b> in the sheet workshop. Choose a stock opponent and seed, then return to the same draft.</li>
+          <li>For an immediate unranked game, use <b>Practice</b> in the Tactics editor, then return to the same draft.</li>
           <li>Watch the causal broadcast. The score strip shows only integrity, charge and time already reached by the playhead.</li>
         </ol>
       </Doc>
 
       <Doc title="Tactical sheets">
         <p>
-          A sheet is an Orders document plus a Tapline map plan. Exact class bodies live
-          inside roles under the two-copy cap. Each role reads one nested priority list
-          made from five physical actions: move, fight, use a signature skill, handoff a
-          Core, or drop it. Named conditions control entry, exit, timeout and cooldown;
-          one capacity rule limits bodies claiming the same resolved target. Finite
-          historical conditions can react to movement, sightings and destructions the
-          team actually observed; they are read-only and reset every match. Routes,
-          zones and anchors are plotted directly on the map. A body holding an authored
-          zone or anchor may also watch toward another anchor after it arrives. Saving compiles through the
-          same shared compiler as the CLI and fields the sheet in the current Season by
-          default. A revision preserves entrant identity and rating; <b>save as copy</b>
-          starts a new entrant and rating.
+          A sheet is a squad of eight bots plus an ordered list of whole-team
+          <b> Tactics</b>. Each Tactic splits the eight into one to three temporary
+          Groups, stages them on the map — exact posts, an area, a picket line or a
+          quiet approach — then releases every Group at one shared moment and runs an
+          optional Act: converge, advance, patrol, return and bank, or stay on the
+          carrier. The Tactic finishes on outcomes you pick (destructions, an area
+          cleared, a Core acquired, banked or lost, a destination reached) or when its
+          attempt expires, and outcomes count only after release. Tactics are read top
+          to bottom; when one finishes, the list is reevaluated. On save the server
+          deterministically materializes your Tactics into the executable Orders
+          document and compiles it through the same shared compiler as the CLI,
+          fielding the sheet in the current Season by default. A revision preserves
+          entrant identity and rating.
         </p>
         <p className="mt-2 text-arena-dim">
           Core pickup and reactor banking happen when a body physically reaches the tile.
@@ -54,7 +55,7 @@ export default function DocsPage() {
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
-          remain match history but are not accepted by the current Orders v2 workshop;
+          remain match history but are not accepted by the current editor;
           coordinates are never projected between maps. Tapline-6 values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
@@ -67,7 +68,7 @@ export default function DocsPage() {
           Tapline-5 history and its ratings are not carried into v24.
         </p>
         <p className="mt-2 text-arena-dim">
-          Practice, the sheet workshop and the local CLI now use immutable Tapline-8 on
+          Practice, the Tactics editor and the local CLI now use immutable Tapline-8 on
           that same map. Each Well keeps its existing public opening, then owns one active
           Core until it is banked into either reactor. That bank starts an exact public
           46-tick recharge. Carrying, tossing, dropping and stealing do not start the
