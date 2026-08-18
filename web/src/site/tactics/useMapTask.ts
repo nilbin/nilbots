@@ -15,6 +15,8 @@ export type MapTask =
     groupId: string;
     phase: 'stage' | 'act';
     draw: DrawKind;
+    /** Set to 'via' when the route being drawn is the phase's approach route. */
+    field?: 'via';
     hint?: { rect: Rect; text: string } | null;
     needed?: number;
   }

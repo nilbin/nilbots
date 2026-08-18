@@ -56,24 +56,30 @@ export function stageClause(group: TacticGroup, plural = true): string {
   const place = stagePlace(group);
   const posture = stage.posture;
   const v = (word: string) => verb(word, plural);
+  const via = viaPhrase(stage);
   switch (stage.kind) {
     case 'posts':
-      if (posture === 'hold') return `${v('hold')} posts at ${place}${recoveryPhrase(stage)}`;
-      if (posture === 'observe') return `${v('watch')} from posts at ${place}${recoveryPhrase(stage)}`;
-      return `${v('wait')} at posts near ${place}${recoveryPhrase(stage)}`;
+      if (posture === 'hold') return `${v('hold')} posts at ${place}${via}${recoveryPhrase(stage)}`;
+      if (posture === 'observe') return `${v('watch')} from posts at ${place}${via}${recoveryPhrase(stage)}`;
+      return `${v('wait')} at posts near ${place}${via}${recoveryPhrase(stage)}`;
     case 'area':
-      if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${recoveryPhrase(stage)}`;
-      if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${recoveryPhrase(stage)}`;
-      return `${v('stage')} ${inPlace(place)}${recoveryPhrase(stage)}`;
+      if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
+      if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
+      return `${v('stage')} ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
     case 'line':
-      return `${v('picket')} a line across ${place}${recoveryPhrase(stage)}`;
+      return `${v('picket')} a line across ${place}${via}${recoveryPhrase(stage)}`;
     case 'approach':
-      return `${v('move')} up short of ${place}${posture === 'steal' ? ', ready to take the Core' : ', quietly'}${recoveryPhrase(stage)}`;
+      return `${v('move')} up short of ${place}${posture === 'steal' ? ', ready to take the Core' : ', quietly'}${via}${recoveryPhrase(stage)}`;
     default:
       return (group.act.kind === 'escort'
         ? `${v('form')} on the carrier`
         : `${v('start')} loose`) + recoveryPhrase(stage);
   }
+}
+
+/** ", coming in by the drawn route" when a via is authored. */
+function viaPhrase(phase: TacticGroup['stage']): string {
+  return (phase.via?.length ?? 0) > 1 ? ', coming in by the drawn route' : '';
 }
 
 export function actClause(group: TacticGroup, plural = true): string {
@@ -89,13 +95,13 @@ export function actClause(group: TacticGroup, plural = true): string {
   }[act.posture] ?? '';
   switch (act.kind) {
     case 'converge':
-      return `${v('converge')} on ${act.point ? describePlace(...act.point) : 'the target'}${adverb}${recoveryPhrase(act)}`;
+      return `${v('converge')} on ${act.point ? describePlace(...act.point) : 'the target'}${adverb}${viaPhrase(act)}${recoveryPhrase(act)}`;
     case 'advance':
       return `${v('push')} ${act.path && act.path.length > 1 ? `toward ${describePlace(...act.path[act.path.length - 1])}` : 'forward'}${adverb}${recoveryPhrase(act)}`;
     case 'patrol':
       return `${v('walk')} their patrol loop${adverb}${recoveryPhrase(act)}`;
     case 'return':
-      return `${v('run')} the Core home to your reactor`;
+      return `${v('run')} the Core home to your reactor${viaPhrase(act)}`;
     case 'escort':
       return `${v('screen')} the carrier the whole way`;
     default:

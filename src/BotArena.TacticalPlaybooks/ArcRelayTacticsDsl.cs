@@ -364,7 +364,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         int height)
     {
         string[] geometryKeys = ["posts", "rect", "path", "point"];
-        Object(value, path, ["kind", "posture", "recovery"], geometryKeys);
+        Object(value, path, ["kind", "posture", "recovery"],
+            [.. geometryKeys, "via"]);
         string kind = RequiredString(value, "kind", path);
         if (!(isStage ? TacticStageKinds : TacticActKinds).Contains(kind))
         {
@@ -446,8 +447,29 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             point = BoundedPoint(
                 value.GetProperty("point"), $"{path}.point", width, height);
         }
+
+        List<int[]>? via = null;
+        if (value.TryGetProperty("via", out JsonElement viaValue))
+        {
+            // A drawn approach route for reaching the phase's ground. Advance
+            // and patrol already carry their own route in `path`; a second
+            // one would be ambiguous. Escort follows a body and none goes
+            // nowhere, so neither has an approach to draw.
+            bool viaLegal = isStage
+                ? kind is "posts" or "area" or "line" or "approach"
+                : kind is "converge" or "return";
+            if (!viaLegal)
+                throw Error($"{path}.via", $"kind '{kind}' does not take via.");
+            via = [];
+            foreach (JsonElement pointValue in BoundedArray(
+                viaValue, $"{path}.via", 2, 16))
+            {
+                via.Add(BoundedPoint(
+                    pointValue, $"{path}.via", width, height));
+            }
+        }
         return new ArcRelayTacticPhase(
-            kind, posture, recovery, posts, rect, pathPoints, point);
+            kind, posture, recovery, posts, rect, pathPoints, point, via);
     }
 
     private static void ValidateSignatureMarks(
@@ -799,7 +821,8 @@ internal sealed record ArcRelayTacticPhase(
     IReadOnlyList<ArcRelayTacticPost>? Posts,
     int[]? Rect,
     IReadOnlyList<int[]>? Path,
-    int[]? Point)
+    int[]? Point,
+    IReadOnlyList<int[]>? Via)
 {
     public bool HasGeometry =>
         Posts is not null || Rect is not null || Path is not null

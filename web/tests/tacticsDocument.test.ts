@@ -121,6 +121,35 @@ test('a post on a wall is caught before the server sees it', () => {
   assert.ok(messages.some((message) => /open floor/.test(message)));
 });
 
+test('an approach route validates on legal kinds and reads back in the summary', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const { tactic } = instantiateRecipe(recipeById('pincer'), document);
+  tactic.groups[0].slots = [5, 2];
+  tactic.groups[0].stage.posts = [
+    { at: [14, 12], facing: 'e' },
+    { at: [16, 14], facing: 'n' },
+  ];
+  tactic.groups[1].slots = [0, 1, 3, 4, 6, 7];
+  tactic.groups[1].stage.rect = [22, 3, 26, 7];
+  tactic.groups[1].stage.via = [[14, 3], [18, 4]];
+  tactic.groups[1].act.point = [15, 12];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /coming in by the drawn route/);
+
+  // A one-point route and a route on a no-draw kind are both named.
+  tactic.groups[1].stage.via = [[14, 3]];
+  let messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) => /route needs two or more points/.test(message)));
+  tactic.groups[1].stage.via = [[14, 3], [18, 4]];
+  tactic.groups[0].act.via = [[14, 3], [18, 4]]; // guard act is 'none'
+  messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) => /does not take an approach route/.test(message)));
+});
+
 test('signature mark geometry derives from descriptor capabilities', () => {
   const catalog = makeCatalog();
   assert.equal(signatureMarkGeometry(catalog, 'mason')?.kind, 'points');

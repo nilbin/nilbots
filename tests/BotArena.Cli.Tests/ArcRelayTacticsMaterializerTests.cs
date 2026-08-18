@@ -143,6 +143,12 @@ public sealed class ArcRelayTacticsMaterializerTests
         "belongs to more than one group")]
     [InlineData("finish", """{"outcomes":{},"maxAttempt":"none"}""",
         "pick at least one outcome")]
+    [InlineData("groups[0].act",
+        """{"kind":"none","posture":"hold","recovery":"patch","via":[[2,2],[4,4]]}""",
+        "kind 'none' does not take via")]
+    [InlineData("groups[1].act",
+        """{"kind":"converge","posture":"aggressive","recovery":"fight-on","point":[15,12],"via":[[3,3]]}""",
+        "expected 2..16 entries")]
     public void MalformedDocumentsAreRejectedWithFieldPaths(
         string path,
         string replacementJson,
@@ -387,13 +393,15 @@ public sealed class ArcRelayTacticsMaterializerTests
                 "kind": "approach",
                 "posture": "wait",
                 "recovery": "heal-tile",
-                "point": [20, {{{y + 1}}}]
+                "point": [20, {{{y + 1}}}],
+                "via": [[4, {{{y}}}], [10, {{{y + 3}}}], [16, {{{y + 1}}}]]
               },
               "act": {
                 "kind": "converge",
                 "posture": "steal",
                 "recovery": "fight-on",
-                "point": [21, {{{y + 2}}}]
+                "point": [21, {{{y + 2}}}],
+                "via": [[18, {{{y + 4}}}], [20, {{{y + 3}}}]]
               }
             }
           ]

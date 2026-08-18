@@ -640,9 +640,11 @@ The player-owned document is `arc-relay-tactics-v1`
 ([SPEC-SHEET-TACTICS-V1.md](SPEC-SHEET-TACTICS-V1.md)): a squad of eight
 named bots plus an ordered list of whole-team **Tactics**. Each Tactic splits
 the eight into one to three temporary Groups, stages them on the map (exact
-Posts with facing, an area, a picket line, or a quiet approach), releases
-every Group at one shared moment, and runs an optional Act — converge,
-advance, patrol, return and bank, or stay on the carrier. The Tactic owns one
+Posts with facing, an area, a picket line, or a quiet approach — each
+optionally reached by a drawn `via` route when the direct path crosses ground
+the Group cannot survive), releases every Group at one shared moment, and
+runs an optional Act — converge, advance, patrol, return and bank (converge
+and return take a `via` too), or stay on the carrier. The Tactic owns one
 shared Start/Release/Finish condition set in a single tick-row idiom, a
 delivery plan with a dynamic carrier, per-group Core rules and recovery
 presets, and spatial signature marks where the class descriptor admits them.

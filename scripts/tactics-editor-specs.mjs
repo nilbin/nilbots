@@ -199,6 +199,14 @@ const specs = {
     await clickTile(page, 19, 19);
     await page.getByRole('button', { name: 'Draw on map' }).first().click();
     await dragRect(page, 13, 14, 18, 19);
+    // The raiders' optional approach route: swing in along the south edge.
+    await page.getByRole('button', { name: 'Draw route' }).first().click();
+    await clickTile(page, 6, 21);
+    await clickTile(page, 10, 23);
+    await clickTile(page, 16, 23);
+    await page.getByRole('button', { name: 'Done' }).click();
+    await assertVisible(page, page.getByText('Approach route — 3 waypoints'),
+      'core-raid: drawn approach route reads back on the stage step');
     await nextStep(page); // Release
     await assertVisible(page, page.getByText('A Core is up for grabs'),
       'core-raid: core-loose trigger row present');
@@ -208,7 +216,8 @@ const specs = {
       'core-raid: solo delivery preset');
     await nextStep(page); // Finish
     await nextStep(page); // Review
-    await commitTactic(page, ['move up short of their Well', 'the Core home to your reactor']);
+    await commitTactic(page, ['move up short of their Well',
+      'coming in by the drawn route', 'the Core home to your reactor']);
   },
 
   async 'deliver-core'(page) {

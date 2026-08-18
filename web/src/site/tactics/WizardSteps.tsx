@@ -13,8 +13,8 @@ import { describeGeometry } from './TacticsMapCanvas';
 import type { MapTask } from './useMapTask';
 import {
   ACT_KINDS, CORE_RULES, DELIVERY_PLANS, MAX_ATTEMPTS, POSTURES, RECOVERIES,
-  STAGE_KINDS, groupColor, signatureMarkGeometry, type ActKind, type Posture,
-  type Recovery, type StageKind, type Tactic, type TacticGroup,
+  STAGE_KINDS, groupColor, signatureMarkGeometry, viaLegal, type ActKind,
+  type Posture, type Recovery, type StageKind, type Tactic, type TacticGroup,
   type TacticsDocument, type ZoneRef,
 } from './tacticsDocument';
 import {
@@ -35,7 +35,7 @@ export interface StepProps {
   task: MapTask | null;
   change: (apply: (tactic: Tactic) => void) => void;
   arm: (slot: number | null) => void;
-  startPhaseTask: (groupId: string, phase: 'stage' | 'act') => void;
+  startPhaseTask: (groupId: string, phase: 'stage' | 'act', field?: 'via') => void;
   startSigTask: (groupId: string, phase: 'stage' | 'act', classId: string) => void;
   startWatchTask: (which: 'start' | 'release') => void;
   endTask: () => void;
@@ -228,6 +228,7 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
         delete targetGeo.rect;
         delete targetGeo.path;
         delete targetGeo.point;
+        if (!viaLegal(kind, phase === 'stage')) delete targetGeo.via;
       }
     });
     const def = (isStage ? STAGE_KINDS : ACT_KINDS).find((value) => value.id === kind);
@@ -272,6 +273,25 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
             : !isStage && geo.kind === 'none'
               ? `${group.name} keeps its Stage behavior — staged Groups don’t wander off.`
               : 'Nothing to draw for this choice.'} drawing={false} />}
+      {viaLegal(geo.kind, isStage) && (
+        <GeoStatusRow
+          complete={(geo.via?.length ?? 0) >= 2}
+          accent={color}
+          label={geo.via?.length
+            ? `Approach route — ${geo.via.length} waypoints walked in first.`
+            : 'Approach route (optional) — swing wide instead of the direct path.'}
+          drawing={task?.kind === 'phase' && task.groupId === group.id
+            && task.phase === phase && task.field === 'via'}
+          drawLabel="Draw route"
+          onDraw={() => startPhaseTask(group.id, phase, 'via')}
+          onStop={endTask}
+          onClear={geo.via ? () => change((next) => {
+            const target = next.groups.find((value) => value.id === group.id);
+            const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
+            if (targetGeo) delete targetGeo.via;
+          }) : undefined}
+        />
+      )}
       <div className="lab mt-2">Posture</div>
       <SegChips options={postures} value={geo.posture} accent={color}
         onChange={(posture) => change((next) => {

@@ -1108,6 +1108,7 @@
         "to": {
           "adjacentTo": "g-t1-g1-mark"
         },
+        "via": "g-t1-g1-in",
         "posture": "rear"
       }
     },

@@ -1047,6 +1047,12 @@ internal static class ArcRelayTacticsMaterializer
                 "hold" or "escort" => "line",
                 _ => "rear",
             };
+            // A drawn approach route rides the Orders `via` ingress: each
+            // activation walks the route once (progress-aware), then the
+            // normal floor takes over. Interned by shape like every route.
+            string? via = phase.Via is null
+                ? null
+                : Route(phase.Via, $"g-{geometryPrefix}-in");
             switch (phase.Kind)
             {
                 // Posts and lines are per-bot floors (each bot owns its own
@@ -1071,6 +1077,8 @@ internal static class ArcRelayTacticsMaterializer
                             writer.WriteStartObject("to");
                             writer.WriteString("anchor", anchor);
                             writer.WriteEndObject();
+                            if (via is not null)
+                                writer.WriteString("via", via);
                             if (face is not null)
                             {
                                 writer.WriteStartObject("face");
@@ -1097,6 +1105,8 @@ internal static class ArcRelayTacticsMaterializer
                             writer.WriteStartObject("to");
                             writer.WriteString("anchor", anchor);
                             writer.WriteEndObject();
+                            if (via is not null)
+                                writer.WriteString("via", via);
                             writer.WriteString("posture", posture);
                             writer.WriteEndObject();
                         },
@@ -1107,7 +1117,8 @@ internal static class ArcRelayTacticsMaterializer
                 {
                     string zone = Zone(phase.Rect!, $"g-{geometryPrefix}-hold");
                     leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node { Action = MoveToZone(zone, posture) })));
+                        latch, new Node
+                        { Action = MoveToZone(zone, posture, via) })));
                     break;
                 }
                 case "approach":
@@ -1123,6 +1134,8 @@ internal static class ArcRelayTacticsMaterializer
                                 writer.WriteStartObject("to");
                                 writer.WriteString("adjacentTo", anchor);
                                 writer.WriteEndObject();
+                                if (via is not null)
+                                    writer.WriteString("via", via);
                                 writer.WriteString("posture", "rear");
                                 writer.WriteEndObject();
                             },
@@ -1142,6 +1155,8 @@ internal static class ArcRelayTacticsMaterializer
                                 writer.WriteStartObject("to");
                                 writer.WriteString("adjacentTo", anchor);
                                 writer.WriteEndObject();
+                                if (via is not null)
+                                    writer.WriteString("via", via);
                                 writer.WriteString("posture", posture);
                                 writer.WriteEndObject();
                             },
@@ -1190,7 +1205,7 @@ internal static class ArcRelayTacticsMaterializer
                 {
                     leaves.Add(GroupLeaf(scope, "move", () => Latched(
                         latch, new Node
-                        { Action = MoveToDynamic("own-reactor") })));
+                        { Action = MoveToDynamic("own-reactor", via: via) })));
                     break;
                 }
                 case "escort":
@@ -1321,10 +1336,13 @@ internal static class ArcRelayTacticsMaterializer
 
         private static Action<Utf8JsonWriter> MoveToDynamic(
             string target,
-            string? posture = null) => writer =>
+            string? posture = null,
+            string? via = null) => writer =>
         {
             writer.WriteStartObject("move");
             writer.WriteString("to", target);
+            if (via is not null)
+                writer.WriteString("via", via);
             if (posture is not null)
                 writer.WriteString("posture", posture);
             writer.WriteEndObject();
@@ -1332,12 +1350,15 @@ internal static class ArcRelayTacticsMaterializer
 
         private static Action<Utf8JsonWriter> MoveToZone(
             string zone,
-            string posture) => writer =>
+            string posture,
+            string? via = null) => writer =>
         {
             writer.WriteStartObject("move");
             writer.WriteStartObject("to");
             writer.WriteString("zone", zone);
             writer.WriteEndObject();
+            if (via is not null)
+                writer.WriteString("via", via);
             writer.WriteString("posture", posture);
             writer.WriteEndObject();
         };

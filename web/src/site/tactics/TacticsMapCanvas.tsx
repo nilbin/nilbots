@@ -442,6 +442,17 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
     });
   }
 
+  if (stage.via && stage.via.length > 1) {
+    parts.push(<g key="stage-via">
+      <polyline points={pathfinder.connect(stage.via).map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+        fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".12 .26"
+        strokeLinejoin="round" strokeLinecap="round" opacity=".8"
+        data-select={select} cursor="pointer" />
+      {stage.via.map(([x, y], index) =>
+        <circle key={index} cx={x + .5} cy={y + .5} r={.11} fill={color} opacity=".8" />)}
+    </g>);
+  }
+
   const act = group.act;
   if (act.kind === 'converge' && act.point) {
     const starts = convergeStarts(group, pathfinder);
@@ -478,6 +489,16 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
       <ArrowPath points={run} color={color} select={select} dash=".3 .2" />
       <circle cx={home[0] + .5} cy={home[1] + .5} r={.55} fill="none" stroke={color}
         strokeWidth={.09} strokeDasharray=".22 .14" />
+    </g>);
+  }
+  if (act.via && act.via.length > 1) {
+    parts.push(<g key="act-via">
+      <polyline points={pathfinder.connect(act.via).map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+        fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".12 .26"
+        strokeLinejoin="round" strokeLinecap="round" opacity=".8"
+        data-select={select} cursor="pointer" />
+      {act.via.map(([x, y], index) =>
+        <circle key={index} cx={x + .5} cy={y + .5} r={.11} fill={color} opacity=".8" />)}
     </g>);
   }
 
@@ -590,6 +611,7 @@ function taskGeometryExists(
   const group = tactic?.groups.find((value) => value.id === task.groupId);
   if (!group) return false;
   const phase = task.phase === 'stage' ? group.stage : group.act;
+  if (task.field === 'via') return (phase.via?.length ?? 0) > 0;
   return Boolean(phase.posts?.length || phase.rect || (phase.path?.length ?? 0) > 0 || phase.point);
 }
 

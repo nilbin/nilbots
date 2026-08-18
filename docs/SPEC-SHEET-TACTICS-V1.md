@@ -95,11 +95,13 @@ higher tactic takes over.
              "recovery": "fight-on|patch|heal-tile",
              // exactly the geometry key its kind requires:
              "posts": [ { "at": [14,12], "facing": "n|e|s|w" }, … ],  // one per slot, aligned with slots order
-             "rect": [x1,y1,x2,y2], "path": [[x,y]… 2..16], "point": [x,y] },
+             "rect": [x1,y1,x2,y2], "path": [[x,y]… 2..16], "point": [x,y],
+             "via": [[x,y]… 2..16] },   // optional drawn approach route
   "act":   { "kind": "none|converge|advance|patrol|return|escort",
              "posture": …, "recovery": …,
              "point": [x,y],            // converge
-             "path": [[x,y]… 2..16] },  // advance | patrol (loops legal)
+             "path": [[x,y]… 2..16],    // advance | patrol (loops legal)
+             "via": [[x,y]… 2..16] },   // optional; converge/return only
   "sigs":  { "stage": { "<classId>": mark }, "act": { … } }
 }
 ```
@@ -197,7 +199,14 @@ t{n} (when = start rows any-joined; timeout = maxAttempt; cooldown 40)
   Core only while the carrier stands ON the reactor tile, so the tile itself
   is carrier infrastructure and a parked returner must never blockade it);
   escort → follow the nearest friendly carrier. An act of `none` re-emits the stage floor inside the release
-  branch, so stage-only groups keep holding after release.
+  branch, so stage-only groups keep holding after release. An optional `via`
+  (legal on posts/area/line/approach stages and converge/return acts —
+  advance and patrol already carry their own route) becomes the Orders
+  `move … via {route}` ingress: each activation walks the drawn route once,
+  progress-aware, then the floor takes over — the authored answer to a
+  staging ground whose direct path crosses ground the group cannot survive.
+  A stage `via` re-emitted by an act of `none` also routes re-staging
+  respawns.
 - Attempt timers: brief 60 / standard 180 / long 420 ticks; timers run from
   branch eligibility (the engine's wall-clock model).
 - Group-uniform leaves are factored into per-tactic shared orders

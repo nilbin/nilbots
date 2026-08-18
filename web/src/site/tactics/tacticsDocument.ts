@@ -64,6 +64,8 @@ export interface TacticPhase {
   rect?: Rect;
   path?: Point[];
   point?: Point;
+  /** Optional drawn approach route; the group walks it in, then takes the floor. */
+  via?: Point[];
 }
 
 export type SignatureMark = { points: Point[] } | { line: Point[] };
@@ -415,6 +417,24 @@ function validatePhaseGeometry(
       error(at, `${group.name}'s ${phase.kind === 'approach' ? 'approach point' : 'destination'} must be open floor.`);
     }
   }
+  if (phase.via) {
+    if (!viaLegal(phase.kind, isStage)) {
+      error(at, `${group.name}'s ${phase.kind} ${isStage ? 'staging' : 'act'} does not take an approach route.`);
+    } else if (phase.via.length < 2) {
+      error(at, `${group.name}'s approach route needs two or more points.`);
+    } else if (phase.via.length > 16) {
+      error(at, `${group.name}'s approach route takes at most 16 points.`);
+    } else if (phase.via.some((point) => !floor(point))) {
+      error(at, `${group.name}'s approach route points must sit on open floor.`);
+    }
+  }
+}
+
+/** Advance and patrol carry their own route; escort follows a body; none goes nowhere. */
+export function viaLegal(kind: StageKind | ActKind, isStage: boolean): boolean {
+  return isStage
+    ? kind === 'posts' || kind === 'area' || kind === 'line' || kind === 'approach'
+    : kind === 'converge' || kind === 'return';
 }
 
 export function expectedGeometry(

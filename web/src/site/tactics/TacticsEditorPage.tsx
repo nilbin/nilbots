@@ -181,15 +181,15 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     task,
     change: changeWizard,
     arm: (slot) => setWizard((current) => current && { ...current, armedSlot: slot }),
-    startPhaseTask: (groupId, phase) => {
+    startPhaseTask: (groupId, phase, field) => {
       const group = wizard?.tactic.groups.find((value) => value.id === groupId);
       if (!group || !wizard) return;
       const geo = phase === 'stage' ? group.stage : group.act;
-      const draw = drawKindFor(geo.kind);
+      const draw = field === 'via' ? 'route' : drawKindFor(geo.kind);
       if (!draw) return;
       startTask({
-        kind: 'phase', tacticId: wizard.tactic.id, groupId, phase, draw,
-        hint: wizard.hints.groups.get(groupId) ?? null,
+        kind: 'phase', tacticId: wizard.tactic.id, groupId, phase, draw, field,
+        hint: field === 'via' ? null : wizard.hints.groups.get(groupId) ?? null,
         needed: group.slots.length,
       });
     },
@@ -225,7 +225,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             phase.posts.push({ at: [x, y], facing: x < document.mapWidth / 2 ? 'e' : 'w' });
           }
         } else if (task.draw === 'route') {
-          phase.path = [...(phase.path ?? []), [x, y]];
+          if (task.field === 'via') phase.via = [...(phase.via ?? []), [x, y]];
+          else phase.path = [...(phase.path ?? []), [x, y]];
         } else if (task.draw === 'point') {
           phase.point = [x, y];
         }
@@ -464,7 +465,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               const phase = group && (task.phase === 'stage' ? group.stage : group.act);
               if (!phase) return;
               if (task.draw === 'posts') phase.posts?.pop();
-              if (task.draw === 'route') phase.path?.pop();
+              if (task.draw === 'route') {
+                if (task.field === 'via') phase.via?.pop();
+                else phase.path?.pop();
+              }
             } else if (task.kind === 'sig') {
               const group = tactic.groups.find((value) => value.id === task.groupId);
               const mark = group?.sigs?.[task.phase]?.[task.classId];
@@ -736,7 +740,9 @@ function TaskBanner({ task, wizard, onDone, onUndoPoint }: {
       : {
         posts: `Placing ${group?.name ?? ''} posts — click ${group?.slots.length || 'a few'} tiles`,
         rect: `Drag a box for ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
-        route: `Click waypoints for ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
+        route: task.field === 'via'
+          ? `Click ${group?.name ?? ''}’s approach waypoints in travel order — they walk this in before the job`
+          : `Click waypoints for ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
         point: `Click ${group?.name ?? ''}’s ${task.phase === 'stage' ? 'approach point' : 'destination'}`,
       }[task.draw];
   const undoable = (task.kind === 'phase' && (task.draw === 'route' || task.draw === 'posts'))
