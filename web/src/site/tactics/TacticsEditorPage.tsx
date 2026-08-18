@@ -464,9 +464,11 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
 
   return (
-    <div className="grid gap-3 lg:grid-cols-[316px_minmax(0,1fr)_396px]">
+    // The mock's workbench: on desktop the three panes fill the viewport,
+    // the rail and drawer scroll internally, and the map owns the rest.
+    <div className="grid gap-3 lg:h-[calc(100dvh-150px)] lg:grid-cols-[316px_minmax(0,1fr)_396px]">
       {/* ------------------------------------------------------- the rail --- */}
-      <section className="flex flex-col gap-3">
+      <section className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5">
         <div className="panel pad">
           <div className="mb-2 flex items-center gap-2">
             <span className="lab">The Sheet</span>
@@ -579,7 +581,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       </section>
 
       {/* -------------------------------------------------------- the map --- */}
-      <section className="flex min-w-0 flex-col gap-2">
+      <section className="flex min-w-0 flex-col gap-2 lg:min-h-0">
         <div className="flex items-center gap-2">
           <span className="lab">Tapline — your side is west</span>
           <span className="grow" />
@@ -598,7 +600,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             ))}
           </span>
         </div>
-        <div className="relative">
+        {/* The map fills the column, capped so it also fits the viewport
+            height — width follows from the 31:27 tile aspect. */}
+        <div className="lg:mx-auto lg:w-[min(100%,calc((100dvh-290px)*1.148))]">
+          <div className="relative">
           <div className={`overflow-auto rounded-sm border border-arena-edge bg-arena-deep ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
             <div style={{ width: `${zoom * 100}%` }}>
               <TacticsMapCanvas
@@ -638,6 +643,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 if (mark) ('points' in mark ? mark.points : mark.line).pop();
               }
             })} />}
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 t-micro text-arena-dim">
           <span><span style={{ color: '#22d3ee' }}>●</span> Group post</span>
@@ -652,7 +658,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       </section>
 
       {/* ----------------------------------------------------- the drawer --- */}
-      <section className="flex flex-col gap-2" data-testid="drawer">
+      <section className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5" data-testid="drawer">
         {wizard ? (
           <>
             <div className="flex flex-wrap gap-1" data-testid="wizard-steps">
@@ -677,8 +683,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 else toast('Draft discarded.');
               }}>Cancel</button>
             </div>
-            <div className="flex flex-col gap-2.5 overflow-y-auto pr-1"
-              style={{ maxHeight: 'calc(100dvh - 230px)' }}>
+            <div className="flex flex-col gap-2.5">
               {wizard.step === 'start' && <StartStep {...stepProps} />}
               {wizard.step === 'groups' && <GroupsStep {...stepProps} />}
               {wizard.step === 'stage' && <PhaseStep {...stepProps} phase="stage" />}

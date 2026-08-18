@@ -63,37 +63,42 @@ export default function ArcRelayPage({
   }
 
   const catalog = catalogQuery.data;
+  if (view === 'sheets') {
+    // The editor is a workbench, not a document: it breaks out of the site
+    // shell's reading width to a full-bleed, viewport-height three-pane
+    // layout (the design mock's shell), with a slim one-row masthead.
+    return (
+      <div className="mx-[calc(50%-50vw)] flex flex-col gap-3 overflow-x-clip px-3 md:px-4">
+        <header className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          <p className="lab">Tactics editor</p>
+          <h1 className="type-display text-[16px]">Change. Run. Watch. Adjust.</h1>
+          <span className="grow" />
+          <span className="pill">Tapline · Season map</span>
+        </header>
+        <TacticsEditorPage catalog={catalog} initialSheetId={sheetId} />
+        <details className="panel pad">
+          <summary className="lab min-h-11 cursor-pointer">Class reference · {catalog.classes.length} launch classes</summary>
+          <div className="mt-3"><ClassCatalog catalog={catalog} /></div>
+        </details>
+      </div>
+    );
+  }
   return (
     <div className="mx-auto flex max-w-[1500px] flex-col gap-4">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="lab mb-2">{view === 'sheets' ? 'Tactics editor' : 'Season roster'}</p>
-          <h1 className="type-display text-[30px]">
-            {view === 'sheets' ? 'Change. Run. Watch. Adjust.' : 'Build and manage entrants.'}
-          </h1>
+          <p className="lab mb-2">Season roster</p>
+          <h1 className="type-display text-[30px]">Build and manage entrants.</h1>
           <p className="t-meta mt-2 max-w-3xl">
-            {view === 'sheets'
-              ? 'Draw whole-team Tactics straight on Tapline, release them together and compare what actually happened.'
-              : 'Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.'}
+            Each tactical sheet is a Season entrant with its own crest, composition, match history and rating.
           </p>
         </div>
         <span className="pill">Tapline · Season map</span>
       </header>
-
-      {view === 'overview' ? (
-        <EntrantRoster
-          entrants={entrantsQuery.data ?? []}
-          baselineMatchesPerDay={seasonQuery.data?.baselineMatchesPerEntrantPerDay}
-        />
-      ) : (
-        <>
-          <TacticsEditorPage catalog={catalog} initialSheetId={sheetId} />
-          <details className="panel pad">
-            <summary className="lab min-h-11 cursor-pointer">Class reference · {catalog.classes.length} launch classes</summary>
-            <div className="mt-3"><ClassCatalog catalog={catalog} /></div>
-          </details>
-        </>
-      )}
+      <EntrantRoster
+        entrants={entrantsQuery.data ?? []}
+        baselineMatchesPerDay={seasonQuery.data?.baselineMatchesPerEntrantPerDay}
+      />
     </div>
   );
 }
