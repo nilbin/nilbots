@@ -123,10 +123,10 @@ internal static class GenericMindWireStartCodec
             throw new FormatException(
                 "MindStart evaluation data must be empty rather than default.");
         }
-        if (value.EvaluationData.Length > 64 * 1024)
+        if (value.EvaluationData.Length > 128 * 1024)
         {
             throw new FormatException(
-                "MindStart evaluation data exceeds 64 KiB.");
+                "MindStart evaluation data exceeds 128 KiB.");
         }
         if (value.AlliedParticipantIds.Contains(value.ParticipantId))
         {

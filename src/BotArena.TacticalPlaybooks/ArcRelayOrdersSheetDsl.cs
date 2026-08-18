@@ -1209,7 +1209,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         NonEmptyString(root, "mapId", path);
 
         Dictionary<string, JsonElement> zones = ObjectEntries(
-            root.GetProperty("zones"), $"{path}.zones", 0, 64, "zone");
+            root.GetProperty("zones"), $"{path}.zones", 0, 128, "zone");
         var zoneShapes = new HashSet<string>(StringComparer.Ordinal);
         foreach ((string id, JsonElement zone) in zones)
         {
@@ -1225,7 +1225,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
 
         Dictionary<string, JsonElement> routes = ObjectEntries(
-            root.GetProperty("routes"), $"{path}.routes", 0, 64, "route");
+            root.GetProperty("routes"), $"{path}.routes", 0, 128, "route");
         var routeShapes = new HashSet<string>(StringComparer.Ordinal);
         foreach ((string id, JsonElement route) in routes)
         {
@@ -1243,7 +1243,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
 
         Dictionary<string, JsonElement> anchors = ObjectEntries(
-            root.GetProperty("anchors"), $"{path}.anchors", 0, 64, "anchor");
+            root.GetProperty("anchors"), $"{path}.anchors", 0, 128, "anchor");
         var anchorShapes = new HashSet<string>(StringComparer.Ordinal);
         foreach ((string id, JsonElement anchor) in anchors)
         {

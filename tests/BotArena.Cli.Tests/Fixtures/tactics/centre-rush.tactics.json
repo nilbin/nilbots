@@ -1,0 +1,55 @@
+{
+  "schema": "arc-relay-tactics-v1",
+  "sheetId": "proof-centre-rush-v1",
+  "mapId": "arc-relay-tapline-02",
+  "mapWidth": 31,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" },
+    { "slot": 1, "class": "switchback", "build": "aggressive", "name": "Solder" },
+    { "slot": 2, "class": "longshot", "build": "balanced", "name": "Gantry" },
+    { "slot": 3, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 4, "class": "lantern", "build": "scout", "name": "Ratchet" },
+    { "slot": 5, "class": "palisade", "build": "durable", "name": "Ember" },
+    { "slot": 6, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 7, "class": "patchbay", "build": "balanced", "name": "Cinder" }
+  ],
+  "tactics": [
+    {
+      "id": "centre-rush-1",
+      "name": "Centre Rush",
+      "recipe": "centre-rush",
+      "start": { "mode": "always" },
+      "release": { "mode": "ready" },
+      "finish": {
+        "outcomes": {
+          "kills": { "count": 3 },
+          "coreAcquired": true,
+          "reached": true
+        },
+        "maxAttempt": "standard"
+      },
+      "delivery": { "plan": "none" },
+      "groups": [
+        {
+          "id": "rush-party",
+          "name": "Rush Party",
+          "slots": [0, 1, 2, 3, 4, 5, 6, 7],
+          "coreRule": "grab",
+          "stage": {
+            "kind": "area",
+            "posture": "wait",
+            "recovery": "patch",
+            "rect": [9, 11, 13, 14]
+          },
+          "act": {
+            "kind": "advance",
+            "posture": "aggressive",
+            "recovery": "fight-on",
+            "path": [[15, 13], [18, 13], [21, 15], [23, 19]]
+          }
+        }
+      ]
+    }
+  ]
+}

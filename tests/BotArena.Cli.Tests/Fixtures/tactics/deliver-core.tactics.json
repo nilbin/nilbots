@@ -1,0 +1,73 @@
+{
+  "schema": "arc-relay-tactics-v1",
+  "sheetId": "proof-deliver-core-v1",
+  "mapId": "arc-relay-tapline-02",
+  "mapWidth": 31,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" },
+    { "slot": 1, "class": "switchback", "build": "aggressive", "name": "Solder" },
+    { "slot": 2, "class": "longshot", "build": "balanced", "name": "Gantry" },
+    { "slot": 3, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 4, "class": "lantern", "build": "scout", "name": "Ratchet" },
+    { "slot": 5, "class": "palisade", "build": "durable", "name": "Ember" },
+    { "slot": 6, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 7, "class": "patchbay", "build": "balanced", "name": "Cinder" }
+  ],
+  "tactics": [
+    {
+      "id": "deliver-core-1",
+      "name": "Deliver Core",
+      "recipe": "deliver-core",
+      "start": {
+        "mode": "when",
+        "conds": { "carrier": true }
+      },
+      "release": { "mode": "immediate" },
+      "finish": {
+        "outcomes": { "coreBanked": true, "coreLost": true },
+        "maxAttempt": "none"
+      },
+      "delivery": { "plan": "escort", "preferredSlots": [6] },
+      "groups": [
+        {
+          "id": "carrier",
+          "name": "Carrier",
+          "slots": [6],
+          "coreRule": "grab",
+          "stage": { "kind": "none", "posture": "wait", "recovery": "patch" },
+          "act": {
+            "kind": "return",
+            "posture": "wait",
+            "recovery": "fight-on"
+          }
+        },
+        {
+          "id": "escorts",
+          "name": "Escorts",
+          "slots": [0, 1, 7],
+          "coreRule": "ignore",
+          "stage": { "kind": "none", "posture": "escort", "recovery": "patch" },
+          "act": {
+            "kind": "escort",
+            "posture": "escort",
+            "recovery": "fight-on"
+          }
+        },
+        {
+          "id": "screen",
+          "name": "Screen",
+          "slots": [2, 3, 4, 5],
+          "coreRule": "ignore",
+          "stage": {
+            "kind": "area",
+            "posture": "hold",
+            "recovery": "patch",
+            "rect": [4, 10, 9, 16]
+          },
+          "act": { "kind": "none", "posture": "hold", "recovery": "patch" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "proof-centre-rush-v1-plan",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {
+    "g-t1-g1-set": {
+      "rect": [
+        9,
+        11,
+        13,
+        14
+      ]
+    },
+    "g-anywhere": {
+      "rect": [
+        0,
+        0,
+        30,
+        26
+      ]
+    },
+    "g-t1-goal": {
+      "rect": [
+        22,
+        18,
+        24,
+        20
+      ]
+    }
+  },
+  "routes": {
+    "g-t1-g1-way": {
+      "waypoints": [
+        [
+          15,
+          13
+        ],
+        [
+          18,
+          13
+        ],
+        [
+          21,
+          15
+        ],
+        [
+          23,
+          19
+        ]
+      ]
+    }
+  },
+  "anchors": {}
+}

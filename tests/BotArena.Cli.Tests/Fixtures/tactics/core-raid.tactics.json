@@ -1,0 +1,70 @@
+{
+  "schema": "arc-relay-tactics-v1",
+  "sheetId": "proof-core-raid-v1",
+  "mapId": "arc-relay-tapline-02",
+  "mapWidth": 31,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" },
+    { "slot": 1, "class": "switchback", "build": "aggressive", "name": "Solder" },
+    { "slot": 2, "class": "longshot", "build": "balanced", "name": "Gantry" },
+    { "slot": 3, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 4, "class": "lantern", "build": "scout", "name": "Ratchet" },
+    { "slot": 5, "class": "palisade", "build": "durable", "name": "Ember" },
+    { "slot": 6, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 7, "class": "patchbay", "build": "balanced", "name": "Cinder" }
+  ],
+  "tactics": [
+    {
+      "id": "core-raid-1",
+      "name": "Core Raid",
+      "recipe": "core-raid",
+      "start": { "mode": "always" },
+      "release": {
+        "mode": "ready-when",
+        "conds": { "coreLoose": { "well": "enemy" } }
+      },
+      "finish": {
+        "outcomes": {
+          "coreAcquired": true,
+          "coreBanked": true,
+          "coreLost": true
+        },
+        "maxAttempt": "standard"
+      },
+      "delivery": { "plan": "solo" },
+      "groups": [
+        {
+          "id": "raiders",
+          "name": "Raiders",
+          "slots": [0, 6],
+          "coreRule": "hunt",
+          "stage": {
+            "kind": "approach",
+            "posture": "steal",
+            "recovery": "patch",
+            "point": [19, 19]
+          },
+          "act": {
+            "kind": "return",
+            "posture": "steal",
+            "recovery": "fight-on"
+          }
+        },
+        {
+          "id": "screen",
+          "name": "Screen",
+          "slots": [1, 2, 3, 4, 5, 7],
+          "coreRule": "ignore",
+          "stage": {
+            "kind": "area",
+            "posture": "hold",
+            "recovery": "patch",
+            "rect": [13, 14, 18, 19]
+          },
+          "act": { "kind": "none", "posture": "hold", "recovery": "patch" }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,89 @@
+{
+  "schema": "arc-relay-tactics-v1",
+  "sheetId": "proof-pincer-v1",
+  "mapId": "arc-relay-tapline-02",
+  "mapWidth": 31,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" },
+    { "slot": 1, "class": "switchback", "build": "aggressive", "name": "Solder" },
+    { "slot": 2, "class": "longshot", "build": "balanced", "name": "Gantry" },
+    { "slot": 3, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 4, "class": "lantern", "build": "scout", "name": "Ratchet" },
+    { "slot": 5, "class": "palisade", "build": "durable", "name": "Ember" },
+    { "slot": 6, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 7, "class": "patchbay", "build": "balanced", "name": "Cinder" }
+  ],
+  "tactics": [
+    {
+      "id": "pincer-1",
+      "name": "Pincer",
+      "recipe": "pincer",
+      "start": { "mode": "always" },
+      "release": {
+        "mode": "ready-when",
+        "conds": {
+          "enemiesAt": {
+            "count": 2,
+            "zone": { "name": "mid", "rect": [13, 11, 17, 15] }
+          }
+        }
+      },
+      "finish": {
+        "outcomes": {
+          "kills": { "count": 3 },
+          "cleared": { "zone": { "name": "mid", "rect": [13, 11, 17, 15] } },
+          "coreAcquired": true
+        },
+        "maxAttempt": "standard"
+      },
+      "delivery": { "plan": "none" },
+      "groups": [
+        {
+          "id": "mid-guard",
+          "name": "Mid Guard",
+          "slots": [5, 2],
+          "coreRule": "ignore",
+          "stage": {
+            "kind": "posts",
+            "posture": "hold",
+            "recovery": "patch",
+            "posts": [
+              { "at": [14, 12], "facing": "e" },
+              { "at": [16, 14], "facing": "n" }
+            ]
+          },
+          "act": { "kind": "none", "posture": "hold", "recovery": "patch" },
+          "sigs": {
+            "stage": {
+              "longshot": { "line": [[16, 14], [16, 11]] }
+            }
+          }
+        },
+        {
+          "id": "flankers",
+          "name": "Flankers",
+          "slots": [0, 1, 3, 4, 6, 7],
+          "coreRule": "grab",
+          "stage": {
+            "kind": "area",
+            "posture": "wait",
+            "recovery": "patch",
+            "rect": [22, 3, 26, 7]
+          },
+          "act": {
+            "kind": "converge",
+            "posture": "aggressive",
+            "recovery": "fight-on",
+            "point": [15, 12]
+          },
+          "sigs": {
+            "act": {
+              "mason": { "points": [[15, 11]] }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

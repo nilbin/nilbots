@@ -1,0 +1,17 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "proof-deliver-core-v1-plan",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {
+    "g-t1-g3-hold": {
+      "rect": [
+        4,
+        10,
+        9,
+        16
+      ]
+    }
+  },
+  "routes": {},
+  "anchors": {}
+}

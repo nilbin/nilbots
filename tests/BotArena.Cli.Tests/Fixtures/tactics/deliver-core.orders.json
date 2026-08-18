@@ -1,0 +1,848 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "proof-deliver-core-v1",
+  "mapPlan": "map-plan.json",
+  "roles": [
+    {
+      "id": "vex",
+      "classes": [
+        "kestrel"
+      ],
+      "upgradePath": [
+        "vision",
+        "reach",
+        "damage",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g2-bank"
+            },
+            {
+              "shared": "t1-g2-screen-carrier"
+            },
+            {
+              "shared": "t1-g2-a-fight"
+            },
+            {
+              "id": "t1-g2-a-sig",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "vector-dash",
+                "target": "nearest-enemy"
+              }
+            },
+            {
+              "shared": "t1-g2-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "solder",
+      "classes": [
+        "switchback"
+      ],
+      "upgradePath": [
+        "damage",
+        "damage",
+        "reach",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g2-bank"
+            },
+            {
+              "shared": "t1-g2-screen-carrier"
+            },
+            {
+              "shared": "t1-g2-a-fight"
+            },
+            {
+              "id": "t1-g2-a-sig",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "exchange",
+                "target": "healthiest-ally"
+              }
+            },
+            {
+              "shared": "t1-g2-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "gantry",
+      "classes": [
+        "longshot"
+      ],
+      "upgradePath": [
+        "damage",
+        "vitality",
+        "vision",
+        "reach"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g3-bank"
+            },
+            {
+              "shared": "t1-g3-screen-carrier"
+            },
+            {
+              "shared": "t1-g3-a-patch"
+            },
+            {
+              "shared": "t1-g3-a-fight"
+            },
+            {
+              "id": "t1-g3-a-sig",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "rail-line",
+                "target": "enemy-carrier"
+              }
+            },
+            {
+              "shared": "t1-g3-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "flux",
+      "classes": [
+        "mason"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g3-bank"
+            },
+            {
+              "shared": "t1-g3-screen-carrier"
+            },
+            {
+              "shared": "t1-g3-a-patch"
+            },
+            {
+              "shared": "t1-g3-a-fight"
+            },
+            {
+              "id": "t1-g3-a-sig",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "hardlight-block",
+                "target": "nearest-enemy"
+              }
+            },
+            {
+              "shared": "t1-g3-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "ratchet",
+      "classes": [
+        "lantern"
+      ],
+      "upgradePath": [
+        "vision",
+        "reach",
+        "damage",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g3-bank"
+            },
+            {
+              "shared": "t1-g3-screen-carrier"
+            },
+            {
+              "shared": "t1-g3-a-patch"
+            },
+            {
+              "shared": "t1-g3-a-fight"
+            },
+            {
+              "id": "t1-g3-a-sig",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "survey-flare",
+                "target": "nearest-enemy"
+              }
+            },
+            {
+              "shared": "t1-g3-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "ember",
+      "classes": [
+        "palisade"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g3-bank"
+            },
+            {
+              "shared": "t1-g3-screen-carrier"
+            },
+            {
+              "shared": "t1-g3-a-patch"
+            },
+            {
+              "shared": "t1-g3-a-fight"
+            },
+            {
+              "id": "t1-g3-a-sig",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "enemy-nearby",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "prism-wall",
+                "target": "nearest-enemy"
+              }
+            },
+            {
+              "shared": "t1-g3-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "piston",
+      "classes": [
+        "relay"
+      ],
+      "upgradePath": [
+        "damage",
+        "vitality",
+        "vision",
+        "reach"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "id": "t1-g1-pass",
+              "when": {
+                "all": [
+                  "carrying-core",
+                  "signature-ready"
+                ]
+              },
+              "use": {
+                "skill": "arc-toss",
+                "target": "nearest-ally-toward-own-reactor"
+              }
+            },
+            {
+              "id": "t1-g1-bank",
+              "when": "carrying-core",
+              "urgency": "urgent",
+              "move": {
+                "to": "own-reactor"
+              }
+            },
+            {
+              "id": "t1-g1-screen-carrier",
+              "when": {
+                "all": [
+                  "c-t1-g1-has-carrier",
+                  "empty-handed"
+                ]
+              },
+              "move": {
+                "follow": {
+                  "selector": "nearest-friendly-core-carrier"
+                }
+              }
+            },
+            {
+              "id": "t1-g1-grab",
+              "when": {
+                "all": [
+                  "empty-handed",
+                  "core-in-reach"
+                ]
+              },
+              "capacity": "pair-per-core",
+              "move": {
+                "to": "nearest-visible-loose-core",
+                "withinWalkingSteps": 6
+              }
+            },
+            {
+              "id": "t1-g1-a-move",
+              "move": {
+                "to": "own-reactor"
+              }
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    },
+    {
+      "id": "cinder",
+      "classes": [
+        "patchbay"
+      ],
+      "upgradePath": [
+        "damage",
+        "vitality",
+        "vision",
+        "reach"
+      ],
+      "orders": [
+        {
+          "id": "t1",
+          "when": "we-hold-a-core",
+          "until": {
+            "any": [
+              "c-t1-banked",
+              "c-t1-core-lost"
+            ]
+          },
+          "cooldown": 40,
+          "orders": [
+            {
+              "shared": "t1-g2-bank"
+            },
+            {
+              "shared": "t1-g2-screen-carrier"
+            },
+            {
+              "shared": "t1-g2-a-fight"
+            },
+            {
+              "id": "t1-g2-a-sig",
+              "when": "signature-ready",
+              "use": {
+                "skill": "repair-beam",
+                "target": "weakest-ally"
+              }
+            },
+            {
+              "shared": "t1-g2-a-move"
+            }
+          ]
+        },
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "shared": "fight-visible-enemy"
+        },
+        {
+          "shared": "hold-ground"
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "pair-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "weakest",
+          "carrier",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    },
+    "hold-ground": {
+      "move": {
+        "to": {
+          "well": "own"
+        },
+        "posture": "line"
+      }
+    },
+    "t1-g2-bank": {
+      "when": "carrying-core",
+      "urgency": "urgent",
+      "move": {
+        "to": "own-reactor"
+      }
+    },
+    "t1-g2-screen-carrier": {
+      "when": {
+        "all": [
+          "c-t1-g2-has-carrier",
+          "empty-handed"
+        ]
+      },
+      "move": {
+        "follow": {
+          "selector": "nearest-friendly-core-carrier"
+        }
+      }
+    },
+    "t1-g2-a-fight": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "nearest"
+        ],
+        "style": "hold",
+        "chaseLimit": 2
+      }
+    },
+    "t1-g2-a-move": {
+      "move": {
+        "follow": {
+          "selector": "nearest-friendly-core-carrier"
+        }
+      }
+    },
+    "t1-g3-bank": {
+      "when": "carrying-core",
+      "urgency": "urgent",
+      "move": {
+        "to": "own-reactor"
+      }
+    },
+    "t1-g3-screen-carrier": {
+      "when": {
+        "all": [
+          "c-t1-g3-has-carrier",
+          "empty-handed"
+        ]
+      },
+      "move": {
+        "follow": {
+          "selector": "nearest-friendly-core-carrier"
+        }
+      }
+    },
+    "t1-g3-a-patch": {
+      "when": "hurt",
+      "until": "patched-up",
+      "timeout": 24,
+      "cooldown": 24,
+      "move": {
+        "to": "current-position",
+        "posture": "rear"
+      }
+    },
+    "t1-g3-a-fight": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-nearby"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "nearest",
+          "weakest"
+        ],
+        "style": "hold",
+        "chaseLimit": 1
+      }
+    },
+    "t1-g3-a-move": {
+      "move": {
+        "to": {
+          "zone": "g-t1-g3-hold"
+        },
+        "posture": "line"
+      }
+    }
+  },
+  "capacities": {
+    "pair-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "we-hold-a-core": {
+      "fact": "friendly-carriers",
+      "operator": "at-least",
+      "value": 1
+    },
+    "c-t1-banked": {
+      "fact": "friendly-core-banks",
+      "operator": "at-least",
+      "value": 1,
+      "since": "node-entry"
+    },
+    "c-t1-core-lost": {
+      "fact": "friendly-core-losses",
+      "operator": "at-least",
+      "value": 1,
+      "since": "node-entry"
+    },
+    "c-t1-g2-has-carrier": {
+      "fact": "friendly-carriers-in-roles",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "vex",
+        "solder",
+        "cinder"
+      ]
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
+    "c-t1-g3-has-carrier": {
+      "fact": "friendly-carriers-in-roles",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "gantry",
+        "flux",
+        "ratchet",
+        "ember"
+      ]
+    },
+    "patched-up": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 60
+    },
+    "c-t1-g1-has-carrier": {
+      "fact": "friendly-carriers-in-roles",
+      "operator": "at-least",
+      "value": 1,
+      "roles": [
+        "piston"
+      ]
+    },
+    "core-in-reach": {
+      "fact": "self-nearest-visible-loose-core-distance",
+      "operator": "at-most",
+      "value": 6
+    }
+  }
+}

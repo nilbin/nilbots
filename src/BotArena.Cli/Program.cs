@@ -180,12 +180,14 @@ static int Help(int exitCode = 1)
                                                   require WASM + canonical
                                                   replay verification
           nilbots experiment arc-relay-playbook
-                        --playbook <json> [--out <dir>]
+                        --playbook <json> | --tactics <json> [--out <dir>]
                                                   validate and compile a typed
-                                                  Orders v2 sheet; emit its
-                                                  canonical sheet, map plan,
-                                                  ATL2 direct package and an
-                                                  authored-order explain view
+                                                  Orders v2 sheet, or validate
+                                                  a whole-team Tactics document
+                                                  and materialize it first;
+                                                  emit the canonical sheet, map
+                                                  plan, ATL2 direct package and
+                                                  an authored-order explain view
           nilbots experiment frontline-labs qualify
                         --bot <generic-spec> [--runtime wasm|in-process]
                         [--suite frontline-qualification-1|frontline-qualification-2|frontline-qualification-3|frontline-qualification-4|frontline-qualification-5]

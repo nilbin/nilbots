@@ -14,14 +14,23 @@ public static class ArcRelayTacticalPlaybookCommand
     public static int Run(IReadOnlyList<string> args)
     {
         Dictionary<string, string> options = CliSupport.ParseOptions(args);
-        CliSupport.RejectUnknownOptions(options, "playbook", "out");
+        CliSupport.RejectUnknownOptions(options, "playbook", "tactics", "out");
         string playbook = options.GetValueOrDefault("playbook", "");
-        if (string.IsNullOrWhiteSpace(playbook))
+        string tactics = options.GetValueOrDefault("tactics", "");
+        if (string.IsNullOrWhiteSpace(playbook)
+            == string.IsNullOrWhiteSpace(tactics))
+        {
             throw new InvalidOperationException(
-                "arc-relay-playbook requires --playbook <json>.");
+                "arc-relay-playbook requires exactly one of --playbook <json> "
+                + "or --tactics <json>.");
+        }
 
         TacticalPlaybookCompilation compilation =
-            ArcRelayTacticalPlaybookCompiler.Compile(playbook);
+            string.IsNullOrWhiteSpace(tactics)
+                ? ArcRelayTacticalPlaybookCompiler.Compile(playbook)
+                : ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                    File.ReadAllBytes(Path.GetFullPath(tactics)),
+                    Path.GetFullPath(tactics));
         string output = Path.GetFullPath(options.GetValueOrDefault(
             "out", Path.Combine("out", "arc-relay-playbook")));
         Directory.CreateDirectory(output);
@@ -31,9 +40,19 @@ public static class ArcRelayTacticalPlaybookCommand
             Pretty(compilation.NormalizedPlaybook));
         File.WriteAllBytes(Path.Combine(output, "normalized-map-plan.json"),
             Pretty(compilation.NormalizedLayout));
+        if (compilation.MaterializedOrders is not null)
+        {
+            File.WriteAllBytes(Path.Combine(output, "materialized-orders.json"),
+                compilation.MaterializedOrders);
+            File.WriteAllBytes(
+                Path.Combine(output, "materialized-map-plan.json"),
+                compilation.MaterializedMapPlan!);
+        }
         File.WriteAllBytes(Path.Combine(output, "explain.json"),
             Explain(compilation));
 
+        if (compilation.TacticsSha256 is not null)
+            Console.WriteLine($"Tactics:  {compilation.TacticsSha256}");
         Console.WriteLine($"Playbook: {compilation.PlaybookSha256}");
         Console.WriteLine($"Layout:   {compilation.LayoutSha256}");
         Console.WriteLine($"Package:  {Sha256(compilation.LinkedData)} "
@@ -82,6 +101,16 @@ public static class ArcRelayTacticalPlaybookCommand
             ["commandProvenance"] =
                 "orders:<role>:<authored-order-path>:<action>:<reason>",
         };
+        if (compilation.TacticsSha256 is not null)
+        {
+            explain["materializedTactics"] = new JsonObject
+            {
+                ["schema"] = "arc-relay-tactics-v1",
+                ["sourceSha256"] = compilation.TacticsSha256,
+                ["note"] = "orders and map plan above were deterministically "
+                    + "materialized from the tactics document",
+            };
+        }
         return JsonSerializer.SerializeToUtf8Bytes(explain,
             new JsonSerializerOptions { WriteIndented = true });
     }

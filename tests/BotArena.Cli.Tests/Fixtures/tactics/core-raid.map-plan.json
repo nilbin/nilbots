@@ -1,0 +1,30 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "proof-core-raid-v1-plan",
+  "mapId": "arc-relay-tapline-02",
+  "zones": {
+    "g-t1-g1-set": {
+      "rect": [
+        17,
+        17,
+        21,
+        21
+      ]
+    },
+    "g-t1-g2-set": {
+      "rect": [
+        13,
+        14,
+        18,
+        19
+      ]
+    }
+  },
+  "routes": {},
+  "anchors": {
+    "g-t1-g1-mark": [
+      19,
+      19
+    ]
+  }
+}
