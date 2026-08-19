@@ -9153,3 +9153,14 @@ delivery emission into the phase wrappers (tactic-scoped leaves would
 outrank it in source order); no override keeps the tactic-scoped emission
 byte-identical. The drawn via rides the bank move's route so a carrier's
 way home is authorable per phase, drawn on the map in the phase's shade.
+
+## 342. Alternatives fold to their reading; branch on a row
+
+Each condition alternative collapses to its plain-English caseClause line
+(destination select still inline), tap to reopen; a case editor opening on
+several alternatives starts folded, and adding one folds the rest so the
+new alternative has the room. Every ticked Required/Triggered-by row
+(except one-way groupsSet) carries a ⑂ branch: the new alternative copies
+the case with that row moved to Unless — "these two, then the inversion of
+this third one" in one tap, destination ready to retarget. Editor-only;
+no format change.

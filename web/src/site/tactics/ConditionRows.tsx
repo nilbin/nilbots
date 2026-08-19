@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { CountStepper, TickRow, ZoneSelect } from './conditionControls';
+import { caseClause } from './summary';
 import { WELL_OPTIONS, ZONE_OPTIONS } from './places';
 import type {
   CondKind, TacticCase, TacticConds, WellChoice,
@@ -40,7 +41,7 @@ const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
 
 export function ConditionRows({
   conds, kinds, accent, watchSymbol = '⚡', watchAdjective,
-  watchingRow, onChange, onDrawWatch, onStopWatch,
+  watchingRow, onChange, onDrawWatch, onStopWatch, onBranch,
 }: {
   conds: TacticConds;
   kinds: ConditionRowKind[];
@@ -54,6 +55,9 @@ export function ConditionRows({
   onChange: (conds: TacticConds) => void;
   onDrawWatch?: (row: 'enemiesAt' | 'cleared') => void;
   onStopWatch?: () => void;
+  /** Fork this case on one ticked row: a new alternative keeps everything
+   * else and reads this row the other way (moved to Unless). */
+  onBranch?: (kind: ConditionRowKind) => void;
 }) {
   const set = (change: (next: TacticConds) => void) => {
     const next = structuredClone(conds);
@@ -61,8 +65,18 @@ export function ConditionRows({
     onChange(next);
   };
 
-  const row = (kind: ConditionRowKind, label: string, extra?: React.ReactNode, on?: boolean) => (
-    <TickRow key={kind} on={Boolean(on)} label={label} extra={extra}
+  const row = (kind: ConditionRowKind, label: string, extra?: React.ReactNode, on?: boolean) => {
+    const fork = on && onBranch && kind !== 'groupsSet' && (
+      <button type="button"
+        className="btn !min-h-6 !px-1 !text-[10px] opacity-70 hover:opacity-100"
+        title="Branch: add an alternative where this reads the other way"
+        onClick={(event) => { event.stopPropagation(); onBranch(kind); }}>
+        ⑂
+      </button>
+    );
+    return (
+    <TickRow key={kind} on={Boolean(on)} label={label}
+      extra={(extra || fork) ? <>{extra}{fork}</> : undefined}
       onToggle={() => {
         set((next) => {
           if (on) delete next[kind];
@@ -86,7 +100,8 @@ export function ConditionRows({
           else if (kind === 'observed') next.observed = true;
         });
       }} />
-  );
+    );
+  };
 
   const drawChrome = (which: 'enemiesAt' | 'cleared', key: string, text: string) => (
     <div key={key}
@@ -272,9 +287,71 @@ export function CaseListEditor<T extends TacticCase>({
     onChange(next);
   };
   const [unlessOpen, setUnlessOpen] = useState<Record<number, boolean>>({});
+  // Alternatives collapse to their plain-English line; a sheet opening on
+  // several starts collapsed, and adding one folds the others away.
+  const [collapsed, setCollapsed] = useState<Record<number, boolean>>(
+    () => cases.length > 1
+      ? Object.fromEntries(cases.map((_, index) => [index, true]))
+      : {});
+  const isOpen = (index: number) =>
+    watching?.caseIndex === index || !collapsed[index];
+  const reindexAfterRemove = (map: Record<number, boolean>, removed: number) => {
+    const next: Record<number, boolean> = {};
+    for (const [key, open] of Object.entries(map)) {
+      const at = Number(key);
+      if (at === removed) continue;
+      next[at > removed ? at - 1 : at] = open;
+    }
+    return next;
+  };
+  const appendCase = (next: T) => {
+    setCollapsed(Object.fromEntries(cases.map((_, index) => [index, true])));
+    onChange([...cases, next]);
+  };
+  const activeMainRows = (value: T) =>
+    Object.keys(value.required ?? {}).length
+    + Object.keys(value.triggers ?? {}).length;
+  // "These two, then the inversion of this third one": the new alternative
+  // keeps every other row and moves the forked one to Unless.
+  const branch = (index: number, side: 'required' | 'triggers', kind: ConditionRowKind) => {
+    const copy = structuredClone(cases[index]);
+    const rows = copy[side];
+    const value = rows?.[kind];
+    if (rows === undefined || value === undefined) return;
+    delete rows[kind];
+    if (Object.keys(rows).length === 0) delete copy[side];
+    copy.unless = { ...(copy.unless ?? {}), [kind]: value };
+    appendCase(copy);
+  };
   return (
     <div className="flex flex-col gap-2">
-      {cases.map((value, index) => (
+      {cases.map((value, index) => {
+        const canBranch = cases.length < maximum && activeMainRows(value) >= 2;
+        if (!isOpen(index)) {
+          const line = caseClause(value);
+          return (
+            <div key={index} className="rounded-sm border border-arena-edge p-2"
+              style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}>
+              {index > 0 && (
+                <div className="lab mb-1" style={accent ? { color: accent } : undefined}>
+                  Or alternatively
+                </div>
+              )}
+              <div className="flex items-center gap-2">
+                <button type="button"
+                  className="min-h-7 grow text-left t-micro text-arena-text/90 transition-colors hover:text-arena-text"
+                  title="Tap to edit this alternative"
+                  onClick={() => setCollapsed((state) => ({ ...state, [index]: false }))}>
+                  {line
+                    ? line.replace(/^\w/, (letter) => letter.toUpperCase())
+                    : <span className="text-arena-dim">No conditions yet — tap to edit.</span>}
+                </button>
+                {caseFooter?.(value, (apply) => update(index, apply), index)}
+              </div>
+            </div>
+          );
+        }
+        return (
         <div key={index} className="rounded-sm border border-arena-edge p-2"
           style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}>
           {index > 0 && (
@@ -299,6 +376,8 @@ export function CaseListEditor<T extends TacticCase>({
               onDrawWatch={onDrawWatch
                 ? (row) => onDrawWatch(index, 'required', row) : undefined}
               onStopWatch={onStopWatch}
+              onBranch={canBranch
+                ? (kind) => branch(index, 'required', kind) : undefined}
             />
           </>}
           <div className="lab mb-1 mt-2">Triggered by — any may fire</div>
@@ -317,6 +396,8 @@ export function CaseListEditor<T extends TacticCase>({
             onDrawWatch={onDrawWatch
               ? (row) => onDrawWatch(index, 'triggers', row) : undefined}
             onStopWatch={onStopWatch}
+            onBranch={canBranch
+              ? (kind) => branch(index, 'triggers', kind) : undefined}
           />
           {(unlessKinds?.length ?? 0) > 0 && (
             Object.keys(value.unless ?? {}).length > 0 || unlessOpen[index]
@@ -347,18 +428,28 @@ export function CaseListEditor<T extends TacticCase>({
           <div className="mt-2 flex items-center gap-2">
             {caseFooter?.(value, (apply) => update(index, apply), index)}
             <span className="grow" />
+            <button type="button" className="btn"
+              title="Fold this alternative to its one-line reading"
+              onClick={() => setCollapsed((state) => ({ ...state, [index]: true }))}>
+              ▴ Fold
+            </button>
             {cases.length > 1 && (
               <button type="button" className="btn"
-                onClick={() => onChange(cases.filter((_, i) => i !== index))}>
+                onClick={() => {
+                  onChange(cases.filter((_, i) => i !== index));
+                  setCollapsed((state) => reindexAfterRemove(state, index));
+                  setUnlessOpen((state) => reindexAfterRemove(state, index));
+                }}>
                 Remove alternative
               </button>
             )}
           </div>
         </div>
-      ))}
+        );
+      })}
       {cases.length < maximum && (
         <button type="button" className="btn self-start"
-          onClick={() => onChange([...cases, makeCase()])}>
+          onClick={() => appendCase(makeCase())}>
           ＋ Add alternative
         </button>
       )}
