@@ -13,12 +13,13 @@ import {
 import { describeGeometry } from './TacticsMapCanvas';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
-  CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES, RECOVERIES,
+  ABORT_ROWS, CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES,
+  RECOVERIES, START_ROWS, TRANSITION_ROWS,
   effectiveJob, freshJob, freshPhase, groupColor, jobOf, phaseShade,
   signatureMarkGeometry,
   tacticCanFinish, viaLegal,
-  type DrawKind, type JobKind, type Posture, type Recovery, type Tactic,
-  type TacticGroup, type TacticTransition,
+  type CondKind, type CustodyPlan, type DrawKind, type JobKind, type Posture,
+  type Recovery, type Tactic, type TacticGroup, type TacticTransition,
   type TacticsDocument,
 } from './tacticsDocument';
 import {
@@ -50,6 +51,8 @@ export interface StepProps {
   startPostViaTask: (groupId: string, phaseIndex: number, postIndex: number) => void;
   startSigTask: (groupId: string, phaseIndex: number, classId: string) => void;
   startWatchTask: (target: WatchTarget) => void;
+  /** Draw the carrier's way home for one phase's custody override. */
+  startCarryTask: (phaseIndex: number) => void;
   endTask: () => void;
   /** Append a prefilled Deliver Core Tactic to the sheet (carrier picked,
    * escorts and screen auto-assigned) without leaving this wizard. */
@@ -58,47 +61,14 @@ export interface StepProps {
   highlightPost?: { groupId: string; postIndex: number } | null;
 }
 
-// Any row may sit on either side of a case: Required is the AND, Triggered
-// by is the OR. The Required section starts minimal and folds the full row
-// set, so "A and B together fire it" is two Required rows and no trigger.
-const START_TRIGGERS = [
-  'enemiesAt', 'coreLoose', 'coreSoon', 'carrier',
-] as const;
-const START_MORE = ['enemiesDown', 'losses', 'lossesWithin'] as const;
-const START_REQUIRED_MORE = [
-  'enemiesAt', 'coreLoose', 'coreSoon', 'carrier', 'enemiesDown', 'losses',
-  'lossesWithin',
-] as const;
-const ABORT_TRIGGERS = ['lossesWithin', 'losses', 'coreLost'] as const;
-const ABORT_MORE = ['enemiesAt'] as const;
-const ABORT_REQUIRED_MORE = [
-  'lossesWithin', 'losses', 'coreLost', 'enemiesAt',
-] as const;
-const TRANSITION_REQUIRED = ['groupsSet', 'healed', 'held'] as const;
-const TRANSITION_REQUIRED_MORE = [
-  'enemiesAt', 'contact', 'coreSoon', 'coreLoose', 'kills', 'coreAcquired',
-  'coreBanked', 'coreLost', 'cleared', 'enemiesDown', 'losses', 'reached',
-  'observed',
-] as const;
-const TRANSITION_TRIGGERS = [
-  'enemiesAt', 'contact', 'coreSoon', 'coreLoose', 'kills', 'coreAcquired',
-  'coreBanked', 'coreLost',
-] as const;
-const TRANSITION_MORE = [
-  'cleared', 'enemiesDown', 'losses', 'reached', 'observed', 'held',
-] as const;
-// The inverted side: any context row may be blocked with "Unless…", except
-// the two readiness rows (groupsSet, healed), which read one way only.
-const START_UNLESS = [
-  'enemiesAt', 'coreLoose', 'coreSoon', 'carrier', 'enemiesDown', 'losses',
-  'lossesWithin',
-] as const;
-const ABORT_UNLESS = ['lossesWithin', 'losses', 'coreLost', 'enemiesAt'] as const;
-const TRANSITION_UNLESS = [
-  'held', 'contact', 'enemiesAt', 'coreLoose', 'coreSoon', 'enemiesDown',
-  'kills', 'losses', 'cleared', 'coreAcquired', 'coreBanked', 'coreLost',
-  'reached', 'observed',
-] as const;
+// One vocabulary per context (mirrors the server's row lists), grouped by
+// ConditionRows for overview. Required takes every row; Triggered by drops
+// the two everyone-rows (groupsSet, healed — "any one bot" reads wrong);
+// Unless drops only groupsSet (readiness reads one way).
+const noEveryoneRows = (rows: readonly CondKind[]) =>
+  rows.filter((kind) => kind !== 'groupsSet' && kind !== 'healed');
+const noReadinessRows = (rows: readonly CondKind[]) =>
+  rows.filter((kind) => kind !== 'groupsSet');
 
 export function StartStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
   const tactic = wizard.tactic;
@@ -134,11 +104,9 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         accent="#e6ddd4"
         watchSymbol="▶"
         watchAdjective="pale"
-        requiredKinds={[]}
-        moreRequiredKinds={[...START_REQUIRED_MORE]}
-        triggerKinds={[...START_TRIGGERS]}
-        moreTriggerKinds={[...START_MORE]}
-        unlessKinds={[...START_UNLESS]}
+        requiredKinds={[...START_ROWS]}
+        triggerKinds={noEveryoneRows(START_ROWS)}
+        unlessKinds={noReadinessRows(START_ROWS)}
         makeCase={() => ({ triggers: {} })}
         onChange={(cases) => change((next) => { next.start.cases = cases; })}
         watching={watchFor('start')}
@@ -181,11 +149,9 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
             accent="#f4526b"
             watchSymbol="⨯"
             watchAdjective="red"
-            requiredKinds={[]}
-            moreRequiredKinds={[...ABORT_REQUIRED_MORE]}
-            triggerKinds={[...ABORT_TRIGGERS]}
-            moreTriggerKinds={[...ABORT_MORE]}
-            unlessKinds={[...ABORT_UNLESS]}
+            requiredKinds={noEveryoneRows(ABORT_ROWS)}
+            triggerKinds={noEveryoneRows(ABORT_ROWS)}
+            unlessKinds={noReadinessRows(ABORT_ROWS)}
             makeCase={() => ({ triggers: {} })}
             onChange={(cases) => change((next) => { next.abort = { cases }; })}
             watching={watchFor('abort')}
@@ -455,7 +421,7 @@ export function PhasesStep(props: StepProps) {
           next.phases[index].name = event.target.value;
         })}
       />
-      <span className="val">phase {index + 1} of {tactic.phases.length}</span>
+      <span className="val">phase {index + 1} of {tactic.phases.length}</span>{/* custody below */}
       {tactic.phases.length > 1 && (
         <button type="button" className="btn" title="Remove this phase"
           onClick={() => {
@@ -483,6 +449,62 @@ export function PhasesStep(props: StepProps) {
       <JobSection key={group.id} {...props} group={group} phaseIndex={index} />
     ))}
     <div className="rounded-sm border border-arena-edge p-2"
+      style={{ borderLeft: '3px solid #b49cff' }}>
+      <div className="mb-1 flex items-center gap-2">
+        <b className="t-body">Core custody</b>
+        <span className="t-micro text-arena-dim">what a carrier does with a Core during this phase</span>
+      </div>
+      <SegChips
+        options={[
+          { id: 'same', label: 'Same as the Tactic' },
+          { id: 'solo', label: 'Banks alone' },
+          { id: 'escort', label: 'Under escort' },
+          { id: 'keep', label: 'Keep carrying' },
+        ]}
+        value={phase.custody?.plan ?? 'same'}
+        accent="#b49cff"
+        onChange={(plan) => change((next) => {
+          const target = next.phases[index];
+          if (plan === 'same') delete target.custody;
+          else if (plan === 'keep') target.custody = { plan };
+          else {
+            target.custody = {
+              plan: plan as CustodyPlan,
+              ...(target.custody?.via ? { via: target.custody.via } : {}),
+            };
+          }
+        })} />
+      <p className="t-micro mb-1 text-arena-dim">
+        {{
+          same: {
+            none: 'The Tactic has no delivery plan — carriers keep working and banking waits.',
+            solo: 'The Tactic’s plan applies: a carrier breaks off and banks alone.',
+            escort: 'The Tactic’s plan applies: the carrier banks under escort.',
+          }[tactic.delivery.plan] ?? '',
+          solo: 'A carrier breaks off and runs the Core home alone.',
+          escort: 'The carrier’s group screens the run home.',
+          keep: 'Hold the Core in hand and stay on the job — bank it in a later phase.',
+        }[phase.custody?.plan ?? 'same']}
+      </p>
+      {phase.custody && phase.custody.plan !== 'keep' && (
+        <div className="flex items-center gap-2">
+          <button type="button" className="btn btn-secondary"
+            onClick={() => {
+              change((next) => {
+                const target = next.phases[index];
+                if (target.custody) delete target.custody.via;
+              });
+              props.startCarryTask(index);
+            }}>
+            {phase.custody.via?.length ? 'Redraw the carrier’s way home' : 'Draw the carrier’s way home'}
+          </button>
+          {phase.custody.via?.length
+            ? <span className="t-micro text-arena-dim">{phase.custody.via.length} waypoints to the reactor</span>
+            : <span className="t-micro text-arena-dim">optional — without one the carrier picks its own way</span>}
+        </div>
+      )}
+    </div>
+    <div className="rounded-sm border border-arena-edge p-2"
       style={{ borderLeft: '3px solid #c8763c' }}>
       <div className="mb-1 flex items-center gap-2">
         <b className="t-body">{last ? 'Ends when…' : 'Continue when…'}</b>
@@ -497,11 +519,9 @@ export function PhasesStep(props: StepProps) {
         maximum={3}
         accent="#c8763c"
         watchAdjective="orange"
-        requiredKinds={[...TRANSITION_REQUIRED]}
-        moreRequiredKinds={[...TRANSITION_REQUIRED_MORE]}
-        triggerKinds={[...TRANSITION_TRIGGERS]}
-        moreTriggerKinds={[...TRANSITION_MORE]}
-        unlessKinds={[...TRANSITION_UNLESS]}
+        requiredKinds={[...TRANSITION_ROWS]}
+        triggerKinds={noEveryoneRows(TRANSITION_ROWS)}
+        unlessKinds={noReadinessRows(TRANSITION_ROWS)}
         makeCase={() => ({ triggers: {}, to: last ? 'finish' : 'next' })}
         onChange={(rules) => change((next) => {
           if (rules.length === 0) delete next.phases[index].continue;

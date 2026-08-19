@@ -1,6 +1,7 @@
 import { describePlace, WELL_OPTIONS } from './places';
 import type {
-  Tactic, TacticCase, TacticConds, TacticGroup, TacticJob, TacticTransition,
+  Tactic, TacticCase, TacticConds, TacticGroup, TacticJob, TacticPhaseDef,
+  TacticTransition,
 } from './tacticsDocument';
 import { effectiveJob, jobOf } from './tacticsDocument';
 
@@ -294,6 +295,8 @@ export function summarize(
     sentences.push(jobs.length === 1
       ? `${jobs[0]}.`
       : `${jobs.slice(0, -1).join(', ')} while ${jobs[jobs.length - 1]}.`);
+    const custody = custodyClause(tactic.phases[0]);
+    if (custody) sentences.push(custody);
   }
 
   // Each later phase: its entry condition, its name, and what changes.
@@ -311,6 +314,8 @@ export function summarize(
       ? movers.join('; ')
       : 'everyone carries on';
     sentences.push(`${when ? `Once ${when} — ` : 'Then '}${phase.name}: ${change}.`);
+    const custody = custodyClause(phase);
+    if (custody) sentences.push(custody);
   });
 
   // How it ends: finish transitions, duration, abort.
@@ -333,6 +338,16 @@ export function summarize(
   if (abort) sentences.push(`${abort}.`);
   const delivery = deliveryClause(tactic, botName);
   return `${opening ? `${opening}. ` : ''}${sentences.join(' ')}${delivery ? ` ${delivery}.` : ''}`;
+}
+
+/** A phase's Core custody override, as its own short sentence. */
+function custodyClause(phase: TacticPhaseDef | undefined): string | null {
+  const plan = phase?.custody?.plan;
+  if (!plan) return null;
+  const way = phase?.custody?.via?.length ? ' by the drawn way home' : '';
+  if (plan === 'keep') return 'A carrier keeps the Core in hand here.';
+  if (plan === 'escort') return `A carrier banks under escort${way}.`;
+  return `A carrier breaks off and banks alone${way}.`;
 }
 
 /** Legacy alias kept for callers that read one phase's rule aloud. */

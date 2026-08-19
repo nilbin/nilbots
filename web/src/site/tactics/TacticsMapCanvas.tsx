@@ -215,7 +215,7 @@ export function TacticsMapCanvas({
     if (task && tile && task.kind !== 'watch' && task.draw !== 'rect') {
       // Job routes are walked, so waypoints follow the route rule; posts,
       // points and signature marks become anchors.
-      const placement = task.kind === 'job' && task.draw === 'route'
+      const placement = (task.kind === 'job' || task.kind === 'carry') && task.draw === 'route'
         ? 'route' as const
         : 'anchor' as const;
       const issue = tilePlacementIssue(catalog, tile, placement);
@@ -387,6 +387,28 @@ export function TacticsMapCanvas({
                       catalog={catalog} dim={dim} editable={editable(tactic)}
                       startDrag={startDrag} pathfinder={path} />
                   ))}
+                  {phase.custody?.via && phase.custody.via.length > 1
+                    && phase.custody.plan !== 'keep' && (() => {
+                      const home: Point = [2, 5];
+                      const run = path.connect([...phase.custody.via, home]);
+                      const shade = phaseShade(
+                        '#b49cff', phaseIndex, tactic.phases.length);
+                      const mid = run[Math.floor(run.length / 2)];
+                      return <g>
+                        <polyline
+                          points={run.map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
+                          fill="none" stroke={shade} strokeWidth={.11}
+                          strokeDasharray=".14 .22" opacity=".9"
+                          strokeLinejoin="round" strokeLinecap="round" />
+                        {phase.custody.via.map(([wx, wy], wi) =>
+                          <circle key={wi} cx={wx + .5} cy={wy + .5} r={.12} fill={shade} />)}
+                        <circle cx={home[0] + .5} cy={home[1] + .5} r={.62} fill="none"
+                          stroke={shade} strokeWidth={.08} strokeDasharray=".2 .14" />
+                        {!dim && <ChipLabel x={mid[0] + .5} y={mid[1] + 1.9}
+                          text={`⌂ CARRY HOME${phase.custody.plan === 'escort' ? ' · ESCORTED' : ''}`}
+                          color={shade} />}
+                      </g>;
+                    })()}
                 </g>
               ))}
             </g>
@@ -793,7 +815,8 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
   const taskColor = task.kind === 'watch'
     ? (task.target.scope === 'start' ? '#e6ddd4'
       : task.target.row === 'cleared' ? '#38d9c5' : '#c8763c')
-    : (tactic ? groupColor(tactic, task.groupId) : '#e6ddd4');
+    : task.kind === 'carry' ? '#b49cff'
+      : (tactic ? groupColor(tactic, task.groupId) : '#e6ddd4');
   let hint = task.kind === 'job'
     ? task.hint ?? (task.phaseIndex === 0 ? hints?.get(task.groupId) ?? null : null)
     : null;

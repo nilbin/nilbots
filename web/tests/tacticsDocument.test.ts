@@ -317,6 +317,45 @@ test('an unless side validates, refuses readiness, and reads back inverted', () 
   assert.ok(messages.some((message) => /reads one way/.test(message)));
 });
 
+test('phase custody validates with a drawn way home and reads back', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases[0].custody = { plan: 'keep' };
+  tactic.phases[1].custody = { plan: 'escort', via: [[15, 12], [8, 8], [3, 5]] };
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /A carrier keeps the Core in hand here\./);
+  assert.match(sentence, /A carrier banks under escort by the drawn way home\./);
+  // keep holds the Core — a way home makes no sense there.
+  tactic.phases[0].custody = { plan: 'keep', via: [[3, 3], [4, 4]] };
+  const messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) => /no run home to draw/.test(message)));
+});
+
+test('current-state rows read in every context and healed inverts under unless', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.start = {
+    mode: 'when',
+    cases: [{ required: { contact: true, healed: { percent: 50 } } }],
+  };
+  tactic.abort = { cases: [{ triggers: { contact: true } }] };
+  tactic.phases[0].continue = [{
+    required: { groupsSet: true },
+    unless: { healed: { percent: 80 } },
+    to: 'next',
+  }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /unless everyone is healed to 80%/);
+});
+
 test('travel is refused where the job has no arrival to hand over at', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

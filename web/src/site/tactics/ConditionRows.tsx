@@ -28,13 +28,22 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
   observed: 'The ground has been watched long enough',
 };
 
+/** Presentation grouping: every side shows its rows bucketed under these
+ * headings, in this order, so a player scans for "the Core rows" instead
+ * of a flat list (the old "More conditions" fold is gone). */
+const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
+  { label: 'Our team', kinds: ['groupsSet', 'healed', 'losses', 'lossesWithin'] },
+  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'kills'] },
+  { label: 'Cores', kinds: ['carrier', 'coreLoose', 'coreSoon', 'coreAcquired', 'coreBanked', 'coreLost'] },
+  { label: 'Time & ground', kinds: ['held', 'reached', 'observed'] },
+];
+
 export function ConditionRows({
-  conds, kinds, moreKinds, accent, watchSymbol = '⚡', watchAdjective,
+  conds, kinds, accent, watchSymbol = '⚡', watchAdjective,
   watchingRow, onChange, onDrawWatch, onStopWatch,
 }: {
   conds: TacticConds;
   kinds: ConditionRowKind[];
-  moreKinds?: ConditionRowKind[];
   accent?: string;
   /** The watch chrome's glyph: ▶ for a start watch, ⚡ for a phase watch. */
   watchSymbol?: string;
@@ -51,9 +60,6 @@ export function ConditionRows({
     change(next);
     onChange(next);
   };
-
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreActive = (moreKinds ?? []).some((kind) => Boolean(conds[kind]));
 
   const row = (kind: ConditionRowKind, label: string, extra?: React.ReactNode, on?: boolean) => (
     <TickRow key={kind} on={Boolean(on)} label={label} extra={extra}
@@ -215,21 +221,21 @@ export function ConditionRows({
       rows.push(row(kind, flagLabel, null, Boolean(conds[kind])));
     }
   };
-  for (const kind of kinds) renderKind(kind);
-  if (moreKinds && moreKinds.length > 0) {
-    if (moreOpen || moreActive) {
-      for (const kind of moreKinds) renderKind(kind);
+  const groups = ROW_GROUPS
+    .map((group) => group.kinds.filter((kind) => kinds.includes(kind)))
+    .filter((sel) => sel.length > 0);
+  const showHeadings = groups.length > 1;
+  ROW_GROUPS.forEach((group) => {
+    const sel = group.kinds.filter((kind) => kinds.includes(kind));
+    if (sel.length === 0) return;
+    if (showHeadings) {
+      rows.push(<div key={`h-${group.label}`}
+        className="mt-1 text-[9px] font-semibold uppercase tracking-[.12em] text-arena-dim/70 first:mt-0">
+        {group.label}
+      </div>);
     }
-    if (!moreActive) {
-      rows.push(
-        <button key="more" type="button"
-          className="min-h-7 self-start px-1 t-micro text-arena-dim underline decoration-arena-edge2 underline-offset-2 transition-colors hover:text-arena-text"
-          onClick={() => setMoreOpen((open) => !open)}>
-          {moreOpen ? 'Fewer conditions' : `More conditions (${moreKinds.length})…`}
-        </button>,
-      );
-    }
-  }
+    for (const kind of sel) renderKind(kind);
+  });
   return <div className="flex flex-col gap-1.5">{rows}</div>;
 }
 
@@ -240,8 +246,7 @@ export function ConditionRows({
  */
 export function CaseListEditor<T extends TacticCase>({
   cases, maximum = 3, accent, watchSymbol, watchAdjective,
-  requiredKinds, moreRequiredKinds, triggerKinds, moreTriggerKinds,
-  unlessKinds, makeCase, onChange,
+  requiredKinds, triggerKinds, unlessKinds, makeCase, onChange,
   caseFooter, watching, onDrawWatch, onStopWatch,
 }: {
   cases: T[];
@@ -250,11 +255,7 @@ export function CaseListEditor<T extends TacticCase>({
   watchSymbol?: string;
   watchAdjective?: string;
   requiredKinds: ConditionRowKind[];
-  /** Folded extras for Required — any row may be ANDed there, so “A and B
-   * both fire it” is Required with two rows and no Triggered by. */
-  moreRequiredKinds?: ConditionRowKind[];
   triggerKinds: ConditionRowKind[];
-  moreTriggerKinds?: ConditionRowKind[];
   /** The inverted side: rows offered under "Unless" — NONE may hold. */
   unlessKinds?: ConditionRowKind[];
   makeCase: () => T;
@@ -281,12 +282,11 @@ export function CaseListEditor<T extends TacticCase>({
               Or alternatively
             </div>
           )}
-          {(requiredKinds.length > 0 || (moreRequiredKinds?.length ?? 0) > 0) && <>
+          {requiredKinds.length > 0 && <>
             <div className="lab mb-1">Required — all must hold</div>
             <ConditionRows
               conds={value.required ?? {}}
               kinds={requiredKinds}
-              moreKinds={moreRequiredKinds}
               accent={accent}
               watchSymbol={watchSymbol}
               watchAdjective={watchAdjective}
@@ -305,7 +305,6 @@ export function CaseListEditor<T extends TacticCase>({
           <ConditionRows
             conds={value.triggers ?? {}}
             kinds={triggerKinds}
-            moreKinds={moreTriggerKinds}
             accent={accent}
             watchSymbol={watchSymbol}
             watchAdjective={watchAdjective}

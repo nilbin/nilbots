@@ -68,9 +68,18 @@ Alternative cases OR. The UI hides the boolean words: "Required",
 
 `unless` is the inverted side. Every ordinary row is one threshold
 condition, so its negation compiles as an exact operator flip (at-least N →
-at-most N−1 and so on) named `no-…` — no runtime grammar change. The two
-readiness rows (`groupsSet`, `healed`) expand to per-bot entries and read
-one way only; unless refuses them.
+at-most N−1 and so on) named `no-…` — no runtime grammar change. `healed`
+inverts too — NOT(everyone ≥ N) = any bot below N, one nested any of the
+per-role flips. Only `groupsSet` reads one way (its per-bot pairs would
+need two nesting levels inverted); unless refuses it.
+
+Row availability is uniform: every current-state row reads in every
+context and on every side (healed stays out of triggers — "any one bot is
+topped up" reads wrong). Only the phase-anchored rows (groupsSet, held,
+kills, coreAcquired/Banked/Lost, reached, observed) need a running phase
+and stay transition-scoped, coreLost also aborting. The editor buckets
+rows under four headings — Our team, Enemies, Cores, Time & ground — with
+no fold.
 
 **Condition rows** (present member = active row), by context:
 
@@ -78,17 +87,17 @@ one way only; unless refuses them.
 |---|---|---|---|
 | `groupsSet` | `true` | continue (required only) | every Group with ground this phase has EVERY member inside its footprint or dead — exact, per bot, no quorum |
 | `held` | `{ "ticks": 1..600 }` | continue | this phase has been active N ticks |
-| `healed` | `{ "percent": 1..100 }` | continue (required only) | every LIVING bot is at ≥N% health — exact, per bot, the dead excuse themselves |
-| `enemiesAt` | `{ "count": 1..8, "zone": {…} }` | start, continue, abort | ≥N enemies known in the box (team memory, 40-tick freshness) |
-| `contact` | `true` | continue | any enemy visible to the team |
-| `coreLoose` | `{ "well": … }` | start, continue | that Well's Core is up for grabs |
-| `coreSoon` | `{ "well": …, "ticks": 1..120 }` | start, continue | that Well's next Core births within N ticks |
-| `enemiesDown` | `{ "count": 1..8 }` | start, continue | ≥N enemy bots down right now |
-| `carrier` | `true` | start | a friendly carrier exists |
-| `losses` | `{ "count": 1..8 }` | start, continue, abort | we are down N bots |
+| `healed` | `{ "percent": 1..100 }` | all (required/unless only) | every LIVING bot is at ≥N% health — exact, per bot, the dead excuse themselves |
+| `enemiesAt` | `{ "count": 1..8, "zone": {…} }` | all | ≥N enemies known in the box (team memory, 40-tick freshness) |
+| `contact` | `true` | all | any enemy visible to the team |
+| `coreLoose` | `{ "well": … }` | all | that Well's Core is up for grabs |
+| `coreSoon` | `{ "well": …, "ticks": 1..120 }` | all | that Well's next Core births within N ticks |
+| `enemiesDown` | `{ "count": 1..8 }` | all | ≥N enemy bots down right now |
+| `carrier` | `true` | all | a friendly carrier exists |
+| `losses` | `{ "count": 1..8 }` | all | we are down N bots |
 | `lossesWithin` | `{ "count": 1..8, "ticks": 1..600 }` | start, abort | we lost N bots within the last T ticks (the remembered-casualty row — a Regroup's start and an abort may share it) |
 | `kills` | `{ "count": 1..8 }` | continue | N confirmed destructions since THIS phase began |
-| `cleared` | `{ "zone": {…} }` | continue | no visible enemies in the box |
+| `cleared` | `{ "zone": {…} }` | all | no visible enemies in the box |
 | `coreAcquired` / `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence; banked/lost anchor at phase entry |
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
 | `observed` | `true` | continue | the watchline stayed fully observed for 120 ticks |
@@ -108,6 +117,11 @@ What a group DOES lives in each phase's job for it.
 {
   "id": "set-the-trap", "name": "Set the trap",
   "jobs": { "<groupId>": Job },        // exactly one per group
+  "custody"?: {                         // this phase's Core custody override
+    "plan": "solo|escort|keep",         //   absent = the tactic's delivery
+    "via"?: [[x,y]… 2..16]              //   the drawn carrier route home
+  },                                    //   ("keep" holds the Core in hand
+                                        //    and refuses a via)
   "continue": [                         // ≤3 rules; ABSENT only on the final
     { …Case…, "to": "next" | "<laterPhaseId>" | "finish" }
   ]                                     //   phase (= hold there forever)
@@ -192,6 +206,15 @@ only when a travel posture is authored — without one, converge-aggressive
 still brawls its way in by authored choice. `heal-up` materializes an urgent
 recovery leaf that breaks for the nearest heal zone at any damage (≤99%) and
 holds there until completely full (≥100%).
+
+Custody: with no phase override, delivery emits tactic-scoped exactly as
+before. Any phase-level `custody` moves the WHOLE delivery emission into
+the phase wrappers (a tactic-scoped leaf would outrank and shadow every
+override): each phase resolves `custody.plan ?? delivery.plan` — solo
+banks alone, escort adds the screen, `keep` emits nothing (the carrier
+stays on the job; bank in a later phase), and a resolved `none` keeps the
+final-hold escape only. A custody `via` becomes the bank move's route
+(`g-t{n}-p{k}-carry`) guiding the carrier home.
 
 A tactic whose final phase holds forever and whose delivery is `none` still
 gets the urgent bank-escape leaf, exactly as v1's persistent form did.

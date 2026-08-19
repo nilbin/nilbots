@@ -53,11 +53,15 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static readonly HashSet<string> TacticDurations =
         new(StringComparer.Ordinal) { "none", "brief", "standard", "long" };
 
-    /// <summary>Which condition rows each case context accepts.</summary>
+    /// <summary>Which condition rows each case context accepts: every
+    /// current-state fact reads anywhere; only the phase-anchored rows
+    /// (groupsSet, held, kills, coreAcquired/Banked/Lost, reached,
+    /// observed) need a running phase and stay transition-scoped
+    /// (coreLost also aborts).</summary>
     private static readonly string[] TacticStartRows =
     [
-        "enemiesAt", "coreLoose", "coreSoon", "enemiesDown", "carrier",
-        "losses", "lossesWithin",
+        "enemiesAt", "contact", "cleared", "coreLoose", "coreSoon",
+        "enemiesDown", "carrier", "losses", "lossesWithin", "healed",
     ];
 
     private static readonly string[] TacticTransitionRows =
@@ -69,7 +73,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
     private static readonly string[] TacticAbortRows =
     [
-        "losses", "lossesWithin", "coreLost", "enemiesAt",
+        "losses", "lossesWithin", "coreLost", "enemiesAt", "contact",
+        "cleared", "carrier", "enemiesDown", "coreLoose", "coreSoon",
+        "healed",
     ];
 
     /// <summary>Spatial signature mark budgets for classes whose descriptor
@@ -519,7 +525,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             string at = $"{path}.phases[{index}]";
             JsonElement phase = phaseValues[index];
-            Object(phase, at, ["id", "name", "jobs"], ["continue"]);
+            Object(phase, at, ["id", "name", "jobs"], ["continue", "custody"]);
             string phaseId = Identifier(phase, "id", at);
             if (phaseId.Length > 24)
                 throw Error($"{at}.id", "phase id exceeds 24 characters.");
@@ -529,12 +535,40 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             if (phaseName.Length > 40)
                 throw Error($"{at}.name", "phase name exceeds 40 characters.");
             phaseIds.Add(phaseId);
+            ArcRelayTacticCustody? custody = null;
+            if (phase.TryGetProperty("custody", out JsonElement custodyValue))
+            {
+                string custodyAt = $"{at}.custody";
+                Object(custodyValue, custodyAt, ["plan"], ["via"]);
+                string custodyPlan = OneOf(custodyValue, "plan", custodyAt,
+                    "solo", "escort", "keep");
+                List<int[]>? carryVia = null;
+                if (custodyValue.TryGetProperty(
+                    "via", out JsonElement carryViaValue))
+                {
+                    if (custodyPlan == "keep")
+                    {
+                        throw Error($"{custodyAt}.via",
+                            "keep holds the Core — there is no run home "
+                            + "to draw.");
+                    }
+                    carryVia = [];
+                    foreach (JsonElement pointValue in BoundedArray(
+                        carryViaValue, $"{custodyAt}.via", 2, 16))
+                    {
+                        carryVia.Add(BoundedPoint(
+                            pointValue, $"{custodyAt}.via", width, height));
+                    }
+                }
+                custody = new ArcRelayTacticCustody(custodyPlan, carryVia);
+            }
             phases.Add(new ArcRelayTacticPhaseDef(
                 phaseId, phaseName,
                 ValidateJobs(
                     phase.GetProperty("jobs"), $"{at}.jobs", squad, groups,
                     width, height),
-                []));
+                [],
+                custody));
         }
         if (!phases[0].Jobs.Values.Any(job => job.HasGeometry))
         {
@@ -991,12 +1025,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error($"{path}.unless",
                     "groupsSet reads one way; readiness belongs in required.");
             }
-            if (unless.Healed is not null)
-            {
-                throw Error($"{path}.unless",
-                    "healed reads one way; the health gate belongs in "
-                    + "required.");
-            }
         }
         if ((required?.ActiveCount ?? 0) + (triggers?.ActiveCount ?? 0) == 0)
             throw Error(path, "a case needs at least one active condition row.");
@@ -1222,7 +1250,16 @@ internal sealed record ArcRelayTacticPhaseDef(
     string Id,
     string Name,
     IReadOnlyDictionary<string, ArcRelayTacticJob> Jobs,
-    IReadOnlyList<ArcRelayTacticTransition> Continue);
+    IReadOnlyList<ArcRelayTacticTransition> Continue,
+    ArcRelayTacticCustody? Custody = null);
+
+/// <summary>A phase's Core custody override: solo (the carrier runs it
+/// home alone), escort (its group screens the run), or keep (hold the
+/// Core and stay on the job — bank in a later phase). Absent = the
+/// tactic's delivery plan. Via is the drawn carrier route home.</summary>
+internal sealed record ArcRelayTacticCustody(
+    string Plan,
+    IReadOnlyList<int[]>? Via);
 
 /// <summary>To is "next", "finish", or a later phase's id.</summary>
 internal sealed record ArcRelayTacticTransition(

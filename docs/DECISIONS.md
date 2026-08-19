@@ -9133,3 +9133,23 @@ regions draw as nothing beyond their SpawnProtected dashed pads and
 re-present as "home pads — respawn ground". Named forward jumps needed no
 work: the per-case "then" picker has offered next / skip-to-named-later /
 finish since #338.
+
+## 341. Uniform condition vocabulary, grouped rows, phase custody
+
+Condition rows read uniformly: every current-state fact is legal in every
+context (start/abort/continue) and side, healed included — it now inverts
+under unless as one nested any of per-role flips, so only groupsSet stays
+one-way (its dead-excused pairs would need two inverted nesting levels).
+Phase-anchored rows stay transition-scoped. The editor's "More conditions"
+fold is gone; rows bucket under four headings (Our team / Enemies / Cores
+/ Time & ground). "custody" moved off the banned-vocabulary list — the
+owner adopted "Core custody" as the player-facing concept.
+
+Phases gain optional Core custody: `{plan: solo|escort|keep, via?}`,
+default the tactic's delivery plan. "keep" holds the Core in hand for a
+later phase's bank — the piece that lets a steal phase carry through a
+fight phase before an escorted extract. Any override moves the whole
+delivery emission into the phase wrappers (tactic-scoped leaves would
+outrank it in source order); no override keeps the tactic-scoped emission
+byte-identical. The drawn via rides the bank move's route so a carrier's
+way home is authorable per phase, drawn on the map in the phase's shade.

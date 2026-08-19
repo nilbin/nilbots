@@ -383,18 +383,26 @@ internal static class ArcRelayTacticsMaterializer
                 Add(new ConditionShape("elapsed-ticks", "at-least", held),
                     $"c-held-{held}");
             }
-            if (rows.Healed is int healed && !invert)
+            if (rows.Healed is int healed)
             {
                 // Exact and per bot, like readiness: every LIVING bot is at
                 // the threshold — a dead role reads 100 and excuses itself.
+                // Inverted (unless): NOT(all bots ≥ N) = any bot below N,
+                // one nested any of the per-role flips.
+                var perRole = new List<string>();
                 foreach (ArcRelayTacticsSquadBot bot in _document.Squad)
                 {
-                    entries.Add(Condition(
-                        new ConditionShape(
-                            "role-lowest-health-percent", "at-least", healed,
-                            Role: RoleId(bot.Slot)),
-                        $"hp-{RoleId(bot.Slot)}-{healed}"));
+                    var shape = new ConditionShape(
+                        "role-lowest-health-percent", "at-least", healed,
+                        Role: RoleId(bot.Slot));
+                    perRole.Add(Condition(
+                        invert ? Invert(shape) : shape,
+                        $"{(invert ? "no-" : "")}hp-{RoleId(bot.Slot)}-{healed}"));
                 }
+                if (invert)
+                    entries.Add(new Expr("any", perRole));
+                else
+                    entries.AddRange(perRole);
             }
             if (rows.EnemiesAt is ArcRelayTacticEnemiesAtRow enemies)
             {
@@ -647,7 +655,14 @@ internal static class ArcRelayTacticsMaterializer
             var children = new List<Node>();
             var invariantScope = new LeafScope(
                 prefix, groupTag, group.Slots.Count, PhaseTag: null);
-            AddDelivery(children, invariantScope, tactic, group, bot);
+            // Any phase-level custody moves the WHOLE delivery emission
+            // into the phase wrappers (a tactic-scoped leaf would outrank
+            // and shadow every override); without one, the tactic-scoped
+            // emission is byte-identical to before custody existed.
+            bool phaseCustody = tactic.Phases.Any(
+                candidate => candidate.Custody is not null);
+            if (!phaseCustody)
+                AddDelivery(children, invariantScope, tactic, group, bot);
             AddCoreRule(children, invariantScope, group.CoreRule);
             for (int phaseIndex = 0; phaseIndex < tactic.Phases.Count; phaseIndex++)
             {
@@ -658,6 +673,12 @@ internal static class ArcRelayTacticsMaterializer
                 var scope = new LeafScope(
                     prefix, groupTag, group.Slots.Count, $"p{phaseIndex + 1}");
                 var leaves = new List<Node>();
+                if (phaseCustody)
+                {
+                    AddPhaseCustody(
+                        leaves, scope, tactic, phase, group, bot,
+                        prefix, phaseIndex);
+                }
                 AddRecovery(leaves, scope, raw.Recovery);
                 // travel == posture is "same as here": nothing to
                 // distinguish. A kind with no arrival (patrol/return, or a
@@ -791,6 +812,46 @@ internal static class ArcRelayTacticsMaterializer
             }
         }
 
+        /// <summary>One phase's Core custody: the phase's own plan, or the
+        /// tactic's delivery plan where none is authored. "keep" is the
+        /// deliberate hold — the carrier stays on the job and a later phase
+        /// banks. The drawn via guides the carrier's run home.</summary>
+        private void AddPhaseCustody(
+            List<Node> leaves,
+            LeafScope scope,
+            ArcRelayTactic tactic,
+            ArcRelayTacticPhaseDef phase,
+            ArcRelayTacticGroup group,
+            ArcRelayTacticsSquadBot bot,
+            string prefix,
+            int phaseIndex)
+        {
+            string plan = phase.Custody?.Plan ?? tactic.Delivery.Plan;
+            if (plan == "keep")
+                return;
+            if (plan == "none")
+            {
+                // The accidental-carrier escape, exactly as the tactic-scoped
+                // form: only a final phase that holds forever needs it.
+                if (phaseIndex == tactic.Phases.Count - 1
+                    && tactic.Phases[^1].Continue.Count == 0)
+                {
+                    leaves.Add(GroupLeaf(scope, "bank", () => new Node
+                    {
+                        When = Expr.One(CarryingCore()),
+                        Urgency = "urgent",
+                        Action = MoveToDynamic("own-reactor"),
+                    }));
+                }
+                return;
+            }
+            string? via = phase.Custody?.Via is null
+                ? null
+                : Route(phase.Custody.Via,
+                    $"g-{prefix}-p{phaseIndex + 1}-carry");
+            AddDeliveryLeaves(leaves, scope, plan, via, tactic, group, bot);
+        }
+
         private void AddDelivery(
             List<Node> leaves,
             LeafScope scope,
@@ -817,6 +878,19 @@ internal static class ArcRelayTacticsMaterializer
                 }
                 return;
             }
+            AddDeliveryLeaves(
+                leaves, scope, tactic.Delivery.Plan, null, tactic, group, bot);
+        }
+
+        private void AddDeliveryLeaves(
+            List<Node> leaves,
+            LeafScope scope,
+            string plan,
+            string? via,
+            ArcRelayTactic tactic,
+            ArcRelayTacticGroup group,
+            ArcRelayTacticsSquadBot bot)
+        {
             if (bot.ClassId == "relay")
             {
                 int preferred = tactic.Delivery.PreferredSlots
@@ -849,9 +923,9 @@ internal static class ArcRelayTacticsMaterializer
             {
                 When = Expr.One(CarryingCore()),
                 Urgency = "urgent",
-                Action = MoveToDynamic("own-reactor"),
+                Action = MoveToDynamic("own-reactor", via: via),
             }));
-            if (tactic.Delivery.Plan == "escort")
+            if (plan == "escort")
             {
                 leaves.Add(GroupLeaf(scope, "screen-carrier", () => new Node
                 {

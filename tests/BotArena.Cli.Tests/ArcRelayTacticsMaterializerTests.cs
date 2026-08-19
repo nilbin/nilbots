@@ -391,6 +391,94 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void PhaseCustodyMovesDeliveryIntoTheOverridingPhase()
+    {
+        // Custody per phase: p1 keeps carrying (a stolen Core stays in
+        // hand), p2 banks under escort along a drawn carrier route. Any
+        // override moves the WHOLE delivery emission into the phase
+        // wrappers — no tactic-scoped bank leaf remains to shadow it.
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonArray phases = document["tactics"]![0]!["phases"]!.AsArray();
+        phases[0]!.AsObject()["custody"] = JsonNode.Parse(
+            """{"plan":"keep"}""");
+        phases[1]!.AsObject()["custody"] = JsonNode.Parse(
+            """{"plan":"escort","via":[[15,12],[8,8],[3,5]]}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
+        Assert.False(shared.TryGetProperty("t1-g2-bank", out _));
+        Assert.False(shared.TryGetProperty("t1-p1-g2-bank", out _));
+        JsonElement bank = shared.GetProperty("t1-p2-g2-bank");
+        Assert.Equal("own-reactor",
+            bank.GetProperty("move").GetProperty("to").GetString());
+        string route = bank.GetProperty("move").GetProperty("via").GetString()!;
+        Assert.Equal("g-t1-p2-carry", route);
+        Assert.True(shared.TryGetProperty("t1-p2-g2-screen-carrier", out _));
+        using JsonDocument mapPlan = JsonDocument.Parse(
+            compilation.MaterializedMapPlan!);
+        Assert.True(mapPlan.RootElement.GetProperty("routes")
+            .TryGetProperty(route, out _));
+    }
+
+    [Fact]
+    public void CurrentStateRowsReadInEveryContextAndHealedInverts()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        // Start gates on contact AND everyone topped up; the transition
+        // takes "unless everyone is healed to 80%" — the inverted health
+        // gate, one nested any of the per-role flips.
+        tactic["start"] = JsonNode.Parse(
+            """{"mode":"when","cases":[{"required":{"contact":true,"healed":{"percent":50}}}]}""");
+        JsonObject rule = tactic["phases"]![0]!["continue"]!
+            .AsArray()[0]!.AsObject();
+        rule["unless"] = JsonNode.Parse("""{"healed":{"percent":80}}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement start = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("start").EnumerateArray().Single();
+        string[] startAll = start.GetProperty("all").EnumerateArray()
+            .Where(entry => entry.ValueKind == JsonValueKind.String)
+            .Select(entry => entry.GetString()!).ToArray();
+        Assert.Contains("enemy-contact", startAll);
+        Assert.Contains("hp-vex-50", startAll);
+
+        JsonElement when = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("phases").EnumerateArray().First()
+            .GetProperty("continue").EnumerateArray().Single()
+            .GetProperty("when");
+        // The all side also carries the groupsSet readiness pairs; the
+        // inverted health gate is the one nested any of no-hp names.
+        JsonElement nested = when.GetProperty("all").EnumerateArray()
+            .Single(entry => entry.ValueKind == JsonValueKind.Object
+                && entry.TryGetProperty("any", out JsonElement any)
+                && any.EnumerateArray().Any(name =>
+                    name.ValueKind == JsonValueKind.String
+                    && name.GetString()!.StartsWith(
+                        "no-hp-", StringComparison.Ordinal)));
+        string[] anyNames = nested.GetProperty("any").EnumerateArray()
+            .Select(entry => entry.GetString()!).ToArray();
+        Assert.Equal(8, anyNames.Length);
+        Assert.Contains("no-hp-vex-80", anyNames);
+        JsonElement flipped = orders.RootElement.GetProperty("conditions")
+            .GetProperty("no-hp-vex-80");
+        Assert.Equal("at-most", flipped.GetProperty("operator").GetString());
+        Assert.Equal(79, flipped.GetProperty("value").GetInt32());
+    }
+
+    [Fact]
     public void TravelOnAnAllMarchJobIsRefused()
     {
         JsonObject document = JsonNode.Parse(

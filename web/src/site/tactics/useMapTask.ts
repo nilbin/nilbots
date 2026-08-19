@@ -55,6 +55,12 @@ export type MapTask =
     max: number;
   }
   | {
+    kind: 'carry';
+    tacticId: string;
+    phaseIndex: number;
+    draw: 'route';
+  }
+  | {
     kind: 'watch';
     tacticId: string;
     target: WatchTarget;

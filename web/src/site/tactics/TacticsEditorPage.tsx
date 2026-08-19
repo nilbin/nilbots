@@ -317,6 +317,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       startTask({ kind: 'watch', tacticId: wizard.tactic.id, target });
       revealMap();
     },
+    startCarryTask: (phaseIndex) => {
+      if (!wizard) return;
+      startTask({
+        kind: 'carry', tacticId: wizard.tactic.id, phaseIndex, draw: 'route',
+      });
+      revealMap();
+    },
     endTask,
     addDeliverCore,
     highlightPost: postFlash,
@@ -324,6 +331,19 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const onTilePicked = (x: number, y: number) => {
     if (!task || !wizard) return;
+    if (task.kind === 'carry') {
+      const via = wizard.tactic.phases[task.phaseIndex]?.custody?.via ?? [];
+      if (via.length >= 16) {
+        toast('That’s the longest way home — 16 points.', 'hot');
+        return;
+      }
+      changeWizard((tactic) => {
+        const custody = tactic.phases[task.phaseIndex]?.custody;
+        if (!custody || custody.plan === 'keep') return;
+        custody.via = [...(custody.via ?? []), [x, y]];
+      });
+      return;
+    }
     // Completion checks read the click's actual effect: a click that REMOVED
     // a post or mark must not count as placing one.
     if (task.kind === 'job' && task.draw === 'posts') {
@@ -694,7 +714,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           </div>
           {task && <TaskBanner task={task} wizard={wizard} botName={botName} onDone={endTask}
             onUndoPoint={() => changeWizard((tactic) => {
-              if (task.kind === 'job') {
+              if (task.kind === 'carry') {
+                tactic.phases[task.phaseIndex]?.custody?.via?.pop();
+              } else if (task.kind === 'job') {
                 const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
                 if (!job) return;
                 if (task.draw === 'posts') job.posts?.pop();
@@ -1079,14 +1101,16 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
   onDone: () => void;
   onUndoPoint: () => void;
 }) {
-  const group = task.kind !== 'watch' && wizard
+  const group = (task.kind === 'job' || task.kind === 'sig') && wizard
     ? wizard.tactic.groups.find((value) => value.id === task.groupId)
     : null;
-  const job = task.kind !== 'watch' && wizard
+  const job = (task.kind === 'job' || task.kind === 'sig') && wizard
     ? wizard.tactic.phases[task.phaseIndex]?.jobs[task.groupId]
     : null;
   const whose = possessive(group?.name?.trim() || 'the group');
-  const what = task.kind === 'sig'
+  const what = task.kind === 'carry'
+    ? 'Click the carrier’s waypoints home, in travel order — the run ends at your reactor'
+    : task.kind === 'sig'
     ? `Placing ${whose} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
     : task.kind === 'watch'
       ? task.target.row === 'cleared'
@@ -1110,13 +1134,14 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
         point: `Click ${whose} ${job?.kind === 'approach' ? 'approach point' : 'destination'}`,
       }[task.draw];
   const undoable = (task.kind === 'job' && (task.draw === 'route' || task.draw === 'posts'))
-    || task.kind === 'sig';
+    || task.kind === 'sig' || task.kind === 'carry';
   // Group-accent left rail; forge orange for a phase watch, pale for start,
   // zone teal for a cleared box.
   const accent = task.kind === 'watch'
     ? (task.target.row === 'cleared' ? '#38d9c5'
       : task.target.scope === 'start' ? '#e6ddd4' : '#c8763c')
-    : wizard ? groupColor(wizard.tactic, task.groupId) : '#e6ddd4';
+    : task.kind === 'carry' ? '#b49cff'
+      : wizard ? groupColor(wizard.tactic, task.groupId) : '#e6ddd4';
   // A live placed/needed readout for the countable tasks.
   let progress: string | null = null;
   if (task.kind === 'job' && task.draw === 'posts' && group) {

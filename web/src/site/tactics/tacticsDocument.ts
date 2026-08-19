@@ -69,8 +69,8 @@ export interface TacticConds {
 export type CondKind = keyof TacticConds;
 
 export const START_ROWS: CondKind[] = [
-  'enemiesAt', 'coreLoose', 'coreSoon', 'enemiesDown', 'carrier', 'losses',
-  'lossesWithin',
+  'enemiesAt', 'contact', 'cleared', 'coreLoose', 'coreSoon', 'enemiesDown',
+  'carrier', 'losses', 'lossesWithin', 'healed',
 ];
 
 export const TRANSITION_ROWS: CondKind[] = [
@@ -80,7 +80,8 @@ export const TRANSITION_ROWS: CondKind[] = [
 ];
 
 export const ABORT_ROWS: CondKind[] = [
-  'losses', 'lossesWithin', 'coreLost', 'enemiesAt',
+  'losses', 'lossesWithin', 'coreLost', 'enemiesAt', 'contact', 'cleared',
+  'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'healed',
 ];
 
 /** all(required) AND any(triggers) AND none(unless); an absent side is
@@ -124,12 +125,18 @@ export interface TacticJob {
   sigs?: Record<string, SignatureMark>;
 }
 
+export type CustodyPlan = 'solo' | 'escort' | 'keep';
+
 export interface TacticPhaseDef {
   id: string;
   name: string;
   jobs: Record<string, TacticJob>;
   /** Absent/empty on the final phase = the operation holds there forever. */
   continue?: TacticTransition[];
+  /** This phase's Core custody override; absent = the Tactic's delivery
+   * plan. 'keep' holds the Core in hand — bank it in a later phase. Via
+   * is the drawn carrier route home. */
+  custody?: { plan: CustodyPlan; via?: Point[] };
 }
 
 /** Membership only — what a group does lives in each phase's job for it. */
@@ -767,6 +774,21 @@ export function validateDocument(
           }
         }
       }
+      if (phase.custody?.via) {
+        const custodyAt = `${phaseAt}.custody`;
+        if (phase.custody.plan === 'keep') {
+          error(`${custodyAt}`, '“Keep carrying” holds the Core — there is no run home to draw.');
+        } else if (phase.custody.via.length < 2 || phase.custody.via.length > 16) {
+          error(`${custodyAt}`, 'The carrier’s way home needs 2 to 16 points.');
+        } else {
+          for (const point of phase.custody.via) {
+            const bad = tilePlacementIssue(catalog, point, 'route');
+            if (bad) {
+              error(`${custodyAt}`, `Way-home point (${point[0]},${point[1]}) is ${bad}.`);
+            }
+          }
+        }
+      }
       const last = phaseIndex === tactic.phases.length - 1;
       const rules = phase.continue ?? [];
       if (!last && !rules.some((rule) => activeCaseCount(rule) > 0)) {
@@ -788,12 +810,6 @@ export function validateDocument(
           }
         }
         validateCaseRows(rule, ruleAt, TRANSITION_ROWS, error);
-        if (rule.triggers?.groupsSet) {
-          error(`${ruleAt}`, '“Every Group is set” belongs in Required — all of them, not any one.');
-        }
-        if (rule.triggers?.healed) {
-          error(`${ruleAt}`, '“Everyone is healed up” belongs in Required — all of them, not any one.');
-        }
         for (const rows of [rule.required, rule.triggers, rule.unless]) {
           if (!rows) continue;
           if (rows.reached && !tactic.groups.some((group) =>
@@ -844,8 +860,11 @@ function validateCaseRows(
   if (value.unless?.groupsSet) {
     error(`${at}.unless`, '“Every Group is set” reads one way — readiness belongs in Required.');
   }
-  if (value.unless?.healed) {
-    error(`${at}.unless`, '“Everyone is healed up” reads one way — the health gate belongs in Required.');
+  if (value.triggers?.groupsSet) {
+    error(`${at}.triggers`, '“Every Group is set” belongs in Required — all of them, not any one.');
+  }
+  if (value.triggers?.healed) {
+    error(`${at}.triggers`, '“Everyone is healed up” belongs in Required — all of them, not any one.');
   }
   for (const [side, rows] of [
     ['required', value.required], ['triggers', value.triggers],

@@ -97,9 +97,13 @@ test('cases hide boolean words behind Required, Triggered by, and Add alternativ
   assert.match(conditions, /Triggered by — any may fire/);
   assert.match(conditions, /＋ Add alternative/);
   assert.match(conditions, /Every Group is in position \(the dead excuse themselves\)/);
-  // Less-common rows fold behind "More conditions" so the everyday set
-  // stays approachable.
-  assert.match(conditions, /More conditions/);
+  // Rows are bucketed under small group headings instead of a fold, so a
+  // player scans for "the Core rows" rather than a flat list.
+  assert.match(conditions, /Our team/);
+  assert.match(conditions, /Enemies/);
+  assert.match(conditions, /Cores/);
+  assert.match(conditions, /Time & ground/);
+  assert.match(conditions, /Unless — none of these/);
   assert.doesNotMatch(conditions, /\bAND\b|\bOR\b/,
     'no bare boolean vocabulary on the player surface');
 });
@@ -124,7 +128,9 @@ test('the map draws condition footprints under grabbable group geometry', () => 
 test('engine vocabulary never reaches the player surface', () => {
   for (const source of allEditorSource) {
     assert.doesNotMatch(source,
-      /Instructions|sharedOrders|workshop|arc-relay-orders-v2|custody|doctrine|projection/i);
+      // "custody" left this list when the owner adopted "Core custody" as
+      // the player-facing phase concept (DECISIONS #341).
+      /Instructions|sharedOrders|workshop|arc-relay-orders-v2|doctrine|projection/i);
   }
   assert.doesNotMatch(`${editor}${steps}`, /\bRoles\b/,
     'Groups replaced roles on the player surface');
