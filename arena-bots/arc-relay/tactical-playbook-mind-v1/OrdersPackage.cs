@@ -14,6 +14,9 @@ internal sealed class OrdersPackage
     // MindStart evaluation wire cap (raised for Tactics materialization).
     private const int MaximumPayloadBytes = 160 * 1024;
     private const string SheetSchema = "arc-relay-orders-v2";
+    // v3 adds the squad program table and phase tags; everything else is the
+    // v2 grammar, and a v2 sheet keeps the exact legacy execution path.
+    private const string ProgramSheetSchema = "arc-relay-orders-v3";
     private const string MapPlanSchema = "arc-relay-map-plan-v2";
 
     private readonly Dictionary<string, Zone> _zones;
@@ -38,7 +41,8 @@ internal sealed class OrdersPackage
         int mapWidth,
         int mapHeight,
         bool rotate,
-        string stepperMode)
+        string stepperMode,
+        SquadProgram? program)
     {
         SheetId = sheetId;
         MapPlanId = mapPlanId;
@@ -55,6 +59,7 @@ internal sealed class OrdersPackage
         _mapHeight = mapHeight;
         _rotate = rotate;
         StepperMode = stepperMode;
+        Program = program;
 
         var byUnit = new Dictionary<int, Role>();
         int unitId = 0;
@@ -75,6 +80,10 @@ internal sealed class OrdersPackage
     public IReadOnlyDictionary<string, Condition> Conditions { get; }
     public string StepperMode { get; }
 
+    /// <summary>The squad program table, present only on v3 sheets. Null
+    /// means the legacy per-body execution path, untouched.</summary>
+    public SquadProgram? Program { get; }
+
     public static OrdersPackage Load(
         ImmutableArray<byte> linkedData,
         GenericActorResolvedMatchContract contract,
@@ -86,7 +95,8 @@ internal sealed class OrdersPackage
         if (reader.ReadInt32() != EnvelopeMagic)
             throw new InvalidDataException("Unknown Arc Relay sheet envelope.");
         string schema = reader.ReadString();
-        if (!string.Equals(schema, SheetSchema, StringComparison.Ordinal))
+        if (!string.Equals(schema, SheetSchema, StringComparison.Ordinal)
+            && !string.Equals(schema, ProgramSheetSchema, StringComparison.Ordinal))
             throw new InvalidDataException($"Unsupported Arc Relay sheet '{schema}'.");
         string sheetHash = ReadHash(reader, "sheet");
         string mapPlanHash = ReadHash(reader, "map plan");
@@ -111,9 +121,15 @@ internal sealed class OrdersPackage
         using JsonDocument mapPlanDocument = JsonDocument.Parse(mapPlanJson);
         JsonElement sheet = sheetDocument.RootElement;
         JsonElement mapPlan = mapPlanDocument.RootElement;
-        if (sheet.GetProperty("schema").GetString() != SheetSchema
+        string sheetSchema = sheet.GetProperty("schema").GetString()!;
+        bool programSheet = string.Equals(
+            sheetSchema, ProgramSheetSchema, StringComparison.Ordinal);
+        if (sheetSchema != SheetSchema && !programSheet
             || mapPlan.GetProperty("schema").GetString() != MapPlanSchema)
             throw new InvalidDataException("Arc Relay sheet schemas are invalid.");
+        if (programSheet != sheet.TryGetProperty("program", out JsonElement programValue))
+            throw new InvalidDataException(
+                "The program table and the v3 schema come together or not at all.");
         string mapId = mapPlan.GetProperty("mapId").GetString()!;
         if (!string.Equals(mapId, contract.Map.MapId, StringComparison.Ordinal))
             throw new InvalidDataException(
@@ -183,7 +199,83 @@ internal sealed class OrdersPackage
             contract.Map.Width,
             contract.Map.Height,
             rotate,
-            stepperMode);
+            stepperMode,
+            programSheet ? ParseProgram(programValue) : null);
+    }
+
+    private static SquadProgram ParseProgram(JsonElement value)
+    {
+        var tactics = new List<ProgramTactic>();
+        foreach (JsonElement tactic in value.GetProperty("tactics").EnumerateArray())
+        {
+            var phases = new List<ProgramPhase>();
+            foreach (JsonElement phase in tactic.GetProperty("phases").EnumerateArray())
+            {
+                var rules = new List<TransitionRule>();
+                if (phase.TryGetProperty("continue", out JsonElement continues))
+                {
+                    foreach (JsonElement rule in continues.EnumerateArray())
+                    {
+                        rules.Add(new TransitionRule(
+                            ParseProgramCase(rule.GetProperty("when")),
+                            rule.GetProperty("to").GetString()!));
+                    }
+                }
+                phases.Add(new ProgramPhase(
+                    phase.GetProperty("id").GetString()!,
+                    phase.GetProperty("name").GetString()!,
+                    [.. rules]));
+            }
+            tactics.Add(new ProgramTactic(
+                tactic.GetProperty("id").GetString()!,
+                tactic.GetProperty("name").GetString()!,
+                ParseProgramCases(tactic, "start"),
+                ParseProgramCases(tactic, "abort"),
+                tactic.TryGetProperty("maxTicks", out JsonElement maxTicks)
+                    ? maxTicks.GetInt32()
+                    : null,
+                tactic.TryGetProperty("rearm", out JsonElement rearm)
+                    ? rearm.GetInt32()
+                    : 0,
+                [.. phases]));
+        }
+        return new SquadProgram([.. tactics]);
+    }
+
+    private static ProgramCase[]? ParseProgramCases(
+        JsonElement tactic,
+        string section)
+    {
+        if (!tactic.TryGetProperty(section, out JsonElement cases))
+            return null;
+        return cases.EnumerateArray().Select(ParseProgramCase).ToArray();
+    }
+
+    private static ProgramCase ParseProgramCase(JsonElement value)
+    {
+        ConditionExpression? Side(string op)
+        {
+            if (!value.TryGetProperty(op, out JsonElement side))
+                return null;
+            var names = new List<string>();
+            var groups = new List<ConditionExpression>();
+            foreach (JsonElement entry in side.EnumerateArray())
+            {
+                if (entry.ValueKind == JsonValueKind.String)
+                {
+                    names.Add(entry.GetString()!);
+                    continue;
+                }
+                JsonProperty nested = entry.EnumerateObject().Single();
+                groups.Add(new ConditionExpression(
+                    nested.Name,
+                    nested.Value.EnumerateArray()
+                        .Select(name => name.GetString()!).ToArray(),
+                    []));
+            }
+            return new ConditionExpression(op, [.. names], [.. groups]);
+        }
+        return new ProgramCase(Side("all"), Side("any"));
     }
 
     public bool Contains(string zoneId, Position world)
@@ -275,6 +367,10 @@ internal sealed class OrdersPackage
             : 0;
         bool rejoin = value.TryGetProperty("rejoin", out JsonElement rejoinValue)
             && rejoinValue.ValueKind == JsonValueKind.True;
+        // A tag gates the subtree to the coordinator's active tactic/phase.
+        // Shared definitions carry their own tag, so a bare reference from
+        // any role lands in the right phase.
+        string? phaseTag = Optional(value, "phase");
         TacticalMovementUrgency urgency = value.TryGetProperty(
             "urgency", out JsonElement urgencyValue)
                 ? ParseUrgency(urgencyValue.GetString()!)
@@ -293,8 +389,8 @@ internal sealed class OrdersPackage
         if (value.TryGetProperty("orders", out JsonElement children))
         {
             return new OrderNode(
-                id, path, when, until, timeout, cooldown, rejoin, urgency,
-                null, null,
+                id, path, when, until, timeout, cooldown, rejoin, phaseTag,
+                urgency, null, null,
                 ParseOrders(
                     children, shared, roleId, path, branchDepth + 1, urgency),
                 null);
@@ -309,8 +405,8 @@ internal sealed class OrdersPackage
                         ? ParseHandoff(handoff)
                         : new DropAction();
         return new OrderNode(
-            id, path, when, until, timeout, cooldown, rejoin, urgency,
-            capacity, selection, [], action);
+            id, path, when, until, timeout, cooldown, rejoin, phaseTag,
+            urgency, capacity, selection, [], action);
     }
 
     private static TacticalMovementUrgency ParseUrgency(string value) =>
@@ -597,6 +693,7 @@ internal sealed class OrdersPackage
         int? Timeout,
         int Cooldown,
         bool Rejoin,
+        string? PhaseTag,
         TacticalMovementUrgency Urgency,
         Capacity? Capacity,
         string? Selection,
@@ -605,6 +702,29 @@ internal sealed class OrdersPackage
 
     internal sealed record ConditionExpression(
         string Kind, string[] Names, ConditionExpression[]? Groups = null);
+
+    internal sealed record SquadProgram(ProgramTactic[] Tactics);
+
+    internal sealed record ProgramTactic(
+        string Id,
+        string Name,
+        ProgramCase[]? Start,
+        ProgramCase[]? Abort,
+        int? MaxTicks,
+        int Rearm,
+        ProgramPhase[] Phases);
+
+    internal sealed record ProgramPhase(
+        string Id,
+        string Name,
+        TransitionRule[] Continue);
+
+    /// <summary>To is "next", "finish", or a later phase id.</summary>
+    internal sealed record TransitionRule(ProgramCase When, string To);
+
+    /// <summary>all(All…) AND any(Any…); a null side is vacuously true.</summary>
+    internal sealed record ProgramCase(
+        ConditionExpression? All, ConditionExpression? Any);
     internal sealed record Condition(
         string Id,
         string Fact,

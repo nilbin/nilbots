@@ -136,19 +136,122 @@ public sealed class OrderTreeRuntimeTests
             handoff, "support"));
     }
 
+    [Fact]
+    public void APhaseTaggedNodeIsDarkOutsideTheActiveTags()
+    {
+        var runtime = new OrderTreeRuntime();
+        ActorIdentity actor = new(0, 0, 0);
+        var role = new OrdersPackage.Role(
+            "vex", ["kestrel"], ["vision"],
+            [Node("t1-p1-move", phase: "t1/p1", action: Move())]);
+
+        OrderTreeRuntime.EligibilityResult dark = runtime.Eligible(
+            actor, role, 0, AlwaysTrue,
+            new HashSet<string> { "t1", "t1/p2" });
+        Assert.Empty(dark.Leaves);
+        Assert.Equal("phase-dark", Assert.Single(dark.IneligibleRoots).Reason);
+
+        OrderTreeRuntime.EligibilityResult lit = runtime.Eligible(
+            actor, role, 1, AlwaysTrue,
+            new HashSet<string> { "t1", "t1/p1" });
+        Assert.Equal("t1-p1-move", Assert.Single(lit.Leaves).Node.Id);
+    }
+
+    [Fact]
+    public void PhaseExitClearsPerBodyStateWithoutACooldown()
+    {
+        // A phase-tagged branch with a steep cooldown: leaving the phase must
+        // evaporate the state rather than exit it, so a fresh run of the same
+        // tactic re-enters immediately instead of resuming or waiting.
+        var runtime = new OrderTreeRuntime();
+        ActorIdentity actor = new(0, 0, 0);
+        var role = new OrdersPackage.Role(
+            "vex", ["kestrel"], ["vision"],
+            [Node("t1-p1-hold", phase: "t1/p1", cooldown: 120,
+                children: [Node("t1-p1-move", action: Move())])]);
+        var phaseOne = new HashSet<string> { "t1", "t1/p1" };
+        var phaseTwo = new HashSet<string> { "t1", "t1/p2" };
+
+        Assert.Single(runtime.Eligible(actor, role, 0, AlwaysTrue, phaseOne)
+            .Leaves);
+        Assert.Empty(runtime.Eligible(actor, role, 1, AlwaysTrue, phaseTwo)
+            .Leaves);
+        // Tactic restarted: phase one lights again two ticks later — a
+        // 120-tick exit cooldown would hold this hostage.
+        Assert.Single(runtime.Eligible(actor, role, 3, AlwaysTrue, phaseOne)
+            .Leaves);
+    }
+
+    [Fact]
+    public void AFreshActorJoinsTheActivePhaseDirectly()
+    {
+        // A respawn under the program model needs no rejoin latch: the
+        // active phase's nodes are lit for every body, and a fresh life
+        // simply evaluates them.
+        var runtime = new OrderTreeRuntime();
+        var role = new OrdersPackage.Role(
+            "vex", ["kestrel"], ["vision"],
+            [
+                Node("t1-p1-move", phase: "t1/p1", action: Move()),
+                Node("t1-p3-move", phase: "t1/p3", action: Move()),
+            ]);
+        var phaseThree = new HashSet<string> { "t1", "t1/p3" };
+
+        ActorIdentity veteran = new(0, 0, 0);
+        Assert.Equal("t1-p3-move", Assert.Single(
+            runtime.Eligible(veteran, role, 40, AlwaysTrue, phaseThree)
+                .Leaves).Node.Id);
+        runtime.Prune(new HashSet<ActorIdentity> { new(0, 0, 1) });
+        ActorIdentity respawn = new(0, 0, 1);
+        Assert.Equal("t1-p3-move", Assert.Single(
+            runtime.Eligible(respawn, role, 41, AlwaysTrue, phaseThree)
+                .Leaves).Node.Id);
+    }
+
+    [Fact]
+    public void ANullTagSetLeavesTaggedNodesEnabled()
+    {
+        // Legacy sheets pass no tag set at all; even a tagged node (which a
+        // v2 sheet cannot express) stays enabled rather than dark.
+        var runtime = new OrderTreeRuntime();
+        ActorIdentity actor = new(0, 0, 0);
+        var role = new OrdersPackage.Role(
+            "vex", ["kestrel"], ["vision"],
+            [Node("t1-p1-move", phase: "t1/p1", action: Move())]);
+
+        Assert.Single(runtime.Eligible(actor, role, 0, AlwaysTrue).Leaves);
+    }
+
+    private static OrderTreeRuntime.ConditionEvaluation AlwaysTrue(
+        OrdersPackage.ConditionExpression expression,
+        int elapsed) => OrderTreeRuntime.ConditionEvaluation.True;
+
+    private static OrdersPackage.MoveAction Move() => new(
+        Kind: "to",
+        TargetKind: "static",
+        Target: "current-position",
+        Via: null,
+        Posture: null,
+        FaceAnchor: null,
+        WithinWalkingSteps: null,
+        CoreBankValue: null);
+
     private static OrdersPackage.OrderNode Node(
         string id,
         OrdersPackage.ConditionExpression? when = null,
         OrdersPackage.ConditionExpression? until = null,
         OrdersPackage.OrderNode[]? children = null,
-        OrdersPackage.OrderAction? action = null) => new(
+        OrdersPackage.OrderAction? action = null,
+        string? phase = null,
+        int cooldown = 0) => new(
             Id: id,
             Path: id,
             When: when,
             Until: until,
             Timeout: null,
-            Cooldown: 0,
+            Cooldown: cooldown,
             Rejoin: false,
+            PhaseTag: phase,
             Urgency: TacticalMovementUrgency.Normal,
             Capacity: null,
             Selection: null,

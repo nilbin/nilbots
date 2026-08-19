@@ -43,6 +43,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private GenericActorResolvedMatchContract? _contract;
     private OrdersPackage? _package;
+    private TacticsProgramCoordinator? _coordinator;
+    // The tick's decision-reason prefix from the squad program: the active
+    // "t1/p2 " pair, plus a "!marker " on transition/abort/select ticks.
+    // Empty on legacy (no-program) sheets so their reasons stay byte-stable.
+    private string _programPrefix = "";
     private IArenaStepper _stepper = new SquadArenaPlanner();
     private SquadArenaPlanner? _squadPlanner;
     private Position _ownReactor;
@@ -95,6 +100,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _mirrored = _ownReactor.X > (start.Contract.Map.Width - 1) / 2;
         _package = OrdersPackage.Load(
             start.EvaluationData, start.Contract, _ownReactor);
+        _coordinator = _package.Program is null
+            ? null
+            : new TacticsProgramCoordinator(_package.Program);
         _squadPlanner = _package.StepperMode == "coordinated"
             ? new SquadArenaPlanner()
             : null;
@@ -140,6 +148,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     && core.CarrierActorId is not null)
                 .ToDictionary(core => core.CarrierActorId!, core => core);
 
+        // The squad program steps once, before any body evaluates: it owns
+        // which tactic/phase tags are lit this tick. Its cases evaluate at
+        // squad level (no body — validation bans body-scoped facts there).
+        TacticsProgramCoordinator.View? program = _coordinator?.Step(
+            mind.Tick,
+            (expression, anchorTicks) => Evaluate(
+                contract, mind, arc, package, body: null, role: null,
+                expression, anchorTicks, carried));
+        _programPrefix = program is null
+            ? ""
+            : (program.TacticId is null
+                    ? "idle"
+                    : $"{program.TacticId}/{program.PhaseId}")
+                + (program.Marker is string marker ? $"!{marker}" : "")
+                + " ";
+
         var proposalsByBody = new Dictionary<int, IReadOnlyList<Proposal>>();
         var eligibilityByBody = new Dictionary<int, string?>();
         foreach (MindBody body in mind.Bodies.OrderBy(value => value.UnitId))
@@ -152,7 +176,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 mind.Tick,
                 (expression, orderTicks) => Evaluate(
                     contract, mind, arc, package, body, role,
-                    expression, orderTicks, carried));
+                    expression, orderTicks, carried),
+                program?.EnabledTags);
             List<Proposal> proposals = BuildProposals(
                 contract, mind, arc, package, body, role,
                 eligibility.Leaves, carried);
@@ -218,14 +243,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (arcTossCatchers.TryGetValue(
                     body.ActorId, out string? catchReason))
             {
-                body.Hold($"orders:arc-toss-catch:{catchReason}");
+                body.Hold($"orders:{_programPrefix}arc-toss-catch:{catchReason}");
                 continue;
             }
             if (TryInvest(contract, mind, body, role, carried))
                 continue;
             string prefix = selected.TryGetValue(body.UnitId, out Proposal? proposal)
-                ? $"orders:{proposal.Leaf.Node.Path}"
-                : $"orders:{role.Id}";
+                ? $"orders:{_programPrefix}{proposal.Leaf.Node.Path}"
+                : $"orders:{_programPrefix}{role.Id}";
             if ((proposal?.EligibilityTrace
                     ?? eligibilityByBody.GetValueOrDefault(body.UnitId))
                 is string eligibilityTrace)
@@ -2158,7 +2183,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        string reason = $"orders:{proposal.Leaf.Node.Path}";
+        string reason = $"orders:{_programPrefix}{proposal.Leaf.Node.Path}";
         if (proposal.EligibilityTrace is string eligibilityTrace)
             reason += $":eligibility[{eligibilityTrace}]";
         if (proposal.Leaf.EvidenceTrace is string evidenceTrace)
@@ -2520,13 +2545,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract, body, signature.Kind, trace);
     }
 
+    /// <summary>
+    /// Body null means a squad-level program evaluation: validation bans
+    /// body-scoped facts in program cases, and the guard below turns any
+    /// slip into a loud fault instead of a wrong answer.
+    /// </summary>
     private OrderTreeRuntime.ConditionEvaluation Evaluate(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         GenericActorContext.ModeObservationState.ArcRelay arc,
         OrdersPackage package,
-        MindBody body,
-        OrdersPackage.Role role,
+        MindBody? body,
+        OrdersPackage.Role? role,
         OrdersPackage.ConditionExpression expression,
         int orderTicks,
         IReadOnlyDictionary<ActorIdentity,
@@ -2557,8 +2587,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             else
             {
+                if (body is null && BodyScopedFact(condition.Fact))
+                {
+                    throw new InvalidOperationException(
+                        $"Body-scoped fact '{condition.Fact}' has no body "
+                        + "in a squad-level program evaluation.");
+                }
                 actual = Fact(
-                    contract, mind, arc, package, body, role, condition,
+                    contract, mind, arc, package, body!, role!, condition,
                     orderTicks, carried);
             }
             bool matches = Compare(actual, condition.Operator, condition.Value);
@@ -2864,6 +2900,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         well.NextScheduledBirthTick is int birth
             ? Math.Max(0, birth - tick)
             : int.MaxValue;
+
+    private static bool BodyScopedFact(string fact) =>
+        fact.StartsWith("self-", StringComparison.Ordinal)
+        || fact is "signature-ready" or "signature-commitment-active"
+            or "deployment-active" or "deployment-lifetime-percent"
+            or "deployment-durability-percent";
 
     private static bool Compare(int actual, string op, int expected) => op switch
     {
@@ -3194,7 +3236,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             invest.ActionId,
             invest.ActionCode,
             [new GenericActorActionArgument.UpgradeTrackArgument(track)],
-            $"orders:{role.Id}:upgrade:{track}");
+            $"orders:{_programPrefix}{role.Id}:upgrade:{track}");
         _invested[body.UnitId] = (body.ActorId, state.Spent + 1);
         _pendingInvest[body.UnitId]--;
         return true;

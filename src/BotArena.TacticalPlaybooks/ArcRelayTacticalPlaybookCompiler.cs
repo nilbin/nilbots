@@ -12,6 +12,10 @@ namespace BotArena.TacticalPlaybooks;
 public static partial class ArcRelayTacticalPlaybookCompiler
 {
     public const string PlaybookSchema = "arc-relay-orders-v2";
+    // v3 = the whole v2 grammar plus the squad program table (tactics →
+    // phases → transition cases) and phase tags on order nodes. Frozen v2
+    // sheets keep validating and executing exactly as before.
+    public const string ProgramSchema = "arc-relay-orders-v3";
     public const string LayoutSchema = "arc-relay-map-plan-v2";
     public const int DirectEnvelopeMagic = 0x324C5441; // ATL2, little-endian.
     // Raised from 64 KiB for whole-team Tactics materialization and again
@@ -89,6 +93,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string playbookSha256 = Sha256(playbookSource);
         string layoutSha256 = Sha256(layoutSource);
         byte[] linked = Encode(
+            playbookDocument.RootElement.GetProperty("schema").GetString()!,
             playbookSha256,
             layoutSha256,
             canonicalPlaybook,
@@ -106,6 +111,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     }
 
     private static byte[] Encode(
+        string schema,
         string playbookSha256,
         string layoutSha256,
         byte[] canonicalPlaybook,
@@ -114,7 +120,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         using var stream = new MemoryStream();
         using var writer = new BinaryWriter(stream, Encoding.UTF8, true);
         writer.Write(DirectEnvelopeMagic);
-        writer.Write(PlaybookSchema);
+        writer.Write(schema);
         writer.Write(playbookSha256);
         writer.Write(layoutSha256);
         writer.Write(canonicalPlaybook.Length);

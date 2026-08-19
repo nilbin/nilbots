@@ -11,6 +11,7 @@ internal sealed class OrdersEvidenceLedger
     private readonly List<EnemySample> _enemySamples = [];
     private readonly List<EnemyEntry> _entries = [];
     private readonly List<EnemyDestruction> _destructions = [];
+    private readonly List<int> _friendlyDestructionTicks = [];
     private readonly List<FriendlyCorePickup> _friendlyCorePickups = [];
     private readonly List<FriendlyCoreEvent> _friendlyCoreEvents = [];
     private readonly HashSet<string> _processedEvents = new(StringComparer.Ordinal);
@@ -22,6 +23,7 @@ internal sealed class OrdersEvidenceLedger
         _enemySamples.Clear();
         _entries.Clear();
         _destructions.Clear();
+        _friendlyDestructionTicks.Clear();
         _friendlyCorePickups.Clear();
         _friendlyCoreEvents.Clear();
         _processedEvents.Clear();
@@ -92,6 +94,10 @@ internal sealed class OrdersEvidenceLedger
                         observed.SourceTick,
                         destruction.ActorId,
                         destruction.Position));
+                    break;
+                case GenericActorContext.EventPayload.Destruction friendly
+                    when friendly.ActorId.TeamId == teamId:
+                    _friendlyDestructionTicks.Add(observed.SourceTick);
                     break;
                 case GenericActorContext.EventPayload.ArcRelay mode
                     when mode.Fact is GenericActorContext.ArcRelayEvent
@@ -192,6 +198,18 @@ internal sealed class OrdersEvidenceLedger
             return new EvidenceRead(
                 count,
                 $"{condition.Id}={count}-friendly-core-pickups@{interval}");
+        }
+        if (condition.Fact == "friendly-destructions")
+        {
+            (int start, int end) = Interval(condition, decisionTick, orderTicks);
+            int count = _friendlyDestructionTicks.Count(tick =>
+                tick >= start && tick < end);
+            string interval = end <= start
+                ? $"{start}..empty"
+                : $"{start}..{end - 1}";
+            return new EvidenceRead(
+                count,
+                $"{condition.Id}={count}-friendly-destructions@{interval}");
         }
         if (condition.Fact is "friendly-core-acquisitions"
                 or "friendly-core-banks" or "friendly-core-drops"
@@ -310,9 +328,12 @@ internal sealed class OrdersEvidenceLedger
         int decisionTick,
         int orderTicks)
     {
+        // node-entry anchors at the order's activation; phase-entry rides the
+        // same parameter — the squad coordinator passes ticks-in-phase where
+        // the order runtime passes ticks-in-order.
         int start = condition.WindowTicks is int window
             ? Math.Max(0, decisionTick - window)
-            : condition.Since == "node-entry"
+            : condition.Since is "node-entry" or "phase-entry"
                 ? Math.Max(0, decisionTick - orderTicks)
                 : 0;
         return (start, decisionTick);

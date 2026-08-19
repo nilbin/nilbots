@@ -48,7 +48,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "friendly-core-pickups",
             "friendly-core-acquisitions", "friendly-core-banks",
             "friendly-core-drops", "friendly-core-losses",
-            "friendly-core-resolutions",
+            "friendly-core-resolutions", "friendly-destructions",
+        };
+
+    // Facts whose answer depends on the evaluating body. They are meaningless
+    // in the squad-level program cases, which have no body.
+    private static readonly HashSet<string> BodyScopedFacts =
+        new(StringComparer.Ordinal)
+        {
+            "signature-ready", "signature-commitment-active",
+            "deployment-active", "deployment-lifetime-percent",
+            "deployment-durability-percent",
         };
 
     private static readonly HashSet<string> RoleFacts =
@@ -82,7 +92,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "friendly-core-pickups",
             "friendly-core-acquisitions", "friendly-core-banks",
             "friendly-core-drops", "friendly-core-losses",
-            "friendly-core-resolutions",
+            "friendly-core-resolutions", "friendly-destructions",
         };
 
     private static readonly HashSet<string> RoleListFacts =
@@ -119,12 +129,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         JsonElement root,
         string path)
     {
+        string schema = OneOf(
+            root, "schema", path, PlaybookSchema, ProgramSchema);
+        bool programSheet = string.Equals(
+            schema, ProgramSchema, StringComparison.Ordinal);
         Object(root, path,
-            [
-                "schema", "sheetId", "mapPlan", "roles", "sharedOrders",
-                "capacities", "conditions",
-            ]);
-        Exact(root, "schema", PlaybookSchema, path);
+            programSheet
+                ?
+                [
+                    "schema", "sheetId", "mapPlan", "roles", "sharedOrders",
+                    "capacities", "conditions", "program",
+                ]
+                :
+                [
+                    "schema", "sheetId", "mapPlan", "roles", "sharedOrders",
+                    "capacities", "conditions",
+                ]);
         Identifier(root, "sheetId", path);
         NonEmptyString(root, "mapPlan", path);
 
@@ -175,12 +195,18 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             root.GetProperty("capacities"), path);
         Dictionary<string, ConditionInfo> conditions = ValidateConditions(
             root.GetProperty("conditions"), roles.Keys.ToHashSet(
-                StringComparer.Ordinal), path);
+                StringComparer.Ordinal), path, programSheet);
         Dictionary<string, JsonElement> sharedOrders = ValidateSharedOrderTable(
             root.GetProperty("sharedOrders"), path);
 
         var consumers = new ConsumerLedger(
             sharedOrders.Keys, capacities.Keys, conditions.Keys);
+        if (programSheet)
+        {
+            ValidateProgram(
+                root.GetProperty("program"), $"{path}.program", conditions,
+                consumers);
+        }
         foreach ((string roleId, RoleInfo role) in roles)
         {
             var orderIds = new HashSet<string>(StringComparer.Ordinal);
@@ -202,6 +228,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     externalId: null,
                     allowSharedReference: true);
             }
+        }
+        foreach (string tag in consumers.DeclaredPhaseTags)
+        {
+            if (!consumers.UsedProgramTags.Contains(tag))
+                throw Error($"{path}.program",
+                    $"phase '{tag}' owns no phase-tagged order in any role.");
         }
 
         foreach ((string id, int count) in consumers.SharedOrders)
@@ -256,7 +288,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static Dictionary<string, ConditionInfo> ValidateConditions(
         JsonElement value,
         IReadOnlySet<string> roles,
-        string path)
+        string path,
+        bool programSheet)
     {
         if (value.ValueKind != JsonValueKind.Object)
             throw Error($"{path}.conditions", "expected object.");
@@ -484,10 +517,18 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 if (hasSince
                     && (since.ValueKind != JsonValueKind.String
                         || since.GetString() is not
-                            ("match-start" or "node-entry")))
+                            ("match-start" or "node-entry" or "phase-entry")))
                 {
                     throw Error(at,
-                        $"'{fact}' since must be match-start or node-entry.");
+                        $"'{fact}' since must be match-start, node-entry, "
+                        + "or phase-entry.");
+                }
+                if (hasSince && since.GetString() == "phase-entry"
+                    && !programSheet)
+                {
+                    throw Error(at,
+                        "since phase-entry needs the program schema "
+                        + $"'{ProgramSchema}'.");
                 }
                 if (fact == "zone-fully-observed-throughout-interval"
                     && comparison is not (0 or 1))
@@ -510,6 +551,201 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 hasSince ? since.GetString() : null));
         }
         return result;
+    }
+
+    /// <summary>
+    /// The squad program table: ordered tactics, each with start/abort cases,
+    /// an optional duration, and forward-only phase transitions. Declares the
+    /// legal node tags ("t1" and "t1/p2") on the ledger and counts every
+    /// referenced condition as a consumer.
+    /// </summary>
+    private static void ValidateProgram(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers)
+    {
+        Object(value, path, ["tactics"]);
+        JsonElement[] tactics = BoundedArray(
+            value.GetProperty("tactics"), $"{path}.tactics", 1, 8);
+        var tacticIds = new HashSet<string>(StringComparer.Ordinal);
+        for (int index = 0; index < tactics.Length; index++)
+        {
+            JsonElement tactic = tactics[index];
+            string at = $"{path}.tactics[{index}]";
+            Object(tactic, at, ["id", "name", "phases"],
+                ["start", "abort", "maxTicks", "rearm"]);
+            string id = Identifier(tactic, "id", at);
+            if (id.Length > 24)
+                throw Error($"{at}.id", "tactic id exceeds 24 characters.");
+            if (!tacticIds.Add(id))
+                throw Error(at, $"duplicate tactic '{id}'.");
+            DisplayName(tactic, "name", at);
+            if (tactic.TryGetProperty("maxTicks", out _))
+                Range(tactic, "maxTicks", at, 1, 1200);
+            if (tactic.TryGetProperty("rearm", out _))
+                Range(tactic, "rearm", at, 0, 1200);
+            foreach (string section in new[] { "start", "abort" })
+            {
+                if (!tactic.TryGetProperty(section, out JsonElement cases))
+                    continue;
+                JsonElement[] entries = BoundedArray(
+                    cases, $"{at}.{section}", 1, 4);
+                for (int c = 0; c < entries.Length; c++)
+                {
+                    ValidateProgramCase(
+                        entries[c], $"{at}.{section}[{c}]", conditions,
+                        consumers);
+                }
+            }
+            JsonElement[] phases = BoundedArray(
+                tactic.GetProperty("phases"), $"{at}.phases", 1, 8);
+            var phaseIds = new List<string>(phases.Length);
+            for (int p = 0; p < phases.Length; p++)
+            {
+                string phaseAt = $"{at}.phases[{p}]";
+                Object(phases[p], phaseAt, ["id", "name"], ["continue"]);
+                string phaseId = Identifier(phases[p], "id", phaseAt);
+                if (phaseId.Length > 24)
+                    throw Error($"{phaseAt}.id",
+                        "phase id exceeds 24 characters.");
+                if (phaseIds.Contains(phaseId))
+                    throw Error(phaseAt, $"duplicate phase '{phaseId}'.");
+                DisplayName(phases[p], "name", phaseAt);
+                phaseIds.Add(phaseId);
+                consumers.DeclaredPhaseTags.Add($"{id}/{phaseId}");
+                consumers.DeclaredProgramTags.Add($"{id}/{phaseId}");
+            }
+            consumers.DeclaredProgramTags.Add(id);
+            for (int p = 0; p < phases.Length; p++)
+            {
+                string phaseAt = $"{at}.phases[{p}]";
+                bool last = p == phases.Length - 1;
+                if (!phases[p].TryGetProperty("continue", out JsonElement rules))
+                {
+                    // A last phase with no transition holds forever — the
+                    // explicit persistent form. Anywhere earlier it is a
+                    // dead end the sequence can never leave.
+                    if (!last)
+                        throw Error(phaseAt,
+                            "every phase before the last needs a continue "
+                            + "rule; only the final phase may hold forever.");
+                    continue;
+                }
+                JsonElement[] entries = BoundedArray(
+                    rules, $"{phaseAt}.continue", 1, 3);
+                for (int r = 0; r < entries.Length; r++)
+                {
+                    string ruleAt = $"{phaseAt}.continue[{r}]";
+                    Object(entries[r], ruleAt, ["when", "to"]);
+                    string to = RequiredString(entries[r], "to", ruleAt);
+                    if (to == "next")
+                    {
+                        if (last)
+                            throw Error($"{ruleAt}.to",
+                                "the final phase has no next; use 'finish'.");
+                    }
+                    else if (to != "finish")
+                    {
+                        int target = phaseIds.IndexOf(to);
+                        if (target < 0)
+                            throw Error($"{ruleAt}.to",
+                                $"unknown phase '{to}'.");
+                        if (target <= p)
+                            throw Error($"{ruleAt}.to",
+                                "transitions are forward-only; a phase may "
+                                + "not jump to itself or backward.");
+                    }
+                    ValidateProgramCase(
+                        entries[r].GetProperty("when"), $"{ruleAt}.when",
+                        conditions, consumers);
+                }
+            }
+        }
+    }
+
+    /// <summary>One program case: all(all…) AND any(any…), entries being
+    /// condition names or one nested all/any group. Squad-level only —
+    /// body-scoped facts and node-entry anchors are rejected here.</summary>
+    private static void ValidateProgramCase(
+        JsonElement value,
+        string path,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers)
+    {
+        Object(value, path, [], ["all", "any"]);
+        bool anySide = false;
+        foreach (string op in new[] { "all", "any" })
+        {
+            if (!value.TryGetProperty(op, out JsonElement side))
+                continue;
+            anySide = true;
+            JsonElement[] items = BoundedArray(side, $"{path}.{op}", 1, 12);
+            for (int index = 0; index < items.Length; index++)
+            {
+                string entryPath = $"{path}.{op}[{index}]";
+                JsonElement entry = items[index];
+                if (entry.ValueKind == JsonValueKind.String)
+                {
+                    ValidateProgramConditionName(
+                        entry.GetString()!, entryPath, conditions, consumers);
+                    continue;
+                }
+                if (entry.ValueKind != JsonValueKind.Object)
+                    throw Error(entryPath,
+                        "expected condition name or all/any group.");
+                string[] operators = ["all", "any"];
+                string[] found = operators.Where(name =>
+                    entry.TryGetProperty(name, out _)).ToArray();
+                if (found.Length != 1)
+                    throw Error(entryPath,
+                        "group needs exactly one of all/any.");
+                Object(entry, entryPath, [found[0]]);
+                string[] names = StringArray(
+                    entry.GetProperty(found[0]),
+                    $"{entryPath}.{found[0]}", 2, 8);
+                foreach (string name in names)
+                {
+                    ValidateProgramConditionName(
+                        name, entryPath, conditions, consumers);
+                }
+            }
+        }
+        if (!anySide)
+            throw Error(path, "a case needs at least one of all/any.");
+    }
+
+    private static void ValidateProgramConditionName(
+        string name,
+        string path,
+        IReadOnlyDictionary<string, ConditionInfo> conditions,
+        ConsumerLedger consumers)
+    {
+        if (!conditions.TryGetValue(name, out ConditionInfo? info))
+            throw Error(path, $"unknown condition '{name}'.");
+        if (info.Fact.StartsWith("self-", StringComparison.Ordinal)
+            || BodyScopedFacts.Contains(info.Fact))
+        {
+            throw Error(path,
+                $"condition '{name}' reads the body-scoped fact "
+                + $"'{info.Fact}'; program cases are squad-level.");
+        }
+        if (info.Since == "node-entry")
+        {
+            throw Error(path,
+                $"condition '{name}' anchors at node-entry; program cases "
+                + "anchor at phase-entry.");
+        }
+        consumers.Conditions[name]++;
+        if (info.Zone is string zone)
+            consumers.ReferenceZone(zone, path);
+    }
+
+    private static void DisplayName(JsonElement owner, string name, string path)
+    {
+        string value = NonEmptyString(owner, name, path);
+        if (value.Length > 48)
+            throw Error(path, $"'{name}' exceeds 48 characters.");
     }
 
     private static Dictionary<string, JsonElement> ValidateSharedOrderTable(
@@ -594,9 +830,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         var optional = new[]
         {
             "when", "until", "timeout", "cooldown", "rejoin", "capacity",
-            "urgency", "select",
+            "urgency", "select", "phase",
         };
         Object(value, path, required, optional);
+        if (value.TryGetProperty("phase", out JsonElement phaseTag))
+        {
+            string tag = StringValue(phaseTag, $"{path}.phase");
+            if (consumers.DeclaredProgramTags.Count == 0)
+                throw Error(path,
+                    $"phase tags need the program schema '{ProgramSchema}'.");
+            if (!consumers.DeclaredProgramTags.Contains(tag))
+                throw Error($"{path}.phase", $"unknown program tag '{tag}'.");
+            consumers.UsedProgramTags.Add(tag);
+        }
         ValidateLifecycle(value, path, conditions, consumers);
         if (value.TryGetProperty("urgency", out _))
             OneOf(value, "urgency", path, "routine", "normal", "urgent");
@@ -702,6 +948,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error(path,
                     $"condition '{id}' uses since node-entry and is legal only in until.");
             }
+            if (conditions[id].Since == "phase-entry")
+            {
+                throw Error(path,
+                    $"condition '{id}' anchors at phase-entry and is legal only in program cases.");
+            }
             consumers.Conditions[id]++;
             if (conditions[id].Zone is string zone)
                 consumers.ReferenceZone(zone, path);
@@ -758,6 +1009,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(path,
                     $"condition '{name}' uses since node-entry and is legal only in until.");
+            }
+            if (conditions[name].Since == "phase-entry")
+            {
+                throw Error(path,
+                    $"condition '{name}' anchors at phase-entry and is legal only in program cases.");
             }
             consumers.Conditions[name]++;
             if (conditions[name].Zone is string zone)
@@ -1415,6 +1671,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         public Dictionary<string, int> SharedOrders { get; }
         public Dictionary<string, int> Capacities { get; }
         public Dictionary<string, int> Conditions { get; }
+
+        // Program vocabulary: tags a node may carry ("t1" tactic-scoped,
+        // "t1/p2" phase-scoped), the phase-scoped subset that must each own
+        // at least one tagged node, and the tags actually used.
+        public HashSet<string> DeclaredProgramTags { get; } =
+            new(StringComparer.Ordinal);
+
+        public HashSet<string> DeclaredPhaseTags { get; } =
+            new(StringComparer.Ordinal);
+
+        public HashSet<string> UsedProgramTags { get; } =
+            new(StringComparer.Ordinal);
+
         public Dictionary<string, int> Zones { get; } = new(StringComparer.Ordinal);
         public Dictionary<string, int> Routes { get; } = new(StringComparer.Ordinal);
         public Dictionary<string, int> Anchors { get; } = new(StringComparer.Ordinal);

@@ -19,7 +19,8 @@ internal sealed class OrderTreeRuntime
         ActorIdentity actor,
         OrdersPackage.Role role,
         int tick,
-        Func<OrdersPackage.ConditionExpression, int, ConditionEvaluation> evaluate)
+        Func<OrdersPackage.ConditionExpression, int, ConditionEvaluation> evaluate,
+        IReadOnlySet<string>? enabledTags = null)
     {
         var result = new List<EligibleLeaf>();
         var rejected = new List<IneligibleRoot>();
@@ -27,7 +28,8 @@ internal sealed class OrderTreeRuntime
         {
             int before = result.Count;
             string? rootRejection = Visit(
-                actor, node, tick, evaluate, result, inheritedEvidence: null);
+                actor, node, tick, evaluate, result, inheritedEvidence: null,
+                enabledTags);
             if (result.Count == before)
             {
                 rejected.Add(new IneligibleRoot(
@@ -65,8 +67,20 @@ internal sealed class OrderTreeRuntime
         int tick,
         Func<OrdersPackage.ConditionExpression, int, ConditionEvaluation> evaluate,
         List<EligibleLeaf> result,
-        string? inheritedEvidence)
+        string? inheritedEvidence,
+        IReadOnlySet<string>? enabledTags)
     {
+        // A phase-tagged subtree outside the coordinator's active tags is
+        // dark: ineligible, and its per-body state evaporates WITHOUT a
+        // cooldown, so a later run of the same tactic starts fresh instead
+        // of resuming an abandoned phase.
+        if (node.PhaseTag is not null
+            && enabledTags is not null
+            && !enabledTags.Contains(node.PhaseTag))
+        {
+            ClearSubtree(actor, node);
+            return "phase-dark";
+        }
         (ActorIdentity, string) key = (actor, node.Path);
         State state = _states.GetValueOrDefault(key)
             ?? new State(false, tick, 0, null);
@@ -149,12 +163,21 @@ internal sealed class OrderTreeRuntime
         string? childRejection = null;
         foreach (OrdersPackage.OrderNode child in node.Children)
         {
-            string? candidate = Visit(actor, child, tick, evaluate, result, evidence);
+            string? candidate = Visit(
+                actor, child, tick, evaluate, result, evidence, enabledTags);
             childRejection ??= candidate;
         }
         return result.Count == beforeChildren
             ? childRejection ?? "no-child-eligible"
             : null;
+    }
+
+    private void ClearSubtree(ActorIdentity actor, OrdersPackage.OrderNode node)
+    {
+        _states.Remove((actor, node.Path));
+        ReleaseRejoin(node, actor);
+        foreach (OrdersPackage.OrderNode child in node.Children)
+            ClearSubtree(actor, child);
     }
 
     private void DeactivateChildren(

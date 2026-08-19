@@ -365,6 +365,9 @@ public sealed class TacticsEncodingLifecycleTests
                     : 0,
                 Rejoin: node.TryGetProperty("rejoin", out JsonElement rejoin)
                     && rejoin.ValueKind == JsonValueKind.True,
+                PhaseTag: node.TryGetProperty("phase", out JsonElement phaseTag)
+                    ? phaseTag.GetString()
+                    : null,
                 Urgency: TacticalMovementUrgency.Normal,
                 Capacity: null,
                 Selection: null,
