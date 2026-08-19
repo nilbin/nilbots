@@ -1887,9 +1887,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // blockers are often outside this body's vision cone, so the
             // open-tile read cannot know). Rest twelve ticks, probe four —
             // a successful probe step clears the counter and the march
-            // resumes; carriers never wedge (they press home regardless).
+            // resumes; carriers never wedge (they press home regardless),
+            // and a body standing on its own team's bank tile never rests
+            // there — it seals every allied bank, so it keeps pressing.
             bool wedged = false;
             if (!standing
+                && body.Position != _ownReactor
                 && _wedgedPresses.TryGetValue(
                     unitId, out (string Path, int Ticks) press)
                 && press.Path == proposal.Leaf.Node.Path

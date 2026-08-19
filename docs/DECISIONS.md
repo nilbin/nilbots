@@ -9006,4 +9006,16 @@ one move order now settle the body where it stands; it rests twelve
 ticks and probes four, so a cleared path resumes the march within a
 bounded window. The counter is per body, scoped to the order path
 (a fresh order always presses anew), cleared by any successful move,
-and never applies to carriers, who press home regardless.
+and never applies to carriers, who press home regardless — nor on the
+body's own bank tile, where resting would seal every allied bank
+(pressing there is the lesser harm; the reactor-pocket congestion that
+motivated the exception is documented below as open follow-up work).
+
+Open follow-up (owner-visible, felt-bar `stuckCarrier`): in long games
+the three-tile reactor pocket can gridlock — a banked body on the bank
+tile, its only free exits spawn-reserved pads or tiles corner-locked by
+the very carrier waiting to bank (swap forbidden), while authored
+overwatch resters hold the ring. Egress/sidestep prototypes did not
+resolve it (spawn reservations pin both parties during death-heavy
+phases); it needs a reproducible movement scene and likely
+planner-level chain displacement, not per-body heuristics.
