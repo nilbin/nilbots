@@ -752,6 +752,12 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       <section className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5" data-testid="drawer">
         {wizard ? (
           <>
+            {/* The wizard's masthead stays put while the drawer scrolls:
+                the steps, the tactic's name, and — always — Cancel and
+                Save. Saving from any step runs the same review gate; the
+                blocker prints right under the bar rather than hiding on
+                the Review tab. */}
+            <div className="sticky top-0 z-10 -mb-0.5 flex flex-col gap-2 border-b border-arena-edge bg-arena-bg pb-2">
             <div className="flex flex-wrap gap-1" data-testid="wizard-steps">
               {WIZARD_STEPS.map((step) => (
                 <button key={step.id} type="button"
@@ -764,7 +770,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <h2 className="type-display text-[15px]">{wizard.tactic.name}</h2>
+              <h2 className="type-display min-w-0 truncate text-[15px]">{wizard.tactic.name}</h2>
               <span className="pill">{recipeById(wizard.tactic.recipe).label}</span>
               <span className="grow" />
               <button type="button" className="btn" onClick={() => {
@@ -773,6 +779,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 if (wizard.editing) setSelectedTacticId(wizard.originalId);
                 else toast('Draft discarded.');
               }}>Cancel</button>
+              <button type="button" className="btn btn-primary" disabled={gate !== null}
+                title={gate ?? undefined}
+                onClick={commitWizard} data-testid="commit-tactic-header">
+                {wizard.editing ? 'Save changes' : 'Create Tactic'}
+              </button>
+            </div>
+            {gate && <p className="t-micro text-arena-hot">{gate}</p>}
             </div>
             <div className="flex flex-col gap-2.5">
               {wizard.step === 'start' && <StartStep {...stepProps} />}
@@ -785,9 +798,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               <button type="button" className="btn"
                 disabled={wizard.step === WIZARD_STEPS[0].id}
                 onClick={() => stepBy(-1)}>‹ Back</button>
-              <span className="t-micro grow text-arena-hot">
-                {wizard.step === 'review' && gate ? gate : ''}
-              </span>
+              <span className="grow" />
               {wizard.step === 'review'
                 ? <button type="button" className="btn btn-primary" disabled={gate !== null}
                   onClick={commitWizard} data-testid="commit-tactic">
