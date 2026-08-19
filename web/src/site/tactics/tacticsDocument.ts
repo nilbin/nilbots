@@ -105,6 +105,11 @@ export interface TacticTransition extends TacticCase {
 export interface TacticPost {
   at: Point;
   facing: Facing;
+  /** The squad slot this post belongs to. Explicit so a bot moved to another
+   * Group takes its post (and way in) along instead of the pairing silently
+   * shifting onto its neighbours. Absent in older documents, where posts
+   * paired with the group's slots by position — normalizeDocument stamps it. */
+  slot?: number;
   /** This post's own drawn way in — overrides the group route for its bot. */
   via?: Point[];
 }
@@ -642,16 +647,37 @@ export function normalizeDocument(document: unknown): TacticsDocument {
     throw new Error(`Not a tactics document: ${value?.schema}`);
   }
   const loaded = value as TacticsDocument;
-  // Self-healing: a way-in drawn from its destination outward (a natural
-  // gesture) is simply reversed into travel order on load — hunting the
-  // one backwards route by hand was the cumbersome part, not redrawing.
+  // Self-healing on load. Backwards way-ins flip into travel order; posts
+  // saved before they carried a `slot` are stamped with their positional
+  // pairing (the only pairing that existed); and leftovers from a Group
+  // reshuffle — a post whose bot has left, a signature mark no member's
+  // class owns, a job for a dissolved Group — are simply cleaned away.
   for (const tactic of loaded.tactics ?? []) {
     for (const phase of tactic.phases ?? []) {
-      for (const job of Object.values(phase.jobs ?? {})) {
+      for (const [groupId, job] of Object.entries(phase.jobs ?? {})) {
+        const group = tactic.groups?.find((entry) => entry.id === groupId);
+        if (!group) {
+          delete phase.jobs[groupId];
+          continue;
+        }
+        if (job.posts) {
+          job.posts.forEach((post, index) => {
+            if (post.slot == null) post.slot = group.slots[index];
+          });
+          job.posts = job.posts.filter((post) =>
+            post.slot != null && group.slots.includes(post.slot));
+          if (job.posts.length === 0) delete job.posts;
+        }
         for (const post of job.posts ?? []) {
           const flipped = reversedWayIn(post.via, post.at);
           if (flipped) post.via = flipped;
         }
+        for (const classId of Object.keys(job.sigs ?? {})) {
+          const owned = group.slots.some((slot) =>
+            loaded.squad?.find((bot) => bot.slot === slot)?.class === classId);
+          if (!owned) delete job.sigs![classId];
+        }
+        if (job.sigs && Object.keys(job.sigs).length === 0) delete job.sigs;
       }
       if (phase.custody?.via) {
         const flipped = reversedWayIn(phase.custody.via, [2, 5]);
@@ -767,8 +793,8 @@ export function validateDocument(
           continue;
         }
         validateJobGeometry(
-          job, phaseIndex === 0, group, `${phaseAt}.jobs.${group.id}`,
-          catalog, error);
+          job, phaseIndex === 0, group, document.squad,
+          `${phaseAt}.jobs.${group.id}`, catalog, error);
         if (job.travel) {
           // Travel needs an arrival for the main posture to take over at;
           // patrol/return/escort are all march. Mirrors the server.
@@ -934,6 +960,7 @@ function validateJobGeometry(
   job: TacticJob,
   firstPhase: boolean,
   group: TacticGroup,
+  squad: SquadBot[],
   at: string,
   catalog: TacticalSheetCatalog,
   error: (path: string, message: string) => void,
@@ -942,34 +969,35 @@ function validateJobGeometry(
   const anchorIssue = (point: Point) => tilePlacementIssue(catalog, point, 'anchor');
   const routeIssue = (point: Point) => tilePlacementIssue(catalog, point, 'route');
   if (expected === 'posts') {
-    if (!job.posts || job.posts.length !== group.slots.length) {
-      error(at, `${group.name} needs one post per bot (${job.posts?.length ?? 0}/${group.slots.length}).`);
-    } else {
-      for (const post of job.posts) {
-        const standing = anchorIssue(post.at);
-        if (standing) {
-          error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) stands on ${standing}.`);
-          continue;
+    const posts = job.posts ?? [];
+    const named = posts.filter((post) => post.slot != null);
+    if (named.length > 0 && named.length < posts.length) {
+      error(at, `${possessive(group.name)} posts mix named and unnamed bots — clear and redraw them.`);
+    } else if (named.length === posts.length && posts.length > 0) {
+      // Slot-keyed posts: exactly one per member, each naming a member.
+      const botName = (slot: number) =>
+        squad.find((bot) => bot.slot === slot)?.name ?? `bot ${slot + 1}`;
+      const seen = new Set<number>();
+      let sound = true;
+      for (const post of posts) {
+        if (!group.slots.includes(post.slot!)) {
+          error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) belongs to ${botName(post.slot!)}, who is not in this Group.`);
+          sound = false;
+        } else if (seen.has(post.slot!)) {
+          error(at, `${botName(post.slot!)} has two posts in ${group.name}.`);
+          sound = false;
         }
-        const faced = postFacingIssue(catalog, post);
-        if (faced) {
-          error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) faces ${faced} — turn its arrow.`);
-        }
-        if (post.via) {
-          if (post.via.length < 2) {
-            error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with fewer than two points.`);
-          } else if (post.via.length > 16) {
-            error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with more than 16 points.`);
-          } else {
-            for (const point of post.via) {
-              const bad = routeIssue(point);
-              if (bad) {
-                error(at, `${possessive(group.name)} way-in point (${point[0]},${point[1]}) is ${bad}.`);
-              }
-            }
-          }
-        }
+        seen.add(post.slot!);
       }
+      const missing = group.slots.filter((slot) => !seen.has(slot));
+      if (sound && missing.length > 0) {
+        error(at, `${group.name} still needs posts for ${missing.map(botName).join(', ')} (${posts.length}/${group.slots.length} placed).`);
+      }
+      validatePostTiles(posts, group, at, anchorIssue, routeIssue, catalog, error);
+    } else if (posts.length !== group.slots.length) {
+      error(at, `${group.name} needs one post per bot (${posts.length}/${group.slots.length}).`);
+    } else {
+      validatePostTiles(posts, group, at, anchorIssue, routeIssue, catalog, error);
     }
   } else if (expected === 'rect') {
     if (!job.rect) error(at, `${group.name} needs its area drawn.`);
@@ -1014,6 +1042,46 @@ function validateJobGeometry(
   }
 }
 
+function validatePostTiles(
+  posts: TacticPost[],
+  group: TacticGroup,
+  at: string,
+  anchorIssue: (point: Point) => string | null,
+  routeIssue: (point: Point) => string | null,
+  catalog: TacticalSheetCatalog,
+  error: (path: string, message: string) => void,
+) {
+  const tiles = new Set<string>();
+  for (const post of posts) {
+    if (!tiles.add(`${post.at[0]},${post.at[1]}`)) {
+      error(at, `${possessive(group.name)} posts share the tile (${post.at[0]},${post.at[1]}) — move one.`);
+    }
+    const standing = anchorIssue(post.at);
+    if (standing) {
+      error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) stands on ${standing}.`);
+      continue;
+    }
+    const faced = postFacingIssue(catalog, post);
+    if (faced) {
+      error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) faces ${faced} — turn its arrow.`);
+    }
+    if (post.via) {
+      if (post.via.length < 2) {
+        error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with fewer than two points.`);
+      } else if (post.via.length > 16) {
+        error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with more than 16 points.`);
+      } else {
+        for (const point of post.via) {
+          const bad = routeIssue(point);
+          if (bad) {
+            error(at, `${possessive(group.name)} way-in point (${point[0]},${point[1]}) is ${bad}.`);
+          }
+        }
+      }
+    }
+  }
+}
+
 /** Advance and patrol carry their own route; escort follows a body; none
  * carries the previous phase's plan. */
 export function viaLegal(kind: JobKind): boolean {
@@ -1036,6 +1104,244 @@ export function expectedGeometry(
 export function jobHasGeometry(job: TacticJob | null): boolean {
   if (!job) return false;
   return Boolean(job.posts?.length || job.rect || (job.path?.length ?? 0) > 1 || job.point);
+}
+
+/** What a bot sitting in the unassigned tray still owns: its post per phase,
+ * and any signature marks whose class left a Group with it. The Groups step
+ * holds one of these so a two-step move — Group to tray, tray to Group —
+ * carries a bot's belongings across the stop in between. */
+export interface PocketedConfig {
+  /** The Group the bot left — a new Group it lands in seeds from there. */
+  from?: string;
+  posts: Map<string, TacticPost>;
+  sigs: Map<string, Record<string, SignatureMark>>;
+}
+export type MembershipPocket = Map<number, PocketedConfig>;
+
+/** After Group membership changes, per-bot config follows the bots. A moved
+ * bot's post — drawn way in included — leaves its old Group's job and joins
+ * its new Group's posts job in every phase; a signature mark whose class no
+ * longer has an owner in its old Group follows the leaver; and a Group that
+ * was empty before (just created, usually) inherits a copy of its bots' one
+ * source Group's job per phase, so splitting a Group changes nothing on the
+ * ground until the halves are edited apart. Whatever a departing bot cannot
+ * take along is cleaned away rather than left to shift silently onto the
+ * old Group's remaining bots.
+ *
+ * `before` is the membership before the change; `pocket` keeps unassigned
+ * bots' belongings across a two-step move. Returns a short summary of what
+ * followed or was cleaned — null when nothing had to move. */
+export function followMembership(
+  tactic: Tactic,
+  squad: SquadBot[],
+  before: { id: string; slots: number[] }[],
+  pocket?: MembershipPocket,
+): string | null {
+  const prevGroupOf = new Map<number, string>();
+  for (const entry of before) {
+    for (const slot of entry.slots) prevGroupOf.set(slot, entry.id);
+  }
+  const nowGroupOf = new Map<number, string>();
+  for (const group of tactic.groups) {
+    for (const slot of group.slots) nowGroupOf.set(slot, group.id);
+  }
+  const movers = new Set<number>();
+  for (const slot of new Set([...prevGroupOf.keys(), ...nowGroupOf.keys()])) {
+    if (prevGroupOf.get(slot) !== nowGroupOf.get(slot)) movers.add(slot);
+  }
+  if (movers.size === 0) return null;
+
+  // A Group that was empty (or absent) before the change and drew all its
+  // bots from one source Group inherits that source's jobs where blank. A
+  // bot arriving from the tray counts by the Group it left when pocketed,
+  // so the click flow — unassign, then place — seeds just like a drag.
+  const seedSource = new Map<string, string>();
+  for (const group of tactic.groups) {
+    const wasEmpty =
+      (before.find((entry) => entry.id === group.id)?.slots.length ?? 0) === 0;
+    if (!wasEmpty || group.slots.length === 0) continue;
+    const sources = new Set(group.slots.map((slot) =>
+      prevGroupOf.get(slot) ?? pocket?.get(slot)?.from));
+    if (sources.size !== 1) continue;
+    const [source] = sources;
+    if (source && source !== group.id) seedSource.set(group.id, source);
+  }
+
+  const classOf = (slot: number) =>
+    squad.find((bot) => bot.slot === slot)?.class;
+  const stash = (slot: number): PocketedConfig => {
+    let entry = pocket!.get(slot);
+    if (!entry) {
+      entry = { posts: new Map(), sigs: new Map() };
+      pocket!.set(slot, entry);
+    }
+    return entry;
+  };
+  let seededJobs = 0;
+  let followedPosts = 0;
+  let followedSigs = 0;
+  let cleanedPosts = 0;
+  let pocketedPosts = 0;
+
+  for (const phase of tactic.phases) {
+    // Capture every bot's post under the OLD membership (jobs are still
+    // keyed to it), topped up from the pocket for bots leaving the tray.
+    const postOf = new Map<number, TacticPost>();
+    for (const entry of before) {
+      const job = phase.jobs[entry.id];
+      job?.posts?.forEach((post, index) => {
+        const slot = post.slot ?? entry.slots[index];
+        if (slot != null && !postOf.has(slot)) postOf.set(slot, post);
+      });
+    }
+    for (const slot of movers) {
+      if (postOf.has(slot)) continue;
+      const kept = pocket?.get(slot)?.posts.get(phase.id);
+      if (kept) postOf.set(slot, kept);
+    }
+
+    // Seed brand-new Groups from their source before rebuilding, so a split
+    // keeps kind, posture, travel, recovery and ground identical.
+    for (const [groupId, sourceId] of seedSource) {
+      const current = phase.jobs[groupId];
+      const blank = !current
+        || (current.kind === 'none' && !jobHasGeometry(current)
+          && !current.sigs && !current.via);
+      const source = phase.jobs[sourceId];
+      if (!blank || !source) continue;
+      const seeded = structuredClone(source);
+      delete seeded.posts; // rebuilt below from the movers' own posts
+      delete seeded.sigs; // moved below only when a class left entirely
+      phase.jobs[groupId] = seeded;
+      seededJobs++;
+    }
+
+    // Rebuild every Group's posts from the captured pairing: stayers keep
+    // theirs, movers' posts arrive, departed bots' posts leave. A job that
+    // takes no posts, or a tile already taken, drops the incoming post
+    // rather than lying about who stands where.
+    for (const group of tactic.groups) {
+      const job = phase.jobs[group.id];
+      if (!job) continue;
+      if (job.kind !== 'posts') {
+        delete job.posts;
+        continue;
+      }
+      const tiles = new Set<string>();
+      const rebuilt: TacticPost[] = [];
+      for (const slot of group.slots) {
+        const post = postOf.get(slot);
+        if (!post) continue;
+        const tile = `${post.at[0]},${post.at[1]}`;
+        if (tiles.has(tile)) continue;
+        tiles.add(tile);
+        rebuilt.push({ ...structuredClone(post), slot });
+      }
+      if (rebuilt.length > 0) job.posts = rebuilt;
+      else delete job.posts;
+    }
+    for (const slot of movers) {
+      const post = postOf.get(slot);
+      if (!post) continue;
+      const destination = nowGroupOf.get(slot);
+      if (destination == null) {
+        if (pocket) {
+          const kept = stash(slot);
+          kept.from = kept.from ?? prevGroupOf.get(slot);
+          kept.posts.set(phase.id, structuredClone(post));
+          pocketedPosts++;
+        } else {
+          cleanedPosts++;
+        }
+        continue;
+      }
+      if (phase.jobs[destination]?.posts?.some((entry) => entry.slot === slot)) {
+        followedPosts++;
+      } else {
+        cleanedPosts++;
+      }
+    }
+
+    // Signature marks: one whose class no longer has an owner in its old
+    // Group follows the leaver of that class; unowned leftovers are cleaned.
+    for (const entry of before) {
+      const source = phase.jobs[entry.id];
+      if (!source?.sigs) continue;
+      const remaining = tactic.groups.find((group) => group.id === entry.id);
+      for (const [classId, mark] of Object.entries(source.sigs)) {
+        const stillOwned = remaining?.slots.some(
+          (slot) => classOf(slot) === classId) ?? false;
+        if (stillOwned) continue;
+        delete source.sigs[classId];
+        const leaver = entry.slots.find(
+          (slot) => movers.has(slot) && classOf(slot) === classId);
+        if (leaver == null) continue;
+        const destination = nowGroupOf.get(leaver);
+        if (destination == null) {
+          if (pocket) {
+            const pocketed = stash(leaver);
+            pocketed.from = pocketed.from ?? entry.id;
+            const kept = pocketed.sigs.get(phase.id) ?? {};
+            kept[classId] = structuredClone(mark);
+            pocketed.sigs.set(phase.id, kept);
+          }
+          continue;
+        }
+        const job = phase.jobs[destination];
+        if (!job) continue;
+        job.sigs = job.sigs ?? {};
+        if (!job.sigs[classId]) {
+          job.sigs[classId] = structuredClone(mark);
+          followedSigs++;
+        }
+      }
+      if (Object.keys(source.sigs).length === 0) delete source.sigs;
+    }
+    for (const slot of movers) {
+      const destination = nowGroupOf.get(slot);
+      if (destination == null) continue;
+      const kept = pocket?.get(slot)?.sigs.get(phase.id);
+      if (!kept) continue;
+      const job = phase.jobs[destination];
+      if (!job) continue;
+      for (const [classId, mark] of Object.entries(kept)) {
+        if (classOf(slot) !== classId) continue;
+        job.sigs = job.sigs ?? {};
+        if (!job.sigs[classId]) {
+          job.sigs[classId] = mark;
+          followedSigs++;
+        }
+      }
+    }
+
+    // A dissolved Group's job entries were captured above and can now go.
+    for (const groupId of Object.keys(phase.jobs)) {
+      if (!tactic.groups.some((group) => group.id === groupId)) {
+        delete phase.jobs[groupId];
+      }
+    }
+  }
+
+  if (pocket) {
+    for (const slot of movers) {
+      if (nowGroupOf.get(slot) != null) pocket.delete(slot);
+    }
+  }
+
+  const plural = (count: number) => (count === 1 ? '' : 's');
+  const parts: string[] = [];
+  if (seededJobs > 0) parts.push('jobs copied to the new Group');
+  if (followedPosts > 0) {
+    parts.push(`${followedPosts} post${plural(followedPosts)} followed`);
+  }
+  if (followedSigs > 0) {
+    parts.push(`${followedSigs} mark${plural(followedSigs)} followed`);
+  }
+  if (pocketedPosts > 0) parts.push('their posts wait in the tray');
+  if (cleanedPosts > 0) {
+    parts.push(`${cleanedPosts} old post${plural(cleanedPosts)} cleaned away`);
+  }
+  return parts.length > 0 ? `${parts.join(' · ')}.` : null;
 }
 
 export function activeCondCount(conds: TacticConds | undefined): number {

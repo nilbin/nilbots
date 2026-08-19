@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BotChip } from './BotChip';
 import { ChoiceCards } from './ChoiceCards';
@@ -15,10 +15,11 @@ import type { MapTask, WatchTarget } from './useMapTask';
 import {
   ABORT_ROWS, CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES,
   RECOVERIES, START_ROWS, TRANSITION_ROWS,
-  effectiveJob, freshJob, freshPhase, groupColor, jobOf, phaseShade,
-  signatureMarkGeometry,
+  effectiveJob, followMembership, freshJob, freshPhase, groupColor, jobOf,
+  phaseShade, signatureMarkGeometry,
   tacticCanFinish, viaLegal,
-  type CondKind, type CustodyPlan, type DrawKind, type JobKind, type Posture,
+  type CondKind, type CustodyPlan, type DrawKind, type JobKind,
+  type MembershipPocket, type Posture,
   type Recovery, type Tactic, type TacticGroup, type TacticTransition,
   type TacticsDocument,
 } from './tacticsDocument';
@@ -59,6 +60,8 @@ export interface StepProps {
   addDeliverCore?: () => void;
   /** A map click on a posted bot briefly flashes its way-in row. */
   highlightPost?: { groupId: string; postIndex: number } | null;
+  /** Transient feedback toast — what a reshuffle carried along, and such. */
+  notify?: (text: string) => void;
 }
 
 // One vocabulary per context (mirrors the server's row lists), grouped by
@@ -176,7 +179,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
   </>;
 }
 
-export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps) {
+export function GroupsStep({ catalog, document, wizard, change, arm, notify }: StepProps) {
   const tactic = wizard.tactic;
   const unassigned = unassignedSlots(tactic, document);
   const assigned = assignedCount(tactic);
@@ -184,14 +187,36 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
   // HTML5 drag state: which slot is airborne, and which box would take it.
   const [dragSlot, setDragSlot] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<string | null>(null);
-  const place = (slot: number, groupId: string | null) => change((next) => {
+  // Belongings of bots parked in the tray mid-move: a Group→tray→Group
+  // shuffle keeps posts and marks across the stop. Session-local on purpose.
+  const pocket = useRef<MembershipPocket>(new Map());
+  /** Every membership change routes through here so each phase's per-bot
+   * config — posts, ways in, signature marks — follows the bots instead of
+   * silently shifting onto whoever remains. Applied eagerly on a clone (not
+   * inside the state updater) so the pocket and the toast see exactly one
+   * run even where React double-invokes updaters. */
+  const rehome = (mutate: (next: Tactic) => void) => {
+    const next = structuredClone(tactic);
+    const before = next.groups.map((group) => ({
+      id: group.id, slots: [...group.slots],
+    }));
+    mutate(next);
+    const summary = followMembership(
+      next, document.squad, before, pocket.current);
+    change((draft) => {
+      draft.groups = next.groups;
+      draft.phases = next.phases;
+    });
+    if (summary) notify?.(summary);
+  };
+  const place = (slot: number, groupId: string | null) => rehome((next) => {
     for (const group of next.groups) {
       group.slots = group.slots.filter((value) => value !== slot);
     }
     if (groupId) next.groups.find((group) => group.id === groupId)?.slots.push(slot);
   });
   /** Dropping one bot onto another swaps their group memberships. */
-  const swap = (a: number, b: number) => change((next) => {
+  const swap = (a: number, b: number) => rehome((next) => {
     if (a === b) return;
     const home = (slot: number) =>
       next.groups.find((group) => group.slots.includes(slot)) ?? null;
@@ -294,9 +319,10 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
             <button type="button" className="btn" title="Dissolve group"
               onClick={(event) => {
                 event.stopPropagation();
-                change((next) => {
+                // rehome pockets the freed bots' posts and marks before the
+                // dissolved Group's job entries are cleaned away.
+                rehome((next) => {
                   next.groups = next.groups.filter((value) => value.id !== group.id);
-                  for (const phase of next.phases) delete phase.jobs[group.id];
                 });
               }}>✕</button>
           )}
@@ -347,7 +373,7 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
       )}
       <span className="grow" />
       <button type="button" className="btn" disabled={!squadReady}
-        onClick={() => change((next) => {
+        onClick={() => rehome((next) => {
           const weight = (group: TacticGroup) =>
             group.slots.length / (wizard.hints.targetSizes.get(group.id) ?? 8);
           for (const slot of unassignedSlots(next, document)) {
@@ -673,7 +699,7 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
         // Per-post ways in: each bot can sneak to its own post by its own
         // drawn route instead of the direct path through the middle.
         job.posts!.map((post, index) => {
-          const bot = document.squad[group.slots[index]];
+          const bot = document.squad[post.slot ?? group.slots[index]];
           const mine = task?.kind === 'job' && task.groupId === group.id
             && task.phaseIndex === phaseIndex && task.field === 'via'
             && task.postIndex === index;

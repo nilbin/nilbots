@@ -155,12 +155,26 @@ What a group DOES lives in each phase's job for it.
   "travel"?: "wait|hold|aggressive|steal|escort|observe",
   "recovery": "fight-on|patch|heal-tile|heal-up",
   // exactly the geometry its kind requires (as v1's stage/act):
-  "posts": [ { "at": [x,y], "facing": "n|e|s|w", "via"?: […] }, … ],
+  "posts": [ { "at": [x,y], "facing": "n|e|s|w", "slot"?: n, "via"?: […] }, … ],
   "rect": [x1,y1,x2,y2], "path": [[x,y]… 2..16], "point": [x,y],
   "via": [[x,y]… 2..16],               // posts/area/line/approach/converge/return
   "sigs": { "<classId>": mark }         // per phase now (was per stage/act)
 }
 ```
+
+A post's optional `slot` names the bot it belongs to. Without it (older
+documents), posts pair with the group's `slots` by position. With it, every
+post in the job must carry one, each must name a distinct group member, and
+the compiler pairs by name regardless of array order — one post per bot
+either way. The editor always writes `slot` (stamping older documents on
+load), because explicit pairing is what lets a bot moved to another Group
+take its post — drawn way in included — along, instead of the positional
+pairing silently shifting onto the bots that stayed. On any Group membership
+change the editor follows through: movers' posts and orphaned signature
+marks travel to their new Group (a brand-new Group also inherits a copy of
+the source Group's job per phase, so a split changes nothing on the ground
+until edited apart), and whatever cannot travel is cleaned out of the old
+Group's jobs rather than left behind.
 
 `kind: "none"` means **carry on**: the group keeps its nearest earlier
 geometric job under THIS phase's posture, travel and recovery. On the first

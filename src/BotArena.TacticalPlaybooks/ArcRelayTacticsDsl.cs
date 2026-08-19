@@ -801,11 +801,34 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     $"posts must match the group's {group.Slots.Count} bots, one each.");
             }
             posts = [];
+            // The editor names each post's bot with an explicit squad slot
+            // so a bot moved to another group takes its post along; older
+            // documents pair posts with the group's slots by position. The
+            // two must not mix, and named posts are reordered into slot
+            // order below so everything downstream stays positional.
+            var postSlots = new List<int?>();
             var tiles = new HashSet<string>(StringComparer.Ordinal);
+            var namedSlots = new HashSet<int>();
             for (int index = 0; index < postValues.Length; index++)
             {
                 string at = $"{path}.posts[{index}]";
-                Object(postValues[index], at, ["at", "facing"], ["via"]);
+                Object(postValues[index], at, ["at", "facing"], ["via", "slot"]);
+                int? postSlot = null;
+                if (postValues[index].TryGetProperty(
+                        "slot", out JsonElement postSlotValue))
+                {
+                    if (postSlotValue.ValueKind != JsonValueKind.Number
+                        || !postSlotValue.TryGetInt32(out int parsedSlot)
+                        || !group.Slots.Contains(parsedSlot))
+                    {
+                        throw Error($"{at}.slot",
+                            "a post's slot names one of the group's bots.");
+                    }
+                    if (!namedSlots.Add(parsedSlot))
+                        throw Error($"{at}.slot", "two posts name the same bot.");
+                    postSlot = parsedSlot;
+                }
+                postSlots.Add(postSlot);
                 int[] tile = BoundedPoint(
                     postValues[index].GetProperty("at"), $"{at}.at",
                     width, height);
@@ -829,6 +852,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     }
                 }
                 posts.Add(new ArcRelayTacticPost(tile, facing, postVia));
+            }
+            if (namedSlots.Count > 0)
+            {
+                if (namedSlots.Count != posts.Count)
+                {
+                    throw Error($"{path}.posts",
+                        "posts mix named and unnamed bots — name every post's slot or none.");
+                }
+                // Count equality plus uniqueness plus membership makes the
+                // named slots exactly the group's: pair by name, in the
+                // group's slot order, so the rest of the compiler keeps its
+                // positional view.
+                List<ArcRelayTacticPost> paired = posts;
+                posts = group.Slots
+                    .Select(slot => paired[postSlots.IndexOf(slot)])
+                    .ToList();
             }
         }
         else if (expectedGeometry == "rect")

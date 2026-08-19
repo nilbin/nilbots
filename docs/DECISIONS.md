@@ -9293,3 +9293,33 @@ picks corridor-versus-direct within it. Verified in the practice-seed
 trace: the squad walks p2→p3→p4 while the carrier reads t1/p2 · bank to
 the moment it banks, then rejoins p4. Direct unit tests cover latch
 persistence, dissolution, respawn, pass handoff, and the legacy null path.
+
+## 349. Group membership follows the bots: slot-named posts
+
+Owner pain point: start with all eight in one Group, author phases of
+posts and ways in, then split some bots into their own Group — nothing
+followed, and the old Group's positional posts silently shifted onto the
+bots that stayed (removal from an ordered array re-paired everyone after
+it; the toggle-remove in the draw task had the same wobble). Root cause
+was representational: posts paired with `group.slots` by array position.
+A post now names its bot with an explicit `slot` (TS + C# DSL, optional
+key — legacy documents keep positional pairing, the editor stamps them on
+load; the DSL validates named posts as a bijection onto the group and
+reorders them into slot order so the materializer stays positional; the
+fixtures/goldens are untouched, proving legacy identity). On any
+membership change the editor routes through one reconciler
+(`followMembership`): movers' posts — ways in included — travel to their
+new Group's posts job; a signature mark whose class lost its last owner
+follows the leaver; a Group that was empty before and drew its bots from
+one source inherits a copy of that source's job per phase, so a split is
+a pure refactor — the split document validates with nothing redrawn; and
+whatever cannot travel is cleaned out of the old Group's jobs, never left
+to lie. The two-step click flow (unassign to the tray, then place) keeps
+belongings in a session pocket that also remembers the source Group, so
+it seeds like a direct drag. The owner floated a prompt for whether
+config should follow; copying is the only default that keeps the
+document valid mid-shuffle (every Group needs a job per phase), so the
+editor follows automatically and reports what moved in a toast instead
+of asking. normalizeDocument gains the matching self-heals: stamp
+positional posts with slots, drop posts whose bot left, drop unowned
+marks, drop a dissolved Group's job entries.

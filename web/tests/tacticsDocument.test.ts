@@ -3,10 +3,12 @@ import test from 'node:test';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import { instantiateRecipe, recipeById } from '../src/site/tactics/recipes';
 import {
-  blankDocument, migrateDocument, normalizeDocument, parseDocument,
+  blankDocument, followMembership, freshJob, migrateDocument,
+  normalizeDocument, parseDocument,
   signatureMarkGeometry, validateDocument,
-  type Tactic, type TacticsDocument,
+  type MembershipPocket, type Tactic, type TacticsDocument,
 } from '../src/site/tactics/tacticsDocument';
+import { freshGroup } from '../src/site/tactics/recipes';
 import { parseTacticAttribution, attributionLabel } from '../src/site/tactics/practice';
 import { summarize } from '../src/site/tactics/summary';
 import { orderIdLabel } from '../src/site/tactics/practice';
@@ -546,4 +548,154 @@ test('practice attribution maps program ids back to Tactic, Group and named phas
     'orders:vex > t1 > t1-go > t1-g2-a-move:eligibility[…]', document);
   assert.equal(legacy?.phaseOrdinal, 2);
   assert.equal(legacy?.groupName, 'Flankers');
+});
+
+// ——— Group membership follows the bots ————————————————————————————————————
+
+/** The drawn pincer plus the per-bot extras a real sheet accumulates: a way
+ * in on the second post and a signature mark owned by that bot's class. */
+function splitReady(document: TacticsDocument): Tactic {
+  const tactic = drawnPincer(document);
+  const guard = tactic.groups[0];
+  const job = tactic.phases[0].jobs[guard.id];
+  job.posts![1].via = [[20, 20], [16, 14]];
+  job.sigs = { longshot: { line: [[15, 13], [15, 12]] } };
+  return tactic;
+}
+
+function membershipSnapshot(tactic: Tactic) {
+  return tactic.groups.map((group) => ({ id: group.id, slots: [...group.slots] }));
+}
+
+test('splitting bots out of a Group takes their posts, ways in and marks along', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = splitReady(document);
+  document.tactics.push(tactic);
+  const guard = tactic.groups[0];
+  const before = membershipSnapshot(tactic);
+  const fresh = freshGroup(tactic.groups);
+  tactic.groups.push(fresh);
+  for (const phase of tactic.phases) phase.jobs[fresh.id] = freshJob('none', 'hold');
+  guard.slots = [5];
+  fresh.slots = [2];
+  const summary = followMembership(tactic, document.squad, before);
+  assert.ok(summary && /followed/.test(summary));
+  // The new Group inherited the source job per phase; the mover's post —
+  // way in included — and its class's mark came along.
+  const seeded = tactic.phases[0].jobs[fresh.id];
+  assert.equal(seeded.kind, 'posts');
+  assert.deepEqual(
+    seeded.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
+    [[2, 16, 14]]);
+  assert.deepEqual(seeded.posts![0].via, [[20, 20], [16, 14]]);
+  assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['longshot']);
+  // The old Group was cleaned: no post, no mark of the departed bot.
+  const kept = tactic.phases[0].jobs[guard.id];
+  assert.deepEqual(
+    kept.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
+    [[5, 14, 12]]);
+  assert.equal(kept.sigs, undefined);
+  // Nothing needs redrawing: the split document still validates cleanly.
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'),
+    []);
+});
+
+test('a two-step move through the tray keeps a bot’s belongings in the pocket', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = splitReady(document);
+  document.tactics.push(tactic);
+  const guard = tactic.groups[0];
+  const pocket: MembershipPocket = new Map();
+  // Step one: unassign the posted bot — its post and mark wait in the tray.
+  let before = membershipSnapshot(tactic);
+  guard.slots = [5];
+  let summary = followMembership(tactic, document.squad, before, pocket);
+  assert.ok(summary && /tray/.test(summary));
+  assert.equal(tactic.phases[0].jobs[guard.id].posts!.length, 1);
+  assert.ok(pocket.get(2)?.posts.get(tactic.phases[0].id));
+  // Step two: place it into a brand-new Group — the pocket remembers where
+  // it came from, so the new Group seeds and the post lands.
+  before = membershipSnapshot(tactic);
+  const fresh = freshGroup(tactic.groups);
+  tactic.groups.push(fresh);
+  for (const phase of tactic.phases) phase.jobs[fresh.id] = freshJob('none', 'hold');
+  fresh.slots = [2];
+  summary = followMembership(tactic, document.squad, before, pocket);
+  assert.ok(summary && /followed/.test(summary));
+  const seeded = tactic.phases[0].jobs[fresh.id];
+  assert.equal(seeded.kind, 'posts');
+  assert.deepEqual(
+    seeded.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
+    [[2, 16, 14]]);
+  assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['longshot']);
+  assert.equal(pocket.has(2), false);
+});
+
+test('a post is cleaned away — never misassigned — when its bot joins area work', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = splitReady(document);
+  document.tactics.push(tactic);
+  const guard = tactic.groups[0];
+  const flankers = tactic.groups[1];
+  const before = membershipSnapshot(tactic);
+  // The posted longshot joins the flankers, whose jobs are area/point work.
+  guard.slots = [5];
+  flankers.slots = [...flankers.slots, 2];
+  const summary = followMembership(tactic, document.squad, before);
+  assert.ok(summary && /cleaned/.test(summary));
+  assert.equal(tactic.phases[0].jobs[guard.id].posts!.length, 1);
+  assert.equal(tactic.phases[0].jobs[flankers.id].posts, undefined);
+  // The mark still followed — the flankers own the class now.
+  assert.deepEqual(
+    Object.keys(tactic.phases[0].jobs[flankers.id].sigs ?? {}), ['longshot']);
+  assert.equal(tactic.phases[0].jobs[guard.id].sigs, undefined);
+});
+
+test('swapping bots across Groups leaves no post behind on the wrong bot', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  document.tactics.push(tactic);
+  const guard = tactic.groups[0];
+  const flankers = tactic.groups[1];
+  const before = membershipSnapshot(tactic);
+  // Swap the guard's palisade (slot 5, first post) with a flanker (slot 0).
+  guard.slots = [2, 0];
+  flankers.slots = [1, 3, 4, 6, 7, 5];
+  followMembership(tactic, document.squad, before);
+  const posts = tactic.phases[0].jobs[guard.id].posts!;
+  // Slot 2 keeps ITS post — the pairing must not shift onto the newcomer.
+  assert.deepEqual(
+    posts.map((post) => [post.slot, post.at[0], post.at[1]]),
+    [[2, 16, 14]]);
+  // The newcomer has no post yet, and validation names exactly who.
+  const messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) =>
+    /still needs posts for Bot0 \(1\/2 placed\)/.test(message)));
+});
+
+test('normalize stamps positional posts with slots and cleans reshuffle leftovers', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const guard = tactic.groups[0];
+  const job = tactic.phases[0].jobs[guard.id];
+  // A leftover post beyond the membership, an unowned mark, and a job for a
+  // Group that no longer exists — the shape a pre-slot reshuffle left behind.
+  job.posts!.push({ at: [18, 18], facing: 'n' });
+  job.sigs = { kestrel: { line: [[10, 10], [10, 11]] } };
+  tactic.phases[0].jobs['ghost-group'] = freshJob('area', 'hold');
+  document.tactics.push(tactic);
+  const healed = normalizeDocument(JSON.parse(JSON.stringify(document)));
+  const healedTactic = healed.tactics[0];
+  const healedJob = healedTactic.phases[0].jobs[guard.id];
+  assert.deepEqual(
+    healedJob.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
+    [[5, 14, 12], [2, 16, 14]]);
+  assert.equal(healedJob.sigs, undefined);
+  assert.equal(healedTactic.phases[0].jobs['ghost-group'], undefined);
 });

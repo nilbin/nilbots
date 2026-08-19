@@ -303,6 +303,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     wizard: wizard!,
     task,
     change: changeWizard,
+    notify: toast,
     arm: (slot) => setWizard((current) => current && { ...current, armedSlot: slot }),
     selectPhase: (index) => setWizard((current) =>
       current && { ...current, phaseIndex: index }),
@@ -388,9 +389,15 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         return;
       }
       changeWizard((tactic) => {
+        const owner = tactic.groups.find((value) => value.id === task.groupId);
         const target = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
-        if (!target) return;
+        if (!owner || !target) return;
         target.posts = target.posts ?? [];
+        // Posts belong to bots by explicit slot; stamp any drawn before that
+        // existed so one array never mixes named and positional pairing.
+        target.posts.forEach((post, index) => {
+          if (post.slot == null) post.slot = owner.slots[index];
+        });
         const existing = target.posts.findIndex((post) => post.at[0] === x && post.at[1] === y);
         if (existing >= 0) target.posts.splice(existing, 1);
         else {
@@ -400,7 +407,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             ? ['e', 'n', 's', 'w'] : ['w', 'n', 's', 'e'];
           const facing = order.find((value) =>
             !postFacingIssue(catalog, { at: [x, y], facing: value })) ?? order[0];
-          target.posts.push({ at: [x, y], facing });
+          const slot = owner.slots.find((value) =>
+            !target.posts!.some((post) => post.slot === value));
+          target.posts.push({ at: [x, y], facing, slot });
         }
       });
       if (!removing && posts.length + 1 >= cap) endTask();

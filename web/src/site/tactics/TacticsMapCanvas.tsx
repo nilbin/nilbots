@@ -634,7 +634,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
         const wr = .95;
         const tipX = cx + Math.cos(angle) * .88;
         const tipY = cy + Math.sin(angle) * .88;
-        const bot = bots[group.slots[index]];
+        const bot = bots[post.slot ?? group.slots[index]];
         const entry = bot ? catalog.classes.find((value) => value.id === bot.class) : null;
         const sprite = bot ? classSprite(bot.class) : undefined;
         // Facing angle in degrees: sprites are authored facing east (0°), the

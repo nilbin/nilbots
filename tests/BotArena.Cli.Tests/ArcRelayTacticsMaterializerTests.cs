@@ -760,6 +760,90 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void SlotNamedPostsPairByBotNotByPosition()
+    {
+        // The editor names each post's bot with its squad slot so a Group
+        // reshuffle can carry posts along. Listing them in any order must
+        // not shuffle who stands where: reversed here, Gantry (slot 2) owns
+        // the FIRST entry and its drawn way in; Ember walks in direct.
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["tactics"]![0]!["groups"]![0]!["stage"]!["posts"] =
+            JsonNode.Parse(
+                """
+                [
+                  {"at": [16, 14], "facing": "n", "slot": 2,
+                   "via": [[6, 21], [10, 23]]},
+                  {"at": [14, 12], "facing": "e", "slot": 5}
+                ]
+                """);
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        string RoleStageVia(string roleId)
+        {
+            JsonElement role = orders.RootElement.GetProperty("roles")
+                .EnumerateArray()
+                .Single(value => value.GetProperty("id").GetString() == roleId);
+            JsonElement move = role.GetProperty("orders").EnumerateArray()
+                .First().GetProperty("orders").EnumerateArray()
+                .Single(node => node.TryGetProperty("id", out JsonElement id)
+                    && id.GetString() == "t1-p1")
+                .GetProperty("orders").EnumerateArray()
+                .Single(node => node.TryGetProperty("id", out JsonElement id)
+                    && id.GetString() == "t1-p1-g1-move");
+            return move.GetProperty("move").TryGetProperty(
+                    "via", out JsonElement via)
+                ? via.GetString()!
+                : "none";
+        }
+        Assert.Equal("g-t1-g1-in-1", RoleStageVia("gantry"));
+        Assert.Equal("none", RoleStageVia("ember"));
+    }
+
+    [Fact]
+    public void APostForABotOutsideTheGroupIsRefused()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        JsonArray posts = document["tactics"]![0]!["groups"]![0]!["stage"]!
+            ["posts"]!.AsArray();
+        posts[0]!["slot"] = 7;
+        posts[1]!["slot"] = 5;
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("names one of the group's bots", error.Message);
+    }
+
+    [Fact]
+    public void TwoPostsForTheSameBotAreRefused()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        JsonArray posts = document["tactics"]![0]!["groups"]![0]!["stage"]!
+            ["posts"]!.AsArray();
+        posts[0]!["slot"] = 5;
+        posts[1]!["slot"] = 5;
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("two posts name the same bot", error.Message);
+    }
+
+    [Fact]
+    public void PostsMustNameEveryBotOrNone()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        JsonArray posts = document["tactics"]![0]!["groups"]![0]!["stage"]!
+            ["posts"]!.AsArray();
+        posts[0]!["slot"] = 5;
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("mix named and unnamed bots", error.Message);
+    }
+
+    [Fact]
     public void SignatureMarksRequireTheClassInTheGroup()
     {
         JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();

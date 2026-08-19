@@ -50,7 +50,15 @@ export function jobComplete(
   const expected = expectedGeometry(job.kind);
   if (expected === null) return true;
   if (expected === 'posts') {
-    return (job.posts?.length ?? 0) === group.slots.length && group.slots.length > 0;
+    if (group.slots.length === 0) return false;
+    const posts = job.posts ?? [];
+    // Slot-keyed posts are complete when every member is covered; posts
+    // from before slots existed pair positionally, so count suffices.
+    if (posts.some((post) => post.slot != null)) {
+      return group.slots.every((slot) =>
+        posts.some((post) => post.slot === slot));
+    }
+    return posts.length === group.slots.length;
   }
   if (expected === 'rect') return Boolean(job.rect);
   if (expected === 'point') return Boolean(job.point);
