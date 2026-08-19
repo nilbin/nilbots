@@ -673,36 +673,54 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
       {(() => {
         // Travel needs an arrival to hand over at — hide it where the job
         // is all march (patrol/return/escort) or carries nothing forward.
-        const arrivalKind = job.kind === 'none' ? carried?.kind : job.kind;
-        return Boolean(arrivalKind)
-          && !['patrol', 'return', 'escort'].includes(arrivalKind!);
-      })() && <>
-        <div className="lab">On the way <span className="text-arena-dim">(optional)</span></div>
-        <SegChips
-          options={[
-            { id: 'same', label: 'Same as here' },
-            { id: 'wait', label: 'Quietly' },
-            { id: 'hold', label: 'Answer attacks' },
-            { id: 'aggressive', label: 'Brawl in' },
-          ]}
-          value={job.travel ?? 'same'}
-          accent={color}
-          onChange={(travel) => mutateJob((target) => {
-            if (travel === 'same') delete target.travel;
-            else target.travel = travel as Posture;
-          })} />
-        <p className="t-micro mb-1 text-arena-dim">
-          {{
-            same: 'One posture for the march and the ground.',
-            wait: 'March quietly without picking fights; the main posture takes over once set.',
-            hold: 'Answer attacks on the way without chasing; the main posture takes over once set.',
-            aggressive: 'Brawl the whole way in; the main posture takes over once set.',
-            steal: 'Steal on the way in; the main posture takes over once set.',
-            escort: 'Screen on the way in; the main posture takes over once set.',
-            observe: 'Watch on the way in; the main posture takes over once set.',
-          }[job.travel ?? 'same']}
-        </p>
-      </>}
+        // A STANDING posture's fight belongs to its ground (it is gated on
+        // the station so a fight episode can't anchor the march short of a
+        // post), so with no on-the-way choice the march never stops to
+        // fight — the default chip and hint must say so rather than claim
+        // "same". A mover's posture genuinely governs the whole way.
+        const arrival = job.kind === 'none' ? carried?.kind : job.kind;
+        if (!arrival || ['patrol', 'return', 'escort'].includes(arrival)) {
+          return null;
+        }
+        const standing = ['posts', 'area', 'line', 'approach'].includes(arrival);
+        const arrived = POSTURES.find((value) => value.id === job.posture)?.label
+          ?? 'The posture';
+        const chosen = job.travel ?? 'same';
+        const hint = (() => {
+          if (chosen === 'same') {
+            if (!standing) return 'One posture the whole way — the march behaves exactly like the destination.';
+            if (['wait', 'observe'].includes(job.posture)) {
+              return 'They walk in without stopping to fight, and stay quiet on the ground too.';
+            }
+            return `They walk in without stopping to fight — ${arrived} starts on arrival. Pick “Answer attacks” to fight en route.`;
+          }
+          return {
+            wait: `March in the cautious rear stance without picking fights; ${arrived} takes over on arrival.`,
+            hold: `Answer attacks on the way without chasing; ${arrived} takes over on arrival.`,
+            aggressive: `Brawl the whole way in; ${arrived} takes over on arrival.`,
+            steal: `Steal on the way in; ${arrived} takes over on arrival.`,
+            escort: `Screen on the way in; ${arrived} takes over on arrival.`,
+            observe: `Watch on the way in; ${arrived} takes over on arrival.`,
+          }[chosen];
+        })();
+        return <>
+          <div className="lab">On the way <span className="text-arena-dim">(optional)</span></div>
+          <SegChips
+            options={[
+              { id: 'same', label: standing ? 'Just march' : 'Same as here' },
+              { id: 'wait', label: standing ? 'Hang back' : 'Quietly' },
+              { id: 'hold', label: 'Answer attacks' },
+              { id: 'aggressive', label: 'Brawl in' },
+            ]}
+            value={chosen}
+            accent={color}
+            onChange={(travel) => mutateJob((target) => {
+              if (travel === 'same') delete target.travel;
+              else target.travel = travel as Posture;
+            })} />
+          <p className="t-micro mb-1 text-arena-dim">{hint}</p>
+        </>;
+      })()}
       <div className="lab">Recovery</div>
       <SegChips options={RECOVERIES} value={job.recovery} accent={color}
         onChange={(recovery) => mutateJob((target) => {

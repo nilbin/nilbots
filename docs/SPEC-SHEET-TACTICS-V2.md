@@ -137,7 +137,9 @@ capabilities, budgets), attached to the phase that uses them.
 
 `travel` is the optional **on-the-way posture**: how the group behaves while
 MOVING to this job's ground; the main `posture` takes over on arrival. Absent
-(or equal to `posture`) means one posture for the march and the ground. It is
+(or equal to `posture`) means no separate on-the-way behavior: a mover's
+posture genuinely governs the whole way, while a standing job's fight belongs
+to its ground (§2) — the march itself never stops to fight. It is
 legal only where an arrival exists — posts/area/line/approach/converge/
 advance, or a `none` that carries one of those forward; patrol, return and
 escort are all march and refuse it.
