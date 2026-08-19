@@ -58,10 +58,24 @@ export interface ViewerEntrantPresentation {
  * the no-WebGL floor. The CLI's single-file artifact stubs this module out
  * entirely (see vite.cli.config.ts), so a copied replay never carries it.
  */
-const ArenaCanvas3D = lazy(() => import('../render3d/ArenaCanvas3D'));
-const AdaptiveSoundtrack = lazy(
-  () => import('../soundtrack/AdaptiveSoundtrack'),
-);
+// A rejected dynamic import (a redeploy replaced the hashed chunks under an
+// open tab) rethrows out of lazy() at render time, and with no boundary that
+// blanked the page. A failed fetch must degrade exactly like a device with
+// no WebGL context: hand the arena to the Canvas2D floor and keep playing.
+type Arena3DModule = typeof import('../render3d/ArenaCanvas3D');
+const ArenaCanvas3D = lazy((): Promise<Arena3DModule> =>
+  import('../render3d/ArenaCanvas3D').catch((): Arena3DModule => ({
+    default: ((props) => {
+      const { onUnavailable } = props;
+      useEffect(() => { onUnavailable?.(); }, [onUnavailable]);
+      return <></>;
+    }) as Arena3DModule['default'],
+  })));
+type SoundtrackModule = typeof import('../soundtrack/AdaptiveSoundtrack');
+const AdaptiveSoundtrack = lazy((): Promise<SoundtrackModule> =>
+  import('../soundtrack/AdaptiveSoundtrack').catch((): SoundtrackModule => ({
+    default: (() => <></>) as SoundtrackModule['default'],
+  })));
 const DIMENSIONAL_RENDERER_AVAILABLE =
   typeof __BOTARENA_DIMENSIONAL_RENDERER__ !== 'boolean' ||
   __BOTARENA_DIMENSIONAL_RENDERER__;

@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
+import ReloadBoundary from './components/ReloadBoundary';
 import Site from './site/Site';
 
 // One build, two modes: with an embedded replay (or served from a file) this is the
@@ -16,5 +17,7 @@ const standalone =
 document.documentElement.dataset.arenaMode = standalone ? 'viewer' : 'site';
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>{standalone ? <App /> : <Site />}</StrictMode>,
+  <StrictMode>
+    <ReloadBoundary>{standalone ? <App /> : <Site />}</ReloadBoundary>
+  </StrictMode>,
 );
