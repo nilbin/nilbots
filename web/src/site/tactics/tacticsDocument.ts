@@ -487,6 +487,20 @@ export function effectiveJob(
   return null;
 }
 
+/** A way-in runs in travel order and ENDS at its destination. Drawing it
+ * from the destination outward is a natural gesture, so a route whose
+ * FIRST point sits on the destination and whose last does not is simply
+ * reversed rather than marched backwards (Cinder walked through mid to
+ * stand on the first waypoint of a backwards way-in). Returns null when
+ * the route is fine as drawn. */
+export function reversedWayIn(via: Point[] | undefined, at: Point): Point[] | null {
+  if (!via || via.length < 2) return null;
+  const near = (point: Point) =>
+    Math.max(Math.abs(point[0] - at[0]), Math.abs(point[1] - at[1])) <= 2;
+  if (near(via[0]) && !near(via[via.length - 1])) return [...via].reverse();
+  return null;
+}
+
 export function freshJob(kind: JobKind, posture: Posture): TacticJob {
   return {
     kind,
@@ -736,7 +750,7 @@ export function validateDocument(
         }
         validateJobGeometry(
           job, phaseIndex === 0, group, `${phaseAt}.jobs.${group.id}`,
-          catalog, error);
+          catalog, error, warn);
         if (job.travel) {
           // Travel needs an arrival for the main posture to take over at;
           // patrol/return/escort are all march. Mirrors the server.
@@ -776,6 +790,32 @@ export function validateDocument(
                 `${classId}'s lane must not loop back on itself.`);
             }
           }
+        }
+      }
+      // A heal-up phase whose ground covers the heal tile starves the one
+      // bot that needs it: healthy groupmates park on the tile (their floor
+      // holds the drawn point) and the hurt one waits forever — traced live
+      // (Flux at 50% for 150+ ticks one tile away). Warn before it plays.
+      for (const group of tactic.groups) {
+        const job = phase.jobs[group.id];
+        if (!job || job.recovery !== 'heal-up') continue;
+        const heals = catalog.map.regions
+          .filter((region) => region.id.startsWith('heal-'))
+          .flatMap((region) => region.tiles);
+        const covers = (tile: { x: number; y: number }) => {
+          if (job.point) {
+            return Math.abs(tile.x - job.point[0]) <= 2
+              && Math.abs(tile.y - job.point[1]) <= 2;
+          }
+          if (job.rect) {
+            return tile.x >= job.rect[0] && tile.x <= job.rect[2]
+              && tile.y >= job.rect[1] && tile.y <= job.rect[3];
+          }
+          return false;
+        };
+        if (heals.some(covers)) {
+          warn(`${phaseAt}.jobs.${group.id}`,
+            `${possessive(group.name)} recover ground sits on the heal tile — healthy bots will park there and block the hurt one. Draw the ground two or three tiles away; the heal-up trips claim the tile on their own.`);
         }
       }
       if (phase.custody?.via) {
@@ -905,6 +945,7 @@ function validateJobGeometry(
   at: string,
   catalog: TacticalSheetCatalog,
   error: (path: string, message: string) => void,
+  warn: (path: string, message: string) => void,
 ) {
   const expected = expectedGeometry(job.kind);
   const anchorIssue = (point: Point) => tilePlacementIssue(catalog, point, 'anchor');
@@ -929,6 +970,9 @@ function validateJobGeometry(
           } else if (post.via.length > 16) {
             error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with more than 16 points.`);
           } else {
+            if (reversedWayIn(post.via, post.at)) {
+              warn(at, `${possessive(group.name)} way in at (${post.at[0]},${post.at[1]}) is drawn backwards — waypoints run in travel order and should END at the post. Redraw it, or reopen the draw to flip it.`);
+            }
             for (const point of post.via) {
               const bad = routeIssue(point);
               if (bad) {

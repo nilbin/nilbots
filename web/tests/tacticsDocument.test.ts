@@ -10,6 +10,7 @@ import {
 import { parseTacticAttribution, attributionLabel } from '../src/site/tactics/practice';
 import { summarize } from '../src/site/tactics/summary';
 import { orderIdLabel } from '../src/site/tactics/practice';
+import { reversedWayIn } from '../src/site/tactics/tacticsDocument';
 
 /** A synthetic but shape-complete catalog: an open 31x27 arena with border
  * walls, and the class rows the tactics model actually consults. */
@@ -386,6 +387,28 @@ test('a well-scoped core claim validates and reads back possessively', () => {
     validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence, /their Well’s Core is taken this phase/);
+});
+
+test('a way-in drawn from the post outward is detected and flips', () => {
+  // Cinder's real case: the route STARTED at the post and ended north, so
+  // the bot marched through mid to stand on the first waypoint.
+  assert.deepEqual(
+    reversedWayIn([[21, 12], [19, 7]], [21, 12]),
+    [[19, 7], [21, 12]]);
+  // A route already in travel order is left alone.
+  assert.equal(reversedWayIn([[19, 5], [18, 9]], [18, 9]), null);
+  // A route near the post at both ends is fine either way.
+  assert.equal(reversedWayIn([[20, 12], [22, 12]], [21, 12]), null);
+
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases[0].jobs[tactic.groups[0].id].posts![0].via = [[14, 12], [10, 8]];
+  document.tactics.push(tactic);
+  const backwards = validateDocument(document, catalog)
+    .filter((issue) => issue.severity === 'warning')
+    .map((issue) => issue.message);
+  assert.ok(backwards.some((message) => /drawn backwards/.test(message)));
 });
 
 test('travel is refused where the job has no arrival to hand over at', () => {

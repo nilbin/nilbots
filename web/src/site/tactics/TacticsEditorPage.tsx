@@ -18,8 +18,8 @@ import {
 } from './TacticsMapCanvas';
 import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
-  normalizeDocument, parseDocument, postFacingIssue, signatureMarkGeometry,
-  stringifyDocument,
+  normalizeDocument, parseDocument, postFacingIssue, reversedWayIn,
+  signatureMarkGeometry, stringifyDocument,
   tacticCanFinish, validateDocument, sheetIssueFromCompilerError,
   type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
   type Tactic, type TacticsDraft, type TacticsDocument,
@@ -56,7 +56,37 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const { draft, mutate, beginGesture, undo, redo, replaceDraft } =
     useSheetDraft(null);
   const [wizard, setWizard] = useState<WizardState | null>(null);
-  const { task, start: startTask, end: endTask } = useMapTask();
+  const { task, start: startTask, end: endMapTask } = useMapTask();
+  // Finishing a post way-in drawn from the post OUTWARD flips it into
+  // travel order instead of leaving a route the bot would march backwards.
+  const endTask = useCallback(() => {
+    const active = task;
+    if (active?.kind === 'job' && active.field === 'via'
+      && active.postIndex != null) {
+      changeWizard((tactic) => {
+        const post = tactic.phases[active.phaseIndex]
+          ?.jobs[active.groupId]?.posts?.[active.postIndex!];
+        if (!post) return;
+        const flipped = reversedWayIn(post.via, post.at);
+        if (flipped) {
+          post.via = flipped;
+          toast('Way in flipped to travel order — it ends at the post.');
+        }
+      });
+    }
+    if (active?.kind === 'carry') {
+      changeWizard((tactic) => {
+        const custody = tactic.phases[active.phaseIndex]?.custody;
+        if (!custody?.via) return;
+        const flipped = reversedWayIn(custody.via, [2, 5]);
+        if (flipped) {
+          custody.via = flipped;
+          toast('Way home flipped to travel order — it ends at your reactor.');
+        }
+      });
+    }
+    endMapTask();
+  }, [task, endMapTask]);
   const [selectedTacticId, setSelectedTacticId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [zoom, setZoom] = useState<1 | 1.5 | 2>(1);
@@ -597,8 +627,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               botName={botName}
               onSelect={() => {
                 if (wizard) return;
-                setSelectedTacticId(tactic.id === selectedTacticId ? null : tactic.id);
                 setConfirmDeleteId(null);
+                // Straight into edit mode: the map's phase icons are the
+                // navigation, and the paragraph readback lives on Review.
+                openWizard(tactic, hintsFor(tactic), true);
               }}
               onMove={(delta) => mutate((next) => {
                 const from = next.document.tactics.findIndex((value) => value.id === tactic.id);
@@ -782,7 +814,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               <button type="button" className="btn btn-primary" disabled={gate !== null}
                 title={gate ?? undefined}
                 onClick={commitWizard} data-testid="commit-tactic-header">
-                {wizard.editing ? 'Save changes' : 'Create Tactic'}
+                {wizard.editing ? 'Save' : 'Create'}
               </button>
             </div>
             {gate && <p className="t-micro text-arena-hot">{gate}</p>}
