@@ -120,3 +120,30 @@ export function attributionLabel(attribution: TacticAttribution): string {
   }
   return parts.join(' · ');
 }
+
+const ORDER_ID = /^t(\d+)(?:-p(\d+))?-g(\d+)-([a-z0-9-]+)$/;
+
+/** Resolve a materialized order id (`t1-p2-g1-fight`, `t1-g2-grab`) to the
+ * authored names for a viewer chip: "Centre Rush · Claim center · fight".
+ * The tactic name leads only when the sheet has several. Baseline order ids
+ * return null — the raw id ("hold-ground") is already the honest label. */
+export function orderIdLabel(
+  orderId: string,
+  document: TacticsDocument,
+): string | null {
+  const match = ORDER_ID.exec(orderId);
+  if (!match) return null;
+  const [, tacticOrdinal, phaseOrdinal, , kind] = match;
+  const tactic = document.tactics[Number(tacticOrdinal) - 1];
+  if (!tactic) return null;
+  const parts: string[] = [];
+  if (document.tactics.length > 1) parts.push(tactic.name);
+  if (phaseOrdinal) {
+    const phase = tactic.phases[Number(phaseOrdinal) - 1];
+    parts.push(phase?.name ?? `phase ${phaseOrdinal}`);
+  } else if (parts.length === 0) {
+    parts.push(tactic.name);
+  }
+  parts.push(kind);
+  return parts.join(' · ');
+}

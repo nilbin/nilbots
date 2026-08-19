@@ -9,6 +9,7 @@ import {
 } from '../src/site/tactics/tacticsDocument';
 import { parseTacticAttribution, attributionLabel } from '../src/site/tactics/practice';
 import { summarize } from '../src/site/tactics/summary';
+import { orderIdLabel } from '../src/site/tactics/practice';
 
 /** A synthetic but shape-complete catalog: an open 31x27 arena with border
  * walls, and the class rows the tactics model actually consults. */
@@ -458,6 +459,18 @@ test('a v1 document migrates to phases exactly like the server', () => {
   assert.equal(normalized.schema, 'arc-relay-tactics-v2');
   assert.equal(normalized.tactics[0].phases.length, 2);
   assert.throws(() => normalizeDocument({ schema: 'something-else' }));
+});
+
+test('order ids resolve to the author’s names for viewer chips', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  document.tactics.push(tactic);
+  // One tactic: the phase name leads; invariants name the tactic.
+  assert.equal(orderIdLabel('t1-p2-g2-fight', document), 'Close the trap · fight');
+  assert.equal(orderIdLabel('t1-g1-grab', document), 'Pincer · grab');
+  // Baseline ids stay raw.
+  assert.equal(orderIdLabel('hold-ground', document), null);
 });
 
 test('practice attribution maps program ids back to Tactic, Group and named phase', () => {

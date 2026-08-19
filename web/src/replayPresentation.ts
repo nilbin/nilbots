@@ -705,12 +705,17 @@ function presentUnit(
   const roleTag = turn?.observation.self?.roleTag ?? null;
   // The published table first, because a broadcast has no debug text left to
   // read; the turn's own message otherwise, split the same way. Both fall back
-  // to the sticky role tag when no authored order is selected.
-  const order: UnitOrderPresentation | null = publishedOrder
-    ? { orderId: publishedOrder.orderId ?? roleTag, action: publishedOrder.action }
-    : reason
-      ? { orderId: reason.orderId ?? roleTag, action: reason.action }
-      : null;
+  // to the sticky role tag when no authored order is selected. A body that is
+  // down carries NO order: the published table is a carried-forward standing
+  // table, and a dead bot's last chip ("Claim center") read as the squad's
+  // current phase for the whole respawn wait.
+  const order: UnitOrderPresentation | null = status !== 'active'
+    ? null
+    : publishedOrder
+      ? { orderId: publishedOrder.orderId ?? roleTag, action: publishedOrder.action }
+      : reason
+        ? { orderId: reason.orderId ?? roleTag, action: reason.action }
+        : null;
 
   return {
     unitKey,

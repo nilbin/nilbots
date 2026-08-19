@@ -88,12 +88,17 @@ export default function Viewer({
   live,
   soundtrackPresentationId,
   entrants,
+  orderLabel,
 }: {
   replay: ReplayModel;
   live?: LiveFollow;
   /** Stable match identity across partial-live and complete replay documents. */
   soundtrackPresentationId?: string;
   entrants?: readonly ViewerEntrantPresentation[];
+  /** Resolve a materialized order id to the author's own names (a practice
+   * page knows the sheet; the standalone viewer does not). Null falls back
+   * to the raw id. */
+  orderLabel?: (orderId: string) => string | null;
 }) {
   const assets = useAssetReadiness();
   const immersive = useImmersive();
@@ -833,6 +838,7 @@ export default function Viewer({
               onToggleVisibility={() => setShowVisibility((value) => !value)}
               showFog={showFog}
               onToggleFog={() => setShowFog((value) => !value)}
+              orderLabel={orderLabel}
             />
             {!isArcRelay && (
               <EventFeed

@@ -29,6 +29,9 @@ interface BotPanelProps {
   onSelectUnit: (unitKey: ReplayStableUnitKey | null) => void;
   onToggleVisibility: () => void;
   onToggleFog?: () => void;
+  /** Resolve a materialized order id to the author's names; null falls
+   * back to the raw id. Supplied by pages that know the sheet. */
+  orderLabel?: (orderId: string) => string | null;
 }
 
 /**
@@ -167,6 +170,7 @@ export default function BotPanel({
   onSelectUnit,
   onToggleVisibility,
   onToggleFog,
+  orderLabel,
 }: BotPanelProps) {
   const presenter = useMemo(() => createPresenter(replay), [replay]);
   const { objective, units, economy } = presenter.at(tick);
@@ -438,8 +442,12 @@ export default function BotPanel({
         const playRole = playRoleSummary(unit.roleTag);
         const displayedRole = playRole ?? unit.roleTag;
         // A coordinated-play summary keeps its special vocabulary. Otherwise
-        // the changing authored order is more useful than the sticky role.
-        const orderTag = playRole ?? unit.order?.orderId ?? displayedRole ?? null;
+        // the changing authored order is more useful than the sticky role —
+        // resolved to the author's own names when the page knows the sheet.
+        const authoredOrder = unit.order?.orderId ?? null;
+        const orderTag = playRole
+          ?? (authoredOrder ? orderLabel?.(authoredOrder) ?? authoredOrder : null)
+          ?? displayedRole ?? null;
         const controllerName = replay.participants.find(
           (participant) => participant.participantId === unit.participantId,
         )?.name;

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import clsx from 'clsx';
 import Viewer from '../../components/Viewer';
@@ -14,7 +14,12 @@ import {
   type MatchLive,
   type MatchSetDetail,
 } from '../api';
-import { useMatch, useMatchLive, useMatchReplay, useMatchSet } from '../queries';
+import {
+  useMatch, useMatchLive, useMatchReplay, useMatchSet,
+  usePracticeAuthoringSnapshot,
+} from '../queries';
+import { orderIdLabel } from '../tactics/practice';
+import { parseDocument } from '../tactics/tacticsDocument';
 import { internalReturnTarget } from '../returnTarget';
 
 /**
@@ -61,6 +66,21 @@ export default function MatchPage() {
     refetch: refetchDetail,
   } = useMatch(matchId);
   const replay = loadedReplay?.replay;
+
+  // A practice match knows the exact sheet it ran: the stored authoring
+  // snapshot resolves materialized order ids ("t1-p2-g1-fight") back to the
+  // author's own tactic and phase names for the viewer's chips.
+  const { data: authoring } = usePracticeAuthoringSnapshot(
+    detail?.arcRelayLane === 'practice' ? matchId : undefined);
+  const orderLabel = useMemo(() => {
+    if (!authoring?.tacticsJson) return undefined;
+    try {
+      const document = parseDocument(authoring.tacticsJson);
+      return (orderId: string) => orderIdLabel(orderId, document);
+    } catch {
+      return undefined;
+    }
+  }, [authoring?.tacticsJson]);
 
   // Either response names the set, so the standing strip never waits on the slower one.
   const matchSetId = live?.matchSetId ?? detail?.matchSetId ?? null;
@@ -166,6 +186,7 @@ export default function MatchPage() {
             <Viewer
               replay={replay}
               soundtrackPresentationId={matchId}
+              orderLabel={orderLabel}
               entrants={detail?.participants
                 .filter((participant) => participant.teamId !== null && participant.entrant?.crest != null)
                 .map((participant) => ({
