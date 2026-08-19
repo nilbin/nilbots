@@ -573,15 +573,22 @@ function actOrCarriedStage(act: TacticJob, stage: TacticJob): TacticJob {
   return carried;
 }
 
+/** Bring an in-memory document object — parsed server JSON or a restored
+ * local draft — to the current schema: v1 migrates, v2 passes through.
+ * Every path into editor state goes through this one boundary. */
+export function normalizeDocument(document: unknown): TacticsDocument {
+  const value = document as { schema?: string };
+  if (value?.schema === 'arc-relay-tactics-v1') {
+    return migrateDocument(value as Record<string, unknown>);
+  }
+  if (value?.schema !== 'arc-relay-tactics-v2') {
+    throw new Error(`Not a tactics document: ${value?.schema}`);
+  }
+  return value as TacticsDocument;
+}
+
 export function parseDocument(json: string): TacticsDocument {
-  const parsed = JSON.parse(json) as { schema?: string };
-  if (parsed.schema === 'arc-relay-tactics-v1') {
-    return migrateDocument(parsed as Record<string, unknown>);
-  }
-  if (parsed.schema !== 'arc-relay-tactics-v2') {
-    throw new Error(`Not a tactics document: ${parsed.schema}`);
-  }
-  return parsed as TacticsDocument;
+  return normalizeDocument(JSON.parse(json));
 }
 
 export function stringifyDocument(document: TacticsDocument): string {

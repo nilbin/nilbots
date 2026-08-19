@@ -3,8 +3,8 @@ import test from 'node:test';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import { instantiateRecipe, recipeById } from '../src/site/tactics/recipes';
 import {
-  blankDocument, migrateDocument, parseDocument, signatureMarkGeometry,
-  validateDocument,
+  blankDocument, migrateDocument, normalizeDocument, parseDocument,
+  signatureMarkGeometry, validateDocument,
   type Tactic, type TacticsDocument,
 } from '../src/site/tactics/tacticsDocument';
 import { parseTacticAttribution, attributionLabel } from '../src/site/tactics/practice';
@@ -314,6 +314,13 @@ test('a v1 document migrates to phases exactly like the server', () => {
   // parseDocument migrates transparently.
   const reparsed = parseDocument(JSON.stringify(v1));
   assert.equal(reparsed.schema, 'arc-relay-tactics-v2');
+  // A restored device draft is an in-memory OBJECT, not JSON — it takes the
+  // same boundary. This is the exact shape that once opened as a blank page.
+  const storedDraft = JSON.parse(JSON.stringify(v1)) as Record<string, unknown>;
+  const normalized = normalizeDocument(storedDraft);
+  assert.equal(normalized.schema, 'arc-relay-tactics-v2');
+  assert.equal(normalized.tactics[0].phases.length, 2);
+  assert.throws(() => normalizeDocument({ schema: 'something-else' }));
 });
 
 test('practice attribution maps program ids back to Tactic, Group and named phase', () => {

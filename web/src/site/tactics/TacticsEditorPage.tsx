@@ -18,7 +18,8 @@ import {
 } from './TacticsMapCanvas';
 import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
-  parseDocument, postFacingIssue, signatureMarkGeometry, stringifyDocument,
+  normalizeDocument, parseDocument, postFacingIssue, signatureMarkGeometry,
+  stringifyDocument,
   tacticCanFinish, validateDocument, sheetIssueFromCompilerError,
   type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
   type Tactic, type TacticsDraft, type TacticsDocument,
@@ -127,10 +128,26 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         enterLadder: server.entrant.ladderOptedIn,
         document: parseDocument(server.tacticsJson),
       };
-      if (stored && stored.draft.revision === server.revision
-        && JSON.stringify(stored.draft.document) !== JSON.stringify(serverDraft.document)) {
+      // A device draft may predate the current schema: normalize it through
+      // the same migration the server copy gets, and never let an unreadable
+      // draft block opening the sheet.
+      let restored: TacticsDraft | null = null;
+      if (stored && stored.draft.revision === server.revision) {
+        try {
+          const document = normalizeDocument(stored.draft.document);
+          if (JSON.stringify(document) !== JSON.stringify(serverDraft.document)) {
+            restored = {
+              ...stored.draft, document,
+              enterLadder: serverDraft.enterLadder,
+            };
+          }
+        } catch {
+          restored = null;
+        }
+      }
+      if (restored) {
         setNotice('Restored this device’s newer draft.');
-        replaceDraft({ ...stored.draft, enterLadder: serverDraft.enterLadder });
+        replaceDraft(restored);
       } else {
         replaceDraft(serverDraft);
       }
