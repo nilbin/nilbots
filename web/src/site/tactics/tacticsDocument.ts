@@ -59,7 +59,9 @@ export interface TacticConds {
   lossesWithin?: { count: number; ticks: number };
   kills?: { count: number };
   cleared?: { zone: ZoneRef };
-  coreAcquired?: true;
+  /** true = any Core taken since this phase began; a well narrows it to
+   * that source's Core — the claim a Claim phase means. */
+  coreAcquired?: true | { well: WellChoice };
   coreBanked?: true;
   coreLost?: true;
   reached?: true;

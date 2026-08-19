@@ -479,6 +479,30 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void AWellScopedCoreClaimCompilesWithItsSourceFilter()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject rule = document["tactics"]![0]!["phases"]![1]!["continue"]!
+            .AsArray()[0]!.AsObject();
+        rule["required"] = JsonNode.Parse(
+            """{"coreAcquired":{"well":"enemy"}}""");
+        rule.Remove("triggers");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement acquired = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-acquired-enemy");
+        Assert.Equal("friendly-core-acquisitions",
+            acquired.GetProperty("fact").GetString());
+        Assert.Equal("enemy", acquired.GetProperty("well").GetString());
+        Assert.Equal("phase-entry", acquired.GetProperty("since").GetString());
+    }
+
+    [Fact]
     public void TravelOnAnAllMarchJobIsRefused()
     {
         JsonObject document = JsonNode.Parse(
@@ -606,10 +630,19 @@ public sealed class ArcRelayTacticsMaterializerTests
             .EnumerateArray().Select(value => value.GetString()!).ToArray();
         Assert.Contains("c-t1-kills", outcomes);
         Assert.Contains("c-t1-cleared", outcomes);
-        Assert.Contains("we-hold-a-core", outcomes);
+        Assert.Contains("c-t1-acquired", outcomes);
         JsonElement kills = orders.RootElement.GetProperty("conditions")
             .GetProperty("c-t1-kills");
         Assert.Equal("phase-entry", kills.GetProperty("since").GetString());
+        // "Acquired" is the pickup EVENT anchored at phase entry — the
+        // carrier snapshot let an inherited Core finish a fresh phase on
+        // its second tick.
+        JsonElement acquired = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-acquired");
+        Assert.Equal("friendly-core-acquisitions",
+            acquired.GetProperty("fact").GetString());
+        Assert.Equal("phase-entry",
+            acquired.GetProperty("since").GetString());
 
         // The role tree is wrappers all the way: the tactic wrapper (tagged
         // with the tactic id) holds the tactic-scoped Core habits and one

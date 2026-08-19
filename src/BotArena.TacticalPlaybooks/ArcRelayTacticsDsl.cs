@@ -1144,7 +1144,25 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             cleared = ValidateZoneRef(
                 clearedValue.GetProperty("zone"), $"{at}.zone", width, height);
         }
-        bool coreAcquired = FlagRow(value, "coreAcquired", path);
+        // coreAcquired: true (any Core) or { "well": ... } — "THAT Well's
+        // Core is taken this phase" is the claim a Claim phase means.
+        bool coreAcquired = false;
+        string? coreAcquiredWell = null;
+        if (value.TryGetProperty("coreAcquired", out JsonElement acquired))
+        {
+            coreAcquired = true;
+            if (acquired.ValueKind != JsonValueKind.True)
+            {
+                string acquiredAt = $"{path}.coreAcquired";
+                Object(acquired, acquiredAt, ["well"]);
+                coreAcquiredWell = RequiredString(acquired, "well", acquiredAt);
+                if (!TacticWells.Contains(coreAcquiredWell))
+                {
+                    throw Error(acquiredAt,
+                        "well must be north/centre/south/own/enemy.");
+                }
+            }
+        }
         bool coreBanked = FlagRow(value, "coreBanked", path);
         bool coreLost = FlagRow(value, "coreLost", path);
         bool reached = FlagRow(value, "reached", path);
@@ -1153,7 +1171,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
             carrier, losses, lossesWithin, groupsSet, heldTicks, healed,
             kills, cleared, coreAcquired, coreBanked, coreLost, reached,
-            observed);
+            observed, coreAcquiredWell);
     }
 
     private static bool FlagRow(
@@ -1292,7 +1310,8 @@ internal sealed record ArcRelayTacticConditionRows(
     bool CoreBanked,
     bool CoreLost,
     bool Reached,
-    bool Observed)
+    bool Observed,
+    string? CoreAcquiredWell = null)
 {
     public int ActiveCount =>
         (EnemiesAt is null ? 0 : 1) + (Contact ? 1 : 0)

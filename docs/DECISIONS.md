@@ -9164,3 +9164,22 @@ new alternative has the room. Every ticked Required/Triggered-by row
 the case with that row moved to Unless — "these two, then the inversion of
 this third one" in one tap, destination ready to retarget. Editor-only;
 no format change.
+
+## 343. "Acquired" is the pickup event, optionally well-scoped
+
+The owner's first practice on the phase runtime surfaced it: `coreAcquired`
+compiled to the carrier snapshot (`friendly-carriers ≥ 1`), so a Core
+inherited from the previous phase finished a fresh "Claim" phase on its
+second tick — the tactic collapsed, and the squad spent every 40-tick rearm
+window on the baseline band (holding mid, chasing far loose Cores), which
+read as "not doing the tactic". Traced in the practice replay: begin-t1 →
+go-p2 t37 → go-p4 t49 → finish t50; fixed and re-run at the same seed:
+p4 holds until a REAL take (t55, the enemy carrier's dropped Core) and the
+markers read begin/go/finish honestly. `coreAcquired` now compiles to
+`friendly-core-acquisitions ≥ 1 since phase-entry` (the ledger already
+tracked pickups), inverts cleanly under unless, and takes an optional well
+(`{well: "enemy"}` → source-filtered) so "Claim their Well" can demand that
+Well's Core rather than any pickup. `carrier` remains the instantaneous
+row. The lifecycle test that pinned the carrier-snapshot fall-through now
+pins the honest plan-none behavior instead: an active tactic holds its
+carrier; banking waits for the baseline banker after the tactic ends.

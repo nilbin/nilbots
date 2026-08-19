@@ -356,6 +356,20 @@ test('current-state rows read in every context and healed inverts under unless',
   assert.match(sentence, /unless everyone is healed to 80%/);
 });
 
+test('a well-scoped core claim validates and reads back possessively', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases[2].continue = [{
+    required: { coreAcquired: { well: 'enemy' } }, to: 'next',
+  }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /their Well’s Core is taken this phase/);
+});
+
 test('travel is refused where the job has no arrival to hand over at', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

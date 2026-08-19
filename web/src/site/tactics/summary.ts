@@ -185,7 +185,14 @@ export function condClauses(conds: TacticConds | undefined): string[] {
       : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
     out.push(`${place} is cleared`);
   }
-  if (conds.coreAcquired) out.push('a Core is acquired');
+  if (conds.coreAcquired) {
+    const well = typeof conds.coreAcquired === 'object'
+      ? WELL_OPTIONS.find((value) => value.id === (conds.coreAcquired as { well: string }).well)
+      : null;
+    out.push(well
+      ? `${possessive(well.label)} Core is taken this phase`
+      : 'a Core is taken this phase');
+  }
   if (conds.coreBanked) out.push('a Core is banked');
   if (conds.coreLost) out.push('the Core is lost');
   if (conds.reached) out.push('the destination is reached');

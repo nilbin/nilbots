@@ -868,10 +868,11 @@
       "value": 0,
       "role": "cinder"
     },
-    "we-hold-a-core": {
-      "fact": "friendly-carriers",
+    "c-t1-acquired": {
+      "fact": "friendly-core-acquisitions",
       "operator": "at-least",
-      "value": 1
+      "value": 1,
+      "since": "phase-entry"
     },
     "c-t1-kills": {
       "fact": "confirmed-enemy-destructions-in-zone",
@@ -978,7 +979,7 @@
               {
                 "when": {
                   "any": [
-                    "we-hold-a-core",
+                    "c-t1-acquired",
                     "c-t1-kills",
                     "c-t1-reached"
                   ]

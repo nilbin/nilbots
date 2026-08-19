@@ -1158,10 +1158,11 @@
       "value": 1,
       "well": "enemy"
     },
-    "we-hold-a-core": {
-      "fact": "friendly-carriers",
+    "c-t1-acquired": {
+      "fact": "friendly-core-acquisitions",
       "operator": "at-least",
-      "value": 1
+      "value": 1,
+      "since": "phase-entry"
     },
     "c-t1-banked": {
       "fact": "friendly-core-banks",
@@ -1282,7 +1283,7 @@
               {
                 "when": {
                   "any": [
-                    "we-hold-a-core",
+                    "c-t1-acquired",
                     "c-t1-banked",
                     "c-t1-core-lost"
                   ]

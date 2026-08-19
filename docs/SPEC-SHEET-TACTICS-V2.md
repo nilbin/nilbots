@@ -98,7 +98,8 @@ no fold.
 | `lossesWithin` | `{ "count": 1..8, "ticks": 1..600 }` | start, abort | we lost N bots within the last T ticks (the remembered-casualty row — a Regroup's start and an abort may share it) |
 | `kills` | `{ "count": 1..8 }` | continue | N confirmed destructions since THIS phase began |
 | `cleared` | `{ "zone": {…} }` | all | no visible enemies in the box |
-| `coreAcquired` / `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence; banked/lost anchor at phase entry |
+| `coreAcquired` | `true` \| `{ "well": … }` | continue | a Core was PICKED UP since this phase began (the event, not the carrier snapshot — `carrier` is the snapshot); a well narrows it to that source's Core |
+| `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence since phase entry |
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
 | `observed` | `true` | continue | the watchline stayed fully observed for 120 ticks |
 

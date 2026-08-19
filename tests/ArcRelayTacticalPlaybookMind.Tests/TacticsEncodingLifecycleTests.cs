@@ -206,13 +206,17 @@ public sealed class TacticsEncodingLifecycleTests
         (string root, string leaf) = harness.FirstEligible(12);
         Assert.Equal("t1", root);
         Assert.Equal("t1-g2-grab", leaf);
-        // Carrying: every tactic leaf gates on empty-handed, so the carrier
-        // falls through the whole tactic to the baseline banker.
+        // Carrying under a 'none' delivery plan: the tactic HOLDS the
+        // carrier — the job continues and banking waits for the baseline
+        // banker once the tactic ends. (Holding a Core no longer finishes
+        // the phase by itself: "acquired" is the pickup EVENT since phase
+        // entry, and this harness records none — the old carrier-snapshot
+        // reading made an inherited Core end a phase on its second tick.)
         harness.World.CoreInReach = _ => false;
         harness.World.Carrying = tick => tick >= 14;
         (root, leaf) = harness.FirstEligible(14);
-        Assert.Equal("score-a-core", root);
-        Assert.Equal("return-to-reactor", leaf);
+        Assert.Equal("t1", root);
+        Assert.Equal("t1-p2-g2-move", leaf);
     }
 
     [Fact]

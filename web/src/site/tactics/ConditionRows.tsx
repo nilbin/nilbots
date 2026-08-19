@@ -22,7 +22,7 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
   held: 'We have been at this phase a while',
   contact: 'Any enemy contact',
   carrier: 'We hold a Core — a friendly carrier exists',
-  coreAcquired: 'A Core is acquired',
+  coreAcquired: 'A Core is taken this phase',
   coreBanked: 'A Core is banked',
   coreLost: 'The Core is lost',
   reached: 'The destination is reached',
@@ -162,6 +162,25 @@ export function ConditionRows({
           onChange={(value) => set((next) => { next.held!.ticks = value; })} />
         <span className="t-micro text-arena-dim">ticks</span>
       </>, on));
+      return;
+    }
+    if (kind === 'coreAcquired') {
+      const on = Boolean(conds.coreAcquired);
+      const scoped = typeof conds.coreAcquired === 'object' ? conds.coreAcquired.well : 'any';
+      rows.push(row('coreAcquired', ROW_LABELS.coreAcquired!, on && (
+        <select
+          className="field !min-h-7 !w-auto !py-0 t-micro"
+          value={scoped}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => set((next) => {
+            next.coreAcquired = event.target.value === 'any'
+              ? true : { well: event.target.value as WellChoice };
+          })}
+        >
+          <option value="any">from any Well</option>
+          {WELL_OPTIONS.map((well) => <option key={well.id} value={well.id}>from {well.label}</option>)}
+        </select>
+      ), on));
       return;
     }
     if (kind === 'coreLoose') {

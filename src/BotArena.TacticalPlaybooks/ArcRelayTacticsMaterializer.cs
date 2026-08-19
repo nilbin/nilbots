@@ -442,10 +442,24 @@ internal static class ArcRelayTacticsMaterializer
                         "live-enemies", "at-most", 8 - enemiesDown),
                     $"c-{prefix}-{context}-enemies-down");
             }
-            if (rows.Carrier || rows.CoreAcquired)
+            if (rows.Carrier)
             {
                 Add(new ConditionShape("friendly-carriers", "at-least", 1),
                     "we-hold-a-core");
+            }
+            if (rows.CoreAcquired)
+            {
+                // The EVENT, not the snapshot: "a Core was taken since THIS
+                // phase began". Compiling this to the carrier fact let a
+                // Core inherited from the previous phase finish a fresh
+                // claim phase on its second tick. An authored well narrows
+                // it to that source's Core — the claim a Claim phase means.
+                Add(new ConditionShape(
+                        "friendly-core-acquisitions", "at-least", 1,
+                        Since: "phase-entry", Well: rows.CoreAcquiredWell),
+                    rows.CoreAcquiredWell is null
+                        ? $"c-{prefix}-acquired"
+                        : $"c-{prefix}-acquired-{rows.CoreAcquiredWell}");
             }
             if (rows.Losses is int losses)
             {
