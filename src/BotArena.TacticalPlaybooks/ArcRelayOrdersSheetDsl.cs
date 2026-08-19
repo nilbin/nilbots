@@ -18,7 +18,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "self-health-percent", "self-level", "self-carrying",
             "self-carried-core-bank-value",
             "self-carrying-core-from-well",
-            "self-stuck-ticks", "self-order-ticks", "self-in-zone",
+            "self-stuck-ticks", "self-order-ticks", "elapsed-ticks",
+            "self-in-zone",
             "self-nearest-visible-enemy-distance",
             "self-nearest-visible-loose-core-distance",
             "self-nearest-heal-zone-distance",
@@ -336,6 +337,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 throw Error(at,
                     "signature-use age must be in [0, 1200].");
             }
+            if (fact == "elapsed-ticks" && comparison is < 0 or > 1200)
+                throw Error(at, "elapsed ticks must be in [0, 1200].");
             if ((fact is "self-carrying" or "self-carrying-core-from-well"
                     or "self-in-zone" or
                     "self-deployment-in-zone" or

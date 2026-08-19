@@ -203,7 +203,7 @@ internal sealed class OrdersPackage
             programSheet ? ParseProgram(programValue) : null);
     }
 
-    private static SquadProgram ParseProgram(JsonElement value)
+    internal static SquadProgram ParseProgram(JsonElement value)
     {
         var tactics = new List<ProgramTactic>();
         foreach (JsonElement tactic in value.GetProperty("tactics").EnumerateArray())

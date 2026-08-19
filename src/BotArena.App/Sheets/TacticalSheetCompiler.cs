@@ -10,7 +10,8 @@ namespace BotArena.App.Sheets;
 public sealed record ValidatedTacticalSheet(
     TacticalPlaybookCompilation Compilation,
     string ContentHash,
-    ArcRelayCompositionCompilation Composition);
+    ArcRelayCompositionCompilation Composition,
+    string? TacticsJson = null);
 
 /// <summary>The only hosted validation path for tactical-sheet source.</summary>
 public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
@@ -59,6 +60,10 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         if (tactics.Length > MaximumOrdersBytes)
             throw new InvalidDataException(
                 $"Tactics document exceeds {MaximumOrdersBytes} UTF-8 bytes.");
+        // A saved v1 document migrates before anything else, so validation,
+        // geometry checks, and storage all see the one v2 shape.
+        tactics = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+            tactics, $"{diagnosticName}/tactics.json");
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         ValidateDeclaredMap(tactics, map);
@@ -66,7 +71,10 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.CompileTactics(
                 tactics, $"{diagnosticName}/tactics.json");
-        return ValidateCompiled(compilation, unlockedClassIds);
+        return ValidateCompiled(compilation, unlockedClassIds) with
+        {
+            TacticsJson = Encoding.UTF8.GetString(tactics),
+        };
     }
 
     /// <summary>
@@ -182,35 +190,36 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
             string tacticPath = $"tactics[{tacticIndex}]";
             tacticIndex++;
             if (tactic.ValueKind != JsonValueKind.Object
-                || !tactic.TryGetProperty("groups", out JsonElement groups)
-                || groups.ValueKind != JsonValueKind.Array)
+                || !tactic.TryGetProperty("phases", out JsonElement phases)
+                || phases.ValueKind != JsonValueKind.Array)
             {
                 continue;
             }
-            int groupIndex = 0;
-            foreach (JsonElement group in groups.EnumerateArray())
+            int phaseIndex = 0;
+            foreach (JsonElement phase in phases.EnumerateArray())
             {
-                string groupPath = $"{tacticPath}.groups[{groupIndex}]";
-                groupIndex++;
-                if (group.ValueKind != JsonValueKind.Object)
-                    continue;
-                foreach (string phaseName in (string[])["stage", "act"])
+                string phaseRoot = $"{tacticPath}.phases[{phaseIndex}]";
+                phaseIndex++;
+                if (phase.ValueKind != JsonValueKind.Object
+                    || !phase.TryGetProperty("jobs", out JsonElement jobs)
+                    || jobs.ValueKind != JsonValueKind.Object)
                 {
-                    if (!group.TryGetProperty(
-                            phaseName, out JsonElement phase)
-                        || phase.ValueKind != JsonValueKind.Object)
-                    {
+                    continue;
+                }
+                foreach (JsonProperty jobEntry in jobs.EnumerateObject())
+                {
+                    JsonElement job = jobEntry.Value;
+                    if (job.ValueKind != JsonValueKind.Object)
                         continue;
-                    }
-                    string phasePath = $"{groupPath}.{phaseName}";
-                    if (phase.TryGetProperty("posts", out JsonElement posts)
+                    string jobPath = $"{phaseRoot}.jobs.{jobEntry.Name}";
+                    if (job.TryGetProperty("posts", out JsonElement posts)
                         && posts.ValueKind == JsonValueKind.Array)
                     {
                         int postIndex = 0;
                         foreach (JsonElement post in posts.EnumerateArray())
                         {
                             string postPath =
-                                $"{phasePath}.posts[{postIndex}]";
+                                $"{jobPath}.posts[{postIndex}]";
                             postIndex++;
                             if (post.ValueKind != JsonValueKind.Object
                                 || !post.TryGetProperty(
@@ -271,29 +280,22 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                             }
                         }
                     }
-                    if (phase.TryGetProperty("point", out JsonElement point)
+                    if (job.TryGetProperty("point", out JsonElement point)
                         && TryPoint(point, out int px, out int py)
                         && AnchorIssue(px, py) is string reason)
                     {
                         throw new InvalidDataException(
-                            $"tactics.json {phasePath}.point: the "
-                            + $"{(phaseName == "stage" ? "approach point" : "destination")} "
+                            $"tactics.json {jobPath}.point: the destination "
                             + $"at ({px},{py}) is {reason}.");
                     }
-                    CheckRoute(phase, "path", phasePath);
-                    CheckRoute(phase, "via", phasePath);
-                }
-                if (!group.TryGetProperty("sigs", out JsonElement sigs)
-                    || sigs.ValueKind != JsonValueKind.Object)
-                {
-                    continue;
-                }
-                foreach (JsonProperty sigPhase in sigs.EnumerateObject())
-                {
-                    if (sigPhase.Value.ValueKind != JsonValueKind.Object)
+                    CheckRoute(job, "path", jobPath);
+                    CheckRoute(job, "via", jobPath);
+                    if (!job.TryGetProperty("sigs", out JsonElement sigs)
+                        || sigs.ValueKind != JsonValueKind.Object)
+                    {
                         continue;
-                    foreach (JsonProperty mark in
-                        sigPhase.Value.EnumerateObject())
+                    }
+                    foreach (JsonProperty mark in sigs.EnumerateObject())
                     {
                         foreach (string shape in (string[])["points", "line"])
                         {
@@ -312,9 +314,8 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                                 {
                                     throw new InvalidDataException(
                                         "tactics.json "
-                                        + $"{groupPath}.sigs.{sigPhase.Name}"
-                                        + $".{mark.Name}: the mark at "
-                                        + $"({mx},{my}) is {bad}.");
+                                        + $"{jobPath}.sigs.{mark.Name}: "
+                                        + $"the mark at ({mx},{my}) is {bad}.");
                                 }
                             }
                         }

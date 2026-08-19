@@ -207,7 +207,7 @@ public static class TacticalSheetEndpoints
                 Id = id,
                 OwnerUserId = userId,
                 Name = name,
-                TacticsJson = request.TacticsJson,
+                TacticsJson = compiled.TacticsJson ?? request.TacticsJson,
                 PlaybookJson = MaterializedOrders(compiled),
                 LayoutJson = MaterializedMapPlan(compiled),
                 ContentHash = compiled.ContentHash,
@@ -319,7 +319,7 @@ public static class TacticalSheetEndpoints
             DateTime now = timeProvider.GetUtcNow().UtcDateTime;
             sheet.Name = entrant.Name = name;
             sheet.Revision++;
-            sheet.TacticsJson = request.TacticsJson;
+            sheet.TacticsJson = compiled.TacticsJson ?? request.TacticsJson;
             sheet.PlaybookJson = MaterializedOrders(compiled);
             sheet.LayoutJson = MaterializedMapPlan(compiled);
             sheet.ContentHash = compiled.ContentHash;

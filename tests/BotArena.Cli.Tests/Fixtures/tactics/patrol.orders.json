@@ -1,5 +1,5 @@
 {
-  "schema": "arc-relay-orders-v2",
+  "schema": "arc-relay-orders-v3",
   "sheetId": "proof-patrol-v1",
   "mapPlan": "map-plan.json",
   "roles": [
@@ -17,16 +17,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -61,16 +67,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -105,16 +117,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -149,16 +167,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -193,16 +217,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -237,16 +267,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -281,16 +317,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -325,16 +367,22 @@
       "orders": [
         {
           "id": "t1",
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-bank"
             },
             {
-              "shared": "t1-g1-a-patch"
-            },
-            {
-              "shared": "t1-g1-a-move"
+              "id": "t1-p1",
+              "phase": "t1/p1",
+              "orders": [
+                {
+                  "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
             }
           ]
         },
@@ -430,7 +478,7 @@
         "to": "own-reactor"
       }
     },
-    "t1-g1-a-patch": {
+    "t1-p1-g1-patch": {
       "when": "hurt",
       "until": "patched-up",
       "timeout": 24,
@@ -440,7 +488,7 @@
         "posture": "rear"
       }
     },
-    "t1-g1-a-move": {
+    "t1-p1-g1-move": {
       "move": {
         "patrol": "g-t1-g1-beat",
         "posture": "rear"
@@ -486,5 +534,20 @@
       "operator": "at-least",
       "value": 60
     }
+  },
+  "program": {
+    "tactics": [
+      {
+        "id": "t1",
+        "name": "Patrol",
+        "rearm": 40,
+        "phases": [
+          {
+            "id": "p1",
+            "name": "Act"
+          }
+        ]
+      }
+    ]
   }
 }

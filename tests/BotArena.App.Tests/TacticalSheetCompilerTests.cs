@@ -45,8 +45,11 @@ public sealed class TacticalSheetCompilerTests
             Assert.Equal(source.ContentHash, compiled.ContentHash);
             Assert.Equal(source.LinkedData, compiled.Compilation.LinkedData);
             using JsonDocument sheet = JsonDocument.Parse(source.OrdersJson);
-            Assert.Equal("arc-relay-orders-v2",
-                sheet.RootElement.GetProperty("schema").GetString());
+            // Frozen stock sheets stay on the legacy v2 grammar; templates
+            // materialized from Tactics documents carry the v3 program.
+            Assert.Contains(
+                sheet.RootElement.GetProperty("schema").GetString(),
+                (string[])["arc-relay-orders-v2", "arc-relay-orders-v3"]);
             Assert.Equal("map-plan.json",
                 sheet.RootElement.GetProperty("mapPlan").GetString());
             Assert.False(sheet.RootElement.TryGetProperty("layout", out _));
@@ -140,7 +143,7 @@ public sealed class TacticalSheetCompilerTests
 
         // The pre-materialization pass names the drawn geometry, never a
         // generated anchor id.
-        Assert.Contains("tactics[1].groups[0].stage.posts[0]", error.Message);
+        Assert.Contains("tactics[1].phases[0].jobs.holders.posts[0]", error.Message);
         Assert.Contains("stands on a wall", error.Message);
     }
 
@@ -180,7 +183,7 @@ public sealed class TacticalSheetCompilerTests
             compiler.CompileTactics(
                 tactics.ToJsonString(), unlocked, "post-facing-wall"));
 
-        Assert.Contains("tactics[1].groups[0].stage.posts[0]", error.Message);
+        Assert.Contains("tactics[1].phases[0].jobs.holders.posts[0]", error.Message);
         Assert.Contains($"faces ({at.X + 1},{at.Y})", error.Message);
         Assert.Contains("turn its facing", error.Message);
     }

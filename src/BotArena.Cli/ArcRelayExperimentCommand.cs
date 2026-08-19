@@ -413,10 +413,14 @@ public static class ArcRelayExperimentCommand
             using JsonDocument document = JsonDocument.Parse(bytes);
             JsonElement root = document.RootElement;
             if (root.TryGetProperty("schema", out JsonElement schema)
-                && string.Equals(
-                    schema.GetString(),
-                    ArcRelayTacticalPlaybookCompiler.PlaybookSchema,
-                    StringComparison.Ordinal))
+                && (string.Equals(
+                        schema.GetString(),
+                        ArcRelayTacticalPlaybookCompiler.PlaybookSchema,
+                        StringComparison.Ordinal)
+                    || string.Equals(
+                        schema.GetString(),
+                        ArcRelayTacticalPlaybookCompiler.ProgramSchema,
+                        StringComparison.Ordinal)))
             {
                 TacticalPlaybookCompilation compilation =
                     ArcRelayTacticalPlaybookCompiler.Compile(fullPath);

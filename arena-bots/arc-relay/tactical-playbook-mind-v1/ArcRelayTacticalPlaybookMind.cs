@@ -2667,7 +2667,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         if (fact == "self-stuck-ticks")
             return _stationaryTicks.GetValueOrDefault(body.UnitId);
-        if (fact == "self-order-ticks")
+        if (fact is "self-order-ticks" or "elapsed-ticks")
             return orderTicks;
         if (fact == "self-ticks-since-signature-use")
         {

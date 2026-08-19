@@ -86,8 +86,8 @@ public sealed class ArcRelayTacticsMaterializerTests
     [Fact]
     public void ReleaseOrsSeveralTriggerRowsInsideTheReadinessGate()
     {
-        // Two ticked release rows OR together inside the readiness all():
-        // the one place the orders grammar's single nesting level exists for.
+        // Two ticked release rows OR together in the transition case's any()
+        // side, beside the all() side's exact per-bot readiness pairs.
         JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
         document["tactics"]![0]!["release"] = JsonNode.Parse(
             """
@@ -100,33 +100,83 @@ public sealed class ArcRelayTacticsMaterializerTests
                 Encoding.UTF8.GetBytes(document.ToJsonString()));
         using JsonDocument orders = JsonDocument.Parse(
             compilation.MaterializedOrders!);
-        JsonElement ember = orders.RootElement.GetProperty("roles")
-            .EnumerateArray()
-            .Single(role => role.GetProperty("id").GetString() == "ember");
-        JsonElement release = ember.GetProperty("orders").EnumerateArray()
-            .First().GetProperty("orders").EnumerateArray()
-            .Single(node => node.TryGetProperty("id", out JsonElement id)
-                && id.GetString() == "t1-go");
-        JsonElement[] gate = release.GetProperty("when").GetProperty("all")
-            .EnumerateArray().ToArray();
-        string[] gateNames = gate
-            .SelectMany(entry => entry.ValueKind == JsonValueKind.String
-                ? (IEnumerable<string>)[entry.GetString()!]
-                : entry.GetProperty("any").EnumerateArray()
-                    .Select(name => name.GetString()!))
+        JsonElement when = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("phases").EnumerateArray().First()
+            .GetProperty("continue").EnumerateArray().Single()
+            .GetProperty("when");
+        // Every one of the eight bots is individually demanded — at its
+        // ground or dead — with no quorum approximation anywhere.
+        JsonElement[] pairs = when.GetProperty("all").EnumerateArray().ToArray();
+        Assert.Equal(8, pairs.Length);
+        string[] gateNames = pairs
+            .SelectMany(entry => entry.GetProperty("any").EnumerateArray()
+                .Select(name => name.GetString()!))
             .ToArray();
-        Assert.Contains("c-t1-g1-at-post-0", gateNames);
-        Assert.Contains("c-t1-g2-ready", gateNames);
-        JsonElement trigger = Assert.Single(
-            gate, entry => entry.ValueKind == JsonValueKind.Object
-                && entry.GetProperty("any").EnumerateArray().Any(name =>
-                    name.GetString() == "c-t1-release-enemies"));
-        string[] rows = trigger.GetProperty("any").EnumerateArray()
+        Assert.Contains("c-t1-g1-at-0", gateNames);
+        Assert.Contains("dn-ember", gateNames);
+        Assert.Contains("c-t1-g2-at-5", gateNames);
+        Assert.Contains("dn-cinder", gateNames);
+        string[] rows = when.GetProperty("any").EnumerateArray()
             .Select(entry => entry.GetString()!).ToArray();
-        Assert.Equal(2, rows.Length);
-        // The gated release branch is squad-rejoinable: a body respawning
-        // after the squad has gone catches up instead of re-staging alone.
-        Assert.True(release.GetProperty("rejoin").GetBoolean());
+        Assert.Equal(["c-t1-p1-enemies", "enemy-contact"], rows);
+        // No rejoin anywhere: the coordinator's squad-level phase makes the
+        // per-body release latch — and its rejoin escape — unnecessary.
+        Assert.DoesNotContain(
+            "\"rejoin\"",
+            Encoding.UTF8.GetString(compilation.MaterializedOrders!));
+    }
+
+    [Fact]
+    public void AVersionOneDocumentMigratesToTheProgramShape()
+    {
+        byte[] migrated = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+            Fixture("pincer"));
+        using JsonDocument document = JsonDocument.Parse(migrated);
+        JsonElement root = document.RootElement;
+        Assert.Equal("arc-relay-tactics-v2",
+            root.GetProperty("schema").GetString());
+        JsonElement tactic = root.GetProperty("tactics").EnumerateArray()
+            .First();
+        // Stage → phase 1, Release → its continue, Act → phase 2, Finish →
+        // the final finish transition; groups shrink to membership.
+        Assert.False(tactic.TryGetProperty("release", out _));
+        Assert.False(tactic.TryGetProperty("finish", out _));
+        JsonElement group = tactic.GetProperty("groups").EnumerateArray()
+            .First();
+        Assert.False(group.TryGetProperty("stage", out _));
+        Assert.False(group.TryGetProperty("act", out _));
+        JsonElement[] phases = tactic.GetProperty("phases").EnumerateArray()
+            .ToArray();
+        Assert.Equal(2, phases.Length);
+        Assert.Equal("stage", phases[0].GetProperty("id").GetString());
+        Assert.Equal("act", phases[1].GetProperty("id").GetString());
+        JsonElement releaseRule = phases[0].GetProperty("continue")
+            .EnumerateArray().Single();
+        Assert.True(releaseRule.GetProperty("required")
+            .GetProperty("groupsSet").GetBoolean());
+        Assert.Equal("next", releaseRule.GetProperty("to").GetString());
+        JsonElement finishRule = phases[1].GetProperty("continue")
+            .EnumerateArray().Single();
+        Assert.Equal("finish", finishRule.GetProperty("to").GetString());
+        // A v2 document passes through migration untouched.
+        Assert.Equal(migrated,
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(migrated));
+    }
+
+    [Fact]
+    public void ForwardOnlyTransitionsAreEnforced()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject rule = document["tactics"]![0]!["phases"]![1]!["continue"]!
+            .AsArray()[0]!.AsObject();
+        rule["to"] = "stage";
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("forward-only", error.Message);
     }
 
     [Fact]
@@ -143,7 +193,7 @@ public sealed class ArcRelayTacticsMaterializerTests
         using JsonDocument orders = JsonDocument.Parse(
             compilation.MaterializedOrders!);
         JsonElement conditions = orders.RootElement.GetProperty("conditions");
-        JsonElement coreSoon = conditions.GetProperty("c-t1-release-core-soon");
+        JsonElement coreSoon = conditions.GetProperty("c-t1-p1-core-soon");
         Assert.Equal(
             "well-ticks-until-birth", coreSoon.GetProperty("fact").GetString());
         Assert.Equal("at-most", coreSoon.GetProperty("operator").GetString());
@@ -177,10 +227,10 @@ public sealed class ArcRelayTacticsMaterializerTests
             JsonElement move = role.GetProperty("orders").EnumerateArray()
                 .First().GetProperty("orders").EnumerateArray()
                 .Single(node => node.TryGetProperty("id", out JsonElement id)
-                    && id.GetString() == "t1-s")
+                    && id.GetString() == "t1-p1")
                 .GetProperty("orders").EnumerateArray()
                 .Single(node => node.TryGetProperty("id", out JsonElement id)
-                    && id.GetString()!.EndsWith("-s-move", StringComparison.Ordinal));
+                    && id.GetString() == "t1-p1-g1-move");
             return move.GetProperty("move").TryGetProperty(
                     "via", out JsonElement via)
                 ? via.GetString()!
@@ -197,67 +247,66 @@ public sealed class ArcRelayTacticsMaterializerTests
             ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
         using JsonDocument orders = JsonDocument.Parse(
             compilation.MaterializedOrders!);
-        JsonElement ember = orders.RootElement.GetProperty("roles")
-            .EnumerateArray()
-            .Single(role => role.GetProperty("id").GetString() == "ember");
-        JsonElement tactic = ember.GetProperty("orders").EnumerateArray().First();
+        Assert.Equal("arc-relay-orders-v3",
+            orders.RootElement.GetProperty("schema").GetString());
+
+        // The program table owns the lifecycle: standard attempt becomes the
+        // tactic-wide duration, rearm keeps it a standing order, and the two
+        // migrated phases carry the release and finish transitions.
+        JsonElement tactic = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().Single();
         Assert.Equal("t1", tactic.GetProperty("id").GetString());
-        // Attempt shell: timeout + cooldown, no outcome until at the root —
-        // outcomes anchor at the release branch so they count from release.
-        Assert.Equal(180, tactic.GetProperty("timeout").GetInt32());
-        Assert.False(tactic.TryGetProperty("until", out _));
-        JsonElement release = tactic.GetProperty("orders").EnumerateArray()
-            .Single(node => node.TryGetProperty("id", out JsonElement id)
-                && id.GetString() == "t1-go");
-        // The release gate is exact-post readiness (each guard bot bound to
-        // its own post through its single-bot role) plus the enemies trigger.
-        // Each readiness entry pairs with its dead-excuse in a nested any, so
-        // a fallen bot never holds the release hostage.
-        string[] gate = release.GetProperty("when").GetProperty("all")
-            .EnumerateArray()
-            .SelectMany(entry => entry.ValueKind == JsonValueKind.String
-                ? (IEnumerable<string>)[entry.GetString()!]
-                : entry.GetProperty("any").EnumerateArray()
-                    .Select(name => name.GetString()!))
+        Assert.Equal("Pincer", tactic.GetProperty("name").GetString());
+        Assert.Equal(180, tactic.GetProperty("maxTicks").GetInt32());
+        Assert.Equal(40, tactic.GetProperty("rearm").GetInt32());
+        JsonElement[] phases = tactic.GetProperty("phases").EnumerateArray()
             .ToArray();
-        Assert.Contains("c-t1-g1-at-post-0", gate);
-        Assert.Contains("dn-ember", gate);
-        Assert.Contains("c-t1-g1-at-post-1", gate);
-        Assert.Contains("c-t1-g2-ready", gate);
-        Assert.Contains("c-t1-g2-short", gate);
-        Assert.Contains("c-t1-release-enemies", gate);
-        // The release latch is the outcome until; evidence counts from entry.
-        Assert.True(release.TryGetProperty("until", out JsonElement until));
-        string[] outcomes = until.GetProperty("any").EnumerateArray()
-            .Select(value => value.GetString()!).ToArray();
+        Assert.Equal(
+            ["p1", "p2"],
+            phases.Select(phase => phase.GetProperty("id").GetString()!)
+                .ToArray());
+        // The finish transition ORs the outcomes, and evidence outcomes
+        // anchor at the phase's entry so kills count from release.
+        JsonElement finish = phases[1].GetProperty("continue")
+            .EnumerateArray().Single();
+        Assert.Equal("finish", finish.GetProperty("to").GetString());
+        string[] outcomes = finish.GetProperty("when").GetProperty("any")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray();
         Assert.Contains("c-t1-kills", outcomes);
         Assert.Contains("c-t1-cleared", outcomes);
         Assert.Contains("we-hold-a-core", outcomes);
-        JsonElement conditions = orders.RootElement.GetProperty("conditions");
-        JsonElement kills = conditions.GetProperty("c-t1-kills");
-        Assert.Equal("node-entry", kills.GetProperty("since").GetString());
-        // The whole stage section dies at release: its wrapper's until IS the
-        // release expression, so a finished tactic yields no-child-eligible
-        // instead of re-staging.
-        JsonElement stageWrapper = tactic.GetProperty("orders").EnumerateArray()
+        JsonElement kills = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-kills");
+        Assert.Equal("phase-entry", kills.GetProperty("since").GetString());
+
+        // The role tree is wrappers all the way: the tactic wrapper (tagged
+        // with the tactic id) holds the tactic-scoped Core habits and one
+        // tagged wrapper per phase — no release branch, no until latch, no
+        // rejoin, no per-leaf gating machinery.
+        JsonElement ember = orders.RootElement.GetProperty("roles")
+            .EnumerateArray()
+            .Single(role => role.GetProperty("id").GetString() == "ember");
+        JsonElement wrapper = ember.GetProperty("orders").EnumerateArray()
+            .First();
+        Assert.Equal("t1", wrapper.GetProperty("id").GetString());
+        Assert.Equal("t1", wrapper.GetProperty("phase").GetString());
+        Assert.False(wrapper.TryGetProperty("when", out _));
+        Assert.False(wrapper.TryGetProperty("until", out _));
+        Assert.False(wrapper.TryGetProperty("timeout", out _));
+        JsonElement stagePhase = wrapper.GetProperty("orders").EnumerateArray()
             .Single(node => node.TryGetProperty("id", out JsonElement id)
-                && id.GetString() == "t1-s");
-        Assert.True(stageWrapper.TryGetProperty("until", out JsonElement latch));
-        Assert.Equal(
-            release.GetProperty("when").GetProperty("all").GetRawText(),
-            latch.GetProperty("all").GetRawText());
-        Assert.Contains(stageWrapper.GetProperty("orders").EnumerateArray(),
+                && id.GetString() == "t1-p1");
+        Assert.Equal("t1/p1", stagePhase.GetProperty("phase").GetString());
+        Assert.Contains(stagePhase.GetProperty("orders").EnumerateArray(),
             node => node.TryGetProperty("id", out JsonElement id)
-                && id.GetString() == "t1-g1-s-move");
+                && id.GetString() == "t1-p1-g1-move");
     }
 
     [Theory]
-    [InlineData("release.conds", """{}""",
+    [InlineData("start", """{"mode":"when","conds":{}}""",
         "at least one active condition row")]
     [InlineData("groups[1].slots", "[0, 1, 3, 4, 6, 7, 5]",
         "belongs to more than one group")]
-    [InlineData("finish", """{"outcomes":{},"maxAttempt":"none"}""",
-        "pick at least one outcome")]
     [InlineData("groups[0].act",
         """{"kind":"none","posture":"hold","recovery":"patch","via":[[2,2],[4,4]]}""",
         "kind 'none' does not take via")]

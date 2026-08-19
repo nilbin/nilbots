@@ -5,17 +5,17 @@ namespace BotArena.TacticalPlaybooks;
 
 /// <summary>
 /// Deterministic server-side materializer: one validated Tactics document in,
-/// one Orders v2 + map-plan source pair out. The generated pair is the only
+/// one Orders v3 + map plan source pair out. The generated pair is the only
 /// executable form; ids are stable and readable because they are the practice
-/// attribution contract. The encoding is proved against the order-tree
-/// lifecycle: release branches latch through an authored until, outcome
-/// evidence anchors at release entry, and finished tactics yield
-/// no-child-eligible so the next tactic takes over deterministically.
+/// attribution contract. The squad program table owns the whole lifecycle —
+/// selection, latched forward-only phase transitions, aborts, duration — so
+/// leaves carry only their phase tag plus local episode gates. Readiness is
+/// exact and per-bot at squad level: every member is at its ground or dead,
+/// with no quorum approximation and no per-body release gate to rejoin.
 /// </summary>
 internal static class ArcRelayTacticsMaterializer
 {
-    private const int RootCooldown = 40;
-    private const int PhaseCooldown = 120;
+    private const int RearmTicks = 40;
     private const int BriefTimeout = 60;
     private const int StandardTimeout = 180;
     private const int LongTimeout = 420;
@@ -28,6 +28,7 @@ internal static class ArcRelayTacticsMaterializer
     {
         var emission = new Emission(document);
         emission.BuildBaseVocabulary();
+        ProgramSpec program = emission.BuildProgram();
         var roles = new List<RoleEmission>(8);
         foreach (ArcRelayTacticsSquadBot bot in document.Squad)
             roles.Add(emission.BuildRole(bot));
@@ -41,7 +42,7 @@ internal static class ArcRelayTacticsMaterializer
                 + "plan carries at most 128 of each. Reuse the same ground "
                 + "across tactics or simplify posts, lines, and marks.");
         }
-        byte[] orders = WriteOrders(document, emission, roles);
+        byte[] orders = WriteOrders(document, emission, roles, program);
         byte[] mapPlan = WriteMapPlan(document, emission);
         return new ArcRelayTacticsMaterialization(orders, mapPlan);
     }
@@ -49,14 +50,16 @@ internal static class ArcRelayTacticsMaterializer
     private static byte[] WriteOrders(
         ArcRelayTacticsDocument document,
         Emission emission,
-        IReadOnlyList<RoleEmission> roles)
+        IReadOnlyList<RoleEmission> roles,
+        ProgramSpec program)
     {
         using var stream = new MemoryStream();
         using (var writer = new Utf8JsonWriter(
             stream, new JsonWriterOptions { Indented = true }))
         {
             writer.WriteStartObject();
-            writer.WriteString("schema", ArcRelayTacticalPlaybookCompiler.PlaybookSchema);
+            writer.WriteString(
+                "schema", ArcRelayTacticalPlaybookCompiler.ProgramSchema);
             writer.WriteString("sheetId", document.SheetId);
             writer.WriteString("mapPlan", "map-plan.json");
             writer.WriteStartArray("roles");
@@ -92,6 +95,7 @@ internal static class ArcRelayTacticsMaterializer
             foreach (ConditionDef condition in emission.Conditions)
                 condition.Write(writer);
             writer.WriteEndObject();
+            program.Write(writer);
             writer.WriteEndObject();
         }
         return stream.ToArray();
@@ -254,15 +258,326 @@ internal static class ArcRelayTacticsMaterializer
             }));
         }
 
+        /// <summary>
+        /// The squad program table: tactic order, start/abort cases, duration
+        /// and rearm, and each phase's forward-only continue rules. Compiled
+        /// first so its interned conditions and zones exist before roles.
+        /// </summary>
+        public ProgramSpec BuildProgram()
+        {
+            var tactics = new List<ProgramTacticSpec>();
+            for (int index = 0; index < _document.Tactics.Count; index++)
+            {
+                ArcRelayTactic tactic = _document.Tactics[index];
+                string prefix = $"t{index + 1}";
+                List<CaseSpec>? start = tactic.Start?
+                    .Select(value => BuildCase(prefix, "start", value, phase: null, tactic))
+                    .ToList();
+                List<CaseSpec>? abort = tactic.Abort?
+                    .Select(value => BuildCase(prefix, "abort", value, phase: null, tactic))
+                    .ToList();
+                var phases = new List<ProgramPhaseSpec>();
+                for (int phaseIndex = 0; phaseIndex < tactic.Phases.Count; phaseIndex++)
+                {
+                    ArcRelayTacticPhaseDef phase = tactic.Phases[phaseIndex];
+                    var rules = new List<(CaseSpec When, string To)>();
+                    foreach (ArcRelayTacticTransition transition in phase.Continue)
+                    {
+                        string to = transition.To is "next" or "finish"
+                            ? transition.To
+                            : $"p{tactic.Phases.ToList().FindIndex(candidate =>
+                                candidate.Id == transition.To) + 1}";
+                        rules.Add((BuildCase(
+                            prefix, $"p{phaseIndex + 1}", transition.When,
+                            phase, tactic), to));
+                    }
+                    phases.Add(new ProgramPhaseSpec(
+                        $"p{phaseIndex + 1}", phase.Name, rules));
+                }
+                tactics.Add(new ProgramTacticSpec(
+                    prefix,
+                    tactic.Name,
+                    start,
+                    abort,
+                    tactic.MaxDuration switch
+                    {
+                        "brief" => BriefTimeout,
+                        "standard" => StandardTimeout,
+                        "long" => LongTimeout,
+                        _ => null,
+                    },
+                    RearmTicks,
+                    phases));
+            }
+            return new ProgramSpec(tactics);
+        }
+
+        private CaseSpec BuildCase(
+            string prefix,
+            string context,
+            ArcRelayTacticCase value,
+            ArcRelayTacticPhaseDef? phase,
+            ArcRelayTactic tactic)
+        {
+            var result = new CaseSpec();
+            if (value.Required is not null)
+            {
+                AddRowEntries(
+                    result.All, prefix, context, value.Required, phase, tactic);
+            }
+            if (value.Triggers is not null)
+            {
+                AddRowEntries(
+                    result.Any, prefix, context, value.Triggers, phase, tactic);
+            }
+            return result;
+        }
+
+        /// <summary>One entry per active row; groupsSet expands to the exact
+        /// per-bot dead-excused pairs of the phase's effective geometry.</summary>
+        private void AddRowEntries(
+            List<object> entries,
+            string prefix,
+            string context,
+            ArcRelayTacticConditionRows rows,
+            ArcRelayTacticPhaseDef? phase,
+            ArcRelayTactic tactic)
+        {
+            if (rows.GroupsSet && phase is not null)
+                AddReadinessEntries(entries, prefix, context, phase, tactic);
+            if (rows.HeldTicks is int held)
+            {
+                entries.Add(Condition(
+                    new ConditionShape("elapsed-ticks", "at-least", held),
+                    $"c-held-{held}"));
+            }
+            if (rows.EnemiesAt is ArcRelayTacticEnemiesAtRow enemies)
+            {
+                string zone = Zone(
+                    enemies.Zone.Rect, $"g-{prefix}-{context}-watch");
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "remembered-enemies-in-zone", "at-least", enemies.Count,
+                        ZoneId: zone, FreshnessTicks: RememberedFreshnessTicks),
+                    $"c-{prefix}-{context}-enemies"));
+            }
+            if (rows.Contact)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "visible-enemies-in-zone", "at-least", 1,
+                        ZoneId: AnywhereZone()),
+                    "enemy-contact"));
+            }
+            if (rows.CoreLooseWell is string well)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "well-has-outstanding-core", "equals", 1, Well: well),
+                    $"core-up-at-{well}"));
+            }
+            if (rows.CoreSoon is ArcRelayTacticCoreSoonRow coreSoon)
+            {
+                // The Well's one effective public clock (#328): initial
+                // opening before the first Core, then the bank-triggered
+                // recharge — so "births soon" reads the same field always.
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "well-ticks-until-birth", "at-most", coreSoon.Ticks,
+                        Well: coreSoon.Well),
+                    $"c-{prefix}-{context}-core-soon"));
+            }
+            if (rows.EnemiesDown is int enemiesDown)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "live-enemies", "at-most", 8 - enemiesDown),
+                    $"c-{prefix}-{context}-enemies-down"));
+            }
+            if (rows.Carrier || rows.CoreAcquired)
+            {
+                entries.Add(Condition(
+                    new ConditionShape("friendly-carriers", "at-least", 1),
+                    "we-hold-a-core"));
+            }
+            if (rows.Losses is int losses)
+            {
+                entries.Add(Condition(
+                    new ConditionShape("live-friendlies", "at-most", 8 - losses),
+                    $"down-{losses}-bots"));
+            }
+            if (rows.LossesWithin is ArcRelayTacticLossesWithinRow window)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "friendly-destructions", "at-least", window.Count,
+                        WindowTicks: window.Ticks),
+                    $"c-lost-{window.Count}-in-{window.Ticks}"));
+            }
+            if (rows.Kills is int kills)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "confirmed-enemy-destructions-in-zone", "at-least",
+                        kills, ZoneId: AnywhereZone(), Since: "phase-entry"),
+                    $"c-{prefix}-kills"));
+            }
+            if (rows.Cleared is ArcRelayTacticZoneRef cleared)
+            {
+                string zone = Zone(cleared.Rect, $"g-{prefix}-cleared");
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "visible-enemies-in-zone", "equals", 0, ZoneId: zone),
+                    $"c-{prefix}-cleared"));
+            }
+            if (rows.CoreBanked)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "friendly-core-banks", "at-least", 1,
+                        Since: "phase-entry"),
+                    $"c-{prefix}-banked"));
+            }
+            if (rows.CoreLost)
+            {
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "friendly-core-losses", "at-least", 1,
+                        Since: "phase-entry"),
+                    $"c-{prefix}-core-lost"));
+            }
+            if (rows.Reached && phase is not null)
+            {
+                (ArcRelayTacticGroup Group, ArcRelayTacticJob Job) mover =
+                    tactic.Groups
+                        .Select(group => (Group: group,
+                            Job: phase.Jobs[group.Id]))
+                        .First(pair => pair.Job.Kind is "converge" or "advance");
+                int[] destination = mover.Job.Kind == "converge"
+                    ? mover.Job.Point!
+                    : mover.Job.Path![^1];
+                int[] rect = PadBounds(
+                    [destination[0], destination[1], destination[0], destination[1]],
+                    1);
+                string zone = Zone(rect, $"g-{prefix}-goal");
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "friendlies-in-zone", "at-least",
+                        Math.Max(1, (mover.Group.Slots.Count + 1) / 2),
+                        ZoneId: zone),
+                    $"c-{prefix}-reached"));
+            }
+            if (rows.Observed)
+            {
+                List<ArcRelayTacticJob> watchers = phase is null
+                    ? []
+                    : tactic.Groups
+                        .Select(group => phase.Jobs[group.Id])
+                        .Where(job => job.Posture == "observe" && job.HasGeometry)
+                        .ToList();
+                if (watchers.Count == 0)
+                {
+                    watchers = tactic.Phases
+                        .SelectMany(candidate => candidate.Jobs.Values)
+                        .Where(job => job.HasGeometry)
+                        .ToList();
+                }
+                int[] rect = BoundingBox(watchers.SelectMany(GeometryPoints));
+                string zone = Zone(rect, $"g-{prefix}-watchline");
+                entries.Add(Condition(
+                    new ConditionShape(
+                        "zone-fully-observed-throughout-interval", "equals", 1,
+                        ZoneId: zone, WindowTicks: ObservedWindowTicks),
+                    $"c-{prefix}-observed"));
+            }
+        }
+
+        /// <summary>
+        /// Exact readiness, per bot: each member of every group with ground
+        /// this phase is inside its footprint OR dead. There is no quorum and
+        /// no short-handed approximation — the coordinator evaluates this
+        /// once at squad level, where per-body gate budgets no longer bind.
+        /// </summary>
+        private void AddReadinessEntries(
+            List<object> entries,
+            string prefix,
+            string context,
+            ArcRelayTacticPhaseDef phase,
+            ArcRelayTactic tactic)
+        {
+            for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
+            {
+                ArcRelayTacticGroup group = tactic.Groups[groupIndex];
+                ArcRelayTacticJob? job = EffectiveJob(tactic, phase, group.Id);
+                if (job is null)
+                    continue;
+                string groupTag = $"g{groupIndex + 1}";
+                // Small posts groups gate each bot at its own post; larger
+                // ones share the posts footprint so the zone table stays
+                // affordable — either way the check is per bot and exact.
+                bool perPostZones = job.Kind == "posts"
+                    && group.Slots.Count <= 3;
+                int[]? footprint = job.Kind switch
+                {
+                    "posts" => PadBounds(BoundingBox(
+                        job.Posts!.Select(post => post.At)), 1),
+                    "area" => job.Rect,
+                    "line" or "patrol" => PadBounds(BoundingBox(job.Path!), 1),
+                    "advance" => PadBounds(
+                        [
+                            job.Path![^1][0], job.Path[^1][1],
+                            job.Path[^1][0], job.Path[^1][1],
+                        ], 1),
+                    "approach" => PadBounds(
+                        [
+                            job.Point![0], job.Point[1],
+                            job.Point[0], job.Point[1],
+                        ], 2),
+                    "converge" => PadBounds(
+                        [
+                            job.Point![0], job.Point[1],
+                            job.Point[0], job.Point[1],
+                        ], 1),
+                    _ => null,
+                };
+                if (footprint is null)
+                    continue;
+                for (int member = 0; member < group.Slots.Count; member++)
+                {
+                    int[] rect = perPostZones
+                        ? PadBounds(
+                            [
+                                job.Posts![member].At[0], job.Posts[member].At[1],
+                                job.Posts[member].At[0], job.Posts[member].At[1],
+                            ], 1)
+                        : footprint;
+                    string zone = perPostZones
+                        ? Zone(rect, $"g-{prefix}-{groupTag}-near-post-{member}")
+                        : Zone(rect, $"g-{prefix}-{groupTag}-set");
+                    string atGround = Condition(
+                        new ConditionShape(
+                            "role-in-zone-count", "at-least", 1,
+                            Role: RoleId(group.Slots[member]), ZoneId: zone),
+                        $"c-{prefix}-{groupTag}-at-{member}");
+                    // Role-scoped name: the same bot's excuse interns once
+                    // and every gate references it.
+                    string down = Condition(
+                        new ConditionShape(
+                            "role-live-count", "at-most", 0,
+                            Role: RoleId(group.Slots[member])),
+                        $"dn-{RoleId(group.Slots[member])}");
+                    entries.Add(new Expr("any", [atGround, down]));
+                }
+            }
+        }
+
         public RoleEmission BuildRole(ArcRelayTacticsSquadBot bot)
         {
             var orders = new List<Node>();
             for (int index = 0; index < _document.Tactics.Count; index++)
             {
-                Node? branch = BuildTacticBranch(
-                    index, _document.Tactics[index], bot);
-                if (branch is not null)
-                    orders.Add(branch);
+                BuildTacticNodes(
+                    index, _document.Tactics[index], bot, orders);
             }
             orders.Add(new Node { SharedRef = "score-a-core" });
             orders.Add(new Node { SharedRef = "collect-loose-core" });
@@ -273,13 +588,23 @@ internal static class ArcRelayTacticsMaterializer
                 RoleId(bot.Slot), bot.ClassId, UpgradePathFor(bot.Build), orders);
         }
 
-        private Node? BuildTacticBranch(
+        /// <summary>
+        /// One tactic's subtree for one bot: a tactic wrapper (tagged with
+        /// the tactic id, so everything inside goes dark between runs)
+        /// holding the tactic-scoped Core habits first — they outrank floors
+        /// in every phase — then one wrapper per phase (tagged tactic/phase)
+        /// with that phase's recovery, fight, marks, and floor. Leaves are
+        /// untagged; the wrappers are the whole gate. There is no release
+        /// branch, per-body latch, or rejoin anywhere.
+        /// </summary>
+        private void BuildTacticNodes(
             int index,
             ArcRelayTactic tactic,
-            ArcRelayTacticsSquadBot bot)
+            ArcRelayTacticsSquadBot bot,
+            List<Node> orders)
         {
-            // Generated ids are ordinal (t3, g1): they stay short enough for
-            // the ATL2 envelope at eight tactics and the tactics document
+            // Generated ids are ordinal (t3, p2, g1): they stay short enough
+            // for the ATL2 envelope at eight tactics and the tactics document
             // resolves them back to authored names for display/attribution.
             string prefix = $"t{index + 1}";
             int groupIndex = 0;
@@ -288,463 +613,78 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticGroup group = tactic.Groups[groupIndex];
             string groupTag = $"g{groupIndex + 1}";
 
-            Expr? start = BuildStartExpression(prefix, tactic.Start);
-            Expr? release = BuildReleaseExpression(prefix, tactic);
-            Expr? outcomes = BuildOutcomeExpression(prefix, tactic);
-
-            var root = new Node
-            {
-                Id = prefix,
-                When = start,
-                Timeout = tactic.MaxAttempt switch
-                {
-                    "brief" => BriefTimeout,
-                    "standard" => StandardTimeout,
-                    "long" => LongTimeout,
-                    _ => null,
-                },
-                Cooldown = RootCooldown,
-            };
-            // Phase-invariant Core habits (pickup rule, delivery plan) are
-            // emitted once above the release branch: they outrank both
-            // floors and apply in both phases. Their empty-handed/carrying
-            // gates keep any post-outcome residue benign — fight and
-            // recovery must NOT be hoisted here, or a finished tactic would
-            // keep fighting in its own name and shade the next tactic.
+            var children = new List<Node>();
             var invariantScope = new LeafScope(
                 prefix, groupTag, group.Slots.Count, PhaseTag: null);
-            var children = new List<Node>();
             AddDelivery(children, invariantScope, tactic, group, bot);
             AddCoreRule(children, invariantScope, group.CoreRule);
-            if (release is null)
+            for (int phaseIndex = 0; phaseIndex < tactic.Phases.Count; phaseIndex++)
             {
-                // Immediate release: activation IS release, so outcome
-                // evidence may anchor at the root itself.
-                root.Until = outcomes;
-                children.AddRange(BuildActLeaves(
-                    prefix, groupTag, tactic, group, bot));
-            }
-            else
-            {
-                List<Node> actLeaves = BuildActLeaves(
-                    prefix, groupTag, tactic, group, bot);
-                if (actLeaves.Count > 0)
+                ArcRelayTacticPhaseDef phase = tactic.Phases[phaseIndex];
+                ArcRelayTacticJob raw = phase.Jobs[group.Id];
+                ArcRelayTacticJob? effective = EffectiveJob(
+                    tactic, phase, group.Id);
+                var scope = new LeafScope(
+                    prefix, groupTag, group.Slots.Count, $"p{phaseIndex + 1}");
+                var leaves = new List<Node>();
+                AddRecovery(leaves, scope, raw.Recovery);
+                AddPostureFight(leaves, scope, raw.Posture,
+                    effective?.Kind is "posts" or "area" or "line" or "approach"
+                        ? () => OnStationCondition(
+                            prefix, groupTag, effective, group, bot)
+                        : null);
+                AddSignatureLeaves(
+                    leaves, scope, group, bot, raw.Posture, raw.Sigs);
+                if (effective is not null)
+                    AddFloor(leaves, scope, effective, group, bot);
+                if (leaves.Count > 0)
                 {
                     children.Add(new Node
                     {
-                        Id = $"{prefix}-go",
-                        When = release,
-                        // The until doubles as the release latch: while this
-                        // branch is active its when is never re-consulted, so
-                        // a lapsed trigger cannot un-release the tactic.
-                        Until = outcomes ?? Expr.One(Never()),
-                        Cooldown = PhaseCooldown,
-                        // Rejoin makes the latch squad-wide: a body respawning
-                        // after the release finds its squadmates gone from the
-                        // posts, so its own gate can never re-form — it joins
-                        // the released phase instead of re-staging alone.
-                        Rejoin = true,
-                        Children = actLeaves,
-                    });
-                }
-                List<Node> stageLeaves = BuildStageLeaves(
-                    prefix, groupTag, tactic, group, bot);
-                if (stageLeaves.Count > 0)
-                {
-                    // The whole stage phase lives under one wrapper whose
-                    // until is the release expression: every stage leaf dies
-                    // the moment the tactic releases, and a finished release
-                    // branch leaves the tactic yielding no-child-eligible
-                    // instead of re-staging.
-                    children.Add(new Node
-                    {
-                        Id = $"{prefix}-s",
-                        Until = release,
-                        Cooldown = PhaseCooldown,
-                        Children = stageLeaves,
+                        Id = $"{prefix}-p{phaseIndex + 1}",
+                        Phase = $"{prefix}/p{phaseIndex + 1}",
+                        Children = leaves,
                     });
                 }
             }
-            if (children.Count == 0)
-                return null;
-            root.Children = children;
-            return root;
-        }
-
-        private Expr? BuildStartExpression(
-            string prefix,
-            ArcRelayTacticConditionRows? rows)
-        {
-            if (rows is null)
-                return null;
-            List<string> names = BuildRowConditions(prefix, "start", rows);
-            return names.Count == 0 ? null : Expr.Any(names);
-        }
-
-        private Expr? BuildReleaseExpression(string prefix, ArcRelayTactic tactic)
-        {
-            if (tactic.ReleaseMode == "immediate")
-                return null;
-            List<string> rowNames = tactic.Release is null
-                ? []
-                : BuildRowConditions(prefix, "release", tactic.Release);
-
-            // Exact-post readiness binds each assigned bot to its own post via
-            // its single-bot role; the aggregate form is the fallback when the
-            // flat all[] name budget cannot carry the exact conditions. Two or
-            // more trigger rows fold into one nested any() entry.
-            int rowEntryCount = Math.Min(rowNames.Count, 1);
-            List<ArcRelayTacticGroup> stagedGroups = tactic.Groups
-                .Where(group => group.Stage.HasGeometry).ToList();
-            int exactCount = stagedGroups.Sum(group =>
-                group.Stage.Kind == "posts" ? group.Slots.Count : 1);
-            bool exactPosts = stagedGroups.Any(group => group.Stage.Kind == "posts")
-                && exactCount + rowEntryCount <= 8;
-            // Every readiness entry is "in position OR that expectation is
-            // dead": a fallen bot excuses its own slot in the gate, so a
-            // death never holds the whole release hostage — and the go
-            // branch's rejoin flag lets it catch up with the released squad
-            // on respawn instead of re-staging at an abandoned post.
-            var names = new List<string>();
-            var groups = new List<Expr>();
-            for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
+            if (children.Count > 0)
             {
-                ArcRelayTacticGroup group = tactic.Groups[groupIndex];
-                if (!group.Stage.HasGeometry)
-                    continue;
-                string groupTag = $"g{groupIndex + 1}";
-                if (exactPosts && group.Stage.Kind == "posts")
+                orders.Add(new Node
                 {
-                    // Small posts groups gate on each bot standing at its own
-                    // post; larger ones bind each distinct bot to the posts
-                    // footprint instead so the zone table stays affordable.
-                    bool perPostZones = group.Slots.Count <= 3;
-                    for (int post = 0; post < group.Stage.Posts!.Count; post++)
+                    Id = prefix,
+                    Phase = prefix,
+                    Children = children,
+                });
+            }
+        }
+
+        /// <summary>The job whose ground this group holds in this phase:
+        /// its own when it has geometry or is a dynamic mover, else the
+        /// nearest earlier geometric job carried forward under the current
+        /// posture. Null when there is nothing to stand on or do.</summary>
+        private static ArcRelayTacticJob? EffectiveJob(
+            ArcRelayTactic tactic,
+            ArcRelayTacticPhaseDef phase,
+            string groupId)
+        {
+            ArcRelayTacticJob raw = phase.Jobs[groupId];
+            if (raw.Kind != "none")
+                return raw;
+            int index = tactic.Phases.ToList().IndexOf(phase);
+            for (int earlier = index - 1; earlier >= 0; earlier--)
+            {
+                ArcRelayTacticJob candidate = tactic.Phases[earlier].Jobs[groupId];
+                if (candidate.Kind != "none")
+                {
+                    return candidate with
                     {
-                        string ready = PostReadiness(
-                            prefix, groupTag, group, post, perPostZones);
-                        // Role-scoped name: the same bot's excuse interns
-                        // once and every tactic's gate references it, which
-                        // keeps a maximal sheet inside the runtime envelope.
-                        string down = Condition(
-                            new ConditionShape(
-                                "role-live-count", "at-most", 0,
-                                Role: RoleId(group.Slots[post])),
-                            $"dn-{RoleId(group.Slots[post])}");
-                        groups.Add(new Expr("any", [ready, down]));
-                    }
-                }
-                else if (AggregateReadiness(prefix, groupTag, group)
-                    is Expr aggregate)
-                {
-                    groups.Add(aggregate);
+                        Posture = raw.Posture,
+                        Recovery = raw.Recovery,
+                        Sigs = raw.Sigs,
+                    };
                 }
             }
-            if (rowNames.Count == 1)
-                names.Add(rowNames[0]);
-            else if (rowNames.Count > 1)
-                groups.Add(Expr.Any(rowNames));
-            int entryCount = names.Count + groups.Count;
-            if (entryCount == 0)
-                return null;
-            if (entryCount == 1)
-                return groups.Count == 1 ? groups[0] : Expr.One(names[0]);
-            return new Expr("all", names, groups);
-        }
-
-        private Expr? AggregateReadiness(
-            string prefix,
-            string groupTag,
-            ArcRelayTacticGroup group)
-        {
-            int[]? rect = group.Stage.Kind switch
-            {
-                "posts" => PadBounds(BoundingBox(
-                    group.Stage.Posts!.Select(post => post.At)), 1),
-                "area" => group.Stage.Rect,
-                "line" => PadBounds(BoundingBox(group.Stage.Path!), 1),
-                "approach" => PadBounds(
-                    [
-                        group.Stage.Point![0], group.Stage.Point[1],
-                        group.Stage.Point[0], group.Stage.Point[1],
-                    ], 2),
-                _ => null,
-            };
-            if (rect is null)
-                return null;
-            string zone = Zone(rect, $"g-{prefix}-{groupTag}-set");
-            // Two-thirds assembled is “in position”: staging under fire
-            // jostles bodies at the footprint edge, and demanding all-but-one
-            // let a single straggler hold the whole release hostage.
-            int required = Math.Max(1, (group.Slots.Count * 2 + 2) / 3);
-            string ready = Condition(
-                new ConditionShape(
-                    "friendlies-in-zone", "at-least", required, ZoneId: zone),
-                $"c-{prefix}-{groupTag}-ready");
-            // Short-handed excuse: with fewer live members than the quorum,
-            // the group can never assemble it — release without them.
-            string shortHanded = Condition(
-                new ConditionShape(
-                    "role-live-count", "at-most", required - 1,
-                    Roles: group.Slots.Select(RoleId).ToArray()),
-                $"c-{prefix}-{groupTag}-short");
-            return new Expr("any", [ready, shortHanded]);
-        }
-
-        private string PostReadiness(
-            string prefix,
-            string groupTag,
-            ArcRelayTacticGroup group,
-            int postIndex,
-            bool perPostZones)
-        {
-            ArcRelayTacticPost post = group.Stage.Posts![postIndex];
-            int[] rect = perPostZones
-                ? PadBounds(
-                    [post.At[0], post.At[1], post.At[0], post.At[1]], 1)
-                : PadBounds(BoundingBox(
-                    group.Stage.Posts.Select(value => value.At)), 1);
-            string zone = perPostZones
-                ? Zone(rect, $"g-{prefix}-{groupTag}-near-post-{postIndex}")
-                : Zone(rect, $"g-{prefix}-{groupTag}-set");
-            return Condition(
-                new ConditionShape(
-                    "role-in-zone-count", "at-least", 1,
-                    Role: RoleId(group.Slots[postIndex]), ZoneId: zone),
-                $"c-{prefix}-{groupTag}-at-post-{postIndex}");
-        }
-
-        private Expr? BuildOutcomeExpression(string prefix, ArcRelayTactic tactic)
-        {
-            ArcRelayTacticOutcomes outcomes = tactic.Outcomes;
-            var names = new List<string>();
-            if (outcomes.Kills is int kills)
-            {
-                names.Add(Condition(
-                    new ConditionShape(
-                        "confirmed-enemy-destructions-in-zone", "at-least",
-                        kills, ZoneId: AnywhereZone(), Since: "node-entry"),
-                    $"c-{prefix}-kills"));
-            }
-            if (outcomes.Losses is int losses)
-            {
-                names.Add(Condition(
-                    new ConditionShape("live-friendlies", "at-most", 8 - losses),
-                    $"down-{losses}-bots"));
-            }
-            if (outcomes.Cleared is ArcRelayTacticZoneRef cleared)
-            {
-                string zone = Zone(cleared.Rect, $"g-{prefix}-cleared");
-                names.Add(Condition(
-                    new ConditionShape(
-                        "visible-enemies-in-zone", "equals", 0, ZoneId: zone),
-                    $"c-{prefix}-cleared"));
-            }
-            if (outcomes.CoreAcquired)
-            {
-                names.Add(Condition(
-                    new ConditionShape("friendly-carriers", "at-least", 1),
-                    "we-hold-a-core"));
-            }
-            if (outcomes.CoreBanked)
-            {
-                names.Add(Condition(
-                    new ConditionShape(
-                        "friendly-core-banks", "at-least", 1,
-                        Since: "node-entry"),
-                    $"c-{prefix}-banked"));
-            }
-            if (outcomes.CoreLost)
-            {
-                names.Add(Condition(
-                    new ConditionShape(
-                        "friendly-core-losses", "at-least", 1,
-                        Since: "node-entry"),
-                    $"c-{prefix}-core-lost"));
-            }
-            if (outcomes.Reached)
-            {
-                ArcRelayTacticGroup mover = tactic.Groups.First(
-                    group => group.Act.Kind is "converge" or "advance");
-                int[] destination = mover.Act.Kind == "converge"
-                    ? mover.Act.Point!
-                    : mover.Act.Path![^1];
-                int[] rect = PadBounds(
-                    [destination[0], destination[1], destination[0], destination[1]],
-                    1);
-                string zone = Zone(rect, $"g-{prefix}-goal");
-                names.Add(Condition(
-                    new ConditionShape(
-                        "friendlies-in-zone", "at-least",
-                        Math.Max(1, (mover.Slots.Count + 1) / 2), ZoneId: zone),
-                    $"c-{prefix}-reached"));
-            }
-            if (outcomes.Observed)
-            {
-                List<ArcRelayTacticGroup> observers = tactic.Groups
-                    .Where(group =>
-                        (group.Stage.Posture == "observe" && group.Stage.HasGeometry)
-                        || (group.Act.Posture == "observe" && group.Act.HasGeometry))
-                    .ToList();
-                if (observers.Count == 0)
-                {
-                    observers = tactic.Groups
-                        .Where(group => group.HasAnyGeometry).ToList();
-                }
-                int[] rect = BoundingBox(observers.SelectMany(GeometryPoints));
-                string zone = Zone(rect, $"g-{prefix}-watchline");
-                names.Add(Condition(
-                    new ConditionShape(
-                        "zone-fully-observed-throughout-interval", "equals", 1,
-                        ZoneId: zone, WindowTicks: ObservedWindowTicks),
-                    $"c-{prefix}-observed"));
-            }
-            if (names.Count == 0)
-                return null;
-            return Expr.Any(names);
-        }
-
-        private List<string> BuildRowConditions(
-            string prefix,
-            string section,
-            ArcRelayTacticConditionRows rows)
-        {
-            var names = new List<string>();
-            if (rows.EnemiesAt is ArcRelayTacticEnemiesAtRow enemies)
-            {
-                string zone = Zone(
-                    enemies.Zone.Rect, $"g-{prefix}-{section}-watch");
-                names.Add(Condition(
-                    new ConditionShape(
-                        "remembered-enemies-in-zone", "at-least", enemies.Count,
-                        ZoneId: zone, FreshnessTicks: RememberedFreshnessTicks),
-                    $"c-{prefix}-{section}-enemies"));
-            }
-            if (rows.Contact)
-            {
-                names.Add(Condition(
-                    new ConditionShape(
-                        "visible-enemies-in-zone", "at-least", 1,
-                        ZoneId: AnywhereZone()),
-                    "enemy-contact"));
-            }
-            if (rows.CoreLooseWell is string well)
-            {
-                names.Add(Condition(
-                    new ConditionShape(
-                        "well-has-outstanding-core", "equals", 1, Well: well),
-                    $"core-up-at-{well}"));
-            }
-            if (rows.CoreSoon is ArcRelayTacticCoreSoonRow coreSoon)
-            {
-                // The Well's one effective public clock (#328): initial
-                // opening before the first Core, then the bank-triggered
-                // recharge — so "births soon" reads the same field always.
-                names.Add(Condition(
-                    new ConditionShape(
-                        "well-ticks-until-birth", "at-most", coreSoon.Ticks,
-                        Well: coreSoon.Well),
-                    $"c-{prefix}-{section}-core-soon"));
-            }
-            if (rows.EnemiesDown is int enemiesDown)
-            {
-                names.Add(Condition(
-                    new ConditionShape(
-                        "live-enemies", "at-most", 8 - enemiesDown),
-                    $"c-{prefix}-{section}-enemies-down"));
-            }
-            if (rows.Carrier)
-            {
-                names.Add(Condition(
-                    new ConditionShape("friendly-carriers", "at-least", 1),
-                    "we-hold-a-core"));
-            }
-            if (rows.Losses is int losses)
-            {
-                names.Add(Condition(
-                    new ConditionShape("live-friendlies", "at-most", 8 - losses),
-                    $"down-{losses}-bots"));
-            }
-            return names;
-        }
-
-        private List<Node> BuildStageLeaves(
-            string prefix,
-            string groupTag,
-            ArcRelayTactic tactic,
-            ArcRelayTacticGroup group,
-            ArcRelayTacticsSquadBot bot)
-        {
-            // Stage sections use phase tag "s", act sections "a"; a leaf id is
-            // "t{n}-g{k}-{phase}-{kind}". Group-uniform leaves are written
-            // once as shared orders and referenced by every member role —
-            // eight near-identical copies would not fit the ATL2 envelope.
-            var scope = new LeafScope(prefix, groupTag, group.Slots.Count, "s");
-            var leaves = new List<Node>();
-            AddRecovery(leaves, scope, group.Stage.Recovery);
-            AddPostureFight(leaves, scope, group.Stage.Posture,
-                () => OnStationCondition(prefix, groupTag, group, bot));
-            AddSignatureLeaves(
-                leaves, scope, group, bot, group.Stage.Posture, group.StageSigs,
-                latch: null);
-            // No per-leaf latches: the stage wrapper branch above carries the
-            // release expression as its until for the whole section.
-            AddFloor(leaves, scope, group.Stage, group, bot, latch: null);
-            return leaves;
-        }
-
-        private List<Node> BuildActLeaves(
-            string prefix,
-            string groupTag,
-            ArcRelayTactic tactic,
-            ArcRelayTacticGroup group,
-            ArcRelayTacticsSquadBot bot)
-        {
-            var scope = new LeafScope(prefix, groupTag, group.Slots.Count, "a");
-            var leaves = new List<Node>();
-            AddRecovery(leaves, scope, group.Act.Recovery);
-            // A stage-only group's continuation still fights for its ground,
-            // not for every corridor on the way back to it.
-            AddPostureFight(leaves, scope, group.Act.Posture,
-                group.Act.Kind == "none"
-                    ? () => OnStationCondition(prefix, groupTag, group, bot)
-                    : null);
-            AddSignatureLeaves(
-                leaves, scope, group, bot, group.Act.Posture, group.ActSigs,
-                latch: null);
-            if (group.Act.Kind == "none")
-            {
-                // A stage-only group keeps its stage job after release; the
-                // continuation reuses the stage geometry under the act's
-                // posture so nobody wanders off.
-                AddFloor(leaves, scope,
-                    group.Stage with { Posture = group.Act.Posture },
-                    group, bot, latch: null);
-            }
-            else
-            {
-                AddFloor(leaves, scope, group.Act, group, bot, latch: null);
-            }
-            return leaves;
-        }
-
-        /// <summary>
-        /// Emit one group-uniform leaf: as a shared order referenced by every
-        /// member role when the group can honestly consume it twice, inline
-        /// for a one-bot group.
-        /// </summary>
-        private Node GroupLeaf(LeafScope scope, string kind, Func<Node> define)
-        {
-            string id = scope.Id(kind);
-            if (scope.GroupSize < 2)
-            {
-                Node inline = define();
-                inline.Id = id;
-                return inline;
-            }
-            if (_sharedLeafIds.Add(id))
-                SharedOrders.Add((id, define()));
-            return new Node { SharedRef = id };
+            return null;
         }
 
         private void AddRecovery(List<Node> leaves, LeafScope scope, string recovery)
@@ -786,12 +726,12 @@ internal static class ArcRelayTacticsMaterializer
             if (tactic.Delivery.Plan == "none")
             {
                 // "None" means the job continues and banking waits for the
-                // baseline banker once the tactic ends — but a persistent
-                // tactic never ends, so an accidental carrier (a Core landing
-                // on a bot with no grab rule) would hold it forever. The
-                // persistent branch carries the same urgent bank escape the
-                // organized plans get.
-                if (tactic.Outcomes.Persistent)
+                // baseline banker once the tactic ends — but a tactic whose
+                // final phase holds forever never ends, so an accidental
+                // carrier (a Core landing on a bot with no grab rule) would
+                // hold it forever. That branch carries the same urgent bank
+                // escape the organized plans get.
+                if (tactic.Phases[^1].Continue.Count == 0)
                 {
                     leaves.Add(GroupLeaf(scope, "bank", () => new Node
                     {
@@ -910,9 +850,9 @@ internal static class ArcRelayTacticsMaterializer
             };
             if (fight is null)
                 return;
-            // A staged posture fights for its ground: gating on being at the
-            // station keeps a fight episode from anchoring the bot short of
-            // its post on the march in. Minted only when the fight leaf
+            // A standing posture fights for its ground: gating on being at
+            // the station keeps a fight episode from anchoring the bot short
+            // of its post on the march in. Minted only when the fight leaf
             // exists — consumer honesty. Posts groups gate per bot (its own
             // post), so the leaf inlines instead of sharing.
             string? onStation = stationCondition?.Invoke();
@@ -934,19 +874,20 @@ internal static class ArcRelayTacticsMaterializer
             leaves.Add(GroupLeaf(scope, "fight", Define));
         }
 
-        /// <summary>The body-scoped “I am at my station” fact: a posts group
-        /// gates each bot on its own post (±1); other kinds use the group
-        /// footprint. Null when the group has no stage geometry.</summary>
+        /// <summary>The body-scoped “I am at my station” fact: a posts job
+        /// gates each bot on its own post (±1); other kinds use the job
+        /// footprint. Null when the job has no standing geometry.</summary>
         private string? OnStationCondition(
             string prefix,
             string groupTag,
+            ArcRelayTacticJob job,
             ArcRelayTacticGroup group,
             ArcRelayTacticsSquadBot bot)
         {
-            if (group.Stage.Kind == "posts" && group.Stage.Posts is not null)
+            if (job.Kind == "posts" && job.Posts is not null)
             {
                 int member = group.Slots.ToList().IndexOf(bot.Slot);
-                ArcRelayTacticPost post = group.Stage.Posts[member];
+                ArcRelayTacticPost post = job.Posts[member];
                 int[] postRect = PadBounds(
                     [post.At[0], post.At[1], post.At[0], post.At[1]], 1);
                 string postZone = Zone(
@@ -956,14 +897,14 @@ internal static class ArcRelayTacticsMaterializer
                         ZoneId: postZone),
                     $"c-{prefix}-{groupTag}-at-post-{member}-self");
             }
-            int[]? rect = group.Stage.Kind switch
+            int[]? rect = job.Kind switch
             {
-                "area" => group.Stage.Rect,
-                "line" => PadBounds(BoundingBox(group.Stage.Path!), 1),
+                "area" => job.Rect,
+                "line" => PadBounds(BoundingBox(job.Path!), 1),
                 "approach" => PadBounds(
                     [
-                        group.Stage.Point![0], group.Stage.Point[1],
-                        group.Stage.Point[0], group.Stage.Point[1],
+                        job.Point![0], job.Point[1],
+                        job.Point[0], job.Point[1],
                     ], 2),
                 _ => null,
             };
@@ -981,8 +922,7 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticGroup group,
             ArcRelayTacticsSquadBot bot,
             string posture,
-            IReadOnlyList<ArcRelayTacticSignatureMark> marks,
-            Expr? latch)
+            IReadOnlyList<ArcRelayTacticSignatureMark> marks)
         {
             string geometryPrefix = $"{scope.Prefix}-{scope.GroupTag}-{scope.PhaseTag}";
             ArcRelayTacticSignatureMark? mark = marks.FirstOrDefault(
@@ -1030,10 +970,6 @@ internal static class ArcRelayTacticsMaterializer
                     leaves.Add(new Node
                     {
                         Id = scope.Id("rail-move"),
-                        // A rail lane repositions the longshot; on the stage
-                        // side it must die at release with the other floors.
-                        Until = latch,
-                        Cooldown = latch is null ? null : PhaseCooldown,
                         Action = writer =>
                         {
                             writer.WriteStartObject("move");
@@ -1089,13 +1025,12 @@ internal static class ArcRelayTacticsMaterializer
         private void AddFloor(
             List<Node> leaves,
             LeafScope scope,
-            ArcRelayTacticPhase phase,
+            ArcRelayTacticJob job,
             ArcRelayTacticGroup group,
-            ArcRelayTacticsSquadBot bot,
-            Expr? latch)
+            ArcRelayTacticsSquadBot bot)
         {
             string geometryPrefix = $"{scope.Prefix}-{scope.GroupTag}";
-            string posture = phase.Posture switch
+            string posture = job.Posture switch
             {
                 "aggressive" or "steal" => "front",
                 "hold" or "escort" => "line",
@@ -1104,10 +1039,10 @@ internal static class ArcRelayTacticsMaterializer
             // A drawn approach route rides the Orders `via` ingress: each
             // activation walks the route once (progress-aware), then the
             // normal floor takes over. Interned by shape like every route.
-            string? via = phase.Via is null
+            string? via = job.Via is null
                 ? null
-                : Route(phase.Via, $"g-{geometryPrefix}-in");
-            switch (phase.Kind)
+                : Route(job.Via, $"g-{geometryPrefix}-in");
+            switch (job.Kind)
             {
                 // Posts and lines are per-bot floors (each bot owns its own
                 // tile), so they stay inline; every other floor is
@@ -1115,7 +1050,7 @@ internal static class ArcRelayTacticsMaterializer
                 case "posts":
                 {
                     int member = group.Slots.ToList().IndexOf(bot.Slot);
-                    ArcRelayTacticPost post = phase.Posts![member];
+                    ArcRelayTacticPost post = job.Posts![member];
                     string anchor = Anchor(
                         post.At, $"g-{geometryPrefix}-post-{member}");
                     int[]? faceTile = FacingTile(post);
@@ -1127,7 +1062,7 @@ internal static class ArcRelayTacticsMaterializer
                     string? wayIn = post.Via is null
                         ? via
                         : Route(post.Via, $"g-{geometryPrefix}-in-{member}");
-                    leaves.Add(Latched(latch, new Node
+                    leaves.Add(new Node
                     {
                         Id = scope.Id("move"),
                         Action = writer =>
@@ -1146,16 +1081,16 @@ internal static class ArcRelayTacticsMaterializer
                             }
                             writer.WriteEndObject();
                         },
-                    }));
+                    });
                     break;
                 }
                 case "line":
                 {
                     int member = group.Slots.ToList().IndexOf(bot.Slot);
-                    int point = member % phase.Path!.Count;
+                    int point = member % job.Path!.Count;
                     string anchor = Anchor(
-                        phase.Path[point], $"g-{geometryPrefix}-line-{point}");
-                    leaves.Add(Latched(latch, new Node
+                        job.Path[point], $"g-{geometryPrefix}-line-{point}");
+                    leaves.Add(new Node
                     {
                         Id = scope.Id("move"),
                         Action = writer =>
@@ -1169,121 +1104,125 @@ internal static class ArcRelayTacticsMaterializer
                             writer.WriteString("posture", posture);
                             writer.WriteEndObject();
                         },
-                    }));
+                    });
                     break;
                 }
                 case "area":
                 {
-                    string zone = Zone(phase.Rect!, $"g-{geometryPrefix}-hold");
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node
-                        { Action = MoveToZone(zone, posture, via) })));
+                    string zone = Zone(job.Rect!, $"g-{geometryPrefix}-hold");
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                        { Action = MoveToZone(zone, posture, via) }));
                     break;
                 }
                 case "approach":
                 {
                     string anchor = Anchor(
-                        phase.Point!, $"g-{geometryPrefix}-mark");
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node
+                        job.Point!, $"g-{geometryPrefix}-mark");
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        Action = writer =>
                         {
-                            Action = writer =>
-                            {
-                                writer.WriteStartObject("move");
-                                writer.WriteStartObject("to");
-                                writer.WriteString("adjacentTo", anchor);
-                                writer.WriteEndObject();
-                                if (via is not null)
-                                    writer.WriteString("via", via);
-                                writer.WriteString("posture", "rear");
-                                writer.WriteEndObject();
-                            },
-                        })));
+                            writer.WriteStartObject("move");
+                            writer.WriteStartObject("to");
+                            writer.WriteString("adjacentTo", anchor);
+                            writer.WriteEndObject();
+                            if (via is not null)
+                                writer.WriteString("via", via);
+                            writer.WriteString("posture", "rear");
+                            writer.WriteEndObject();
+                        },
+                    }));
                     break;
                 }
                 case "converge":
                 {
                     string anchor = Anchor(
-                        phase.Point!, $"g-{geometryPrefix}-goal");
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node
+                        job.Point!, $"g-{geometryPrefix}-goal");
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        Action = writer =>
                         {
-                            Action = writer =>
-                            {
-                                writer.WriteStartObject("move");
-                                writer.WriteStartObject("to");
-                                writer.WriteString("adjacentTo", anchor);
-                                writer.WriteEndObject();
-                                if (via is not null)
-                                    writer.WriteString("via", via);
-                                writer.WriteString("posture", posture);
-                                writer.WriteEndObject();
-                            },
-                        })));
+                            writer.WriteStartObject("move");
+                            writer.WriteStartObject("to");
+                            writer.WriteString("adjacentTo", anchor);
+                            writer.WriteEndObject();
+                            if (via is not null)
+                                writer.WriteString("via", via);
+                            writer.WriteString("posture", posture);
+                            writer.WriteEndObject();
+                        },
+                    }));
                     break;
                 }
                 case "advance":
                 {
-                    int[] last = phase.Path![^1];
+                    int[] last = job.Path![^1];
                     int[] rect = PadBounds([last[0], last[1], last[0], last[1]], 1);
                     string zone = Zone(rect, $"g-{geometryPrefix}-goal");
-                    string route = Route(phase.Path, $"g-{geometryPrefix}-way");
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node
+                    string route = Route(job.Path, $"g-{geometryPrefix}-way");
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        Action = writer =>
                         {
-                            Action = writer =>
-                            {
-                                writer.WriteStartObject("move");
-                                writer.WriteStartObject("to");
-                                writer.WriteString("zone", zone);
-                                writer.WriteEndObject();
-                                writer.WriteString("via", route);
-                                writer.WriteString("posture", posture);
-                                writer.WriteEndObject();
-                            },
-                        })));
+                            writer.WriteStartObject("move");
+                            writer.WriteStartObject("to");
+                            writer.WriteString("zone", zone);
+                            writer.WriteEndObject();
+                            writer.WriteString("via", route);
+                            writer.WriteString("posture", posture);
+                            writer.WriteEndObject();
+                        },
+                    }));
                     break;
                 }
                 case "patrol":
                 {
-                    string route = Route(phase.Path!, $"g-{geometryPrefix}-beat");
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node
+                    string route = Route(job.Path!, $"g-{geometryPrefix}-beat");
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        Action = writer =>
                         {
-                            Action = writer =>
-                            {
-                                writer.WriteStartObject("move");
-                                writer.WriteString("patrol", route);
-                                writer.WriteString("posture", posture);
-                                writer.WriteEndObject();
-                            },
-                        })));
+                            writer.WriteStartObject("move");
+                            writer.WriteString("patrol", route);
+                            writer.WriteString("posture", posture);
+                            writer.WriteEndObject();
+                        },
+                    }));
                     break;
                 }
                 case "return":
                 {
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node
-                        { Action = MoveToDynamic("own-reactor", via: via) })));
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                        { Action = MoveToDynamic("own-reactor", via: via) }));
                     break;
                 }
                 case "escort":
                 {
-                    leaves.Add(GroupLeaf(scope, "move", () => Latched(
-                        latch, new Node { Action = FollowCarrier() })));
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                        { Action = FollowCarrier() }));
                     break;
                 }
             }
         }
 
-        private static Node Latched(Expr? latch, Node node)
+        /// <summary>
+        /// Emit one group-uniform leaf: as a shared order referenced by every
+        /// member role when the group can honestly consume it twice, inline
+        /// for a one-bot group. Leaves carry no phase tag of their own — the
+        /// per-role tactic and phase wrappers above them are the gate.
+        /// </summary>
+        private Node GroupLeaf(LeafScope scope, string kind, Func<Node> define)
         {
-            if (latch is not null)
+            string id = scope.Id(kind);
+            if (scope.GroupSize < 2)
             {
-                node.Until = latch;
-                node.Cooldown = PhaseCooldown;
+                Node inline = define();
+                inline.Id = id;
+                return inline;
             }
-            return node;
+            if (_sharedLeafIds.Add(id))
+                SharedOrders.Add((id, define()));
+            return new Node { SharedRef = id };
         }
 
         private int[]? FacingTile(ArcRelayTacticPost post)
@@ -1303,28 +1242,25 @@ internal static class ArcRelayTacticsMaterializer
             return [x, y];
         }
 
-        private static IEnumerable<int[]> GeometryPoints(ArcRelayTacticGroup group)
+        private static IEnumerable<int[]> GeometryPoints(ArcRelayTacticJob job)
         {
-            foreach (ArcRelayTacticPhase phase in new[] { group.Stage, group.Act })
+            if (job.Posts is not null)
             {
-                if (phase.Posts is not null)
-                {
-                    foreach (ArcRelayTacticPost post in phase.Posts)
-                        yield return post.At;
-                }
-                if (phase.Rect is not null)
-                {
-                    yield return [phase.Rect[0], phase.Rect[1]];
-                    yield return [phase.Rect[2], phase.Rect[3]];
-                }
-                if (phase.Path is not null)
-                {
-                    foreach (int[] point in phase.Path)
-                        yield return point;
-                }
-                if (phase.Point is not null)
-                    yield return phase.Point;
+                foreach (ArcRelayTacticPost post in job.Posts)
+                    yield return post.At;
             }
+            if (job.Rect is not null)
+            {
+                yield return [job.Rect[0], job.Rect[1]];
+                yield return [job.Rect[2], job.Rect[3]];
+            }
+            if (job.Path is not null)
+            {
+                foreach (int[] point in job.Path)
+                    yield return point;
+            }
+            if (job.Point is not null)
+                yield return job.Point;
         }
 
         private static int[] BoundingBox(IEnumerable<int[]> points)
@@ -1376,9 +1312,6 @@ internal static class ArcRelayTacticsMaterializer
         private string SignatureReady() => Condition(
             new ConditionShape("signature-ready", "equals", 1),
             "signature-ready");
-
-        private string Never() => Condition(
-            new ConditionShape("live-friendlies", "at-least", 9), "never");
 
         private static string DefaultNamedTarget(
             ArcRelaySignatureAuthoringDescriptor descriptor)
@@ -1565,17 +1498,23 @@ internal static class ArcRelayTacticsMaterializer
         }
     }
 
-    /// <summary>Names one tactic/group/phase leaf family: ids read
-    /// "t{n}-g{k}-{s|a}-{kind}" and are the practice-attribution contract.</summary>
+    /// <summary>Names one tactic/phase/group leaf family: phase-scoped ids
+    /// read "t{n}-p{k}-g{j}-{kind}", tactic-scoped Core habits
+    /// "t{n}-g{j}-{kind}"; both are the practice-attribution contract. Tag
+    /// is the node's program gate.</summary>
     private sealed record LeafScope(
         string Prefix,
         string GroupTag,
         int GroupSize,
         string? PhaseTag)
     {
+        public string Tag => PhaseTag is null
+            ? Prefix
+            : $"{Prefix}/{PhaseTag}";
+
         public string Id(string kind) => PhaseTag is null
             ? $"{Prefix}-{GroupTag}-{kind}"
-            : $"{Prefix}-{GroupTag}-{PhaseTag}-{kind}";
+            : $"{Prefix}-{PhaseTag}-{GroupTag}-{kind}";
     }
 
     /// <summary>The interned identity of one generated condition.</summary>
@@ -1628,9 +1567,124 @@ internal static class ArcRelayTacticsMaterializer
         }
     }
 
+    /// <summary>The program table to be written: everything is already
+    /// interned condition names, ordinal ids, and resolved phase targets.</summary>
+    private sealed record ProgramSpec(IReadOnlyList<ProgramTacticSpec> Tactics)
+    {
+        public void Write(Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject("program");
+            writer.WriteStartArray("tactics");
+            foreach (ProgramTacticSpec tactic in Tactics)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("id", tactic.Id);
+                writer.WriteString("name", tactic.Name);
+                WriteCases(writer, "start", tactic.Start);
+                WriteCases(writer, "abort", tactic.Abort);
+                if (tactic.MaxTicks is int maxTicks)
+                    writer.WriteNumber("maxTicks", maxTicks);
+                writer.WriteNumber("rearm", tactic.Rearm);
+                writer.WriteStartArray("phases");
+                foreach (ProgramPhaseSpec phase in tactic.Phases)
+                {
+                    writer.WriteStartObject();
+                    writer.WriteString("id", phase.Id);
+                    writer.WriteString("name", phase.Name);
+                    if (phase.Continue.Count > 0)
+                    {
+                        writer.WriteStartArray("continue");
+                        foreach ((CaseSpec when, string to) in phase.Continue)
+                        {
+                            writer.WriteStartObject();
+                            writer.WritePropertyName("when");
+                            when.Write(writer);
+                            writer.WriteString("to", to);
+                            writer.WriteEndObject();
+                        }
+                        writer.WriteEndArray();
+                    }
+                    writer.WriteEndObject();
+                }
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        private static void WriteCases(
+            Utf8JsonWriter writer,
+            string name,
+            IReadOnlyList<CaseSpec>? cases)
+        {
+            if (cases is null)
+                return;
+            writer.WriteStartArray(name);
+            foreach (CaseSpec value in cases)
+                value.Write(writer);
+            writer.WriteEndArray();
+        }
+    }
+
+    private sealed record ProgramTacticSpec(
+        string Id,
+        string Name,
+        IReadOnlyList<CaseSpec>? Start,
+        IReadOnlyList<CaseSpec>? Abort,
+        int? MaxTicks,
+        int Rearm,
+        IReadOnlyList<ProgramPhaseSpec> Phases);
+
+    private sealed record ProgramPhaseSpec(
+        string Id,
+        string Name,
+        IReadOnlyList<(CaseSpec When, string To)> Continue);
+
+    /// <summary>all(All…) AND any(Any…); entries are interned condition
+    /// names or one-level nested any/all groups (readiness pairs).</summary>
+    private sealed class CaseSpec
+    {
+        public List<object> All { get; } = [];
+        public List<object> Any { get; } = [];
+
+        public void Write(Utf8JsonWriter writer)
+        {
+            writer.WriteStartObject();
+            WriteSide(writer, "all", All);
+            WriteSide(writer, "any", Any);
+            writer.WriteEndObject();
+        }
+
+        private static void WriteSide(
+            Utf8JsonWriter writer,
+            string op,
+            List<object> entries)
+        {
+            if (entries.Count == 0)
+                return;
+            writer.WriteStartArray(op);
+            foreach (object entry in entries)
+            {
+                if (entry is string name)
+                {
+                    writer.WriteStringValue(name);
+                    continue;
+                }
+                var group = (Expr)entry;
+                writer.WriteStartObject();
+                writer.WriteStartArray(group.Op!);
+                foreach (string member in group.Names)
+                    writer.WriteStringValue(member);
+                writer.WriteEndArray();
+                writer.WriteEndObject();
+            }
+            writer.WriteEndArray();
+        }
+    }
+
     /// <summary>Condition expression: one name, or an all/any of names with
-    /// at most one level of nested groups — the release latch's
-    /// "ready AND any trigger" is the shape that needs the nesting.</summary>
+    /// at most one level of nested groups.</summary>
     private sealed record Expr(
         string? Op, IReadOnlyList<string> Names, IReadOnlyList<Expr>? Groups = null)
     {
@@ -1641,11 +1695,6 @@ internal static class ArcRelayTacticsMaterializer
 
         public static Expr Any(IReadOnlyList<string> names) =>
             names.Count == 1 ? One(names[0]) : new Expr("any", names);
-
-        /// <summary>all(names…, group). The group must be a real combination
-        /// (two or more names), never a bare One.</summary>
-        public static Expr AllWith(IReadOnlyList<string> names, Expr group) =>
-            new("all", names, [group]);
 
         public void Write(Utf8JsonWriter writer, string property)
         {
@@ -1681,7 +1730,7 @@ internal static class ArcRelayTacticsMaterializer
         public Expr? Until { get; set; }
         public int? Timeout { get; set; }
         public int? Cooldown { get; set; }
-        public bool Rejoin { get; set; }
+        public string? Phase { get; set; }
         public string? Urgency { get; set; }
         public string? CapacityName { get; set; }
         public List<Node>? Children { get; set; }
@@ -1705,8 +1754,8 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteNumber("timeout", timeout);
             if (Cooldown is int cooldown)
                 writer.WriteNumber("cooldown", cooldown);
-            if (Rejoin)
-                writer.WriteBoolean("rejoin", true);
+            if (Phase is not null)
+                writer.WriteString("phase", Phase);
             if (CapacityName is not null)
                 writer.WriteString("capacity", CapacityName);
             if (Urgency is not null)

@@ -4,20 +4,17 @@ using BotArena.Sdk;
 using BotArena.TacticalPlaybooks;
 
 /// <summary>
-/// Proves the materialized Tactics encoding against the real order-tree
-/// lifecycle, using the actual generated Pincer bytes: release latches
-/// through momentary trigger loss, outcomes count from shared release rather
-/// than stage start, exact-post readiness gates on each assigned bot, a fired
-/// outcome ends the whole tactic and yields to the next root, and fight,
-/// recovery, and Core behavior stay inside the active phase.
+/// Proves the materialized Tactics encoding against the real squad program
+/// coordinator and order-tree runtime, using the actual generated Pincer
+/// bytes: the release transition needs every bot at its ground or dead
+/// (exactly, per bot — no quorum), fires on any ticked trigger, latches
+/// through momentary loss, outcomes count from phase entry, a finished
+/// tactic goes dark and re-arms as a standing order, respawns join the
+/// current phase directly, and fight, recovery, and Core behavior stay
+/// inside the active phase.
 /// </summary>
 public sealed class TacticsEncodingLifecycleTests
 {
-    // Scenario clock: guards post up early, flankers assemble by tick 8, the
-    // enemies trigger flickers at tick 6, holds from tick 10, and release
-    // therefore happens exactly at tick 10.
-    private const int ReleaseTick = 10;
-
     [Fact]
     public void ReleaseLatchesThroughTriggerAndReadinessLoss()
     {
@@ -27,24 +24,24 @@ public sealed class TacticsEncodingLifecycleTests
         harness.World.EnemiesAtMid = tick => tick == 6 || tick >= 10;
 
         // The early flicker at tick 6 must not release: readiness is not met.
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(6));
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(8));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(6));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(8));
         // Tick 10: ready AND triggered — the flankers converge.
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(10));
-        // Trigger and readiness both lapse; the active release branch has an
-        // authored until, so its when is never re-consulted: still acting.
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(10));
+        // Trigger and readiness both lapse. Latching is structural now: the
+        // coordinator never re-checks an entered phase's entry condition.
         harness.World.EnemiesAtMid = _ => false;
         harness.World.FlankersReady = _ => false;
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(11));
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(40));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(11));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(40));
     }
 
     [Fact]
     public void ReleaseFiresOnAnyOfSeveralTriggers()
     {
-        // Two ticked release rows: enemies at Mid OR any contact. The gate
-        // materializes as all(readiness…, any(rows…)) — one nested group —
-        // and either trigger alone must release once everyone is ready.
+        // Two ticked release rows: enemies at Mid OR any contact. They land
+        // in the transition case's any() side — either alone must release
+        // once every bot is set.
         Harness harness = Harness.ForRole("vex", tactics =>
         {
             JsonObject document = JsonNode.Parse(tactics)!.AsObject();
@@ -57,13 +54,13 @@ public sealed class TacticsEncodingLifecycleTests
         harness.World.Contact = tick => tick >= 10;
 
         // Ready but neither trigger yet: still staging.
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(9));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(9));
         // Contact alone releases — the enemies row never fired.
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(10));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(10));
     }
 
     [Fact]
-    public void OutcomesCountFromReleaseNotFromStaging()
+    public void OutcomesCountFromPhaseEntryNotFromStaging()
     {
         Harness harness = Harness.ForRole("vex");
         harness.World.GuardsAtPosts = _ => true;
@@ -71,24 +68,23 @@ public sealed class TacticsEncodingLifecycleTests
         harness.World.EnemiesAtMid = tick => tick >= 10;
         // Three confirmed destructions during staging: the guard fought at
         // Mid before the flankers were ready. They must NOT finish the
-        // tactic, because the kills outcome anchors at the release branch.
+        // tactic, because the kills outcome anchors at the act phase's entry.
         harness.World.KillTicks = [3, 4, 5, 12, 13];
 
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(9));
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(10));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(9));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(10));
         // Two post-release kills so far — still one short of three.
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(14));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(14));
         harness.World.KillTicks = [3, 4, 5, 12, 13, 15];
-        // The third post-release kill fires the outcome: the release branch
-        // exits on its until, the tactic stops yielding, and the walk falls
-        // through to the baseline band.
+        // The third post-release kill fires the finish transition: the whole
+        // tactic goes dark and the walk falls through to the baseline band.
         (string root, string leaf) = harness.FirstEligible(16);
         Assert.Equal("hold-ground", root);
         Assert.Equal("hold-ground", leaf);
     }
 
     [Fact]
-    public void CompletedTacticYieldsToTheNextRootAndStaysDown()
+    public void CompletedTacticGoesDarkAndRearmsAsAStandingOrder()
     {
         Harness harness = Harness.ForRole("vex");
         harness.World.GuardsAtPosts = _ => true;
@@ -96,17 +92,20 @@ public sealed class TacticsEncodingLifecycleTests
         harness.World.EnemiesAtMid = tick => tick >= 10;
         harness.World.KillTicks = [11, 12, 13];
 
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(10));
-        harness.EligibleLeaf(14); // outcome fires: release branch exits
-        // From then on the tactic yields nothing: the stage wrapper died at
-        // release and the release branch is on cooldown, so the walk falls
-        // through to the next root — the baseline band.
-        for (int tick = 15; tick < 60; tick += 9)
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(9));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(10));
+        harness.EligibleLeaf(14); // outcome fires: the tactic finishes
+        // Rearm holds the finished tactic off the list: every tick until it
+        // elapses falls through to the baseline band.
+        for (int tick = 15; tick < 55; tick += 9)
         {
             (string root, string leaf) = harness.FirstEligible(tick);
             Assert.NotEqual("t1", root);
             Assert.Equal("hold-ground", leaf);
         }
+        // Tactics are standing orders: once the rearm elapses and it is
+        // still the first eligible choice, it restarts from phase one.
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(56));
     }
 
     [Fact]
@@ -115,31 +114,36 @@ public sealed class TacticsEncodingLifecycleTests
         Harness harness = Harness.ForRole("vex");
         harness.World.GuardsAtPosts = _ => true;
         // Gantry's post is empty because Gantry is down; the pair
-        // any(at-post, down) excuses it, so the release fires without him.
+        // any(at-ground, down) excuses it, so the release fires without him.
         harness.World.GuardAtPost = post => post == 0;
         harness.World.GuardDown = post => post == 1;
         harness.World.FlankersReady = _ => true;
         harness.World.EnemiesAtMid = _ => true;
 
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(5));
+        harness.EligibleLeaf(4); // the tactic begins; transitions wait a tick
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(5));
     }
 
     [Fact]
-    public void AShortHandedGroupCannotHoldTheReleaseHostage()
+    public void ADeadMajorityStillReleasesWhenTheSurvivorsAreSet()
     {
         Harness harness = Harness.ForRole("vex");
         harness.World.GuardsAtPosts = _ => true;
-        harness.World.FlankersReady = _ => false;
-        // Too many flankers are dead to ever assemble the two-thirds quorum
-        // — the short-handed excuse releases the survivors.
-        harness.World.FlankersShort = _ => true;
+        // Four of the six flankers are down. Readiness is exact and per bot:
+        // each dead bot excuses itself, and the two survivors standing in
+        // the footprint are all that remains to demand. There is no quorum
+        // to fail and no short-handed approximation anywhere.
+        harness.World.FlankersReady = _ => true;
+        harness.World.FlankerAt = index => index is 0 or 1;
+        harness.World.FlankerDown = index => index >= 2;
         harness.World.EnemiesAtMid = _ => true;
 
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(5));
+        harness.EligibleLeaf(4);
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(5));
     }
 
     [Fact]
-    public void ARespawnedFlankerRejoinsItsReleasedSquad()
+    public void ARespawnedFlankerJoinsTheCurrentPhaseDirectly()
     {
         Harness harness = Harness.ForRole("vex");
         harness.World.GuardsAtPosts = _ => true;
@@ -150,20 +154,20 @@ public sealed class TacticsEncodingLifecycleTests
         var lateWave = new ActorIdentity(0, 2, 0);
 
         // The veteran releases at tick 10, then trigger and readiness lapse.
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(veteran, 10));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeafFor(veteran, 9));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeafFor(veteran, 10));
         harness.World.FlankersReady = _ => false;
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(veteran, 11));
-        // A squadmate's fresh life evaluates a closed gate — readiness can
-        // never re-form around the departed squad — but the go branch is
-        // rejoin-flagged, so it catches up instead of re-staging alone.
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(respawn, 12));
-        // The veteran falls: the rejoined body keeps acting on its own latch.
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeafFor(veteran, 11));
+        // The phase is squad state, not a per-body gate: a fresh life simply
+        // executes the active phase — no rejoin latch, nothing to bypass.
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeafFor(respawn, 12));
         harness.Prune(respawn);
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeafFor(respawn, 13));
-        // Full wipe clears the squad latch: the next fresh life re-stages and
-        // waits for a genuine release like the opening did.
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeafFor(respawn, 13));
+        // Even a full wipe does not rewind the operation: the coordinator
+        // owns the phase, and only finish, abort, or duration reselect. The
+        // next fresh life joins the act exactly like every respawn before it.
         harness.Prune(lateWave);
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeafFor(lateWave, 14));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeafFor(lateWave, 14));
     }
 
     [Fact]
@@ -177,9 +181,9 @@ public sealed class TacticsEncodingLifecycleTests
         // presence cannot release the tactic — each named guard must be on
         // station.
         harness.World.GuardAtPost = post => post == 0;
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(5));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(5));
         harness.World.GuardAtPost = _ => true;
-        Assert.Equal("t1-g2-a-move", harness.EligibleLeaf(6));
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(6));
     }
 
     [Fact]
@@ -192,11 +196,12 @@ public sealed class TacticsEncodingLifecycleTests
 
         // Staging, hurt: the stage patch leaf outranks the stage floor.
         harness.World.Hurt = tick => tick is >= 4 and <= 6;
-        Assert.Equal("t1-g2-s-patch", harness.EligibleLeaf(4));
-        // Recovered: back on the floor within the same tactic.
-        Assert.Equal("t1-g2-s-move", harness.EligibleLeaf(8));
+        Assert.Equal("t1-p1-g2-patch", harness.EligibleLeaf(4));
+        // Recovered: back on the floor within the same phase.
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(8));
         // Acting with a loose Core in reach: the tactic's own grab leaf wins
-        // (it sits above the release branch), not the baseline collector.
+        // (a tactic-scoped Core habit above the phases), not the baseline
+        // collector.
         harness.World.CoreInReach = tick => tick >= 12;
         (string root, string leaf) = harness.FirstEligible(12);
         Assert.Equal("t1", root);
@@ -218,28 +223,38 @@ public sealed class TacticsEncodingLifecycleTests
         harness.World.FlankersReady = tick => tick >= 8;
         harness.World.EnemiesAtMid = tick => tick >= 10;
 
-        Assert.Equal("t1-g1-s-move", harness.EligibleLeaf(9));
-        // After release the stage wrapper is dead, but the act continuation
-        // repeats the post assignment: the guard does not wander off.
-        Assert.Equal("t1-g1-a-move", harness.EligibleLeaf(10));
-        Assert.Equal("t1-g1-a-move", harness.EligibleLeaf(30));
+        Assert.Equal("t1-p1-g1-move", harness.EligibleLeaf(9));
+        // The act job is 'none': the guard carries its stage ground forward
+        // under the act's posture — it does not wander off.
+        Assert.Equal("t1-p2-g1-move", harness.EligibleLeaf(10));
+        Assert.Equal("t1-p2-g1-move", harness.EligibleLeaf(30));
     }
 
     /// <summary>
-    /// Loads the real materialized Pincer orders, converts one role's tree
-    /// into runtime nodes (ids, expressions, timeout/cooldown, and structure
-    /// verbatim; leaf actions stubbed), and evaluates conditions from a
-    /// scripted world so every scenario drives the actual OrderTreeRuntime.
+    /// Loads the real materialized Pincer orders (v1 fixture migrated and
+    /// compiled through the real pipeline), parses the program table with
+    /// the mind's own parser, converts one role's tree into runtime nodes,
+    /// and evaluates conditions from a scripted world — so every scenario
+    /// drives the actual TacticsProgramCoordinator and OrderTreeRuntime.
     /// </summary>
     private sealed class Harness
     {
         private readonly OrderTreeRuntime _runtime = new();
+        private readonly TacticsProgramCoordinator _coordinator;
         private readonly OrdersPackage.Role _role;
         private readonly ActorIdentity _actor = new(0, 0, 0);
+        private int _steppedTick = -1;
+        private TacticsProgramCoordinator.View? _view;
 
         public ScriptedWorld World { get; } = new();
 
-        private Harness(OrdersPackage.Role role) => _role = role;
+        private Harness(
+            OrdersPackage.Role role,
+            OrdersPackage.SquadProgram program)
+        {
+            _role = role;
+            _coordinator = new TacticsProgramCoordinator(program);
+        }
 
         public static Harness ForRole(
             string roleId,
@@ -271,8 +286,10 @@ public sealed class TacticsEncodingLifecycleTests
                 .EnumerateArray()
                 .Select(node => Convert(node, roleId, shared))
                 .ToArray();
-            return new Harness(new OrdersPackage.Role(
-                roleId, ["kestrel"], ["vision"], nodes));
+            return new Harness(
+                new OrdersPackage.Role(roleId, ["kestrel"], ["vision"], nodes),
+                OrdersPackage.ParseProgram(
+                    orders.RootElement.GetProperty("program")));
         }
 
         public string EligibleLeaf(int tick) =>
@@ -294,9 +311,21 @@ public sealed class TacticsEncodingLifecycleTests
 
         private OrderTreeRuntime.EligibilityResult Eligible(
             ActorIdentity actor,
-            int tick) =>
-            _runtime.Eligible(actor, _role, tick,
-                (expression, elapsed) => Evaluate(expression, tick, elapsed));
+            int tick)
+        {
+            // The mind steps the coordinator exactly once per tick, before
+            // any body evaluates — the harness mirrors that contract.
+            if (tick != _steppedTick)
+            {
+                _view = _coordinator.Step(
+                    tick,
+                    (expression, anchor) => Evaluate(expression, tick, anchor));
+                _steppedTick = tick;
+            }
+            return _runtime.Eligible(actor, _role, tick,
+                (expression, elapsed) => Evaluate(expression, tick, elapsed),
+                _view!.EnabledTags);
+        }
 
         private OrderTreeRuntime.ConditionEvaluation Evaluate(
             OrdersPackage.ConditionExpression expression,
@@ -383,15 +412,15 @@ public sealed class TacticsEncodingLifecycleTests
 
         private static OrdersPackage.OrderNode ConvertChild(
             JsonElement node,
-            string parentPath,
+            string path,
             IReadOnlyDictionary<string, JsonElement> shared)
         {
             if (node.TryGetProperty("shared", out JsonElement reference))
             {
                 string id = reference.GetString()!;
-                return Convert(shared[id], parentPath, shared, externalId: id);
+                return Convert(shared[id], path, shared, externalId: id);
             }
-            return Convert(node, parentPath, shared, externalId: null);
+            return Convert(node, path, shared, externalId: null);
         }
 
         private static OrdersPackage.ConditionExpression? Expression(
@@ -436,14 +465,19 @@ public sealed class TacticsEncodingLifecycleTests
         }
     }
 
-    /// <summary>Scripted condition truth for the Pincer's generated names.</summary>
+    /// <summary>Scripted condition truth for the Pincer's generated names.
+    /// Readiness is per bot now: guards pair at-0/at-1 with dn-ember and
+    /// dn-gantry; the six flankers pair at-0..5 with their own down
+    /// excuses. FlankerAt scripts individuals; FlankersReady sweeps the
+    /// group — a flanker is present when both agree.</summary>
     private sealed class ScriptedWorld
     {
         public Func<int, bool> GuardsAtPosts { get; set; } = _ => false;
         public Func<int, bool> GuardAtPost { get; set; } = _ => true;
         public Func<int, bool> GuardDown { get; set; } = _ => false;
         public Func<int, bool> FlankersReady { get; set; } = _ => false;
-        public Func<int, bool> FlankersShort { get; set; } = _ => false;
+        public Func<int, bool> FlankerAt { get; set; } = _ => true;
+        public Func<int, bool> FlankerDown { get; set; } = _ => false;
         public Func<int, bool> EnemiesAtMid { get; set; } = _ => false;
         public Func<int, bool> Contact { get; set; } = _ => false;
         public Func<int, bool> Hurt { get; set; } = _ => false;
@@ -453,17 +487,27 @@ public sealed class TacticsEncodingLifecycleTests
 
         public bool Truth(string name, int tick, int elapsed) => name switch
         {
-            "c-t1-g1-at-post-0" => GuardsAtPosts(tick) && GuardAtPost(0),
-            "c-t1-g1-at-post-1" => GuardsAtPosts(tick) && GuardAtPost(1),
+            "c-t1-g1-at-0" => GuardsAtPosts(tick) && GuardAtPost(0),
+            "c-t1-g1-at-1" => GuardsAtPosts(tick) && GuardAtPost(1),
             "dn-ember" => GuardDown(0),
             "dn-gantry" => GuardDown(1),
-            "c-t1-g2-ready" => FlankersReady(tick),
-            "c-t1-g2-short" => FlankersShort(tick),
-            "c-t1-release-enemies" => EnemiesAtMid(tick),
+            "c-t1-g2-at-0" => FlankersReady(tick) && FlankerAt(0),
+            "c-t1-g2-at-1" => FlankersReady(tick) && FlankerAt(1),
+            "c-t1-g2-at-2" => FlankersReady(tick) && FlankerAt(2),
+            "c-t1-g2-at-3" => FlankersReady(tick) && FlankerAt(3),
+            "c-t1-g2-at-4" => FlankersReady(tick) && FlankerAt(4),
+            "c-t1-g2-at-5" => FlankersReady(tick) && FlankerAt(5),
+            "dn-vex" => FlankerDown(0),
+            "dn-solder" => FlankerDown(1),
+            "dn-flux" => FlankerDown(2),
+            "dn-ratchet" => FlankerDown(3),
+            "dn-piston" => FlankerDown(4),
+            "dn-cinder" => FlankerDown(5),
+            "c-t1-p1-enemies" => EnemiesAtMid(tick),
             "enemy-contact" => Contact(tick),
-            // Historical evidence with since node-entry: the runtime passes
-            // the node's elapsed ticks, so only kills inside that window
-            // count — this is exactly the counts-from-release contract.
+            // Historical evidence anchored at phase entry: the coordinator
+            // passes ticks-in-phase, so only kills inside that window count
+            // — this is exactly the counts-from-phase-entry contract.
             "c-t1-kills" => KillTicks.Count(
                 kill => kill > tick - elapsed && kill <= tick) >= 3,
             "c-t1-cleared" => false,

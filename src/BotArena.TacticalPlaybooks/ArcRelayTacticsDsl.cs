@@ -1,16 +1,21 @@
+using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace BotArena.TacticalPlaybooks;
 
 /// <summary>
-/// Validation for the player-owned Arc Relay Tactics v1 document and the
-/// compiler entry that materializes it into the executable Orders v2 pair.
+/// Validation for the player-owned Arc Relay Tactics v2 document and the
+/// compiler entry that materializes it into the executable Orders v3 pair.
 /// Tactics are the only authored source; the materialized pair is regenerated
-/// wholesale on every compile and is never hand-edited.
+/// wholesale on every compile and is never hand-edited. Saved v1 documents
+/// migrate deterministically on load (Stage → phase 1, Release → phase 1's
+/// transition, Act → phase 2, Finish → phase 2's finish transition).
 /// </summary>
 public static partial class ArcRelayTacticalPlaybookCompiler
 {
     public const string TacticsSchema = "arc-relay-tactics-v1";
+    public const string TacticsSchemaV2 = "arc-relay-tactics-v2";
 
     private static readonly HashSet<string> TacticRecipes =
         new(StringComparer.Ordinal)
@@ -30,17 +35,41 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static readonly HashSet<string> TacticRecoveries =
         new(StringComparer.Ordinal) { "fight-on", "patch", "heal-tile" };
 
-    private static readonly HashSet<string> TacticStageKinds =
+    /// <summary>One job vocabulary for every phase: the old stage and act
+    /// kinds merged. 'none' carries the group's nearest earlier geometric
+    /// job forward under this phase's posture.</summary>
+    private static readonly HashSet<string> TacticJobKinds =
         new(StringComparer.Ordinal)
-        { "posts", "area", "line", "approach", "none" };
-
-    private static readonly HashSet<string> TacticActKinds =
-        new(StringComparer.Ordinal)
-        { "none", "converge", "advance", "patrol", "return", "escort" };
+        {
+            "posts", "area", "line", "approach", "converge", "advance",
+            "patrol", "return", "escort", "none",
+        };
 
     private static readonly HashSet<string> TacticWells =
         new(StringComparer.Ordinal)
         { "north", "centre", "south", "own", "enemy" };
+
+    private static readonly HashSet<string> TacticDurations =
+        new(StringComparer.Ordinal) { "none", "brief", "standard", "long" };
+
+    /// <summary>Which condition rows each case context accepts.</summary>
+    private static readonly string[] TacticStartRows =
+    [
+        "enemiesAt", "coreLoose", "coreSoon", "enemiesDown", "carrier",
+        "losses", "lossesWithin",
+    ];
+
+    private static readonly string[] TacticTransitionRows =
+    [
+        "groupsSet", "held", "contact", "enemiesAt", "coreLoose", "coreSoon",
+        "enemiesDown", "kills", "losses", "cleared", "coreAcquired",
+        "coreBanked", "coreLost", "reached", "observed",
+    ];
+
+    private static readonly string[] TacticAbortRows =
+    [
+        "losses", "lossesWithin", "coreLost", "enemiesAt",
+    ];
 
     /// <summary>Spatial signature mark budgets for classes whose descriptor
     /// admits an exact anchor. All other geometry kinds derive from the
@@ -54,10 +83,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         };
 
     /// <summary>
-    /// Compile a Tactics document end to end: validate the player source,
-    /// deterministically materialize the Orders v2 + map-plan pair, and run
-    /// the existing shared compile over the materialized pair. The returned
-    /// compilation carries the tactics hash and both materialized sources.
+    /// Compile a Tactics document end to end: migrate a v1 document to v2,
+    /// validate the player source, deterministically materialize the Orders
+    /// v3 + map-plan pair, and run the existing shared compile over the
+    /// materialized pair. The returned compilation carries the tactics hash
+    /// and both materialized sources.
     /// </summary>
     public static TacticalPlaybookCompilation CompileTactics(
         byte[] tacticsSource,
@@ -65,7 +95,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         ArgumentNullException.ThrowIfNull(tacticsSource);
         ArgumentException.ThrowIfNullOrWhiteSpace(tacticsName);
-        using JsonDocument document = Parse(tacticsSource, tacticsName);
+        byte[] current = MigrateTactics(tacticsSource, tacticsName);
+        using JsonDocument document = Parse(current, tacticsName);
         ArcRelayTacticsDocument tactics = ValidateTacticsDocument(
             document.RootElement, tacticsName);
         ArcRelayTacticsMaterialization materialized =
@@ -91,10 +122,229 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         return compilation with
         {
-            TacticsSha256 = Sha256(tacticsSource),
+            TacticsSha256 = Sha256(current),
             MaterializedOrders = materialized.OrdersJson,
             MaterializedMapPlan = materialized.MapPlanJson,
         };
+    }
+
+    /// <summary>
+    /// Deterministic v1 → v2 document migration. A v2 (or unrecognized)
+    /// document passes through unchanged; malformed v1 fragments are left
+    /// as they are so validation reports them with real paths. Hosted saves
+    /// and the editor both migrate before validating, so v2 is the only
+    /// validated and stored shape.
+    /// </summary>
+    public static byte[] MigrateTactics(
+        byte[] tacticsSource,
+        string tacticsName = "tactics.json")
+    {
+        ArgumentNullException.ThrowIfNull(tacticsSource);
+        using (JsonDocument probe = Parse(tacticsSource, tacticsName))
+        {
+            if (probe.RootElement.ValueKind != JsonValueKind.Object
+                || !probe.RootElement.TryGetProperty(
+                    "schema", out JsonElement schema)
+                || schema.ValueKind != JsonValueKind.String
+                || !string.Equals(schema.GetString(), TacticsSchema,
+                    StringComparison.Ordinal))
+            {
+                return tacticsSource;
+            }
+        }
+        JsonObject document = JsonNode.Parse(tacticsSource)!.AsObject();
+        document["schema"] = TacticsSchemaV2;
+        if (document["tactics"] is JsonArray tactics)
+        {
+            foreach (JsonNode? entry in tactics)
+            {
+                if (entry is JsonObject tactic)
+                    MigrateTactic(tactic);
+            }
+        }
+        return Encoding.UTF8.GetBytes(document.ToJsonString(
+            new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static void MigrateTactic(JsonObject tactic)
+    {
+        // start: OR-joined rows become one case of triggers.
+        if (tactic["start"] is JsonObject start
+            && start["conds"] is JsonObject startConds)
+        {
+            start.Remove("conds");
+            start["cases"] = new JsonArray(new JsonObject
+            {
+                ["triggers"] = startConds.DeepClone(),
+            });
+        }
+
+        string releaseMode =
+            (tactic["release"] as JsonObject)?["mode"]?.GetValue<string>()
+            ?? "immediate";
+        JsonObject? releaseConds =
+            (tactic["release"] as JsonObject)?["conds"]?.DeepClone()
+                as JsonObject;
+        tactic.Remove("release");
+
+        // finish → tactic-wide maxDuration plus the final phase's finish
+        // transition; 'persistent' becomes the explicit empty continue.
+        JsonObject? outcomes = null;
+        string maxAttempt = "none";
+        if (tactic["finish"] is JsonObject finish)
+        {
+            maxAttempt = finish["maxAttempt"]?.GetValue<string>() ?? "none";
+            outcomes = finish["outcomes"]?.DeepClone() as JsonObject;
+            outcomes?.Remove("persistent");
+        }
+        tactic.Remove("finish");
+        if (maxAttempt != "none")
+            tactic["maxDuration"] = maxAttempt;
+
+        // Groups shrink to membership; their stage/act/sigs become phases.
+        var stageJobs = new Dictionary<string, JsonObject>(
+            StringComparer.Ordinal);
+        var actJobs = new Dictionary<string, JsonObject>(
+            StringComparer.Ordinal);
+        var order = new List<string>();
+        bool anyStage = false;
+        if (tactic["groups"] is JsonArray groups)
+        {
+            foreach (JsonNode? entry in groups)
+            {
+                if (entry is not JsonObject group
+                    || group["id"]?.GetValue<string>() is not string groupId)
+                    continue;
+                order.Add(groupId);
+                JsonObject? sigs = group["sigs"] as JsonObject;
+                JsonObject stage = MigratedJob(
+                    group["stage"] as JsonObject,
+                    sigs?["stage"] as JsonObject);
+                JsonObject act = MigratedJob(
+                    group["act"] as JsonObject,
+                    sigs?["act"] as JsonObject);
+                anyStage |= stage["kind"]?.GetValue<string>() is string kind
+                    && kind != "none";
+                stageJobs[groupId] = stage;
+                actJobs[groupId] = act;
+                group.Remove("stage");
+                group.Remove("act");
+                group.Remove("sigs");
+            }
+        }
+
+        JsonArray? finishContinue = outcomes is { Count: > 0 }
+            ? new JsonArray(new JsonObject
+            {
+                ["triggers"] = outcomes,
+                ["to"] = "finish",
+            })
+            : null;
+        var phases = new JsonArray();
+        // An immediate release (or a plan with no staged group at all) was a
+        // single-phase tactic: the act jobs, with act 'none' groups holding
+        // their stage geometry under the act posture.
+        if (releaseMode == "immediate" || !anyStage)
+        {
+            var jobs = new JsonObject();
+            foreach (string groupId in order)
+            {
+                jobs[groupId] = ActOrCarriedStage(
+                    actJobs[groupId], stageJobs[groupId]);
+            }
+            var phase = new JsonObject
+            {
+                ["id"] = "act",
+                ["name"] = "Act",
+                ["jobs"] = jobs,
+            };
+            if (finishContinue is not null)
+                phase["continue"] = finishContinue;
+            phases.Add(phase);
+        }
+        else
+        {
+            var stagePhaseJobs = new JsonObject();
+            var actPhaseJobs = new JsonObject();
+            foreach (string groupId in order)
+            {
+                stagePhaseJobs[groupId] = stageJobs[groupId];
+                // Act 'none' now means "carry the previous phase's ground
+                // under this posture" — exactly the old continuation.
+                actPhaseJobs[groupId] = actJobs[groupId];
+            }
+            var releaseRule = new JsonObject
+            {
+                ["required"] = new JsonObject { ["groupsSet"] = true },
+                ["to"] = "next",
+            };
+            if (releaseConds is { Count: > 0 })
+                releaseRule["triggers"] = releaseConds;
+            phases.Add(new JsonObject
+            {
+                ["id"] = "stage",
+                ["name"] = "Stage",
+                ["jobs"] = stagePhaseJobs,
+                ["continue"] = new JsonArray(releaseRule),
+            });
+            var actPhase = new JsonObject
+            {
+                ["id"] = "act",
+                ["name"] = "Act",
+                ["jobs"] = actPhaseJobs,
+            };
+            if (finishContinue is not null)
+                actPhase["continue"] = finishContinue;
+            phases.Add(actPhase);
+        }
+        tactic["phases"] = phases;
+    }
+
+    private static JsonObject WithoutNulls(this JsonObject value)
+    {
+        foreach (string name in value
+                     .Where(property => property.Value is null)
+                     .Select(property => property.Key).ToArray())
+            value.Remove(name);
+        return value;
+    }
+
+    /// <summary>A v1 stage/act object plus its signature marks, as one v2
+    /// job. Missing fragments migrate to a quiet 'none' job so validation
+    /// reports on the migrated shape with real paths.</summary>
+    private static JsonObject MigratedJob(
+        JsonObject? phase,
+        JsonObject? sigs)
+    {
+        JsonObject job = phase?.DeepClone() as JsonObject ?? new JsonObject
+        {
+            ["kind"] = "none",
+            ["posture"] = "wait",
+            ["recovery"] = "fight-on",
+        };
+        if (sigs is { Count: > 0 })
+            job["sigs"] = sigs.DeepClone();
+        return job;
+    }
+
+    /// <summary>The single-phase (immediate) form: the act job, or — for an
+    /// act of 'none' — the stage geometry under the act's posture, because a
+    /// lone phase has no earlier phase to carry forward from.</summary>
+    private static JsonObject ActOrCarriedStage(JsonObject act, JsonObject stage)
+    {
+        if (act["kind"]?.GetValue<string>() != "none"
+            || stage["kind"]?.GetValue<string>() == "none")
+        {
+            return act;
+        }
+        JsonObject carried = stage.DeepClone().AsObject();
+        carried["posture"] = act["posture"]?.DeepClone();
+        carried["recovery"] = act["recovery"]?.DeepClone();
+        if (act["sigs"] is JsonObject actSigs)
+            carried["sigs"] = actSigs.DeepClone();
+        else
+            carried.Remove("sigs");
+        return carried.WithoutNulls();
     }
 
     internal static ArcRelayTacticsDocument ValidateTacticsDocument(
@@ -106,7 +356,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "schema", "sheetId", "mapId", "mapWidth", "mapHeight",
                 "squad", "tactics",
             ]);
-        Exact(root, "schema", TacticsSchema, path);
+        Exact(root, "schema", TacticsSchemaV2, path);
         string sheetId = Identifier(root, "sheetId", path);
         string mapId = NonEmptyString(root, "mapId", path);
         int width = Range(root, "mapWidth", path, 8, 64);
@@ -168,10 +418,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         int height)
     {
         Object(value, path,
-            [
-                "id", "name", "recipe", "start", "release", "finish",
-                "delivery", "groups",
-            ]);
+            ["id", "name", "recipe", "start", "delivery", "groups", "phases"],
+            ["abort", "maxDuration"]);
         string id = Identifier(value, "id", path);
         if (id.Length > 24)
             throw Error($"{path}.id", "tactic id exceeds 24 characters.");
@@ -183,47 +431,38 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             throw Error($"{path}.recipe", $"unknown recipe '{recipe}'.");
 
         JsonElement start = value.GetProperty("start");
-        Object(start, $"{path}.start", ["mode"], ["conds"]);
+        Object(start, $"{path}.start", ["mode"], ["cases"]);
         string startMode = OneOf(start, "mode", $"{path}.start", "always", "when");
-        ArcRelayTacticConditionRows? startRows = null;
+        List<ArcRelayTacticCase>? startCases = null;
         if (startMode == "when")
         {
-            if (!start.TryGetProperty("conds", out JsonElement startConds))
-                throw Error($"{path}.start", "mode 'when' needs conds.");
-            startRows = ValidateConditionRows(
-                startConds, $"{path}.start.conds", width, height,
-                allowCarrier: true, allowContact: false);
-            if (startRows.ActiveCount == 0)
-                throw Error($"{path}.start.conds",
-                    "mode 'when' needs at least one active condition row.");
+            if (!start.TryGetProperty("cases", out JsonElement startCaseValues))
+                throw Error($"{path}.start", "mode 'when' needs cases.");
+            startCases = ValidateCases(
+                startCaseValues, $"{path}.start.cases", width, height,
+                TacticStartRows, maximum: 3);
         }
-        else if (start.TryGetProperty("conds", out _))
+        else if (start.TryGetProperty("cases", out _))
         {
-            throw Error($"{path}.start", "mode 'always' does not take conds.");
+            throw Error($"{path}.start", "mode 'always' does not take cases.");
         }
 
-        JsonElement release = value.GetProperty("release");
-        Object(release, $"{path}.release", ["mode"], ["conds"]);
-        string releaseMode = OneOf(release, "mode", $"{path}.release",
-            "immediate", "ready", "ready-when");
-        ArcRelayTacticConditionRows? releaseRows = null;
-        if (releaseMode == "ready-when")
+        List<ArcRelayTacticCase>? abortCases = null;
+        if (value.TryGetProperty("abort", out JsonElement abort))
         {
-            if (!release.TryGetProperty("conds", out JsonElement releaseConds))
-                throw Error($"{path}.release", "mode 'ready-when' needs conds.");
-            releaseRows = ValidateConditionRows(
-                releaseConds, $"{path}.release.conds", width, height,
-                allowCarrier: false, allowContact: true);
-            if (releaseRows.ActiveCount == 0)
-            {
-                throw Error($"{path}.release.conds",
-                    "mode 'ready-when' needs at least one active condition row.");
-            }
+            Object(abort, $"{path}.abort", ["cases"]);
+            abortCases = ValidateCases(
+                abort.GetProperty("cases"), $"{path}.abort.cases",
+                width, height, TacticAbortRows, maximum: 2);
         }
-        else if (release.TryGetProperty("conds", out _))
+
+        string maxDuration = "none";
+        if (value.TryGetProperty("maxDuration", out JsonElement duration))
         {
-            throw Error($"{path}.release",
-                $"mode '{releaseMode}' does not take conds.");
+            maxDuration = StringValue(duration, $"{path}.maxDuration");
+            if (!TacticDurations.Contains(maxDuration))
+                throw Error($"{path}.maxDuration",
+                    $"unknown duration '{maxDuration}'.");
         }
 
         JsonElement[] groupValues = BoundedArray(
@@ -233,35 +472,126 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         var assigned = new HashSet<int>();
         for (int index = 0; index < groupValues.Length; index++)
         {
-            ArcRelayTacticGroup group = ValidateGroup(
-                groupValues[index], $"{path}.groups[{index}]", squad,
-                width, height);
-            if (!groupIds.Add(group.Id))
-                throw Error($"{path}.groups[{index}]",
-                    $"duplicate group id '{group.Id}'.");
-            foreach (int slot in group.Slots)
+            string at = $"{path}.groups[{index}]";
+            JsonElement group = groupValues[index];
+            Object(group, at, ["id", "name", "slots", "coreRule"]);
+            string groupId = Identifier(group, "id", at);
+            if (groupId.Length > 24)
+                throw Error($"{at}.id", "group id exceeds 24 characters.");
+            if (!groupIds.Add(groupId))
+                throw Error(at, $"duplicate group id '{groupId}'.");
+            string groupName = NonEmptyString(group, "name", at);
+            if (groupName.Length > 40)
+                throw Error($"{at}.name", "group name exceeds 40 characters.");
+            var groupSlots = new List<int>();
+            foreach (JsonElement slotValue in BoundedArray(
+                group.GetProperty("slots"), $"{at}.slots", 1, 8))
             {
+                if (slotValue.ValueKind != JsonValueKind.Number
+                    || !slotValue.TryGetInt32(out int slot)
+                    || slot is < 0 or > 7
+                    || groupSlots.Contains(slot))
+                {
+                    throw Error($"{at}.slots",
+                        "group slots are unique squad slots 0..7.");
+                }
                 if (!assigned.Add(slot))
-                    throw Error($"{path}.groups[{index}]",
-                        $"slot {slot} belongs to more than one group.");
+                    throw Error(at, $"slot {slot} belongs to more than one group.");
+                groupSlots.Add(slot);
             }
-            groups.Add(group);
+            string coreRule = OneOf(group, "coreRule", at,
+                "ignore", "grab", "hunt");
+            groups.Add(new ArcRelayTacticGroup(
+                groupId, groupName, groupSlots, coreRule));
         }
         if (assigned.Count != 8)
         {
             throw Error($"{path}.groups",
                 "every squad slot 0..7 must belong to exactly one group.");
         }
-        if (groups.All(group =>
-                group.Stage.Kind == "none" && group.Act.Kind == "none"))
-        {
-            throw Error($"{path}.groups",
-                "at least one group needs a stage or act plan.");
-        }
 
-        ArcRelayTacticOutcomes outcomes = ValidateFinish(
-            value.GetProperty("finish"), $"{path}.finish", groups,
-            width, height, out string maxAttempt);
+        JsonElement[] phaseValues = BoundedArray(
+            value.GetProperty("phases"), $"{path}.phases", 1, 8);
+        var phases = new List<ArcRelayTacticPhaseDef>(phaseValues.Length);
+        var phaseIds = new List<string>(phaseValues.Length);
+        for (int index = 0; index < phaseValues.Length; index++)
+        {
+            string at = $"{path}.phases[{index}]";
+            JsonElement phase = phaseValues[index];
+            Object(phase, at, ["id", "name", "jobs"], ["continue"]);
+            string phaseId = Identifier(phase, "id", at);
+            if (phaseId.Length > 24)
+                throw Error($"{at}.id", "phase id exceeds 24 characters.");
+            if (phaseIds.Contains(phaseId))
+                throw Error(at, $"duplicate phase id '{phaseId}'.");
+            string phaseName = NonEmptyString(phase, "name", at);
+            if (phaseName.Length > 40)
+                throw Error($"{at}.name", "phase name exceeds 40 characters.");
+            phaseIds.Add(phaseId);
+            phases.Add(new ArcRelayTacticPhaseDef(
+                phaseId, phaseName,
+                ValidateJobs(
+                    phase.GetProperty("jobs"), $"{at}.jobs", squad, groups,
+                    width, height),
+                []));
+        }
+        if (!phases[0].Jobs.Values.Any(job => job.HasGeometry))
+        {
+            throw Error($"{path}.phases[0]",
+                "the first phase needs at least one group with drawn "
+                + "geometry; later phases may carry it forward.");
+        }
+        // Transitions validate after every phase id is known: targets are
+        // forward-only, and only the final phase may hold forever.
+        for (int index = 0; index < phaseValues.Length; index++)
+        {
+            string at = $"{path}.phases[{index}]";
+            bool last = index == phaseValues.Length - 1;
+            if (!phaseValues[index].TryGetProperty(
+                    "continue", out JsonElement rules))
+            {
+                if (!last)
+                {
+                    throw Error(at,
+                        "every phase before the last needs a continue rule; "
+                        + "only the final phase may hold forever.");
+                }
+                continue;
+            }
+            JsonElement[] ruleValues = BoundedArray(
+                rules, $"{at}.continue", 1, 3);
+            var transitions = new List<ArcRelayTacticTransition>();
+            for (int rule = 0; rule < ruleValues.Length; rule++)
+            {
+                string ruleAt = $"{at}.continue[{rule}]";
+                Object(ruleValues[rule], ruleAt,
+                    ["to"], ["required", "triggers"]);
+                string to = RequiredString(ruleValues[rule], "to", ruleAt);
+                if (to == "next")
+                {
+                    if (last)
+                        throw Error($"{ruleAt}.to",
+                            "the final phase has no next; use 'finish'.");
+                }
+                else if (to != "finish")
+                {
+                    int target = phaseIds.IndexOf(to);
+                    if (target < 0)
+                        throw Error($"{ruleAt}.to", $"unknown phase '{to}'.");
+                    if (target <= index)
+                        throw Error($"{ruleAt}.to",
+                            "transitions are forward-only; a phase may not "
+                            + "jump to itself or backward.");
+                }
+                ArcRelayTacticCase when = ValidateCase(
+                    ruleValues[rule], ruleAt, width, height,
+                    TacticTransitionRows);
+                ValidateTransitionRowContext(
+                    when, ruleAt, phases[index], phases);
+                transitions.Add(new ArcRelayTacticTransition(when, to));
+            }
+            phases[index] = phases[index] with { Continue = transitions };
+        }
 
         JsonElement delivery = value.GetProperty("delivery");
         Object(delivery, $"{path}.delivery", ["plan"], ["preferredSlots"]);
@@ -287,90 +617,99 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
         return new ArcRelayTactic(
             id, name, recipe,
-            startRows,
-            releaseMode,
-            releaseRows,
-            outcomes,
-            maxAttempt,
+            startCases,
+            abortCases,
+            maxDuration,
             new ArcRelayTacticDelivery(plan, preferred),
-            groups);
+            groups,
+            phases);
     }
 
-    private static ArcRelayTacticGroup ValidateGroup(
+    /// <summary>Rows that reference the phase's own drawn plan must find it
+    /// there: 'reached' needs a converge/advance job in the transition's
+    /// phase, 'groupsSet' needs geometry to be set at, and 'observed' needs
+    /// drawn geometry somewhere in the tactic.</summary>
+    private static void ValidateTransitionRowContext(
+        ArcRelayTacticCase value,
+        string path,
+        ArcRelayTacticPhaseDef phase,
+        IReadOnlyList<ArcRelayTacticPhaseDef> phases)
+    {
+        foreach (ArcRelayTacticConditionRows? rows in new[]
+                 { value.Required, value.Triggers })
+        {
+            if (rows is null)
+                continue;
+            if (rows.Reached && !phase.Jobs.Values.Any(job =>
+                    job.Kind is "converge" or "advance"))
+            {
+                throw Error(path,
+                    "'reached' needs a group that converges or advances "
+                    + "somewhere in this phase.");
+            }
+            if (rows.GroupsSet && !phase.Jobs.Values.Any(job =>
+                    job.HasGeometry))
+            {
+                throw Error(path,
+                    "'groupsSet' needs at least one group with drawn "
+                    + "geometry in this phase.");
+            }
+            if (rows.Observed && !phases.Any(candidate =>
+                    candidate.Jobs.Values.Any(job => job.HasGeometry)))
+            {
+                throw Error(path,
+                    "'observed' needs at least one group with drawn geometry.");
+            }
+        }
+    }
+
+    private static Dictionary<string, ArcRelayTacticJob> ValidateJobs(
         JsonElement value,
         string path,
         IReadOnlyList<ArcRelayTacticsSquadBot> squad,
+        IReadOnlyList<ArcRelayTacticGroup> groups,
         int width,
         int height)
     {
-        Object(value, path,
-            ["id", "name", "slots", "coreRule", "stage", "act"], ["sigs"]);
-        string id = Identifier(value, "id", path);
-        if (id.Length > 24)
-            throw Error($"{path}.id", "group id exceeds 24 characters.");
-        string name = NonEmptyString(value, "name", path);
-        if (name.Length > 40)
-            throw Error($"{path}.name", "group name exceeds 40 characters.");
-        var groupSlots = new List<int>();
-        foreach (JsonElement slotValue in BoundedArray(
-            value.GetProperty("slots"), $"{path}.slots", 1, 8))
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(path, "expected object.");
+        var jobs = new Dictionary<string, ArcRelayTacticJob>(
+            StringComparer.Ordinal);
+        foreach (JsonProperty property in value.EnumerateObject())
         {
-            if (slotValue.ValueKind != JsonValueKind.Number
-                || !slotValue.TryGetInt32(out int slot)
-                || slot is < 0 or > 7
-                || groupSlots.Contains(slot))
-            {
-                throw Error($"{path}.slots",
-                    "group slots are unique squad slots 0..7.");
-            }
-            groupSlots.Add(slot);
+            ArcRelayTacticGroup? group = groups.FirstOrDefault(candidate =>
+                string.Equals(candidate.Id, property.Name,
+                    StringComparison.Ordinal));
+            if (group is null)
+                throw Error($"{path}.{property.Name}",
+                    $"unknown group '{property.Name}'.");
+            if (!jobs.TryAdd(property.Name, ValidateJob(
+                    property.Value, $"{path}.{property.Name}", squad, group,
+                    width, height)))
+                throw Error(path, $"duplicate job for '{property.Name}'.");
         }
-        string coreRule = OneOf(value, "coreRule", path,
-            "ignore", "grab", "hunt");
-
-        ArcRelayTacticPhase stage = ValidatePhase(
-            value.GetProperty("stage"), $"{path}.stage", isStage: true,
-            groupSlots.Count, width, height);
-        ArcRelayTacticPhase act = ValidatePhase(
-            value.GetProperty("act"), $"{path}.act", isStage: false,
-            groupSlots.Count, width, height);
-
-        var stageSigs = new List<ArcRelayTacticSignatureMark>();
-        var actSigs = new List<ArcRelayTacticSignatureMark>();
-        if (value.TryGetProperty("sigs", out JsonElement sigs))
+        foreach (ArcRelayTacticGroup group in groups)
         {
-            Object(sigs, $"{path}.sigs", [], ["stage", "act"]);
-            if (sigs.TryGetProperty("stage", out JsonElement stageMarks))
-                ValidateSignatureMarks(
-                    stageMarks, $"{path}.sigs.stage", squad, groupSlots,
-                    width, height, stageSigs);
-            if (sigs.TryGetProperty("act", out JsonElement actMarks))
-                ValidateSignatureMarks(
-                    actMarks, $"{path}.sigs.act", squad, groupSlots,
-                    width, height, actSigs);
+            if (!jobs.ContainsKey(group.Id))
+                throw Error(path, $"group '{group.Id}' has no job this phase.");
         }
-
-        return new ArcRelayTacticGroup(
-            id, name, groupSlots, coreRule, stage, act, stageSigs, actSigs);
+        return jobs;
     }
 
-    private static ArcRelayTacticPhase ValidatePhase(
+    private static ArcRelayTacticJob ValidateJob(
         JsonElement value,
         string path,
-        bool isStage,
-        int groupSize,
+        IReadOnlyList<ArcRelayTacticsSquadBot> squad,
+        ArcRelayTacticGroup group,
         int width,
         int height)
     {
         string[] geometryKeys = ["posts", "rect", "path", "point"];
         Object(value, path, ["kind", "posture", "recovery"],
-            [.. geometryKeys, "via"]);
+            [.. geometryKeys, "via", "sigs"]);
         string kind = RequiredString(value, "kind", path);
-        if (!(isStage ? TacticStageKinds : TacticActKinds).Contains(kind))
-        {
-            throw Error($"{path}.kind",
-                $"unknown {(isStage ? "stage" : "act")} kind '{kind}'.");
-        }
+        if (!TacticJobKinds.Contains(kind))
+            throw Error($"{path}.kind", $"unknown job kind '{kind}'.");
         string posture = RequiredString(value, "posture", path);
         if (!TacticPostures.Contains(posture))
             throw Error($"{path}.posture", $"unknown posture '{posture}'.");
@@ -404,10 +743,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             JsonElement[] postValues = BoundedArray(
                 value.GetProperty("posts"), $"{path}.posts", 1, 8);
-            if (postValues.Length != groupSize)
+            if (postValues.Length != group.Slots.Count)
             {
                 throw Error($"{path}.posts",
-                    $"posts must match the group's {groupSize} bots, one each.");
+                    $"posts must match the group's {group.Slots.Count} bots, one each.");
             }
             posts = [];
             var tiles = new HashSet<string>(StringComparer.Ordinal);
@@ -465,13 +804,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         List<int[]>? via = null;
         if (value.TryGetProperty("via", out JsonElement viaValue))
         {
-            // A drawn approach route for reaching the phase's ground. Advance
+            // A drawn approach route for reaching the job's ground. Advance
             // and patrol already carry their own route in `path`; a second
-            // one would be ambiguous. Escort follows a body and none goes
-            // nowhere, so neither has an approach to draw.
-            bool viaLegal = isStage
-                ? kind is "posts" or "area" or "line" or "approach"
-                : kind is "converge" or "return";
+            // one would be ambiguous. Escort follows a body and none carries
+            // the previous phase's plan, so neither has an approach to draw.
+            bool viaLegal = kind
+                is "posts" or "area" or "line" or "approach"
+                or "converge" or "return";
             if (!viaLegal)
                 throw Error($"{path}.via", $"kind '{kind}' does not take via.");
             via = [];
@@ -482,8 +821,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     pointValue, $"{path}.via", width, height));
             }
         }
-        return new ArcRelayTacticPhase(
-            kind, posture, recovery, posts, rect, pathPoints, point, via);
+
+        var sigs = new List<ArcRelayTacticSignatureMark>();
+        if (value.TryGetProperty("sigs", out JsonElement sigValues))
+        {
+            ValidateSignatureMarks(
+                sigValues, $"{path}.sigs", squad, group.Slots, width, height,
+                sigs);
+        }
+        return new ArcRelayTacticJob(
+            kind, posture, recovery, posts, rect, pathPoints, point, via,
+            sigs);
     }
 
     private static void ValidateSignatureMarks(
@@ -561,24 +909,84 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
     }
 
+    private static List<ArcRelayTacticCase> ValidateCases(
+        JsonElement value,
+        string path,
+        int width,
+        int height,
+        string[] allowedRows,
+        int maximum)
+    {
+        JsonElement[] caseValues = BoundedArray(value, path, 1, maximum);
+        var cases = new List<ArcRelayTacticCase>(caseValues.Length);
+        for (int index = 0; index < caseValues.Length; index++)
+        {
+            Object(caseValues[index], $"{path}[{index}]", [],
+                ["required", "triggers"]);
+            cases.Add(ValidateCase(
+                caseValues[index], $"{path}[{index}]", width, height,
+                allowedRows));
+        }
+        return cases;
+    }
+
+    /// <summary>One case: all rows in 'required' must hold AND any row in
+    /// 'triggers' may fire. At least one row must be active overall. The
+    /// carrier of the case (a start/abort case entry or a continue rule)
+    /// supplies its own Object() shape check.</summary>
+    private static ArcRelayTacticCase ValidateCase(
+        JsonElement value,
+        string path,
+        int width,
+        int height,
+        string[] allowedRows)
+    {
+        ArcRelayTacticConditionRows? required = null;
+        if (value.TryGetProperty("required", out JsonElement requiredValue))
+        {
+            required = ValidateConditionRows(
+                requiredValue, $"{path}.required", width, height, allowedRows);
+        }
+        ArcRelayTacticConditionRows? triggers = null;
+        if (value.TryGetProperty("triggers", out JsonElement triggerValue))
+        {
+            triggers = ValidateConditionRows(
+                triggerValue, $"{path}.triggers", width, height, allowedRows);
+            if (triggers.GroupsSet)
+            {
+                throw Error($"{path}.triggers",
+                    "groupsSet belongs in required — every group must be in "
+                    + "position, not any one bot.");
+            }
+        }
+        if ((required?.ActiveCount ?? 0) + (triggers?.ActiveCount ?? 0) == 0)
+            throw Error(path, "a case needs at least one active condition row.");
+        return new ArcRelayTacticCase(required, triggers);
+    }
+
     private static ArcRelayTacticConditionRows ValidateConditionRows(
         JsonElement value,
         string path,
         int width,
         int height,
-        bool allowCarrier,
-        bool allowContact)
+        string[] allowedRows)
     {
-        var optional = new List<string>
-        {
-            "enemiesAt", "coreLoose", "coreSoon", "enemiesDown", "losses",
-        };
-        if (allowCarrier)
-            optional.Add("carrier");
-        if (allowContact)
-            optional.Add("contact");
-        Object(value, path, [], optional);
+        Object(value, path, [], allowedRows);
 
+        bool groupsSet = false;
+        if (value.TryGetProperty("groupsSet", out JsonElement groupsSetValue))
+        {
+            if (groupsSetValue.ValueKind != JsonValueKind.True)
+                throw Error($"{path}.groupsSet", "groupsSet must be true.");
+            groupsSet = true;
+        }
+        int? heldTicks = null;
+        if (value.TryGetProperty("held", out JsonElement heldValue))
+        {
+            string at = $"{path}.held";
+            Object(heldValue, at, ["ticks"]);
+            heldTicks = Range(heldValue, "ticks", at, 1, 600);
+        }
         ArcRelayTacticEnemiesAtRow? enemiesAt = null;
         if (value.TryGetProperty("enemiesAt", out JsonElement enemies))
         {
@@ -636,93 +1044,52 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             string at = $"{path}.losses";
             Object(lossesValue, at, ["count"]);
-            losses = Range(lossesValue, "count", at, 1, 7);
+            losses = Range(lossesValue, "count", at, 1, 8);
         }
-        return new ArcRelayTacticConditionRows(
-            enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
-            carrier, losses);
-    }
-
-    private static ArcRelayTacticOutcomes ValidateFinish(
-        JsonElement value,
-        string path,
-        IReadOnlyList<ArcRelayTacticGroup> groups,
-        int width,
-        int height,
-        out string maxAttempt)
-    {
-        Object(value, path, ["outcomes", "maxAttempt"]);
-        maxAttempt = OneOf(value, "maxAttempt", path,
-            "none", "brief", "standard", "long");
-        JsonElement outcomes = value.GetProperty("outcomes");
-        Object(outcomes, $"{path}.outcomes", [],
-            [
-                "kills", "losses", "cleared", "coreAcquired", "coreBanked",
-                "coreLost", "reached", "observed", "persistent",
-            ]);
-
+        ArcRelayTacticLossesWithinRow? lossesWithin = null;
+        if (value.TryGetProperty("lossesWithin", out JsonElement lossesWithinValue))
+        {
+            string at = $"{path}.lossesWithin";
+            Object(lossesWithinValue, at, ["count", "ticks"]);
+            lossesWithin = new ArcRelayTacticLossesWithinRow(
+                Range(lossesWithinValue, "count", at, 1, 8),
+                Range(lossesWithinValue, "ticks", at, 1, 600));
+        }
         int? kills = null;
-        if (outcomes.TryGetProperty("kills", out JsonElement killsValue))
+        if (value.TryGetProperty("kills", out JsonElement killsValue))
         {
-            Object(killsValue, $"{path}.outcomes.kills", ["count"]);
-            kills = Range(killsValue, "count", $"{path}.outcomes.kills", 1, 8);
-        }
-        int? losses = null;
-        if (outcomes.TryGetProperty("losses", out JsonElement lossesValue))
-        {
-            Object(lossesValue, $"{path}.outcomes.losses", ["count"]);
-            losses = Range(
-                lossesValue, "count", $"{path}.outcomes.losses", 1, 8);
+            string at = $"{path}.kills";
+            Object(killsValue, at, ["count"]);
+            kills = Range(killsValue, "count", at, 1, 8);
         }
         ArcRelayTacticZoneRef? cleared = null;
-        if (outcomes.TryGetProperty("cleared", out JsonElement clearedValue))
+        if (value.TryGetProperty("cleared", out JsonElement clearedValue))
         {
-            Object(clearedValue, $"{path}.outcomes.cleared", ["zone"]);
+            string at = $"{path}.cleared";
+            Object(clearedValue, at, ["zone"]);
             cleared = ValidateZoneRef(
-                clearedValue.GetProperty("zone"),
-                $"{path}.outcomes.cleared.zone", width, height);
+                clearedValue.GetProperty("zone"), $"{at}.zone", width, height);
         }
-        bool coreAcquired = FlagOutcome(outcomes, "coreAcquired", path);
-        bool coreBanked = FlagOutcome(outcomes, "coreBanked", path);
-        bool coreLost = FlagOutcome(outcomes, "coreLost", path);
-        bool reached = FlagOutcome(outcomes, "reached", path);
-        bool observed = FlagOutcome(outcomes, "observed", path);
-        bool persistent = FlagOutcome(outcomes, "persistent", path);
-
-        if (reached && !groups.Any(group =>
-                group.Act.Kind is "converge" or "advance"))
-        {
-            throw Error($"{path}.outcomes.reached",
-                "'reached' needs a group that converges or advances somewhere.");
-        }
-        if (observed && !groups.Any(group => group.HasAnyGeometry))
-        {
-            throw Error($"{path}.outcomes.observed",
-                "'observed' needs at least one group with drawn geometry.");
-        }
-        bool anyOutcome = kills.HasValue || losses.HasValue || cleared is not null
-            || coreAcquired || coreBanked || coreLost || reached || observed
-            || persistent;
-        if (!anyOutcome && maxAttempt == "none")
-        {
-            throw Error($"{path}.outcomes",
-                "pick at least one outcome (or a maximum attempt) so the "
-                + "tactic can finish.");
-        }
-        return new ArcRelayTacticOutcomes(
-            kills, losses, cleared, coreAcquired, coreBanked, coreLost,
-            reached, observed, persistent);
+        bool coreAcquired = FlagRow(value, "coreAcquired", path);
+        bool coreBanked = FlagRow(value, "coreBanked", path);
+        bool coreLost = FlagRow(value, "coreLost", path);
+        bool reached = FlagRow(value, "reached", path);
+        bool observed = FlagRow(value, "observed", path);
+        return new ArcRelayTacticConditionRows(
+            enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
+            carrier, losses, lossesWithin, groupsSet, heldTicks, kills,
+            cleared, coreAcquired, coreBanked, coreLost, reached, observed);
     }
 
-    private static bool FlagOutcome(
-        JsonElement outcomes,
+    private static bool FlagRow(
+        JsonElement rows,
         string name,
         string path)
     {
-        if (!outcomes.TryGetProperty(name, out JsonElement value))
+        if (!rows.TryGetProperty(name, out JsonElement value))
             return false;
         if (value.ValueKind != JsonValueKind.True)
-            throw Error($"{path}.outcomes.{name}", $"{name} must be true.");
+            throw Error($"{path}.{name}", $"{name} must be true.");
         return true;
     }
 
@@ -794,13 +1161,32 @@ internal sealed record ArcRelayTactic(
     string Id,
     string Name,
     string Recipe,
-    ArcRelayTacticConditionRows? Start,
-    string ReleaseMode,
-    ArcRelayTacticConditionRows? Release,
-    ArcRelayTacticOutcomes Outcomes,
-    string MaxAttempt,
+    IReadOnlyList<ArcRelayTacticCase>? Start,
+    IReadOnlyList<ArcRelayTacticCase>? Abort,
+    string MaxDuration,
     ArcRelayTacticDelivery Delivery,
-    IReadOnlyList<ArcRelayTacticGroup> Groups);
+    IReadOnlyList<ArcRelayTacticGroup> Groups,
+    IReadOnlyList<ArcRelayTacticPhaseDef> Phases);
+
+/// <summary>One ordered phase of the operation: what every group does and
+/// the latched, forward-only continue rules that leave it. An empty Continue
+/// on the final phase means the operation holds forever once there.</summary>
+internal sealed record ArcRelayTacticPhaseDef(
+    string Id,
+    string Name,
+    IReadOnlyDictionary<string, ArcRelayTacticJob> Jobs,
+    IReadOnlyList<ArcRelayTacticTransition> Continue);
+
+/// <summary>To is "next", "finish", or a later phase's id.</summary>
+internal sealed record ArcRelayTacticTransition(
+    ArcRelayTacticCase When,
+    string To);
+
+/// <summary>all(Required rows) AND any(Triggers rows); an absent side is
+/// vacuously true, and at least one row is active overall.</summary>
+internal sealed record ArcRelayTacticCase(
+    ArcRelayTacticConditionRows? Required,
+    ArcRelayTacticConditionRows? Triggers);
 
 internal sealed record ArcRelayTacticConditionRows(
     ArcRelayTacticEnemiesAtRow? EnemiesAt,
@@ -809,14 +1195,32 @@ internal sealed record ArcRelayTacticConditionRows(
     ArcRelayTacticCoreSoonRow? CoreSoon,
     int? EnemiesDown,
     bool Carrier,
-    int? Losses)
+    int? Losses,
+    ArcRelayTacticLossesWithinRow? LossesWithin,
+    bool GroupsSet,
+    int? HeldTicks,
+    int? Kills,
+    ArcRelayTacticZoneRef? Cleared,
+    bool CoreAcquired,
+    bool CoreBanked,
+    bool CoreLost,
+    bool Reached,
+    bool Observed)
 {
     public int ActiveCount =>
         (EnemiesAt is null ? 0 : 1) + (Contact ? 1 : 0)
         + (CoreLooseWell is null ? 0 : 1) + (CoreSoon is null ? 0 : 1)
         + (EnemiesDown is null ? 0 : 1) + (Carrier ? 1 : 0)
-        + (Losses is null ? 0 : 1);
+        + (Losses is null ? 0 : 1) + (LossesWithin is null ? 0 : 1)
+        + (GroupsSet ? 1 : 0) + (HeldTicks is null ? 0 : 1)
+        + (Kills is null ? 0 : 1) + (Cleared is null ? 0 : 1)
+        + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
+        + (Reached ? 1 : 0) + (Observed ? 1 : 0);
 }
+
+/// <summary>"We lost {count} bots within the last {ticks} ticks" — the
+/// remembered-casualty row for aborts and emergency starts.</summary>
+internal sealed record ArcRelayTacticLossesWithinRow(int Count, int Ticks);
 
 /// <summary>"A Core births at {well} within {ticks}": the Well's one
 /// effective public clock — initial opening or bank-triggered recharge.</summary>
@@ -828,36 +1232,23 @@ internal sealed record ArcRelayTacticEnemiesAtRow(
 
 internal sealed record ArcRelayTacticZoneRef(string? Name, int[] Rect);
 
-internal sealed record ArcRelayTacticOutcomes(
-    int? Kills,
-    int? Losses,
-    ArcRelayTacticZoneRef? Cleared,
-    bool CoreAcquired,
-    bool CoreBanked,
-    bool CoreLost,
-    bool Reached,
-    bool Observed,
-    bool Persistent);
-
 internal sealed record ArcRelayTacticDelivery(
     string Plan,
     IReadOnlyList<int> PreferredSlots);
 
+/// <summary>Membership only: what a group IS. What it does lives in each
+/// phase's job for the group.</summary>
 internal sealed record ArcRelayTacticGroup(
     string Id,
     string Name,
     IReadOnlyList<int> Slots,
-    string CoreRule,
-    ArcRelayTacticPhase Stage,
-    ArcRelayTacticPhase Act,
-    IReadOnlyList<ArcRelayTacticSignatureMark> StageSigs,
-    IReadOnlyList<ArcRelayTacticSignatureMark> ActSigs)
-{
-    public bool HasAnyGeometry =>
-        Stage.HasGeometry || Act.HasGeometry;
-}
+    string CoreRule);
 
-internal sealed record ArcRelayTacticPhase(
+/// <summary>One group's assignment for one phase: movement geometry,
+/// posture, recovery, approach route, and spatial signature marks. Kind
+/// 'none' carries the group's nearest earlier geometric job forward under
+/// this phase's posture.</summary>
+internal sealed record ArcRelayTacticJob(
     string Kind,
     string Posture,
     string Recovery,
@@ -865,7 +1256,8 @@ internal sealed record ArcRelayTacticPhase(
     int[]? Rect,
     IReadOnlyList<int[]>? Path,
     int[]? Point,
-    IReadOnlyList<int[]>? Via)
+    IReadOnlyList<int[]>? Via,
+    IReadOnlyList<ArcRelayTacticSignatureMark> Sigs)
 {
     public bool HasGeometry =>
         Posts is not null || Rect is not null || Path is not null

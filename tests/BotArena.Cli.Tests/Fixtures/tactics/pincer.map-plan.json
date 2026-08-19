@@ -3,14 +3,6 @@
   "mapPlanId": "proof-pincer-v1-plan",
   "mapId": "arc-relay-tapline-02",
   "zones": {
-    "g-t1-release-watch": {
-      "rect": [
-        13,
-        11,
-        17,
-        15
-      ]
-    },
     "g-t1-g1-near-post-0": {
       "rect": [
         13,
@@ -35,6 +27,14 @@
         7
       ]
     },
+    "g-t1-p1-watch": {
+      "rect": [
+        13,
+        11,
+        17,
+        15
+      ]
+    },
     "g-anywhere": {
       "rect": [
         0,
@@ -50,19 +50,19 @@
       15,
       12
     ],
-    "g-t1-g1-post-1": [
+    "g-t1-g1-p1-rail-post": [
       16,
       14
+    ],
+    "g-t1-g1-p1-rail-aim": [
+      16,
+      11
     ],
     "g-t1-g1-face-1": [
       16,
       13
     ],
-    "g-t1-g1-s-rail-aim": [
-      16,
-      11
-    ],
-    "g-t1-g2-a-mason-0": [
+    "g-t1-g2-p2-mason-0": [
       15,
       11
     ],

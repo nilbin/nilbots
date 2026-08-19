@@ -1,5 +1,5 @@
 {
-  "schema": "arc-relay-orders-v2",
+  "schema": "arc-relay-orders-v3",
   "sheetId": "proof-centre-rush-v1",
   "mapPlan": "map-plan.json",
   "roles": [
@@ -17,35 +17,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
@@ -59,25 +56,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -114,35 +93,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
@@ -156,25 +132,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -211,35 +169,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
@@ -253,25 +208,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -308,35 +245,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
@@ -350,25 +284,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -405,35 +321,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
@@ -447,25 +360,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -502,35 +397,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
@@ -544,25 +436,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -599,35 +473,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
                       "carrying-core",
@@ -640,25 +511,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -695,35 +548,32 @@
       "orders": [
         {
           "id": "t1",
-          "timeout": 180,
-          "cooldown": 40,
+          "phase": "t1",
           "orders": [
             {
               "shared": "t1-g1-grab"
             },
             {
-              "id": "t1-go",
-              "when": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "until": {
-                "any": [
-                  "c-t1-kills",
-                  "we-hold-a-core",
-                  "c-t1-reached"
-                ]
-              },
-              "cooldown": 120,
-              "rejoin": true,
+              "id": "t1-p1",
+              "phase": "t1/p1",
               "orders": [
                 {
-                  "shared": "t1-g1-a-fight"
+                  "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-g1-a-sig",
+                  "shared": "t1-p1-g1-move"
+                }
+              ]
+            },
+            {
+              "id": "t1-p2",
+              "phase": "t1/p2",
+              "orders": [
+                {
+                  "shared": "t1-p2-g1-fight"
+                },
+                {
+                  "id": "t1-p2-g1-sig",
                   "when": "signature-ready",
                   "use": {
                     "skill": "repair-beam",
@@ -731,25 +581,7 @@
                   }
                 },
                 {
-                  "shared": "t1-g1-a-move"
-                }
-              ]
-            },
-            {
-              "id": "t1-s",
-              "until": {
-                "any": [
-                  "c-t1-g1-ready",
-                  "c-t1-g1-short"
-                ]
-              },
-              "cooldown": 120,
-              "orders": [
-                {
-                  "shared": "t1-g1-s-patch"
-                },
-                {
-                  "shared": "t1-g1-s-move"
+                  "shared": "t1-p2-g1-move"
                 }
               ]
             }
@@ -853,7 +685,25 @@
         "withinWalkingSteps": 6
       }
     },
-    "t1-g1-a-fight": {
+    "t1-p1-g1-patch": {
+      "when": "hurt",
+      "until": "patched-up",
+      "timeout": 24,
+      "cooldown": 24,
+      "move": {
+        "to": "current-position",
+        "posture": "rear"
+      }
+    },
+    "t1-p1-g1-move": {
+      "move": {
+        "to": {
+          "zone": "g-t1-g1-set"
+        },
+        "posture": "rear"
+      }
+    },
+    "t1-p2-g1-fight": {
       "when": {
         "all": [
           "empty-handed",
@@ -870,31 +720,13 @@
         "chaseLimit": 6
       }
     },
-    "t1-g1-a-move": {
+    "t1-p2-g1-move": {
       "move": {
         "to": {
           "zone": "g-t1-goal"
         },
         "via": "g-t1-g1-way",
         "posture": "front"
-      }
-    },
-    "t1-g1-s-patch": {
-      "when": "hurt",
-      "until": "patched-up",
-      "timeout": 24,
-      "cooldown": 24,
-      "move": {
-        "to": "current-position",
-        "posture": "rear"
-      }
-    },
-    "t1-g1-s-move": {
-      "move": {
-        "to": {
-          "zone": "g-t1-g1-set"
-        },
-        "posture": "rear"
       }
     }
   },
@@ -932,38 +764,121 @@
       "operator": "at-most",
       "value": 7
     },
-    "c-t1-g1-ready": {
-      "fact": "friendlies-in-zone",
+    "c-t1-g1-at-0": {
+      "fact": "role-in-zone-count",
       "operator": "at-least",
-      "value": 6,
+      "value": 1,
+      "role": "vex",
       "zone": "g-t1-g1-set"
     },
-    "c-t1-g1-short": {
+    "dn-vex": {
       "fact": "role-live-count",
       "operator": "at-most",
-      "value": 5,
-      "roles": [
-        "vex",
-        "solder",
-        "gantry",
-        "flux",
-        "ratchet",
-        "ember",
-        "piston",
-        "cinder"
-      ]
+      "value": 0,
+      "role": "vex"
+    },
+    "c-t1-g1-at-1": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "solder",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-solder": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "solder"
+    },
+    "c-t1-g1-at-2": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "gantry",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-gantry": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "gantry"
+    },
+    "c-t1-g1-at-3": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "flux",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-flux": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "flux"
+    },
+    "c-t1-g1-at-4": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "ratchet",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-ratchet": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "ratchet"
+    },
+    "c-t1-g1-at-5": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "ember",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-ember": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "ember"
+    },
+    "c-t1-g1-at-6": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "piston",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-piston": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "piston"
+    },
+    "c-t1-g1-at-7": {
+      "fact": "role-in-zone-count",
+      "operator": "at-least",
+      "value": 1,
+      "role": "cinder",
+      "zone": "g-t1-g1-set"
+    },
+    "dn-cinder": {
+      "fact": "role-live-count",
+      "operator": "at-most",
+      "value": 0,
+      "role": "cinder"
+    },
+    "we-hold-a-core": {
+      "fact": "friendly-carriers",
+      "operator": "at-least",
+      "value": 1
     },
     "c-t1-kills": {
       "fact": "confirmed-enemy-destructions-in-zone",
       "operator": "at-least",
       "value": 3,
       "zone": "g-anywhere",
-      "since": "node-entry"
-    },
-    "we-hold-a-core": {
-      "fact": "friendly-carriers",
-      "operator": "at-least",
-      "value": 1
+      "since": "phase-entry"
     },
     "c-t1-reached": {
       "fact": "friendlies-in-zone",
@@ -976,15 +891,104 @@
       "operator": "at-most",
       "value": 6
     },
-    "signature-ready": {
-      "fact": "signature-ready",
-      "operator": "equals",
-      "value": 1
-    },
     "patched-up": {
       "fact": "self-health-percent",
       "operator": "at-least",
       "value": 60
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
     }
+  },
+  "program": {
+    "tactics": [
+      {
+        "id": "t1",
+        "name": "Centre Rush",
+        "maxTicks": 180,
+        "rearm": 40,
+        "phases": [
+          {
+            "id": "p1",
+            "name": "Stage",
+            "continue": [
+              {
+                "when": {
+                  "all": [
+                    {
+                      "any": [
+                        "c-t1-g1-at-0",
+                        "dn-vex"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-1",
+                        "dn-solder"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-2",
+                        "dn-gantry"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-3",
+                        "dn-flux"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-4",
+                        "dn-ratchet"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-5",
+                        "dn-ember"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-6",
+                        "dn-piston"
+                      ]
+                    },
+                    {
+                      "any": [
+                        "c-t1-g1-at-7",
+                        "dn-cinder"
+                      ]
+                    }
+                  ]
+                },
+                "to": "next"
+              }
+            ]
+          },
+          {
+            "id": "p2",
+            "name": "Act",
+            "continue": [
+              {
+                "when": {
+                  "any": [
+                    "we-hold-a-core",
+                    "c-t1-kills",
+                    "c-t1-reached"
+                  ]
+                },
+                "to": "finish"
+              }
+            ]
+          }
+        ]
+      }
+    ]
   }
 }
