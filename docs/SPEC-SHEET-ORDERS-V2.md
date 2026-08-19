@@ -1,4 +1,4 @@
-# SPEC — Arc Relay Orders DSL v2
+# SPEC — Arc Relay Orders DSL v2 / v3
 
 Status: normative implementation contract on current `main`.
 
@@ -6,6 +6,13 @@ This format replaces `arc-relay-tactical-playbook-v1`. There is deliberately no
 compatibility layer. The compiler does not desugar v2 back into doctrines,
 custody policies, modes, rungs, engagements, cohorts, focus scopes, or the old
 six verbs. The executor reads the authored order tree.
+
+`arc-relay-orders-v3` is the whole v2 grammar plus one addition: the **squad
+program** table and `phase` tags (section 4b), which move whole-team lifecycle
+— tactic selection, latched forward-only phase transitions, aborts, duration —
+out of per-body node gates into one explicit squad-wide state machine. Frozen
+v2 sheets keep validating and executing exactly as before; the Tactics
+materializer emits v3 only.
 
 ## 1. Product test
 
@@ -155,7 +162,8 @@ Every branch and leaf uses the same optional fields:
 | `until` | once entered, latch until this expression becomes true |
 | `timeout` | maximum active match ticks, `1..1200` |
 | `cooldown` | match ticks before this same node may enter again, `0..1200` |
-| `rejoin` | `true` makes the `when` gate squad-latched: while any squadmate holds a node with this order id active, a body may enter its own without the gate; requires `when` |
+| `rejoin` | `true` makes the `when` gate squad-latched: while any squadmate holds a node with this order id active, a body may enter its own without the gate; requires `when`. Legacy: the program's squad-level phase (v3) makes it unnecessary, and the materializer no longer emits it |
+| `phase` | v3 only: gates the subtree to a program tag — `"t1"` (that tactic active, any phase) or `"t1/p2"` (that exact phase). A dark subtree's per-body state evaporates without cooldown |
 | `urgency` | allied movement weight: `routine`, `normal`, or `urgent`; inherited, top-level default `normal` |
 
 Rules:
@@ -169,9 +177,9 @@ Rules:
 4. `rejoin` matches by order id across roles — role trees are per-body, and
    marking the same id in several roles declares one squad phase. It bypasses
    only the gate, never the body's own cooldown, and the latch empties when
-   every holder exits or dies. The tactics materializer sets it on each
-   generated release branch so a respawned body catches up with its released
-   squad instead of re-staging at an abandoned post.
+   every holder exits or dies. Legacy: it exists for hand-authored v2 sheets;
+   the v3 squad program owns phase membership at squad level, so the tactics
+   materializer no longer emits it — a respawn simply executes the lit phase.
 4. `move`, `fight`, and branches are ongoing until their lifecycle exits.
    A `move.to` leaf holds at its destination, so zone defence and healing do
    not repeatedly exit and re-enter. `use`, `handoff`, and `drop` succeed only
@@ -204,6 +212,71 @@ progress pays debt down. Physical legality, action roots, strike safety,
 oscillation protection, route commitment, detour/rejoin, and closed-cycle
 refusal remain executor invariants and cannot be overridden by `urgent`.
 
+## 4b. The squad program (`arc-relay-orders-v3`)
+
+A v3 sheet adds one required top-level key, `program`, and may tag order
+nodes with `phase`. The program is a bounded whole-team state machine the
+runtime coordinator executes once per tick, before any body evaluates:
+
+```jsonc
+"program": { "tactics": [ {           // 1..8, ordered = selection priority
+  "id": "t1", "name": "Mid Pincer",   // id ≤24 kebab; name ≤48 display
+  "start":  [ Case… ],                // optional, 1..4; absent = always
+  "abort":  [ Case… ],                // optional, 1..4; checked every phase
+  "maxTicks": 420,                    // optional, 1..1200, from tactic entry
+  "rearm": 40,                        // 0..1200 ticks before reselection
+  "phases": [ {                       // 1..8, ordered and named
+    "id": "p1", "name": "Set the trap",
+    "continue": [                     // ≤3 rules, authored order, first true
+      { "when": Case, "to": "next" | "p3" | "finish" }
+    ]                                 // absent on the FINAL phase = hold
+  } ]                                 //   forever; required on every other
+} ] }
+
+Case = { "all"?: [entry…≤12], "any"?: [entry…≤12] }
+// entry = condition name | one nested {"any":[2..8 names]} / {"all":[…]}
+// truth = all(all…) AND any(any…); an absent side is vacuously true
+```
+
+Coordinator contract, in tick order:
+
+1. **Select** the first tactic whose `start` passes and whose `rearm` has
+   elapsed, when none is active. No active tactic ⇒ the whole team runs the
+   untagged baseline band.
+2. **Abort/duration**: on an active tactic (never on its entry tick),
+   `abort` cases and `maxTicks` end the run, stamp `rearm`
+   (`tick + 1 + rearm`), and reselect the list the same tick.
+3. **Transition**: the current phase's `continue` rules evaluate in authored
+   order; the first true one fires — to the next phase, a strictly LATER
+   named phase, or `finish` (which reselects like an abort). At most one
+   transition per tick, never on the phase's entry tick.
+4. **Enable**: the active pair lights tags `t{n}` (tactic-scoped nodes:
+   delivery, Core habits) and `t{n}/p{k}` (that phase's subtrees). Every
+   other tagged node is dark: ineligible, its per-body state removed WITHOUT
+   a cooldown, so a restarted tactic begins fresh — an abandoned phase is
+   never implicitly resumed.
+
+Consequences the encoding relies on:
+
+- **Latching is structural.** An entered phase's entry condition is never
+  re-consulted; a lapsed trigger cannot rewind anything.
+- **Selection is the only priority moment.** A higher tactic's `start`
+  turning true mid-run cannot shadow, pause, or terminate the active
+  operation.
+- **Respawns join the current phase.** Phase membership is squad state, not
+  a per-body gate; a fresh life evaluates the lit tags like everyone else.
+  Even a full wipe does not rewind the operation.
+- **Readiness is exact.** Program cases evaluate once per tick at squad
+  level, so a transition may demand every member of every group be at its
+  ground or dead (per-bot `any(role-in-zone-count ≥ 1, role-live-count ≤ 0)`
+  pairs) — no quorum approximation and no short-handed excuse.
+- Program-case conditions must be body-independent: `self-*`,
+  `signature-*`, and `deployment-*` facts are rejected there, and
+  `since: "phase-entry"` is legal only there.
+- Validation enforces: tags reference declared ids; `to` is strictly
+  forward; each declared phase owns at least one tagged node across roles;
+  the program and the v3 schema come together or not at all.
+
 ## 5. Conditions
 
 Facts are named once under `conditions`. An atomic condition is:
@@ -226,9 +299,11 @@ optionally admit) them:
 - `well` for `north`, `centre`, `south`, `own`, or `enemy` (optional on the
   Core-evidence facts and `friendly-carriers-in-roles`);
 - `freshnessTicks` (`1..600`) for remembered facts;
-- `windowTicks` (`1..1200`) **or** `since` (`match-start` | `node-entry`) —
-  exactly one — for historical evidence facts; `since: "node-entry"` is legal
-  only inside `until`;
+- `windowTicks` (`1..1200`) **or** `since` (`match-start` | `node-entry` |
+  `phase-entry`) — exactly one — for historical evidence facts;
+  `since: "node-entry"` is legal only inside `until`, and
+  `since: "phase-entry"` (v3) only inside program cases, where the
+  coordinator anchors it at the active phase's entry tick;
 - `roles` (1..8 unique declared roles) for `friendly-carriers-in-roles`
   (required) and the Core-evidence facts (optional);
 - `signature` (a current signature id) for `role-deployments-in-zone-count`;
@@ -262,7 +337,7 @@ The v2 fact catalog is intentionally finite:
 | --- | --- |
 | body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-carrying-core-from-well`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent`, `self-deployment-in-zone` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count`, `role-deployments-in-zone-count` |
-| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `friendly-carriers-in-roles`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
+| team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `friendly-carriers-in-roles`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress`, `friendly-destructions` (historical: windowTicks/since), `elapsed-ticks` (the evaluation's own anchor: ticks-in-order on a node, ticks-in-phase in a program case) |
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 | Core evidence | `friendly-core-pickups`, `friendly-core-acquisitions`, `friendly-core-banks`, `friendly-core-drops`, `friendly-core-losses`, `friendly-core-resolutions` |

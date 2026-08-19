@@ -30,14 +30,16 @@ export default function DocsPage() {
       <Doc title="Tactical sheets">
         <p>
           A sheet is a squad of eight bots plus an ordered list of whole-team
-          <b> Tactics</b>. Each Tactic splits the eight into one to three temporary
-          Groups, stages them on the map — exact posts, an area, a picket line or a
-          quiet approach — then releases every Group at one shared moment and runs an
-          optional Act: converge, advance, patrol, return and bank, or stay on the
-          carrier. The Tactic finishes on outcomes you pick (destructions, an area
-          cleared, a Core acquired, banked or lost, a destination reached) or when its
-          attempt expires, and outcomes count only after release. Tactics are read top
-          to bottom; when one finishes, the list is reevaluated. On save the server
+          <b> Tactics</b>. Each Tactic is one committed operation in ordered, named
+          phases: every phase says what each of its one to three temporary Groups does
+          on the map — exact posts, an area, a picket line, a quiet approach, a
+          convergence, a push, a patrol, the run home — and carries a latched
+          “Continue when…” that moves the whole squad forward together. Transitions
+          only ever go forward; once a Tactic starts it keeps control until it
+          finishes, a Tactic-wide abort fires, or its time limit expires, and outcomes
+          count only after release into the phase that watches for them. Respawned
+          bots join the current phase. Tactics are read top to bottom; when one
+          finishes or aborts, the list is reevaluated. On save the server
           deterministically materializes your Tactics into the executable Orders
           document and compiles it through the same shared compiler as the CLI,
           fielding the sheet in the current Season by default. A revision preserves

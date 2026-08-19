@@ -1,9 +1,12 @@
 # SPEC — `arc-relay-tactics-v1` (player-owned Tactics document)
 
-Status: normative for the player save surface, 2026-08-18.
-Decision: `DECISIONS.md` #331. Materialization target:
-[`SPEC-SHEET-ORDERS-V2.md`](SPEC-SHEET-ORDERS-V2.md), which stays normative
-for the executable pair.
+Status: SUPERSEDED by
+[`SPEC-SHEET-TACTICS-V2.md`](SPEC-SHEET-TACTICS-V2.md) (`DECISIONS.md`
+#338), which replaces Stage/Release/Act/Finish with ordered named phases
+and the squad program. Saved v1 documents migrate deterministically on
+every load path; nothing validates or stores this shape anymore. Kept for
+reading historical documents and the migration table.
+Original decision: `DECISIONS.md` #331.
 
 A Sheet is a squad of eight bots plus an ordered list of whole-team
 **Tactics**. The Tactics document is the only player-owned source: the server

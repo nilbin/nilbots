@@ -9019,3 +9019,53 @@ overwatch resters hold the ring. Egress/sidestep prototypes did not
 resolve it (spawn reservations pin both parties during death-heavy
 phases); it needs a reproducible movement scene and likely
 planner-level chain displacement, not per-body heuristics.
+
+## 338. Multi-phase Tactics: the squad program owns the operation lifecycle
+
+A Tactic is now one committed whole-team operation of 1..8 ordered, named
+phases (`arc-relay-tactics-v2`), replacing the fixed Stage → Release → Act
+frame that forced one coherent operation ("pincer, then exploit, then
+extract") to be chained across Tactics through transient world state. Each
+phase gives every Group a job from one merged kind vocabulary (`none` =
+carry the previous ground under the new posture) and a latched,
+forward-only "Continue when…" of bounded cases — Required rows all hold AND
+any Triggered-by row fires; alternatives OR; per-case targets next / a
+later named phase / finish. Tactic-wide start and abort cases (the new
+`lossesWithin` remembered-casualty row rides a `friendly-destructions`
+windowed fact) and a deliberately minor optional `maxDuration` complete the
+lifecycle. No tight phase cap and no headline timeout — both owner calls;
+the envelope budget is the real limiter.
+
+The executable format is `arc-relay-orders-v3`: the whole v2 grammar plus a
+bounded `program` table and `phase` tags on order nodes (Orders spec §4b).
+A new `TacticsProgramCoordinator` in the mind runs the squad-wide state
+machine once per tick — select first eligible when idle, abort/duration,
+at most one deterministic latched transition, light the active
+`t{n}`/`t{n}/p{k}` tags — and `OrderTreeRuntime` treats dark tagged
+subtrees as ineligible with their per-body state removed WITHOUT a
+cooldown, so a restarted tactic begins fresh and an abandoned phase is
+never implicitly resumed. Selection is the only priority moment: a higher
+tactic's start turning true mid-run cannot shadow the active operation.
+Terminal events stamp `rearm` (tick+1+rearm) and reselect the same tick.
+
+Three per-body compromises die on this path: the release branch's
+until-latch, the `rejoin` squad latch (#335 — respawns now simply execute
+the lit phase, and even a full wipe does not rewind the operation), and
+the two-thirds-quorum/short-handed readiness approximations — program
+cases evaluate once at squad level, so readiness is exact per bot
+(`any(at-ground, dead)` pairs). Evidence outcomes anchor
+`since:"phase-entry"`; `held` rides the new `elapsed-ticks` fact. Every
+decision reason carries the active `t{n}/p{k}` prefix plus
+`!begin/!go/!abort/!finish` markers on coordinator event ticks, so replay
+and practice attribution show tactic, NAMED phase, and transition causes.
+
+Frozen v2 sheets are untouched: the legacy path is code-identical (null
+program ⇒ no coordinator), pinned by the movement-scene suite and a
+stock-vs-stock digest match at seed 9001 that is byte-identical across the
+change (0e668e6dd174…ae76c8). Saved v1 documents migrate deterministically
+on every load path — hosted saves store and return the migrated v2 — per
+the SPEC-SHEET-TACTICS-V2 table. The editor's wizard becomes
+Start → Groups → Phases (a selectable storyboard) → Cores → Review, with
+abort and the time limit living quietly on Start. A hosted deployment of
+this behavior change mints the next playlist version (v26) before the new
+worker ships; the dev loop stays on v25.

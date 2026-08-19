@@ -164,15 +164,21 @@ priority position.
 | `until` | once entered, latches the node until this becomes true |
 | `timeout` | active wall-clock ticks, `1..1200` |
 | `cooldown` | ticks before this same node may enter again, `0..1200` |
-| `rejoin` | `true` squad-latches the gate: while any squadmate holds a node with this id active, a body enters without its `when`; requires `when` |
+| `rejoin` | `true` squad-latches the gate: while any squadmate holds a node with this id active, a body enters without its `when`; requires `when`. Legacy — the v3 program phase makes it unnecessary |
+| `phase` | v3 only: gates the subtree to a program tag (`"t1"` or `"t1/p2"`); dark subtrees drop per-body state without cooldown |
 | `urgency` | allied movement weight: `routine`, `normal`, or `urgent` |
 
 - Without `until`, `when` remains the node's ongoing eligibility.
 - With `until`, `when` gates entry and `until` owns exit.
 - `rejoin` matches by order id across roles and bypasses only the gate, never
   the body's own cooldown; the latch empties when every holder exits or dies.
-  Generated tactics release branches carry it, so a bot respawning after the
-  squad has gone catches up instead of re-staging at an abandoned post.
+  It remains for hand-authored v2 sheets; generated v3 sheets need none —
+  the squad program's phase is squad state, so a respawn simply executes
+  whatever phase is lit.
+- On a v3 sheet the program table (SPEC-SHEET-ORDERS-V2.md §4b) owns tactic
+  selection, latched forward-only phase transitions, aborts, and duration;
+  `phase`-tagged wrappers light and go dark accordingly, and a dark subtree's
+  per-body state evaporates without a cooldown.
 - Timeout, successful one-shot action, death, or ancestor exit ends the node.
   Cooldown starts on exit.
 - Higher-priority work may pre-empt an active node without resetting it; its
@@ -641,29 +647,33 @@ on an order.
 
 The product loop is **change → practice → watch → change**.
 
-The player-owned document is `arc-relay-tactics-v1`
-([SPEC-SHEET-TACTICS-V1.md](SPEC-SHEET-TACTICS-V1.md)): a squad of eight
-named bots plus an ordered list of whole-team **Tactics**. Each Tactic splits
-the eight into one to three temporary Groups, stages them on the map (exact
-Posts with facing, an area, a picket line, or a quiet approach — each
-optionally reached by a drawn `via` route when the direct path crosses ground
-the Group cannot survive), releases every Group at one shared moment, and
-runs an optional Act — converge, advance, patrol, return and bank (converge
-and return take a `via` too), or stay on the carrier. The Tactic owns one
-shared Start/Release/Finish condition set in a single tick-row idiom, a
-delivery plan with a dynamic carrier, per-group Core rules and recovery
-presets, and spatial signature marks where the class descriptor admits them.
-Outcomes count only after release. Tactics read top to bottom; a finished
-tactic yields and the list is reevaluated.
+The player-owned document is `arc-relay-tactics-v2`
+([SPEC-SHEET-TACTICS-V2.md](SPEC-SHEET-TACTICS-V2.md)): a squad of eight
+named bots plus an ordered list of whole-team **Tactics**. Each Tactic is one
+committed operation: Groups are membership (one to three, every bot in
+exactly one), and ordered named **phases** say what every Group does — posts
+with facing, an area, a picket line, a quiet approach, a convergence, a
+push, a patrol, the run home, or carry-on (keep the previous ground under a
+new posture) — each geometry optionally reached by a drawn `via` route. Every
+phase carries a latched, forward-only "Continue when…" of bounded cases
+(Required rows all hold AND any Triggered-by row fires; alternatives OR),
+targeting the next phase, a later named phase, or finish. The Tactic owns
+tactic-wide start and abort cases and an optional minor time limit, one
+delivery plan with a dynamic carrier, per-group Core rules, recovery presets,
+and spatial signature marks where the class descriptor admits them. Evidence
+outcomes count from their phase's entry. Tactics read top to bottom; a
+finished or aborted tactic re-arms and the list is reevaluated — a running
+one is never shadowed. Saved v1 documents migrate on load (Stage → phase 1,
+Release → its continue rule, Act → phase 2, Finish → the finish transition).
 
-The server is the only materializer: every save validates the document,
-deterministically materializes the Orders v2 + map-plan pair, compiles it
-through the shared compiler, and stores all three. The client never generates
-Orders, generated output is never editable, and there is no drift apparatus —
-the Programs workshop sidecar (`arc-relay-workshop-v1`) is retired
-(`DECISIONS.md` #331 supersedes the editor-ownership model of #325–#330;
-sections 1–9 of this document remain normative for the materialization
-TARGET).
+The server is the only materializer: every save migrates a v1 document,
+validates, deterministically materializes the Orders v3 + map-plan pair,
+compiles it through the shared compiler, and stores all three. The client
+never generates Orders, generated output is never editable, and there is no
+drift apparatus — the Programs workshop sidecar (`arc-relay-workshop-v1`) is
+retired (`DECISIONS.md` #331 supersedes the editor-ownership model of
+#325–#330; sections 1–9 of this document remain normative for the
+materialization TARGET, with §4b of the Orders spec carrying the v3 program).
 
 - `GET /api/sheets/catalog` supplies the Tapline map, class/signature catalog
   with authoring descriptors, unlocks, tactics-native starters, and stock
@@ -681,19 +691,23 @@ TARGET).
 
 The editor is map-first: rail (the Sheet), map (the editor), drawer (the
 questions). Creating a Tactic opens one guided wizard —
-**Start → Groups → Stage → Release → Act → Cores → Finish → Review** — whose
-answers are the document; reopening a Tactic reopens the same answers, and
-nothing is reverse-engineered from generated output. Recipes (Hold Area,
-Centre Rush, Pincer, Core Raid, Patrol, Deliver Core, Blank) prefill the same
-structure and are provenance only. Every Tactic card reads its whole
-operation back as one plain-language sentence, and every drawn footprint
-stays draggable on the map. The browser keeps a local draft, so compile
-failure and phone-tab eviction do not erase work; server diagnostics attach
-back to document fields.
+**Start → Groups → Phases → Cores → Review** — whose answers are the
+document; the Phases step is a selectable storyboard (up to eight named
+phases) whose selected phase the map draws full-strength, and reopening a
+Tactic reopens the same answers. Recipes (Hold Area, Centre Rush, the
+four-phase Pincer, the three-phase Core Raid, Patrol, Deliver Core, Blank)
+prefill the same structure and are provenance only. Every Tactic card reads
+its whole operation back phase by phase in plain language, and every drawn
+footprint stays draggable on the map. The browser keeps a local draft, so
+compile failure and phone-tab eviction do not erase work; server diagnostics
+attach back to document fields.
 
 Practice attribution needs no sidecar: the materializer mints ordinal ids
-(`vex > t2 > t2-go > t2-g1-a-move`), so executor `debugMessage` paths map
-straight back to Tactic, Group and phase.
+(`vex > t2 > t2-p1 > t2-p1-g1-move`), the coordinator prefixes every
+decision with the active pair (`orders:t2/p1 …`, `orders:idle …`) and
+appends `!go-p2[c1]` / `!abort-t2[c1]` / `!finish-t2[c1]` / `!begin-t2`
+markers on its event ticks — so executor `debugMessage` paths map straight
+back to Tactic, Group and NAMED phase, transitions included.
 
 ## 11. Runtime and determinism
 

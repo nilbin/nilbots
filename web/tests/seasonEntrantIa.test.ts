@@ -140,7 +140,9 @@ test('the document model mirrors the server grammar and stays the only saved con
 
 test('docs describe Tactics, not the retired Programs workshop', () => {
   assert.match(docs, /whole-team[\s\S]{0,20}<b> Tactics<\/b>/);
-  assert.match(docs, /outcomes count only after release/);
+  assert.match(docs, /ordered, named[\s\S]{0,20}phases/);
+  assert.match(docs, /Transitions[\s\S]{0,20}only ever go forward/);
+  assert.match(docs, /Respawned[\s\S]{0,20}bots join the current phase\./);
   assert.match(docs, /deterministically materializes your Tactics/);
   assert.doesNotMatch(docs, /Programs|workshop|Instructions/);
 });
