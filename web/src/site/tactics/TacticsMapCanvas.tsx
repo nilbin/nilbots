@@ -6,7 +6,7 @@ import { makePathfinder } from './pathing';
 import { describePlace } from './places';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
-  FACING_DELTAS, effectiveJob, groupColor, jobOf, postFacingIssue,
+  FACING_DELTAS, effectiveJob, groupColor, jobOf, phaseShade, postFacingIssue,
   signatureMarkGeometry, tilePlacementIssue,
   type Facing, type Point, type Rect, type SquadBot, type Tactic,
   type TacticConds, type TacticGroup, type TacticJob, type TacticsDocument,
@@ -419,7 +419,9 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
     select: string,
     key: string,
     above: boolean,
+    negated = false,
   ) => {
+    const no = negated ? 'UNLESS ' : '';
     if (conds?.enemiesAt) {
       const [x0, y0, x1, y1] = conds.enemiesAt.zone.rect;
       const rowTarget = makeTarget('enemiesAt');
@@ -428,7 +430,7 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
           fill={`${color}0e`} stroke={color} strokeWidth={.1} strokeDasharray=".12 .2"
           data-select={select} cursor="pointer" />
         {!dim && <ChipLabel x={(x0 + x1 + 1) / 2} y={above ? y0 - .35 : y1 + 2.15}
-          text={`${symbol} ${conds.enemiesAt.count}+ ENEMIES HERE`} color={color} select={select} />}
+          text={`${symbol} ${no}${conds.enemiesAt.count}+ ENEMIES HERE`} color={color} select={select} />}
         {editable && <>
           <Handle cx={x0} cy={y0} cursor="move"
             onDown={(event) => startDrag(event, { kind: 'watchmove', target: rowTarget })} />
@@ -445,7 +447,7 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
         <rect x={x0 + .28} y={y0 + .28} width={x1 - x0 + .44} height={y1 - y0 + .44} rx={.14}
           fill="none" stroke={teal} strokeWidth={.07} strokeDasharray=".3 .16" opacity=".8"
           data-select={select} cursor="pointer" />
-        {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text="✓ CLEARED HERE" color={teal}
+        {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text={`${negated ? '✕ UNLESS' : '✓'} CLEARED HERE`} color={teal}
           select={select} opacity={.95} />}
         {editable && <>
           <Handle cx={x0} cy={y0} cursor="move"
@@ -461,7 +463,7 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
         parts.push(<g key={`${key}-core`}>
           <circle cx={at[0]} cy={at[1]} r={.95} fill="none" stroke={color}
             strokeWidth={.1} strokeDasharray=".14 .18" data-select={select} cursor="pointer" />
-          {!dim && <ChipLabel x={at[0]} y={at[1] + 2.1} text={`${symbol} CORE UP HERE`}
+          {!dim && <ChipLabel x={at[0]} y={at[1] + 2.1} text={`${symbol} ${no}CORE UP HERE`}
             color={color} select={select} />}
         </g>);
       }
@@ -469,19 +471,21 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
   };
 
   (tactic.start.cases ?? []).forEach((entry, caseIndex) => {
-    for (const side of ['required', 'triggers'] as const) {
+    for (const side of ['required', 'triggers', 'unless'] as const) {
       watchBoxes(entry[side],
         (row) => ({ scope: 'start', caseIndex, side, row }),
-        '#e6ddd4', '▶', `${tactic.id}:start`, `start-${caseIndex}-${side}`, true);
+        '#e6ddd4', '▶', `${tactic.id}:start`, `start-${caseIndex}-${side}`, true,
+        side === 'unless');
     }
   });
   tactic.phases.forEach((phase, phaseIndex) => {
     (phase.continue ?? []).forEach((rule, ruleIndex) => {
-      for (const side of ['required', 'triggers'] as const) {
+      for (const side of ['required', 'triggers', 'unless'] as const) {
         watchBoxes(rule[side],
           (row) => ({ scope: 'continue', phaseIndex, ruleIndex, side, row }),
           '#c8763c', '⚡', `${tactic.id}:phase:${phaseIndex}`,
-          `continue-${phaseIndex}-${ruleIndex}-${side}`, false);
+          `continue-${phaseIndex}-${ruleIndex}-${side}`, false,
+          side === 'unless');
       }
     });
   });
@@ -532,7 +536,8 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
 }) {
   const job = jobOf(tactic, phaseIndex, group.id);
   if (!job || job.kind === 'none') return null;
-  const color = groupColor(tactic, group.id);
+  const color = phaseShade(
+    groupColor(tactic, group.id), phaseIndex, tactic.phases.length);
   const select = `${tactic.id}:group:${group.id}:${phaseIndex}`;
   const parts: React.ReactNode[] = [];
   const first = phaseIndex === 0;

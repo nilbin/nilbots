@@ -241,7 +241,7 @@ export function ConditionRows({
 export function CaseListEditor<T extends TacticCase>({
   cases, maximum = 3, accent, watchSymbol, watchAdjective,
   requiredKinds, moreRequiredKinds, triggerKinds, moreTriggerKinds,
-  makeCase, onChange,
+  unlessKinds, makeCase, onChange,
   caseFooter, watching, onDrawWatch, onStopWatch,
 }: {
   cases: T[];
@@ -255,12 +255,14 @@ export function CaseListEditor<T extends TacticCase>({
   moreRequiredKinds?: ConditionRowKind[];
   triggerKinds: ConditionRowKind[];
   moreTriggerKinds?: ConditionRowKind[];
+  /** The inverted side: rows offered under "Unless" — NONE may hold. */
+  unlessKinds?: ConditionRowKind[];
   makeCase: () => T;
   onChange: (cases: T[]) => void;
   caseFooter?: (value: T, update: (apply: (next: T) => void) => void, index: number) => React.ReactNode;
   /** Which case/side/row is being drawn on the map, if any. */
-  watching?: { caseIndex: number; side: 'required' | 'triggers'; row: 'enemiesAt' | 'cleared' } | null;
-  onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers', row: 'enemiesAt' | 'cleared') => void;
+  watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' } | null;
+  onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared') => void;
   onStopWatch?: () => void;
 }) {
   const update = (index: number, apply: (next: T) => void) => {
@@ -268,6 +270,7 @@ export function CaseListEditor<T extends TacticCase>({
     apply(next[index]);
     onChange(next);
   };
+  const [unlessOpen, setUnlessOpen] = useState<Record<number, boolean>>({});
   return (
     <div className="flex flex-col gap-2">
       {cases.map((value, index) => (
@@ -316,6 +319,32 @@ export function CaseListEditor<T extends TacticCase>({
               ? (row) => onDrawWatch(index, 'triggers', row) : undefined}
             onStopWatch={onStopWatch}
           />
+          {(unlessKinds?.length ?? 0) > 0 && (
+            Object.keys(value.unless ?? {}).length > 0 || unlessOpen[index]
+              ? <>
+                <div className="lab mb-1 mt-2">Unless — none of these</div>
+                <ConditionRows
+                  conds={value.unless ?? {}}
+                  kinds={unlessKinds!}
+                  accent={accent}
+                  watchSymbol={watchSymbol}
+                  watchAdjective={watchAdjective}
+                  watchingRow={watching && watching.caseIndex === index
+                    && watching.side === 'unless' ? watching.row : null}
+                  onChange={(conds) => update(index, (next) => {
+                    if (Object.keys(conds).length === 0) delete next.unless;
+                    else next.unless = conds;
+                  })}
+                  onDrawWatch={onDrawWatch
+                    ? (row) => onDrawWatch(index, 'unless', row) : undefined}
+                  onStopWatch={onStopWatch}
+                />
+              </>
+              : <button type="button" className="btn mt-2 !min-h-6 !px-1.5 !text-[10px]"
+                onClick={() => setUnlessOpen((open) => ({ ...open, [index]: true }))}>
+                ＋ Unless…
+              </button>
+          )}
           <div className="mt-2 flex items-center gap-2">
             {caseFooter?.(value, (apply) => update(index, apply), index)}
             <span className="grow" />

@@ -13,20 +13,20 @@ export type WatchTarget =
   | {
     scope: 'start';
     caseIndex: number;
-    side: 'required' | 'triggers';
+    side: 'required' | 'triggers' | 'unless';
     row: 'enemiesAt' | 'cleared';
   }
   | {
     scope: 'abort';
     caseIndex: number;
-    side: 'required' | 'triggers';
+    side: 'required' | 'triggers' | 'unless';
     row: 'enemiesAt' | 'cleared';
   }
   | {
     scope: 'continue';
     phaseIndex: number;
     ruleIndex: number;
-    side: 'required' | 'triggers';
+    side: 'required' | 'triggers' | 'unless';
     row: 'enemiesAt' | 'cleared';
   };
 

@@ -202,15 +202,21 @@ export function andJoin(list: string[]): string {
   return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 }
 
-/** "every Group is in position and enemies gather at Mid" — one case. */
+/** "every Group is in position and enemies gather at Mid" — one case;
+ * the unless side reads "— unless A or B" (none of those may hold). */
 export function caseClause(value: TacticCase): string {
   const required = condClauses(value.required);
   const triggers = condClauses(value.triggers);
+  const unless = condClauses(value.unless);
+  let clause: string;
   if (required.length && triggers.length) {
-    return `${andJoin(required)} and ${orJoin(triggers)}`;
+    clause = `${andJoin(required)} and ${orJoin(triggers)}`;
+  } else if (required.length) clause = andJoin(required);
+  else clause = orJoin(triggers);
+  if (unless.length && clause.length) {
+    clause = `${clause} — unless ${orJoin(unless)}`;
   }
-  if (required.length) return andJoin(required);
-  return orJoin(triggers);
+  return clause;
 }
 
 export function casesClause(cases: TacticCase[] | undefined): string | null {

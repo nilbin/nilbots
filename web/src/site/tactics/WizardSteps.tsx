@@ -14,7 +14,8 @@ import { describeGeometry } from './TacticsMapCanvas';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
   CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES, RECOVERIES,
-  effectiveJob, freshJob, freshPhase, groupColor, jobOf, signatureMarkGeometry,
+  effectiveJob, freshJob, freshPhase, groupColor, jobOf, phaseShade,
+  signatureMarkGeometry,
   tacticCanFinish, viaLegal,
   type DrawKind, type JobKind, type Posture, type Recovery, type Tactic,
   type TacticGroup, type TacticTransition,
@@ -86,6 +87,18 @@ const TRANSITION_TRIGGERS = [
 const TRANSITION_MORE = [
   'cleared', 'enemiesDown', 'losses', 'reached', 'observed', 'held',
 ] as const;
+// The inverted side: any context row may be blocked with "Unless…", except
+// the two readiness rows (groupsSet, healed), which read one way only.
+const START_UNLESS = [
+  'enemiesAt', 'coreLoose', 'coreSoon', 'carrier', 'enemiesDown', 'losses',
+  'lossesWithin',
+] as const;
+const ABORT_UNLESS = ['lossesWithin', 'losses', 'coreLost', 'enemiesAt'] as const;
+const TRANSITION_UNLESS = [
+  'held', 'contact', 'enemiesAt', 'coreLoose', 'coreSoon', 'enemiesDown',
+  'kills', 'losses', 'cleared', 'coreAcquired', 'coreBanked', 'coreLost',
+  'reached', 'observed',
+] as const;
 
 export function StartStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
   const tactic = wizard.tactic;
@@ -125,6 +138,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         moreRequiredKinds={[...START_REQUIRED_MORE]}
         triggerKinds={[...START_TRIGGERS]}
         moreTriggerKinds={[...START_MORE]}
+        unlessKinds={[...START_UNLESS]}
         makeCase={() => ({ triggers: {} })}
         onChange={(cases) => change((next) => { next.start.cases = cases; })}
         watching={watchFor('start')}
@@ -171,6 +185,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
             moreRequiredKinds={[...ABORT_REQUIRED_MORE]}
             triggerKinds={[...ABORT_TRIGGERS]}
             moreTriggerKinds={[...ABORT_MORE]}
+            unlessKinds={[...ABORT_UNLESS]}
             makeCase={() => ({ triggers: {} })}
             onChange={(cases) => change((next) => { next.abort = { cases }; })}
             watching={watchFor('abort')}
@@ -398,9 +413,17 @@ export function PhasesStep(props: StepProps) {
         <span key={entry.id} className="flex items-center gap-1">
           {entryIndex > 0 && <span className="text-[10px]" style={{ color: '#c8763c' }}>⚡</span>}
           <button type="button"
-            className={`btn !min-h-7 !px-2 !text-[10.5px] ${entryIndex === index ? 'btn-on' : ''}`}
+            className={`btn flex items-center gap-1.5 !min-h-7 !px-2 !text-[10.5px] ${entryIndex === index ? 'btn-on' : ''}`}
             data-testid={`phase-chip-${entryIndex + 1}`}
             onClick={() => { selectPhase(entryIndex); endTask(); }}>
+            <span className="flex h-2.5 w-2 flex-col overflow-hidden rounded-[2px]">
+              {tactic.groups.map((entryGroup) => (
+                <span key={entryGroup.id} className="grow" style={{
+                  background: phaseShade(groupColor(tactic, entryGroup.id),
+                    entryIndex, tactic.phases.length),
+                }} />
+              ))}
+            </span>
             {entry.name}
           </button>
         </span>
@@ -478,6 +501,7 @@ export function PhasesStep(props: StepProps) {
         moreRequiredKinds={[...TRANSITION_REQUIRED_MORE]}
         triggerKinds={[...TRANSITION_TRIGGERS]}
         moreTriggerKinds={[...TRANSITION_MORE]}
+        unlessKinds={[...TRANSITION_UNLESS]}
         makeCase={() => ({ triggers: {}, to: last ? 'finish' : 'next' })}
         onChange={(rules) => change((next) => {
           if (rules.length === 0) delete next.phases[index].continue;

@@ -294,6 +294,29 @@ test('healed gate, travel posture and heal-up recovery validate and read back', 
   assert.ok(messages.some((message) => /belongs in Required/.test(message)));
 });
 
+test('an unless side validates, refuses readiness, and reads back inverted', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases[0].continue = [{
+    required: { groupsSet: true },
+    unless: { contact: true, coreLoose: { well: 'centre' } },
+    to: 'next',
+  }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence,
+    /every Group is in position — unless an enemy makes contact, or a Core is up for grabs at the Centre Well/);
+  // Readiness reads one way; unless refuses it.
+  tactic.phases[0].continue = [{
+    triggers: { contact: true }, unless: { groupsSet: true }, to: 'next',
+  }];
+  const messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) => /reads one way/.test(message)));
+});
+
 test('travel is refused where the job has no arrival to hand over at', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

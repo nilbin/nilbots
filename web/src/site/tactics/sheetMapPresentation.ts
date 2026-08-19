@@ -4,7 +4,7 @@ export type MapLandmarkKind =
   | 'well'
   | 'heal'
   | 'reactor'
-  | 'delivery'
+  | 'home'
   | 'objective';
 
 export interface MapRegionPresentation {
@@ -52,10 +52,13 @@ export function mapRegionPresentation(id: string): MapRegionPresentation {
     };
   }
   if (id.startsWith('home-')) {
+    // Not a delivery zone: Cores bank only on the reactor tile. These are
+    // the spawn-protected home pads where respawn waves land, and the
+    // dashed SpawnProtected boxes already draw them — no extra chrome.
     return {
-      kind: 'delivery',
-      label: `${physicalSide === 'west' ? 'West' : physicalSide === 'east' ? 'East' : ''} delivery zone`.trim(),
-      symbol: '↓',
+      kind: 'home',
+      label: `${physicalSide === 'west' ? 'West' : physicalSide === 'east' ? 'East' : ''} home pads — respawn ground`.trim(),
+      symbol: '⌂',
       physicalSide,
     };
   }

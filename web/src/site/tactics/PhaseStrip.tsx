@@ -1,5 +1,5 @@
 import { condClauses } from './summary';
-import type { Tactic } from './tacticsDocument';
+import { phaseShade, type Tactic } from './tacticsDocument';
 
 /** The little named-phase chronology strip on every card:
  * ▶ when… — Set trap ⚡ Close trap ⚡ … — ✓/∞. */
@@ -28,7 +28,8 @@ export function PhaseStrip({ tactic, big = false }: { tactic: Tactic; big?: bool
   }
   tactic.phases.forEach((phase, index) => {
     if (index > 0) parts.push(bolt(`bolt-${index}`));
-    parts.push(chip(phase.name, undefined, `phase-${phase.id}`));
+    parts.push(chip(phase.name,
+      phaseShade('#7694a8', index, tactic.phases.length), `phase-${phase.id}`));
   });
   parts.push(<span key="end-dash" className="text-arena-dim/60">—</span>);
   parts.push(chip(

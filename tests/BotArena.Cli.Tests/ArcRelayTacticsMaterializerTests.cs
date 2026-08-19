@@ -344,6 +344,53 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void UnlessRowsInvertIntoTheAllSide()
+    {
+        // "Continue when …, unless any enemy contact or a Core is up at
+        // Centre": each unless row is one threshold condition, inverted by
+        // an exact operator flip and ANDed in — none of them may hold.
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject rule = document["tactics"]![0]!["phases"]![0]!["continue"]!
+            .AsArray()[0]!.AsObject();
+        rule["unless"] = JsonNode.Parse(
+            """{"contact":true,"coreLoose":{"well":"centre"}}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement when = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("phases").EnumerateArray().First()
+            .GetProperty("continue").EnumerateArray().Single()
+            .GetProperty("when");
+        string[] names = when.GetProperty("all").EnumerateArray()
+            .Where(entry => entry.ValueKind == JsonValueKind.String)
+            .Select(entry => entry.GetString()!)
+            .ToArray();
+        Assert.Contains("no-enemy-contact", names);
+        Assert.Contains("no-core-up-at-centre", names);
+        JsonElement conditions = orders.RootElement.GetProperty("conditions");
+        JsonElement noContact = conditions.GetProperty("no-enemy-contact");
+        Assert.Equal("visible-enemies-in-zone",
+            noContact.GetProperty("fact").GetString());
+        Assert.Equal("at-most", noContact.GetProperty("operator").GetString());
+        Assert.Equal(0, noContact.GetProperty("value").GetInt32());
+        JsonElement noCore = conditions.GetProperty("no-core-up-at-centre");
+        Assert.Equal("at-most", noCore.GetProperty("operator").GetString());
+        Assert.Equal(0, noCore.GetProperty("value").GetInt32());
+
+        // Readiness reads one way; unless refuses it.
+        rule["unless"] = JsonNode.Parse("""{"groupsSet":true}""");
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("readiness belongs in required", error.Message);
+    }
+
+    [Fact]
     public void TravelOnAnAllMarchJobIsRefused()
     {
         JsonObject document = JsonNode.Parse(

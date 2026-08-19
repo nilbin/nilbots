@@ -83,10 +83,12 @@ export const ABORT_ROWS: CondKind[] = [
   'losses', 'lossesWithin', 'coreLost', 'enemiesAt',
 ];
 
-/** all(required) AND any(triggers); an absent side is vacuously true. */
+/** all(required) AND any(triggers) AND none(unless); an absent side is
+ * vacuously true — unless is the inverted side, no row there may hold. */
 export interface TacticCase {
   required?: TacticConds;
   triggers?: TacticConds;
+  unless?: TacticConds;
 }
 
 /** One forward-only latched exit from a phase. */
@@ -354,6 +356,25 @@ export const GROUP_COLORS = ['#22d3ee', '#f0a35e', '#b49cff'];
 export function groupColor(tactic: Tactic, groupId: string): string {
   const index = tactic.groups.findIndex((group) => group.id === groupId);
   return GROUP_COLORS[Math.max(0, index) % GROUP_COLORS.length];
+}
+
+/** Later phases of one tactic render as lighter shades of the same hue —
+ * one colour family per group, one distinguishable step per phase, the
+ * storyboard chips and the map agreeing. Phase 1 is the base colour. */
+export function phaseShade(
+  color: string,
+  phaseIndex: number,
+  phaseCount: number,
+): string {
+  if (phaseCount <= 1 || phaseIndex <= 0) return color;
+  const t = phaseIndex / (phaseCount - 1);
+  const mix = t * .5;
+  const part = (offset: number) => {
+    const value = parseInt(color.slice(offset, offset + 2), 16);
+    return Math.round(value + (255 - value) * mix)
+      .toString(16).padStart(2, '0');
+  };
+  return `#${part(1)}${part(3)}${part(5)}`;
 }
 
 /** Anchor-mark budgets, mirroring the server compile's
@@ -773,7 +794,7 @@ export function validateDocument(
         if (rule.triggers?.healed) {
           error(`${ruleAt}`, '“Everyone is healed up” belongs in Required — all of them, not any one.');
         }
-        for (const rows of [rule.required, rule.triggers]) {
+        for (const rows of [rule.required, rule.triggers, rule.unless]) {
           if (!rows) continue;
           if (rows.reached && !tactic.groups.some((group) =>
             ['converge', 'advance'].includes(phase.jobs[group.id]?.kind ?? ''))) {
@@ -820,8 +841,15 @@ function validateCaseRows(
   allowed: CondKind[],
   error: (path: string, message: string) => void,
 ) {
+  if (value.unless?.groupsSet) {
+    error(`${at}.unless`, '“Every Group is set” reads one way — readiness belongs in Required.');
+  }
+  if (value.unless?.healed) {
+    error(`${at}.unless`, '“Everyone is healed up” reads one way — the health gate belongs in Required.');
+  }
   for (const [side, rows] of [
     ['required', value.required], ['triggers', value.triggers],
+    ['unless', value.unless],
   ] as const) {
     if (!rows) continue;
     for (const key of Object.keys(rows) as CondKind[]) {

@@ -566,7 +566,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 string ruleAt = $"{at}.continue[{rule}]";
                 Object(ruleValues[rule], ruleAt,
-                    ["to"], ["required", "triggers"]);
+                    ["to"], ["required", "triggers", "unless"]);
                 string to = RequiredString(ruleValues[rule], "to", ruleAt);
                 if (to == "next")
                 {
@@ -938,7 +938,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         for (int index = 0; index < caseValues.Length; index++)
         {
             Object(caseValues[index], $"{path}[{index}]", [],
-                ["required", "triggers"]);
+                ["required", "triggers", "unless"]);
             cases.Add(ValidateCase(
                 caseValues[index], $"{path}[{index}]", width, height,
                 allowedRows));
@@ -981,9 +981,26 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     + "topped up, not any one bot.");
             }
         }
+        ArcRelayTacticConditionRows? unless = null;
+        if (value.TryGetProperty("unless", out JsonElement unlessValue))
+        {
+            unless = ValidateConditionRows(
+                unlessValue, $"{path}.unless", width, height, allowedRows);
+            if (unless.GroupsSet)
+            {
+                throw Error($"{path}.unless",
+                    "groupsSet reads one way; readiness belongs in required.");
+            }
+            if (unless.Healed is not null)
+            {
+                throw Error($"{path}.unless",
+                    "healed reads one way; the health gate belongs in "
+                    + "required.");
+            }
+        }
         if ((required?.ActiveCount ?? 0) + (triggers?.ActiveCount ?? 0) == 0)
             throw Error(path, "a case needs at least one active condition row.");
-        return new ArcRelayTacticCase(required, triggers);
+        return new ArcRelayTacticCase(required, triggers, unless);
     }
 
     private static ArcRelayTacticConditionRows ValidateConditionRows(
@@ -1212,11 +1229,13 @@ internal sealed record ArcRelayTacticTransition(
     ArcRelayTacticCase When,
     string To);
 
-/// <summary>all(Required rows) AND any(Triggers rows); an absent side is
-/// vacuously true, and at least one row is active overall.</summary>
+/// <summary>all(Required rows) AND any(Triggers rows) AND none(Unless
+/// rows); an absent side is vacuously true, and at least one required or
+/// trigger row is active overall.</summary>
 internal sealed record ArcRelayTacticCase(
     ArcRelayTacticConditionRows? Required,
-    ArcRelayTacticConditionRows? Triggers);
+    ArcRelayTacticConditionRows? Triggers,
+    ArcRelayTacticConditionRows? Unless = null);
 
 internal sealed record ArcRelayTacticConditionRows(
     ArcRelayTacticEnemiesAtRow? EnemiesAt,

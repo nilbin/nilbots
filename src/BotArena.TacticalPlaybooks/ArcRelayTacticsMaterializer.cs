@@ -330,28 +330,60 @@ internal static class ArcRelayTacticsMaterializer
                 AddRowEntries(
                     result.Any, prefix, context, value.Triggers, phase, tactic);
             }
+            if (value.Unless is not null)
+            {
+                // NONE of the unless rows may hold: each row's one threshold
+                // condition inverts by operator flip and joins the all side.
+                AddRowEntries(
+                    result.All, prefix, $"{context}-un", value.Unless, phase,
+                    tactic, invert: true);
+            }
             return result;
         }
 
+        /// <summary>Every ordinary row is one threshold condition, so its
+        /// negation is an exact operator flip — no runtime grammar change.
+        /// Only the multi-entry readiness rows (groupsSet, healed) cannot
+        /// invert, and validation keeps them out of unless.</summary>
+        private static ConditionShape Invert(ConditionShape shape) =>
+            shape.Operator switch
+            {
+                "at-least" => shape with
+                { Operator = "at-most", Value = shape.Value - 1 },
+                "at-most" => shape with
+                { Operator = "at-least", Value = shape.Value + 1 },
+                "equals" when shape.Value == 0 => shape with
+                { Operator = "at-least", Value = 1 },
+                "equals" => shape with
+                { Operator = "at-most", Value = shape.Value - 1 },
+                _ => throw new InvalidDataException(
+                    $"tactics: cannot invert operator '{shape.Operator}'."),
+            };
+
         /// <summary>One entry per active row; groupsSet expands to the exact
-        /// per-bot dead-excused pairs of the phase's effective geometry.</summary>
+        /// per-bot dead-excused pairs of the phase's effective geometry.
+        /// With invert, each row contributes its exact negation.</summary>
         private void AddRowEntries(
             List<object> entries,
             string prefix,
             string context,
             ArcRelayTacticConditionRows rows,
             ArcRelayTacticPhaseDef? phase,
-            ArcRelayTactic tactic)
+            ArcRelayTactic tactic,
+            bool invert = false)
         {
-            if (rows.GroupsSet && phase is not null)
+            void Add(ConditionShape shape, string name) => entries.Add(
+                Condition(
+                    invert ? Invert(shape) : shape,
+                    invert ? $"no-{name}" : name));
+            if (rows.GroupsSet && phase is not null && !invert)
                 AddReadinessEntries(entries, prefix, context, phase, tactic);
             if (rows.HeldTicks is int held)
             {
-                entries.Add(Condition(
-                    new ConditionShape("elapsed-ticks", "at-least", held),
-                    $"c-held-{held}"));
+                Add(new ConditionShape("elapsed-ticks", "at-least", held),
+                    $"c-held-{held}");
             }
-            if (rows.Healed is int healed)
+            if (rows.Healed is int healed && !invert)
             {
                 // Exact and per bot, like readiness: every LIVING bot is at
                 // the threshold — a dead role reads 100 and excuses itself.
@@ -368,96 +400,84 @@ internal static class ArcRelayTacticsMaterializer
             {
                 string zone = Zone(
                     enemies.Zone.Rect, $"g-{prefix}-{context}-watch");
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "remembered-enemies-in-zone", "at-least", enemies.Count,
                         ZoneId: zone, FreshnessTicks: RememberedFreshnessTicks),
-                    $"c-{prefix}-{context}-enemies"));
+                    $"c-{prefix}-{context}-enemies");
             }
             if (rows.Contact)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "visible-enemies-in-zone", "at-least", 1,
                         ZoneId: AnywhereZone()),
-                    "enemy-contact"));
+                    "enemy-contact");
             }
             if (rows.CoreLooseWell is string well)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "well-has-outstanding-core", "equals", 1, Well: well),
-                    $"core-up-at-{well}"));
+                    $"core-up-at-{well}");
             }
             if (rows.CoreSoon is ArcRelayTacticCoreSoonRow coreSoon)
             {
                 // The Well's one effective public clock (#328): initial
                 // opening before the first Core, then the bank-triggered
                 // recharge — so "births soon" reads the same field always.
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "well-ticks-until-birth", "at-most", coreSoon.Ticks,
                         Well: coreSoon.Well),
-                    $"c-{prefix}-{context}-core-soon"));
+                    $"c-{prefix}-{context}-core-soon");
             }
             if (rows.EnemiesDown is int enemiesDown)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "live-enemies", "at-most", 8 - enemiesDown),
-                    $"c-{prefix}-{context}-enemies-down"));
+                    $"c-{prefix}-{context}-enemies-down");
             }
             if (rows.Carrier || rows.CoreAcquired)
             {
-                entries.Add(Condition(
-                    new ConditionShape("friendly-carriers", "at-least", 1),
-                    "we-hold-a-core"));
+                Add(new ConditionShape("friendly-carriers", "at-least", 1),
+                    "we-hold-a-core");
             }
             if (rows.Losses is int losses)
             {
-                entries.Add(Condition(
-                    new ConditionShape("live-friendlies", "at-most", 8 - losses),
-                    $"down-{losses}-bots"));
+                Add(new ConditionShape("live-friendlies", "at-most", 8 - losses),
+                    $"down-{losses}-bots");
             }
             if (rows.LossesWithin is ArcRelayTacticLossesWithinRow window)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "friendly-destructions", "at-least", window.Count,
                         WindowTicks: window.Ticks),
-                    $"c-lost-{window.Count}-in-{window.Ticks}"));
+                    $"c-lost-{window.Count}-in-{window.Ticks}");
             }
             if (rows.Kills is int kills)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "confirmed-enemy-destructions-in-zone", "at-least",
                         kills, ZoneId: AnywhereZone(), Since: "phase-entry"),
-                    $"c-{prefix}-kills"));
+                    $"c-{prefix}-kills");
             }
             if (rows.Cleared is ArcRelayTacticZoneRef cleared)
             {
                 string zone = Zone(cleared.Rect, $"g-{prefix}-cleared");
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "visible-enemies-in-zone", "equals", 0, ZoneId: zone),
-                    $"c-{prefix}-cleared"));
+                    $"c-{prefix}-cleared");
             }
             if (rows.CoreBanked)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "friendly-core-banks", "at-least", 1,
                         Since: "phase-entry"),
-                    $"c-{prefix}-banked"));
+                    $"c-{prefix}-banked");
             }
             if (rows.CoreLost)
             {
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "friendly-core-losses", "at-least", 1,
                         Since: "phase-entry"),
-                    $"c-{prefix}-core-lost"));
+                    $"c-{prefix}-core-lost");
             }
             if (rows.Reached && phase is not null)
             {
@@ -473,12 +493,11 @@ internal static class ArcRelayTacticsMaterializer
                     [destination[0], destination[1], destination[0], destination[1]],
                     1);
                 string zone = Zone(rect, $"g-{prefix}-goal");
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "friendlies-in-zone", "at-least",
                         Math.Max(1, (mover.Group.Slots.Count + 1) / 2),
                         ZoneId: zone),
-                    $"c-{prefix}-reached"));
+                    $"c-{prefix}-reached");
             }
             if (rows.Observed)
             {
@@ -497,11 +516,10 @@ internal static class ArcRelayTacticsMaterializer
                 }
                 int[] rect = BoundingBox(watchers.SelectMany(GeometryPoints));
                 string zone = Zone(rect, $"g-{prefix}-watchline");
-                entries.Add(Condition(
-                    new ConditionShape(
+                Add(new ConditionShape(
                         "zone-fully-observed-throughout-interval", "equals", 1,
                         ZoneId: zone, WindowTicks: ObservedWindowTicks),
-                    $"c-{prefix}-observed"));
+                    $"c-{prefix}-observed");
             }
         }
 

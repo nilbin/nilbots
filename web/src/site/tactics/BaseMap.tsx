@@ -41,19 +41,21 @@ export function BaseMap({ catalog, side = 'west', compact = false }: {
       }))}
     {catalog.map.regions.flatMap((region) => region.tiles.map((point) => {
       const presentation = mapRegionPresentation(region.id);
+      // Home pads are already drawn by their SpawnProtected dashed boxes;
+      // painting them again as a "zone" implied a delivery target that
+      // does not exist (Cores bank only on the reactor tile).
+      if (presentation.kind === 'home') return null;
       const relation = relationForPhysicalSide(presentation.physicalSide, side);
       const color = presentation.kind === 'well' ? '#b49cff'
         : presentation.kind === 'heal' ? '#62d6a5' : relationColor(relation);
-      const inset = presentation.kind === 'delivery' ? .08 : .14;
-      return <rect key={`${region.id}:${point.x}:${point.y}`} x={point.x + inset} y={point.y + inset}
-        width={1 - inset * 2} height={1 - inset * 2} rx={presentation.kind === 'delivery' ? .08 : .18}
-        fill={`${color}${presentation.kind === 'delivery' ? '20' : '18'}`}
-        stroke={`${color}${presentation.kind === 'delivery' ? '8a' : '55'}`}
-        strokeWidth={presentation.kind === 'delivery' ? .075 : .05} />;
+      return <rect key={`${region.id}:${point.x}:${point.y}`} x={point.x + .14} y={point.y + .14}
+        width={.72} height={.72} rx={.18}
+        fill={`${color}18`} stroke={`${color}55`} strokeWidth={.05} />;
     }))}
     {!compact && catalog.map.regions.map((region) => {
       const presentation = mapRegionPresentation(region.id);
-      if (presentation.kind === 'objective' || region.tiles.length === 0) return null;
+      if (presentation.kind === 'objective' || presentation.kind === 'home'
+        || region.tiles.length === 0) return null;
       const cx = region.tiles.reduce((sum, point) => sum + point.x + .5, 0) / region.tiles.length;
       const cy = region.tiles.reduce((sum, point) => sum + point.y + .5, 0) / region.tiles.length;
       const color = presentation.kind === 'well' ? '#b49cff'
@@ -74,11 +76,7 @@ export function BaseMap({ catalog, side = 'west', compact = false }: {
             fill="#080c10" stroke={color} strokeWidth={.11} />
           <circle cx={cx} cy={cy} r={.19} fill={color} />
         </>}
-        {presentation.kind === 'delivery' && <>
-          <circle cx={cx} cy={cy} r={.37} fill="#080c10" stroke={color} strokeWidth={.1} />
-          <path d={`M ${cx} ${cy - .2} V ${cy + .13} M ${cx - .14} ${cy} L ${cx} ${cy + .16} L ${cx + .14} ${cy}`}
-            fill="none" stroke={color} strokeWidth={.1} />
-        </>}
+
       </g>;
     })}
     {!compact && catalog.map.spawnAnchors.map((spawn) => {

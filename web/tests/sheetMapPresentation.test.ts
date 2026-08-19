@@ -16,7 +16,7 @@ test('every Tapline landmark gets an explicit player-facing role', () => {
     kind: 'reactor', label: 'West reactor', symbol: 'R', physicalSide: 'west',
   });
   assert.deepEqual(mapRegionPresentation('home-east'), {
-    kind: 'delivery', label: 'East delivery zone', symbol: '↓', physicalSide: 'east',
+    kind: 'home', label: 'East home pads — respawn ground', symbol: '⌂', physicalSide: 'east',
   });
 });
 

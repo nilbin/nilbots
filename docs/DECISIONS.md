@@ -9110,3 +9110,26 @@ zone at any damage (≤99%) and holds until completely full (≥100%; urgent,
 92% block a 95% gate forever (review catch), so the trip covers the whole
 1..100 gate range.
 Spec: SPEC-SHEET-TACTICS-V2 §1–2, SPEC-SHEET-ORDERS-V2 §4b (case bound).
+
+## 340. The unless side, phase shades, and honest home pads
+
+Cases gain a third side: `unless` — none of its rows may hold ("Continue
+when every Group is set — unless an enemy makes contact"). Every ordinary
+row is one threshold condition, so negation is an exact compile-time
+operator flip (`no-…` conditions) landing in the program case's all side;
+the runtime grammar, coordinator and envelope are untouched. groupsSet and
+healed expand per bot and read one way, so unless refuses them; a case
+still needs at least one required or trigger row (unless alone gates
+nothing). Editor: an "Unless — none of these" fold per case in all three
+contexts, map footprints labelled UNLESS, readback "— unless A, or B".
+
+Presentation: phases of one tactic now render as lighter shades of the
+same group hue (`phaseShade`, phase 1 = base, last ≈ +50% toward white),
+with the storyboard chips carrying matching group-colour stripes and the
+card strip the same ramp on neutral — the map and the chips agree on which
+arrow belongs to which phase. The map's "delivery zone" illustration is
+retired: Cores bank only on the reactor tile (tapline-8), so the `home-*`
+regions draw as nothing beyond their SpawnProtected dashed pads and
+re-present as "home pads — respawn ground". Named forward jumps needed no
+work: the per-case "then" picker has offered next / skip-to-named-later /
+finish since #338.

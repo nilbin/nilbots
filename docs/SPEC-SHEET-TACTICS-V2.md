@@ -57,13 +57,20 @@ Every squad slot belongs to exactly one group per tactic.
 **Case** — the bounded condition model, everywhere conditions appear:
 
 ```jsonc
-{ "required"?: { …rows… }, "triggers"?: { …rows… } }
+{ "required"?: { …rows… }, "triggers"?: { …rows… }, "unless"?: { …rows… } }
 ```
 
-All `required` rows must hold AND any `triggers` row may fire; an absent side
-is vacuously true, and at least one row must be active. Alternative cases OR.
-The UI hides the boolean words: "Required", "Triggered by", "Add
-alternative".
+All `required` rows must hold AND any `triggers` row may fire AND no
+`unless` row may hold; an absent side is vacuously true, and at least one
+required or trigger row must be active (unless alone gates nothing).
+Alternative cases OR. The UI hides the boolean words: "Required",
+"Triggered by", "Unless", "Add alternative".
+
+`unless` is the inverted side. Every ordinary row is one threshold
+condition, so its negation compiles as an exact operator flip (at-least N →
+at-most N−1 and so on) named `no-…` — no runtime grammar change. The two
+readiness rows (`groupsSet`, `healed`) expand to per-bot entries and read
+one way only; unless refuses them.
 
 **Condition rows** (present member = active row), by context:
 
