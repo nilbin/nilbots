@@ -9257,3 +9257,19 @@ Also: the editor now self-heals backwards way-ins on document load
 — hunting the one reversed route was the cumbersome part, so the
 "drawn backwards" validation warning is withdrawn along with the draw-end
 flip staying for immediate feedback.
+
+## 347. The drawn way home belongs to the phase's ground
+
+Practice trace: a carrier who grabbed the CENTRE Core during the
+claim-enemy-well phase was routed to the corridor's far mouth by the
+enemy well (`march@14,23`) — the drawn way home applied to every carrier
+in the phase, so it read as "walked toward the bank, then diverted to the
+rally point". A join-cost heuristic was considered and rejected: static
+distance cannot see danger, and a deliberately longer safety corridor is
+the whole point of drawing one. Instead the corridor is compiled as a
+gated pair: the via'd bank fires only while standing on the phase's
+ground footprint (`c-t{n}-p{k}-home-from-ground`), with a plain
+`bank-direct` fallback beneath it. Visible in the orders, no planner
+heuristics; re-run at the reporting seed both team carriers bank (2/4
+before, 2/2 after), the mid grab direct and the ground grab by its
+corridor.

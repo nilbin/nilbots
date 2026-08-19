@@ -698,15 +698,10 @@ internal static class ArcRelayTacticsMaterializer
                 var scope = new LeafScope(
                     prefix, groupTag, group.Slots.Count, $"p{phaseIndex + 1}");
                 var leaves = new List<Node>();
-                if (phaseCustody)
-                {
-                    AddPhaseCustody(
-                        leaves, scope, tactic, phase, group, bot,
-                        prefix, phaseIndex);
-                }
-                // Minted lazily: only a heal recovery consumes the ground
-                // anchor, and an unreferenced zone fails the consumer check.
-                AddRecovery(leaves, scope, raw.Recovery, () =>
+                // Minted lazily: only a heal recovery or a corridor bank
+                // consumes the ground anchor, and an unreferenced zone
+                // fails the consumer check.
+                Func<string?> groundZone = () =>
                 {
                     int[]? footprint = effective is null
                         ? null
@@ -714,7 +709,14 @@ internal static class ArcRelayTacticsMaterializer
                     return footprint is null
                         ? null
                         : Zone(footprint, $"g-{prefix}-{groupTag}-set");
-                });
+                };
+                if (phaseCustody)
+                {
+                    AddPhaseCustody(
+                        leaves, scope, tactic, phase, group, bot,
+                        prefix, phaseIndex, groundZone);
+                }
+                AddRecovery(leaves, scope, raw.Recovery, groundZone);
                 // travel == posture is "same as here": nothing to
                 // distinguish. A kind with no arrival (patrol/return, or a
                 // carry-forward that resolves to one) drops travel rather
@@ -889,7 +891,8 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticGroup group,
             ArcRelayTacticsSquadBot bot,
             string prefix,
-            int phaseIndex)
+            int phaseIndex,
+            Func<string?> groundZone)
         {
             string plan = phase.Custody?.Plan ?? tactic.Delivery.Plan;
             if (plan == "keep")
@@ -914,7 +917,20 @@ internal static class ArcRelayTacticsMaterializer
                 ? null
                 : Route(phase.Custody.Via,
                     $"g-{prefix}-p{phaseIndex + 1}-carry");
-            AddDeliveryLeaves(leaves, scope, plan, via, tactic, group, bot);
+            // The drawn way home belongs to THIS phase's ground: a carrier
+            // standing there banks by the corridor, and one who grabbed a
+            // Core elsewhere (a centre pickup mid-fight, or a phase swap
+            // mid-run) banks direct instead of marching to the corridor's
+            // far mouth first. Compiled as a gated pair so the choice is
+            // visible in the orders, not a planner heuristic.
+            string? onGround = via is null ? null : groundZone() is string zone
+                ? Condition(
+                    new ConditionShape("self-in-zone", "equals", 1,
+                        ZoneId: zone),
+                    $"c-{prefix}-p{phaseIndex + 1}-home-from-ground")
+                : null;
+            AddDeliveryLeaves(
+                leaves, scope, plan, via, tactic, group, bot, onGround);
         }
 
         private void AddDelivery(
@@ -954,7 +970,8 @@ internal static class ArcRelayTacticsMaterializer
             string? via,
             ArcRelayTactic tactic,
             ArcRelayTacticGroup group,
-            ArcRelayTacticsSquadBot bot)
+            ArcRelayTacticsSquadBot bot,
+            string? viaOnlyFrom = null)
         {
             if (bot.ClassId == "relay")
             {
@@ -984,12 +1001,30 @@ internal static class ArcRelayTacticsMaterializer
                         }),
                 });
             }
-            leaves.Add(GroupLeaf(scope, "bank", () => new Node
+            if (via is not null && viaOnlyFrom is string fromGround)
             {
-                When = Expr.One(CarryingCore()),
-                Urgency = "urgent",
-                Action = MoveToDynamic("own-reactor", via: via),
-            }));
+                leaves.Add(GroupLeaf(scope, "bank", () => new Node
+                {
+                    When = Expr.All(CarryingCore(), fromGround),
+                    Urgency = "urgent",
+                    Action = MoveToDynamic("own-reactor", via: via),
+                }));
+                leaves.Add(GroupLeaf(scope, "bank-direct", () => new Node
+                {
+                    When = Expr.One(CarryingCore()),
+                    Urgency = "urgent",
+                    Action = MoveToDynamic("own-reactor"),
+                }));
+            }
+            else
+            {
+                leaves.Add(GroupLeaf(scope, "bank", () => new Node
+                {
+                    When = Expr.One(CarryingCore()),
+                    Urgency = "urgent",
+                    Action = MoveToDynamic("own-reactor", via: via),
+                }));
+            }
             if (plan == "escort")
             {
                 leaves.Add(GroupLeaf(scope, "screen-carrier", () => new Node

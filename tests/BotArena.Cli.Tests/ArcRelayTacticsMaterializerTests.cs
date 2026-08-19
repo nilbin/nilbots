@@ -429,6 +429,13 @@ public sealed class ArcRelayTacticsMaterializerTests
             bank.GetProperty("move").GetProperty("to").GetString());
         string route = bank.GetProperty("move").GetProperty("via").GetString()!;
         Assert.Equal("g-t1-p2-carry", route);
+        // The corridor belongs to the phase's ground: the via'd bank gates
+        // on standing there, and a Core grabbed elsewhere banks direct.
+        string[] bankWhen = bank.GetProperty("when").GetProperty("all")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray();
+        Assert.Contains("c-t1-p2-home-from-ground", bankWhen);
+        JsonElement direct = shared.GetProperty("t1-p2-g2-bank-direct");
+        Assert.False(direct.GetProperty("move").TryGetProperty("via", out _));
         Assert.True(shared.TryGetProperty("t1-p2-g2-screen-carrier", out _));
         using JsonDocument mapPlan = JsonDocument.Parse(
             compilation.MaterializedMapPlan!);
