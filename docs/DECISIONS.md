@@ -9200,3 +9200,34 @@ ticks — the enemy mirror of lossesWithin, riding the existing windowed
 confirmed-enemy-destructions fact) now reads in every context, so
 "4 down recently AND a Core taken this phase" is authorable exactly.
 lossesWithin joins the transition contexts on the same uniformity rule.
+
+## 345. Urgency owns standing ground: the resting-claim yield
+
+The healed(90) Recover phase stalled live: the hurt bot (20/40) waited two
+hundred ticks beside the one heal tile while topped-up teammates rested on
+it — `urgency-urgent p0, op-WWW, right-of-way granted, block debt b24` —
+the contradictory trace pair in person. Three compounding planner gaps:
+EPIBT's depth-0 availability pruning never generates a first step into an
+ally-occupied tile, so priority inheritance cannot engage through a
+RESTING crowd; a resting body has no reason to move at all; and the
+one-tile service queue stages the seeker on a neighbor whose occupancy
+satisfies its assignment (`at-contribution`), so it stops bidding while
+ordinary floor traffic chain-claims every vacancy.
+
+Ruling (owner): no hardcoded precedence, no heal special case — authored
+urgency owns standing ground exactly as it owns contested moves. The
+planner's new YieldRestingClaims pass runs after contribution assignment:
+a body resting on the assignment or (≤2-tile goal set) goal of a STRICTLY
+more urgent intent steps to a free adjacent tile, and the vacated tile is
+handed to the urgent mover's assignment in the same plan. Strictly-higher
+URGENCY only — rank differences inside a tier (debt, lease, age) never
+unseat a rest, and the mover must be within two tiles, so ordinary
+equal-tier crowds keep today's behavior: the stock digest pin
+(tempered-standard-v2 vs demolition-march-v1, seed 9001) is byte-identical
+after the change. Yields print `yield-rest-to-uN` in the mover-side
+reason. Scene evidence: the owner's sheet at the stall seed now runs
+heal → claim-enemy-well → finish → re-arm → loop (p4 at t132, finish
+t200); movement scenes 28/28; motion sanity clean for the owning team,
+with the opposing demolition orbits reproduced on the pre-change binary
+(#337 family). The editor's heal-tile-overlap warning from the previous
+entry is withdrawn — this was never the author's problem.

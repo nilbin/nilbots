@@ -792,32 +792,6 @@ export function validateDocument(
           }
         }
       }
-      // A heal-up phase whose ground covers the heal tile starves the one
-      // bot that needs it: healthy groupmates park on the tile (their floor
-      // holds the drawn point) and the hurt one waits forever — traced live
-      // (Flux at 50% for 150+ ticks one tile away). Warn before it plays.
-      for (const group of tactic.groups) {
-        const job = phase.jobs[group.id];
-        if (!job || job.recovery !== 'heal-up') continue;
-        const heals = catalog.map.regions
-          .filter((region) => region.id.startsWith('heal-'))
-          .flatMap((region) => region.tiles);
-        const covers = (tile: { x: number; y: number }) => {
-          if (job.point) {
-            return Math.abs(tile.x - job.point[0]) <= 2
-              && Math.abs(tile.y - job.point[1]) <= 2;
-          }
-          if (job.rect) {
-            return tile.x >= job.rect[0] && tile.x <= job.rect[2]
-              && tile.y >= job.rect[1] && tile.y <= job.rect[3];
-          }
-          return false;
-        };
-        if (heals.some(covers)) {
-          warn(`${phaseAt}.jobs.${group.id}`,
-            `${possessive(group.name)} recover ground sits on the heal tile — healthy bots will park there and block the hurt one. Draw the ground two or three tiles away; the heal-up trips claim the tile on their own.`);
-        }
-      }
       if (phase.custody?.via) {
         const custodyAt = `${phaseAt}.custody`;
         if (phase.custody.plan === 'keep') {

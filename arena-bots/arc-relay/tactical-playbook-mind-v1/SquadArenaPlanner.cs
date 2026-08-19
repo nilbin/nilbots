@@ -89,6 +89,7 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             intent => intent.Body.UnitId);
         Dictionary<int, Position> assignments = AssignContributions(
             contract, intents);
+        YieldRestingClaims(contract, mind, intents, byUnit, assignments);
         Dictionary<int, TrafficResolution> traffic = intents.ToDictionary(
             intent => intent.Body.UnitId,
             intent => ResolveTraffic(
@@ -230,6 +231,10 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             {
                 reason += $":planner-{avoidance.Reason}";
             }
+            int yieldTag = intent.Trace.IndexOf(
+                ":yield-rest-to-u", StringComparison.Ordinal);
+            if (yieldTag >= 0)
+                reason += intent.Trace[yieldTag..];
             if (trafficResolution.Obstacle is Position obstacle)
                 reason += $":traffic-detour-{obstacle.X}-{obstacle.Y}";
             else if (trafficResolution.NoDetour is Position blocked)
@@ -1214,6 +1219,120 @@ internal sealed class SquadArenaPlanner : IArenaStepper
                 new TrafficResolution(traffic, null, null),
             _ => new TrafficResolution(null, traffic, null),
         };
+    }
+
+    /// <summary>
+    /// Authored urgency owns standing ground exactly as it owns contested
+    /// moves: a body RESTING on the assigned goal of a strictly more urgent
+    /// intent yields — its assignment steps to a free adjacent tile, its
+    /// hold preference drops for the tick, and the vacated tile admits the
+    /// urgent mover through the ordinary following chain. Urgency is the
+    /// whole vocabulary; no order kind, class, or objective appears here.
+    /// Without this a topped-up body rested on the one heal tile forever
+    /// while the hurt one waited beside it holding right-of-way (owner
+    /// trace: urgency-urgent p0, op-WWW, block debt b24 and climbing).
+    /// Strictly-higher URGENCY only — rank differences inside one tier
+    /// (queue debt, lease, age) never unseat a resting body, so ordinary
+    /// equal-tier crowds keep today's behavior byte for byte.
+    /// </summary>
+    private static void YieldRestingClaims(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        SquadMovementIntent[] intents,
+        Dictionary<int, SquadMovementIntent> byUnit,
+        Dictionary<int, Position> assignments)
+    {
+        HashSet<Position> occupied = mind.Bodies
+            .Select(body => body.Position)
+            .ToHashSet();
+        foreach (SquadMovementIntent mover in intents
+                     .OrderBy(intent => intent.Priority.Rank)
+                     .ThenBy(intent => intent.Body.UnitId))
+        {
+            if (mover.Pinned)
+                continue;
+            // The claim covers the mover's assignment AND — for a one-tile
+            // service intent (a two-tile goal set at most) — its goal tiles:
+            // the service queue stages a seeker beside an occupied service
+            // tile, so the tile it ultimately needs is in Goals, not in its
+            // staged assignment. Zone floors keep their whole-zone Goals out
+            // of this, or arriving anywhere would evict resters everywhere.
+            var claimTiles = new List<Position>
+                { assignments[mover.Body.UnitId] };
+            if (mover.Goals.Count <= 2)
+                claimTiles.AddRange(mover.Goals);
+            foreach (Position goal in claimTiles.Distinct())
+            {
+                if (goal == mover.Body.Position)
+                    continue;
+                // Only a near arrival unseats a rest: evicting for a mover
+                // still marching across the map would oscillate the rester.
+                int approach = Math.Max(
+                    Math.Abs(mover.Body.Position.X - goal.X),
+                    Math.Abs(mover.Body.Position.Y - goal.Y));
+                if (approach > 2)
+                    continue;
+                int resterIndex = Array.FindIndex(intents, intent =>
+                    intent.Body.UnitId != mover.Body.UnitId
+                    && intent.Body.Position == goal
+                    && (intent.PrefersHold
+                        || assignments[intent.Body.UnitId] == goal));
+                if (resterIndex < 0)
+                    continue;
+                SquadMovementIntent rester = intents[resterIndex];
+                if (rester.Pinned
+                    || rester.Priority.AuthoredUrgency
+                        >= mover.Priority.AuthoredUrgency)
+                {
+                    continue;
+                }
+                // A free adjacent tile for the rester: never a body's tile,
+                // never ground claimed by an equal-or-more urgent intent —
+                // but an ordinary same-tier assignment is ordinary traffic.
+                HashSet<Position> urgentGround = intents
+                    .Where(intent => intent.Priority.AuthoredUrgency
+                        >= mover.Priority.AuthoredUrgency)
+                    .Select(intent => assignments[intent.Body.UnitId])
+                    .ToHashSet();
+                Position? aside = null;
+                foreach ((int dx, int dy) in new[]
+                         {
+                             (0, -1), (-1, 0), (1, 0), (0, 1),
+                             (-1, -1), (1, -1), (-1, 1), (1, 1),
+                         })
+                {
+                    var candidate = new Position(goal.X + dx, goal.Y + dy);
+                    if (!ArenaBasics.CanEnter(contract.Map, candidate)
+                        || occupied.Contains(candidate)
+                        || urgentGround.Contains(candidate)
+                        || claimTiles.Contains(candidate))
+                    {
+                        continue;
+                    }
+                    aside = candidate;
+                    break;
+                }
+                if (aside is not Position stepAside)
+                    continue;
+                assignments[rester.Body.UnitId] = stepAside;
+                occupied.Add(stepAside);
+                // The vacated tile is handed to the urgent mover in the same
+                // plan: without this its staged service-queue contribution
+                // keeps it "satisfied" one tile away (op-WWW) while ordinary
+                // floor traffic chain-claims the vacancy it was waiting for.
+                assignments[mover.Body.UnitId] = goal;
+                SquadMovementIntent yielded = rester with
+                {
+                    PrefersHold = false,
+                    Goals = [stepAside],
+                    Trace = $"{rester.Trace}"
+                        + $":yield-rest-to-u{mover.Body.UnitId}",
+                };
+                intents[resterIndex] = yielded;
+                byUnit[rester.Body.UnitId] = yielded;
+                break;
+            }
+        }
     }
 
     /// <summary>

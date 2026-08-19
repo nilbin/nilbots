@@ -203,7 +203,9 @@ Classify the scene before editing either side of the seam:
 Authored urgency is absolute. Queue debt, passage lease, blocked age,
 activation time, and unit id may order peers only inside one urgency tier. Do
 not add carrier-, class-, role-, objective-, map-, or coordinate-specific
-traffic precedence. Carrying may affect route safety, but never who wins a
+traffic precedence. Urgency also owns STANDING ground: a body resting on a
+strictly more urgent intent's claimed tile yields it (planner
+YieldRestingClaims, DECISIONS #345) — same-tier rests are never unseated. Carrying may affect route safety, but never who wins a
 contested allied tile. A trace that both claims
 `traffic-right-of-way-X-Y` and retains `avoid-denied-X-Y` is contradictory and
 must fail the motion gate.
