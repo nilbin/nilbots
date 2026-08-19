@@ -359,25 +359,35 @@ export function CaseListEditor<T extends TacticCase>({
     <div className="flex flex-col gap-2">
       {cases.map((value, index) => {
         const canBranch = cases.length < maximum && activeMainRows(value) >= 2;
-        if (!isOpen(index)) {
-          const line = caseClause(value);
+        const open = isOpen(index);
+        const line = caseClause(value);
+        // The fold lives at the TOP of every alternative, as the whole
+        // header bar: chevron + the live one-line reading. The same bar in
+        // both states — tap to fold the editor away, tap to bring it back.
+        const header = (
+          <button type="button"
+            className="flex min-h-7 w-full items-center gap-1.5 text-left"
+            title={open ? 'Fold this alternative to its one-line reading' : 'Open this alternative to edit'}
+            onClick={() => setCollapsed((state) => ({ ...state, [index]: !open }))}>
+            <span className="text-[10px] text-arena-dim">{open ? '▾' : '▸'}</span>
+            {index > 0 && (
+              <span className="lab shrink-0" style={accent ? { color: accent } : undefined}>
+                Or alternatively
+              </span>
+            )}
+            <span className={`t-micro ${open ? 'text-arena-dim' : 'text-arena-text/90'} min-w-0 grow truncate`}>
+              {line
+                ? line.replace(/^\w/, (letter) => letter.toUpperCase())
+                : <span className="text-arena-dim">No conditions yet.</span>}
+            </span>
+          </button>
+        );
+        if (!open) {
           return (
             <div key={index} className="rounded-sm border border-arena-edge p-2"
               style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}>
-              {index > 0 && (
-                <div className="lab mb-1" style={accent ? { color: accent } : undefined}>
-                  Or alternatively
-                </div>
-              )}
               <div className="flex items-center gap-2">
-                <button type="button"
-                  className="min-h-7 grow text-left t-micro text-arena-text/90 transition-colors hover:text-arena-text"
-                  title="Tap to edit this alternative"
-                  onClick={() => setCollapsed((state) => ({ ...state, [index]: false }))}>
-                  {line
-                    ? line.replace(/^\w/, (letter) => letter.toUpperCase())
-                    : <span className="text-arena-dim">No conditions yet — tap to edit.</span>}
-                </button>
+                <span className="min-w-0 grow">{header}</span>
                 {caseFooter?.(value, (apply) => update(index, apply), index)}
               </div>
             </div>
@@ -386,11 +396,7 @@ export function CaseListEditor<T extends TacticCase>({
         return (
         <div key={index} className="rounded-sm border border-arena-edge p-2"
           style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}>
-          {index > 0 && (
-            <div className="lab mb-1" style={accent ? { color: accent } : undefined}>
-              Or alternatively
-            </div>
-          )}
+          {header}
           {requiredKinds.length > 0 && <>
             <div className="lab mb-1">Required — all must hold</div>
             <ConditionRows
@@ -460,11 +466,6 @@ export function CaseListEditor<T extends TacticCase>({
           <div className="mt-2 flex items-center gap-2">
             {caseFooter?.(value, (apply) => update(index, apply), index)}
             <span className="grow" />
-            <button type="button" className="btn"
-              title="Fold this alternative to its one-line reading"
-              onClick={() => setCollapsed((state) => ({ ...state, [index]: true }))}>
-              ▴ Fold
-            </button>
             {cases.length > 1 && (
               <button type="button" className="btn"
                 onClick={() => {

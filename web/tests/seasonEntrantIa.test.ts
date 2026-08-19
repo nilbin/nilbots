@@ -107,6 +107,7 @@ test('cases hide boolean words behind Required, Triggered by, and Add alternativ
   // Alternatives fold to their plain-English line, and any ticked row can
   // branch into "the same, but this one reads the other way".
   assert.match(conditions, /Fold this alternative to its one-line reading/);
+  assert.match(conditions, /Open this alternative to edit/);
   assert.match(conditions, /add an alternative where this reads the other way/);
   assert.doesNotMatch(conditions, /\bAND\b|\bOR\b/,
     'no bare boolean vocabulary on the player surface');
