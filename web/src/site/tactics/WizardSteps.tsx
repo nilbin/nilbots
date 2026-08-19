@@ -57,13 +57,28 @@ export interface StepProps {
   highlightPost?: { groupId: string; postIndex: number } | null;
 }
 
+// Any row may sit on either side of a case: Required is the AND, Triggered
+// by is the OR. The Required section starts minimal and folds the full row
+// set, so "A and B together fire it" is two Required rows and no trigger.
 const START_TRIGGERS = [
   'enemiesAt', 'coreLoose', 'coreSoon', 'carrier',
 ] as const;
 const START_MORE = ['enemiesDown', 'losses', 'lossesWithin'] as const;
+const START_REQUIRED_MORE = [
+  'enemiesAt', 'coreLoose', 'coreSoon', 'carrier', 'enemiesDown', 'losses',
+  'lossesWithin',
+] as const;
 const ABORT_TRIGGERS = ['lossesWithin', 'losses', 'coreLost'] as const;
 const ABORT_MORE = ['enemiesAt'] as const;
+const ABORT_REQUIRED_MORE = [
+  'lossesWithin', 'losses', 'coreLost', 'enemiesAt',
+] as const;
 const TRANSITION_REQUIRED = ['groupsSet', 'held'] as const;
+const TRANSITION_REQUIRED_MORE = [
+  'enemiesAt', 'contact', 'coreSoon', 'coreLoose', 'kills', 'coreAcquired',
+  'coreBanked', 'coreLost', 'cleared', 'enemiesDown', 'losses', 'reached',
+  'observed',
+] as const;
 const TRANSITION_TRIGGERS = [
   'enemiesAt', 'contact', 'coreSoon', 'coreLoose', 'kills', 'coreAcquired',
   'coreBanked', 'coreLost',
@@ -107,6 +122,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         watchSymbol="▶"
         watchAdjective="pale"
         requiredKinds={[]}
+        moreRequiredKinds={[...START_REQUIRED_MORE]}
         triggerKinds={[...START_TRIGGERS]}
         moreTriggerKinds={[...START_MORE]}
         makeCase={() => ({ triggers: {} })}
@@ -152,6 +168,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
             watchSymbol="⨯"
             watchAdjective="red"
             requiredKinds={[]}
+            moreRequiredKinds={[...ABORT_REQUIRED_MORE]}
             triggerKinds={[...ABORT_TRIGGERS]}
             moreTriggerKinds={[...ABORT_MORE]}
             makeCase={() => ({ triggers: {} })}
@@ -458,6 +475,7 @@ export function PhasesStep(props: StepProps) {
         accent="#c8763c"
         watchAdjective="orange"
         requiredKinds={[...TRANSITION_REQUIRED]}
+        moreRequiredKinds={[...TRANSITION_REQUIRED_MORE]}
         triggerKinds={[...TRANSITION_TRIGGERS]}
         moreTriggerKinds={[...TRANSITION_MORE]}
         makeCase={() => ({ triggers: {}, to: last ? 'finish' : 'next' })}

@@ -165,6 +165,43 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void EventRowsAndTogetherThroughRequired()
+    {
+        // "Enemies gather AND a Core births soon": both rows in the case's
+        // required side land in the program case's all(), with no trigger —
+        // Required is the AND for every row, not just readiness.
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject rule = document["tactics"]![0]!["phases"]![0]!["continue"]!
+            .AsArray()[0]!.AsObject();
+        rule.Remove("triggers");
+        rule["required"] = JsonNode.Parse(
+            """
+            {"groupsSet":true,
+             "enemiesAt":{"count":5,"zone":{"rect":[12,10,18,16]}},
+             "coreSoon":{"well":"centre","ticks":20}}
+            """);
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement when = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("phases").EnumerateArray().First()
+            .GetProperty("continue").EnumerateArray().Single()
+            .GetProperty("when");
+        Assert.False(when.TryGetProperty("any", out _));
+        string[] names = when.GetProperty("all").EnumerateArray()
+            .Where(entry => entry.ValueKind == JsonValueKind.String)
+            .Select(entry => entry.GetString()!)
+            .ToArray();
+        Assert.Contains("c-t1-p1-enemies", names);
+        Assert.Contains("c-t1-p1-core-soon", names);
+    }
+
+    [Fact]
     public void ForwardOnlyTransitionsAreEnforced()
     {
         JsonObject document = JsonNode.Parse(

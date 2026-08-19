@@ -248,6 +248,28 @@ test('core-soon and enemies-down rows validate and read back', () => {
   assert.match(sentence, /the Centre Well births its next Core within 20 ticks/);
 });
 
+test('two event rows AND together through Required, no trigger needed', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  // "Enemies gather at Mid AND a Core births soon" — one case, both rows in
+  // Required, empty Triggered by. Alternatives stay the OR.
+  tactic.phases[0].continue = [{
+    required: {
+      groupsSet: true,
+      enemiesAt: { count: 5, zone: { rect: [12, 10, 18, 16] } },
+      coreSoon: { well: 'centre', ticks: 20 },
+    },
+    to: 'next',
+  }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence,
+    /every Group is in position, at least 5 enemies are known at Mid and the Centre Well births its next Core within 20 ticks/);
+});
+
 test('the readback walks a pincer through its named phases', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

@@ -230,7 +230,8 @@ export function ConditionRows({
  */
 export function CaseListEditor<T extends TacticCase>({
   cases, maximum = 3, accent, watchSymbol, watchAdjective,
-  requiredKinds, triggerKinds, moreTriggerKinds, makeCase, onChange,
+  requiredKinds, moreRequiredKinds, triggerKinds, moreTriggerKinds,
+  makeCase, onChange,
   caseFooter, watching, onDrawWatch, onStopWatch,
 }: {
   cases: T[];
@@ -239,6 +240,9 @@ export function CaseListEditor<T extends TacticCase>({
   watchSymbol?: string;
   watchAdjective?: string;
   requiredKinds: ConditionRowKind[];
+  /** Folded extras for Required — any row may be ANDed there, so “A and B
+   * both fire it” is Required with two rows and no Triggered by. */
+  moreRequiredKinds?: ConditionRowKind[];
   triggerKinds: ConditionRowKind[];
   moreTriggerKinds?: ConditionRowKind[];
   makeCase: () => T;
@@ -264,11 +268,12 @@ export function CaseListEditor<T extends TacticCase>({
               Or alternatively
             </div>
           )}
-          {requiredKinds.length > 0 && <>
+          {(requiredKinds.length > 0 || (moreRequiredKinds?.length ?? 0) > 0) && <>
             <div className="lab mb-1">Required — all must hold</div>
             <ConditionRows
               conds={value.required ?? {}}
               kinds={requiredKinds}
+              moreKinds={moreRequiredKinds}
               accent={accent}
               watchSymbol={watchSymbol}
               watchAdjective={watchAdjective}
