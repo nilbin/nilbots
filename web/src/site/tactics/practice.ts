@@ -2,9 +2,12 @@ import type { Tactic, TacticsDocument } from './tacticsDocument';
 
 /**
  * Practice attribution: the materializer mints ordinal ids
- * (`vex > t2 > t2-go > t2-g1-a-move`), and every executor debugMessage
- * carries that path — so a replay command maps straight back to the Tactic,
- * Group and phase the player authored, with no sidecar bookkeeping.
+ * (`vex > t2 > t2-p1 > t2-p1-g1-move`), the coordinator prefixes every
+ * decision with the active tactic/phase (`orders:t2/p1 …`, `orders:idle …`)
+ * and appends `!markers` on transition/abort ticks — so a replay command
+ * maps straight back to the Tactic, Group and named phase the player
+ * authored, with no sidecar bookkeeping. Pre-program replays (the old
+ * `t2-go`/`t2-s` shape) still parse.
  */
 
 export interface TacticAttribution {
@@ -13,17 +16,32 @@ export interface TacticAttribution {
   tactic: Tactic | null;
   groupOrdinal: number | null;
   groupName: string | null;
-  phase: 'stage' | 'act' | 'invariant' | 'baseline';
+  /** Ordinal of the leaf's phase (1-based), null for invariants/baseline. */
+  phaseOrdinal: number | null;
+  phaseName: string | null;
+  kind: 'phase' | 'invariant' | 'baseline';
+  /** The coordinator's transition/abort/begin marker on this tick, if any. */
+  marker: string | null;
   leafId: string;
 }
 
-const PATH_PATTERN = /orders:([a-z0-9-]+) > ([a-z0-9-]+)(?: > ([a-z0-9-]+))?(?: > ([a-z0-9-]+))?/;
+const PROGRAM_PREFIX = /orders:(idle|[a-z0-9-]+\/[a-z0-9-]+)(?:!([^ ]+))? /;
+const PATH_PATTERN = /([a-z0-9-]+) > ([a-z0-9-]+)(?: > ([a-z0-9-]+))?(?: > ([a-z0-9-]+))?/;
 
 export function parseTacticAttribution(
   debugMessage: string,
   document: TacticsDocument | null,
 ): TacticAttribution | null {
-  const match = PATH_PATTERN.exec(debugMessage);
+  const at = debugMessage.indexOf('orders:');
+  if (at < 0) return null;
+  let rest = debugMessage.slice(at + 'orders:'.length);
+  let marker: string | null = null;
+  const program = PROGRAM_PREFIX.exec(debugMessage.slice(at));
+  if (program) {
+    marker = program[2] ?? null;
+    rest = debugMessage.slice(at + program[0].length);
+  }
+  const match = PATH_PATTERN.exec(rest);
   if (!match) return null;
   const [, roleId, root, second, third] = match;
   const leafId = third ?? second ?? root;
@@ -35,19 +53,44 @@ export function parseTacticAttribution(
       tactic: null,
       groupOrdinal: null,
       groupName: null,
-      phase: 'baseline',
+      phaseOrdinal: null,
+      phaseName: null,
+      kind: 'baseline',
+      marker,
       leafId,
     };
   }
   const ordinal = Number(ordinalMatch[1]);
   const tactic = document?.tactics[ordinal - 1] ?? null;
-  const leafMatch = /^t\d+-g(\d+)-(s|a)-/.exec(leafId);
-  const groupOrdinal = leafMatch ? Number(leafMatch[1]) : null;
-  const phase: TacticAttribution['phase'] = leafMatch
-    ? (leafMatch[2] === 's' ? 'stage' : 'act')
-    : second === `${root}-go` ? 'act'
-      : second === `${root}-s` ? 'stage'
-        : 'invariant';
+  // Program leaves: t2-p1-g1-move; tactic-scoped invariants: t2-g1-bank.
+  // Legacy leaves: t2-g1-s-move under t2-s / t2-go wrappers.
+  const phasedLeaf = /^t\d+-p(\d+)-g(\d+)-/.exec(leafId);
+  const invariantLeaf = /^t\d+-g(\d+)-/.exec(leafId);
+  const legacyLeaf = /^t\d+-g(\d+)-(s|a)-/.exec(leafId);
+  let phaseOrdinal: number | null = null;
+  let groupOrdinal: number | null = null;
+  let kind: TacticAttribution['kind'] = 'invariant';
+  if (phasedLeaf) {
+    phaseOrdinal = Number(phasedLeaf[1]);
+    groupOrdinal = Number(phasedLeaf[2]);
+    kind = 'phase';
+  } else if (legacyLeaf) {
+    groupOrdinal = Number(legacyLeaf[1]);
+    phaseOrdinal = legacyLeaf[2] === 's' ? 1 : 2;
+    kind = 'phase';
+  } else if (second === `${root}-go`) {
+    phaseOrdinal = 2;
+    kind = 'phase';
+  } else if (second === `${root}-s`) {
+    phaseOrdinal = 1;
+    kind = 'phase';
+  } else if (invariantLeaf) {
+    groupOrdinal = Number(invariantLeaf[1]);
+    kind = 'invariant';
+  }
+  const phase = phaseOrdinal !== null
+    ? tactic?.phases?.[phaseOrdinal - 1] ?? null
+    : null;
   return {
     roleId,
     tacticOrdinal: ordinal,
@@ -56,19 +99,24 @@ export function parseTacticAttribution(
     groupName: groupOrdinal !== null
       ? tactic?.groups[groupOrdinal - 1]?.name ?? null
       : null,
-    phase,
+    phaseOrdinal,
+    phaseName: phase?.name ?? null,
+    kind,
+    marker,
     leafId,
   };
 }
 
-/** A short human label: “Pincer · Flankers · Act” or “between tactics”. */
+/** A short human label: “Pincer · Flankers · Close the trap” or “between tactics”. */
 export function attributionLabel(attribution: TacticAttribution): string {
-  if (attribution.phase === 'baseline') return 'between tactics';
+  if (attribution.kind === 'baseline') return 'between tactics';
   const tacticName = attribution.tactic?.name
     ?? (attribution.tacticOrdinal !== null ? `Tactic ${attribution.tacticOrdinal}` : 'a tactic');
   const parts = [tacticName];
   if (attribution.groupName) parts.push(attribution.groupName);
-  if (attribution.phase === 'stage') parts.push('Stage');
-  if (attribution.phase === 'act') parts.push('Act');
+  if (attribution.kind === 'phase') {
+    parts.push(attribution.phaseName
+      ?? (attribution.phaseOrdinal !== null ? `Phase ${attribution.phaseOrdinal}` : 'a phase'));
+  }
   return parts.join(' · ');
 }

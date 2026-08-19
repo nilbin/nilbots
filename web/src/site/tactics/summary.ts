@@ -1,13 +1,13 @@
 import { describePlace, WELL_OPTIONS } from './places';
 import type {
-  Tactic, TacticConds, TacticGroup, TacticOutcomes, TacticPhase,
+  Tactic, TacticCase, TacticConds, TacticGroup, TacticJob, TacticTransition,
 } from './tacticsDocument';
+import { effectiveJob, jobOf } from './tacticsDocument';
 
 /**
  * The natural-language readback: every Tactic card and wizard review reads its
- * whole operation back as one paragraph. Ported from the owner-iterated mock;
- * verb agreement and place naming are the point, so change wording here only
- * with the mock's sentences beside you.
+ * whole operation back — phase by phase — as one paragraph. Ported from the
+ * owner-iterated mock; verb agreement and place naming are the point.
  */
 
 const NUMBER_WORDS = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'];
@@ -34,88 +34,77 @@ function inPlace(place: string): string {
     : place;
 }
 
-function recoveryPhrase(phase: TacticPhase): string {
-  if (phase.recovery === 'heal-tile') return ' — breaking for the heal tile when hurt';
-  if (phase.recovery === 'fight-on' && !['aggressive', 'steal'].includes(phase.posture)) {
+function recoveryPhrase(job: TacticJob): string {
+  if (job.recovery === 'heal-tile') return ' — breaking for the heal tile when hurt';
+  if (job.recovery === 'fight-on' && !['aggressive', 'steal'].includes(job.posture)) {
     return ' — no falling back';
   }
   return '';
 }
 
-function stagePlace(group: TacticGroup): string {
-  const stage = group.stage;
-  if (stage.posts?.length) return describePlace(...stage.posts[0].at);
-  if (stage.rect) {
+function jobPlace(job: TacticJob): string {
+  if (job.posts?.length) return describePlace(...job.posts[0].at);
+  if (job.rect) {
     return describePlace(
-      Math.round((stage.rect[0] + stage.rect[2]) / 2),
-      Math.round((stage.rect[1] + stage.rect[3]) / 2),
+      Math.round((job.rect[0] + job.rect[2]) / 2),
+      Math.round((job.rect[1] + job.rect[3]) / 2),
     );
   }
-  if (stage.path?.length) return describePlace(...stage.path[0]);
-  if (stage.point) return describePlace(...stage.point);
+  if (job.path?.length) return describePlace(...job.path[0]);
+  if (job.point) return describePlace(...job.point);
   return 'their ground';
 }
 
-export function stageClause(group: TacticGroup, plural = true): string {
-  const stage = group.stage;
-  const place = stagePlace(group);
-  const posture = stage.posture;
-  const v = (word: string) => verb(word, plural);
-  const via = viaPhrase(stage);
-  switch (stage.kind) {
-    case 'posts': {
-      // A post's own drawn way in reads back like the group route does.
-      const ways = stage.posts?.some((post) => (post.via?.length ?? 0) > 1)
-        ? ', coming in by drawn routes'
-        : via;
-      if (posture === 'hold') return `${v('hold')} posts at ${place}${ways}${recoveryPhrase(stage)}`;
-      if (posture === 'observe') return `${v('watch')} from posts at ${place}${ways}${recoveryPhrase(stage)}`;
-      return `${v('wait')} at posts near ${place}${ways}${recoveryPhrase(stage)}`;
-    }
-    case 'area':
-      if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
-      if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
-      return `${v('stage')} ${inPlace(place)}${via}${recoveryPhrase(stage)}`;
-    case 'line':
-      return `${v('picket')} a line across ${place}${via}${recoveryPhrase(stage)}`;
-    case 'approach':
-      return `${v('move')} up short of ${place}${posture === 'steal' ? ', ready to take the Core' : ', quietly'}${via}${recoveryPhrase(stage)}`;
-    default:
-      return (group.act.kind === 'escort'
-        ? `${v('form')} on the carrier`
-        : `${v('start')} loose`) + recoveryPhrase(stage);
-  }
-}
-
 /** ", coming in by the drawn route" when a via is authored. */
-function viaPhrase(phase: TacticGroup['stage']): string {
-  return (phase.via?.length ?? 0) > 1 ? ', coming in by the drawn route' : '';
+function viaPhrase(job: TacticJob): string {
+  return (job.via?.length ?? 0) > 1 ? ', coming in by the drawn route' : '';
 }
 
-export function actClause(group: TacticGroup, plural = true): string {
-  const act = group.act;
+/** One group's job in one phase, as a verb phrase. */
+export function jobClause(job: TacticJob, plural = true): string {
   const v = (word: string) => verb(word, plural);
+  const posture = job.posture;
+  const via = viaPhrase(job);
   const adverb = {
     aggressive: ' aggressively',
-    hold: ` and ${v('hold')}`,
+    hold: '',
     steal: ' to steal',
     escort: '',
     observe: ', watching',
     wait: '',
-  }[act.posture] ?? '';
-  switch (act.kind) {
+  }[posture] ?? '';
+  switch (job.kind) {
+    case 'posts': {
+      const place = jobPlace(job);
+      const ways = job.posts?.some((post) => (post.via?.length ?? 0) > 1)
+        ? ', coming in by drawn routes'
+        : via;
+      if (posture === 'hold') return `${v('hold')} posts at ${place}${ways}${recoveryPhrase(job)}`;
+      if (posture === 'observe') return `${v('watch')} from posts at ${place}${ways}${recoveryPhrase(job)}`;
+      return `${v('wait')} at posts near ${place}${ways}${recoveryPhrase(job)}`;
+    }
+    case 'area': {
+      const place = jobPlace(job);
+      if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${via}${recoveryPhrase(job)}`;
+      if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${via}${recoveryPhrase(job)}`;
+      return `${v('stage')} ${inPlace(place)}${via}${recoveryPhrase(job)}`;
+    }
+    case 'line':
+      return `${v('picket')} a line across ${jobPlace(job)}${via}${recoveryPhrase(job)}`;
+    case 'approach':
+      return `${v('move')} up short of ${jobPlace(job)}${posture === 'steal' ? ', ready to take the Core' : ', quietly'}${via}${recoveryPhrase(job)}`;
     case 'converge': {
-      const target = act.point ? describePlace(...act.point) : 'the target';
+      const target = job.point ? describePlace(...job.point) : 'the target';
       // "converge behind their lines", never "converge on behind their lines".
       const joined = /^behind/i.test(target) ? target : `on ${target}`;
-      return `${v('converge')} ${joined}${adverb}${viaPhrase(act)}${recoveryPhrase(act)}`;
+      return `${v('converge')} ${joined}${adverb}${viaPhrase(job)}${recoveryPhrase(job)}`;
     }
     case 'advance':
-      return `${v('push')} ${act.path && act.path.length > 1 ? `toward ${describePlace(...act.path[act.path.length - 1])}` : 'forward'}${adverb}${recoveryPhrase(act)}`;
+      return `${v('push')} ${job.path && job.path.length > 1 ? `toward ${describePlace(...job.path[job.path.length - 1])}` : 'forward'}${adverb}${recoveryPhrase(job)}`;
     case 'patrol':
-      return `${v('walk')} their patrol loop${adverb}${recoveryPhrase(act)}`;
+      return `${v('walk')} their patrol loop${adverb}${recoveryPhrase(job)}`;
     case 'return':
-      return `${v('run')} the Core home to your reactor${viaPhrase(act)}`;
+      return `${v('run')} the Core home to your reactor${viaPhrase(job)}`;
     case 'escort':
       return `${v('screen')} the carrier the whole way`;
     default:
@@ -123,20 +112,33 @@ export function actClause(group: TacticGroup, plural = true): string {
   }
 }
 
-export function groupClause(group: TacticGroup, standalone = false): string {
+/** The group's whole arc across the phases: "hold posts at Mid, then
+ * converge on their Well aggressively, then run the Core home". */
+export function groupClause(
+  tactic: Tactic,
+  group: TacticGroup,
+  standalone = false,
+): string {
   const count = group.slots.length;
   const plural = count !== 1;
   const subject = standalone
     ? `${numberWord(count).replace(/^\w/, (letter) => letter.toUpperCase())} bot${plural ? 's' : ''}`
     : '';
-  const stage = stageClause(group, plural);
-  const act = group.act.kind === 'none' ? '' : `, then ${actClause(group, plural)}`;
-  return `${subject} ${stage}${act}`.trim();
+  const parts: string[] = [];
+  tactic.phases.forEach((phase, index) => {
+    const job = phase.jobs[group.id];
+    if (!job || (index > 0 && job.kind === 'none')) return;
+    parts.push(jobClause(job, plural));
+  });
+  if (parts.length === 0) parts.push(verb('keep', plural) + ' at it');
+  return `${subject} ${parts.join(', then ')}`.trim();
 }
 
 export function condClauses(conds: TacticConds | undefined): string[] {
   if (!conds) return [];
   const out: string[] = [];
+  if (conds.groupsSet) out.push('every Group is in position');
+  if (conds.held) out.push(`${conds.held.ticks} ticks have passed here`);
   if (conds.enemiesAt) {
     const [x0, y0, x1, y1] = conds.enemiesAt.zone.rect;
     const place = describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
@@ -158,6 +160,23 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   if (conds.losses) {
     out.push(`we have lost ${numberWord(conds.losses.count)} bot${conds.losses.count === 1 ? '' : 's'}`);
   }
+  if (conds.lossesWithin) {
+    out.push(`we lost ${numberWord(conds.lossesWithin.count)} bot${conds.lossesWithin.count === 1 ? '' : 's'} within ${conds.lossesWithin.ticks} ticks`);
+  }
+  if (conds.kills) {
+    out.push(`${numberWord(conds.kills.count)} enem${conds.kills.count === 1 ? 'y is' : 'ies are'} destroyed`);
+  }
+  if (conds.cleared) {
+    const [x0, y0, x1, y1] = conds.cleared.zone.rect;
+    const place = conds.cleared.zone.name === 'mid' ? 'Mid'
+      : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
+    out.push(`${place} is cleared`);
+  }
+  if (conds.coreAcquired) out.push('a Core is acquired');
+  if (conds.coreBanked) out.push('a Core is banked');
+  if (conds.coreLost) out.push('the Core is lost');
+  if (conds.reached) out.push('the destination is reached');
+  if (conds.observed) out.push('the ground has been watched long enough');
   return out;
 }
 
@@ -166,27 +185,42 @@ export function orJoin(list: string[]): string {
   return `${list.slice(0, -1).join(', ')}, or ${list[list.length - 1]}`;
 }
 
-export function startClause(tactic: Tactic): string | null {
-  if (tactic.start.mode !== 'when') return null;
-  const conds = condClauses(tactic.start.conds);
-  if (conds.length === 0) return null;
-  return `Applies once ${orJoin(conds)}`;
+export function andJoin(list: string[]): string {
+  if (list.length <= 1) return list[0] ?? '';
+  return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 }
 
-export function releaseClause(tactic: Tactic): string {
-  const release = tactic.release;
-  const many = tactic.groups.length > 1;
-  const groupsWord = tactic.groups.length === 2 ? 'both Groups'
-    : tactic.groups.length === 3 ? 'all three Groups' : 'the Group';
-  if (release.mode === 'immediate') return 'They go immediately';
-  if (release.mode === 'ready') {
-    return `They go once ${many ? `${groupsWord} are` : 'everyone is'} in position`;
+/** "every Group is in position and enemies gather at Mid" — one case. */
+export function caseClause(value: TacticCase): string {
+  const required = condClauses(value.required);
+  const triggers = condClauses(value.triggers);
+  if (required.length && triggers.length) {
+    return `${andJoin(required)} and ${orJoin(triggers)}`;
   }
-  const conds = condClauses(release.conds);
-  if (conds.length === 0) {
-    return `They go once ${many ? `${groupsWord} are` : 'everyone is'} in position`;
-  }
-  return `They go once ${many ? `${groupsWord} are` : 'everyone is'} ready and ${orJoin(conds)}`;
+  if (required.length) return andJoin(required);
+  return orJoin(triggers);
+}
+
+export function casesClause(cases: TacticCase[] | undefined): string | null {
+  const clauses = (cases ?? [])
+    .map(caseClause)
+    .filter((clause) => clause.length > 0);
+  if (clauses.length === 0) return null;
+  return clauses.length === 1
+    ? clauses[0]
+    : orJoin(clauses.map((clause, index) =>
+      clauses.length > 1 && index > 0 ? clause : clause));
+}
+
+export function startClause(tactic: Tactic): string | null {
+  if (tactic.start.mode !== 'when') return null;
+  const clause = casesClause(tactic.start.cases);
+  return clause ? `Applies once ${clause}` : null;
+}
+
+export function abortClause(tactic: Tactic): string | null {
+  const clause = casesClause(tactic.abort?.cases);
+  return clause ? `Aborts if ${clause}` : null;
 }
 
 export function deliveryClause(
@@ -203,28 +237,6 @@ export function deliveryClause(
     : `If a Core lands in their hands, the carrier banks it under escort${preference}`;
 }
 
-export function outcomeLabels(outcomes: TacticOutcomes): string[] {
-  const out: string[] = [];
-  if (outcomes.kills) {
-    out.push(`${numberWord(outcomes.kills.count)} enem${outcomes.kills.count === 1 ? 'y' : 'ies'} destroyed`);
-  }
-  if (outcomes.losses) {
-    out.push(`we have lost ${numberWord(outcomes.losses.count)} bot${outcomes.losses.count === 1 ? '' : 's'}`);
-  }
-  if (outcomes.cleared) {
-    const [x0, y0, x1, y1] = outcomes.cleared.zone.rect;
-    const place = outcomes.cleared.zone.name === 'mid' ? 'Mid'
-      : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
-    out.push(`${place.replace(/^\w/, (letter) => letter.toUpperCase())} cleared`);
-  }
-  if (outcomes.coreAcquired) out.push('a Core is acquired');
-  if (outcomes.coreBanked) out.push('a Core is banked');
-  if (outcomes.coreLost) out.push('the Core is lost');
-  if (outcomes.reached) out.push('the destination is reached');
-  if (outcomes.observed) out.push('the ground has been watched long enough');
-  return out;
-}
-
 export function subjectFor(tactic: Tactic, group: TacticGroup): string {
   if (tactic.groups.length === 1) return 'they';
   const sizes = tactic.groups.map((value) => value.slots.length);
@@ -234,49 +246,97 @@ export function subjectFor(tactic: Tactic, group: TacticGroup): string {
     : group.name;
 }
 
+/** Where one transition goes, as prose. */
+function destinationPhrase(tactic: Tactic, to: string): string {
+  if (to === 'finish') return 'the Tactic finishes';
+  if (to === 'next') return '';
+  const target = tactic.phases.find((phase) => phase.id === to);
+  return target ? ` they skip ahead to ${target.name}` : '';
+}
+
 export function summarize(
   tactic: Tactic,
   botName: (slot: number) => string | null,
 ): string {
   const opening = startClause(tactic);
-  const stages = tactic.groups.map((group, index) => {
-    const count = group.slots.length;
-    const lead = index === 0
-      ? `${numberWord(count).replace(/^\w/, (letter) => letter.toUpperCase())} bot${count === 1 ? '' : 's'}`
-      : numberWord(count);
-    return `${lead} ${stageClause(group, count !== 1)}`;
+  const sentences: string[] = [];
+
+  // The first phase: every group's job, joined "while".
+  const first = tactic.phases[0];
+  if (first) {
+    const jobs = tactic.groups.map((group, index) => {
+      const count = group.slots.length;
+      const job = first.jobs[group.id]
+        ?? { kind: 'none' as const, posture: 'wait' as const, recovery: 'patch' as const };
+      const lead = index === 0
+        ? `${numberWord(count).replace(/^\w/, (letter) => letter.toUpperCase())} bot${count === 1 ? '' : 's'}`
+        : numberWord(count);
+      return `${lead} ${jobClause(job, count !== 1)}`;
+    });
+    sentences.push(jobs.length === 1
+      ? `${jobs[0]}.`
+      : `${jobs.slice(0, -1).join(', ')} while ${jobs[jobs.length - 1]}.`);
+  }
+
+  // Each later phase: its entry condition, its name, and what changes.
+  tactic.phases.forEach((phase, index) => {
+    if (index === 0) return;
+    const previous = tactic.phases[index - 1];
+    const rule = (previous.continue ?? []).find((candidate) =>
+      candidate.to === 'next' || candidate.to === phase.id);
+    const when = rule ? caseClause(rule) : '';
+    const movers = tactic.groups
+      .filter((group) => (phase.jobs[group.id]?.kind ?? 'none') !== 'none')
+      .map((group) =>
+        `${subjectFor(tactic, group)} ${jobClause(phase.jobs[group.id], group.slots.length !== 1)}`);
+    const change = movers.length > 0
+      ? movers.join('; ')
+      : 'everyone carries on';
+    sentences.push(`${when ? `Once ${when} — ` : 'Then '}${phase.name}: ${change}.`);
   });
-  const stageSentence = stages.length === 1
-    ? `${stages[0]}.`
-    : `${stages.slice(0, -1).join(', ')} while ${stages[stages.length - 1]}.`;
 
-  const actors = tactic.groups.filter((group) => group.act.kind !== 'none');
-  const holders = tactic.groups.filter((group) => group.act.kind === 'none');
-  let middle = '';
-  if (actors.length) {
-    const actParts = actors.map((group) =>
-      `${subjectFor(tactic, group)} ${actClause(group, group.slots.length !== 1)}`);
-    const holdPart = holders.length && tactic.groups.length > 1
-      ? ` while ${holders.map((group) => group.name).join(' and ')} keep${holders.length === 1 ? 's' : ''} holding`
-      : '';
-    const when = releaseClause(tactic)
-      .replace(/^They go once /, 'Once ')
-      .replace(/^They go immediately/, 'Immediately');
-    middle = ` ${when}, ${actParts.join('; ')}${holdPart}.`;
-  } else if (tactic.release.mode !== 'immediate') {
-    middle = ` ${releaseClause(tactic)}.`;
+  // How it ends: finish transitions, duration, abort.
+  const finishes = tactic.phases
+    .flatMap((phase) => phase.continue ?? [])
+    .filter((rule) => rule.to === 'finish')
+    .map((rule) => caseClause(rule))
+    .filter((clause) => clause.length > 0);
+  if (finishes.length) {
+    sentences.push(`Finish when ${orJoin(finishes)}${tactic.maxDuration && tactic.maxDuration !== 'none' ? ' — or the time limit expires' : ''}.`);
+  } else if (tactic.maxDuration && tactic.maxDuration !== 'none') {
+    sentences.push('Finish when the time limit expires.');
+  } else {
+    const last = tactic.phases[tactic.phases.length - 1];
+    if (last && (last.continue ?? []).length === 0) {
+      sentences.push('It holds there until a Tactic-wide abort or the match decides otherwise.');
+    }
   }
-
-  const on = outcomeLabels(tactic.finish.outcomes);
-  let finish = '';
-  if (on.length) {
-    finish = ` Finish when ${orJoin(on)}${tactic.finish.maxAttempt !== 'none' ? ' — or the attempt expires' : ''}.`;
-  } else if (tactic.finish.maxAttempt !== 'none') {
-    finish = ' Finish when the attempt expires.';
-  }
-  if (tactic.finish.outcomes.persistent) {
-    finish += ' Otherwise it persists until a higher Tactic takes over.';
-  }
+  const abort = abortClause(tactic);
+  if (abort) sentences.push(`${abort}.`);
   const delivery = deliveryClause(tactic, botName);
-  return `${opening ? `${opening}. ` : ''}${stageSentence}${middle}${finish}${delivery ? ` ${delivery}.` : ''}`;
+  return `${opening ? `${opening}. ` : ''}${sentences.join(' ')}${delivery ? ` ${delivery}.` : ''}`;
+}
+
+/** Legacy alias kept for callers that read one phase's rule aloud. */
+export function transitionClause(
+  tactic: Tactic,
+  rule: TacticTransition,
+): string {
+  const clause = caseClause(rule);
+  const destination = destinationPhrase(tactic, rule.to);
+  if (rule.to === 'finish') {
+    return clause ? `Finishes when ${clause}` : 'Finishes';
+  }
+  return `${clause ? `Continues once ${clause}` : 'Continues'}${destination}`;
+}
+
+/** The group's job in phase context — used by drawer section headers. */
+export function jobLabelFor(tactic: Tactic, phaseIndex: number, groupId: string): string {
+  const effective = effectiveJob(tactic, phaseIndex, groupId);
+  const raw = jobOf(tactic, phaseIndex, groupId);
+  if (!raw) return 'no job';
+  if (raw.kind === 'none' && effective) {
+    return `carries on (${effective.kind})`;
+  }
+  return raw.kind;
 }

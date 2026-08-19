@@ -2,33 +2,35 @@ import { useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BotChip } from './BotChip';
 import { ChoiceCards } from './ChoiceCards';
-import { CountStepper, TickRow, ZoneSelect } from './conditionControls';
-import { ConditionRows } from './ConditionRows';
+import { CaseListEditor } from './ConditionRows';
 import { GeoStatusRow } from './GeoStatusRow';
 import { PhaseStrip } from './PhaseStrip';
 import { SegChips } from './SegChips';
 import { freshGroup } from './recipes';
 import {
-  actClause, deliveryClause, groupClause, numberWord, releaseClause,
-  startClause, summarize,
+  deliveryClause, groupClause, possessive, startClause, summarize,
 } from './summary';
 import { describeGeometry } from './TacticsMapCanvas';
-import type { MapTask } from './useMapTask';
+import type { MapTask, WatchTarget } from './useMapTask';
 import {
-  ACT_KINDS, CORE_RULES, DELIVERY_PLANS, MAX_ATTEMPTS, POSTURES, RECOVERIES,
-  STAGE_KINDS, groupColor, signatureMarkGeometry, viaLegal, type ActKind,
-  type DrawKind, type Posture, type Recovery, type StageKind, type Tactic,
-  type TacticGroup, type TacticsDocument,
+  CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES, RECOVERIES,
+  effectiveJob, freshJob, freshPhase, groupColor, jobOf, signatureMarkGeometry,
+  tacticCanFinish, viaLegal,
+  type DrawKind, type JobKind, type Posture, type Recovery, type Tactic,
+  type TacticGroup, type TacticTransition,
+  type TacticsDocument,
 } from './tacticsDocument';
 import {
-  actComplete, assignedCount, stageComplete, unassignedSlots, type WizardState,
+  assignedCount, jobComplete, unassignedSlots, type WizardState,
 } from './wizardState';
-import { describePlace, ZONE_OPTIONS } from './places';
+import { describePlace } from './places';
 
 /**
- * The wizard's eight steps. Each is a pure view over the wizard's working
+ * The wizard's five steps. Each is a pure view over the wizard's working
  * tactic: `change` mutates a clone, the map tasks come from the page, and
- * everything a player answers here reopens exactly the same way later.
+ * everything a player answers here reopens exactly the same way later. The
+ * Phases step is the heart: a selectable storyboard of the operation, each
+ * phase carrying every Group's job and its own latched "Continue when…".
  */
 
 export interface StepProps {
@@ -38,13 +40,15 @@ export interface StepProps {
   task: MapTask | null;
   change: (apply: (tactic: Tactic) => void) => void;
   arm: (slot: number | null) => void;
+  /** Select the storyboard phase the drawer and the map focus on. */
+  selectPhase: (index: number) => void;
   /** `draw` overrides the task's draw kind — required when arming right after
    * a kind change, before the wizard state has flushed. */
-  startPhaseTask: (groupId: string, phase: 'stage' | 'act', field?: 'via', draw?: DrawKind) => void;
+  startJobTask: (groupId: string, phaseIndex: number, field?: 'via', draw?: DrawKind) => void;
   /** Draw one post's own way in (overrides the group route for that bot). */
-  startPostViaTask: (groupId: string, phase: 'stage' | 'act', postIndex: number) => void;
-  startSigTask: (groupId: string, phase: 'stage' | 'act', classId: string) => void;
-  startWatchTask: (which: 'start' | 'release' | 'cleared') => void;
+  startPostViaTask: (groupId: string, phaseIndex: number, postIndex: number) => void;
+  startSigTask: (groupId: string, phaseIndex: number, classId: string) => void;
+  startWatchTask: (target: WatchTarget) => void;
   endTask: () => void;
   /** Append a prefilled Deliver Core Tactic to the sheet (carrier picked,
    * escorts and screen auto-assigned) without leaving this wizard. */
@@ -53,33 +57,63 @@ export interface StepProps {
   highlightPost?: { groupId: string; postIndex: number } | null;
 }
 
+const START_TRIGGERS = [
+  'enemiesAt', 'coreLoose', 'coreSoon', 'carrier',
+] as const;
+const START_MORE = ['enemiesDown', 'losses', 'lossesWithin'] as const;
+const ABORT_TRIGGERS = ['lossesWithin', 'losses', 'coreLost'] as const;
+const ABORT_MORE = ['enemiesAt'] as const;
+const TRANSITION_REQUIRED = ['groupsSet', 'held'] as const;
+const TRANSITION_TRIGGERS = [
+  'enemiesAt', 'contact', 'coreSoon', 'coreLoose', 'kills', 'coreAcquired',
+  'coreBanked', 'coreLost',
+] as const;
+const TRANSITION_MORE = [
+  'cleared', 'enemiesDown', 'losses', 'reached', 'observed', 'held',
+] as const;
+
 export function StartStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
   const tactic = wizard.tactic;
   const modes = [
     { id: 'always' as const, label: 'Always', blurb: 'Applies whenever nothing above it in the Sheet does.' },
     { id: 'when' as const, label: 'Only when…', blurb: 'Gated behind conditions on top of Sheet order.' },
   ];
+  const watchFor = (scope: 'start' | 'abort') =>
+    task?.kind === 'watch' && task.target.scope === scope
+      ? {
+        caseIndex: task.target.caseIndex,
+        side: task.target.side,
+        row: task.target.row,
+      }
+      : null;
+  const [abortOpen, setAbortOpen] = useState(Boolean(tactic.abort));
   return <>
     <p className="t-meta">First things first: <b>when does this Tactic apply at all?</b>{' '}
-      The Sheet still reads top to bottom — this only gates it further.</p>
+      The Sheet still reads top to bottom — this only gates it further. Once it
+      starts, it is committed: it keeps control until it finishes, aborts, or
+      runs out its time limit.</p>
     <SegChips options={modes} value={tactic.start.mode}
       onChange={(mode) => change((next) => {
         next.start = mode === 'when'
-          ? { mode, conds: next.start.conds ?? {} }
+          ? { mode, cases: next.start.cases ?? [{ triggers: {} }] }
           : { mode: 'always' };
       })} />
     <p className="t-micro text-arena-dim">{modes.find((mode) => mode.id === tactic.start.mode)?.blurb}</p>
     {tactic.start.mode === 'when' && (
-      <ConditionRows
-        conds={tactic.start.conds ?? {}}
-        kinds={['enemiesAt', 'coreLoose', 'coreSoon', 'carrier']}
-        moreKinds={['enemiesDown', 'losses']}
+      <CaseListEditor
+        cases={tactic.start.cases ?? [{ triggers: {} }]}
+        maximum={3}
         accent="#e6ddd4"
         watchSymbol="▶"
         watchAdjective="pale"
-        watching={task?.kind === 'watch' && task.which === 'start'}
-        onChange={(conds) => change((next) => { next.start.conds = conds; })}
-        onDrawWatch={() => startWatchTask('start')}
+        requiredKinds={[]}
+        triggerKinds={[...START_TRIGGERS]}
+        moreTriggerKinds={[...START_MORE]}
+        makeCase={() => ({ triggers: {} })}
+        onChange={(cases) => change((next) => { next.start.cases = cases; })}
+        watching={watchFor('start')}
+        onDrawWatch={(caseIndex, side, row) =>
+          startWatchTask({ scope: 'start', caseIndex, side, row })}
         onStopWatch={endTask}
       />
     )}
@@ -88,6 +122,59 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         ? 'No condition ticked yet — tick one below, or this Tactic never applies.'
         : 'Always available — the Sheet order alone decides when it runs.')}
     </Readback>
+    <div className="rounded-sm border border-arena-edge p-2"
+      style={{ borderLeft: '3px solid #f4526b' }}>
+      <div className="flex items-center gap-2">
+        <b className="t-body">Abort when…</b>
+        <span className="t-micro text-arena-dim">bails out of every phase and hands the Sheet back</span>
+        <span className="grow" />
+        <button type="button" className="btn"
+          onClick={() => {
+            if (tactic.abort) {
+              change((next) => { delete next.abort; });
+              setAbortOpen(false);
+            } else {
+              change((next) => {
+                next.abort = { cases: [{ triggers: { lossesWithin: { count: 4, ticks: 30 } } }] };
+              });
+              setAbortOpen(true);
+            }
+          }}>
+          {tactic.abort ? 'Remove' : '＋ Add'}
+        </button>
+      </div>
+      {tactic.abort && abortOpen && (
+        <div className="mt-2">
+          <CaseListEditor
+            cases={tactic.abort.cases}
+            maximum={2}
+            accent="#f4526b"
+            watchSymbol="⨯"
+            watchAdjective="red"
+            requiredKinds={[]}
+            triggerKinds={[...ABORT_TRIGGERS]}
+            moreTriggerKinds={[...ABORT_MORE]}
+            makeCase={() => ({ triggers: {} })}
+            onChange={(cases) => change((next) => { next.abort = { cases }; })}
+            watching={watchFor('abort')}
+            onDrawWatch={(caseIndex, side, row) =>
+              startWatchTask({ scope: 'abort', caseIndex, side, row })}
+            onStopWatch={endTask}
+          />
+          <p className="t-micro mt-1 text-arena-dim">After an abort the whole Sheet is reread —
+            a higher emergency Tactic (a Regroup gated on the same losses) can take over,
+            and this one may later restart from its first phase.</p>
+        </div>
+      )}
+    </div>
+    <div>
+      <div className="lab mb-1">Time limit <span className="text-arena-dim">(optional)</span></div>
+      <ChoiceCards options={MAX_DURATIONS} value={tactic.maxDuration ?? 'none'} columns={4}
+        onChange={(maxDuration) => change((next) => {
+          if (maxDuration === 'none') delete next.maxDuration;
+          else next.maxDuration = maxDuration;
+        })} />
+    </div>
   </>;
 }
 
@@ -151,7 +238,7 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
     dragSlot !== null && dropTarget === target;
   return <>
     <p className="t-meta">Split the whole team into up to three temporary Groups. They live only
-      inside this Tactic — every bot belongs to exactly one.</p>
+      inside this Tactic — every bot belongs to exactly one, through every phase.</p>
     <div className="flex items-center gap-2">
       <span className="lab">Assigned</span>
       <div className="h-1.5 grow overflow-hidden rounded bg-arena-deep">
@@ -211,6 +298,7 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
                 event.stopPropagation();
                 change((next) => {
                   next.groups = next.groups.filter((value) => value.id !== group.id);
+                  for (const phase of next.phases) delete phase.jobs[group.id];
                 });
               }}>✕</button>
           )}
@@ -249,7 +337,13 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
     <div className="flex items-center gap-2">
       {tactic.groups.length < 3 && (
         <button type="button" className="btn"
-          onClick={() => change((next) => { next.groups.push(freshGroup(next.groups)); })}>
+          onClick={() => change((next) => {
+            const group = freshGroup(next.groups);
+            next.groups.push(group);
+            for (const phase of next.phases) {
+              phase.jobs[group.id] = freshJob('none', 'hold');
+            }
+          })}>
           ＋ Add a Group
         </button>
       )}
@@ -271,58 +365,192 @@ export function GroupsStep({ catalog, document, wizard, change, arm }: StepProps
   </>;
 }
 
-export function PhaseStep(props: StepProps & { phase: 'stage' | 'act' }) {
-  const { wizard, phase } = props;
-  const isStage = phase === 'stage';
+export function PhasesStep(props: StepProps) {
+  const { wizard, change, selectPhase, endTask } = props;
+  const tactic = wizard.tactic;
+  const index = Math.min(wizard.phaseIndex, tactic.phases.length - 1);
+  const phase = tactic.phases[index];
+  if (!phase) return null;
+  const last = index === tactic.phases.length - 1;
   return <>
-    <p className="t-meta">{isStage
-      ? <><b>Every Group stages its own way.</b> Where does each one set up, and how does it behave while it waits?</>
-      : <><b>Each Group can carry its own second plan</b> for after release. A Group with no Act keeps doing its Stage job.</>}</p>
-    {wizard.tactic.groups.map((group) => (
-      <PhaseSection key={group.id} {...props} group={group} />
+    <p className="t-meta"><b>The operation, phase by phase.</b> Each phase says what every
+      Group does; its “Continue when…” is latched — once the next phase begins, a lapsed
+      condition never rewinds it. Transitions only ever go forward.</p>
+    <div className="flex flex-wrap items-center gap-1" data-testid="phase-storyboard">
+      {tactic.phases.map((entry, entryIndex) => (
+        <span key={entry.id} className="flex items-center gap-1">
+          {entryIndex > 0 && <span className="text-[10px]" style={{ color: '#c8763c' }}>⚡</span>}
+          <button type="button"
+            className={`btn !min-h-7 !px-2 !text-[10.5px] ${entryIndex === index ? 'btn-on' : ''}`}
+            data-testid={`phase-chip-${entryIndex + 1}`}
+            onClick={() => { selectPhase(entryIndex); endTask(); }}>
+            {entry.name}
+          </button>
+        </span>
+      ))}
+      {tactic.phases.length < 8 && (
+        <button type="button" className="btn !min-h-7" data-testid="add-phase"
+          onClick={() => {
+            change((next) => {
+              const previous = next.phases[next.phases.length - 1];
+              if ((previous.continue ?? []).length === 0) {
+                previous.continue = [{ triggers: {}, to: 'next' }];
+              }
+              next.phases.push(freshPhase(next, `Phase ${next.phases.length + 1}`));
+              const added = next.phases[next.phases.length - 1];
+              delete added.continue;
+            });
+            selectPhase(tactic.phases.length);
+          }}>
+          ＋ Add phase
+        </button>
+      )}
+    </div>
+    <div className="flex items-center gap-2">
+      <input
+        className="min-w-0 grow border-b border-dashed border-transparent bg-transparent text-[13px] font-semibold text-arena-text outline-none transition-colors hover:border-arena-edge2 focus:border-arena-material"
+        value={phase.name}
+        aria-label="Phase name"
+        onChange={(event) => change((next) => {
+          next.phases[index].name = event.target.value;
+        })}
+      />
+      <span className="val">phase {index + 1} of {tactic.phases.length}</span>
+      {tactic.phases.length > 1 && (
+        <button type="button" className="btn" title="Remove this phase"
+          onClick={() => {
+            change((next) => {
+              const removed = next.phases[index];
+              next.phases.splice(index, 1);
+              for (const entry of next.phases) {
+                for (const rule of entry.continue ?? []) {
+                  if (rule.to === removed.id) rule.to = 'next';
+                }
+              }
+              const tail = next.phases[next.phases.length - 1];
+              if (tail) {
+                tail.continue = (tail.continue ?? [])
+                  .map((rule) => rule.to === 'next' ? { ...rule, to: 'finish' } : rule);
+                if (tail.continue.length === 0) delete tail.continue;
+              }
+            });
+            selectPhase(Math.max(0, index - 1));
+            endTask();
+          }}>✕</button>
+      )}
+    </div>
+    {tactic.groups.map((group) => (
+      <JobSection key={group.id} {...props} group={group} phaseIndex={index} />
     ))}
+    <div className="rounded-sm border border-arena-edge p-2"
+      style={{ borderLeft: '3px solid #c8763c' }}>
+      <div className="mb-1 flex items-center gap-2">
+        <b className="t-body">{last ? 'Ends when…' : 'Continue when…'}</b>
+        <span className="t-micro text-arena-dim">
+          {last
+            ? 'the Tactic finishes; leave empty to hold here forever'
+            : 'latched — the moment it fires, the operation moves forward'}
+        </span>
+      </div>
+      <CaseListEditor<TacticTransition>
+        cases={phase.continue ?? []}
+        maximum={3}
+        accent="#c8763c"
+        watchAdjective="orange"
+        requiredKinds={[...TRANSITION_REQUIRED]}
+        triggerKinds={[...TRANSITION_TRIGGERS]}
+        moreTriggerKinds={[...TRANSITION_MORE]}
+        makeCase={() => ({ triggers: {}, to: last ? 'finish' : 'next' })}
+        onChange={(rules) => change((next) => {
+          if (rules.length === 0) delete next.phases[index].continue;
+          else next.phases[index].continue = rules;
+        })}
+        caseFooter={(rule, update) => (
+          <span className="flex items-center gap-1.5">
+            <span className="lab">then</span>
+            <select className="field !min-h-7 !w-auto !py-0 t-micro"
+              value={rule.to}
+              onChange={(event) => update((next) => { next.to = event.target.value; })}>
+              {!last && <option value="next">the next phase</option>}
+              {tactic.phases.map((candidate, candidateIndex) =>
+                candidateIndex > index + 1 && (
+                  <option key={candidate.id} value={candidate.id}>
+                    skip to {candidate.name}
+                  </option>
+                ))}
+              <option value="finish">the Tactic finishes</option>
+            </select>
+          </span>
+        )}
+        watching={props.task?.kind === 'watch'
+          && props.task.target.scope === 'continue'
+          && props.task.target.phaseIndex === index
+          ? {
+            caseIndex: props.task.target.ruleIndex,
+            side: props.task.target.side,
+            row: props.task.target.row,
+          }
+          : null}
+        onDrawWatch={(ruleIndex, side, row) => props.startWatchTask({
+          scope: 'continue', phaseIndex: index, ruleIndex, side, row,
+        })}
+        onStopWatch={endTask}
+      />
+      {last && (phase.continue ?? []).length === 0 && (
+        <p className="t-micro mt-1 text-arena-dim">No ending ticked: once here, the squad holds
+          this phase until a Tactic-wide abort, the time limit, or the match itself intervenes.</p>
+      )}
+    </div>
   </>;
 }
 
-function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: TacticGroup }) {
+function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number }) {
   const {
-    catalog, document, wizard, phase, group, task, change,
-    startPhaseTask, startPostViaTask, startSigTask, endTask, highlightPost,
+    catalog, document, wizard, group, phaseIndex, task, change,
+    startJobTask, startPostViaTask, startSigTask, endTask, highlightPost,
   } = props;
   const tactic = wizard.tactic;
-  const isStage = phase === 'stage';
-  const geo = isStage ? group.stage : group.act;
+  const job = jobOf(tactic, phaseIndex, group.id);
+  if (!job) return null;
+  const first = phaseIndex === 0;
+  const carried = job.kind === 'none' && !first
+    ? effectiveJob(tactic, phaseIndex, group.id)
+    : null;
   const color = groupColor(tactic, group.id);
-  const kinds = isStage
-    ? STAGE_KINDS.filter((kind) => kind.id !== 'none'
-      || group.stage.kind === 'none' || group.act.kind !== 'none')
-    : ACT_KINDS.filter((kind) => kind.id !== 'escort'
+  const kinds = JOB_KINDS
+    .filter((kind) => kind.id !== 'escort'
       // Escort only makes sense when someone can end up carrying — keyed off
       // content (a delivery plan or a Core habit), never off the recipe.
-      || group.act.kind === 'escort' || tactic.delivery.plan !== 'none'
-      || tactic.groups.some((value) => value.coreRule !== 'ignore'));
-  const kindDef = (isStage ? STAGE_KINDS : ACT_KINDS).find((kind) => kind.id === geo.kind);
-  const complete = isStage ? stageComplete(tactic, group.id) : actComplete(tactic, group.id);
-  const drawing = task?.kind === 'phase' && task.groupId === group.id && task.phase === phase;
-  const postures = posturesFor(tactic, group, phase);
-  const setKind = (kind: StageKind | ActKind) => {
+      || job.kind === 'escort' || tactic.delivery.plan !== 'none'
+      || tactic.groups.some((value) => value.coreRule !== 'ignore'))
+    .map((kind) => kind.id === 'none' && first
+      ? { ...kind, label: 'No ground', blurb: 'Start loose — no assigned ground this phase.' }
+      : kind);
+  const kindDef = JOB_KINDS.find((kind) => kind.id === job.kind);
+  const complete = jobComplete(tactic, phaseIndex, group.id);
+  const drawing = task?.kind === 'job' && task.groupId === group.id
+    && task.phaseIndex === phaseIndex;
+  const postures = posturesFor(tactic, job.kind);
+  const mutateJob = (apply: (target: NonNullable<ReturnType<typeof jobOf>>) => void) =>
     change((next) => {
-      const target = next.groups.find((value) => value.id === group.id);
-      if (!target) return;
-      const targetGeo = phase === 'stage' ? target.stage : target.act;
-      if (targetGeo.kind !== kind) {
-        targetGeo.kind = kind;
-        delete targetGeo.posts;
-        delete targetGeo.rect;
-        delete targetGeo.path;
-        delete targetGeo.point;
-        if (!viaLegal(kind, phase === 'stage')) delete targetGeo.via;
+      const target = next.phases[phaseIndex]?.jobs[group.id];
+      if (target) apply(target);
+    });
+  const setKind = (kind: JobKind) => {
+    mutateJob((target) => {
+      if (target.kind !== kind) {
+        target.kind = kind;
+        delete target.posts;
+        delete target.rect;
+        delete target.path;
+        delete target.point;
+        if (!viaLegal(kind)) delete target.via;
       }
     });
-    const def = (isStage ? STAGE_KINDS : ACT_KINDS).find((value) => value.id === kind);
+    const def = JOB_KINDS.find((value) => value.id === kind);
     // Arm for the kind just chosen — the wizard state hasn't flushed yet, so
     // without the override the task would draw the PREVIOUS kind's geometry.
-    if (def?.draw) startPhaseTask(group.id, phase, undefined, def.draw);
+    if (def?.draw) startJobTask(group.id, phaseIndex, undefined, def.draw);
     else endTask();
   };
   const groupClasses = [...new Set(group.slots
@@ -335,50 +563,51 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
   const className = (classId: string) =>
     catalog.classes.find((value) => value.id === classId)?.name ?? classId;
   return (
-    <div className="rounded-sm border border-arena-edge p-2" id={`section-${group.id}-${phase}`}
+    <div className="rounded-sm border border-arena-edge p-2"
+      id={`section-${group.id}-${phaseIndex}`}
       style={{ borderLeft: `3px solid ${color}` }}>
       <div className="mb-1 flex items-center gap-2">
         <span className="h-2.5 w-2.5 rounded-[3px]" style={{ background: color }} />
         <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
         <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
       </div>
-      <div className="lab">{isStage ? 'Setup' : 'On release'}</div>
-      <SegChips options={kinds} value={geo.kind} accent={color}
-        onChange={(kind) => setKind(kind as StageKind & ActKind)} />
+      <div className="lab">This phase</div>
+      <SegChips options={kinds} value={job.kind} accent={color}
+        onChange={(kind) => setKind(kind as JobKind)} />
       <p className="t-micro mb-1 text-arena-dim">{kindDef?.blurb}</p>
       {kindDef?.draw
         ? <GeoStatusRow complete={complete}
-          label={describeGeometry(geo, group)}
-          drawing={drawing}
-          onDraw={() => startPhaseTask(group.id, phase)}
+          label={describeGeometry(job, group)}
+          drawing={drawing && task?.kind === 'job' && task.field !== 'via'}
+          onDraw={() => startJobTask(group.id, phaseIndex)}
           onStop={endTask}
-          onClear={() => change((next) => {
-            const target = next.groups.find((value) => value.id === group.id);
-            const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
-            if (!targetGeo) return;
-            delete targetGeo.posts;
-            delete targetGeo.rect;
-            delete targetGeo.path;
-            delete targetGeo.point;
+          onClear={() => mutateJob((target) => {
+            delete target.posts;
+            delete target.rect;
+            delete target.path;
+            delete target.point;
           })} />
-        : <GeoStatusRow complete label={geo.kind === 'return'
+        : <GeoStatusRow complete label={job.kind === 'return'
           ? 'Route home is worked out automatically.'
-          : geo.kind === 'escort'
+          : job.kind === 'escort'
             ? 'They shadow the carrier — no drawing needed.'
-            : !isStage && geo.kind === 'none'
-              ? `${group.name} keeps its Stage behavior — staged Groups don’t wander off.`
-              : 'Nothing to draw for this choice.'} drawing={false} />}
-      {geo.kind === 'posts' && (geo.posts?.length ?? 0) > 0 && (
+            : carried
+              ? `${group.name} carries on: ${describeGeometry(carried, group)}`
+              : first
+                ? `${group.name} starts loose — nothing to draw.`
+                : `${group.name} has no earlier ground to carry — pick a job or draw one in an earlier phase.`}
+          drawing={false} />}
+      {job.kind === 'posts' && (job.posts?.length ?? 0) > 0 && (
         <p className="t-micro mt-1 text-arena-dim">Each posted bot stands on its tile facing one of
           four ways — drag its arrow tip to turn it; the wedge is what it watches.</p>
       )}
-      {geo.kind === 'posts' && (geo.posts?.length ?? 0) > 0 ? (
+      {job.kind === 'posts' && (job.posts?.length ?? 0) > 0 ? (
         // Per-post ways in: each bot can sneak to its own post by its own
         // drawn route instead of the direct path through the middle.
-        geo.posts!.map((post, index) => {
+        job.posts!.map((post, index) => {
           const bot = document.squad[group.slots[index]];
-          const mine = task?.kind === 'phase' && task.groupId === group.id
-            && task.phase === phase && task.field === 'via'
+          const mine = task?.kind === 'job' && task.groupId === group.id
+            && task.phaseIndex === phaseIndex && task.field === 'via'
             && task.postIndex === index;
           const flashed = highlightPost?.groupId === group.id
             && highlightPost.postIndex === index;
@@ -391,60 +620,54 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
                 ? ` · ${post.via.length} waypoints` : ' (direct)'}`}
               drawing={mine}
               drawLabel="Draw route"
-              onDraw={() => startPostViaTask(group.id, phase, index)}
+              onDraw={() => startPostViaTask(group.id, phaseIndex, index)}
               onStop={endTask}
-              onClear={post.via ? () => change((next) => {
-                const target = next.groups.find((value) => value.id === group.id);
-                const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
-                const targetPost = targetGeo?.posts?.[index];
+              onClear={post.via ? () => mutateJob((target) => {
+                const targetPost = target.posts?.[index];
                 if (targetPost) delete targetPost.via;
               }) : undefined}
             />
           </div>;
         })
-      ) : viaLegal(geo.kind, isStage) && (
+      ) : viaLegal(job.kind) && kindDef?.draw && (
         <GeoStatusRow
-          complete={(geo.via?.length ?? 0) >= 2}
-          label={geo.via?.length
-            ? `Approach route — ${geo.via.length} waypoints walked in first.`
+          complete={(job.via?.length ?? 0) >= 2}
+          label={job.via?.length
+            ? `Approach route — ${job.via.length} waypoints walked in first.`
             : 'Approach route (optional) — swing wide instead of the direct path.'}
-          drawing={task?.kind === 'phase' && task.groupId === group.id
-            && task.phase === phase && task.field === 'via'
+          drawing={task?.kind === 'job' && task.groupId === group.id
+            && task.phaseIndex === phaseIndex && task.field === 'via'
             && task.postIndex == null}
           drawLabel="Draw route"
-          onDraw={() => startPhaseTask(group.id, phase, 'via')}
+          onDraw={() => startJobTask(group.id, phaseIndex, 'via')}
           onStop={endTask}
-          onClear={geo.via ? () => change((next) => {
-            const target = next.groups.find((value) => value.id === group.id);
-            const targetGeo = target && (phase === 'stage' ? target.stage : target.act);
-            if (targetGeo) delete targetGeo.via;
+          onClear={job.via ? () => mutateJob((target) => {
+            delete target.via;
           }) : undefined}
         />
       )}
       <div className="lab mt-2">Posture</div>
-      <SegChips options={postures} value={geo.posture} accent={color}
-        onChange={(posture) => change((next) => {
-          const target = next.groups.find((value) => value.id === group.id);
-          if (target) (phase === 'stage' ? target.stage : target.act).posture = posture as Posture;
+      <SegChips options={postures} value={job.posture} accent={color}
+        onChange={(posture) => mutateJob((target) => {
+          target.posture = posture as Posture;
         })} />
-      <p className="t-micro mb-1 text-arena-dim">{POSTURES.find((value) => value.id === geo.posture)?.blurb}</p>
+      <p className="t-micro mb-1 text-arena-dim">{POSTURES.find((value) => value.id === job.posture)?.blurb}</p>
       <div className="lab">Recovery</div>
-      <SegChips options={RECOVERIES} value={geo.recovery} accent={color}
-        onChange={(recovery) => change((next) => {
-          const target = next.groups.find((value) => value.id === group.id);
-          if (target) (phase === 'stage' ? target.stage : target.act).recovery = recovery as Recovery;
+      <SegChips options={RECOVERIES} value={job.recovery} accent={color}
+        onChange={(recovery) => mutateJob((target) => {
+          target.recovery = recovery as Recovery;
         })} />
-      <p className="t-micro text-arena-dim">{RECOVERIES.find((value) => value.id === geo.recovery)?.blurb}</p>
+      <p className="t-micro text-arena-dim">{RECOVERIES.find((value) => value.id === job.recovery)?.blurb}</p>
       {(spatialClasses.length > 0 || passiveClasses.length > 0) && (
-        <div className="lab mt-2">Signatures — {isStage ? 'set while staging' : 'used after release'}</div>
+        <div className="lab mt-2">Signatures — used during this phase</div>
       )}
       {spatialClasses.map((classId) => {
         const geometry = signatureMarkGeometry(catalog, classId)!;
-        const mark = group.sigs?.[phase]?.[classId];
+        const mark = job.sigs?.[classId];
         const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
         const has = points.length > 0;
         const mine = task?.kind === 'sig' && task.groupId === group.id
-          && task.phase === phase && task.classId === classId;
+          && task.phaseIndex === phaseIndex && task.classId === classId;
         const placed = has
           ? geometry.kind === 'points'
             ? ` · ${points.length}/${geometry.max} marks at ${describePlace(...points[0])}`
@@ -454,11 +677,10 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
           label={`${geometry.icon} ${className(classId)} — ${geometry.label}${placed}`}
           drawLabel="Place marks"
           drawing={mine}
-          onDraw={() => startSigTask(group.id, phase, classId)}
+          onDraw={() => startSigTask(group.id, phaseIndex, classId)}
           onStop={endTask}
-          onClear={has ? () => change((next) => {
-            const target = next.groups.find((value) => value.id === group.id);
-            if (target?.sigs?.[phase]) delete target.sigs[phase]![classId];
+          onClear={has ? () => mutateJob((target) => {
+            if (target.sigs) delete target.sigs[classId];
           }) : undefined} />;
       })}
       {spatialClasses.length === 0 && passiveClasses.length > 0 && (
@@ -474,59 +696,18 @@ function PhaseSection(props: StepProps & { phase: 'stage' | 'act'; group: Tactic
   );
 }
 
-function posturesFor(tactic: Tactic, group: TacticGroup, phase: 'stage' | 'act') {
+function posturesFor(tactic: Tactic, kind: JobKind) {
   const coreish = tactic.delivery.plan !== 'none'
     || tactic.groups.some((value) => value.coreRule === 'hunt')
-    || group.act.kind === 'return';
-  const ids: Posture[] = phase === 'stage'
-    ? ['wait', 'hold', 'observe', ...(coreish ? ['steal', 'escort'] as Posture[] : [])]
+    || kind === 'return';
+  const standing = ['posts', 'area', 'line', 'approach', 'none'].includes(kind);
+  const ids: Posture[] = standing
+    ? ['wait', 'hold', 'observe', 'aggressive', ...(coreish ? ['steal', 'escort'] as Posture[] : [])]
     : ['aggressive', 'hold', 'observe', ...(coreish ? ['steal', 'escort'] as Posture[] : [])];
-  const current = phase === 'stage' ? group.stage.posture : group.act.posture;
-  if (!ids.includes(current)) ids.push(current);
   return POSTURES.filter((posture) => ids.includes(posture.id));
 }
 
-export function ReleaseStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
-  const tactic = wizard.tactic;
-  const modes = [
-    { id: 'immediate' as const, label: 'Immediately', blurb: 'They go as soon as this Tactic starts.' },
-    { id: 'ready' as const, label: 'When every Group is ready', blurb: 'Staged, in position, then go together.' },
-    { id: 'ready-when' as const, label: 'Ready, plus a trigger', blurb: 'Hold the leash until the moment is right — any ticked condition lets go.' },
-  ];
-  return <>
-    <p className="t-meta">Between Stage and Act sits one shared moment: <b>when do they go?</b>{' '}
-      Release ends every Group's Stage at the same time.</p>
-    <SegChips options={modes} value={tactic.release.mode}
-      onChange={(mode) => change((next) => {
-        next.release = mode === 'ready-when'
-          ? { mode, conds: next.release.conds ?? {} }
-          : { mode };
-      })} />
-    <p className="t-micro text-arena-dim">{modes.find((mode) => mode.id === tactic.release.mode)?.blurb}</p>
-    {tactic.release.mode === 'ready-when' && (
-      <ConditionRows
-        conds={tactic.release.conds ?? {}}
-        kinds={['enemiesAt', 'contact', 'coreLoose', 'coreSoon']}
-        moreKinds={['enemiesDown']}
-        accent="#c8763c"
-        watchAdjective="orange"
-        watching={task?.kind === 'watch' && task.which === 'release'}
-        onChange={(conds) => change((next) => { next.release.conds = conds; })}
-        onDrawWatch={() => startWatchTask('release')}
-        onStopWatch={endTask}
-      />
-    )}
-    <Readback label="Readback">{releaseClause(tactic)}.</Readback>
-    <p className="t-micro text-arena-dim">Groups with no Act just keep holding after release — nobody wanders off.</p>
-    {tactic.release.mode !== 'immediate' && (
-      <p className="t-micro text-arena-dim">Readiness never waits for the dead: a downed bot
-        excuses its own post or slot. On respawn it rejoins the squad wherever it is —
-        catching up with a released squad rather than re-staging at an empty post.</p>
-    )}
-  </>;
-}
-
-export function CoresStep({ catalog, document, wizard, change }: StepProps) {
+export function CoresStep({ catalog, document, wizard, change, addDeliverCore }: StepProps) {
   const tactic = wizard.tactic;
   const preferred = tactic.delivery.preferredSlots ?? [];
   return <>
@@ -575,112 +756,6 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
         {deliveryClause(tactic, (slot) => document.squad[slot]?.name ?? null)}.
       </Readback>
     )}
-  </>;
-}
-
-export function FinishStep({ document, wizard, change, addDeliverCore, task, startWatchTask, endTask }: StepProps) {
-  const tactic = wizard.tactic;
-  const outcomes = tactic.finish.outcomes;
-  const capital = (value: string) => value.replace(/^\w/, (letter) => letter.toUpperCase());
-  const row = (
-    key: keyof typeof outcomes,
-    label: string,
-    on: boolean,
-    toggle: () => void,
-    extra?: React.ReactNode,
-  ) => <TickRow key={key} on={on} label={label} extra={extra} onToggle={toggle} />;
-  return <>
-    <p className="t-meta">And last: <b>when is this Tactic finished?</b>{' '}
-      Any selected outcome ends it, and the Sheet moves on.</p>
-    <PhaseStrip tactic={tactic} big />
-    <p className="t-micro text-arena-dim">Outcomes start counting once the Tactic releases —
-      a holding Group can’t finish it while the others are still staging.</p>
-    <div className="flex flex-col gap-1.5">
-      {row('kills',
-        `${capital(numberWord(outcomes.kills?.count ?? 3))} enem${(outcomes.kills?.count ?? 3) === 1 ? 'y' : 'ies'} destroyed`,
-        Boolean(outcomes.kills),
-        () => change((next) => {
-          if (next.finish.outcomes.kills) delete next.finish.outcomes.kills;
-          else next.finish.outcomes.kills = { count: 3 };
-        }),
-        outcomes.kills && <CountStepper value={outcomes.kills.count} onChange={(value) =>
-          change((next) => { next.finish.outcomes.kills = { count: value }; })} />)}
-      {row('losses',
-        `We have lost ${numberWord(outcomes.losses?.count ?? 2)} bot${(outcomes.losses?.count ?? 2) === 1 ? '' : 's'}`,
-        Boolean(outcomes.losses),
-        () => change((next) => {
-          if (next.finish.outcomes.losses) delete next.finish.outcomes.losses;
-          else next.finish.outcomes.losses = { count: 2 };
-        }),
-        outcomes.losses && <CountStepper value={outcomes.losses.count} onChange={(value) =>
-          change((next) => { next.finish.outcomes.losses = { count: value }; })} />)}
-      {row('cleared',
-        outcomes.cleared
-          ? `${capital(ZONE_OPTIONS.find((option) =>
-            option.rect.every((value, index) => value === outcomes.cleared!.zone.rect[index]))?.label
-            ?? 'the drawn box')} cleared`
-          : 'An area is cleared',
-        Boolean(outcomes.cleared),
-        () => change((next) => {
-          if (next.finish.outcomes.cleared) delete next.finish.outcomes.cleared;
-          else next.finish.outcomes.cleared = { zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
-        }),
-        outcomes.cleared && <>
-          <ZoneSelect zone={outcomes.cleared.zone} onChange={(zone) =>
-            change((next) => { next.finish.outcomes.cleared = { zone }; })} />
-          {task?.kind === 'watch' && task.which === 'cleared'
-            ? <button type="button" className="btn btn-on !min-h-7"
-              onClick={(event) => { event.stopPropagation(); endTask(); }}>
-              Stop
-            </button>
-            : <button type="button" className="btn !min-h-7"
-              title="Drag your own box on the map instead of a named area"
-              onClick={(event) => { event.stopPropagation(); startWatchTask('cleared'); }}>
-              Draw it
-            </button>}
-        </>)}
-      {row('coreAcquired', 'A Core is acquired', Boolean(outcomes.coreAcquired),
-        () => change((next) => {
-          if (next.finish.outcomes.coreAcquired) delete next.finish.outcomes.coreAcquired;
-          else next.finish.outcomes.coreAcquired = true;
-        }))}
-      {row('coreBanked', 'A Core is banked', Boolean(outcomes.coreBanked),
-        () => change((next) => {
-          if (next.finish.outcomes.coreBanked) delete next.finish.outcomes.coreBanked;
-          else next.finish.outcomes.coreBanked = true;
-        }))}
-      {row('coreLost', 'The Core is lost', Boolean(outcomes.coreLost),
-        () => change((next) => {
-          if (next.finish.outcomes.coreLost) delete next.finish.outcomes.coreLost;
-          else next.finish.outcomes.coreLost = true;
-        }))}
-      {row('reached', 'The destination is reached', Boolean(outcomes.reached),
-        () => change((next) => {
-          if (next.finish.outcomes.reached) delete next.finish.outcomes.reached;
-          else next.finish.outcomes.reached = true;
-        }))}
-      {row('observed', 'The ground has been watched long enough', Boolean(outcomes.observed),
-        () => change((next) => {
-          if (next.finish.outcomes.observed) delete next.finish.outcomes.observed;
-          else next.finish.outcomes.observed = true;
-        }))}
-      {row('persistent', 'Persistent — runs until a higher Tactic takes over', Boolean(outcomes.persistent),
-        () => change((next) => {
-          if (next.finish.outcomes.persistent) delete next.finish.outcomes.persistent;
-          else next.finish.outcomes.persistent = true;
-        }))}
-    </div>
-    {outcomes.persistent
-      && (Object.keys(outcomes).length > 1 || tactic.finish.maxAttempt !== 'none') && (
-      <p className="t-micro text-arena-dim">Persistent only fills the gaps — the ticked outcomes
-        and the attempt timer still end this Tactic; persistent means it never finishes on
-        its own between them.</p>
-    )}
-    <div>
-      <div className="lab mb-1">Maximum attempt</div>
-      <ChoiceCards options={MAX_ATTEMPTS} value={tactic.finish.maxAttempt} columns={4}
-        onChange={(maxAttempt) => change((next) => { next.finish.maxAttempt = maxAttempt; })} />
-    </div>
     <DeliverCoreSuggestion document={document} tactic={tactic} change={change}
       addDeliverCore={addDeliverCore} />
   </>;
@@ -690,7 +765,7 @@ export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }
   const tactic = wizard.tactic;
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
   return <>
-    <p className="t-meta">Read it back. If the sentence says what you meant, it’s ready.</p>
+    <p className="t-meta">Read it back. If the sentences say what you meant, it’s ready.</p>
     <div className="panel-feature pad">
       <div className="lab mb-1.5">The whole operation</div>
       <p className="t-body leading-relaxed">{summarize(tactic, botName)}</p>
@@ -702,13 +777,8 @@ export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }
         <div className="mb-1 flex items-center gap-2">
           <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
           <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
-          <span className="grow" />
-          <span className="pill">
-            {POSTURES.find((value) => value.id === group.stage.posture)?.label}
-            {group.act.kind !== 'none' && ` → ${POSTURES.find((value) => value.id === group.act.posture)?.label}`}
-          </span>
         </div>
-        <p className="t-meta">{groupClause(group, true)}.</p>
+        <p className="t-meta">{groupClause(tactic, group, true)}.</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
           {group.slots.map((slot) => document.squad[slot] && (
             <BotChip key={slot} bot={document.squad[slot]} catalog={catalog} />
@@ -723,20 +793,23 @@ export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }
   </>;
 }
 
-/** Content-keyed nudge: an aggressive Tactic that can finish holding a Core,
- * with no plan for the run home, gets offered one — in place, or as a
- * one-click separate Deliver Core Tactic. */
+/** Content-keyed nudge: a Tactic that can finish holding a Core, with no
+ * plan for the run home, gets offered one — in place, or as a one-click
+ * separate Deliver Core Tactic. */
 function DeliverCoreSuggestion({ document, tactic, change, addDeliverCore }: {
   document: TacticsDocument;
   tactic: Tactic;
   change: (apply: (tactic: Tactic) => void) => void;
   addDeliverCore?: () => void;
 }) {
-  const wantsCore = Boolean(tactic.finish.outcomes.coreAcquired)
+  const wantsCore = tacticCanFinish(tactic).finishCarrying
     && tactic.delivery.plan === 'none';
   const hasDeliver = document.tactics.some((value) =>
-    value.id !== tactic.id && value.start.conds?.carrier
-    && value.groups.some((group) => group.act.kind === 'return'));
+    value.id !== tactic.id
+    && (value.start.cases ?? []).some((entry) =>
+      entry.triggers?.carrier || entry.required?.carrier)
+    && value.phases.some((phase) => Object.values(phase.jobs)
+      .some((job) => job.kind === 'return')));
   if (!wantsCore || hasDeliver) return null;
   return (
     <div className="panel-quiet pad">
@@ -768,4 +841,4 @@ function Readback({ label, children }: { label: string; children: React.ReactNod
   );
 }
 
-export { actClause };
+export { possessive };

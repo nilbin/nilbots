@@ -1,20 +1,20 @@
 import type { RecipeHints } from './recipes';
 import { possessive } from './summary';
-import type { Tactic, TacticsDocument } from './tacticsDocument';
+import {
+  activeCaseCount, expectedGeometry, jobHasGeometry, jobOf,
+  type Tactic, type TacticsDocument,
+} from './tacticsDocument';
 
 export type WizardStepId =
-  | 'start' | 'groups' | 'stage' | 'release' | 'act' | 'cores' | 'finish' | 'review';
+  | 'start' | 'groups' | 'phases' | 'cores' | 'review';
 
-/** Ordered like the life of a Tactic: when it applies, who is in it, where
- * they set up, when they go, what they do after, Cores, and when it is done. */
+/** Ordered like the life of a Tactic: when it applies (and when it bails),
+ * who is in it, the phases of the operation, Cores, and the readback. */
 export const WIZARD_STEPS: { id: WizardStepId; label: string }[] = [
   { id: 'start', label: 'Start' },
   { id: 'groups', label: 'Groups' },
-  { id: 'stage', label: 'Stage' },
-  { id: 'release', label: 'Release' },
-  { id: 'act', label: 'Act' },
+  { id: 'phases', label: 'Phases' },
   { id: 'cores', label: 'Cores' },
-  { id: 'finish', label: 'Finish' },
   { id: 'review', label: 'Review' },
 ];
 
@@ -22,6 +22,8 @@ export interface WizardState {
   tactic: Tactic;
   hints: RecipeHints;
   step: WizardStepId;
+  /** The storyboard's selected phase — what the map draws handles for. */
+  phaseIndex: number;
   editing: boolean;
   originalId: string | null;
   armedSlot: number | null;
@@ -36,23 +38,35 @@ export function unassignedSlots(tactic: Tactic, document: TacticsDocument): numb
   return document.squad.map((bot) => bot.slot).filter((slot) => !taken.has(slot));
 }
 
-export function stageComplete(tactic: Tactic, groupId: string): boolean {
+/** A group's job in one phase has everything its kind needs drawn. */
+export function jobComplete(
+  tactic: Tactic,
+  phaseIndex: number,
+  groupId: string,
+): boolean {
   const group = tactic.groups.find((value) => value.id === groupId);
-  if (!group) return false;
-  if (group.stage.kind === 'none') return true;
-  if (group.stage.kind === 'posts') {
-    return (group.stage.posts?.length ?? 0) === group.slots.length && group.slots.length > 0;
+  const job = jobOf(tactic, phaseIndex, groupId);
+  if (!group || !job) return false;
+  const expected = expectedGeometry(job.kind);
+  if (expected === null) return true;
+  if (expected === 'posts') {
+    return (job.posts?.length ?? 0) === group.slots.length && group.slots.length > 0;
   }
-  return Boolean(group.stage.rect || (group.stage.path?.length ?? 0) > 1 || group.stage.point);
+  if (expected === 'rect') return Boolean(job.rect);
+  if (expected === 'point') return Boolean(job.point);
+  return (job.path?.length ?? 0) > 1;
 }
 
-export function actComplete(tactic: Tactic, groupId: string): boolean {
-  const group = tactic.groups.find((value) => value.id === groupId);
-  if (!group) return false;
-  const kind = group.act.kind;
-  if (kind === 'none' || kind === 'return' || kind === 'escort') return true;
-  if (kind === 'converge') return Boolean(group.act.point);
-  return (group.act.path?.length ?? 0) > 1;
+export function phaseComplete(tactic: Tactic, phaseIndex: number): boolean {
+  const phase = tactic.phases[phaseIndex];
+  if (!phase) return false;
+  const jobsDone = tactic.groups.every((group) =>
+    jobComplete(tactic, phaseIndex, group.id));
+  const last = phaseIndex === tactic.phases.length - 1;
+  const rules = phase.continue ?? [];
+  const exitDone = last
+    || rules.some((rule) => activeCaseCount(rule) > 0);
+  return jobsDone && exitDone;
 }
 
 export function stepDone(state: WizardState, id: WizardStepId): boolean {
@@ -61,14 +75,11 @@ export function stepDone(state: WizardState, id: WizardStepId): boolean {
     case 'groups':
       return assignedCount(tactic) === 8
         && tactic.groups.every((group) => group.slots.length > 0);
-    case 'stage':
-      return tactic.groups.every((group) => stageComplete(tactic, group.id));
-    case 'act':
-      return tactic.groups.every((group) => actComplete(tactic, group.id));
-    case 'finish':
-      return Object.keys(tactic.finish.outcomes).length > 0
-        || tactic.finish.maxAttempt !== 'none';
-    case 'cores': case 'start': case 'release':
+    case 'phases':
+      return tactic.phases.length > 0
+        && tactic.phases.every((_, index) => phaseComplete(tactic, index))
+        && tactic.groups.some((group) => jobHasGeometry(jobOf(tactic, 0, group.id)));
+    case 'cores': case 'start':
       return true;
     default:
       return false;
@@ -78,23 +89,25 @@ export function stepDone(state: WizardState, id: WizardStepId): boolean {
 /** The one gate on Create: what — in plain words — still stands in the way. */
 export function createGate(state: WizardState, document: TacticsDocument): string | null {
   const tactic = state.tactic;
-  if (document.squad.length !== 8) {
-    return 'Fill all eight squad slots first — a Tactic commands the whole team.';
+  if (document.squad.length !== 8) return 'Fill all eight squad slots first.';
+  if (assignedCount(tactic) !== 8) {
+    return `Assign all eight bots to Groups (${assignedCount(tactic)}/8).`;
   }
-  if (assignedCount(tactic) < 8) {
-    return `Assign all eight bots (${assignedCount(tactic)}/8 assigned).`;
+  if (tactic.groups.some((group) => group.slots.length === 0)) {
+    return 'Every Group needs at least one bot — dissolve empty ones.';
   }
-  const empty = tactic.groups.find((group) => group.slots.length === 0);
-  if (empty) return `${empty.name} has no bots — every Group needs at least one.`;
-  const unstaged = tactic.groups.find((group) => !stageComplete(tactic, group.id));
-  if (unstaged) return `${unstaged.name} needs its Stage drawn on the map.`;
-  const unacted = tactic.groups.find((group) => !actComplete(tactic, group.id));
-  if (unacted) {
-    return `${possessive(unacted.name)} Act needs its ${unacted.act.kind === 'converge' ? 'destination' : 'route'} drawn.`;
+  if (!tactic.groups.some((group) => jobHasGeometry(jobOf(tactic, 0, group.id)))) {
+    return 'The first phase needs at least one Group with drawn geometry.';
   }
-  if (Object.keys(tactic.finish.outcomes).length === 0
-    && tactic.finish.maxAttempt === 'none') {
-    return 'Pick at least one Outcome (or a time limit) so the Tactic can finish.';
+  for (let index = 0; index < tactic.phases.length; index++) {
+    if (!phaseComplete(tactic, index)) {
+      const phase = tactic.phases[index];
+      return `${possessive(phase.name)} phase is not finished — draw its jobs and set its “Continue when…”.`;
+    }
+  }
+  if (tactic.start.mode === 'when'
+    && !(tactic.start.cases ?? []).some((value) => activeCaseCount(value) > 0)) {
+    return 'Start is “only when…” but no condition is ticked.';
   }
   return null;
 }

@@ -1,30 +1,44 @@
 import { condClauses } from './summary';
 import type { Tactic } from './tacticsDocument';
 
-/** The little Stage — ⚡ Release — Act — ✓ chronology strip on every card. */
+/** The little named-phase chronology strip on every card:
+ * ▶ when… — Set trap ⚡ Close trap ⚡ … — ✓/∞. */
 export function PhaseStrip({ tactic, big = false }: { tactic: Tactic; big?: boolean }) {
-  const acts = tactic.groups.some((group) => group.act.kind !== 'none');
-  const outcomes = Object.keys(tactic.finish.outcomes).length;
   const gated = tactic.start.mode === 'when'
-    && condClauses(tactic.start.conds).length > 0;
-  const chip = (label: string, tone?: string) => (
-    <span
+    && (tactic.start.cases ?? []).some((value) =>
+      condClauses(value.required).length + condClauses(value.triggers).length > 0);
+  const finishes = tactic.phases.some((phase) =>
+    (phase.continue ?? []).some((rule) => rule.to === 'finish'))
+    || (tactic.maxDuration && tactic.maxDuration !== 'none');
+  const chip = (label: string, tone?: string, key?: string) => (
+    <span key={key ?? label}
       className={`rounded-[3px] border border-arena-edge px-1 py-px font-semibold uppercase tracking-wide ${big ? 'text-[10.5px]' : 'text-[9px]'}`}
       style={tone ? { color: tone, borderColor: `${tone}55` } : undefined}
     >
       {label}
     </span>
   );
-  const dash = <span className="text-arena-dim/60">—</span>;
+  const bolt = (key: string) => (
+    <span key={key} className="text-[9px]" style={{ color: '#c8763c' }}>⚡</span>
+  );
+  const parts: React.ReactNode[] = [];
+  if (gated) {
+    parts.push(chip('▶ when…', undefined, 'gate'));
+    parts.push(<span key="gate-dash" className="text-arena-dim/60">—</span>);
+  }
+  tactic.phases.forEach((phase, index) => {
+    if (index > 0) parts.push(bolt(`bolt-${index}`));
+    parts.push(chip(phase.name, undefined, `phase-${phase.id}`));
+  });
+  parts.push(<span key="end-dash" className="text-arena-dim/60">—</span>);
+  parts.push(chip(
+    finishes ? '✓ finish' : '∞ holds',
+    finishes ? '#38d9c5' : '#b49cff',
+    'end'));
+  if (tactic.abort) parts.push(chip('⨯ abort', '#f4526b', 'abort'));
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1 text-arena-dim">
-      {gated && <>{chip('▶ when…')}{dash}</>}
-      {chip('Stage')}
-      {dash}
-      {chip('⚡ Release', '#c8763c')}
-      {dash}
-      {acts && <>{chip('Act')}{dash}</>}
-      {chip(`✓ ${outcomes || 'no'} outcome${outcomes === 1 ? '' : 's'}${tactic.finish.maxAttempt !== 'none' ? ' · timer' : ''}`, '#38d9c5')}
+      {parts}
     </div>
   );
 }

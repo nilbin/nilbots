@@ -4,51 +4,70 @@ import { BaseMap } from './BaseMap';
 import { classSprite } from './classArt';
 import { makePathfinder } from './pathing';
 import { describePlace } from './places';
-import type { MapTask } from './useMapTask';
+import type { MapTask, WatchTarget } from './useMapTask';
 import {
-  FACING_DELTAS, groupColor, postFacingIssue, signatureMarkGeometry,
-  tilePlacementIssue,
+  FACING_DELTAS, effectiveJob, groupColor, jobOf, postFacingIssue,
+  signatureMarkGeometry, tilePlacementIssue,
   type Facing, type Point, type Rect, type SquadBot, type Tactic,
-  type TacticGroup, type TacticPhase, type TacticsDocument, type WellChoice,
+  type TacticConds, type TacticGroup, type TacticJob, type TacticsDocument,
+  type WellChoice,
 } from './tacticsDocument';
 
 /**
- * The map IS the editor: every Tactic draws its footprint here, the open
- * wizard's geometry is grabbable, and the active draw task turns clicks and
- * drags into posts, boxes, routes and marks. Condition footprints render
- * under group geometry so posts stay grabbable (mock z-order rule).
+ * The map IS the editor: every Tactic draws its footprint here — phase one
+ * full-bodied, later phases as onward arrows and dimmer ground — the open
+ * wizard's geometry is grabbable in every phase, and the active draw task
+ * turns clicks and drags into posts, boxes, routes and marks. Condition
+ * footprints render under group geometry so posts stay grabbable.
  */
 
 export type MapSelectRef =
-  | { tacticId: string; part: 'start' | 'release' | 'finish' | 'cores' }
-  | { tacticId: string; part: 'group'; groupId: string }
-  | { tacticId: string; part: 'post'; groupId: string; postIndex: number };
+  | { tacticId: string; part: 'start' | 'cores' }
+  | { tacticId: string; part: 'phase'; phaseIndex: number }
+  | { tacticId: string; part: 'group'; groupId: string; phaseIndex: number }
+  | { tacticId: string; part: 'post'; groupId: string; phaseIndex: number; postIndex: number };
 
 type DragTarget =
-  | { kind: 'post'; groupId: string; index: number; origin: Point }
-  | { kind: 'postface'; groupId: string; index: number }
-  | { kind: 'waypoint'; groupId: string; phase: 'stage' | 'act'; index: number }
-  | { kind: 'point'; groupId: string; phase: 'stage' | 'act' }
-  | { kind: 'rectmove'; groupId: string; phase: 'stage' | 'act' }
-  | { kind: 'rectsize'; groupId: string; phase: 'stage' | 'act' }
-  | { kind: 'sigpoint'; groupId: string; phase: 'stage' | 'act'; classId: string; index: number }
-  | { kind: 'watchmove'; which: 'start' | 'release' | 'cleared' }
-  | { kind: 'watchsize'; which: 'start' | 'release' | 'cleared' };
+  | { kind: 'post'; groupId: string; phaseIndex: number; index: number; origin: Point }
+  | { kind: 'postface'; groupId: string; phaseIndex: number; index: number }
+  | { kind: 'waypoint'; groupId: string; phaseIndex: number; index: number }
+  | { kind: 'point'; groupId: string; phaseIndex: number }
+  | { kind: 'rectmove'; groupId: string; phaseIndex: number }
+  | { kind: 'rectsize'; groupId: string; phaseIndex: number }
+  | { kind: 'sigpoint'; groupId: string; phaseIndex: number; classId: string; index: number }
+  | { kind: 'watchmove'; target: WatchTarget }
+  | { kind: 'watchsize'; target: WatchTarget };
 
 export interface GeometryEdit {
   tacticId: string;
   apply: (tactic: Tactic) => void;
 }
 
+/** The conds object a watch target addresses, on a given tactic. */
+export function watchConds(tactic: Tactic, target: WatchTarget): TacticConds | null {
+  if (target.scope === 'start') {
+    const entry = tactic.start.cases?.[target.caseIndex];
+    return entry?.[target.side] ?? null;
+  }
+  if (target.scope === 'abort') {
+    const entry = tactic.abort?.cases[target.caseIndex];
+    return entry?.[target.side] ?? null;
+  }
+  const rule = tactic.phases[target.phaseIndex]?.continue?.[target.ruleIndex];
+  return rule?.[target.side] ?? null;
+}
 
 export function TacticsMapCanvas({
-  catalog, document, editingTacticId, selectedTacticId, showAll, task, hints,
+  catalog, document, editingTacticId, activePhaseIndex, selectedTacticId,
+  showAll, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
   onSelect, onTaskDone, onTileRejected, onPostsSwapped,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
   editingTacticId: string | null;
+  /** The wizard's storyboard selection; later phases render dimmer. */
+  activePhaseIndex: number | null;
   selectedTacticId: string | null;
   showAll: boolean;
   task: MapTask | null;
@@ -170,7 +189,8 @@ export function TacticsMapCanvas({
         onGestureEnd();
         onSelect({
           tacticId: editingTacticId, part: 'post',
-          groupId: drag.groupId, postIndex: drag.index,
+          groupId: drag.groupId, phaseIndex: drag.phaseIndex,
+          postIndex: drag.index,
         });
         return;
       }
@@ -193,9 +213,9 @@ export function TacticsMapCanvas({
     if (moved) return;
     const tile = clientToTile(event);
     if (task && tile && task.kind !== 'watch' && task.draw !== 'rect') {
-      // Phase routes are walked, so waypoints follow the route rule; posts,
+      // Job routes are walked, so waypoints follow the route rule; posts,
       // points and signature marks become anchors.
-      const placement = task.kind === 'phase' && task.draw === 'route'
+      const placement = task.kind === 'job' && task.draw === 'route'
         ? 'route' as const
         : 'anchor' as const;
       const issue = tilePlacementIssue(catalog, tile, placement);
@@ -210,12 +230,18 @@ export function TacticsMapCanvas({
     const selectable = (event.target as Element).closest('[data-select]');
     if (selectable) {
       const raw = selectable.getAttribute('data-select')!;
-      const [tacticId, part, groupId, index] = raw.split(':');
-      if (part === 'group') onSelect({ tacticId, part, groupId });
-      else if (part === 'post') {
-        onSelect({ tacticId, part, groupId, postIndex: Number(index) });
+      const [tacticId, part, a, b, c] = raw.split(':');
+      if (part === 'group') {
+        onSelect({ tacticId, part, groupId: a, phaseIndex: Number(b) });
+      } else if (part === 'post') {
+        onSelect({
+          tacticId, part, groupId: a,
+          phaseIndex: Number(b), postIndex: Number(c),
+        });
+      } else if (part === 'phase') {
+        onSelect({ tacticId, part, phaseIndex: Number(a) });
       } else {
-        onSelect({ tacticId, part: part as 'start' | 'release' | 'finish' | 'cores' });
+        onSelect({ tacticId, part: part as 'start' | 'cores' });
       }
     }
   }
@@ -228,9 +254,10 @@ export function TacticsMapCanvas({
   function applyDrag(drag: DragTarget, [x, y]: Point) {
     editGeometry((tactic) => {
       if (drag.kind === 'watchmove' || drag.kind === 'watchsize') {
-        const holder = drag.which === 'cleared'
-          ? tactic.finish.outcomes.cleared
-          : (drag.which === 'start' ? tactic.start.conds : tactic.release.conds)?.enemiesAt;
+        const conds = watchConds(tactic, drag.target);
+        const holder = drag.target.row === 'cleared'
+          ? conds?.cleared
+          : conds?.enemiesAt;
         if (!holder) return;
         const rect: Rect = [...holder.zone.rect];
         if (drag.kind === 'watchsize') {
@@ -245,10 +272,10 @@ export function TacticsMapCanvas({
         }
         return;
       }
-      const group = tactic.groups.find((value) => value.id === drag.groupId);
-      if (!group) return;
+      const job = tactic.phases[drag.phaseIndex]?.jobs[drag.groupId];
+      if (!job) return;
       if (drag.kind === 'postface') {
-        const post = group.stage.posts?.[drag.index];
+        const post = job.posts?.[drag.index];
         if (!post) return;
         const dx = x - post.at[0];
         const dy = y - post.at[1];
@@ -263,29 +290,27 @@ export function TacticsMapCanvas({
         return;
       }
       if (drag.kind === 'sigpoint') {
-        const mark = group.sigs?.[drag.phase]?.[drag.classId];
+        const mark = job.sigs?.[drag.classId];
         if (!mark) return;
         const points = 'points' in mark ? mark.points : mark.line;
         points[drag.index] = [x, y];
         return;
       }
-      const phase = drag.kind === 'post' ? group.stage
-        : drag.phase === 'stage' ? group.stage : group.act;
       if (drag.kind === 'post') {
-        if (phase.posts?.[drag.index]) phase.posts[drag.index].at = [x, y];
+        if (job.posts?.[drag.index]) job.posts[drag.index].at = [x, y];
       } else if (drag.kind === 'waypoint') {
-        if (phase.path?.[drag.index]) phase.path[drag.index] = [x, y];
+        if (job.path?.[drag.index]) job.path[drag.index] = [x, y];
       } else if (drag.kind === 'point') {
-        phase.point = [x, y];
-      } else if (drag.kind === 'rectsize' && phase.rect) {
-        phase.rect = [phase.rect[0], phase.rect[1],
-          Math.max(phase.rect[0], x), Math.max(phase.rect[1], y)];
-      } else if (drag.kind === 'rectmove' && phase.rect) {
-        const w = phase.rect[2] - phase.rect[0];
-        const h = phase.rect[3] - phase.rect[1];
+        job.point = [x, y];
+      } else if (drag.kind === 'rectsize' && job.rect) {
+        job.rect = [job.rect[0], job.rect[1],
+          Math.max(job.rect[0], x), Math.max(job.rect[1], y)];
+      } else if (drag.kind === 'rectmove' && job.rect) {
+        const w = job.rect[2] - job.rect[0];
+        const h = job.rect[3] - job.rect[1];
         const nx = Math.min(Math.max(x, 1), width - 2 - w);
         const ny = Math.min(Math.max(y, 1), height - 2 - h);
-        phase.rect = [nx, ny, nx + w, ny + h];
+        job.rect = [nx, ny, nx + w, ny + h];
       }
     });
   }
@@ -295,22 +320,22 @@ export function TacticsMapCanvas({
     if (drag.kind !== 'post') return;
     // The live drag already moved the post in the document, so a shared tile
     // here means the drop is a swap — detect before the edit, announce after.
-    const liveGroup = document.tactics
+    const liveJob = document.tactics
       .find((value) => value.id === editingTacticId)
-      ?.groups.find((value) => value.id === drag.groupId);
-    const livePost = liveGroup?.stage.posts?.[drag.index];
-    const willSwap = Boolean(liveGroup && livePost
-      && liveGroup.stage.posts!.some((candidate, index) =>
+      ?.phases[drag.phaseIndex]?.jobs[drag.groupId];
+    const livePost = liveJob?.posts?.[drag.index];
+    const willSwap = Boolean(liveJob && livePost
+      && liveJob.posts!.some((candidate, index) =>
         index !== drag.index
         && candidate.at[0] === livePost.at[0] && candidate.at[1] === livePost.at[1]));
     editGeometry((tactic) => {
-      const group = tactic.groups.find((value) => value.id === drag.groupId);
-      const post = group?.stage.posts?.[drag.index];
-      if (!group || !post) return;
-      const other = group.stage.posts!.findIndex((candidate, index) =>
+      const job = tactic.phases[drag.phaseIndex]?.jobs[drag.groupId];
+      const post = job?.posts?.[drag.index];
+      if (!job || !post) return;
+      const other = job.posts!.findIndex((candidate, index) =>
         index !== drag.index
         && candidate.at[0] === post.at[0] && candidate.at[1] === post.at[1]);
-      if (other >= 0) group.stage.posts![other].at = drag.origin;
+      if (other >= 0) job.posts![other].at = drag.origin;
     });
     if (willSwap) onPostsSwapped?.();
   }
@@ -344,7 +369,7 @@ export function TacticsMapCanvas({
         // A dimmed tactic's tag sits on its first drawn geometry, so three
         // overlays in "show every Tactic" stay tellable apart.
         const tagAnchor = dim && tag
-          ? tactic.groups.map((group) => stageAnchor(group) ?? actAnchor(group))
+          ? tactic.groups.map((group) => jobAnchor(jobOf(tactic, 0, group.id)))
             .find((value): value is Point => Boolean(value)) ?? [2, 2] as Point
           : null;
         return (
@@ -352,10 +377,17 @@ export function TacticsMapCanvas({
             <g opacity={dim ? .32 : 1}>
               <ConditionFootprints tactic={tactic} catalog={catalog} dim={dim}
                 editable={editable(tactic)} startDrag={startDrag} pathfinder={path} />
-              {tactic.groups.map((group) => (
-                <GroupOverlay key={group.id} tactic={tactic} group={group} bots={bots}
-                  catalog={catalog} dim={dim} editable={editable(tactic)}
-                  startDrag={startDrag} pathfinder={path} />
+              {tactic.phases.map((phase, phaseIndex) => (
+                <g key={phase.id}
+                  opacity={editable(tactic) && activePhaseIndex !== null
+                    && phaseIndex !== activePhaseIndex ? .45 : 1}>
+                  {tactic.groups.map((group) => (
+                    <JobOverlay key={group.id} tactic={tactic} group={group}
+                      phaseIndex={phaseIndex} bots={bots}
+                      catalog={catalog} dim={dim} editable={editable(tactic)}
+                      startDrag={startDrag} pathfinder={path} />
+                  ))}
+                </g>
               ))}
             </g>
             {tagAnchor && tag && <ChipLabel x={tagAnchor[0] + .5} y={tagAnchor[1] - .35}
@@ -378,29 +410,55 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
   pathfinder: ReturnType<typeof makePathfinder>;
 }) {
   const parts: React.ReactNode[] = [];
-  const watch = (which: 'start' | 'release', color: string, symbol: string, above: boolean) => {
-    const source = which === 'start' ? tactic.start : tactic.release;
-    const active = which === 'start' ? source.mode === 'when' : source.mode === 'ready-when';
-    if (!active || !source.conds) return;
-    const select = `${tactic.id}:${which}`;
-    if (source.conds.enemiesAt) {
-      const [x0, y0, x1, y1] = source.conds.enemiesAt.zone.rect;
-      parts.push(<g key={`${which}-watch`}>
+
+  const watchBoxes = (
+    conds: TacticConds | undefined,
+    makeTarget: (row: 'enemiesAt' | 'cleared') => WatchTarget,
+    color: string,
+    symbol: string,
+    select: string,
+    key: string,
+    above: boolean,
+  ) => {
+    if (conds?.enemiesAt) {
+      const [x0, y0, x1, y1] = conds.enemiesAt.zone.rect;
+      const rowTarget = makeTarget('enemiesAt');
+      parts.push(<g key={`${key}-enemies`}>
         <rect x={x0 + .06} y={y0 + .06} width={x1 - x0 + .88} height={y1 - y0 + .88} rx={.16}
           fill={`${color}0e`} stroke={color} strokeWidth={.1} strokeDasharray=".12 .2"
           data-select={select} cursor="pointer" />
         {!dim && <ChipLabel x={(x0 + x1 + 1) / 2} y={above ? y0 - .35 : y1 + 2.15}
-          text={`${symbol} ${source.conds.enemiesAt.count}+ ENEMIES HERE`} color={color} select={select} />}
+          text={`${symbol} ${conds.enemiesAt.count}+ ENEMIES HERE`} color={color} select={select} />}
         {editable && <>
-          <Handle cx={x0} cy={y0} onDown={(event) => startDrag(event, { kind: 'watchmove', which })} cursor="move" />
-          <Handle cx={x1 + 1} cy={y1 + 1} onDown={(event) => startDrag(event, { kind: 'watchsize', which })} />
+          <Handle cx={x0} cy={y0} cursor="move"
+            onDown={(event) => startDrag(event, { kind: 'watchmove', target: rowTarget })} />
+          <Handle cx={x1 + 1} cy={y1 + 1}
+            onDown={(event) => startDrag(event, { kind: 'watchsize', target: rowTarget })} />
         </>}
       </g>);
     }
-    if (source.conds.coreLoose) {
-      const at = wellCentre(catalog, source.conds.coreLoose.well);
+    if (conds?.cleared) {
+      const [x0, y0, x1, y1] = conds.cleared.zone.rect;
+      const teal = '#38d9c5';
+      const rowTarget = makeTarget('cleared');
+      parts.push(<g key={`${key}-cleared`}>
+        <rect x={x0 + .28} y={y0 + .28} width={x1 - x0 + .44} height={y1 - y0 + .44} rx={.14}
+          fill="none" stroke={teal} strokeWidth={.07} strokeDasharray=".3 .16" opacity=".8"
+          data-select={select} cursor="pointer" />
+        {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text="✓ CLEARED HERE" color={teal}
+          select={select} opacity={.95} />}
+        {editable && <>
+          <Handle cx={x0} cy={y0} cursor="move"
+            onDown={(event) => startDrag(event, { kind: 'watchmove', target: rowTarget })} />
+          <Handle cx={x1 + 1} cy={y1 + 1}
+            onDown={(event) => startDrag(event, { kind: 'watchsize', target: rowTarget })} />
+        </>}
+      </g>);
+    }
+    if (conds?.coreLoose) {
+      const at = wellCentre(catalog, conds.coreLoose.well);
       if (at) {
-        parts.push(<g key={`${which}-core`}>
+        parts.push(<g key={`${key}-core`}>
           <circle cx={at[0]} cy={at[1]} r={.95} fill="none" stroke={color}
             strokeWidth={.1} strokeDasharray=".14 .18" data-select={select} cursor="pointer" />
           {!dim && <ChipLabel x={at[0]} y={at[1] + 2.1} text={`${symbol} CORE UP HERE`}
@@ -409,30 +467,28 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
       }
     }
   };
-  watch('start', '#e6ddd4', '▶', true);
-  watch('release', '#c8763c', '⚡', false);
 
-  if (tactic.finish.outcomes.cleared) {
-    const [x0, y0, x1, y1] = tactic.finish.outcomes.cleared.zone.rect;
-    const color = '#38d9c5';
-    parts.push(<g key="cleared">
-      <rect x={x0 + .28} y={y0 + .28} width={x1 - x0 + .44} height={y1 - y0 + .44} rx={.14}
-        fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".3 .16" opacity=".8"
-        data-select={`${tactic.id}:finish`} cursor="pointer" />
-      {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text="✓ CLEAR TO FINISH" color={color}
-        select={`${tactic.id}:finish`} opacity={.95} />}
-      {editable && <>
-        <Handle cx={x0} cy={y0} cursor="move"
-          onDown={(event) => startDrag(event, { kind: 'watchmove', which: 'cleared' })} />
-        <Handle cx={x1 + 1} cy={y1 + 1}
-          onDown={(event) => startDrag(event, { kind: 'watchsize', which: 'cleared' })} />
-      </>}
-    </g>);
-  }
+  (tactic.start.cases ?? []).forEach((entry, caseIndex) => {
+    for (const side of ['required', 'triggers'] as const) {
+      watchBoxes(entry[side],
+        (row) => ({ scope: 'start', caseIndex, side, row }),
+        '#e6ddd4', '▶', `${tactic.id}:start`, `start-${caseIndex}-${side}`, true);
+    }
+  });
+  tactic.phases.forEach((phase, phaseIndex) => {
+    (phase.continue ?? []).forEach((rule, ruleIndex) => {
+      for (const side of ['required', 'triggers'] as const) {
+        watchBoxes(rule[side],
+          (row) => ({ scope: 'continue', phaseIndex, ruleIndex, side, row }),
+          '#c8763c', '⚡', `${tactic.id}:phase:${phaseIndex}`,
+          `continue-${phaseIndex}-${ruleIndex}-${side}`, false);
+      }
+    });
+  });
 
   if (tactic.delivery.plan !== 'none') {
     const anchors = tactic.groups
-      .map((group) => stageAnchor(group))
+      .map((group) => jobAnchor(jobOf(tactic, 0, group.id)))
       .filter((value): value is Point => Boolean(value));
     const from = anchors.length
       ? pathfinder.nearestFloor([
@@ -460,9 +516,13 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
   return <>{parts}</>;
 }
 
-function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, pathfinder }: {
+/** One group's job in one phase. The first phase renders full-bodied
+ * (ground you stand on); later phases render as the onward move — arrows
+ * from the previous ground for movers, dashed ground for a new stand. */
+function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, startDrag, pathfinder }: {
   tactic: Tactic;
   group: TacticGroup;
+  phaseIndex: number;
   bots: SquadBot[];
   catalog: TacticalSheetCatalog;
   dim: boolean;
@@ -470,157 +530,166 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
   startDrag: (event: React.PointerEvent, target: DragTarget) => void;
   pathfinder: ReturnType<typeof makePathfinder>;
 }) {
+  const job = jobOf(tactic, phaseIndex, group.id);
+  if (!job || job.kind === 'none') return null;
   const color = groupColor(tactic, group.id);
-  const select = `${tactic.id}:group:${group.id}`;
+  const select = `${tactic.id}:group:${group.id}:${phaseIndex}`;
   const parts: React.ReactNode[] = [];
-  const stage = group.stage;
+  const first = phaseIndex === 0;
+  const phaseName = tactic.phases[phaseIndex]?.name ?? `Phase ${phaseIndex + 1}`;
+  const previous = phaseIndex > 0
+    ? effectiveJob(tactic, phaseIndex - 1, group.id)
+    : null;
 
-  if (stage.rect) {
-    const [x0, y0, x1, y1] = stage.rect;
-    parts.push(<g key="stage-rect">
-      <rect x={x0} y={y0} width={x1 - x0 + 1} height={y1 - y0 + 1}
-        fill={`${color}22`} stroke={color} strokeWidth={.12} strokeDasharray=".34 .18" rx={.1}
-        data-select={select} cursor="pointer" />
-      {editable && <>
-        <Handle cx={x1 + 1} cy={y1 + 1}
-          onDown={(event) => startDrag(event, { kind: 'rectsize', groupId: group.id, phase: 'stage' })} />
-        <Handle cx={x0} cy={y0} cursor="move"
-          onDown={(event) => startDrag(event, { kind: 'rectmove', groupId: group.id, phase: 'stage' })} />
-      </>}
-    </g>);
-  }
-  if (stage.path && stage.path.length > 1) {
-    const points = pathfinder.connect(stage.path);
-    parts.push(<g key="stage-path">
-      <polyline points={points.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
-        fill="none" stroke={color} strokeWidth={.13} strokeDasharray=".3 .2"
-        strokeLinejoin="round" strokeLinecap="round" data-select={select} cursor="pointer" />
-      {stage.path.map(([x, y], index) => editable
-        ? <Handle key={index} cx={x + .5} cy={y + .5}
-          onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phase: 'stage', index })} />
-        : <circle key={index} cx={x + .5} cy={y + .5} r={.14} fill={color} />)}
-    </g>);
-  }
-  if (stage.point) {
-    const [x, y] = stage.point;
-    const approach = pathfinder.findPath([3, 5], stage.point);
-    parts.push(<g key="stage-point">
-      {approach && <polyline points={approach.map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
-        fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".14 .22" opacity=".7" />}
-      <circle cx={x + .5} cy={y + .5} r={.42} fill="none" stroke={color} strokeWidth={.11}
-        strokeDasharray=".2 .13" data-select={select} cursor="pointer" />
-      {editable
-        ? <Handle cx={x + .5} cy={y + .5}
-          onDown={(event) => startDrag(event, { kind: 'point', groupId: group.id, phase: 'stage' })} />
-        : <circle cx={x + .5} cy={y + .5} r={.15} fill={color} />}
-    </g>);
-  }
-  if (stage.posts) {
-    stage.posts.forEach((post, index) => {
-      const [x, y] = post.at;
-      const cx = x + .5;
-      const cy = y + .5;
-      const [fx, fy] = FACING_DELTAS[post.facing];
-      const angle = Math.atan2(fy, fx);
-      const a1 = angle - Math.PI / 4;
-      const a2 = angle + Math.PI / 4;
-      const wr = .95;
-      const tipX = cx + Math.cos(angle) * .88;
-      const tipY = cy + Math.sin(angle) * .88;
-      const bot = bots[group.slots[index]];
-      const entry = bot ? catalog.classes.find((value) => value.id === bot.class) : null;
-      const sprite = bot ? classSprite(bot.class) : undefined;
-      // Facing angle in degrees: sprites are authored facing east (0°), the
-      // same convention as the arena renderer.
-      const deg = Math.round(angle * 180 / Math.PI);
-      // Post-scoped select: clicking a posted bot lights up its own way-in
-      // row in the drawer, not just the group section.
-      const postSelect = `${tactic.id}:post:${group.id}:${index}`;
-      parts.push(<g key={`post-${index}`}>
-        <path d={`M ${cx} ${cy}
-            L ${cx + Math.cos(a1) * wr} ${cy + Math.sin(a1) * wr}
-            A ${wr} ${wr} 0 0 1 ${cx + Math.cos(a2) * wr} ${cy + Math.sin(a2) * wr} Z`}
-          fill={color} fillOpacity=".13" pointerEvents="none" />
-        <polygon points={`${tipX + Math.cos(angle) * .14},${tipY + Math.sin(angle) * .14} ${tipX - Math.cos(angle - .6) * .3},${tipY - Math.sin(angle - .6) * .3} ${tipX - Math.cos(angle + .6) * .3},${tipY - Math.sin(angle + .6) * .3}`}
-          fill={color} opacity=".9" pointerEvents="none" />
-        {bot && sprite
-          ? <g data-select={postSelect} cursor="pointer">
-            <rect x={x + .04} y={y + .04} width={.92} height={.92} rx={.16}
-              fill="#06090c" fillOpacity=".55" stroke={color} strokeWidth={.07} />
-            <image href={sprite} x={x - .04} y={y - .04} width={1.08} height={1.08}
-              transform={`rotate(${deg} ${cx} ${cy})`} />
-            <title>{`${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`}</title>
-          </g>
-          : <g data-select={postSelect} cursor="pointer">
-            <circle cx={cx} cy={cy} r={.36} fill="#10272f" stroke={color} strokeWidth={.12} />
-            <text x={cx} y={y + .64} textAnchor="middle" fontSize=".38" fontWeight="800"
-              fill="#e9fbff" pointerEvents="none">{index + 1}</text>
-            <title>{bot
-              ? `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`
-              : `${group.name} post ${index + 1}`}</title>
-          </g>}
-        {post.via && post.via.length > 1 && (
-          <g>
-            <polyline points={pathfinder.connect([...post.via, post.at])
-              .map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
-              fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".1 .22"
-              strokeLinejoin="round" strokeLinecap="round" opacity=".75"
-              data-select={select} cursor="pointer" />
-            {post.via.map(([wx, wy], wi) =>
-              <circle key={wi} cx={wx + .5} cy={wy + .5} r={.1} fill={color} opacity=".75" />)}
-          </g>
-        )}
+  const standing = ['posts', 'area', 'line', 'approach'].includes(job.kind);
+  if (standing) {
+    // Ground you stand on: full-bodied on phase one, dashed on later phases,
+    // with an onward arrow from the previous ground.
+    if (!first && previous) {
+      const from = jobCentroid(previous, pathfinder);
+      const to = jobAnchor(job);
+      if (to) {
+        const run = pathfinder.findPath(from, to) ?? [from, to];
+        parts.push(<ArrowPath key="onward" points={run} color={color}
+          select={select} dash=".14 .2" width={.09} opacity={.7} />);
+      }
+    }
+    if (job.rect) {
+      const [x0, y0, x1, y1] = job.rect;
+      parts.push(<g key="rect">
+        <rect x={x0} y={y0} width={x1 - x0 + 1} height={y1 - y0 + 1}
+          fill={`${color}22`} stroke={color} strokeWidth={.12}
+          strokeDasharray={first ? '.34 .18' : '.16 .24'} rx={.1}
+          data-select={select} cursor="pointer" />
         {editable && <>
-          <Handle cx={cx} cy={cy} r={.42}
-            onDown={(event) => startDrag(event, { kind: 'post', groupId: group.id, index, origin: [x, y] })} />
-          <Handle cx={tipX} cy={tipY} r={.3}
-            onDown={(event) => startDrag(event, { kind: 'postface', groupId: group.id, index })} />
+          <Handle cx={x1 + 1} cy={y1 + 1}
+            onDown={(event) => startDrag(event, { kind: 'rectsize', groupId: group.id, phaseIndex })} />
+          <Handle cx={x0} cy={y0} cursor="move"
+            onDown={(event) => startDrag(event, { kind: 'rectmove', groupId: group.id, phaseIndex })} />
         </>}
       </g>);
-    });
+    }
+    if (job.path && job.path.length > 1) {
+      const points = pathfinder.connect(job.path);
+      parts.push(<g key="path">
+        <polyline points={points.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+          fill="none" stroke={color} strokeWidth={.13} strokeDasharray=".3 .2"
+          strokeLinejoin="round" strokeLinecap="round" data-select={select} cursor="pointer" />
+        {job.path.map(([x, y], index) => editable
+          ? <Handle key={index} cx={x + .5} cy={y + .5}
+            onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phaseIndex, index })} />
+          : <circle key={index} cx={x + .5} cy={y + .5} r={.14} fill={color} />)}
+      </g>);
+    }
+    if (job.point) {
+      const [x, y] = job.point;
+      const approach = pathfinder.findPath([3, 5], job.point);
+      parts.push(<g key="point">
+        {first && approach && <polyline points={approach.map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
+          fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".14 .22" opacity=".7" />}
+        <circle cx={x + .5} cy={y + .5} r={.42} fill="none" stroke={color} strokeWidth={.11}
+          strokeDasharray=".2 .13" data-select={select} cursor="pointer" />
+        {editable
+          ? <Handle cx={x + .5} cy={y + .5}
+            onDown={(event) => startDrag(event, { kind: 'point', groupId: group.id, phaseIndex })} />
+          : <circle cx={x + .5} cy={y + .5} r={.15} fill={color} />}
+      </g>);
+    }
+    if (job.posts) {
+      job.posts.forEach((post, index) => {
+        const [x, y] = post.at;
+        const cx = x + .5;
+        const cy = y + .5;
+        const [fx, fy] = FACING_DELTAS[post.facing];
+        const angle = Math.atan2(fy, fx);
+        const a1 = angle - Math.PI / 4;
+        const a2 = angle + Math.PI / 4;
+        const wr = .95;
+        const tipX = cx + Math.cos(angle) * .88;
+        const tipY = cy + Math.sin(angle) * .88;
+        const bot = bots[group.slots[index]];
+        const entry = bot ? catalog.classes.find((value) => value.id === bot.class) : null;
+        const sprite = bot ? classSprite(bot.class) : undefined;
+        // Facing angle in degrees: sprites are authored facing east (0°), the
+        // same convention as the arena renderer.
+        const deg = Math.round(angle * 180 / Math.PI);
+        // Post-scoped select: clicking a posted bot lights up its own way-in
+        // row in the drawer, not just the group section.
+        const postSelect = `${tactic.id}:post:${group.id}:${phaseIndex}:${index}`;
+        parts.push(<g key={`post-${index}`}>
+          <path d={`M ${cx} ${cy}
+              L ${cx + Math.cos(a1) * wr} ${cy + Math.sin(a1) * wr}
+              A ${wr} ${wr} 0 0 1 ${cx + Math.cos(a2) * wr} ${cy + Math.sin(a2) * wr} Z`}
+            fill={color} fillOpacity=".13" pointerEvents="none" />
+          <polygon points={`${tipX + Math.cos(angle) * .14},${tipY + Math.sin(angle) * .14} ${tipX - Math.cos(angle - .6) * .3},${tipY - Math.sin(angle - .6) * .3} ${tipX - Math.cos(angle + .6) * .3},${tipY - Math.sin(angle + .6) * .3}`}
+            fill={color} opacity=".9" pointerEvents="none" />
+          {bot && sprite
+            ? <g data-select={postSelect} cursor="pointer">
+              <rect x={x + .04} y={y + .04} width={.92} height={.92} rx={.16}
+                fill="#06090c" fillOpacity=".55" stroke={color} strokeWidth={.07} />
+              <image href={sprite} x={x - .04} y={y - .04} width={1.08} height={1.08}
+                transform={`rotate(${deg} ${cx} ${cy})`} />
+              <title>{`${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`}</title>
+            </g>
+            : <g data-select={postSelect} cursor="pointer">
+              <circle cx={cx} cy={cy} r={.36} fill="#10272f" stroke={color} strokeWidth={.12} />
+              <text x={cx} y={y + .64} textAnchor="middle" fontSize=".38" fontWeight="800"
+                fill="#e9fbff" pointerEvents="none">{index + 1}</text>
+              <title>{bot
+                ? `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`
+                : `${group.name} post ${index + 1}`}</title>
+            </g>}
+          {post.via && post.via.length > 1 && (
+            <g>
+              <polyline points={pathfinder.connect([...post.via, post.at])
+                .map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
+                fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".1 .22"
+                strokeLinejoin="round" strokeLinecap="round" opacity=".75"
+                data-select={select} cursor="pointer" />
+              {post.via.map(([wx, wy], wi) =>
+                <circle key={wi} cx={wx + .5} cy={wy + .5} r={.1} fill={color} opacity=".75" />)}
+            </g>
+          )}
+          {editable && <>
+            <Handle cx={cx} cy={cy} r={.42}
+              onDown={(event) => startDrag(event, { kind: 'post', groupId: group.id, phaseIndex, index, origin: [x, y] })} />
+            <Handle cx={tipX} cy={tipY} r={.3}
+              onDown={(event) => startDrag(event, { kind: 'postface', groupId: group.id, phaseIndex, index })} />
+          </>}
+        </g>);
+      });
+    }
   }
 
-  if (stage.via && stage.via.length > 1) {
-    parts.push(<g key="stage-via">
-      <polyline points={pathfinder.connect(stage.via).map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
-        fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".12 .26"
-        strokeLinejoin="round" strokeLinecap="round" opacity=".8"
-        data-select={select} cursor="pointer" />
-      {stage.via.map(([x, y], index) =>
-        <circle key={index} cx={x + .5} cy={y + .5} r={.11} fill={color} opacity=".8" />)}
-    </g>);
-  }
-
-  const act = group.act;
-  if (act.kind === 'converge' && act.point) {
-    const starts = convergeStarts(group, pathfinder);
+  if (job.kind === 'converge' && job.point) {
+    const starts = previous ? jobStarts(previous, group, pathfinder) : [[3, 5] as Point];
     parts.push(<g key="converge" data-testid="converge-fan">
       {starts.map((from, index) => {
-        const run = pathfinder.findPath(from, act.point!) ?? [from, act.point!];
+        const run = pathfinder.findPath(from, job.point!) ?? [from, job.point!];
         return <ArrowPath key={index} points={run} color={color} select={select}
           width={starts.length > 1 ? .09 : .16} opacity={starts.length > 1 ? .75 : .92} />;
       })}
       <g data-select={select} cursor="pointer">
-        <circle cx={act.point[0] + .5} cy={act.point[1] + .5} r={.5} fill="none" stroke={color} strokeWidth={.1} />
-        <circle cx={act.point[0] + .5} cy={act.point[1] + .5} r={.24} fill="none" stroke={color} strokeWidth={.1} />
-        <circle cx={act.point[0] + .5} cy={act.point[1] + .5} r={.07} fill={color} />
+        <circle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.5} fill="none" stroke={color} strokeWidth={.1} />
+        <circle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.24} fill="none" stroke={color} strokeWidth={.1} />
+        <circle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.07} fill={color} />
       </g>
-      {editable && <Handle cx={act.point[0] + .5} cy={act.point[1] + .5} r={.62}
-        onDown={(event) => startDrag(event, { kind: 'point', groupId: group.id, phase: 'act' })} />}
+      {editable && <Handle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.62}
+        onDown={(event) => startDrag(event, { kind: 'point', groupId: group.id, phaseIndex })} />}
     </g>);
   }
-  if ((act.kind === 'advance' || act.kind === 'patrol') && act.path && act.path.length > 1) {
-    const loop = act.kind === 'patrol' ? [...act.path, act.path[0]] : act.path;
-    parts.push(<g key="act-path">
-      <ArrowPath points={pathfinder.connect(loop)} color={color} select={select} loop={act.kind === 'patrol'} />
-      {act.path.map(([x, y], index) => editable
+  if ((job.kind === 'advance' || job.kind === 'patrol') && job.path && job.path.length > 1) {
+    const loop = job.kind === 'patrol' ? [...job.path, job.path[0]] : job.path;
+    parts.push(<g key="mover-path">
+      <ArrowPath points={pathfinder.connect(loop)} color={color} select={select} loop={job.kind === 'patrol'} />
+      {job.path.map(([x, y], index) => editable
         ? <Handle key={index} cx={x + .5} cy={y + .5}
-          onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phase: 'act', index })} />
+          onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phaseIndex, index })} />
         : <circle key={index} cx={x + .5} cy={y + .5} r={.13} fill={color} />)}
     </g>);
   }
-  if (act.kind === 'return') {
-    const start = stageAnchor(group) ?? [3, 5] as Point;
+  if (job.kind === 'return') {
+    const start = (previous && jobAnchor(previous)) ?? [3, 5] as Point;
     const home: Point = [2, 5];
     const run = pathfinder.findPath(start, home) ?? [start, home];
     parts.push(<g key="return">
@@ -629,20 +698,20 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
         strokeWidth={.09} strokeDasharray=".22 .14" />
     </g>);
   }
-  if (act.via && act.via.length > 1) {
-    parts.push(<g key="act-via">
-      <polyline points={pathfinder.connect(act.via).map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+  if (job.via && job.via.length > 1) {
+    parts.push(<g key="via">
+      <polyline points={pathfinder.connect(job.via).map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
         fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".12 .26"
         strokeLinejoin="round" strokeLinecap="round" opacity=".8"
         data-select={select} cursor="pointer" />
-      {act.via.map(([x, y], index) =>
+      {job.via.map(([x, y], index) =>
         <circle key={index} cx={x + .5} cy={y + .5} r={.11} fill={color} opacity=".8" />)}
     </g>);
   }
 
-  if (stage.recovery === 'heal-tile' || act.recovery === 'heal-tile') {
+  if (first && job.recovery === 'heal-tile') {
     const heals = catalog.map.regions.filter((region) => region.id.startsWith('heal-'));
-    const from = stageCentroid(group, pathfinder);
+    const from = jobCentroid(job, pathfinder);
     let best: Point | null = null;
     for (const heal of heals) {
       for (const tile of heal.tiles) {
@@ -663,43 +732,41 @@ function GroupOverlay({ tactic, group, bots, catalog, dim, editable, startDrag, 
     }
   }
 
-  for (const phaseKey of ['stage', 'act'] as const) {
-    for (const [classId, mark] of Object.entries(group.sigs?.[phaseKey] ?? {})) {
-      const geometry = signatureMarkGeometry(catalog, classId);
-      if (!geometry) continue;
-      const dashProps = phaseKey === 'act' ? { strokeDasharray: '.16 .12' } : {};
-      const points = 'points' in mark ? mark.points : mark.line;
-      parts.push(<g key={`sig-${phaseKey}-${classId}`}>
-        {'line' in mark && mark.line.length >= 2 && (
-          <polyline points={mark.line.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
-            fill="none" stroke={color} strokeWidth={.09} strokeDasharray=".5 .22" opacity=".8"
-            data-select={select} cursor="pointer" />
-        )}
-        {points.map(([x, y], index) => <g key={index}>
-          <g data-select={select} cursor="pointer">
-            <circle cx={x + .5} cy={y + .5} r={.34} fill="#06090c" fillOpacity=".72"
-              stroke={color} strokeWidth={.09} {...dashProps} />
-            <text x={x + .5} y={y + .68} textAnchor="middle" fontSize=".44" fill={color}
-              pointerEvents="none">{geometry.icon}</text>
-            <title>{`${group.name} — ${geometry.label} (${phaseKey})`}</title>
-          </g>
-          {editable && <Handle cx={x + .5} cy={y + .5} r={.42}
-            onDown={(event) => startDrag(event, { kind: 'sigpoint', groupId: group.id, phase: phaseKey, classId, index })} />}
-        </g>)}
-      </g>);
-    }
+  for (const [classId, mark] of Object.entries(job.sigs ?? {})) {
+    const geometry = signatureMarkGeometry(catalog, classId);
+    if (!geometry) continue;
+    const dashProps = first ? {} : { strokeDasharray: '.16 .12' };
+    const points = 'points' in mark ? mark.points : mark.line;
+    parts.push(<g key={`sig-${classId}`}>
+      {'line' in mark && mark.line.length >= 2 && (
+        <polyline points={mark.line.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+          fill="none" stroke={color} strokeWidth={.09} strokeDasharray=".5 .22" opacity=".8"
+          data-select={select} cursor="pointer" />
+      )}
+      {points.map(([x, y], index) => <g key={index}>
+        <g data-select={select} cursor="pointer">
+          <circle cx={x + .5} cy={y + .5} r={.34} fill="#06090c" fillOpacity=".72"
+            stroke={color} strokeWidth={.09} {...dashProps} />
+          <text x={x + .5} y={y + .68} textAnchor="middle" fontSize=".44" fill={color}
+            pointerEvents="none">{geometry.icon}</text>
+          <title>{`${group.name} — ${geometry.label} (${phaseName})`}</title>
+        </g>
+        {editable && <Handle cx={x + .5} cy={y + .5} r={.42}
+          onDown={(event) => startDrag(event, { kind: 'sigpoint', groupId: group.id, phaseIndex, classId, index })} />}
+      </g>)}
+    </g>);
   }
 
   if (!dim) {
-    const anchor = stageAnchor(group);
+    const anchor = jobAnchor(job);
     if (anchor) {
-      parts.push(<ChipLabel key="stage-chip" x={anchor[0] + .5} y={anchor[1] - .48}
-        text={`${group.name.toUpperCase()} · STAGE`} color={color} select={select} />);
-    }
-    const actPoint = actAnchor(group);
-    if (actPoint) {
-      parts.push(<ChipLabel key="act-chip" x={actPoint[0] + .5} y={actPoint[1] + 2.15}
-        text={`${group.name.toUpperCase()} · ACT`} color={color} select={select} />);
+      parts.push(<ChipLabel key="chip"
+        x={anchor[0] + .5}
+        y={first ? anchor[1] - .48 : anchor[1] + 2.15}
+        text={first
+          ? `${group.name.toUpperCase()} · ${phaseName.toUpperCase()}`
+          : `${group.name.toUpperCase()} · ${phaseName.toUpperCase()}`}
+        color={color} select={select} />);
     }
   }
   return <>{parts}</>;
@@ -717,26 +784,25 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
   const parts: React.ReactNode[] = [];
   const tactic = document.tactics.find((value) => value.id === task.tacticId);
   // The in-progress geometry draws in the task's own colour: the group's for
-  // phase and signature tasks, the watch chrome's for condition boxes.
+  // job and signature tasks, the watch chrome's for condition boxes.
   const taskColor = task.kind === 'watch'
-    ? (task.which === 'start' ? '#e6ddd4'
-      : task.which === 'cleared' ? '#38d9c5' : '#c8763c')
+    ? (task.target.scope === 'start' ? '#e6ddd4'
+      : task.target.row === 'cleared' ? '#38d9c5' : '#c8763c')
     : (tactic ? groupColor(tactic, task.groupId) : '#e6ddd4');
-  let hint = task.kind === 'phase'
-    ? task.hint ?? (hints?.get(task.groupId) ?? null)
+  let hint = task.kind === 'job'
+    ? task.hint ?? (task.phaseIndex === 0 ? hints?.get(task.groupId) ?? null : null)
     : null;
-  let hasGeometry = task.kind === 'phase' && taskGeometryExists(task, document);
+  let hasGeometry = task.kind === 'job' && taskGeometryExists(task, document);
   if (task.kind === 'watch' && tactic) {
     // A watch task pulses the currently watched preset zone until a custom
     // box has been dragged in its place.
-    const holder = task.which === 'cleared'
-      ? tactic.finish.outcomes.cleared
-      : (task.which === 'start' ? tactic.start.conds : tactic.release.conds)?.enemiesAt;
+    const conds = watchConds(tactic, task.target);
+    const holder = task.target.row === 'cleared' ? conds?.cleared : conds?.enemiesAt;
     if (holder) {
       hint = {
         rect: holder.zone.rect,
-        text: task.which === 'cleared'
-          ? 'This ground must be clear of enemies to finish.'
+        text: task.target.row === 'cleared'
+          ? 'This ground must be clear of enemies.'
           : 'Enemies are counted inside the box.',
       };
       hasGeometry = !holder.zone.name && Boolean(holder.zone.rect);
@@ -748,12 +814,13 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
       fill="none" stroke="#fff1d8" strokeWidth={.09} strokeDasharray=".4 .26" rx={.2}
       pointerEvents="none" className="animate-pulse" />);
   }
-  if (task.kind === 'phase' && task.field === 'via' && task.postIndex != null
+  if (task.kind === 'job' && task.field === 'via' && task.postIndex != null
     && tactic) {
     // Drawing one post's way in: ring the target post and name its bot, so
     // there is never a doubt whose route the clicks belong to.
     const group = tactic.groups.find((value) => value.id === task.groupId);
-    const post = group?.stage.posts?.[task.postIndex];
+    const post = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
+      ?.posts?.[task.postIndex];
     if (group && post) {
       const [px, py] = post.at;
       const bot = document.squad[group.slots[task.postIndex]];
@@ -787,19 +854,18 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
 }
 
 function taskGeometryExists(
-  task: Extract<MapTask, { kind: 'phase' }>,
+  task: Extract<MapTask, { kind: 'job' }>,
   document: TacticsDocument,
 ): boolean {
   const tactic = document.tactics.find((value) => value.id === task.tacticId);
-  const group = tactic?.groups.find((value) => value.id === task.groupId);
-  if (!group) return false;
-  const phase = task.phase === 'stage' ? group.stage : group.act;
+  const job = tactic?.phases[task.phaseIndex]?.jobs[task.groupId];
+  if (!job) return false;
   if (task.field === 'via') {
     return task.postIndex != null
-      ? (phase.posts?.[task.postIndex]?.via?.length ?? 0) > 0
-      : (phase.via?.length ?? 0) > 0;
+      ? (job.posts?.[task.postIndex]?.via?.length ?? 0) > 0
+      : (job.via?.length ?? 0) > 0;
   }
-  return Boolean(phase.posts?.length || phase.rect || (phase.path?.length ?? 0) > 0 || phase.point);
+  return Boolean(job.posts?.length || job.rect || (job.path?.length ?? 0) > 0 || job.point);
 }
 
 function ArrowPath({ points, color, select, loop = false, dash, width = .16, opacity = .92 }: {
@@ -862,59 +928,56 @@ function ChipLabel({ x, y, text, color, select, opacity = 1, mapWidth = 31, mapH
   </g>;
 }
 
-export function stageAnchor(group: TacticGroup): Point | null {
-  const stage = group.stage;
-  if (stage.posts?.length) return stage.posts[0].at;
-  if (stage.rect) return [stage.rect[0], stage.rect[1]];
-  if (stage.path?.length) return stage.path[0];
-  if (stage.point) return stage.point;
-  return null;
-}
-
-function actAnchor(group: TacticGroup): Point | null {
-  const act = group.act;
-  if (act.kind === 'converge' && act.point) return act.point;
-  if ((act.kind === 'advance' || act.kind === 'patrol') && act.path && act.path.length > 1) {
-    return act.path[Math.floor(act.path.length / 2)];
+export function jobAnchor(job: TacticJob | null): Point | null {
+  if (!job) return null;
+  if (job.posts?.length) return job.posts[0].at;
+  if (job.rect) return [job.rect[0], job.rect[1]];
+  if (job.path?.length) {
+    return job.kind === 'advance' || job.kind === 'patrol'
+      ? job.path[Math.floor(job.path.length / 2)]
+      : job.path[0];
   }
-  if (act.kind === 'return') return [2, 5];
+  if (job.point) return job.point;
+  if (job.kind === 'return') return [2, 5];
   return null;
 }
 
-function stageCentroid(group: TacticGroup, pathfinder: ReturnType<typeof makePathfinder>): Point {
-  const stage = group.stage;
+function jobCentroid(job: TacticJob, pathfinder: ReturnType<typeof makePathfinder>): Point {
   let tiles: Point[] = [];
-  if (stage.posts?.length) tiles = stage.posts.map((post) => post.at);
-  else if (stage.rect) {
-    tiles = [[Math.round((stage.rect[0] + stage.rect[2]) / 2), Math.round((stage.rect[1] + stage.rect[3]) / 2)]];
-  } else if (stage.path?.length) tiles = stage.path;
-  else if (stage.point) tiles = [stage.point];
+  if (job.posts?.length) tiles = job.posts.map((post) => post.at);
+  else if (job.rect) {
+    tiles = [[Math.round((job.rect[0] + job.rect[2]) / 2), Math.round((job.rect[1] + job.rect[3]) / 2)]];
+  } else if (job.path?.length) tiles = job.path;
+  else if (job.point) tiles = [job.point];
   if (!tiles.length) return [3, 5];
   const sx = Math.round(tiles.reduce((sum, [x]) => sum + x, 0) / tiles.length);
   const sy = Math.round(tiles.reduce((sum, [, y]) => sum + y, 0) / tiles.length);
   return pathfinder.nearestFloor([sx, sy]);
 }
 
-function convergeStarts(group: TacticGroup, pathfinder: ReturnType<typeof makePathfinder>): Point[] {
-  const stage = group.stage;
+function jobStarts(
+  previous: TacticJob,
+  group: TacticGroup,
+  pathfinder: ReturnType<typeof makePathfinder>,
+): Point[] {
   const count = Math.max(1, group.slots.length);
   const sample = (tiles: Point[]): Point[] => {
-    if (!tiles.length) return [stageCentroid(group, pathfinder)];
+    if (!tiles.length) return [jobCentroid(previous, pathfinder)];
     if (tiles.length <= count) return tiles;
     return Array.from({ length: count }, (_, index) =>
       tiles[Math.round(index * (tiles.length - 1) / Math.max(1, count - 1))]);
   };
-  if (stage.posts?.length) return stage.posts.map((post) => post.at);
-  if (stage.rect) {
-    const [x0, y0, x1, y1] = stage.rect;
+  if (previous.posts?.length) return previous.posts.map((post) => post.at);
+  if (previous.rect) {
+    const [x0, y0, x1, y1] = previous.rect;
     const tiles: Point[] = [];
     for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
       if (pathfinder.floor(x, y)) tiles.push([x, y]);
     }
     return sample(tiles);
   }
-  if (stage.path && stage.path.length > 1) return sample(pathfinder.connect(stage.path));
-  if (stage.point) return [stage.point];
+  if (previous.path && previous.path.length > 1) return sample(pathfinder.connect(previous.path));
+  if (previous.point) return [previous.point];
   return [[3, 5]];
 }
 
@@ -935,31 +998,31 @@ function wellCentre(catalog: TacticalSheetCatalog, choice: WellChoice): Point | 
   return [cx, cy];
 }
 
-export function describeGeometry(phase: TacticPhase, group: TacticGroup): string {
-  const kind = phase.kind;
+export function describeGeometry(job: TacticJob, group: TacticGroup): string {
+  const kind = job.kind;
   if (kind === 'posts') {
-    const count = phase.posts?.length ?? 0;
+    const count = job.posts?.length ?? 0;
     if (!count) return `No posts yet — needs one per bot (${group.slots.length}).`;
-    const where = describePlace(...phase.posts![0].at);
+    const where = describePlace(...job.posts![0].at);
     return `${count} post${count === 1 ? '' : 's'} at ${where}${count === group.slots.length ? '' : ` (${group.slots.length} bots)`}`;
   }
   if (kind === 'area') {
-    if (!phase.rect) return 'No staging area yet — drag a box on the map.';
-    return `Staging area near ${describePlace(Math.round((phase.rect[0] + phase.rect[2]) / 2), Math.round((phase.rect[1] + phase.rect[3]) / 2))}`;
+    if (!job.rect) return 'No area yet — drag a box on the map.';
+    return `Area near ${describePlace(Math.round((job.rect[0] + job.rect[2]) / 2), Math.round((job.rect[1] + job.rect[3]) / 2))}`;
   }
   if (kind === 'line') {
-    if (!phase.path || phase.path.length < 2) return 'No line yet — click two or more points.';
-    return `Picket line through ${describePlace(...phase.path[0])}`;
+    if (!job.path || job.path.length < 2) return 'No line yet — click two or more points.';
+    return `Picket line through ${describePlace(...job.path[0])}`;
   }
   if (kind === 'approach' || kind === 'converge') {
-    if (!phase.point) {
+    if (!job.point) {
       return kind === 'approach' ? 'No approach point yet — click the map.' : 'No destination yet — click the map.';
     }
-    return `${kind === 'approach' ? 'Approach' : 'Converge on'} ${describePlace(...phase.point)}`;
+    return `${kind === 'approach' ? 'Approach' : 'Converge on'} ${describePlace(...job.point)}`;
   }
   if (kind === 'advance' || kind === 'patrol') {
-    if (!phase.path || phase.path.length < 2) return 'No route yet — click waypoints in travel order.';
-    return `${phase.path.length}-point ${kind === 'patrol' ? 'loop' : 'route'} toward ${describePlace(...phase.path[phase.path.length - 1])}`;
+    if (!job.path || job.path.length < 2) return 'No route yet — click waypoints in travel order.';
+    return `${job.path.length}-point ${kind === 'patrol' ? 'loop' : 'route'} toward ${describePlace(...job.path[job.path.length - 1])}`;
   }
   return '';
 }

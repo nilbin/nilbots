@@ -13,23 +13,24 @@ import { BotChip } from './BotChip';
 import { classSprite, slotAccent } from './classArt';
 import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './recipes';
 import { groupClause, possessive, summarize } from './summary';
-import { TacticsMapCanvas, type GeometryEdit, type MapSelectRef } from './TacticsMapCanvas';
+import {
+  TacticsMapCanvas, watchConds, type GeometryEdit, type MapSelectRef,
+} from './TacticsMapCanvas';
 import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
   parseDocument, postFacingIssue, signatureMarkGeometry, stringifyDocument,
-  validateDocument, sheetIssueFromCompilerError,
-  type Build, type Facing, type SheetIssue, type SquadBot, type Tactic,
-  type TacticsDraft, type TacticsDocument,
+  tacticCanFinish, validateDocument, sheetIssueFromCompilerError,
+  type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
+  type Tactic, type TacticsDraft, type TacticsDocument,
 } from './tacticsDocument';
 import { loadLocalDraft, useSheetDraft } from './useSheetDraft';
 import { useMapTask, type MapTask } from './useMapTask';
 import {
-  CoresStep, FinishStep, GroupsStep, PhaseStep, ReleaseStep, ReviewStep,
-  StartStep, type StepProps,
+  CoresStep, GroupsStep, PhasesStep, ReviewStep, StartStep, type StepProps,
 } from './WizardSteps';
-import { BUILDS, POSTURES } from './tacticsDocument';
+import { BUILDS } from './tacticsDocument';
 import {
-  WIZARD_STEPS, createGate, stepDone, type WizardState, type WizardStepId,
+  WIZARD_STEPS, createGate, stepDone, type WizardState,
 } from './wizardState';
 
 const BOT_NAMES = [
@@ -227,7 +228,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       tactic.groups[0].slots = [carrierSlot];
       tactic.groups[1].slots = rest.slice(0, 3);
       tactic.groups[2].slots = rest.slice(3);
-      tactic.groups[2].stage.rect = [4, 10, 9, 16];
+      const screenJob = tactic.phases[0].jobs[tactic.groups[2].id];
+      if (screenJob) screenJob.rect = [4, 10, 9, 16];
       tactic.delivery.preferredSlots = [carrierSlot];
       next.document.tactics.push(tactic);
     });
@@ -239,6 +241,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       tactic: structuredClone(tactic),
       hints,
       step: editing ? 'review' : 'start',
+      phaseIndex: 0,
       editing,
       originalId: editing ? tactic.id : null,
       armedSlot: null,
@@ -254,44 +257,47 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     task,
     change: changeWizard,
     arm: (slot) => setWizard((current) => current && { ...current, armedSlot: slot }),
-    startPhaseTask: (groupId, phase, field, drawOverride) => {
+    selectPhase: (index) => setWizard((current) =>
+      current && { ...current, phaseIndex: index }),
+    startJobTask: (groupId, phaseIndex, field, drawOverride) => {
       const group = wizard?.tactic.groups.find((value) => value.id === groupId);
       if (!group || !wizard) return;
-      const geo = phase === 'stage' ? group.stage : group.act;
-      const draw = field === 'via' ? 'route' : drawOverride ?? drawKindFor(geo.kind);
+      const job = wizard.tactic.phases[phaseIndex]?.jobs[groupId];
+      if (!job) return;
+      const draw = field === 'via' ? 'route' : drawOverride ?? drawKindFor(job.kind);
       if (!draw) return;
       startTask({
-        kind: 'phase', tacticId: wizard.tactic.id, groupId, phase, draw, field,
-        // Recipe hints point at staging ground; showing one while drawing the
-        // Act would aim the player at the wrong box.
-        hint: field === 'via' || phase === 'act'
+        kind: 'job', tacticId: wizard.tactic.id, groupId, phaseIndex, draw, field,
+        // Recipe hints point at first-phase ground; showing one while drawing
+        // a later phase would aim the player at the wrong box.
+        hint: field === 'via' || phaseIndex > 0
           ? null : wizard.hints.groups.get(groupId) ?? null,
         needed: group.slots.length,
       });
       revealMap();
     },
-    startPostViaTask: (groupId, phase, postIndex) => {
+    startPostViaTask: (groupId, phaseIndex, postIndex) => {
       if (!wizard) return;
       startTask({
-        kind: 'phase', tacticId: wizard.tactic.id, groupId, phase,
+        kind: 'job', tacticId: wizard.tactic.id, groupId, phaseIndex,
         draw: 'route', field: 'via', postIndex, hint: null,
       });
       revealMap();
     },
-    startSigTask: (groupId, phase, classId) => {
+    startSigTask: (groupId, phaseIndex, classId) => {
       if (!wizard) return;
       const geometry = signatureMarkGeometry(catalog, classId);
       if (!geometry) return;
       startTask({
-        kind: 'sig', tacticId: wizard.tactic.id, groupId, phase, classId,
+        kind: 'sig', tacticId: wizard.tactic.id, groupId, phaseIndex, classId,
         draw: geometry.kind === 'points' ? 'posts' : 'route',
         max: geometry.max,
       });
       revealMap();
     },
-    startWatchTask: (which) => {
+    startWatchTask: (target) => {
       if (!wizard) return;
-      startTask({ kind: 'watch', tacticId: wizard.tactic.id, which });
+      startTask({ kind: 'watch', tacticId: wizard.tactic.id, target });
       revealMap();
     },
     endTask,
@@ -303,11 +309,11 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     if (!task || !wizard) return;
     // Completion checks read the click's actual effect: a click that REMOVED
     // a post or mark must not count as placing one.
-    if (task.kind === 'phase' && task.draw === 'posts') {
+    if (task.kind === 'job' && task.draw === 'posts') {
       const group = wizard.tactic.groups.find((value) => value.id === task.groupId);
-      if (!group) return;
-      const phase = task.phase === 'stage' ? group.stage : group.act;
-      const posts = phase.posts ?? [];
+      const job = wizard.tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+      if (!group || !job) return;
+      const posts = job.posts ?? [];
       const cap = Math.max(1, group.slots.length);
       const removing = posts.some((post) => post.at[0] === x && post.at[1] === y);
       if (!removing && posts.length >= cap) {
@@ -315,12 +321,11 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         return;
       }
       changeWizard((tactic) => {
-        const target = tactic.groups.find((value) => value.id === task.groupId);
+        const target = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
         if (!target) return;
-        const targetPhase = task.phase === 'stage' ? target.stage : target.act;
-        targetPhase.posts = targetPhase.posts ?? [];
-        const existing = targetPhase.posts.findIndex((post) => post.at[0] === x && post.at[1] === y);
-        if (existing >= 0) targetPhase.posts.splice(existing, 1);
+        target.posts = target.posts ?? [];
+        const existing = target.posts.findIndex((post) => post.at[0] === x && post.at[1] === y);
+        if (existing >= 0) target.posts.splice(existing, 1);
         else {
           // Default facing prefers the enemy's direction, but never points a
           // fresh post into a wall or spawn ground.
@@ -328,15 +333,15 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             ? ['e', 'n', 's', 'w'] : ['w', 'n', 's', 'e'];
           const facing = order.find((value) =>
             !postFacingIssue(catalog, { at: [x, y], facing: value })) ?? order[0];
-          targetPhase.posts.push({ at: [x, y], facing });
+          target.posts.push({ at: [x, y], facing });
         }
       });
       if (!removing && posts.length + 1 >= cap) endTask();
       return;
     }
     if (task.kind === 'sig') {
-      const group = wizard.tactic.groups.find((value) => value.id === task.groupId);
-      const mark = group?.sigs?.[task.phase]?.[task.classId];
+      const job = wizard.tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+      const mark = job?.sigs?.[task.classId];
       const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
       const removing = points.some((point) => point[0] === x && point[1] === y);
       if (!removing && points.length >= task.max) {
@@ -344,18 +349,16 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         return;
       }
       changeWizard((tactic) => {
-        const target = tactic.groups.find((value) => value.id === task.groupId);
+        const target = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
         if (!target) return;
         target.sigs = target.sigs ?? {};
-        target.sigs[task.phase] = target.sigs[task.phase] ?? {};
-        const store = target.sigs[task.phase]!;
         const geometry = signatureMarkGeometry(catalog, task.classId)!;
-        const stored = store[task.classId];
+        const stored = target.sigs[task.classId];
         const marks = stored ? ('points' in stored ? stored.points : stored.line) : [];
         const existing = marks.findIndex((point) => point[0] === x && point[1] === y);
         if (existing >= 0) marks.splice(existing, 1);
         else marks.push([x, y]);
-        store[task.classId] = geometry.kind === 'points'
+        target.sigs[task.classId] = geometry.kind === 'points'
           ? { points: marks } : { line: marks };
       });
       if (!removing && points.length + 1 >= task.max) {
@@ -365,44 +368,41 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       return;
     }
     changeWizard((tactic) => {
-      if (task.kind !== 'phase') return;
-      const group = tactic.groups.find((value) => value.id === task.groupId);
-      if (!group) return;
-      const phase = task.phase === 'stage' ? group.stage : group.act;
+      if (task.kind !== 'job') return;
+      const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+      if (!job) return;
       if (task.draw === 'route') {
         if (task.field === 'via') {
           if (task.postIndex != null) {
-            const post = phase.posts?.[task.postIndex];
+            const post = job.posts?.[task.postIndex];
             if (post) post.via = [...(post.via ?? []), [x, y]];
           } else {
-            phase.via = [...(phase.via ?? []), [x, y]];
+            job.via = [...(job.via ?? []), [x, y]];
           }
         } else {
-          phase.path = [...(phase.path ?? []), [x, y]];
+          job.path = [...(job.path ?? []), [x, y]];
         }
       } else if (task.draw === 'point') {
-        phase.point = [x, y];
+        job.point = [x, y];
       }
     });
-    if (task.kind === 'phase' && task.draw === 'point') endTask();
+    if (task.kind === 'job' && task.draw === 'point') endTask();
   };
 
   const onRectDrawn = (rect: [number, number, number, number]) => {
     if (!task) return;
     changeWizard((tactic) => {
       if (task.kind === 'watch') {
-        if (task.which === 'cleared') {
-          if (tactic.finish.outcomes.cleared) {
-            tactic.finish.outcomes.cleared.zone = { rect };
-          }
-          return;
+        const conds = watchConds(tactic, task.target);
+        if (!conds) return;
+        if (task.target.row === 'cleared') {
+          if (conds.cleared) conds.cleared.zone = { rect };
+        } else if (conds.enemiesAt) {
+          conds.enemiesAt.zone = { rect };
         }
-        const conds = task.which === 'start' ? tactic.start.conds : tactic.release.conds;
-        if (conds?.enemiesAt) conds.enemiesAt.zone = { rect };
-      } else if (task.kind === 'phase') {
-        const group = tactic.groups.find((value) => value.id === task.groupId);
-        if (!group) return;
-        (task.phase === 'stage' ? group.stage : group.act).rect = rect;
+      } else if (task.kind === 'job') {
+        const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+        if (job) job.rect = rect;
       }
     });
     endTask();
@@ -417,9 +417,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const onSelect = (ref: MapSelectRef) => {
     if (wizard && wizard.tactic.id === ref.tacticId) {
       if (ref.part === 'post') {
-        // A posted bot lights up its own way-in row: jump to Stage, scroll
-        // the row into view, and flash it briefly.
-        setWizard({ ...wizard, step: 'stage' });
+        // A posted bot lights up its own way-in row: jump to its phase,
+        // scroll the row into view, and flash it briefly.
+        setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
         const seq = ++flashSeq.current;
         setPostFlash({ groupId: ref.groupId, postIndex: ref.postIndex, seq });
         window.setTimeout(() => setPostFlash((current) =>
@@ -431,20 +431,19 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         }, 40);
         return;
       }
-      // Clicking a group overlay keeps you on Act if you were there, and
-      // scrolls that group's section into view.
-      const step: WizardStepId = ref.part === 'group'
-        ? (wizard.step === 'act' ? 'act' : 'stage')
-        : ref.part === 'cores' ? 'cores'
-          : ref.part === 'finish' ? 'finish'
-            : ref.part;
-      setWizard({ ...wizard, step });
-      if (ref.part === 'group') {
-        window.setTimeout(() => {
-          window.document.getElementById(`section-${ref.groupId}-${step}`)
-            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }, 40);
+      if (ref.part === 'group' || ref.part === 'phase') {
+        // Clicking an overlay jumps to its phase on the storyboard and
+        // scrolls that group's section into view.
+        setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
+        if (ref.part === 'group') {
+          window.setTimeout(() => {
+            window.document.getElementById(`section-${ref.groupId}-${ref.phaseIndex}`)
+              ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+          }, 40);
+        }
+        return;
       }
+      setWizard({ ...wizard, step: ref.part === 'cores' ? 'cores' : 'start' });
       return;
     }
     setSelectedTacticId(ref.tacticId);
@@ -659,6 +658,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 catalog={catalog}
                 document={document}
                 editingTacticId={editingTacticId}
+                activePhaseIndex={wizard && wizard.step === 'phases' ? wizard.phaseIndex : null}
                 selectedTacticId={selectedTacticId}
                 showAll={showAll}
                 task={task}
@@ -677,22 +677,21 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           </div>
           {task && <TaskBanner task={task} wizard={wizard} botName={botName} onDone={endTask}
             onUndoPoint={() => changeWizard((tactic) => {
-              if (task.kind === 'phase') {
-                const group = tactic.groups.find((value) => value.id === task.groupId);
-                const phase = group && (task.phase === 'stage' ? group.stage : group.act);
-                if (!phase) return;
-                if (task.draw === 'posts') phase.posts?.pop();
+              if (task.kind === 'job') {
+                const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+                if (!job) return;
+                if (task.draw === 'posts') job.posts?.pop();
                 if (task.draw === 'route') {
                   if (task.field === 'via') {
-                    if (task.postIndex != null) phase.posts?.[task.postIndex]?.via?.pop();
-                    else phase.via?.pop();
+                    if (task.postIndex != null) job.posts?.[task.postIndex]?.via?.pop();
+                    else job.via?.pop();
                   } else {
-                    phase.path?.pop();
+                    job.path?.pop();
                   }
                 }
               } else if (task.kind === 'sig') {
-                const group = tactic.groups.find((value) => value.id === task.groupId);
-                const mark = group?.sigs?.[task.phase]?.[task.classId];
+                const mark = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
+                  ?.sigs?.[task.classId];
                 if (mark) ('points' in mark ? mark.points : mark.line).pop();
               }
             })} />}
@@ -739,11 +738,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             <div className="flex flex-col gap-2.5">
               {wizard.step === 'start' && <StartStep {...stepProps} />}
               {wizard.step === 'groups' && <GroupsStep {...stepProps} />}
-              {wizard.step === 'stage' && <PhaseStep {...stepProps} phase="stage" />}
-              {wizard.step === 'release' && <ReleaseStep {...stepProps} />}
-              {wizard.step === 'act' && <PhaseStep {...stepProps} phase="act" />}
+              {wizard.step === 'phases' && <PhasesStep {...stepProps} />}
               {wizard.step === 'cores' && <CoresStep {...stepProps} />}
-              {wizard.step === 'finish' && <FinishStep {...stepProps} />}
               {wizard.step === 'review' && <ReviewStep {...stepProps} />}
             </div>
             <div className="flex items-center gap-2 border-t border-arena-edge pt-2">
@@ -849,7 +845,7 @@ function viewDocument(draft: TacticsDraft, wizard: WizardState | null) {
   return document;
 }
 
-function drawKindFor(kind: Tactic['groups'][number]['stage']['kind']) {
+function drawKindFor(kind: JobKind) {
   const expected = expectedGeometry(kind);
   return expected === 'posts' ? 'posts'
     : expected === 'rect' ? 'rect'
@@ -862,11 +858,13 @@ function drawKindFor(kind: Tactic['groups'][number]['stage']['kind']) {
  * the run home — the sheet-level version of the wizard's nudge. */
 function needsDeliverCore(document: TacticsDocument): boolean {
   const hasDeliver = document.tactics.some((tactic) =>
-    tactic.start.conds?.carrier
-    && tactic.groups.some((group) => group.act.kind === 'return'));
+    (tactic.start.cases ?? []).some((entry) =>
+      entry.triggers?.carrier || entry.required?.carrier)
+    && tactic.phases.some((phase) => Object.values(phase.jobs)
+      .some((job) => job.kind === 'return')));
   if (hasDeliver) return false;
   return document.tactics.some((tactic) =>
-    tactic.finish.outcomes.coreAcquired && tactic.delivery.plan === 'none');
+    tacticCanFinish(tactic).finishCarrying && tactic.delivery.plan === 'none');
 }
 
 /** Round-robin over unlocked classes, one copy each before seconds, so the
@@ -1019,13 +1017,8 @@ function TacticInspector({ tactic, botName, catalog, document, onClose, onEdit }
         <div className="mb-1 flex items-center gap-2">
           <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
           <span className="val">{group.slots.length} bots</span>
-          <span className="grow" />
-          <span className="pill">
-            {POSTURES.find((value) => value.id === group.stage.posture)?.label}
-            {group.act.kind !== 'none' && ` → ${POSTURES.find((value) => value.id === group.act.posture)?.label}`}
-          </span>
         </div>
-        <p className="t-meta">{groupClause(group, true)}.</p>
+        <p className="t-meta">{groupClause(tactic, group, true)}.</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
           {group.slots.map((slot) => document.squad[slot] && (
             <BotChip key={slot} bot={document.squad[slot]} catalog={catalog} />
@@ -1072,18 +1065,23 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
   const group = task.kind !== 'watch' && wizard
     ? wizard.tactic.groups.find((value) => value.id === task.groupId)
     : null;
+  const job = task.kind !== 'watch' && wizard
+    ? wizard.tactic.phases[task.phaseIndex]?.jobs[task.groupId]
+    : null;
   const whose = possessive(group?.name?.trim() || 'the group');
   const what = task.kind === 'sig'
     ? `Placing ${whose} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
     : task.kind === 'watch'
-      ? task.which === 'start'
-        ? 'Drag the box this Tactic watches to Start — it applies once enemies gather inside'
-        : task.which === 'cleared'
-          ? 'Drag the box that must be clear of enemies to finish'
-          : 'Drag the box the Release watches — enemies are counted inside it'
+      ? task.target.row === 'cleared'
+        ? 'Drag the box that must be clear of enemies'
+        : task.target.scope === 'start'
+          ? 'Drag the box this Tactic watches to Start — it applies once enemies gather inside'
+          : task.target.scope === 'abort'
+            ? 'Drag the box the abort watches — enemies are counted inside it'
+            : 'Drag the box this phase watches — enemies are counted inside it'
       : {
         posts: `Placing ${group?.name ?? ''} posts — click ${group?.slots.length || 'a few'} tiles`,
-        rect: `Drag a box for ${whose} ${task.phase === 'stage' ? 'staging area' : 'target area'}`,
+        rect: `Drag a box for ${whose} area`,
         route: task.field === 'via'
           ? task.postIndex != null
             ? `Click ${possessive(
@@ -1091,24 +1089,23 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
                 ?? `${group?.name ?? ''} post ${task.postIndex + 1}`,
             )} way in — waypoints in travel order, ending near its post`
             : `Click ${whose} approach waypoints in travel order — they walk this in before the job`
-          : `Click waypoints for ${whose} ${task.phase === 'stage' ? 'line' : 'route'}, in travel order`,
-        point: `Click ${whose} ${task.phase === 'stage' ? 'approach point' : 'destination'}`,
+          : `Click waypoints for ${whose} ${job?.kind === 'line' ? 'line' : 'route'}, in travel order`,
+        point: `Click ${whose} ${job?.kind === 'approach' ? 'approach point' : 'destination'}`,
       }[task.draw];
-  const undoable = (task.kind === 'phase' && (task.draw === 'route' || task.draw === 'posts'))
+  const undoable = (task.kind === 'job' && (task.draw === 'route' || task.draw === 'posts'))
     || task.kind === 'sig';
-  // Group-accent left rail; forge orange for the release watch, pale for
-  // start, zone teal for the cleared-to-finish box.
+  // Group-accent left rail; forge orange for a phase watch, pale for start,
+  // zone teal for a cleared box.
   const accent = task.kind === 'watch'
-    ? (task.which === 'start' ? '#e6ddd4'
-      : task.which === 'cleared' ? '#38d9c5' : '#c8763c')
+    ? (task.target.row === 'cleared' ? '#38d9c5'
+      : task.target.scope === 'start' ? '#e6ddd4' : '#c8763c')
     : wizard ? groupColor(wizard.tactic, task.groupId) : '#e6ddd4';
   // A live placed/needed readout for the countable tasks.
   let progress: string | null = null;
-  if (task.kind === 'phase' && task.draw === 'posts' && group) {
-    const phase = task.phase === 'stage' ? group.stage : group.act;
-    progress = `${phase.posts?.length ?? 0}/${Math.max(1, group.slots.length)}`;
+  if (task.kind === 'job' && task.draw === 'posts' && group) {
+    progress = `${job?.posts?.length ?? 0}/${Math.max(1, group.slots.length)}`;
   } else if (task.kind === 'sig' && group) {
-    const mark = group.sigs?.[task.phase]?.[task.classId];
+    const mark = job?.sigs?.[task.classId];
     const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
     progress = `${points.length}/${task.max}`;
   }
@@ -1120,7 +1117,7 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
       data-testid="task-banner" role="status">
       <span className="t-micro">{what}</span>
       {progress && <span className="val">{progress}</span>}
-      {task.kind === 'phase' && task.hint && <span className="t-micro text-arena-dim">· {task.hint.text}</span>}
+      {task.kind === 'job' && task.hint && <span className="t-micro text-arena-dim">· {task.hint.text}</span>}
       <span className="grow" />
       {undoable && <button type="button" className="btn pointer-events-auto" onClick={onUndoPoint}>Undo</button>}
       <button type="button" className="btn btn-secondary pointer-events-auto" onClick={onDone}>Done</button>

@@ -3,17 +3,39 @@ import type { DrawKind, Rect } from './tacticsDocument';
 
 /**
  * The one draw-task state machine: at most one thing is being drawn on the
- * map at a time — a group phase's geometry, a signature mark set, or a
- * condition watch box. The canvas asks it what a click means; the drawer's
- * buttons start and stop it.
+ * map at a time — a group job's geometry in one phase, a signature mark set,
+ * or a condition watch box. The canvas asks it what a click means; the
+ * drawer's buttons start and stop it.
  */
+
+/** Which condition-rows object on the tactic a watch box belongs to. */
+export type WatchTarget =
+  | {
+    scope: 'start';
+    caseIndex: number;
+    side: 'required' | 'triggers';
+    row: 'enemiesAt' | 'cleared';
+  }
+  | {
+    scope: 'abort';
+    caseIndex: number;
+    side: 'required' | 'triggers';
+    row: 'enemiesAt' | 'cleared';
+  }
+  | {
+    scope: 'continue';
+    phaseIndex: number;
+    ruleIndex: number;
+    side: 'required' | 'triggers';
+    row: 'enemiesAt' | 'cleared';
+  };
 
 export type MapTask =
   | {
-    kind: 'phase';
+    kind: 'job';
     tacticId: string;
     groupId: string;
-    phase: 'stage' | 'act';
+    phaseIndex: number;
     draw: DrawKind;
     /** Set to 'via' when the route being drawn is an approach route. */
     field?: 'via';
@@ -27,7 +49,7 @@ export type MapTask =
     kind: 'sig';
     tacticId: string;
     groupId: string;
-    phase: 'stage' | 'act';
+    phaseIndex: number;
     classId: string;
     draw: 'posts' | 'rect' | 'route';
     max: number;
@@ -35,8 +57,7 @@ export type MapTask =
   | {
     kind: 'watch';
     tacticId: string;
-    /** Which drawn box: a start/release watch, or the cleared-to-finish zone. */
-    which: 'start' | 'release' | 'cleared';
+    target: WatchTarget;
   };
 
 export function useMapTask() {
