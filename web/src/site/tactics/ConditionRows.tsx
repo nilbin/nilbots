@@ -368,7 +368,7 @@ export function CaseListEditor<T extends TacticCase>({
           <button type="button"
             className="flex min-h-7 w-full items-center gap-1.5 text-left"
             title={open ? 'Fold this alternative to its one-line reading' : 'Open this alternative to edit'}
-            onClick={() => setCollapsed((state) => ({ ...state, [index]: !open }))}>
+            onClick={() => setCollapsed((state) => ({ ...state, [index]: open }))}>
             <span className="text-[10px] text-arena-dim">{open ? '▾' : '▸'}</span>
             {index > 0 && (
               <span className="lab shrink-0" style={accent ? { color: accent } : undefined}>
