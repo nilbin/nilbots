@@ -641,7 +641,25 @@ export function normalizeDocument(document: unknown): TacticsDocument {
   if (value?.schema !== 'arc-relay-tactics-v2') {
     throw new Error(`Not a tactics document: ${value?.schema}`);
   }
-  return value as TacticsDocument;
+  const loaded = value as TacticsDocument;
+  // Self-healing: a way-in drawn from its destination outward (a natural
+  // gesture) is simply reversed into travel order on load — hunting the
+  // one backwards route by hand was the cumbersome part, not redrawing.
+  for (const tactic of loaded.tactics ?? []) {
+    for (const phase of tactic.phases ?? []) {
+      for (const job of Object.values(phase.jobs ?? {})) {
+        for (const post of job.posts ?? []) {
+          const flipped = reversedWayIn(post.via, post.at);
+          if (flipped) post.via = flipped;
+        }
+      }
+      if (phase.custody?.via) {
+        const flipped = reversedWayIn(phase.custody.via, [2, 5]);
+        if (flipped) phase.custody.via = flipped;
+      }
+    }
+  }
+  return loaded;
 }
 
 export function parseDocument(json: string): TacticsDocument {
@@ -750,7 +768,7 @@ export function validateDocument(
         }
         validateJobGeometry(
           job, phaseIndex === 0, group, `${phaseAt}.jobs.${group.id}`,
-          catalog, error, warn);
+          catalog, error);
         if (job.travel) {
           // Travel needs an arrival for the main posture to take over at;
           // patrol/return/escort are all march. Mirrors the server.
@@ -919,7 +937,6 @@ function validateJobGeometry(
   at: string,
   catalog: TacticalSheetCatalog,
   error: (path: string, message: string) => void,
-  warn: (path: string, message: string) => void,
 ) {
   const expected = expectedGeometry(job.kind);
   const anchorIssue = (point: Point) => tilePlacementIssue(catalog, point, 'anchor');
@@ -944,9 +961,6 @@ function validateJobGeometry(
           } else if (post.via.length > 16) {
             error(at, `${possessive(group.name)} post at (${post.at[0]},${post.at[1]}) has a way in with more than 16 points.`);
           } else {
-            if (reversedWayIn(post.via, post.at)) {
-              warn(at, `${possessive(group.name)} way in at (${post.at[0]},${post.at[1]}) is drawn backwards — waypoints run in travel order and should END at the post. Redraw it, or reopen the draw to flip it.`);
-            }
             for (const point of post.via) {
               const bad = routeIssue(point);
               if (bad) {

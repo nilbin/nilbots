@@ -799,7 +799,8 @@
       "urgency": "urgent",
       "move": {
         "to": "nearest-heal-zone",
-        "posture": "rear"
+        "posture": "rear",
+        "near": "g-t1-g1-set"
       }
     }
   },

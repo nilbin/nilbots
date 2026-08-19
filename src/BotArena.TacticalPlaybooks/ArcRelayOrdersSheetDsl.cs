@@ -1081,7 +1081,26 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         if (found.Length != 1)
             throw Error($"{path}.move", "move needs exactly one of to/patrol/follow.");
         Object(value, $"{path}.move", [found[0]],
-            ["via", "posture", "face", "withinWalkingSteps", "coreBankValue", "well"]);
+            ["via", "posture", "face", "withinWalkingSteps", "coreBankValue",
+             "well", "near"]);
+        if (value.TryGetProperty("near", out JsonElement near))
+        {
+            // The service anchor: "nearest" resolves from this declared
+            // zone's centre instead of the body's own position, so a squad
+            // regrouping at authored ground shares ONE heal tile rather
+            // than each bot picking whichever is closest to where it
+            // happens to stand.
+            if (found[0] != "to"
+                || value.GetProperty("to").ValueKind != JsonValueKind.String
+                || value.GetProperty("to").GetString() != "nearest-heal-zone")
+            {
+                throw Error($"{path}.move.near",
+                    "near anchors nearest-heal-zone only.");
+            }
+            string nearZone = StringValue(near, $"{path}.move.near");
+            IdentifierValue(nearZone, $"{path}.move.near", "zone");
+            consumers.ReferenceZone(nearZone, path);
+        }
         if (value.TryGetProperty("posture", out _))
             OneOf(value, "posture", $"{path}.move", "front", "line", "rear");
         if (value.TryGetProperty("via", out JsonElement via))

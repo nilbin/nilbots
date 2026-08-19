@@ -704,7 +704,17 @@ internal static class ArcRelayTacticsMaterializer
                         leaves, scope, tactic, phase, group, bot,
                         prefix, phaseIndex);
                 }
-                AddRecovery(leaves, scope, raw.Recovery);
+                // Minted lazily: only a heal recovery consumes the ground
+                // anchor, and an unreferenced zone fails the consumer check.
+                AddRecovery(leaves, scope, raw.Recovery, () =>
+                {
+                    int[]? footprint = effective is null
+                        ? null
+                        : GroundFootprint(effective);
+                    return footprint is null
+                        ? null
+                        : Zone(footprint, $"g-{prefix}-{groupTag}-set");
+                });
                 // travel == posture is "same as here": nothing to
                 // distinguish. A kind with no arrival (patrol/return, or a
                 // carry-forward that resolves to one) drops travel rather
@@ -786,7 +796,33 @@ internal static class ArcRelayTacticsMaterializer
             return null;
         }
 
-        private void AddRecovery(List<Node> leaves, LeafScope scope, string recovery)
+        /// <summary>The phase ground's footprint rect, as readiness sees
+        /// it — the anchor for "nearest to the PHASE, not to the bot".</summary>
+        private int[]? GroundFootprint(ArcRelayTacticJob job) =>
+            job.Kind switch
+            {
+                "posts" => PadBounds(BoundingBox(
+                    job.Posts!.Select(post => post.At)), 1),
+                "area" => job.Rect,
+                "line" or "patrol" => PadBounds(BoundingBox(job.Path!), 1),
+                "advance" => PadBounds(
+                    [
+                        job.Path![^1][0], job.Path[^1][1],
+                        job.Path[^1][0], job.Path[^1][1],
+                    ], 1),
+                "approach" or "converge" => PadBounds(
+                    [
+                        job.Point![0], job.Point[1],
+                        job.Point[0], job.Point[1],
+                    ], 2),
+                _ => null,
+            };
+
+        private void AddRecovery(
+            List<Node> leaves,
+            LeafScope scope,
+            string recovery,
+            Func<string?> groundZone)
         {
             if (recovery == "heal-tile")
             {
@@ -797,7 +833,9 @@ internal static class ArcRelayTacticsMaterializer
                     Timeout = 16,
                     Cooldown = 18,
                     Urgency = "urgent",
-                    Action = MoveToDynamic("nearest-heal-zone", posture: "rear"),
+                    Action = MoveToDynamic(
+                        "nearest-heal-zone", posture: "rear",
+                        near: groundZone()),
                 }));
             }
             else if (recovery == "heal-up")
@@ -819,7 +857,9 @@ internal static class ArcRelayTacticsMaterializer
                     Timeout = 30,
                     Cooldown = 10,
                     Urgency = "urgent",
-                    Action = MoveToDynamic("nearest-heal-zone", posture: "rear"),
+                    Action = MoveToDynamic(
+                        "nearest-heal-zone", posture: "rear",
+                        near: groundZone()),
                 }));
             }
             else if (recovery == "patch")
@@ -1558,7 +1598,8 @@ internal static class ArcRelayTacticsMaterializer
         private static Action<Utf8JsonWriter> MoveToDynamic(
             string target,
             string? posture = null,
-            string? via = null) => writer =>
+            string? via = null,
+            string? near = null) => writer =>
         {
             writer.WriteStartObject("move");
             writer.WriteString("to", target);
@@ -1566,6 +1607,8 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteString("via", via);
             if (posture is not null)
                 writer.WriteString("posture", posture);
+            if (near is not null)
+                writer.WriteString("near", near);
             writer.WriteEndObject();
         };
 

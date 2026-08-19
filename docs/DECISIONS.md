@@ -9231,3 +9231,29 @@ t200); movement scenes 28/28; motion sanity clean for the owning team,
 with the opposing demolition orbits reproduced on the pre-change binary
 (#337 family). The editor's heal-tile-overlap warning from the previous
 entry is withdrawn — this was never the author's problem.
+
+## 346. Ground-anchored heal trips; the yield core is pure and tested
+
+Two follow-ups to #345 from the owner. First: "nearest heal zone" was
+body-relative, so a Recover phase split the squad across both map tiles
+(bots up north healed at the north tile while the regroup ground sat by
+the south one). Moves gain an optional `near` zone (orders grammar,
+`nearest-heal-zone` only): the mind resolves "nearest" from that zone's
+centre. The materializer anchors heal-up/heal-tile trips to the phase's
+ground footprint (minted lazily — an unconsumed zone fails the consumer
+check), so all heal trips in a grounded phase share the tile by the
+ground. Absent `near` keeps the historical ordering byte for byte; the
+stock digest pin re-verified identical.
+
+Second: the resting-yield decision was extracted into the pure
+`ResolveRestingYields` (tuple in, yields out, injected walkability) in the
+house style of ResolveServiceQueuePredecessors, with direct tests: urgent
+unseats-and-takes-the-tile, same-tier never unseats, pinned/distant/zone
+claims never yield, no-free-neighbor no-yield. Movement scenes 28/28 and
+the digest pin guard the integration.
+
+Also: the editor now self-heals backwards way-ins on document load
+(normalizeDocument flips a route whose first point sits on its destination)
+— hunting the one reversed route was the cumbersome part, so the
+"drawn backwards" validation warning is withdrawn along with the draw-end
+flip staying for immediate feedback.

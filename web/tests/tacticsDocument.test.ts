@@ -400,15 +400,17 @@ test('a way-in drawn from the post outward is detected and flips', () => {
   // A route near the post at both ends is fine either way.
   assert.equal(reversedWayIn([[20, 12], [22, 12]], [21, 12]), null);
 
+  // Loading a stored document simply heals the backwards route.
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
   const tactic = drawnPincer(document);
   tactic.phases[0].jobs[tactic.groups[0].id].posts![0].via = [[14, 12], [10, 8]];
   document.tactics.push(tactic);
-  const backwards = validateDocument(document, catalog)
-    .filter((issue) => issue.severity === 'warning')
-    .map((issue) => issue.message);
-  assert.ok(backwards.some((message) => /drawn backwards/.test(message)));
+  const healed = normalizeDocument(JSON.parse(JSON.stringify(document)));
+  assert.deepEqual(
+    healed.tactics[healed.tactics.length - 1].phases[0]
+      .jobs[tactic.groups[0].id].posts![0].via,
+    [[10, 8], [14, 12]]);
 });
 
 test('travel is refused where the job has no arrival to hand over at', () => {

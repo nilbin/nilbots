@@ -3,6 +3,14 @@
   "mapPlanId": "proof-hold-area-v1-plan",
   "mapId": "arc-relay-tapline-02",
   "zones": {
+    "g-t1-g1-set": {
+      "rect": [
+        12,
+        11,
+        18,
+        16
+      ]
+    },
     "g-t1-g1-post-0": {
       "rect": [
         12,

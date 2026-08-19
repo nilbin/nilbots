@@ -256,6 +256,17 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Equal("below-topped-up",
             healUp.GetProperty("when").GetString());
         Assert.Equal("topped-up", healUp.GetProperty("until").GetString());
+        // "Nearest" heal is nearest to the PHASE'S ground, not to the bot:
+        // the move anchors on the guards' posts footprint (zone ids intern
+        // by shape, so assert the rect).
+        string nearZone = healUp.GetProperty("move")
+            .GetProperty("near").GetString()!;
+        using JsonDocument nearPlan = JsonDocument.Parse(
+            compilation.MaterializedMapPlan!);
+        int[] nearRect = nearPlan.RootElement.GetProperty("zones")
+            .GetProperty(nearZone).GetProperty("rect").EnumerateArray()
+            .Select(value => value.GetInt32()).ToArray();
+        Assert.Equal([13, 11, 17, 15], nearRect);
         JsonElement conditionTable = orders.RootElement.GetProperty("conditions");
         int seekBelow = conditionTable.GetProperty("below-topped-up")
             .GetProperty("value").GetInt32();

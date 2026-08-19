@@ -829,6 +829,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     "signature-commitment-hold")];
             if (move.Target == "nearest-heal-zone")
             {
+                // The service anchor: an authored `near` zone makes
+                // "nearest" mean nearest to the PHASE'S ground rather than
+                // to each body — a squad regrouping at authored ground
+                // shares one heal tile instead of scattering to whichever
+                // is closest to where each bot happens to stand.
+                Position reference = move.Near is string nearZone
+                    ? package.ZoneCenter(nearZone)
+                    : body.Position;
                 // Bounded recovery is a new player-ready primitive, but an
                 // unqualified historical target is a frozen behavior shape.
                 // Keep its former static-distance ordering byte-for-byte and
@@ -838,7 +846,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 {
                     return _healTiles
                         .OrderBy(tile => ArenaBasics.StaticDistance(
-                                contract.Map, body.Position, tile)
+                                contract.Map, reference, tile)
                             ?? int.MaxValue)
                         .ThenBy(tile => tile.Y)
                         .ThenBy(tile => tile.X)

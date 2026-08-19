@@ -472,7 +472,8 @@ internal sealed class OrdersPackage
         if (to.ValueKind == JsonValueKind.String)
             return new MoveAction(
                 "to", "dynamic", to.GetString()!, via, posture, null,
-                withinWalkingSteps, coreBankValue, null, Optional(value, "well"));
+                withinWalkingSteps, coreBankValue, null, Optional(value, "well"),
+                Optional(value, "near"));
         JsonProperty target = to.EnumerateObject().Single();
         return new MoveAction(
             "to", target.Name, target.Value.GetString()!, via, posture,
@@ -763,7 +764,8 @@ internal sealed class OrdersPackage
         int? WithinWalkingSteps,
         CoreBankValueFilter? CoreBankValue,
         string[]? Roles = null,
-        string? Well = null) : OrderAction;
+        string? Well = null,
+        string? Near = null) : OrderAction;
     internal sealed record FightAction(
         string[] Targets,
         string Style,

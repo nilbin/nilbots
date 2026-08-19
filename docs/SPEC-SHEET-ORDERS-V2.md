@@ -651,3 +651,12 @@ inside `urgency` or silently become order-selection rules.
 Competent Hunter and Wellwright behavior here means they follow their authored
 orders, collect and deliver Cores at a reasonable pace, and avoid max-tick
 timeouts in the standard exhibit. It is not a balance claim.
+
+### Move `near` anchor (2026-08-19)
+
+A `move.to: "nearest-heal-zone"` may carry `"near": "<zoneId>"` (a declared
+zone): "nearest" then resolves from that zone's centre instead of the
+body's own position, so a squad regrouping at authored ground shares one
+heal tile rather than each bot picking whichever is closest to where it
+happens to stand. Optional; absent keeps the historical body-relative
+ordering byte for byte. Legal only on `nearest-heal-zone`.

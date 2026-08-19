@@ -329,4 +329,104 @@ public sealed class SquadArenaPlannerTests
         return new SquadArenaPlanner.Operation(
             actions, states, Weight: 0, Inherited: false);
     }
+    private static SquadArenaPlanner.RestingClaim Claim(
+        int unit,
+        Position position,
+        Position assignment,
+        Position[] goals,
+        TacticalMovementUrgency urgency,
+        int rank,
+        bool pinned = false,
+        bool prefersHold = false) => new(
+        unit, position, assignment, goals, urgency, rank, pinned, prefersHold);
+
+    [Fact]
+    public void UrgentClaimUnseatsARestAndTakesTheTile()
+    {
+        // The felt case: a topped-up body rests on the one heal tile while
+        // the urgent seeker waits on its staged neighbor, "satisfied".
+        var heal = new Position(9, 19);
+        List<SquadArenaPlanner.RestingYield> yields =
+            SquadArenaPlanner.ResolveRestingYields(
+            [
+                Claim(3, new Position(10, 18), new Position(10, 18), [heal],
+                    TacticalMovementUrgency.Urgent, rank: 0),
+                Claim(7, heal, heal, [heal],
+                    TacticalMovementUrgency.Normal, rank: 5, prefersHold: true),
+            ],
+            _ => true);
+
+        SquadArenaPlanner.RestingYield yielded = Assert.Single(yields);
+        Assert.Equal(7, yielded.ResterUnitId);
+        Assert.Equal(3, yielded.MoverUnitId);
+        // The urgent mover is handed the tile itself, not left staged.
+        Assert.Equal(heal, yielded.Claim);
+        Assert.NotEqual(heal, yielded.Aside);
+    }
+
+    [Fact]
+    public void RankInsideOneUrgencyTierNeverUnseatsARest()
+    {
+        var tile = new Position(9, 19);
+        Assert.Empty(SquadArenaPlanner.ResolveRestingYields(
+            [
+                Claim(3, new Position(10, 18), new Position(10, 18), [tile],
+                    TacticalMovementUrgency.Normal, rank: 0),
+                Claim(7, tile, tile, [tile],
+                    TacticalMovementUrgency.Normal, rank: 9, prefersHold: true),
+            ],
+            _ => true));
+    }
+
+    [Fact]
+    public void PinnedRestsDistantMoversAndZoneFloorsDoNotYield()
+    {
+        var tile = new Position(9, 19);
+        // A pinned rest holds its ground whatever outranks it.
+        Assert.Empty(SquadArenaPlanner.ResolveRestingYields(
+            [
+                Claim(3, new Position(10, 18), new Position(10, 18), [tile],
+                    TacticalMovementUrgency.Urgent, rank: 0),
+                Claim(7, tile, tile, [tile],
+                    TacticalMovementUrgency.Normal, rank: 5,
+                    pinned: true, prefersHold: true),
+            ],
+            _ => true));
+        // A mover still marching across the map unseats nothing.
+        Assert.Empty(SquadArenaPlanner.ResolveRestingYields(
+            [
+                Claim(3, new Position(20, 4), new Position(20, 4), [tile],
+                    TacticalMovementUrgency.Urgent, rank: 0),
+                Claim(7, tile, tile, [tile],
+                    TacticalMovementUrgency.Normal, rank: 5, prefersHold: true),
+            ],
+            _ => true));
+        // A whole-zone goal set is not a per-tile claim on resters.
+        Position[] zone =
+            [.. Enumerable.Range(0, 6).Select(i => new Position(8 + i, 19))];
+        Assert.Empty(SquadArenaPlanner.ResolveRestingYields(
+            [
+                Claim(3, new Position(10, 18), new Position(11, 19), zone,
+                    TacticalMovementUrgency.Urgent, rank: 0),
+                Claim(7, tile, tile, [tile],
+                    TacticalMovementUrgency.Normal, rank: 5, prefersHold: true),
+            ],
+            _ => true));
+    }
+
+    [Fact]
+    public void NoFreeAdjacentTileMeansNoYield()
+    {
+        var tile = new Position(9, 19);
+        Assert.Empty(SquadArenaPlanner.ResolveRestingYields(
+            [
+                Claim(3, new Position(10, 18), new Position(10, 18), [tile],
+                    TacticalMovementUrgency.Urgent, rank: 0),
+                Claim(7, tile, tile, [tile],
+                    TacticalMovementUrgency.Normal, rank: 5, prefersHold: true),
+            ],
+            // Nothing around the tile is enterable ground.
+            candidate => candidate == tile || candidate == new Position(10, 18)));
+    }
+
 }

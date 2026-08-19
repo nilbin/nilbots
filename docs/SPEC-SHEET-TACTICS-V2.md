@@ -179,7 +179,9 @@ escort are all march and refuse it.
 `recovery: "heal-up"` breaks for the heal tile at any damage (<100%) and
 stays until completely full, so every `healed` gate 1..100 is eventually
 satisfiable — pair it with a `healed` row so the transition waits for the
-team.
+team. Heal trips (`heal-up` and `heal-tile`) seek the heal tile nearest the
+PHASE'S ground, not each bot's own position — a squad regrouping at drawn
+ground shares one tile instead of scattering to both.
 
 ## 2. Materialization (normative)
 
