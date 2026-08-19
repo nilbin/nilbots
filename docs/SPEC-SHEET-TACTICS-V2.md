@@ -229,9 +229,16 @@ stays on the job; bank in a later phase), and a resolved `none` keeps the
 final-hold escape only. A custody `via` becomes the bank move's route
 (`g-t{n}-p{k}-carry`) guiding the carrier home — gated on standing on the
 phase's ground: the corridor belongs to that ground, and a Core grabbed
-elsewhere (a mid pickup, a phase swap mid-run) banks by the direct
-fallback leaf (`…-bank-direct`) instead of marching to the corridor's far
-mouth first.
+elsewhere banks by the direct fallback leaf (`…-bank-direct`) instead of
+marching to the corridor's far mouth first.
+
+**Custody latches at pickup.** A body that takes a Core while a phase is
+active finishes that carry under the phase that began it: the pickup
+phase's tags stay lit for that body alone until the Core leaves its hands
+(bank, drop, death, or pass — the catcher latches fresh at its own current
+phase). The squad's phase progress is untouched; attribution shows the
+carrier under its pickup phase (`t1/p2 · bank`) while the squad reads the
+new one.
 
 A tactic whose final phase holds forever and whose delivery is `none` still
 gets the urgent bank-escape leaf, exactly as v1's persistent form did.

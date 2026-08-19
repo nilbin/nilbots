@@ -48,6 +48,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     // "t1/p2 " pair, plus a "!marker " on transition/abort/select ticks.
     // Empty on legacy (no-program) sheets so their reasons stay byte-stable.
     private string _programPrefix = "";
+    private readonly CustodyLatch _custodyLatch = new();
+
+    /// <summary>The attribution prefix for one body: a latched carrier
+    /// reports the phase that began its carry (that is whose leaves it is
+    /// running); everyone else reports the squad's active pair.</summary>
+    private string ProgramPrefix(int unitId)
+    {
+        if (_programPrefix.Length == 0)
+            return _programPrefix;
+        CustodyLatch.Latch? latch = _custodyLatch.For(unitId);
+        return latch is null ? _programPrefix : $"{latch.PhaseTag} ";
+    }
     private IArenaStepper _stepper = new SquadArenaPlanner();
     private SquadArenaPlanner? _squadPlanner;
     private Position _ownReactor;
@@ -163,6 +175,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     : $"{program.TacticId}/{program.PhaseId}")
                 + (program.Marker is string marker ? $"!{marker}" : "")
                 + " ";
+        // Custody latches at pickup: each own carrier keeps the phase that
+        // began its carry lit for itself until the Core leaves its hands.
+        _custodyLatch.Observe(
+            carried.Keys.Where(id => id.TeamId == _teamId).ToArray(),
+            program?.TacticId,
+            program?.PhaseId);
 
         var proposalsByBody = new Dictionary<int, IReadOnlyList<Proposal>>();
         var eligibilityByBody = new Dictionary<int, string?>();
@@ -177,7 +195,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 (expression, orderTicks) => Evaluate(
                     contract, mind, arc, package, body, role,
                     expression, orderTicks, carried),
-                program?.EnabledTags);
+                _custodyLatch.Augment(body.UnitId, program?.EnabledTags));
             List<Proposal> proposals = BuildProposals(
                 contract, mind, arc, package, body, role,
                 eligibility.Leaves, carried);
@@ -243,14 +261,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (arcTossCatchers.TryGetValue(
                     body.ActorId, out string? catchReason))
             {
-                body.Hold($"orders:{_programPrefix}arc-toss-catch:{catchReason}");
+                body.Hold($"orders:{ProgramPrefix(body.UnitId)}arc-toss-catch:{catchReason}");
                 continue;
             }
             if (TryInvest(contract, mind, body, role, carried))
                 continue;
             string prefix = selected.TryGetValue(body.UnitId, out Proposal? proposal)
-                ? $"orders:{_programPrefix}{proposal.Leaf.Node.Path}"
-                : $"orders:{_programPrefix}{role.Id}";
+                ? $"orders:{ProgramPrefix(body.UnitId)}{proposal.Leaf.Node.Path}"
+                : $"orders:{ProgramPrefix(body.UnitId)}{role.Id}";
             if ((proposal?.EligibilityTrace
                     ?? eligibilityByBody.GetValueOrDefault(body.UnitId))
                 is string eligibilityTrace)
@@ -2191,7 +2209,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         IReadOnlyDictionary<ActorIdentity,
             GenericActorContext.ArcRelayCoreState> carried)
     {
-        string reason = $"orders:{_programPrefix}{proposal.Leaf.Node.Path}";
+        string reason = $"orders:{ProgramPrefix(body.UnitId)}"
+            + proposal.Leaf.Node.Path;
         if (proposal.EligibilityTrace is string eligibilityTrace)
             reason += $":eligibility[{eligibilityTrace}]";
         if (proposal.Leaf.EvidenceTrace is string evidenceTrace)
@@ -3244,7 +3263,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             invest.ActionId,
             invest.ActionCode,
             [new GenericActorActionArgument.UpgradeTrackArgument(track)],
-            $"orders:{_programPrefix}{role.Id}:upgrade:{track}");
+            $"orders:{ProgramPrefix(body.UnitId)}{role.Id}:upgrade:{track}");
         _invested[body.UnitId] = (body.ActorId, state.Spent + 1);
         _pendingInvest[body.UnitId]--;
         return true;

@@ -9273,3 +9273,23 @@ ground footprint (`c-t{n}-p{k}-home-from-ground`), with a plain
 heuristics; re-run at the reporting seed both team carriers bank (2/4
 before, 2/2 after), the mid grab direct and the ground grab by its
 corridor.
+
+## 348. Custody latches at pickup
+
+Owner ruling on #347's remaining confusion: escorting home doesn't need a
+phase — custody is the pickup phase's routine, and a carrier that took a
+Core under phase K finishes that bank under K's rules even after the
+squad advances. Implemented as a per-body tag overlay (CustodyLatch): the
+mind tracks own carriers against the active program pair; a latched
+carrier's enabled set adds its pickup tactic/phase tags, so K's custody
+leaves outrank the new phase's in tree order, and its attribution prefix
+reports the pickup phase. The latch dissolves the moment the Core leaves
+its hands — bank, drop, death, or pass, with the catcher latching fresh
+at ITS current phase — and a respawned life is never the latched carrier.
+Squad-level phase progress is untouched; legacy sheets (no program) pass
+through null unchanged, and the stock digest pin stayed byte-identical.
+Composes with #347: the latch pins WHICH phase's custody; the ground gate
+picks corridor-versus-direct within it. Verified in the practice-seed
+trace: the squad walks p2→p3→p4 while the carrier reads t1/p2 · bank to
+the moment it banks, then rejoins p4. Direct unit tests cover latch
+persistence, dissolution, respawn, pass handoff, and the legacy null path.
