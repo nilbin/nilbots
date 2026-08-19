@@ -670,7 +670,13 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
           target.posture = posture as Posture;
         })} />
       <p className="t-micro mb-1 text-arena-dim">{POSTURES.find((value) => value.id === job.posture)?.blurb}</p>
-      {job.kind !== 'escort' && (job.kind !== 'none' || carried) && <>
+      {(() => {
+        // Travel needs an arrival to hand over at — hide it where the job
+        // is all march (patrol/return/escort) or carries nothing forward.
+        const arrivalKind = job.kind === 'none' ? carried?.kind : job.kind;
+        return Boolean(arrivalKind)
+          && !['patrol', 'return', 'escort'].includes(arrivalKind!);
+      })() && <>
         <div className="lab">On the way <span className="text-arena-dim">(optional)</span></div>
         <SegChips
           options={[

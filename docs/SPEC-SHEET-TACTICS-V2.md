@@ -136,12 +136,16 @@ phase it means starting loose. Signature marks follow the v1 rules (descriptor
 capabilities, budgets), attached to the phase that uses them.
 
 `travel` is the optional **on-the-way posture**: how the group behaves while
-MOVING to this job's ground; the main `posture` takes over once set. Absent
-means one posture for the march and the ground.
+MOVING to this job's ground; the main `posture` takes over on arrival. Absent
+(or equal to `posture`) means one posture for the march and the ground. It is
+legal only where an arrival exists — posts/area/line/approach/converge/
+advance, or a `none` that carries one of those forward; patrol, return and
+escort are all march and refuse it.
 
-`recovery: "heal-up"` seeks the heal tile early (below ~90%) and stays until
-topped up (~98%) rather than patching to the fight floor — pair it with a
-`healed` row so the transition waits for the team.
+`recovery: "heal-up"` breaks for the heal tile at any damage (<100%) and
+stays until completely full, so every `healed` gate 1..100 is eventually
+satisfiable — pair it with a `healed` row so the transition waits for the
+team.
 
 ## 2. Materialization (normative)
 
@@ -169,11 +173,16 @@ dead excuse themselves). Evidence rows anchor `since: "phase-entry"`;
 
 `travel` shifts the phase's floor move stance to the travel posture's band
 (aggressive/steal → front, hold/escort → line, else rear) and adds one
-ungated respond leaf (`t{n}-p{j}-g{k}-travel-fight`) after the station-gated
-fight — under `hold` it answers nearby attackers with chase 1 (respond, no
-pursuit) so the march is never defenseless, while the on-station fight still
-takes over on arrival. `heal-up` materializes an urgent recovery leaf that
-breaks for the nearest heal zone below ~90% and holds there until ~98%.
+respond leaf (`t{n}-p{j}-g{k}-travel-fight`) gated on being OFF the station,
+so it owns combat en route and goes silent on arrival — even under a
+fightless arrived posture like `wait`. Under `hold` it answers nearby
+attackers with chase 1 (respond, no pursuit); `wait` emits no leaf at all
+(the quiet march). Standing kinds gate their main fight on the station as
+always; converge/advance gain a destination gate (point / path end, ±2)
+only when a travel posture is authored — without one, converge-aggressive
+still brawls its way in by authored choice. `heal-up` materializes an urgent
+recovery leaf that breaks for the nearest heal zone at any damage (≤99%) and
+holds there until completely full (≥100%).
 
 A tactic whose final phase holds forever and whose delivery is `none` still
 gets the urgent bank-escape leaf, exactly as v1's persistent form did.

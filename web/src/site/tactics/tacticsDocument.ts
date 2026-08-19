@@ -197,7 +197,7 @@ export const RECOVERIES: { id: Recovery; label: string; blurb: string }[] = [
   { id: 'fight-on', label: 'Fight on', blurb: 'No falling back — hold the plan whatever the damage.' },
   { id: 'patch', label: 'Patch up close', blurb: 'Step back a moment, let repairs land, slot back in.' },
   { id: 'heal-tile', label: 'Break for the heal tile', blurb: 'Badly hurt bots run to the nearest heal tile, then return.' },
-  { id: 'heal-up', label: 'Heal up fully', blurb: 'Seek the heal tile early and stay until topped up — pair with an “Everyone is healed up” condition.' },
+  { id: 'heal-up', label: 'Heal up fully', blurb: 'Break for the heal tile at any damage and stay until completely full — pair with an “Everyone is healed up” condition.' },
 ];
 
 /** The one job vocabulary every phase shares. 'none' reads differently on
@@ -705,6 +705,15 @@ export function validateDocument(
         validateJobGeometry(
           job, phaseIndex === 0, group, `${phaseAt}.jobs.${group.id}`,
           catalog, error);
+        if (job.travel) {
+          // Travel needs an arrival for the main posture to take over at;
+          // patrol/return/escort are all march. Mirrors the server.
+          const arrivalKind = effectiveJob(tactic, phaseIndex, group.id)?.kind;
+          if (!arrivalKind || ['patrol', 'return', 'escort'].includes(arrivalKind)) {
+            error(`${phaseAt}.jobs.${group.id}.travel`,
+              `${possessive(group.name)} job is all march — there is no arrival for its “on the way” posture to hand over at.`);
+          }
+        }
         for (const [classId, mark] of Object.entries(job.sigs ?? {})) {
           const geometry = signatureMarkGeometry(catalog, classId);
           const owned = group.slots.some((slot) =>

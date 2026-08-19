@@ -722,6 +722,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             travel = StringValue(travelValue, $"{path}.travel");
             if (!TacticPostures.Contains(travel))
                 throw Error($"{path}.travel", $"unknown posture '{travel}'.");
+            if (kind is "patrol" or "return" or "escort")
+            {
+                throw Error($"{path}.travel",
+                    $"'{kind}' is all march — there is no arrival for the " +
+                    "main posture to take over at.");
+            }
         }
         string recovery = RequiredString(value, "recovery", path);
         if (!TacticRecoveries.Contains(recovery))

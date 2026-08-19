@@ -641,12 +641,32 @@ internal static class ArcRelayTacticsMaterializer
                     prefix, groupTag, group.Slots.Count, $"p{phaseIndex + 1}");
                 var leaves = new List<Node>();
                 AddRecovery(leaves, scope, raw.Recovery);
+                // travel == posture is "same as here": nothing to
+                // distinguish. A kind with no arrival (patrol/return, or a
+                // carry-forward that resolves to one) drops travel rather
+                // than promising a switch that could never happen; the
+                // editors refuse to author it.
+                string? travel = raw.Travel == raw.Posture ? null : raw.Travel;
+                bool standing =
+                    effective?.Kind is "posts" or "area" or "line" or "approach";
+                bool mover = effective?.Kind is "converge" or "advance";
+                if (!standing && !mover)
+                    travel = null;
+                // Standing kinds always gate their fight on the station; a
+                // mover's fight is gated on its destination only when a
+                // travel posture makes the march and the ground different.
                 AddPostureFight(leaves, scope, raw.Posture,
-                    effective?.Kind is "posts" or "area" or "line" or "approach"
+                    standing || (mover && travel is not null)
                         ? () => OnStationCondition(
-                            prefix, groupTag, effective, group, bot)
+                            prefix, groupTag, effective!, group, bot)
                         : null);
-                AddTravelFight(leaves, scope, raw.Travel);
+                if (travel is not null)
+                {
+                    AddTravelFight(leaves, scope, travel,
+                        () => OnStationCondition(
+                            prefix, groupTag, effective!, group, bot,
+                            arrived: false));
+                }
                 AddSignatureLeaves(
                     leaves, scope, group, bot, raw.Posture, raw.Sigs);
                 if (effective is not null)
@@ -718,17 +738,19 @@ internal static class ArcRelayTacticsMaterializer
             }
             else if (recovery == "heal-up")
             {
-                // The regroup preset: seek healing well before critical and
-                // stay until topped up — pair with a "healed" continue row.
+                // The regroup preset: any damage at all sends the bot to
+                // heal and it stays until completely full, so EVERY healed
+                // gate 1..100 is eventually satisfiable — a narrower band
+                // (90/98) let a bot at 92% block a 95% gate forever.
                 leaves.Add(GroupLeaf(scope, "heal-up", () => new Node
                 {
                     When = Expr.One(Condition(
                         new ConditionShape(
-                            "self-health-percent", "at-most", 90),
+                            "self-health-percent", "at-most", 99),
                         "below-topped-up")),
                     Until = Expr.One(Condition(
                         new ConditionShape(
-                            "self-health-percent", "at-least", 98),
+                            "self-health-percent", "at-least", 100),
                         "topped-up")),
                     Timeout = 30,
                     Cooldown = 10,
@@ -909,15 +931,18 @@ internal static class ArcRelayTacticsMaterializer
             leaves.Add(GroupLeaf(scope, "fight", Define));
         }
 
-        /// <summary>The on-the-way answer to being attacked: an UNGATED
-        /// fight leaf below the station-gated one, so it owns combat en
-        /// route and yields to the arrived posture at the station. 'hold'
+        /// <summary>The on-the-way answer to being attacked: a fight leaf
+        /// gated on being OFF the station, so it owns combat en route and
+        /// goes silent the moment the bot arrives — the arrived posture
+        /// (which may be a fightless 'wait') owns the ground alone. 'hold'
         /// travel responds without pursuit (chase 1); aggressive/steal
-        /// brawl their way in by authored choice.</summary>
+        /// brawl their way in by authored choice; 'wait' emits nothing —
+        /// the quiet march IS the absence of a fight leaf.</summary>
         private void AddTravelFight(
             List<Node> leaves,
             LeafScope scope,
-            string? travel)
+            string travel,
+            Func<string?> offStationCondition)
         {
             (string[] Targets, string Style, int Chase)? fight = travel switch
             {
@@ -929,24 +954,39 @@ internal static class ArcRelayTacticsMaterializer
             };
             if (fight is null)
                 return;
-            leaves.Add(GroupLeaf(scope, "travel-fight", () => new Node
+            string? offStation = offStationCondition();
+            Node Define() => new()
             {
-                When = Expr.All(EmptyHanded(), EnemyNearby()),
+                When = offStation is null
+                    ? Expr.All(EmptyHanded(), EnemyNearby())
+                    : Expr.All(EmptyHanded(), EnemyNearby(), offStation),
                 Action = Fight(fight.Value.Targets, fight.Value.Style,
                     fight.Value.Chase),
-            }));
+            };
+            if (offStation is not null && offStation.Contains("-off-post-"))
+            {
+                Node inline = Define();
+                inline.Id = scope.Id("travel-fight");
+                leaves.Add(inline);
+                return;
+            }
+            leaves.Add(GroupLeaf(scope, "travel-fight", Define));
         }
 
-        /// <summary>The body-scoped “I am at my station” fact: a posts job
-        /// gates each bot on its own post (±1); other kinds use the job
-        /// footprint. Null when the job has no standing geometry.</summary>
+        /// <summary>The body-scoped “I am at my station” fact (or its
+        /// inverse, for the travel fight): a posts job gates each bot on
+        /// its own post (±1); standing kinds use the job footprint;
+        /// converge/advance use their destination (±2). Null when the job
+        /// has no arrival geometry.</summary>
         private string? OnStationCondition(
             string prefix,
             string groupTag,
             ArcRelayTacticJob job,
             ArcRelayTacticGroup group,
-            ArcRelayTacticsSquadBot bot)
+            ArcRelayTacticsSquadBot bot,
+            bool arrived = true)
         {
+            int expected = arrived ? 1 : 0;
             if (job.Kind == "posts" && job.Posts is not null)
             {
                 int member = group.Slots.ToList().IndexOf(bot.Slot);
@@ -955,19 +995,25 @@ internal static class ArcRelayTacticsMaterializer
                     [post.At[0], post.At[1], post.At[0], post.At[1]], 1);
                 string postZone = Zone(
                     postRect, $"g-{prefix}-{groupTag}-post-{member}");
+                string state = arrived ? "at" : "off";
                 return Condition(
-                    new ConditionShape("self-in-zone", "equals", 1,
+                    new ConditionShape("self-in-zone", "equals", expected,
                         ZoneId: postZone),
-                    $"c-{prefix}-{groupTag}-at-post-{member}-self");
+                    $"c-{prefix}-{groupTag}-{state}-post-{member}-self");
             }
             int[]? rect = job.Kind switch
             {
                 "area" => job.Rect,
                 "line" => PadBounds(BoundingBox(job.Path!), 1),
-                "approach" => PadBounds(
+                "approach" or "converge" => PadBounds(
                     [
                         job.Point![0], job.Point[1],
                         job.Point[0], job.Point[1],
+                    ], 2),
+                "advance" => PadBounds(
+                    [
+                        job.Path![^1][0], job.Path[^1][1],
+                        job.Path[^1][0], job.Path[^1][1],
                     ], 2),
                 _ => null,
             };
@@ -975,8 +1021,9 @@ internal static class ArcRelayTacticsMaterializer
                 return null;
             string zone = Zone(rect, $"g-{prefix}-{groupTag}-set");
             return Condition(
-                new ConditionShape("self-in-zone", "equals", 1, ZoneId: zone),
-                $"c-{prefix}-{groupTag}-on-station");
+                new ConditionShape("self-in-zone", "equals", expected,
+                    ZoneId: zone),
+                $"c-{prefix}-{groupTag}-{(arrived ? "on" : "off")}-station");
         }
 
         private void AddSignatureLeaves(

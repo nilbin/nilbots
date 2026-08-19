@@ -225,24 +225,53 @@ public sealed class ArcRelayTacticsMaterializerTests
         using JsonDocument orders = JsonDocument.Parse(
             compilation.MaterializedOrders!);
 
-        // The travel response is an ungated fight leaf; the floor's march
-        // stance follows the travel posture (hold → line, not wait's rear).
+        // The travel response answers attacks ONLY off the station: once a
+        // flanker stands in its staging rect the leaf goes dark, and wait —
+        // which mints no fight of its own — truly means quiet there. The
+        // floor's march stance follows the travel posture (hold → line).
         JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
         JsonElement travelFight = shared.GetProperty("t1-p1-g2-travel-fight");
         Assert.Equal("hold",
             travelFight.GetProperty("fight").GetProperty("style").GetString());
         Assert.Equal(1,
             travelFight.GetProperty("fight").GetProperty("chaseLimit").GetInt32());
-        Assert.False(travelFight.TryGetProperty("until", out _));
+        string[] travelWhen = travelFight.GetProperty("when").GetProperty("all")
+            .EnumerateArray().Select(entry => entry.GetString()!).ToArray();
+        Assert.Contains("c-t1-g2-off-station", travelWhen);
+        JsonElement offStation = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-g2-off-station");
+        Assert.Equal("self-in-zone", offStation.GetProperty("fact").GetString());
+        Assert.Equal("equals", offStation.GetProperty("operator").GetString());
+        Assert.Equal(0, offStation.GetProperty("value").GetInt32());
+        Assert.False(shared.TryGetProperty("t1-p1-g2-fight", out _));
         JsonElement floor = shared.GetProperty("t1-p1-g2-move");
         Assert.Equal("line",
             floor.GetProperty("move").GetProperty("posture").GetString());
 
-        // heal-up: engage from 90% down, stay until topped up.
+        // heal-up: any damage at all sends the bot to heal (≤99) and it
+        // stays until completely full (≥100), so EVERY selectable healed
+        // gate 1..100 is eventually satisfiable — including the 91, 98 and
+        // 100 boundaries a 90/98 band would deadlock on.
         JsonElement healUp = shared.GetProperty("t1-p1-g1-heal-up");
         Assert.Equal("below-topped-up",
             healUp.GetProperty("when").GetString());
         Assert.Equal("topped-up", healUp.GetProperty("until").GetString());
+        JsonElement conditionTable = orders.RootElement.GetProperty("conditions");
+        int seekBelow = conditionTable.GetProperty("below-topped-up")
+            .GetProperty("value").GetInt32();
+        Assert.Equal("at-most", conditionTable.GetProperty("below-topped-up")
+            .GetProperty("operator").GetString());
+        int stayUntil = conditionTable.GetProperty("topped-up")
+            .GetProperty("value").GetInt32();
+        Assert.Equal("at-least", conditionTable.GetProperty("topped-up")
+            .GetProperty("operator").GetString());
+        foreach (int gate in new[] { 91, 98, 100 })
+        {
+            // A bot below the gate (≤ gate-1) must trigger the trip, and
+            // the trip must not end before the gate is met.
+            Assert.True(seekBelow >= gate - 1);
+            Assert.True(stayUntil >= gate);
+        }
 
         // healed 80 lands as one exact per-bot entry per squad slot.
         JsonElement when = orders.RootElement.GetProperty("program")
@@ -262,6 +291,74 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Equal("role-lowest-health-percent",
             condition.GetProperty("fact").GetString());
         Assert.Equal(80, condition.GetProperty("value").GetInt32());
+    }
+
+    [Fact]
+    public void QuietTravelGatesAMoversFightToItsDestination()
+    {
+        // "Quietly on the way, Aggressive there" on a converge: the march
+        // must actually be quiet. Without travel the aggressive fight is
+        // ungated (brawling in IS converge-aggressive); with travel "wait"
+        // the fight gains a destination gate and no travel leaf exists.
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        TacticalPlaybookCompilation baseline =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument baselineOrders = JsonDocument.Parse(
+            baseline.MaterializedOrders!);
+        string[] baselineWhen = baselineOrders.RootElement
+            .GetProperty("sharedOrders").GetProperty("t1-p2-g2-fight")
+            .GetProperty("when").GetProperty("all").EnumerateArray()
+            .Select(entry => entry.GetString()!).ToArray();
+        Assert.DoesNotContain(baselineWhen,
+            name => name.Contains("station", StringComparison.Ordinal));
+
+        document["tactics"]![0]!["phases"]![1]!["jobs"]!["flankers"]!
+            .AsObject()["travel"] = "wait";
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
+        Assert.False(shared.TryGetProperty("t1-p2-g2-travel-fight", out _));
+        string[] gatedWhen = shared.GetProperty("t1-p2-g2-fight")
+            .GetProperty("when").GetProperty("all").EnumerateArray()
+            .Select(entry => entry.GetString()!).ToArray();
+        Assert.Contains("c-t1-g2-on-station", gatedWhen);
+        JsonElement onStation = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-g2-on-station");
+        Assert.Equal("equals", onStation.GetProperty("operator").GetString());
+        Assert.Equal(1, onStation.GetProperty("value").GetInt32());
+        // The gate is the convergence point ±2 — the destination, not the
+        // staging ground.
+        string zoneId = onStation.GetProperty("zone").GetString()!;
+        using JsonDocument mapPlan = JsonDocument.Parse(
+            compilation.MaterializedMapPlan!);
+        int[] rect = mapPlan.RootElement.GetProperty("zones")
+            .GetProperty(zoneId).GetProperty("rect").EnumerateArray()
+            .Select(value => value.GetInt32()).ToArray();
+        Assert.Equal([13, 10, 17, 14], rect);
+    }
+
+    [Fact]
+    public void TravelOnAnAllMarchJobIsRefused()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject job = document["tactics"]![0]!["phases"]![1]!["jobs"]!
+            ["flankers"]!.AsObject();
+        job["kind"] = "patrol";
+        job.Remove("point");
+        job["path"] = JsonNode.Parse("[[15,12],[18,12],[15,12]]");
+        job["travel"] = "hold";
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("all march", error.Message);
     }
 
     [Fact]

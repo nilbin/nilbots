@@ -9090,15 +9090,23 @@ sheet edits or readiness weakening.
 ## 339. Travel posture, the healed gate and heal-up recovery
 
 A phase job gains an optional `travel` posture — how the group behaves while
-MOVING to its ground; the main posture takes over once set. It compiles to
-the travel band's floor stance plus one ungated respond leaf
-(`…-travel-fight`) ahead of the station-gated fight, so `travel: "hold"`
-answers attacks on the march without pursuit (chase 1) and goes quiet on
-arrival. Transition cases gain the `healed` row ("Everyone is healed up to
-N%", Required-only like `groupsSet`), compiled per bot as
+MOVING to its ground; the main posture takes over on arrival. It compiles to
+the travel band's floor stance plus one respond leaf (`…-travel-fight`)
+gated on being OFF the station, so `travel: "hold"` answers attacks on the
+march without pursuit (chase 1) and goes truly silent on arrival even under
+a fightless `wait`. Standing kinds keep their on-station fight gate;
+converge/advance mint a destination gate (±2) only when travel is authored,
+so a plain converge-aggressive still brawls its way in. Travel is refused on
+patrol/return/escort — all march, no arrival to hand over at (review catch:
+the first cut left movers' main fights ungated and the travel leaf ungated,
+so "Quietly there" could brawl en route and "Answer attacks" kept answering
+after arrival). Transition cases gain the `healed` row ("Everyone is healed
+up to N%", Required-only like `groupsSet`), compiled per bot as
 `role-lowest-health-percent ≥ N` — a dead role reads 100, so the dead excuse
 themselves; the program-case side bound rose 12 → 24 to hold readiness plus
 healed together. A third recovery, `heal-up`, breaks for the nearest heal
-zone below ~90% and holds until ~98% (urgent, 30-tick timeout, 10 cooldown)
-so a phase can genuinely top the team up before its `healed` gate opens.
+zone at any damage (≤99%) and holds until completely full (≥100%; urgent,
+30-tick timeout, 10 cooldown) — a narrower 90/98 band would let a bot at
+92% block a 95% gate forever (review catch), so the trip covers the whole
+1..100 gate range.
 Spec: SPEC-SHEET-TACTICS-V2 §1–2, SPEC-SHEET-ORDERS-V2 §4b (case bound).

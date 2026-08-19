@@ -294,6 +294,21 @@ test('healed gate, travel posture and heal-up recovery validate and read back', 
   assert.ok(messages.some((message) => /belongs in Required/.test(message)));
 });
 
+test('travel is refused where the job has no arrival to hand over at', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const flankers = tactic.groups[1];
+  const job = tactic.phases[2].jobs[flankers.id];
+  job.kind = 'patrol';
+  delete job.rect;
+  job.path = [[13, 11], [17, 11], [13, 11]];
+  job.travel = 'hold';
+  document.tactics.push(tactic);
+  const messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) => /all march/.test(message)));
+});
+
 test('the readback walks a pincer through its named phases', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
