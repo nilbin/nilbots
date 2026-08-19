@@ -9069,3 +9069,20 @@ Start → Groups → Phases (a selectable storyboard) → Cores → Review, with
 abort and the time limit living quietly on Start. A hosted deployment of
 this behavior change mints the next playlist version (v26) before the new
 worker ships; the dev loop stays on v25.
+
+Open follow-up (owner-visible, felt-bar `formationFreeze`): the standard
+six-cell gallery for this feature is withheld because its three east-seat
+cells trip `formationFreeze`/`sustainedPassivity` on the entrant.
+Root cause is a pre-existing executor behavior in the #337 reactor-pocket
+family, reproduced byte-for-byte on the pre-change binary with the old v1
+encoding (seed 9005, east seat): one squad member — different bots on
+different runs, always at the east spawn exit — plans an `epibt-move`
+toward its authored ground every tick yet never takes a step, for hundreds
+of ticks. The old per-body release gates leaked around such a bot (dead
+excuses, quorum, rejoin), so the squad never LOOKED frozen; the program's
+exact whole-squad readiness honestly waits for it, which is what makes the
+pre-existing pin visible and felt. The owner's own migrated sheet is clean
+on both seats (releases t36 west / t41 east, motion-sanity CLEAN); the pin
+needs specific spawn-exit congestion. Fix path is #337's: a reproducible
+movement scene around the east spawn exit and planner-level work, not
+sheet edits or readiness weakening.
