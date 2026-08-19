@@ -515,6 +515,12 @@ export function PhasesStep(props: StepProps) {
         </span>
       </div>
       <CaseListEditor<TacticTransition>
+        // Keyed per phase: the storyboard swaps phases through this ONE
+        // component position, and without a key the fold state (initialized
+        // once — "collapse when several alternatives exist") leaks from the
+        // first phase onto every other, leaving multi-alternative phases
+        // fully expanded.
+        key={phase.id}
         cases={phase.continue ?? []}
         maximum={3}
         accent="#c8763c"
