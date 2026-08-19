@@ -351,6 +351,19 @@ internal static class ArcRelayTacticsMaterializer
                     new ConditionShape("elapsed-ticks", "at-least", held),
                     $"c-held-{held}"));
             }
+            if (rows.Healed is int healed)
+            {
+                // Exact and per bot, like readiness: every LIVING bot is at
+                // the threshold — a dead role reads 100 and excuses itself.
+                foreach (ArcRelayTacticsSquadBot bot in _document.Squad)
+                {
+                    entries.Add(Condition(
+                        new ConditionShape(
+                            "role-lowest-health-percent", "at-least", healed,
+                            Role: RoleId(bot.Slot)),
+                        $"hp-{RoleId(bot.Slot)}-{healed}"));
+                }
+            }
             if (rows.EnemiesAt is ArcRelayTacticEnemiesAtRow enemies)
             {
                 string zone = Zone(
@@ -633,6 +646,7 @@ internal static class ArcRelayTacticsMaterializer
                         ? () => OnStationCondition(
                             prefix, groupTag, effective, group, bot)
                         : null);
+                AddTravelFight(leaves, scope, raw.Travel);
                 AddSignatureLeaves(
                     leaves, scope, group, bot, raw.Posture, raw.Sigs);
                 if (effective is not null)
@@ -679,6 +693,7 @@ internal static class ArcRelayTacticsMaterializer
                     return candidate with
                     {
                         Posture = raw.Posture,
+                        Travel = raw.Travel,
                         Recovery = raw.Recovery,
                         Sigs = raw.Sigs,
                     };
@@ -697,6 +712,26 @@ internal static class ArcRelayTacticsMaterializer
                     Until = Expr.One(Healthy()),
                     Timeout = 16,
                     Cooldown = 18,
+                    Urgency = "urgent",
+                    Action = MoveToDynamic("nearest-heal-zone", posture: "rear"),
+                }));
+            }
+            else if (recovery == "heal-up")
+            {
+                // The regroup preset: seek healing well before critical and
+                // stay until topped up — pair with a "healed" continue row.
+                leaves.Add(GroupLeaf(scope, "heal-up", () => new Node
+                {
+                    When = Expr.One(Condition(
+                        new ConditionShape(
+                            "self-health-percent", "at-most", 90),
+                        "below-topped-up")),
+                    Until = Expr.One(Condition(
+                        new ConditionShape(
+                            "self-health-percent", "at-least", 98),
+                        "topped-up")),
+                    Timeout = 30,
+                    Cooldown = 10,
                     Urgency = "urgent",
                     Action = MoveToDynamic("nearest-heal-zone", posture: "rear"),
                 }));
@@ -874,6 +909,34 @@ internal static class ArcRelayTacticsMaterializer
             leaves.Add(GroupLeaf(scope, "fight", Define));
         }
 
+        /// <summary>The on-the-way answer to being attacked: an UNGATED
+        /// fight leaf below the station-gated one, so it owns combat en
+        /// route and yields to the arrived posture at the station. 'hold'
+        /// travel responds without pursuit (chase 1); aggressive/steal
+        /// brawl their way in by authored choice.</summary>
+        private void AddTravelFight(
+            List<Node> leaves,
+            LeafScope scope,
+            string? travel)
+        {
+            (string[] Targets, string Style, int Chase)? fight = travel switch
+            {
+                "hold" => (["nearest", "weakest"], "hold", 1),
+                "aggressive" => (["carrier", "weakest", "nearest"], "advance", 6),
+                "steal" => (["carrier", "nearest"], "advance", 6),
+                "escort" => (["nearest"], "hold", 2),
+                _ => ((string[], string, int)?)null,
+            };
+            if (fight is null)
+                return;
+            leaves.Add(GroupLeaf(scope, "travel-fight", () => new Node
+            {
+                When = Expr.All(EmptyHanded(), EnemyNearby()),
+                Action = Fight(fight.Value.Targets, fight.Value.Style,
+                    fight.Value.Chase),
+            }));
+        }
+
         /// <summary>The body-scoped “I am at my station” fact: a posts job
         /// gates each bot on its own post (±1); other kinds use the job
         /// footprint. Null when the job has no standing geometry.</summary>
@@ -1030,7 +1093,9 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticsSquadBot bot)
         {
             string geometryPrefix = $"{scope.Prefix}-{scope.GroupTag}";
-            string posture = job.Posture switch
+            // The march stance is the on-the-way posture when one is set;
+            // arrived combat belongs to the fight leaves either way.
+            string posture = (job.Travel ?? job.Posture) switch
             {
                 "aggressive" or "steal" => "front",
                 "hold" or "escort" => "line",

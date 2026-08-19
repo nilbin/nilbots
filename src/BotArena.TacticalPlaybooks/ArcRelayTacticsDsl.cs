@@ -33,7 +33,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         { "wait", "hold", "aggressive", "steal", "escort", "observe" };
 
     private static readonly HashSet<string> TacticRecoveries =
-        new(StringComparer.Ordinal) { "fight-on", "patch", "heal-tile" };
+        new(StringComparer.Ordinal)
+        { "fight-on", "patch", "heal-tile", "heal-up" };
 
     /// <summary>One job vocabulary for every phase: the old stage and act
     /// kinds merged. 'none' carries the group's nearest earlier geometric
@@ -61,9 +62,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
     private static readonly string[] TacticTransitionRows =
     [
-        "groupsSet", "held", "contact", "enemiesAt", "coreLoose", "coreSoon",
-        "enemiesDown", "kills", "losses", "cleared", "coreAcquired",
-        "coreBanked", "coreLost", "reached", "observed",
+        "groupsSet", "held", "healed", "contact", "enemiesAt", "coreLoose",
+        "coreSoon", "enemiesDown", "kills", "losses", "cleared",
+        "coreAcquired", "coreBanked", "coreLost", "reached", "observed",
     ];
 
     private static readonly string[] TacticAbortRows =
@@ -706,13 +707,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         string[] geometryKeys = ["posts", "rect", "path", "point"];
         Object(value, path, ["kind", "posture", "recovery"],
-            [.. geometryKeys, "via", "sigs"]);
+            [.. geometryKeys, "via", "sigs", "travel"]);
         string kind = RequiredString(value, "kind", path);
         if (!TacticJobKinds.Contains(kind))
             throw Error($"{path}.kind", $"unknown job kind '{kind}'.");
         string posture = RequiredString(value, "posture", path);
         if (!TacticPostures.Contains(posture))
             throw Error($"{path}.posture", $"unknown posture '{posture}'.");
+        // The optional on-the-way posture: how the group behaves while
+        // MOVING to this job's ground; the main posture takes over once set.
+        string? travel = null;
+        if (value.TryGetProperty("travel", out JsonElement travelValue))
+        {
+            travel = StringValue(travelValue, $"{path}.travel");
+            if (!TacticPostures.Contains(travel))
+                throw Error($"{path}.travel", $"unknown posture '{travel}'.");
+        }
         string recovery = RequiredString(value, "recovery", path);
         if (!TacticRecoveries.Contains(recovery))
             throw Error($"{path}.recovery", $"unknown recovery '{recovery}'.");
@@ -830,8 +840,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 sigs);
         }
         return new ArcRelayTacticJob(
-            kind, posture, recovery, posts, rect, pathPoints, point, via,
-            sigs);
+            kind, posture, travel, recovery, posts, rect, pathPoints, point,
+            via, sigs);
     }
 
     private static void ValidateSignatureMarks(
@@ -958,6 +968,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "groupsSet belongs in required — every group must be in "
                     + "position, not any one bot.");
             }
+            if (triggers.Healed is not null)
+            {
+                throw Error($"{path}.triggers",
+                    "healed belongs in required — every living bot must be "
+                    + "topped up, not any one bot.");
+            }
         }
         if ((required?.ActiveCount ?? 0) + (triggers?.ActiveCount ?? 0) == 0)
             throw Error(path, "a case needs at least one active condition row.");
@@ -986,6 +1002,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             string at = $"{path}.held";
             Object(heldValue, at, ["ticks"]);
             heldTicks = Range(heldValue, "ticks", at, 1, 600);
+        }
+        int? healed = null;
+        if (value.TryGetProperty("healed", out JsonElement healedValue))
+        {
+            string at = $"{path}.healed";
+            Object(healedValue, at, ["percent"]);
+            healed = Range(healedValue, "percent", at, 1, 100);
         }
         ArcRelayTacticEnemiesAtRow? enemiesAt = null;
         if (value.TryGetProperty("enemiesAt", out JsonElement enemies))
@@ -1077,8 +1100,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         bool observed = FlagRow(value, "observed", path);
         return new ArcRelayTacticConditionRows(
             enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
-            carrier, losses, lossesWithin, groupsSet, heldTicks, kills,
-            cleared, coreAcquired, coreBanked, coreLost, reached, observed);
+            carrier, losses, lossesWithin, groupsSet, heldTicks, healed,
+            kills, cleared, coreAcquired, coreBanked, coreLost, reached,
+            observed);
     }
 
     private static bool FlagRow(
@@ -1199,6 +1223,7 @@ internal sealed record ArcRelayTacticConditionRows(
     ArcRelayTacticLossesWithinRow? LossesWithin,
     bool GroupsSet,
     int? HeldTicks,
+    int? Healed,
     int? Kills,
     ArcRelayTacticZoneRef? Cleared,
     bool CoreAcquired,
@@ -1213,6 +1238,7 @@ internal sealed record ArcRelayTacticConditionRows(
         + (EnemiesDown is null ? 0 : 1) + (Carrier ? 1 : 0)
         + (Losses is null ? 0 : 1) + (LossesWithin is null ? 0 : 1)
         + (GroupsSet ? 1 : 0) + (HeldTicks is null ? 0 : 1)
+        + (Healed is null ? 0 : 1)
         + (Kills is null ? 0 : 1) + (Cleared is null ? 0 : 1)
         + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
         + (Reached ? 1 : 0) + (Observed ? 1 : 0);
@@ -1251,6 +1277,7 @@ internal sealed record ArcRelayTacticGroup(
 internal sealed record ArcRelayTacticJob(
     string Kind,
     string Posture,
+    string? Travel,
     string Recovery,
     IReadOnlyList<ArcRelayTacticPost>? Posts,
     int[]? Rect,

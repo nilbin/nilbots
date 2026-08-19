@@ -202,6 +202,69 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void TravelPostureHealedGateAndHealUpRecoveryMaterialize()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject stagePhase = document["tactics"]![0]!["phases"]![0]!
+            .AsObject();
+        // Flankers answer attacks on the way in but wait once staged; the
+        // guards top up at the heal tile; the release also demands everyone
+        // healed to 80%.
+        JsonObject flankers = stagePhase["jobs"]!["flankers"]!.AsObject();
+        flankers["travel"] = "hold";
+        JsonObject guards = stagePhase["jobs"]!["mid-guard"]!.AsObject();
+        guards["recovery"] = "heal-up";
+        JsonObject rule = stagePhase["continue"]!.AsArray()[0]!.AsObject();
+        rule["required"]!.AsObject()["healed"] = JsonNode.Parse(
+            """{"percent":80}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+
+        // The travel response is an ungated fight leaf; the floor's march
+        // stance follows the travel posture (hold → line, not wait's rear).
+        JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
+        JsonElement travelFight = shared.GetProperty("t1-p1-g2-travel-fight");
+        Assert.Equal("hold",
+            travelFight.GetProperty("fight").GetProperty("style").GetString());
+        Assert.Equal(1,
+            travelFight.GetProperty("fight").GetProperty("chaseLimit").GetInt32());
+        Assert.False(travelFight.TryGetProperty("until", out _));
+        JsonElement floor = shared.GetProperty("t1-p1-g2-move");
+        Assert.Equal("line",
+            floor.GetProperty("move").GetProperty("posture").GetString());
+
+        // heal-up: engage from 90% down, stay until topped up.
+        JsonElement healUp = shared.GetProperty("t1-p1-g1-heal-up");
+        Assert.Equal("below-topped-up",
+            healUp.GetProperty("when").GetString());
+        Assert.Equal("topped-up", healUp.GetProperty("until").GetString());
+
+        // healed 80 lands as one exact per-bot entry per squad slot.
+        JsonElement when = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("phases").EnumerateArray().First()
+            .GetProperty("continue").EnumerateArray().Single()
+            .GetProperty("when");
+        string[] names = when.GetProperty("all").EnumerateArray()
+            .Where(entry => entry.ValueKind == JsonValueKind.String)
+            .Select(entry => entry.GetString()!)
+            .Where(name => name.StartsWith("hp-", StringComparison.Ordinal))
+            .ToArray();
+        Assert.Equal(8, names.Length);
+        Assert.Contains("hp-vex-80", names);
+        JsonElement condition = orders.RootElement.GetProperty("conditions")
+            .GetProperty("hp-vex-80");
+        Assert.Equal("role-lowest-health-percent",
+            condition.GetProperty("fact").GetString());
+        Assert.Equal(80, condition.GetProperty("value").GetInt32());
+    }
+
+    [Fact]
     public void ForwardOnlyTransitionsAreEnforced()
     {
         JsonObject document = JsonNode.Parse(

@@ -35,6 +35,7 @@ function inPlace(place: string): string {
 }
 
 function recoveryPhrase(job: TacticJob): string {
+  if (job.recovery === 'heal-up') return ' — topping up fully at the heal tile';
   if (job.recovery === 'heal-tile') return ' — breaking for the heal tile when hurt';
   if (job.recovery === 'fight-on' && !['aggressive', 'steal'].includes(job.posture)) {
     return ' — no falling back';
@@ -60,6 +61,16 @@ function viaPhrase(job: TacticJob): string {
   return (job.via?.length ?? 0) > 1 ? ', coming in by the drawn route' : '';
 }
 
+/** ", answering attacks on the way" when a travel posture is authored. */
+function travelPhrase(job: TacticJob): string {
+  if (!job.travel || job.travel === job.posture) return '';
+  if (job.travel === 'hold') return ', answering attacks on the way';
+  if (job.travel === 'aggressive') return ', brawling their way in';
+  if (job.travel === 'steal') return ', stealing on the way';
+  if (job.travel === 'wait') return ', slipping in quietly';
+  return '';
+}
+
 /** One group's job in one phase, as a verb phrase. */
 export function jobClause(job: TacticJob, plural = true): string {
   const v = (word: string) => verb(word, plural);
@@ -79,15 +90,15 @@ export function jobClause(job: TacticJob, plural = true): string {
       const ways = job.posts?.some((post) => (post.via?.length ?? 0) > 1)
         ? ', coming in by drawn routes'
         : via;
-      if (posture === 'hold') return `${v('hold')} posts at ${place}${ways}${recoveryPhrase(job)}`;
-      if (posture === 'observe') return `${v('watch')} from posts at ${place}${ways}${recoveryPhrase(job)}`;
-      return `${v('wait')} at posts near ${place}${ways}${recoveryPhrase(job)}`;
+      if (posture === 'hold') return `${v('hold')} posts at ${place}${ways}${travelPhrase(job)}${recoveryPhrase(job)}`;
+      if (posture === 'observe') return `${v('watch')} from posts at ${place}${ways}${travelPhrase(job)}${recoveryPhrase(job)}`;
+      return `${v('wait')} at posts near ${place}${ways}${travelPhrase(job)}${recoveryPhrase(job)}`;
     }
     case 'area': {
       const place = jobPlace(job);
-      if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${via}${recoveryPhrase(job)}`;
-      if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${via}${recoveryPhrase(job)}`;
-      return `${v('stage')} ${inPlace(place)}${via}${recoveryPhrase(job)}`;
+      if (posture === 'hold') return `${v('hold')} ground ${inPlace(place)}${via}${travelPhrase(job)}${recoveryPhrase(job)}`;
+      if (posture === 'observe') return `${v('keep')} watch ${inPlace(place)}${via}${travelPhrase(job)}${recoveryPhrase(job)}`;
+      return `${v('stage')} ${inPlace(place)}${via}${travelPhrase(job)}${recoveryPhrase(job)}`;
     }
     case 'line':
       return `${v('picket')} a line across ${jobPlace(job)}${via}${recoveryPhrase(job)}`;
@@ -97,7 +108,7 @@ export function jobClause(job: TacticJob, plural = true): string {
       const target = job.point ? describePlace(...job.point) : 'the target';
       // "converge behind their lines", never "converge on behind their lines".
       const joined = /^behind/i.test(target) ? target : `on ${target}`;
-      return `${v('converge')} ${joined}${adverb}${viaPhrase(job)}${recoveryPhrase(job)}`;
+      return `${v('converge')} ${joined}${adverb}${viaPhrase(job)}${travelPhrase(job)}${recoveryPhrase(job)}`;
     }
     case 'advance':
       return `${v('push')} ${job.path && job.path.length > 1 ? `toward ${describePlace(...job.path[job.path.length - 1])}` : 'forward'}${adverb}${recoveryPhrase(job)}`;
@@ -139,6 +150,7 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   const out: string[] = [];
   if (conds.groupsSet) out.push('every Group is in position');
   if (conds.held) out.push(`${conds.held.ticks} ticks have passed here`);
+  if (conds.healed) out.push(`everyone is healed to ${conds.healed.percent}%`);
   if (conds.enemiesAt) {
     const [x0, y0, x1, y1] = conds.enemiesAt.zone.rect;
     const place = describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));

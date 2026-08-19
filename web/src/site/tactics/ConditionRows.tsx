@@ -62,6 +62,7 @@ export function ConditionRows({
           if (on) delete next[kind];
           else if (kind === 'groupsSet') next.groupsSet = true;
           else if (kind === 'held') next.held = { ticks: 40 };
+          else if (kind === 'healed') next.healed = { percent: 90 };
           else if (kind === 'enemiesAt') next.enemiesAt = { count: 5, zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
           else if (kind === 'contact') next.contact = true;
           else if (kind === 'coreLoose') next.coreLoose = { well: 'centre' };
@@ -122,6 +123,15 @@ export function ConditionRows({
         rows.push(drawChrome('cleared', 'cleared-draw',
           'The teal box on the map must be clear of enemies.'));
       }
+      return;
+    }
+    if (kind === 'healed') {
+      const on = Boolean(conds.healed);
+      rows.push(row('healed', 'Everyone is healed up (the dead excuse themselves)', on && conds.healed && <>
+        <CountStepper value={conds.healed.percent} min={10} max={100} step={5}
+          onChange={(value) => set((next) => { next.healed!.percent = value; })} />
+        <span className="t-micro text-arena-dim">%</span>
+      </>, on));
       return;
     }
     if (kind === 'held') {

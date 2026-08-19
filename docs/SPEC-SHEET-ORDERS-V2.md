@@ -233,7 +233,7 @@ runtime coordinator executes once per tick, before any body evaluates:
   } ]                                 //   forever; required on every other
 } ] }
 
-Case = { "all"?: [entry…≤12], "any"?: [entry…≤12] }
+Case = { "all"?: [entry…≤24], "any"?: [entry…≤24] }
 // entry = condition name | one nested {"any":[2..8 names]} / {"all":[…]}
 // truth = all(all…) AND any(any…); an absent side is vacuously true
 ```

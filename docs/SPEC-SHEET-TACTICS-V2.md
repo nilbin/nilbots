@@ -71,6 +71,7 @@ alternative".
 |---|---|---|---|
 | `groupsSet` | `true` | continue (required only) | every Group with ground this phase has EVERY member inside its footprint or dead — exact, per bot, no quorum |
 | `held` | `{ "ticks": 1..600 }` | continue | this phase has been active N ticks |
+| `healed` | `{ "percent": 1..100 }` | continue (required only) | every LIVING bot is at ≥N% health — exact, per bot, the dead excuse themselves |
 | `enemiesAt` | `{ "count": 1..8, "zone": {…} }` | start, continue, abort | ≥N enemies known in the box (team memory, 40-tick freshness) |
 | `contact` | `true` | continue | any enemy visible to the team |
 | `coreLoose` | `{ "well": … }` | start, continue | that Well's Core is up for grabs |
@@ -119,7 +120,8 @@ What a group DOES lives in each phase's job for it.
 ```jsonc
 { "kind": "posts|area|line|approach|converge|advance|patrol|return|escort|none",
   "posture": "wait|hold|aggressive|steal|escort|observe",
-  "recovery": "fight-on|patch|heal-tile",
+  "travel"?: "wait|hold|aggressive|steal|escort|observe",
+  "recovery": "fight-on|patch|heal-tile|heal-up",
   // exactly the geometry its kind requires (as v1's stage/act):
   "posts": [ { "at": [x,y], "facing": "n|e|s|w", "via"?: […] }, … ],
   "rect": [x1,y1,x2,y2], "path": [[x,y]… 2..16], "point": [x,y],
@@ -129,9 +131,17 @@ What a group DOES lives in each phase's job for it.
 ```
 
 `kind: "none"` means **carry on**: the group keeps its nearest earlier
-geometric job under THIS phase's posture and recovery. On the first phase it
-means starting loose. Signature marks follow the v1 rules (descriptor
+geometric job under THIS phase's posture, travel and recovery. On the first
+phase it means starting loose. Signature marks follow the v1 rules (descriptor
 capabilities, budgets), attached to the phase that uses them.
+
+`travel` is the optional **on-the-way posture**: how the group behaves while
+MOVING to this job's ground; the main `posture` takes over once set. Absent
+means one posture for the march and the ground.
+
+`recovery: "heal-up"` seeks the heal tile early (below ~90%) and stays until
+topped up (~98%) rather than patching to the fight floor — pair it with a
+`healed` row so the transition waits for the team.
 
 ## 2. Materialization (normative)
 
@@ -151,8 +161,19 @@ continue rules with doc phase ids resolved to ordinals (`p{j}`).
 (`any(role-in-zone-count{bot} ≥ 1, role-live-count{bot} ≤ 0)`) over each
 geometric group's footprint — per-post zones for posts groups of ≤3, the
 shared footprint otherwise; the v1 two-thirds quorum and short-handed excuse
-are gone. Evidence rows anchor `since: "phase-entry"`; `lossesWithin` rides
-`friendly-destructions` windows; `held` rides `elapsed-ticks`.
+are gone. `healed` compiles the same way per bot:
+`role-lowest-health-percent{bot} ≥ N` entries (a dead role reads 100, so the
+dead excuse themselves). Evidence rows anchor `since: "phase-entry"`;
+`lossesWithin` rides `friendly-destructions` windows; `held` rides
+`elapsed-ticks`.
+
+`travel` shifts the phase's floor move stance to the travel posture's band
+(aggressive/steal → front, hold/escort → line, else rear) and adds one
+ungated respond leaf (`t{n}-p{j}-g{k}-travel-fight`) after the station-gated
+fight — under `hold` it answers nearby attackers with chase 1 (respond, no
+pursuit) so the march is never defenseless, while the on-station fight still
+takes over on arrival. `heal-up` materializes an urgent recovery leaf that
+breaks for the nearest heal zone below ~90% and holds there until ~98%.
 
 A tactic whose final phase holds forever and whose delivery is `none` still
 gets the urgent bank-escape leaf, exactly as v1's persistent form did.

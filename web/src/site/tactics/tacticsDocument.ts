@@ -16,7 +16,7 @@ export type JobKind =
   | 'posts' | 'area' | 'line' | 'approach'
   | 'converge' | 'advance' | 'patrol' | 'return' | 'escort' | 'none';
 export type Posture = 'wait' | 'hold' | 'aggressive' | 'steal' | 'escort' | 'observe';
-export type Recovery = 'fight-on' | 'patch' | 'heal-tile';
+export type Recovery = 'fight-on' | 'patch' | 'heal-tile' | 'heal-up';
 export type CoreRule = 'ignore' | 'grab' | 'hunt';
 export type DeliveryPlan = 'none' | 'solo' | 'escort';
 export type MaxDuration = 'none' | 'brief' | 'standard' | 'long';
@@ -42,6 +42,8 @@ export interface TacticConds {
   groupsSet?: true;
   /** We have been at this phase for N ticks. */
   held?: { ticks: number };
+  /** Every LIVING bot is at ≥N% health — the dead excuse themselves. */
+  healed?: { percent: number };
   enemiesAt?: { count: number; zone: ZoneRef };
   contact?: true;
   coreLoose?: { well: WellChoice };
@@ -72,9 +74,9 @@ export const START_ROWS: CondKind[] = [
 ];
 
 export const TRANSITION_ROWS: CondKind[] = [
-  'groupsSet', 'held', 'contact', 'enemiesAt', 'coreLoose', 'coreSoon',
-  'enemiesDown', 'kills', 'losses', 'cleared', 'coreAcquired', 'coreBanked',
-  'coreLost', 'reached', 'observed',
+  'groupsSet', 'held', 'healed', 'contact', 'enemiesAt', 'coreLoose',
+  'coreSoon', 'enemiesDown', 'kills', 'losses', 'cleared', 'coreAcquired',
+  'coreBanked', 'coreLost', 'reached', 'observed',
 ];
 
 export const ABORT_ROWS: CondKind[] = [
@@ -107,6 +109,9 @@ export type SignatureMark = { points: Point[] } | { line: Point[] };
 export interface TacticJob {
   kind: JobKind;
   posture: Posture;
+  /** Optional on-the-way posture: how the group behaves while MOVING to
+   * this job's ground; the main posture takes over once set. */
+  travel?: Posture;
   recovery: Recovery;
   posts?: TacticPost[];
   rect?: Rect;
@@ -192,6 +197,7 @@ export const RECOVERIES: { id: Recovery; label: string; blurb: string }[] = [
   { id: 'fight-on', label: 'Fight on', blurb: 'No falling back — hold the plan whatever the damage.' },
   { id: 'patch', label: 'Patch up close', blurb: 'Step back a moment, let repairs land, slot back in.' },
   { id: 'heal-tile', label: 'Break for the heal tile', blurb: 'Badly hurt bots run to the nearest heal tile, then return.' },
+  { id: 'heal-up', label: 'Heal up fully', blurb: 'Seek the heal tile early and stay until topped up — pair with an “Everyone is healed up” condition.' },
 ];
 
 /** The one job vocabulary every phase shares. 'none' reads differently on
@@ -438,7 +444,12 @@ export function effectiveJob(
   for (let earlier = phaseIndex - 1; earlier >= 0; earlier--) {
     const candidate = jobOf(tactic, earlier, groupId);
     if (candidate && candidate.kind !== 'none') {
-      return { ...candidate, posture: raw.posture, recovery: raw.recovery };
+      return {
+        ...candidate,
+        posture: raw.posture,
+        travel: raw.travel,
+        recovery: raw.recovery,
+      };
     }
   }
   return null;
@@ -749,6 +760,9 @@ export function validateDocument(
         validateCaseRows(rule, ruleAt, TRANSITION_ROWS, error);
         if (rule.triggers?.groupsSet) {
           error(`${ruleAt}`, '“Every Group is set” belongs in Required — all of them, not any one.');
+        }
+        if (rule.triggers?.healed) {
+          error(`${ruleAt}`, '“Everyone is healed up” belongs in Required — all of them, not any one.');
         }
         for (const rows of [rule.required, rule.triggers]) {
           if (!rows) continue;

@@ -270,6 +270,30 @@ test('two event rows AND together through Required, no trigger needed', () => {
     /every Group is in position, at least 5 enemies are known at Mid and the Centre Well births its next Core within 20 ticks/);
 });
 
+test('healed gate, travel posture and heal-up recovery validate and read back', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const flankers = tactic.groups[1];
+  tactic.phases[0].jobs[flankers.id].travel = 'hold';
+  tactic.phases[0].jobs[flankers.id].recovery = 'heal-up';
+  tactic.phases[0].continue = [{
+    required: { groupsSet: true, healed: { percent: 80 } },
+    to: 'next',
+  }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /everyone is healed to 80%/);
+  assert.match(sentence, /answering attacks on the way/);
+  assert.match(sentence, /topping up fully at the heal tile/);
+  // healed is a Required idea — "any one bot is topped up" makes no sense.
+  tactic.phases[0].continue = [{ triggers: { healed: { percent: 80 } }, to: 'next' }];
+  const messages = validateDocument(document, catalog).map((issue) => issue.message);
+  assert.ok(messages.some((message) => /belongs in Required/.test(message)));
+});
+
 test('the readback walks a pincer through its named phases', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

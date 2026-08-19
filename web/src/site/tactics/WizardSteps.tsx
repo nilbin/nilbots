@@ -73,7 +73,7 @@ const ABORT_MORE = ['enemiesAt'] as const;
 const ABORT_REQUIRED_MORE = [
   'lossesWithin', 'losses', 'coreLost', 'enemiesAt',
 ] as const;
-const TRANSITION_REQUIRED = ['groupsSet', 'held'] as const;
+const TRANSITION_REQUIRED = ['groupsSet', 'healed', 'held'] as const;
 const TRANSITION_REQUIRED_MORE = [
   'enemiesAt', 'contact', 'coreSoon', 'coreLoose', 'kills', 'coreAcquired',
   'coreBanked', 'coreLost', 'cleared', 'enemiesDown', 'losses', 'reached',
@@ -670,6 +670,33 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
           target.posture = posture as Posture;
         })} />
       <p className="t-micro mb-1 text-arena-dim">{POSTURES.find((value) => value.id === job.posture)?.blurb}</p>
+      {job.kind !== 'escort' && (job.kind !== 'none' || carried) && <>
+        <div className="lab">On the way <span className="text-arena-dim">(optional)</span></div>
+        <SegChips
+          options={[
+            { id: 'same', label: 'Same as here' },
+            { id: 'wait', label: 'Quietly' },
+            { id: 'hold', label: 'Answer attacks' },
+            { id: 'aggressive', label: 'Brawl in' },
+          ]}
+          value={job.travel ?? 'same'}
+          accent={color}
+          onChange={(travel) => mutateJob((target) => {
+            if (travel === 'same') delete target.travel;
+            else target.travel = travel as Posture;
+          })} />
+        <p className="t-micro mb-1 text-arena-dim">
+          {{
+            same: 'One posture for the march and the ground.',
+            wait: 'March quietly without picking fights; the main posture takes over once set.',
+            hold: 'Answer attacks on the way without chasing; the main posture takes over once set.',
+            aggressive: 'Brawl the whole way in; the main posture takes over once set.',
+            steal: 'Steal on the way in; the main posture takes over once set.',
+            escort: 'Screen on the way in; the main posture takes over once set.',
+            observe: 'Watch on the way in; the main posture takes over once set.',
+          }[job.travel ?? 'same']}
+        </p>
+      </>}
       <div className="lab">Recovery</div>
       <SegChips options={RECOVERIES} value={job.recovery} accent={color}
         onChange={(recovery) => mutateJob((target) => {

@@ -9086,3 +9086,19 @@ on both seats (releases t36 west / t41 east, motion-sanity CLEAN); the pin
 needs specific spawn-exit congestion. Fix path is #337's: a reproducible
 movement scene around the east spawn exit and planner-level work, not
 sheet edits or readiness weakening.
+
+## 339. Travel posture, the healed gate and heal-up recovery
+
+A phase job gains an optional `travel` posture — how the group behaves while
+MOVING to its ground; the main posture takes over once set. It compiles to
+the travel band's floor stance plus one ungated respond leaf
+(`…-travel-fight`) ahead of the station-gated fight, so `travel: "hold"`
+answers attacks on the march without pursuit (chase 1) and goes quiet on
+arrival. Transition cases gain the `healed` row ("Everyone is healed up to
+N%", Required-only like `groupsSet`), compiled per bot as
+`role-lowest-health-percent ≥ N` — a dead role reads 100, so the dead excuse
+themselves; the program-case side bound rose 12 → 24 to hold readiness plus
+healed together. A third recovery, `heal-up`, breaks for the nearest heal
+zone below ~90% and holds until ~98% (urgent, 30-tick timeout, 10 cooldown)
+so a phase can genuinely top the team up before its `healed` gate opens.
+Spec: SPEC-SHEET-TACTICS-V2 §1–2, SPEC-SHEET-ORDERS-V2 §4b (case bound).

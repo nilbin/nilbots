@@ -683,7 +683,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             if (!value.TryGetProperty(op, out JsonElement side))
                 continue;
             anySide = true;
-            JsonElement[] items = BoundedArray(side, $"{path}.{op}", 1, 12);
+            JsonElement[] items = BoundedArray(side, $"{path}.{op}", 1, 24);
             for (int index = 0; index < items.Length; index++)
             {
                 string entryPath = $"{path}.{op}[{index}]";
