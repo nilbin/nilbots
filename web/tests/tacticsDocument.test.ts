@@ -357,6 +357,23 @@ test('current-state rows read in every context and healed inverts under unless',
   assert.match(sentence, /unless everyone is healed to 80%/);
 });
 
+test('a rout window pairs with an event row and reads back', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  // "Four destroyed recently AND a Core taken this phase": the durable
+  // forms of both sides, so the AND meets across staggered timing.
+  tactic.phases[0].continue = [{
+    required: { killsWithin: { count: 4, ticks: 40 }, coreAcquired: true },
+    to: 'next',
+  }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /we destroyed four enemies within 40 ticks and a Core is taken this phase/);
+});
+
 test('a well-scoped core claim validates and reads back possessively', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

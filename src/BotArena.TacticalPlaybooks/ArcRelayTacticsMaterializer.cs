@@ -473,6 +473,17 @@ internal static class ArcRelayTacticsMaterializer
                         WindowTicks: window.Ticks),
                     $"c-lost-{window.Count}-in-{window.Ticks}");
             }
+            if (rows.KillsWithin is ArcRelayTacticLossesWithinRow rout)
+            {
+                // The rout row: N destroyed within a rolling window — the
+                // durable form of "enemies are down", which respawn waves
+                // stand back up before a paired event row can meet it.
+                Add(new ConditionShape(
+                        "confirmed-enemy-destructions-in-zone", "at-least",
+                        rout.Count, ZoneId: AnywhereZone(),
+                        WindowTicks: rout.Ticks),
+                    $"c-killed-{rout.Count}-in-{rout.Ticks}");
+            }
             if (rows.Kills is int kills)
             {
                 Add(new ConditionShape(

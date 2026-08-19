@@ -61,21 +61,23 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static readonly string[] TacticStartRows =
     [
         "enemiesAt", "contact", "cleared", "coreLoose", "coreSoon",
-        "enemiesDown", "carrier", "losses", "lossesWithin", "healed",
+        "enemiesDown", "carrier", "losses", "lossesWithin", "killsWithin",
+        "healed",
     ];
 
     private static readonly string[] TacticTransitionRows =
     [
         "groupsSet", "held", "healed", "contact", "enemiesAt", "coreLoose",
-        "coreSoon", "enemiesDown", "kills", "losses", "cleared",
-        "coreAcquired", "coreBanked", "coreLost", "reached", "observed",
+        "coreSoon", "enemiesDown", "kills", "killsWithin", "losses",
+        "lossesWithin", "cleared", "coreAcquired", "coreBanked", "coreLost",
+        "reached", "observed",
     ];
 
     private static readonly string[] TacticAbortRows =
     [
         "losses", "lossesWithin", "coreLost", "enemiesAt", "contact",
         "cleared", "carrier", "enemiesDown", "coreLoose", "coreSoon",
-        "healed",
+        "killsWithin", "healed",
     ];
 
     /// <summary>Spatial signature mark budgets for classes whose descriptor
@@ -1146,6 +1148,15 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         // coreAcquired: true (any Core) or { "well": ... } — "THAT Well's
         // Core is taken this phase" is the claim a Claim phase means.
+        ArcRelayTacticLossesWithinRow? killsWithin = null;
+        if (value.TryGetProperty("killsWithin", out JsonElement killsWindow))
+        {
+            string at = $"{path}.killsWithin";
+            Object(killsWindow, at, ["count", "ticks"]);
+            killsWithin = new ArcRelayTacticLossesWithinRow(
+                Range(killsWindow, "count", at, 1, 8),
+                Range(killsWindow, "ticks", at, 1, 600));
+        }
         bool coreAcquired = false;
         string? coreAcquiredWell = null;
         if (value.TryGetProperty("coreAcquired", out JsonElement acquired))
@@ -1171,7 +1182,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
             carrier, losses, lossesWithin, groupsSet, heldTicks, healed,
             kills, cleared, coreAcquired, coreBanked, coreLost, reached,
-            observed, coreAcquiredWell);
+            observed, coreAcquiredWell, killsWithin);
     }
 
     private static bool FlagRow(
@@ -1311,7 +1322,8 @@ internal sealed record ArcRelayTacticConditionRows(
     bool CoreLost,
     bool Reached,
     bool Observed,
-    string? CoreAcquiredWell = null)
+    string? CoreAcquiredWell = null,
+    ArcRelayTacticLossesWithinRow? KillsWithin = null)
 {
     public int ActiveCount =>
         (EnemiesAt is null ? 0 : 1) + (Contact ? 1 : 0)
@@ -1322,7 +1334,8 @@ internal sealed record ArcRelayTacticConditionRows(
         + (Healed is null ? 0 : 1)
         + (Kills is null ? 0 : 1) + (Cleared is null ? 0 : 1)
         + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
-        + (Reached ? 1 : 0) + (Observed ? 1 : 0);
+        + (Reached ? 1 : 0) + (Observed ? 1 : 0)
+        + (KillsWithin is null ? 0 : 1);
 }
 
 /// <summary>"We lost {count} bots within the last {ticks} ticks" — the

@@ -57,6 +57,7 @@ export interface TacticConds {
   /** We lost N bots within the last T ticks — the remembered-casualty row
    * for aborts and emergency starts. */
   lossesWithin?: { count: number; ticks: number };
+  killsWithin?: { count: number; ticks: number };
   kills?: { count: number };
   cleared?: { zone: ZoneRef };
   /** true = any Core taken since this phase began; a well narrows it to
@@ -72,18 +73,19 @@ export type CondKind = keyof TacticConds;
 
 export const START_ROWS: CondKind[] = [
   'enemiesAt', 'contact', 'cleared', 'coreLoose', 'coreSoon', 'enemiesDown',
-  'carrier', 'losses', 'lossesWithin', 'healed',
+  'carrier', 'losses', 'lossesWithin', 'killsWithin', 'healed',
 ];
 
 export const TRANSITION_ROWS: CondKind[] = [
   'groupsSet', 'held', 'healed', 'contact', 'enemiesAt', 'coreLoose',
-  'coreSoon', 'enemiesDown', 'kills', 'losses', 'cleared', 'coreAcquired',
-  'coreBanked', 'coreLost', 'reached', 'observed',
+  'coreSoon', 'enemiesDown', 'kills', 'killsWithin', 'losses',
+  'lossesWithin', 'cleared', 'coreAcquired', 'coreBanked', 'coreLost',
+  'reached', 'observed',
 ];
 
 export const ABORT_ROWS: CondKind[] = [
   'losses', 'lossesWithin', 'coreLost', 'enemiesAt', 'contact', 'cleared',
-  'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'healed',
+  'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'killsWithin', 'healed',
 ];
 
 /** all(required) AND any(triggers) AND none(unless); an absent side is

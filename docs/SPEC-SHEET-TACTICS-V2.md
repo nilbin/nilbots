@@ -81,6 +81,15 @@ and stay transition-scoped, coreLost also aborting. The editor buckets
 rows under four headings — Our team, Enemies, Cores, Time & ground — with
 no fold.
 
+Timing across an AND: a case is re-evaluated every tick, so a snapshot row
+and an event row meet whenever the snapshot holds at ANY tick after the
+event has happened. The fragile pairing is snapshot∧snapshot where one
+side flickers (enemiesDown under respawn waves): author the windowed or
+phase-anchored form of the flickery side instead (`killsWithin`,
+`lossesWithin`, `kills`, `coreAcquired`). Cases deliberately keep no
+per-row memory — a sequence of things that must EACH have happened is
+what phases are.
+
 **Condition rows** (present member = active row), by context:
 
 | row | shape | legal in | meaning |
@@ -95,7 +104,8 @@ no fold.
 | `enemiesDown` | `{ "count": 1..8 }` | all | ≥N enemy bots down right now |
 | `carrier` | `true` | all | a friendly carrier exists |
 | `losses` | `{ "count": 1..8 }` | all | we are down N bots |
-| `lossesWithin` | `{ "count": 1..8, "ticks": 1..600 }` | start, abort | we lost N bots within the last T ticks (the remembered-casualty row — a Regroup's start and an abort may share it) |
+| `lossesWithin` | `{ "count": 1..8, "ticks": 1..600 }` | all | we lost N bots within the last T ticks (the remembered-casualty row — a Regroup's start and an abort may share it) |
+| `killsWithin` | `{ "count": 1..8, "ticks": 1..600 }` | all | we destroyed N enemies within the last T ticks — the durable "rout" form of `enemiesDown`, which respawn waves stand back up |
 | `kills` | `{ "count": 1..8 }` | continue | N confirmed destructions since THIS phase began |
 | `cleared` | `{ "zone": {…} }` | all | no visible enemies in the box |
 | `coreAcquired` | `true` \| `{ "well": … }` | continue | a Core was PICKED UP since this phase began (the event, not the carrier snapshot — `carrier` is the snapshot); a well narrows it to that source's Core |

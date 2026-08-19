@@ -9183,3 +9183,20 @@ Well's Core rather than any pickup. `carrier` remains the instantaneous
 row. The lifecycle test that pinned the carrier-snapshot fall-through now
 pins the honest plan-none behavior instead: an active tactic holds its
 carrier; banking waits for the baseline banker after the tactic ends.
+
+## 344. killsWithin, and the timing rule for mixed ANDs
+
+The owner asked how "4 enemies down AND a Core acquired" should treat
+timing. Ruling: cases stay memory-free instantaneous conjunctions,
+re-evaluated every tick — a snapshot row meets an event row at any tick
+where the snapshot holds after the event occurred, so the forgiving
+behavior falls out of the evaluation model rather than hidden latching.
+Per-row latching inside a case was considered and rejected: it would make
+every case stateful, the readback dishonest, and it re-implements phases
+inside a case — ordered "each of these has happened" IS the phase
+mechanism. What was actually missing is the durable form of the flickery
+snapshot: `killsWithin {count, ticks}` (we destroyed N within the last T
+ticks — the enemy mirror of lossesWithin, riding the existing windowed
+confirmed-enemy-destructions fact) now reads in every context, so
+"4 down recently AND a Core taken this phase" is authorable exactly.
+lossesWithin joins the transition contexts on the same uniformity rule.

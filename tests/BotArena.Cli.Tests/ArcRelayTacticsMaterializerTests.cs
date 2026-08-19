@@ -479,6 +479,29 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void ARoutWindowCompilesAsWindowedEnemyDestructions()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject rule = document["tactics"]![0]!["phases"]![0]!["continue"]!
+            .AsArray()[0]!.AsObject();
+        rule["required"]!.AsObject()["killsWithin"] = JsonNode.Parse(
+            """{"count":4,"ticks":40}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement rout = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-killed-4-in-40");
+        Assert.Equal("confirmed-enemy-destructions-in-zone",
+            rout.GetProperty("fact").GetString());
+        Assert.Equal(40, rout.GetProperty("windowTicks").GetInt32());
+        Assert.False(rout.TryGetProperty("since", out _));
+    }
+
+    [Fact]
     public void AWellScopedCoreClaimCompilesWithItsSourceFilter()
     {
         JsonObject document = JsonNode.Parse(

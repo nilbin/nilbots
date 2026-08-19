@@ -34,7 +34,7 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
  * of a flat list (the old "More conditions" fold is gone). */
 const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
   { label: 'Our team', kinds: ['groupsSet', 'healed', 'losses', 'lossesWithin'] },
-  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'kills'] },
+  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'kills', 'killsWithin'] },
   { label: 'Cores', kinds: ['carrier', 'coreLoose', 'coreSoon', 'coreAcquired', 'coreBanked', 'coreLost'] },
   { label: 'Time & ground', kinds: ['held', 'reached', 'observed'] },
 ];
@@ -91,6 +91,7 @@ export function ConditionRows({
           else if (kind === 'carrier') next.carrier = true;
           else if (kind === 'losses') next.losses = { count: 2 };
           else if (kind === 'lossesWithin') next.lossesWithin = { count: 4, ticks: 30 };
+          else if (kind === 'killsWithin') next.killsWithin = { count: 4, ticks: 40 };
           else if (kind === 'kills') next.kills = { count: 3 };
           else if (kind === 'cleared') next.cleared = { zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
           else if (kind === 'coreAcquired') next.coreAcquired = true;
@@ -240,6 +241,18 @@ export function ConditionRows({
         <span className="t-micro text-arena-dim">within</span>
         <CountStepper value={conds.lossesWithin.ticks} min={10} max={600} step={10}
           onChange={(value) => set((next) => { next.lossesWithin!.ticks = value; })} />
+        <span className="t-micro text-arena-dim">ticks</span>
+      </>, on));
+      return;
+    }
+    if (kind === 'killsWithin') {
+      const on = Boolean(conds.killsWithin);
+      rows.push(row('killsWithin', 'Enemies destroyed in a short window', on && conds.killsWithin && <>
+        <CountStepper value={conds.killsWithin.count} max={8}
+          onChange={(value) => set((next) => { next.killsWithin!.count = value; })} />
+        <span className="t-micro text-arena-dim">within</span>
+        <CountStepper value={conds.killsWithin.ticks} min={10} max={600} step={10}
+          onChange={(value) => set((next) => { next.killsWithin!.ticks = value; })} />
         <span className="t-micro text-arena-dim">ticks</span>
       </>, on));
       return;

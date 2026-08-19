@@ -173,6 +173,9 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   if (conds.losses) {
     out.push(`we have lost ${numberWord(conds.losses.count)} bot${conds.losses.count === 1 ? '' : 's'}`);
   }
+  if (conds.killsWithin) {
+    out.push(`we destroyed ${numberWord(conds.killsWithin.count)} enem${conds.killsWithin.count === 1 ? 'y' : 'ies'} within ${conds.killsWithin.ticks} ticks`);
+  }
   if (conds.lossesWithin) {
     out.push(`we lost ${numberWord(conds.lossesWithin.count)} bot${conds.lossesWithin.count === 1 ? '' : 's'} within ${conds.lossesWithin.ticks} ticks`);
   }
