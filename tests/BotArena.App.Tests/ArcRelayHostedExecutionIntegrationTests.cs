@@ -30,6 +30,81 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task SeederCorrectsOnlyTheUnpublishedMistakenV26Definition()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using (AppDbContext migration =
+                     await database.CreateMigratedContextAsync())
+        {
+        }
+
+        using var factory = new BotArenaApplicationFactory(database.ConnectionString);
+        using HttpClient client = factory.CreateClient();
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider
+                .GetRequiredService<ArcRelayPlaylistSeeder>()
+                .SeedAsync();
+            await scope.ServiceProvider
+                .GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
+                .SeedAsync();
+        }
+
+        Guid versionId;
+        await using (AppDbContext db = database.CreateContext())
+        {
+            PlaylistVersion version = await db.PlaylistVersions.SingleAsync(
+                value => value.Version
+                    == ArcRelayEntrantPlaylistDefinition.Version);
+            versionId = version.Id;
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"PlaylistVersions\" DISABLE TRIGGER "
+                + "\"TR_PlaylistVersions_Immutable\";");
+            try
+            {
+                const string mistakenCanonical =
+                    "{\"mistakenLocalV26\":true}";
+                const string mistakenProvenance =
+                    "{\"midWellRibs\":true}";
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    UPDATE "PlaylistVersions"
+                    SET "DefinitionFingerprint" = {
+                        ArcRelayEntrantPlaylistSeeder
+                            .UnpublishedMistakenTapline9DefinitionFingerprint},
+                        "CanonicalDefinition" = CAST({mistakenCanonical} AS jsonb),
+                        "Provenance" = CAST({mistakenProvenance} AS jsonb)
+                    WHERE "Id" = {versionId};
+                    """);
+            }
+            finally
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"PlaylistVersions\" ENABLE TRIGGER "
+                    + "\"TR_PlaylistVersions_Immutable\";");
+            }
+        }
+
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+        {
+            ArcRelayEntrantSeedResult repaired = await scope.ServiceProvider
+                .GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
+                .SeedAsync();
+            Assert.Equal(versionId, repaired.PlaylistVersion.Id);
+        }
+
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Playlist playlist = await db.Playlists.SingleAsync(value =>
+                value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
+            PlaylistVersion repaired = await db.PlaylistVersions.SingleAsync(
+                value => value.Id == versionId);
+            ArcRelayEntrantPlaylistDefinition.Create()
+                .Validate(playlist, repaired);
+        }
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
     public async Task PlayerSheetsQueueAndExecuteThroughTrustedHostedLane()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();

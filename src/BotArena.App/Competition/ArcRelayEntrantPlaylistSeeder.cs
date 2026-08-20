@@ -16,6 +16,12 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
     TimeProvider timeProvider,
     ArcRelaySeasonLifecycleService seasons)
 {
+    // Tapline-9 was corrected locally before publication. This exact
+    // fingerprint is the rejected 14-wall candidate and is the only persisted
+    // v26 definition the seeder may repair in place.
+    public const string UnpublishedMistakenTapline9DefinitionFingerprint =
+        "75c909ff904d8c985559f868968644380316929c16b56dfe0d582d6113cd5e6b";
+
     public async Task<ArcRelayEntrantSeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
     {
@@ -286,6 +292,63 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             };
             db.PlaylistVersions.Add(version);
             await db.SaveChangesAsync(cancellationToken);
+        }
+        else if (string.Equals(
+                     version.DefinitionFingerprint,
+                     UnpublishedMistakenTapline9DefinitionFingerprint,
+                     StringComparison.Ordinal))
+        {
+            bool hasMatchHistory = await db.Matches.AnyAsync(
+                    value => value.PlaylistVersionId == version.Id,
+                    cancellationToken)
+                || await db.MatchSets.AnyAsync(
+                    value => value.PlaylistVersionId == version.Id,
+                    cancellationToken);
+            if (hasMatchHistory)
+            {
+                throw new InvalidOperationException(
+                    "The unpublished mistaken Arc Relay v26 definition has "
+                    + "match history and cannot be corrected in place.");
+            }
+
+            // Owner-authorized correction of the unpublished local identity.
+            // PostgreSQL normally rejects every PlaylistVersion mutation. Open
+            // that guard only around this exact fingerprint-gated row, retain
+            // its identity/rating book, then restore the guard before the
+            // ordinary immutable validation below.
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"PlaylistVersions\" DISABLE TRIGGER "
+                + "\"TR_PlaylistVersions_Immutable\";",
+                cancellationToken);
+            try
+            {
+                await db.Database.ExecuteSqlInterpolatedAsync($"""
+                    UPDATE "PlaylistVersions"
+                    SET "GameModeId" = {expected.Match.Rules.GameMode.ModeId},
+                        "RulesetId" = {expected.Match.Rules.RulesetId},
+                        "MatchFormatId" = {expected.Match.Format.FormatId},
+                        "MapPoolId" = {expected.Match.Map.Id},
+                        "SeriesPolicyId" = {ArcRelayEntrantPlaylistDefinition.SeriesPolicyId},
+                        "MatchmakingPolicyId" = {ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId},
+                        "AdmissionPolicyId" = {expected.AdmissionPolicyId},
+                        "ExecutionPolicyId" = {expected.ExecutionPolicyId},
+                        "ExecutionEngineVersion" = {expected.ExecutionEngineVersion},
+                        "CanonicalDefinition" = CAST({expected.CanonicalDefinition} AS jsonb),
+                        "DefinitionFingerprint" = {expected.DefinitionFingerprint},
+                        "Provenance" = CAST({expected.Provenance} AS jsonb),
+                        "Visibility" = {ArcRelayEntrantPlaylistDefinition.Visibility}
+                    WHERE "Id" = {version.Id}
+                      AND "DefinitionFingerprint" = {UnpublishedMistakenTapline9DefinitionFingerprint};
+                    """, cancellationToken);
+            }
+            finally
+            {
+                await db.Database.ExecuteSqlRawAsync(
+                    "ALTER TABLE \"PlaylistVersions\" ENABLE TRIGGER "
+                    + "\"TR_PlaylistVersions_Immutable\";",
+                    cancellationToken);
+            }
+            await db.Entry(version).ReloadAsync(cancellationToken);
         }
         expected.Validate(playlist, version);
 

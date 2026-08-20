@@ -98,6 +98,14 @@ positions were moved off the newly sealed tiles while preserving the same
 mechanical evidence. The Core-custody presentation stage remains explicitly
 pinned to Tapline-8 and was not moved onto Current.
 
+Local persistent databases may already contain the rejected, unpublished v26
+row. The entrant seeder recognizes only that exact rejected definition
+fingerprint, refuses correction if any match or match-set history exists,
+replaces its executable definition in place under the database immutability
+guard, and immediately restores normal immutable validation. A PostgreSQL
+integration test pins this one-time correction; every other contradiction still
+fails closed.
+
 ## Match evidence
 
 The standard six side/seed cells ran in-process on the corrected Tapline-9 with
@@ -135,7 +143,7 @@ exhibition, and the east-seat Raider orbit remains disclosed follow-up evidence.
 - `dotnet test tests/ArcRelayTacticalPlaybookMind.Tests --no-build`:
   76 pass;
 - `dotnet test tests/BotArena.Determinism.Tests --no-build`: 17 pass;
-- PostgreSQL-required `BotArena.App.Tests`: 300 pass, 3 intentionally skipped
+- PostgreSQL-required `BotArena.App.Tests`: 301 pass, 3 intentionally skipped
   external S3/toolchain cases;
 - `cd web && npm test`: 577 pass;
 - `cd web && npm run build`: pass;
