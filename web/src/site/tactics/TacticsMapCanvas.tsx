@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BaseMap } from './BaseMap';
+import { projectPhaseBots } from './botProjection';
 import { classSprite } from './classArt';
 import { makePathfinder } from './pathing';
 import { describePlace } from './places';
@@ -25,6 +26,7 @@ export type MapSelectRef =
   | { tacticId: string; part: 'start' | 'cores' }
   | { tacticId: string; part: 'phase'; phaseIndex: number }
   | { tacticId: string; part: 'group'; groupId: string; phaseIndex: number }
+  | { tacticId: string; part: 'bot'; groupId: string; phaseIndex: number; slot: number }
   | { tacticId: string; part: 'post'; groupId: string; phaseIndex: number; postIndex: number };
 
 type DragTarget =
@@ -59,9 +61,11 @@ export function watchConds(tactic: Tactic, target: WatchTarget): TacticConds | n
 
 export function TacticsMapCanvas({
   catalog, document, editingTacticId, activePhaseIndex, selectedTacticId,
-  showAll, showAllPhases, task, hints,
+  showAll, showAllPhases, showProjectedBots = false,
+  showAdjacentPhases = true, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
   onSelect, onTaskDone, onTileRejected, onPostsSwapped,
+  onPostBotDropped,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
@@ -71,6 +75,11 @@ export function TacticsMapCanvas({
   selectedTacticId: string | null;
   showAll: boolean;
   showAllPhases: boolean;
+  /** Presentation-only stable bot positions for non-Post assignments. */
+  showProjectedBots?: boolean;
+  /** Classic keeps its historical dim neighbours. Map-first defaults to one
+   * clear active layer; its existing checkbox can still opt into all phases. */
+  showAdjacentPhases?: boolean;
   task: MapTask | null;
   hints: Map<string, { rect: Rect; text: string }> | null;
   onTilePicked: (x: number, y: number) => void;
@@ -85,6 +94,8 @@ export function TacticsMapCanvas({
   onTileRejected?: (reason: string) => void;
   /** A post drop landed on a groupmate and the two swapped tiles. */
   onPostsSwapped?: () => void;
+  /** A Map-first tray bot was dropped to author its exact Post. */
+  onPostBotDropped?: (groupId: string, slot: number, at: Point) => void;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
@@ -111,7 +122,7 @@ export function TacticsMapCanvas({
     return out;
   }, [document, editingTacticId, selectedTacticId, showAll]);
 
-  function clientToTile(event: React.PointerEvent): Point | null {
+  function clientToTile(event: { clientX: number; clientY: number }): Point | null {
     const svg = svgRef.current;
     if (!svg) return null;
     const ctm = svg.getScreenCTM();
@@ -238,6 +249,11 @@ export function TacticsMapCanvas({
         onSelect({
           tacticId, part, groupId: a,
           phaseIndex: Number(b), postIndex: Number(c),
+        });
+      } else if (part === 'bot') {
+        onSelect({
+          tacticId, part, groupId: a,
+          phaseIndex: Number(b), slot: Number(c),
         });
       } else if (part === 'phase') {
         onSelect({ tacticId, part, phaseIndex: Number(a) });
@@ -368,6 +384,29 @@ export function TacticsMapCanvas({
         event.preventDefault();
         onTaskDone();
       }}
+      onDragOver={(event) => {
+        if (onPostBotDropped
+          && event.dataTransfer.types.includes('application/x-nilbots-post')) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = 'move';
+        }
+      }}
+      onDrop={(event) => {
+        if (!onPostBotDropped) return;
+        const raw = event.dataTransfer.getData('application/x-nilbots-post');
+        if (!raw) return;
+        event.preventDefault();
+        const tile = clientToTile(event);
+        if (!tile) return;
+        try {
+          const payload = JSON.parse(raw) as { groupId?: unknown; slot?: unknown };
+          if (typeof payload.groupId === 'string' && Number.isInteger(payload.slot)) {
+            onPostBotDropped(payload.groupId, Number(payload.slot), tile);
+          }
+        } catch {
+          // Ignore foreign/expired drag payloads.
+        }
+      }}
     >
       <BaseMap catalog={catalog} />
       {displayed.map(({ tactic, dim, tag }) => {
@@ -382,11 +421,12 @@ export function TacticsMapCanvas({
             <g opacity={dim ? .32 : 1}>
               <ConditionFootprints tactic={tactic} catalog={catalog} dim={dim}
                 editable={editable(tactic)} startDrag={startDrag} pathfinder={path}
-                activePhaseIndex={activePhaseIndex} showAllPhases={showAllPhases} />
+                activePhaseIndex={activePhaseIndex} showAllPhases={showAllPhases}
+                showAdjacentPhases={showAdjacentPhases} />
               {tactic.phases.map((phase, phaseIndex) => {
                 const focus = activePhaseIndex ?? 0;
                 const distance = Math.abs(phaseIndex - focus);
-                if (!showAllPhases && distance > 1) return null;
+                if (!showAllPhases && distance > (showAdjacentPhases ? 1 : 0)) return null;
                 const phaseOpacity = phaseIndex === focus
                   ? 1 : distance === 1 ? .24 : .12;
                 return (
@@ -424,6 +464,11 @@ export function TacticsMapCanvas({
                 </g>
                 );
               })}
+              {showProjectedBots && !dim && (
+                <BotProjectionLayer catalog={catalog} document={document}
+                  tactic={tactic} phaseIndex={activePhaseIndex ?? 0}
+                  pathfinder={path} />
+              )}
             </g>
             {tagAnchor && tag && <ChipLabel x={tagAnchor[0] + .5} y={tagAnchor[1] - .35}
               text={tag} color="#7694a8" opacity={.9} mapWidth={width} mapHeight={height} />}
@@ -436,9 +481,74 @@ export function TacticsMapCanvas({
   );
 }
 
+/** The bots implied by Area/Converge/Patrol are deliberately a preview: the
+ * authored geometry remains the contract. Exact Posts are already drawn by
+ * JobOverlay and are excluded here so a bot never appears twice. */
+export function BotProjectionLayer({ catalog, document, tactic, phaseIndex, pathfinder }: {
+  catalog: TacticalSheetCatalog;
+  document: TacticsDocument;
+  tactic: Tactic;
+  phaseIndex: number;
+  pathfinder: ReturnType<typeof makePathfinder>;
+}) {
+  const projection = projectPhaseBots(catalog, document, tactic, phaseIndex);
+  const previous = phaseIndex > 0
+    ? projectPhaseBots(catalog, document, tactic, phaseIndex - 1)
+    : null;
+  const projected = projection.bots.filter((bot) => !bot.exact);
+  return <g data-testid="bot-projection-layer">
+    <g opacity=".4" pointerEvents="none">
+      {previous && projection.bots.map((bot) => {
+        const from = previous.bots.find((candidate) => candidate.slot === bot.slot);
+        if (!from || (from.at[0] === bot.at[0] && from.at[1] === bot.at[1])) return null;
+        const route = pathfinder.findPath(from.at, bot.at);
+        if (!route) return null;
+        const color = groupColor(tactic, bot.groupId);
+        return <polyline key={`continuity-${bot.slot}`}
+          data-testid={`bot-continuity-${bot.slot}`}
+          points={route.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+          fill="none" stroke={color} strokeWidth={.075} strokeDasharray=".1 .22"
+          strokeLinejoin="round" strokeLinecap="round" />;
+      })}
+    </g>
+    {projected.map((projectionBot) => {
+      const bot = document.squad[projectionBot.slot];
+      if (!bot) return null;
+      const sprite = classSprite(bot.class);
+      const color = groupColor(tactic, projectionBot.groupId);
+      const [x, y] = projectionBot.at;
+      const select = `${tactic.id}:bot:${projectionBot.groupId}:${phaseIndex}:${projectionBot.slot}`;
+      return <g key={`${projectionBot.groupId}-${projectionBot.slot}`}
+        data-select={select} cursor="pointer"
+        data-testid={`projected-bot-${projectionBot.slot}`}>
+        <circle cx={x + .5} cy={y + .5} r={.47} fill="#06090c" fillOpacity=".72"
+          stroke={color} strokeWidth={.075} strokeDasharray=".12 .09" />
+        {sprite
+          ? <image href={sprite} x={x} y={y} width={1} height={1} opacity=".9" />
+          : <text x={x + .5} y={y + .64} textAnchor="middle" fontSize=".38"
+            fontWeight="800" fill="#e9fbff">{projectionBot.slot + 1}</text>}
+        <circle cx={x + .82} cy={y + .18} r={.14} fill="#06090c" stroke={color}
+          strokeWidth={.045} />
+        <text x={x + .82} y={y + .235} textAnchor="middle" fontSize=".16"
+          fontWeight="800" fill={color}>P</text>
+        <title>{`${bot.name} — Projected ${projectionBot.jobKind} position${projectionBot.carried
+          ? `, carried from ${tactic.phases[projectionBot.sourcePhaseIndex]?.name}` : ''}. Preview only.`}</title>
+      </g>;
+    })}
+    {projection.unresolvedGroupIds.map((groupId, index) => {
+      const group = tactic.groups.find((candidate) => candidate.id === groupId);
+      if (!group) return null;
+      return <ChipLabel key={`unresolved-${groupId}`} x={5.2} y={25.8 - index}
+        text={`${group.name.toUpperCase()} · NO POSITION PREVIEW`}
+        color={groupColor(tactic, groupId)} opacity={.9}
+        mapWidth={catalog.map.width} mapHeight={catalog.map.height} />;
+    })}
+  </g>;
+}
+
 function ConditionFootprints({
   tactic, catalog, dim, editable, startDrag, pathfinder,
-  activePhaseIndex, showAllPhases,
+  activePhaseIndex, showAllPhases, showAdjacentPhases,
 }: {
   tactic: Tactic;
   catalog: TacticalSheetCatalog;
@@ -448,6 +558,7 @@ function ConditionFootprints({
   pathfinder: ReturnType<typeof makePathfinder>;
   activePhaseIndex: number | null;
   showAllPhases: boolean;
+  showAdjacentPhases: boolean;
 }) {
   const parts: React.ReactNode[] = [];
 
@@ -546,7 +657,8 @@ function ConditionFootprints({
   });
   tactic.phases.forEach((phase, phaseIndex) => {
     const focus = activePhaseIndex ?? 0;
-    if (!showAllPhases && Math.abs(phaseIndex - focus) > 1) return;
+    if (!showAllPhases
+      && Math.abs(phaseIndex - focus) > (showAdjacentPhases ? 1 : 0)) return;
     (phase.continue ?? []).forEach((rule, ruleIndex) => {
       for (const side of ['required', 'triggers', 'unless'] as const) {
         watchBoxes(rule[side],

@@ -13,7 +13,10 @@ export function makePathfinder(catalog: TacticalSheetCatalog) {
   const floor = (x: number, y: number) =>
     x >= 0 && y >= 0 && x < width && y < height && rows[y][x] !== '#';
 
-  function findPath(from: Point, to: Point): Point[] | null {
+  /** The complete tile-by-tile route. Projection uses this form so a patrol
+   * preview can distribute bots along tiles the movement rule actually
+   * reaches, rather than along the author's straight waypoint segments. */
+  function findPathTiles(from: Point, to: Point): Point[] | null {
     if (!floor(from[0], from[1]) || !floor(to[0], to[1])) return null;
     const key = (x: number, y: number) => y * width + x;
     const seen = new Map<number, number | null>([[key(from[0], from[1]), null]]);
@@ -28,7 +31,7 @@ export function makePathfinder(catalog: TacticalSheetCatalog) {
           path.push([k % width, Math.floor(k / width)]);
           k = seen.get(k);
         }
-        return thin(path.reverse());
+        return path.reverse();
       }
       for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
         if (!dx && !dy) continue;
@@ -41,6 +44,11 @@ export function makePathfinder(catalog: TacticalSheetCatalog) {
       }
     }
     return null;
+  }
+
+  function findPath(from: Point, to: Point): Point[] | null {
+    const route = findPathTiles(from, to);
+    return route ? thin(route) : null;
   }
 
   function thin(points: Point[]): Point[] {
@@ -80,7 +88,30 @@ export function makePathfinder(catalog: TacticalSheetCatalog) {
     return out.length ? out : points;
   }
 
-  return { floor, findPath, nearestFloor, connect };
+  /** Stitch waypoints without inventing an illegal straight segment. The
+   * ordinary geometry renderer keeps `connect` for compatibility with loaded
+   * invalid drafts; bot projections and continuity lines use this truthful
+   * variant and render nothing when any segment is unresolved. */
+  function connectTiles(points: Point[]): Point[] | null {
+    if (points.length === 0) return [];
+    if (points.length === 1) {
+      return floor(points[0][0], points[0][1]) ? [points[0]] : null;
+    }
+    const out: Point[] = [];
+    for (let index = 0; index < points.length - 1; index++) {
+      const segment = findPathTiles(points[index], points[index + 1]);
+      if (!segment) return null;
+      out.push(...(index === 0 ? segment : segment.slice(1)));
+    }
+    return out;
+  }
+
+  function connectSafe(points: Point[]): Point[] | null {
+    const route = connectTiles(points);
+    return route ? thin(route) : null;
+  }
+
+  return { floor, findPath, findPathTiles, nearestFloor, connect, connectTiles, connectSafe };
 }
 
 export type Pathfinder = ReturnType<typeof makePathfinder>;

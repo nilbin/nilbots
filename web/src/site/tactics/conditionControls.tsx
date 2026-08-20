@@ -17,17 +17,22 @@ export function TickRow({ on, radio, label, extra, onToggle }: {
   onToggle: () => void;
 }) {
   return (
-    <button type="button" onClick={onToggle}
-      className={`flex min-h-9 w-full items-center gap-2 rounded-sm border px-2 py-1 text-left transition-colors ${on
+    // Parameter controls are siblings of the toggle, never buttons nested in
+    // a button. Besides invalid HTML, the old shape made browser focus and
+    // hydration unreliable precisely in the full multi-zone editor.
+    <div className={`flex min-h-9 w-full flex-wrap items-center gap-2 rounded-sm border px-2 py-1 transition-colors ${on
         ? 'border-arena-ok/45 bg-arena-ok/10 text-arena-text'
         : 'border-arena-edge text-arena-dim hover:text-arena-text'}`}>
-      <span className={`flex h-4 w-4 shrink-0 items-center justify-center border text-[10px] font-bold ${radio
-        ? 'rounded-full' : 'rounded-[3px]'} ${on
-        ? 'border-arena-ok bg-arena-ok/15 text-arena-ok'
-        : 'border-arena-text/35 text-transparent'}`}>{radio ? '●' : '✓'}</span>
-      <span className="t-micro grow">{label}</span>
+      <button type="button" onClick={onToggle} aria-pressed={on}
+        className="flex min-h-7 min-w-0 grow items-center gap-2 text-left">
+        <span className={`flex h-4 w-4 shrink-0 items-center justify-center border text-[10px] font-bold ${radio
+          ? 'rounded-full' : 'rounded-[3px]'} ${on
+          ? 'border-arena-ok bg-arena-ok/15 text-arena-ok'
+          : 'border-arena-text/35 text-transparent'}`}>{radio ? '●' : '✓'}</span>
+        <span className="t-micro grow">{label}</span>
+      </button>
       {on && extra}
-    </button>
+    </div>
   );
 }
 

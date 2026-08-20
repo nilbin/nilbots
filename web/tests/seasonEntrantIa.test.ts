@@ -163,9 +163,10 @@ test('clearance and local fighting use truthful map-first language', () => {
   assert.match(summary, /fully checked within 20 ticks and no enemy is known to remain/);
 });
 
-test('the phase map focuses current context without hiding its neighbours', () => {
+test('the phase map keeps Classic context and lets Map-first isolate the active phase', () => {
   assert.match(editor, /Show every phase/);
-  assert.match(canvas, /if \(!showAllPhases && distance > 1\) return null/);
+  assert.match(editor, /showAdjacentPhases=\{layoutMode === 'classic'\}/);
+  assert.match(canvas, /distance > \(showAdjacentPhases \? 1 : 0\)/);
   assert.match(canvas, /phaseIndex === focus\s*\? 1 : distance === 1 \? \.24 : \.12/);
   assert.match(canvas, /editable\(tactic\) && phaseIndex === focus/);
 });
@@ -175,7 +176,9 @@ test('engine vocabulary never reaches the player surface', () => {
     assert.doesNotMatch(source,
       // "custody" left this list when the owner adopted "Core custody" as
       // the player-facing phase concept (DECISIONS #341).
-      /Instructions|sharedOrders|workshop|arc-relay-orders-v2|doctrine|projection/i);
+      // "Projected" is now deliberate player language for the explicitly
+      // non-authoritative bot-position preview; it is not an engine model.
+      /Instructions|sharedOrders|workshop|arc-relay-orders-v2|doctrine/i);
   }
   assert.doesNotMatch(`${editor}${steps}`, /\bRoles\b/,
     'Groups replaced roles on the player surface');

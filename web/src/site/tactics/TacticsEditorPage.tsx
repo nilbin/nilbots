@@ -10,6 +10,9 @@ import { IssueSummary } from './IssueSummary';
 import { Modal } from './Modal';
 import { PhaseStrip } from './PhaseStrip';
 import { BotChip } from './BotChip';
+import {
+  MapFirstGroupTrays, MapFirstTimeline, type MapFirstFocus,
+} from './MapFirstChrome';
 import { classSprite, slotAccent } from './classArt';
 import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './recipes';
 import { groupClause, possessive, summarize } from './summary';
@@ -17,9 +20,9 @@ import {
   TacticsMapCanvas, watchConds, type GeometryEdit, type MapSelectRef,
 } from './TacticsMapCanvas';
 import {
-  blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
+  blankDocument, expectedGeometry, followMembership, freshLocalId, groupColor, identifierFromName,
   normalizeEditableDocumentForCatalog, postFacingIssue, reversedWayIn,
-  signatureMarkGeometry, stringifyDocument,
+  signatureMarkGeometry, stringifyDocument, tilePlacementIssue,
   validateDocument, sheetIssueFromCompilerError,
   type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
   type Tactic, type TacticsDraft,
@@ -90,6 +93,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [selectedTacticId, setSelectedTacticId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [showAllPhases, setShowAllPhases] = useState(false);
+  const [layoutMode, setLayoutMode] = useState<'map-first' | 'classic'>('map-first');
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [zoom, setZoom] = useState<1 | 1.5 | 2>(1);
   const [squadOpen, setSquadOpen] = useState(false);
   const [recipeOpen, setRecipeOpen] = useState(false);
@@ -512,11 +517,12 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         }, 40);
         return;
       }
-      if (ref.part === 'group' || ref.part === 'phase') {
+      if (ref.part === 'group' || ref.part === 'bot' || ref.part === 'phase') {
         // Clicking an overlay jumps to its phase on the storyboard and
         // scrolls that group's section into view.
         setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
-        if (ref.part === 'group') {
+        if (ref.part === 'group' || ref.part === 'bot') {
+          setSelectedGroupId(ref.groupId);
           window.setTimeout(() => {
             window.document.getElementById(`section-${ref.groupId}-${ref.phaseIndex}`)
               ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
@@ -593,10 +599,96 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     : null;
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
 
+  const focusMapFirst = (focus: MapFirstFocus) => {
+    if (!wizard) return;
+    let step = wizard.step;
+    let phaseIndex = wizard.phaseIndex;
+    let anchor: string | null = null;
+    if (focus.kind === 'start') {
+      step = 'start';
+      anchor = 'start-controls';
+    } else if (focus.kind === 'abort') {
+      step = 'start';
+      anchor = 'abort-controls';
+    } else if (focus.kind === 'cores') {
+      step = 'cores';
+    } else if (focus.kind === 'groups') {
+      step = 'groups';
+    } else {
+      step = 'phases';
+      phaseIndex = focus.phaseIndex;
+      if (focus.kind === 'transition') {
+        anchor = `transition-controls-${wizard.tactic.phases[phaseIndex]?.id}`;
+      } else if (focus.kind === 'group') {
+        setSelectedGroupId(focus.groupId);
+        anchor = `section-${focus.groupId}-${phaseIndex}`;
+      }
+    }
+    setWizard({ ...wizard, step, phaseIndex });
+    endTask();
+    if (anchor) window.setTimeout(() => {
+      window.document.getElementById(anchor!)
+        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }, 40);
+  };
+
+  /** A tray-to-tray move uses the same slot-keyed belongings migration as
+   * GroupsStep. There is no second membership model in Map-first. */
+  const moveWizardBot = (slot: number, targetGroupId: string) => {
+    if (!wizard) return;
+    const source = wizard.tactic.groups.find((group) => group.slots.includes(slot));
+    if (source?.id === targetGroupId) return;
+    const tactic = structuredClone(wizard.tactic);
+    const before = tactic.groups.map((group) => ({ id: group.id, slots: [...group.slots] }));
+    for (const group of tactic.groups) group.slots = group.slots.filter((value) => value !== slot);
+    tactic.groups.find((group) => group.id === targetGroupId)?.slots.push(slot);
+    const summary = followMembership(tactic, document.squad, before, new Map());
+    setWizard({ ...wizard, tactic });
+    if (summary) toast(summary);
+    setSelectedGroupId(targetGroupId);
+  };
+
+  /** Dropping an unposted tray bot is real Posts authoring. Preview bots for
+   * other job kinds never enter this path and remain non-authoritative. */
+  const dropPostBot = (groupId: string, slot: number, [x, y]: [number, number]) => {
+    if (!wizard) return;
+    const phaseIndex = wizard.phaseIndex;
+    const group = wizard.tactic.groups.find((value) => value.id === groupId);
+    const job = wizard.tactic.phases[phaseIndex]?.jobs[groupId];
+    if (!group?.slots.includes(slot) || job?.kind !== 'posts') {
+      toast('Choose a Posts assignment before placing an exact bot.', 'hot');
+      return;
+    }
+    const issue = tilePlacementIssue(catalog, [x, y], 'anchor');
+    if (issue) {
+      toast(`That tile is ${issue}.`, 'hot');
+      return;
+    }
+    if (job.posts?.some((post) => post.slot === slot)) {
+      toast('That bot already has a Post — drag it on the map to move it.', 'hot');
+      return;
+    }
+    changeWizard((tactic) => {
+      const target = tactic.phases[phaseIndex]?.jobs[groupId];
+      if (!target || target.kind !== 'posts') return;
+      target.posts = target.posts ?? [];
+      const order: Facing[] = x < document.mapWidth / 2
+        ? ['e', 'n', 's', 'w'] : ['w', 'n', 's', 'e'];
+      const facing = order.find((value) =>
+        !postFacingIssue(catalog, { at: [x, y], facing: value })) ?? order[0];
+      target.posts.push({ at: [x, y], facing, slot });
+    });
+    setSelectedGroupId(groupId);
+    toast(`${document.squad[slot]?.name ?? 'Bot'} posted.`);
+  };
+
   return (
     // The mock's workbench: on desktop the three panes fill the viewport,
     // the rail and drawer scroll internally, and the map owns the rest.
-    <div className="grid gap-3 lg:h-[calc(100dvh-150px)] lg:grid-cols-[316px_minmax(0,1fr)_396px]">
+    <div className={`grid gap-3 lg:h-[calc(100dvh-150px)] ${layoutMode === 'map-first'
+      ? 'lg:grid-cols-[260px_minmax(0,1fr)_420px]'
+      : 'lg:grid-cols-[316px_minmax(0,1fr)_396px]'}`}
+      data-layout={layoutMode}>
       {/* ------------------------------------------------------- the rail --- */}
       <section className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5">
         <div className="panel pad">
@@ -611,6 +703,17 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           </div>
           <input className="field mb-2 w-full" value={draft.name} aria-label="Sheet name"
             onChange={(event) => mutate((next) => { next.name = event.target.value; })} />
+          <div className="mb-2 flex rounded-sm border border-arena-edge p-0.5"
+            aria-label="Editor layout" data-testid="layout-switch">
+            <button type="button"
+              className={`btn grow !min-h-7 !border-0 ${layoutMode === 'map-first' ? 'btn-on' : ''}`}
+              aria-pressed={layoutMode === 'map-first'}
+              onClick={() => setLayoutMode('map-first')}>Map-first</button>
+            <button type="button"
+              className={`btn grow !min-h-7 !border-0 ${layoutMode === 'classic' ? 'btn-on' : ''}`}
+              aria-pressed={layoutMode === 'classic'}
+              onClick={() => setLayoutMode('classic')}>Classic</button>
+          </div>
           <label className="t-micro mb-2 flex items-center gap-2 text-arena-dim">
             <input type="checkbox" checked={draft.enterLadder}
               onChange={(event) => mutate((next) => { next.enterLadder = event.target.checked; })} />
@@ -704,6 +807,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
       {/* -------------------------------------------------------- the map --- */}
       <section className="flex min-w-0 flex-col gap-2 lg:min-h-0">
+        {layoutMode === 'map-first' && wizard && (
+          <MapFirstTimeline tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+            step={wizard.step} onFocus={focusMapFirst} />
+        )}
         <div className="flex items-center gap-2">
           <span className="lab">Tapline — your side is west</span>
           <span className="grow" />
@@ -727,6 +834,16 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             ))}
           </span>
         </div>
+        <div className={layoutMode === 'map-first' && wizard
+          ? 'grid min-w-0 gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)]'
+          : 'min-w-0'}>
+        {layoutMode === 'map-first' && wizard && (
+          <MapFirstGroupTrays catalog={catalog} document={document}
+            tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+            selectedGroupId={selectedGroupId}
+            onFocus={focusMapFirst} onMoveBot={moveWizardBot} />
+        )}
+        <div className="min-w-0">
         {/* The map fills the column, capped so it also fits the viewport
             height — width follows from the 31:27 tile aspect. */}
         <div className="lg:mx-auto lg:w-[min(100%,calc((100dvh-290px)*1.148))]">
@@ -741,6 +858,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 selectedTacticId={selectedTacticId}
                 showAll={showAll}
                 showAllPhases={showAllPhases}
+                showProjectedBots={layoutMode === 'map-first'}
+                showAdjacentPhases={layoutMode === 'classic'}
                 task={task}
                 hints={wizard?.hints.groups ?? null}
                 onTilePicked={onTilePicked}
@@ -752,6 +871,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 onTaskDone={endTask}
                 onTileRejected={(reason) => toast(reason, 'hot')}
                 onPostsSwapped={() => toast('Swapped posts.')}
+                onPostBotDropped={layoutMode === 'map-first' ? dropPostBot : undefined}
               />
             </div>
           </div>
@@ -789,6 +909,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         </div>
         <p className="t-micro text-arena-dim">Click overlays to jump to their Group — a posted bot
           lights up its own way-in row. Drag posts, corners and destinations while editing.</p>
+        </div>
+        </div>
       </section>
 
       {/* ----------------------------------------------------- the drawer --- */}

@@ -92,7 +92,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
       : null;
   const [abortOpen, setAbortOpen] = useState(Boolean(tactic.abort));
   return <>
-    <p className="t-meta">First things first: <b>when does this Tactic apply at all?</b>{' '}
+    <p className="t-meta" id="start-controls">First things first: <b>when does this Tactic apply at all?</b>{' '}
       The Sheet still reads top to bottom — this only gates it further. Once it
       starts, it is committed: it keeps control until it finishes, aborts, or
       runs out its time limit.</p>
@@ -126,7 +126,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         ? 'No condition ticked yet — tick one below, or this Tactic never applies.'
         : 'Always available — the Sheet order alone decides when it runs.')}
     </Readback>
-    <div className="rounded-sm border border-arena-edge p-2"
+    <div className="rounded-sm border border-arena-edge p-2" id="abort-controls"
       style={{ borderLeft: '3px solid #f4526b' }}>
       <div className="flex items-center gap-2">
         <b className="t-body">Abort when…</b>
@@ -527,6 +527,7 @@ export function PhasesStep(props: StepProps) {
       )}
     </div>
     <div className="rounded-sm border border-arena-edge p-2"
+      id={`transition-controls-${phase.id}`}
       style={{ borderLeft: '3px solid #c8763c' }}>
       <div className="mb-1 flex items-center gap-2">
         <b className="t-body">{last ? 'Ends when…' : 'Continue when…'}</b>
