@@ -13,7 +13,6 @@ public sealed class ArcRelayTaplineRangeTests
         ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline10);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline10, ArcRelayLoopProfile.Current);
         Assert.Equal("arc-relay-tapline-10", current.Rules.RulesetId);
         Assert.Equal(historical.Map.Id, current.Map.Id);
         Assert.Equal(

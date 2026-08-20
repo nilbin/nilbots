@@ -1736,13 +1736,22 @@ internal static class ArenaBasics
         return result.ToArray();
     }
 
-    private static int AttackRange(
+    internal static int AttackRange(
         GenericActorResolvedMatchContract contract,
         string formId) => contract.Rules.Forms
             .FirstOrDefault(candidate => candidate.Id == formId)
             ?.AttackProfileId is string attackId
                 ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
                     candidate.Id == attackId)?.Projectile.MaxTravelTiles ?? 0
+                : 0;
+
+    internal static int AttackWindupTicks(
+        GenericActorResolvedMatchContract contract,
+        string formId) => contract.Rules.Forms
+            .FirstOrDefault(candidate => candidate.Id == formId)
+            ?.AttackProfileId is string attackId
+                ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
+                    candidate.Id == attackId)?.Projectile.StrikeWindupTicks ?? 0
                 : 0;
 
     public static bool TryShootAtPosition(
@@ -1768,6 +1777,7 @@ internal static class ArenaBasics
                 ? contract.Rules.AttackProfiles.FirstOrDefault(candidate =>
                     candidate.Id == attackId)
                 : null;
+
         if (action is null || headings is null || attack is null)
             return false;
         // Ask the MASK first. A wedge gun very often already has a legal

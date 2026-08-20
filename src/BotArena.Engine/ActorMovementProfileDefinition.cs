@@ -11,17 +11,34 @@ public sealed record ActorMovementProfileDefinition
         string id,
         ActorMovementLayer movementLayer,
         ActorMovementFacingCoupling facingCoupling =
-            ActorMovementFacingCoupling.PreserveFacing)
+            ActorMovementFacingCoupling.PreserveFacing,
+        int moveOpportunitiesPerCycle = 1,
+        int moveCycleTicks = 1)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(id);
         if (!Enum.IsDefined(movementLayer))
             throw new ArgumentOutOfRangeException(nameof(movementLayer));
         if (!Enum.IsDefined(facingCoupling))
             throw new ArgumentOutOfRangeException(nameof(facingCoupling));
+        if (moveOpportunitiesPerCycle <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(moveOpportunitiesPerCycle));
+        }
+        if (moveCycleTicks <= 0)
+            throw new ArgumentOutOfRangeException(nameof(moveCycleTicks));
+        if (moveOpportunitiesPerCycle > moveCycleTicks)
+        {
+            throw new ArgumentException(
+                "Move opportunities cannot exceed the movement cycle length.",
+                nameof(moveOpportunitiesPerCycle));
+        }
 
         Id = id;
         MovementLayer = movementLayer;
         FacingCoupling = facingCoupling;
+        MoveOpportunitiesPerCycle = moveOpportunitiesPerCycle;
+        MoveCycleTicks = moveCycleTicks;
     }
 
     public string Id { get; }
@@ -34,4 +51,17 @@ public sealed record ActorMovementProfileDefinition
     /// capability changes no existing fingerprint.
     /// </summary>
     public ActorMovementFacingCoupling FacingCoupling { get; }
+
+    /// <summary>
+    /// How many ticks in each <see cref="MoveCycleTicks"/> window expose a
+    /// movement action. Opportunities never bank and a movement remains at
+    /// most one adjacent tile. The inert/default rate is 1/1.
+    /// </summary>
+    public int MoveOpportunitiesPerCycle { get; }
+
+    /// <summary>
+    /// Length of the deterministic movement-availability window. Stable unit
+    /// IDs stagger its phase so equal-rate squads do not all pause together.
+    /// </summary>
+    public int MoveCycleTicks { get; }
 }

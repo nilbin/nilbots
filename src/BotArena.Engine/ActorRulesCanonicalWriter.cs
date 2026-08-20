@@ -945,6 +945,19 @@ internal static class ActorRulesCanonicalWriter
                     "facingCoupling",
                     Id(profile.FacingCoupling));
             }
+            // The universal one-move-opportunity-per-tick cadence predates
+            // this optional capability. Omit 1/1 so every old contract keeps
+            // byte-identical canonical rules and fingerprints.
+            if (profile.MoveOpportunitiesPerCycle != 1
+                || profile.MoveCycleTicks != 1)
+            {
+                writer.WriteNumber(
+                    "moveOpportunitiesPerCycle",
+                    profile.MoveOpportunitiesPerCycle);
+                writer.WriteNumber(
+                    "moveCycleTicks",
+                    profile.MoveCycleTicks);
+            }
             writer.WriteEndObject();
         }
         writer.WriteEndArray();

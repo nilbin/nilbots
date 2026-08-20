@@ -240,6 +240,9 @@ public sealed class OrdersMovementSceneTests
         bool carrierDestroyed = false;
         bool holderReturned = false;
         int maximumExcursion = 0;
+        int outerRingDeclarations = 0;
+        int holderShots = 0;
+        int carrierHits = 0;
         string lastReason = "";
         while (!session.IsCompleted && !holderReturned)
         {
@@ -257,6 +260,23 @@ public sealed class OrdersMovementSceneTests
                 "hold-carrier-close", StringComparison.Ordinal);
             holderFired |= carrierClose && reason.Contains(
                 ":fight:", StringComparison.Ordinal);
+            if (carrierClose
+                && reason.Contains(":fight:", StringComparison.Ordinal))
+            {
+                GenericMindRuntimeObservation observation = step.TickStart
+                    .MindObservations.Single(value => value.TeamId == 0);
+                GenericMindRuntimeObservation.ObservedBodyState holderBefore =
+                    observation.Bodies.Single(value => value.ActorId.UnitId == 0);
+                GenericActorRuntimeObservation.ObservedEnemyState? carrierBefore =
+                    observation.Enemies.FirstOrDefault(value =>
+                        value.ActorId.TeamId == 1 && value.ActorId.UnitId == 0);
+                if (carrierBefore is not null
+                    && holderBefore.Position.ChebyshevDistance(
+                        carrierBefore.Position) >= 3)
+                {
+                    outerRingDeclarations++;
+                }
+            }
             GenericActorWorldSnapshot.LifeSnapshot? holderLife = step.PostState
                 .ActiveLives.FirstOrDefault(value =>
                     value.ActorId.TeamId == 0 && value.ActorId.UnitId == 0);
@@ -271,6 +291,16 @@ public sealed class OrdersMovementSceneTests
                     .Destruction destroyed
                 && destroyed.ActorId.TeamId == 1
                 && destroyed.ActorId.UnitId == 0);
+            holderShots += step.AuthoritativeEvents.Count(value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .Attack attack
+                && attack.ActorId.TeamId == 0
+                && attack.ActorId.UnitId == 0);
+            carrierHits += step.AuthoritativeEvents.Count(value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .Damage damage
+                && damage.TargetActorId.TeamId == 1
+                && damage.TargetActorId.UnitId == 0);
             holderReturned = carrierDestroyed
                 && holderLife?.Position == holderPost;
         }
@@ -278,6 +308,8 @@ public sealed class OrdersMovementSceneTests
         string diagnostic = $"pickup={pickedUp},close={carrierClose},"
             + $"fired={holderFired},destroyed={carrierDestroyed},"
             + $"returned={holderReturned},excursion={maximumExcursion},"
+            + $"outer={outerRingDeclarations},shots={holderShots},"
+            + $"hits={carrierHits},"
             + $"reason={lastReason}";
         Assert.True(pickedUp,
             $"the runner never became a Core carrier; {diagnostic}");
@@ -285,6 +317,11 @@ public sealed class OrdersMovementSceneTests
             $"Hold let the visible carrier escape without pursuit; {diagnostic}");
         Assert.True(holderFired,
             $"Hold pursued the carrier but never fired; {diagnostic}");
+        Assert.Equal(0, outerRingDeclarations);
+        Assert.True(holderShots > 0,
+            $"Hold declared inside its windup margin but launched no shot; {diagnostic}");
+        Assert.True(carrierHits > 0,
+            $"Hold launched but never hit the escaping carrier; {diagnostic}");
         Assert.InRange(maximumExcursion, 1, 5);
         Assert.True(carrierDestroyed,
             $"the bounded defence never stopped the carrier; {diagnostic}");

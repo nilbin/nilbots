@@ -9420,3 +9420,70 @@ generates Scan only for Groups local to each individual area. Core custody stays
 temporary inside the pickup phase; an escorted pickup keeps the carrier and
 potential escorts from that carrier's phase Group on those custody Instructions,
 without recruiting an unrelated Group or changing squad phase progression.
+
+## 354. Tapline-10 contracts sight and basic-gun reach
+
+Owner promotion ruling (2026-08-21): Arc Relay's base facing-quadrant vision
+contracts from 7 to 5 tiles, and the short/medium/long basic-gun bands contract
+from 4/6/9 to 3/4/6. Class-to-band assignments, cadence, damage, windup,
+veterancy reach upgrades, signatures, map, economy, and every other rule stay
+unchanged. Team perception remains the immediate union of allied sensors;
+therefore Longshot's sixth tile is intentionally a team-enabled shot rather
+than personal sight.
+
+The change is immutable profile `tapline-10`, ruleset
+`arc-relay-tapline-10`, on Tapline-9's unchanged `arc-relay-tapline-03` map.
+Hosted playlist v27 pins it and starts a fresh 1200 rating book because every
+positional fight changes. Tapline-9 and playlist v26 remain byte-exact history;
+the frozen tactical mind, Tempered Standard sheet, and native map plan are
+reused. This fast-iteration promotion is a directional depth tune, not a claim
+that population balance is already proven: shorter reach should increase the
+value of facing, cover, crossfire, scouting, corridor denial, and coordinated
+contact while reducing map-wide deathball focus fire.
+
+## 355. Tapline-11 makes chassis movement rate explicit and shares one control model
+
+Owner direction (2026-08-21): swift, standard, and deliberate stop being three
+unrelated facing/diagonal-handling exceptions and become public deterministic
+movement cadences. Tapline-11 grants movement on 1/1, 4/5, and 2/3 ticks
+respectively. Stable unit id staggers each cadence; opportunities do not bank,
+and every accepted move remains one adjacent tile. All three use Combat Strafe
+facing. Tapline-10 and every older profile retain exact historic movement
+contracts and bytes.
+
+The cadence is canonical rules data carried through engine legality, defensive
+validation, replay chronology, SDK, wire normalization, manifest, and CLI. A
+Core carrier must satisfy both its chassis opportunity and the existing
+Core-owned two-tick relocation clock. This intentionally exposes a strong swift
+logistics advantage rather than hiding a carrier exception. Conservative
+terrain-only proof keeps three repeated 4-charge enemy-Well banks inside the
+600-tick horizon for every chassis on the practical 31-step direct and 41-step
+via-Centre routes; a repeated 58-step outer route fits only swift.
+
+The additive strict movement-profile contract advances SDK 0.10.14→0.10.15;
+the product CLI advances to 0.9.70. Historical 1/1 profiles omit the cadence
+pair and retain their exact canonical bytes.
+
+The immutable product identity is profile `tapline-11`, ruleset
+`arc-relay-tapline-11`, on Tapline-10's unchanged map, vision, guns, economy,
+signatures, and stock sheet. Hosted playlist v28 starts a fresh 1200 rating
+book; playlist v27/Tapline-10 remains byte-exact history. This is a mechanical
+and reachability promotion, not a population-balance claim.
+
+V28 pins the new append-only `tapline-11-stock-v1` tactical artifact rather
+than reusing Tapline-4's bytes. The rebuild is required both for SDK 0.10.15's
+strict cadence reader and for one tactical correction exposed by the new
+rates: a Hold defender pursuing a Core carrier closes inside a windup-safe
+margin before declaring, so the target cannot repeatedly leave the frozen
+outer-range wedge on the maturation tick. Target selection, squad planning,
+move preparation, and execution share that predicate. Tapline-4 through
+Tapline-10 remain pinned to the old artifact. A fresh rating book may advance
+from the latest registered ladder; once an intermediate ladder exists it may
+not be skipped.
+
+Speed-aware combat repositioning is deferred. Fast bots must not silently
+circle or kite for the 2x rear-arc multiplier. If added, it is an explicit
+phase posture such as Mobile flank: stable side, authored geometry leash, at
+most two improving displacement steps, no orbit/reversal/backtracking, and
+immediate stop on shot readiness, Core custody, phase change, or target loss.
+It compiles to ordinary priority Instructions and adds no scheduler.

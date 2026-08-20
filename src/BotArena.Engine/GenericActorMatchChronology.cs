@@ -4096,7 +4096,11 @@ public sealed record GenericActorMatchChronology
                 StringComparer.Ordinal);
             bool preblocked = before.PendingReplications.Any(reservation =>
                     reservation.SourceActorId == turn.ActorId)
-                || life.PendingSameLifeTransition is not null;
+                || life.PendingSameLifeTransition is not null
+                || !ActorMovementCadence.IsMoveOpportunity(
+                    movementProfiles[forms[life.FormId].MovementProfileId],
+                    life.ActorId,
+                    before.NextTick);
             if (!allowed || preblocked)
             {
                 GenericActorRuntimeActionResolution.ActionOutcome expected =

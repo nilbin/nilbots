@@ -55,7 +55,14 @@ public sealed record ArcRelayLoopProfile
         int visionRange = 7,
         int shortAttackRange = 4,
         int mediumAttackRange = 6,
-        int longAttackRange = 9)
+        int longAttackRange = 9,
+        bool unifiedCombatStrafeMovement = false,
+        int swiftMoveOpportunitiesPerCycle = 1,
+        int swiftMoveCycleTicks = 1,
+        int standardMoveOpportunitiesPerCycle = 1,
+        int standardMoveCycleTicks = 1,
+        int deliberateMoveOpportunitiesPerCycle = 1,
+        int deliberateMoveCycleTicks = 1)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -81,6 +88,18 @@ public sealed record ArcRelayLoopProfile
             throw new ArgumentOutOfRangeException(nameof(mediumAttackRange));
         if (longAttackRange < mediumAttackRange)
             throw new ArgumentOutOfRangeException(nameof(longAttackRange));
+        ValidateMovementRate(
+            swiftMoveOpportunitiesPerCycle,
+            swiftMoveCycleTicks,
+            nameof(swiftMoveOpportunitiesPerCycle));
+        ValidateMovementRate(
+            standardMoveOpportunitiesPerCycle,
+            standardMoveCycleTicks,
+            nameof(standardMoveOpportunitiesPerCycle));
+        ValidateMovementRate(
+            deliberateMoveOpportunitiesPerCycle,
+            deliberateMoveCycleTicks,
+            nameof(deliberateMoveOpportunitiesPerCycle));
         CombatMagnitudeScale = combatMagnitudeScale;
         BodyHullBonus = bodyHullBonus;
         CentreOpeningDelayTicks = centreOpeningDelayTicks;
@@ -92,6 +111,14 @@ public sealed record ArcRelayLoopProfile
         ShortAttackRange = shortAttackRange;
         MediumAttackRange = mediumAttackRange;
         LongAttackRange = longAttackRange;
+        UnifiedCombatStrafeMovement = unifiedCombatStrafeMovement;
+        SwiftMoveOpportunitiesPerCycle = swiftMoveOpportunitiesPerCycle;
+        SwiftMoveCycleTicks = swiftMoveCycleTicks;
+        StandardMoveOpportunitiesPerCycle = standardMoveOpportunitiesPerCycle;
+        StandardMoveCycleTicks = standardMoveCycleTicks;
+        DeliberateMoveOpportunitiesPerCycle =
+            deliberateMoveOpportunitiesPerCycle;
+        DeliberateMoveCycleTicks = deliberateMoveCycleTicks;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -203,6 +230,34 @@ public sealed record ArcRelayLoopProfile
     internal int ShortAttackRange { get; }
     internal int MediumAttackRange { get; }
     internal int LongAttackRange { get; }
+
+    /// <summary>
+    /// Versioned locomotion contract. Historical profiles retain their three
+    /// distinct facing grammars and universal 1/1 travel. A promoted profile
+    /// may instead give every body the same CombatStrafe controls and make
+    /// swift/standard/deliberate honest movement rates.
+    /// </summary>
+    internal bool UnifiedCombatStrafeMovement { get; }
+    internal int SwiftMoveOpportunitiesPerCycle { get; }
+    internal int SwiftMoveCycleTicks { get; }
+    internal int StandardMoveOpportunitiesPerCycle { get; }
+    internal int StandardMoveCycleTicks { get; }
+    internal int DeliberateMoveOpportunitiesPerCycle { get; }
+    internal int DeliberateMoveCycleTicks { get; }
+
+    private static void ValidateMovementRate(
+        int opportunities,
+        int cycleTicks,
+        string parameterName)
+    {
+        if (opportunities <= 0 || cycleTicks <= 0
+            || opportunities > cycleTicks)
+        {
+            throw new ArgumentOutOfRangeException(
+                parameterName,
+                "Movement rates require 0 < opportunities <= cycle ticks.");
+        }
+    }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -1374,11 +1429,64 @@ public sealed record ArcRelayLoopProfile
         longAttackRange: 6);
 
     /// <summary>
+    /// Tapline-10's compact 5 / 3 / 4 / 6 combat envelope with one movement
+    /// grammar for every chassis and explicit public travel rates. Every body
+    /// can use eight-way CombatStrafe movement: forward/lateral travel retains
+    /// aim and rear travel turns the chassis. Swift moves every tick, Standard
+    /// receives four move opportunities per five ticks, and Deliberate two per
+    /// three. Stable unit IDs stagger closed ticks; opportunities never bank.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline11 { get; } = new(
+        "tapline-11",
+        "arc-relay-tapline-11",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        unifiedCombatStrafeMovement: true,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline10;
+    public static ArcRelayLoopProfile Current => Tapline11;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1459,6 +1567,7 @@ public sealed record ArcRelayLoopProfile
         Tapline8,
         Tapline9,
         Tapline10,
+        Tapline11,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

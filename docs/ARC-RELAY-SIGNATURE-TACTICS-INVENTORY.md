@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-21  
 **Status:** design and code inventory; implementation-ready recommendation; no gameplay changes made  
-**Rules baseline:** promoted `tapline-10` (`vision 5`, short/medium/long guns `3/4/6`)
+**Rules baseline:** promoted `tapline-11` (`vision 5`, short/medium/long guns `3/4/6`, swift/standard/deliberate movement `1/1`, `4/5`, `2/3`)
 
 ## Verdict
 
@@ -40,16 +40,18 @@ prototype, not balanced enough to promote without that proof.
 
 ## What is authoritative today
 
-The current product line is `ArcRelayLoopProfile.Tapline10` and is selected by
+The current product line is `ArcRelayLoopProfile.Tapline11` and is selected by
 `ArcRelayLoopProfile.Current` in
-`src/BotArena.Engine/ArcRelayLoopProfile.cs`. It keeps Tapline-9's map,
-economy and grammar-3 signatures while contracting common perception and gun
-ranges:
+`src/BotArena.Engine/ArcRelayLoopProfile.cs`. It keeps Tapline-10's map,
+economy, grammar-3 signatures, perception and guns while making chassis rates
+explicit under one movement control model:
 
 | Shared rule | Current value |
 | --- | ---: |
 | Facing-quadrant body vision | 5 |
 | Omnidirectional proximity vision | 0 |
+| Swift / standard / deliberate movement | 1/1 · 4/5 · 2/3 |
+| Facing coupling | Combat Strafe for every chassis |
 | Short / medium / long basic gun range | 3 / 4 / 6 |
 | Basic hit damage | 10 |
 | Short / medium / long fire interval | 2 / 3 / 5 ticks |
@@ -265,7 +267,7 @@ different map decisions into one.
 | Active duration | **6 ticks** | Enough for a corridor push without covering most of an 18-tick cooldown. |
 | Cooldown | **18 ticks from activation** | Twelve-tick uncovered window after natural expiry; stronger mobility pays more than current Wall's 8/16. |
 | Facing | Current Palisade facing; follows later rotations | Makes facing/post/route authorship meaningful. Rotating spends the ordinary action opportunity and exposes flanks. |
-| Movement | Follows owner after every accepted movement; no movement penalty in the first prototype | Tests the fun before adding another speed rule. Palisade's deliberate facing coupling already supports a stable corridor heading. |
+| Movement | Follows owner after every accepted movement; no additional shield penalty beyond the deliberate chassis's 2/3 cadence | Tests the fun without stacking a second speed tax. The shared Combat Strafe model and authored facing support a stable corridor heading. |
 | Body collision | None | It is a projectile screen, not a second Hardlight Block. |
 | Projectile collision | Hostile projectiles crossing the front screen hit it first; allied fire passes from behind | Preserves current team-relative Prism behavior and convoy fantasy. |
 | Rail | Stops at the first screen segment and deals 20 to shield hull | Gives a clear counter without nullifying Longshot forever. |
@@ -347,11 +349,12 @@ suppression, death and replay seek; avoid a one-tick visual lag. This is a
 presentation-mechanics change and should version the signature presentation
 package if the replay contract requires it.
 
-## Combat behavior if real movement rates are introduced
+## Combat behavior under Tapline-11 movement rates
 
-Current handling names are not speeds. If the rules later give classes real
-tiles-per-tick or movement cadence, that difference can create useful combat
-identity, but it must be a visible posture preset rather than hidden class AI.
+Tapline-11 makes swift/standard/deliberate real 1/1, 4/5, and 2/3 movement
+cadences under one Combat Strafe control model. That difference can create
+useful combat identity, but it must be a visible posture preset rather than
+hidden class AI.
 
 Suggested fight presets:
 
@@ -368,7 +371,7 @@ Suggested fight presets:
 Guardrails for Mobile flank:
 
 - authored posts, facing and routes always win;
-- maximum 2-3 displacement steps from the episode anchor before return;
+- maximum 2 displacement steps from the episode anchor before return;
 - every step must improve a stable flank goal or return progress;
 - target loss, phase change, Core pickup or route departure ends the episode;
 - do not choose a new “best” side every tick;
@@ -376,8 +379,11 @@ Guardrails for Mobile flank:
 - log the ordinary Fight/move reason in Practice.
 
 The rear 2x multiplier makes a bounded reload-window flank potentially very
-strong. Start with an explicit opt-in and no extra attack-frequency benefit.
-Run orbit/reversal gates before considering it a default for swift bodies.
+strong. Swift classes also use the two-tick short-gun interval, normally
+leaving only one reposition tick before the next shot. Start with an explicit
+opt-in that stops when the shot is ready; any preset that deliberately gives up
+one ready shot for a second flank step must say so. Run orbit/reversal gates
+before considering it a default for swift bodies.
 
 Signature interactions with those roles are natural: Kestrel Dashes along the
 bounded flank route, Veil Smokes a crossing, Lantern counters smoke, Relay
@@ -424,10 +430,10 @@ contacts the flank produces.
 12. Run the corridor proof and tune only one variable at a time. Do not modify
     Mason in this pass.
 
-### P3 — movement identity after the skill pass is stable
+### P3 — explicit combat mobility after the skill pass is stable
 
-13. If actual movement rates are promoted, add explicit bounded combat posture
-    presets and prove no orbit/kiting regression. Do not make class speed a
+13. On the promoted movement rates, add an explicit bounded Mobile flank
+    posture and prove no orbit/kiting regression. Do not make class speed a
     hidden second behavior system.
 
 ## Required tests and proof scenes

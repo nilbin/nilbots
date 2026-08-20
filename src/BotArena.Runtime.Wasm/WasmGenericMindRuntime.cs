@@ -160,12 +160,15 @@ public sealed class WasmGenericMindRuntime : IGenericMindRuntime
                     _options.BotName));
             GenericMindWasmProtocol.ParseReady(readyReply.Bytes, start);
         }
-        catch
+        catch (Exception exception)
         {
-            _failureReason = string.IsNullOrWhiteSpace(_deathReason)
-                ? "WASM mind startup negotiation failed."
-                : _deathReason;
-            MarkDead("WASM mind startup negotiation failed.");
+            // ParseReady carries the guest's typed Fault payload. Prefer that
+            // precise protocol error over the guest thread's normal-exit race;
+            // otherwise a useful canonical-reader failure is flattened to
+            // "exited before the match ended".
+            _failureReason =
+                $"{exception.GetType().Name}: {exception.Message}";
+            MarkDead(_failureReason);
             _engine.IncrementEpoch();
             throw;
         }

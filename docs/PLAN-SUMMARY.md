@@ -12,7 +12,7 @@ Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI/editor default is `tapline-10`
+revisions, match history, and rating. The current CLI/editor default is `tapline-11`
 on the owner-approved equal-return map with sealed outer-Well entrances and
 staggered Mid cover, coordinated movement planner, and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
@@ -22,8 +22,10 @@ scaled combat durability. All three Wells keep their public opening around tick
 starts its exact public 46-tick recharge; carrying, tossing, dropping, and
 stealing do not start it. Facing-quadrant vision is 5 tiles and the
 short/medium/long basic-gun bands are 3/4/6; Longshot can use team-shared sight
-for its sixth tile. Hosted playlist v27 is the current Tapline-10 rating
-identity; v26 remains immutable Tapline-9 history.
+for its sixth tile. Swift, standard, and deliberate chassis expose deterministic
+movement rates of 1/1, 4/5, and 2/3 opportunities per tick cycle under one
+Combat Strafe facing model. Hosted playlist v28 is the current Tapline-11 rating
+identity; v27 remains immutable Tapline-10 history.
 The primary loop is **change → run → watch → understand →
 change again**.
 

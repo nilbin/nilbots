@@ -301,7 +301,7 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-10`: the accepted mid-Well-ribs Tapline and
+            The default is `tapline-11`: the accepted mid-Well-ribs Tapline and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
@@ -314,8 +314,11 @@ static int CommandHelp(string command)
             recharge; carrying, tossing, dropping and stealing do not.
             Facing-quadrant vision reaches 5 tiles; short, medium and long
             basic guns reach 3, 4 and 6 tiles. Longshot's last tile depends on
-            team-shared contact. Hosted v27 pins `tapline-10` too; v7 through
-            v26 remain exact history, and all
+            team-shared contact. Swift, standard and deliberate chassis move at
+            public deterministic rates of 1/1, 4/5 and 2/3 opportunities per
+            tick cycle; every chassis uses the same combat-strafe facing rule.
+            Hosted v28 pins `tapline-11` too; v7 through v27 remain exact history,
+            and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

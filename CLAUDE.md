@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-10                            # the current local Arc Relay line
+  --loop-profile tapline-11                            # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,7 +208,7 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-10`, whose atomic occupancy contract
+  `--loop-profile` defaults to `tapline-11`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
@@ -229,8 +229,10 @@ Project boundaries that must not be violated:
   identity. Tapline-10 keeps that complete game and map but tightens
   facing-quadrant vision from 7 to 5 and the short/medium/long basic-gun bands
   from 4/6/9 to 3/4/6. Longshot's final tile may use immediate-union allied
-  sight. Immutable hosted
-  entrant playlist v27 pins `tapline-10`, Tapline-native
+  sight. Tapline-11 keeps Tapline-10's map and combat envelope, gives every
+  chassis Combat Strafe controls, and exposes deterministic swift/standard/
+  deliberate movement opportunities of 1/1, 4/5, and 2/3. Immutable hosted
+  entrant playlist v28 pins `tapline-11`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
   the delayed centre opening, the equal-return map fork, bank-triggered
   source-local Well supply, and the parity-proven ATL2 WASM mirror. v25
@@ -293,6 +295,10 @@ Project boundaries that must not be violated:
   every positional fight; v26 ratings are never copied into v27. The tactical
   mind, sheet, map plan, and map are unchanged; only the pinned ruleset moves
   to `arc-relay-tapline-10`.
+  v28 starts fresh because Tapline-11's public chassis movement rates change
+  travel, logistics, and combat timing; v27 ratings are never copied into v28.
+  The tactical mind, sheet, map plan, map, sight, guns, and objective economy
+  are unchanged; only the pinned ruleset moves to `arc-relay-tapline-11`.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

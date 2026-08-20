@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v27 deliberately starts
-/// a fresh rating book because Tapline-10 changes vision and gun reach;
-/// immutable v8-v26 ladders remain readable.
+/// Seeds the current immutable entrant lane. Playlist v28 deliberately starts
+/// a fresh rating book because Tapline-11 changes chassis movement rates;
+/// immutable v8-v27 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -269,6 +269,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             }
             expectedTapline9.Validate(playlist, tapline9Version);
         }
+        PlaylistVersion? tapline10Version = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.Tapline10Version,
+                cancellationToken);
+        if (tapline10Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV27()
+                .Validate(playlist, tapline10Version);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
@@ -413,8 +423,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v27 Tapline-10 " +
+                "An open Arc Relay Season 1 can start the fresh v28 Tapline-11 " +
                 "rating book only from one open prior immutable ladder.");
+        }
+        int latestRegisteredVersion = candidates.Max(value => value.Version);
+        if (open[0].Version != latestRegisteredVersion)
+        {
+            throw new InvalidOperationException(
+                "The open Arc Relay rating book cannot skip a newer registered " +
+                $"intermediate ladder (open v{open[0].Version}, latest " +
+                $"registered v{latestRegisteredVersion}).");
         }
         Ladder previous = open[0].Ladder;
         if (await db.ArcRelayEntrantRatings.AnyAsync(
@@ -422,7 +440,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v27 ladder already contains ratings.");
+                "The draft Arc Relay v28 ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants

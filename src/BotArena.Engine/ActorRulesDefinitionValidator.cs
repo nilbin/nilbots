@@ -141,6 +141,7 @@ public static class ActorRulesDefinitionValidator
         ValidateLifecycle(lifecycle, formsById, errors);
         ValidateGroundAdmission(movementProfiles, errors);
         ValidateFacingCouplingAdmission(movementProfiles, errors);
+        ValidateMovementCadenceAdmission(movementProfiles, errors);
         ValidateCombatAdmission(attackProfiles, errors);
         ValidateObjectiveWeights(gameMode, forms, errors);
         ValidateCheckedTickArithmetic(
@@ -556,6 +557,28 @@ public static class ActorRulesDefinitionValidator
                 errors.Add(
                     $"Movement profile '{profile.Id}' selects undefined facing " +
                     $"coupling '{profile.FacingCoupling}'.");
+            }
+        }
+    }
+
+    private static void ValidateMovementCadenceAdmission(
+        IReadOnlyList<ActorMovementProfileDefinition> movementProfiles,
+        List<string> errors)
+    {
+        foreach (ActorMovementProfileDefinition? profile in movementProfiles)
+        {
+            if (profile is null)
+                continue;
+            if (profile.MoveOpportunitiesPerCycle <= 0
+                || profile.MoveCycleTicks <= 0
+                || profile.MoveOpportunitiesPerCycle
+                    > profile.MoveCycleTicks)
+            {
+                errors.Add(
+                    $"Movement profile '{profile.Id}' has invalid movement "
+                    + $"cadence {profile.MoveOpportunitiesPerCycle}/"
+                    + $"{profile.MoveCycleTicks}; both values must be positive "
+                    + "and opportunities cannot exceed cycle ticks.");
             }
         }
     }

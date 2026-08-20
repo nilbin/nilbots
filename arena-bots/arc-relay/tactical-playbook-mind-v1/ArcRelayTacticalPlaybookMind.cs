@@ -460,6 +460,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     string targetKey = target is null
                         ? proposal.Target.Key
                         : target.ActorId.ToString();
+                    bool needsWindupMargin = target is not null
+                        && NeedsWindupClosingMargin(
+                            contract, mind, body, target.ActorId,
+                            targetPosition, fight);
                     Position anchor = FightEpisodeAnchor(
                         body, proposal.Leaf);
                     if (target is not null
@@ -486,14 +490,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             break;
                         }
                     }
-                    if (ArenaBasics.CommitsAttackPositionThisTick(
+                    if (!needsWindupMargin
+                        && ArenaBasics.CommitsAttackPositionThisTick(
                             contract, mind, body, targetPosition))
                     {
                         result.Add(Hold(
                             $"fight-commit:{targetKey}", pinned: true));
                         break;
                     }
-                    if (ArenaBasics.CanAimAtPosition(
+                    if (!needsWindupMargin
+                        && ArenaBasics.CanAimAtPosition(
                             contract, body, targetPosition))
                     {
                         result.Add(Hold(
@@ -520,6 +526,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     Position[] firing = FiringContributionGoals(
                         contract, mind, body, targetPosition, anchor,
                         fight.ChaseLimit);
+                    if (needsWindupMargin)
+                    {
+                        firing = WindupBufferedFiringGoals(
+                            contract, body, targetPosition, firing);
+                    }
                     if (firing.Length == 0)
                     {
                         result.Add(Hold($"fight-no-firing-ground:{targetKey}"));
@@ -1355,7 +1366,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position target,
         ActorIdentity? targetActor)
     {
-        if (ArenaBasics.CanAimAtPosition(contract, body, target))
+        bool needsWindupMargin = targetActor is not null
+            && NeedsWindupClosingMargin(
+                contract, mind, body, targetActor, target, fight);
+        if (!needsWindupMargin
+            && ArenaBasics.CanAimAtPosition(contract, body, target))
             return true;
         if (targetActor is not null
             && fight.Style == "kite"
@@ -1376,9 +1391,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             : bodyFromAnchor is int used && used <= fight.ChaseLimit;
         if (!insideLeash)
             return false;
-        return FiringContributionGoals(
+        Position[] firing = FiringContributionGoals(
             contract, mind, body, target, anchor,
-            fight.ChaseLimit).Length > 0;
+            fight.ChaseLimit);
+        if (needsWindupMargin)
+        {
+            firing = WindupBufferedFiringGoals(
+                contract, body, target, firing);
+        }
+        return firing.Length > 0;
     }
 
     /// <summary>
@@ -1991,9 +2012,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     ? mind.Enemies.Any(value => value.ActorId == actor)
                     : proposal.Target.Key.StartsWith(
                         "deployment:", StringComparison.Ordinal);
+                bool needsWindupMargin = proposal.Target.Actor
+                        is ActorIdentity targetActor
+                    && NeedsWindupClosingMargin(
+                        contract,
+                        mind,
+                        proposal.Body,
+                        targetActor,
+                        proposal.Target.Position,
+                        fight);
                 if (!targetExists
-                    || ArenaBasics.CanAimAtPosition(
-                        contract, proposal.Body, proposal.Target.Position))
+                    || !needsWindupMargin
+                        && ArenaBasics.CanAimAtPosition(
+                            contract,
+                            proposal.Body,
+                            proposal.Target.Position))
                 {
                     continue;
                 }
@@ -2665,7 +2698,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, mind, body, [targetPosition], claims,
                 $"{reason}:kite:{targetKey}:{physical}"))
             return;
-        if (ArenaBasics.TryShootAtPosition(
+        bool needsWindupMargin = target is not null
+            && NeedsWindupClosingMargin(
+                contract,
+                mind,
+                body,
+                target.ActorId,
+                targetPosition,
+                fight);
+        if (!needsWindupMargin
+            && ArenaBasics.TryShootAtPosition(
                 contract,
                 mind,
                 body,
@@ -2673,7 +2715,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 $"{reason}:fight:{targetKey}",
                 target?.ActorId))
             return;
-        if (ArenaBasics.CanAimAtPosition(contract, body, targetPosition))
+        if (!needsWindupMargin
+            && ArenaBasics.CanAimAtPosition(contract, body, targetPosition))
         {
             // A Hold fighter owns its authored ground while the Fight leaf
             // remains selected. Cadence never hands its facing or tile back
@@ -2696,6 +2739,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             Position[] firing = FiringContributionGoals(
                 contract, mind, body, targetPosition, anchor,
                 fight.ChaseLimit);
+            if (needsWindupMargin)
+            {
+                firing = WindupBufferedFiringGoals(
+                    contract, body, targetPosition, firing);
+            }
             if (firing.Length > 0
                 && ArenaBasics.TryMoveToward(
                     contract, mind, body, firing, claims,
@@ -3521,6 +3569,48 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract, body, target, reachable);
         _firingGround[key] = goals;
         return goals;
+    }
+
+    /// <summary>
+    /// A Hold defender that has permission to pursue a Core carrier should not
+    /// repeatedly declare a windup shot from the gun's outermost tile. A
+    /// carrier can legally leave that frozen wedge before maturation, turning
+    /// a faster defender into an endless sequence of cancelled shots. Reserve
+    /// one tile of range per windup tick before committing; the ordinary leash
+    /// and reachable-firing-ground rules remain the bounds on the close.
+    /// </summary>
+    private static bool NeedsWindupClosingMargin(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        ActorIdentity targetActor,
+        Position target,
+        OrdersPackage.FightAction fight)
+    {
+        if (fight.Style != "hold"
+            || ArenaBasics.CarriedCore(mind, targetActor) is null)
+        {
+            return false;
+        }
+        int windup = ArenaBasics.AttackWindupTicks(contract, body.FormId);
+        int reach = ArenaBasics.AttackRange(contract, body.FormId);
+        if (windup <= 0 || reach <= 1)
+            return false;
+        int bufferedReach = Math.Max(1, reach - windup);
+        return body.Position.ChebyshevDistance(target) > bufferedReach;
+    }
+
+    private static Position[] WindupBufferedFiringGoals(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        Position target,
+        IEnumerable<Position> firing)
+    {
+        int reach = ArenaBasics.AttackRange(contract, body.FormId);
+        int windup = ArenaBasics.AttackWindupTicks(contract, body.FormId);
+        int bufferedReach = Math.Max(1, reach - windup);
+        return [.. firing.Where(position =>
+            position.ChebyshevDistance(target) <= bufferedReach)];
     }
 
     private bool TryInvest(

@@ -1757,11 +1757,42 @@ public static class ActorCanonicalContractReader
         bool hasFacingCoupling = element.TryGetProperty(
             "facingCoupling",
             out JsonElement facingCoupling);
-        ExactObject(
-            element,
-            hasFacingCoupling
-                ? ["id", "movementLayer", "facingCoupling"]
-                : ["id", "movementLayer"]);
+        bool hasMoveOpportunities = element.TryGetProperty(
+            "moveOpportunitiesPerCycle",
+            out JsonElement moveOpportunities);
+        bool hasMoveCycle = element.TryGetProperty(
+            "moveCycleTicks",
+            out JsonElement moveCycle);
+        if (hasMoveOpportunities != hasMoveCycle)
+        {
+            throw new FormatException(
+                "A canonical movement cadence must publish both "
+                + "moveOpportunitiesPerCycle and moveCycleTicks.");
+        }
+        var properties = new List<string> { "id", "movementLayer" };
+        if (hasFacingCoupling)
+            properties.Add("facingCoupling");
+        if (hasMoveCycle)
+        {
+            properties.Add("moveOpportunitiesPerCycle");
+            properties.Add("moveCycleTicks");
+        }
+        ExactObject(element, [.. properties]);
+        int opportunities = hasMoveOpportunities
+            ? Int(moveOpportunities)
+            : 1;
+        int cycle = hasMoveCycle ? Int(moveCycle) : 1;
+        if (opportunities <= 0 || cycle <= 0 || opportunities > cycle)
+        {
+            throw new FormatException(
+                "A movement cadence requires positive values and cannot "
+                + "publish more opportunities than cycle ticks.");
+        }
+        if (hasMoveCycle && opportunities == 1 && cycle == 1)
+        {
+            throw new FormatException(
+                "A canonical movement profile omits the inert 1/1 cadence.");
+        }
         return new RulesContract.MovementProfile(
             Id(element, "id"),
             MovementLayer(element, "movementLayer"))
@@ -1769,6 +1800,8 @@ public static class ActorCanonicalContractReader
             FacingCoupling = hasFacingCoupling
                 ? MovementFacingCoupling(facingCoupling)
                 : RulesContract.MovementFacingCoupling.PreserveFacing,
+            MoveOpportunitiesPerCycle = opportunities,
+            MoveCycleTicks = cycle,
         };
     }
 

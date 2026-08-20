@@ -1407,8 +1407,10 @@ public sealed class GenericActorMatchSession : IDisposable
             case ActorActionKind.Rotation:
                 return;
             case ActorActionKind.Movement:
-                if (_mode is ArcRelayActorMatchModeDriver movementMode
-                    && !movementMode.CanCarrierRelocate(life.ActorId, Tick))
+                if (!ActorMovementCadence.IsMoveOpportunity(
+                        MovementFor(life), life.ActorId, Tick)
+                    || _mode is ArcRelayActorMatchModeDriver movementMode
+                        && !movementMode.CanCarrierRelocate(life.ActorId, Tick))
                 {
                     Block(state);
                 }
@@ -5240,8 +5242,10 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorActionKind.Wait => true,
             ActorActionKind.Rotation => true,
             ActorActionKind.Movement =>
-                _mode is not ArcRelayActorMatchModeDriver movementMode
-                || movementMode.CanCarrierRelocate(life.ActorId, Tick),
+                ActorMovementCadence.IsMoveOpportunity(
+                    MovementFor(life), life.ActorId, Tick)
+                && (_mode is not ArcRelayActorMatchModeDriver movementMode
+                    || movementMode.CanCarrierRelocate(life.ActorId, Tick)),
             ActorActionKind.Attack =>
                 AttackFor(life) is ActorAttackProfileDefinition attack
                 && (_mode is not ArcRelayActorMatchModeDriver arcRelay

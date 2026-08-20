@@ -69,6 +69,9 @@ export interface ReplayV3ContractForm {
 export interface ReplayV3MovementProfile {
   id: string;
   movementLayer: string;
+  /** Optional non-inert movement opportunities/cycle pair; absent means 1/1. */
+  moveOpportunitiesPerCycle?: number;
+  moveCycleTicks?: number;
   /**
    * Optional facing coupling: 'preserve-facing' (the inert default),
    * 'face-movement-direction', 'facing-locked',

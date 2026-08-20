@@ -675,15 +675,27 @@ public static class ArcRelayH0Definition
         ActorMovementProfileDefinition[] movement =
         [
             new("swift", ActorMovementLayer.Ground,
-                loopProfile.DirectionalCombat
-                    ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
-                    : ActorMovementFacingCoupling.FaceMovementDirection),
-            new("standard", ActorMovementLayer.Ground,
-                loopProfile.DirectionalCombat
+                loopProfile.UnifiedCombatStrafeMovement
                     ? ActorMovementFacingCoupling.CombatStrafe
-                    : ActorMovementFacingCoupling.PreserveFacing),
+                    : loopProfile.DirectionalCombat
+                    ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
+                    : ActorMovementFacingCoupling.FaceMovementDirection,
+                loopProfile.SwiftMoveOpportunitiesPerCycle,
+                loopProfile.SwiftMoveCycleTicks),
+            new("standard", ActorMovementLayer.Ground,
+                loopProfile.UnifiedCombatStrafeMovement
+                    ? ActorMovementFacingCoupling.CombatStrafe
+                    : loopProfile.DirectionalCombat
+                    ? ActorMovementFacingCoupling.CombatStrafe
+                    : ActorMovementFacingCoupling.PreserveFacing,
+                loopProfile.StandardMoveOpportunitiesPerCycle,
+                loopProfile.StandardMoveCycleTicks),
             new("deliberate", ActorMovementLayer.Ground,
-                ActorMovementFacingCoupling.FacingLocked),
+                loopProfile.UnifiedCombatStrafeMovement
+                    ? ActorMovementFacingCoupling.CombatStrafe
+                    : ActorMovementFacingCoupling.FacingLocked,
+                loopProfile.DeliberateMoveOpportunitiesPerCycle,
+                loopProfile.DeliberateMoveCycleTicks),
         ];
         ActorVisionProfileDefinition vision = new(
             "arc-facing-vision",
@@ -770,7 +782,8 @@ public static class ArcRelayH0Definition
                 ActorActionKind.ModeInvestment,
                 [ActorActionParameterKind.UpgradeTrack]));
         }
-        if (loopProfile.DirectionalCombat)
+        if (loopProfile.DirectionalCombat
+            && !loopProfile.UnifiedCombatStrafeMovement)
         {
             actions.Add(new ActorActionDefinition(
                 StrafeActionId,
@@ -1378,6 +1391,7 @@ public static class ArcRelayH0Definition
         yield return WaitActionId;
         yield return MoveActionId;
         if (loopProfile.DirectionalCombat
+            && !loopProfile.UnifiedCombatStrafeMovement
             && string.Equals(entry.Handling, "swift", StringComparison.Ordinal))
         {
             yield return StrafeActionId;

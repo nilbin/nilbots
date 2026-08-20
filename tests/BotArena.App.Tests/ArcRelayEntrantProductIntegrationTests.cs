@@ -796,8 +796,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline6Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline8Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline9Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline10Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline10_v27_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Tapline11_v28_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -837,6 +838,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV25(),
                 ArcRelayEntrantPlaylistDefinition.Tapline9Version =>
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV26(),
+                ArcRelayEntrantPlaylistDefinition.Tapline10Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV27(),
                 _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
             };
             var version = new PlaylistVersion
@@ -916,17 +919,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 value.Id == predecessorLadderId);
             Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
             Assert.False(predecessorLadder.IsListed);
-            Ladder v27Ladder = await (
+            Ladder v28Ladder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v27Ladder.Status);
-            Assert.True(v27Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, v28Ladder.Status);
+            Assert.True(v28Ladder.IsListed);
             ArcRelayEntrantRating fresh = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v27Ladder.Id);
+                    value.LadderId == v28Ladder.Id);
             Assert.Equal(BotRating.DefaultRating, fresh.Rating);
             Assert.Equal(0, fresh.RankedMatches);
             ArcRelayEntrantRating historical = await db.ArcRelayEntrantRatings
@@ -947,6 +950,102 @@ public sealed class ArcRelayEntrantProductIntegrationTests
             Assert.Equal(2, await db.ArcRelayEntrantRatings.CountAsync(
                 value => value.EntrantId == entrantId));
         }
+    }
+
+    [SkippableFact]
+    [Trait("Category", PostgreSqlDatabaseFixture.Category)]
+    public async Task Tapline11_v28_refuses_to_skip_a_registered_v27_ladder()
+    {
+        await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
+        await using (AppDbContext migration =
+            await database.CreateMigratedContextAsync()) { }
+        using var factory = new BotArenaApplicationFactory(
+            database.ConnectionString,
+            legacyDuelEnabled: false);
+        await using (AsyncServiceScope scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ArcRelayPlaylistSeeder>()
+                .SeedAsync();
+        }
+
+        await using (AppDbContext db = database.CreateContext())
+        {
+            Playlist playlist = await db.Playlists.SingleAsync(value =>
+                value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
+            ArcRelayEntrantPlaylistDefinition v26Definition =
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV26();
+            ArcRelayEntrantPlaylistDefinition v27Definition =
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV27();
+            PlaylistVersion v26 = Version(v26Definition);
+            PlaylistVersion v27 = Version(v27Definition);
+            DateTime startsAt = DateTime.UtcNow.AddDays(-1);
+            var season = new Season
+            {
+                Key = ArcRelayLadderPolicy.SeasonKey,
+                DisplayName = ArcRelayLadderPolicy.SeasonName,
+                Number = ArcRelayLadderPolicy.SeasonNumber,
+                Status = SeasonStatus.Open,
+                StartsAt = startsAt,
+                EndsAt = startsAt.AddDays(
+                    ArcRelayLadderPolicy.SeasonDurationDays),
+                OpenedAt = startsAt,
+                RatingSeedPolicyId = ArcRelayLadderPolicy.RatingSeedPolicyId,
+            };
+            db.PlaylistVersions.AddRange(v26, v27);
+            db.Seasons.Add(season);
+            db.Ladders.AddRange(
+                new Ladder
+                {
+                    PlaylistVersionId = v26.Id,
+                    SeasonId = season.Id,
+                    Status = LadderStatus.Open,
+                    RatingPolicyId = ArcRelayEloV1.Id,
+                    IsListed = true,
+                    AwardsAchievements = false,
+                },
+                new Ladder
+                {
+                    PlaylistVersionId = v27.Id,
+                    SeasonId = season.Id,
+                    Status = LadderStatus.Draft,
+                    RatingPolicyId = ArcRelayEloV1.Id,
+                    IsListed = false,
+                    AwardsAchievements = false,
+                });
+            await db.SaveChangesAsync();
+
+            PlaylistVersion Version(
+                ArcRelayEntrantPlaylistDefinition definition) => new()
+            {
+                PlaylistId = playlist.Id,
+                Version = definition.PlaylistVersion,
+                GameModeId = definition.Match.Rules.GameMode.ModeId,
+                RulesetId = definition.Match.Rules.RulesetId,
+                MatchFormatId = definition.Match.Format.FormatId,
+                MapPoolId = definition.Match.Map.Id,
+                SeriesPolicyId = ArcRelayEntrantPlaylistDefinition.SeriesPolicyId,
+                MatchmakingPolicyId =
+                    ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,
+                AdmissionPolicyId = definition.AdmissionPolicyId,
+                ExecutionPolicyId = definition.ExecutionPolicyId,
+                ExecutionEngineVersion = definition.ExecutionEngineVersion,
+                CanonicalDefinition = definition.CanonicalDefinition,
+                DefinitionFingerprint = definition.DefinitionFingerprint,
+                Provenance = definition.Provenance,
+                Visibility = ArcRelayEntrantPlaylistDefinition.Visibility,
+            };
+        }
+
+        await using AsyncServiceScope seedScope =
+            factory.Services.CreateAsyncScope();
+        InvalidOperationException error = await Assert.ThrowsAsync<
+            InvalidOperationException>(() => seedScope.ServiceProvider
+                .GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
+                .SeedAsync());
+        Assert.Contains(
+            "cannot skip a newer registered intermediate ladder",
+            error.Message,
+            StringComparison.Ordinal);
     }
 
     [SkippableFact]

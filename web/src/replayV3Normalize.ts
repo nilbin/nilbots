@@ -1494,10 +1494,25 @@ function validateContract(
     const profilePath = `${path}.rules.movementProfiles[${index}]`;
     const profileValue = object(entry, profilePath, fail);
     const hasFacingCoupling = own(profileValue, 'facingCoupling');
+    const hasMoveOpportunities = own(profileValue, 'moveOpportunitiesPerCycle');
+    const hasMoveCycle = own(profileValue, 'moveCycleTicks');
+    if (hasMoveOpportunities !== hasMoveCycle) {
+      fail(
+        profilePath,
+        'movement cadence must publish both moveOpportunitiesPerCycle and moveCycleTicks',
+      );
+    }
     const profile = exact(
       profileValue,
       profilePath,
-      ['id', 'movementLayer', ...(hasFacingCoupling ? ['facingCoupling'] : [])],
+      [
+        'id',
+        'movementLayer',
+        ...(hasFacingCoupling ? ['facingCoupling'] : []),
+        ...(hasMoveCycle
+          ? ['moveOpportunitiesPerCycle', 'moveCycleTicks']
+          : []),
+      ],
       fail,
     );
     semanticId(profile.id, `${profilePath}.id`, fail);
@@ -1508,6 +1523,28 @@ function validateContract(
         `${profilePath}.facingCoupling`,
         fail,
       );
+    }
+    if (hasMoveCycle) {
+      integer(
+        profile.moveOpportunitiesPerCycle,
+        `${profilePath}.moveOpportunitiesPerCycle`,
+        fail,
+      );
+      integer(profile.moveCycleTicks, `${profilePath}.moveCycleTicks`, fail);
+      const opportunities = profile.moveOpportunitiesPerCycle as number;
+      const cycle = profile.moveCycleTicks as number;
+      if (opportunities <= 0 || cycle <= 0 || opportunities > cycle) {
+        fail(
+          profilePath,
+          'movement cadence values must be positive and opportunities cannot exceed cycle ticks',
+        );
+      }
+      if (opportunities === 1 && cycle === 1) {
+        fail(
+          profilePath,
+          'inert 1/1 movement cadence must be omitted',
+        );
+      }
     }
   });
 

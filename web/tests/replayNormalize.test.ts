@@ -2274,6 +2274,36 @@ test('replay-v3 accepts the optional movement facing coupling and rejects an ine
   );
 });
 
+test('replay-v3 accepts only a complete non-inert movement cadence pair', () => {
+  const paced = replayV3FixtureInput();
+  paced.header.contract.rules.movementProfiles[0]!.moveOpportunitiesPerCycle = 4;
+  paced.header.contract.rules.movementProfiles[0]!.moveCycleTicks = 5;
+  assert.equal(decodeReplay(paced).replay.sourceVersion, 3);
+
+  const half = replayV3FixtureInput();
+  half.header.contract.rules.movementProfiles[0]!.moveCycleTicks = 5;
+  assert.throws(
+    () => decodeReplay(half),
+    /movement cadence must publish both/,
+  );
+
+  const tooFast = replayV3FixtureInput();
+  tooFast.header.contract.rules.movementProfiles[0]!.moveOpportunitiesPerCycle = 6;
+  tooFast.header.contract.rules.movementProfiles[0]!.moveCycleTicks = 5;
+  assert.throws(
+    () => decodeReplay(tooFast),
+    /opportunities cannot exceed cycle ticks/,
+  );
+
+  const inert = replayV3FixtureInput();
+  inert.header.contract.rules.movementProfiles[0]!.moveOpportunitiesPerCycle = 1;
+  inert.header.contract.rules.movementProfiles[0]!.moveCycleTicks = 1;
+  assert.throws(
+    () => decodeReplay(inert),
+    /inert 1\/1 movement cadence must be omitted/,
+  );
+});
+
 test('replay-v3 accepts the forward aim cone and movement-action override as one strict contract', () => {
   const forward = replayV3FixtureInput();
   const attackIndex = 0;

@@ -159,7 +159,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void Tapline6V24UsesTheFrozenTapline4ArtifactWhileTheFastLoopMayMove()
+    public void Tapline11ReleaseAndHistoricalTapline4ArtifactsRemainPinned()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -177,11 +177,16 @@ public sealed class MindToolchainSurfaceTests
             "arena-bots",
             "arc-relay",
             "tapline-3-stock-v1");
-        string currentFrozenDirectory = Path.Combine(
+        string historicalTapline4Directory = Path.Combine(
             root,
             "arena-bots",
             "arc-relay",
             "tapline-4-stock-v1");
+        string currentReleaseDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tapline-11-stock-v1");
         TrackedBuildReceipt current = ReadReceipt(Path.Combine(
             projectDirectory,
             "bot.build-receipt.json"));
@@ -191,28 +196,40 @@ public sealed class MindToolchainSurfaceTests
         TrackedBuildReceipt tapline3 = ReadReceipt(Path.Combine(
             tapline3Directory,
             "bot.build-receipt.json"));
-        TrackedBuildReceipt currentFrozen = ReadReceipt(Path.Combine(
-            currentFrozenDirectory,
+        TrackedBuildReceipt historicalTapline4 = ReadReceipt(Path.Combine(
+            historicalTapline4Directory,
+            "bot.build-receipt.json"));
+        TrackedBuildReceipt currentRelease = ReadReceipt(Path.Combine(
+            currentReleaseDirectory,
             "bot.build-receipt.json"));
 
         Assert.Equal(
             "4f2fbab6bce9565d936a22dd0d80a1533fda0d438835e0a5030496cf2445992d",
-            currentFrozen.ArtifactSha256);
+            historicalTapline4.ArtifactSha256);
         Assert.Equal(
             "2b1f32c1dc1459923507d38ffe3993802c1c1dfe7c4e44c2bbf945254966e5e4",
-            currentFrozen.BuildInputSha256);
+            historicalTapline4.BuildInputSha256);
         Assert.Equal(
-            currentFrozen.ArtifactSha256,
-            Sha256(Path.Combine(currentFrozenDirectory, "bot.wasm")));
-        // Tactical design iterations deliberately move the trusted
-        // in-process mirror without minting a hosted WASM release. The
-        // mutable mirror must remain internally consistent, but it is not the
-        // v24 artifact identity.
+            historicalTapline4.ArtifactSha256,
+            Sha256(Path.Combine(historicalTapline4Directory, "bot.wasm")));
+        Assert.Equal("0.10.15", currentRelease.SdkVersion);
+        Assert.Equal(
+            currentRelease.ArtifactSha256,
+            Sha256(Path.Combine(currentReleaseDirectory, "bot.wasm")));
         Assert.Equal(
             current.ArtifactSha256,
             Sha256(Path.Combine(projectDirectory, "bot.wasm")));
-        Assert.NotEqual(currentFrozen.ArtifactSha256, historical.ArtifactSha256);
-        Assert.NotEqual(currentFrozen.ArtifactSha256, tapline3.ArtifactSha256);
+        Assert.Equal(currentRelease.ArtifactSha256, current.ArtifactSha256);
+        Assert.Equal(currentRelease.BuildInputSha256, current.BuildInputSha256);
+        Assert.NotEqual(
+            historicalTapline4.ArtifactSha256,
+            currentRelease.ArtifactSha256);
+        Assert.NotEqual(
+            historicalTapline4.ArtifactSha256,
+            historical.ArtifactSha256);
+        Assert.NotEqual(
+            historicalTapline4.ArtifactSha256,
+            tapline3.ArtifactSha256);
         Assert.Equal(
             tapline3.ArtifactSha256,
             Sha256(Path.Combine(tapline3Directory, "bot.wasm")));

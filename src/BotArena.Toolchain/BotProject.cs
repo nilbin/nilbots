@@ -478,9 +478,11 @@ public static class ToolchainInfo
     /// 0.9.69 promotes Tapline-10's five-tile team vision and 3/4/6 basic-gun
     /// ranges as the local, editor and hosted default in immutable playlist
     /// v27 while preserving Tapline-9/v26 exactly.
+    /// 0.9.70 promotes Tapline-11's public 1/1, 4/5 and 2/3 chassis movement
+    /// cadences and unified combat-strafe facing in immutable playlist v28.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.69";
+    public const string CliVersion = "0.9.70";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate
@@ -620,7 +622,10 @@ public static class ToolchainInfo
     // graph now cross the shared actor/mind tagged observation codec.
     // 0.10.14: the Arc Relay rules contract declares optional bank-triggered
     // Well recharge timing. Historical contracts omit it byte-identically.
-    public const string SdkVersion = "0.10.14";
+    // 0.10.15: movement profiles declare an optional non-inert movement
+    // opportunities/cycle pair. Historical 1/1 profiles omit it
+    // byte-identically; strict SDK and replay readers reject partial pairs.
+    public const string SdkVersion = "0.10.15";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
     // the mind arm of the negotiation state machine, and WrappedPerLifeMind.

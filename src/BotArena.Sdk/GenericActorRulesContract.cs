@@ -965,6 +965,18 @@ public sealed class GenericActorRulesContract
         /// </summary>
         public MovementFacingCoupling FacingCoupling { get; init; }
             = MovementFacingCoupling.PreserveFacing;
+
+        /// <summary>
+        /// Number of ticks per movement cycle on which this profile may move.
+        /// Opportunities do not bank; one move remains one adjacent tile.
+        /// </summary>
+        public int MoveOpportunitiesPerCycle { get; init; } = 1;
+
+        /// <summary>
+        /// Deterministic movement-cycle length. The engine staggers the phase
+        /// by stable unit ID. An omitted pair means the inert 1/1 cadence.
+        /// </summary>
+        public int MoveCycleTicks { get; init; } = 1;
     }
 
     /// <summary>
