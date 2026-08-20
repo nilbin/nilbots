@@ -280,7 +280,7 @@ export function GroupsStep({ catalog, document, wizard, change, arm, notify }: S
           ? 'border-arena-material bg-arena-material/10' : 'border-arena-edge'}`}>
         {unassigned.length === 0 && (
           <span className="t-micro self-center text-arena-dim">
-            {squadReady ? 'Everyone is assigned.' : 'Fill the squad on the left to get all eight in the tray.'}
+            {squadReady ? 'Everyone is assigned.' : 'Use Squad above to fill all eight before assigning the rest.'}
           </span>
         )}
         {unassigned.map((slot) => (

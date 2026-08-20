@@ -45,14 +45,18 @@ function activeRows(cases: Array<{
  * chip routes to the existing full editor; this component owns no condition
  * or transition mutations. */
 export function MapFirstTimeline({
-  tactic, phaseIndex, focus, gate, onFocus, onAddPhase, onCommit, onCancel,
+  tactic, phaseIndex, focus, gate, dirty, squadSize,
+  onFocus, onAddPhase, onEditSquad, onCommit, onCancel,
 }: {
   tactic: Tactic;
   phaseIndex: number;
   focus: MapFirstFocus | null;
   gate: string | null;
+  dirty: boolean;
+  squadSize: number;
   onFocus: (focus: MapFirstFocus) => void;
   onAddPhase: () => void;
+  onEditSquad: () => void;
   onCommit: () => void;
   onCancel: () => void;
 }) {
@@ -60,8 +64,17 @@ export function MapFirstTimeline({
   const abortRows = activeRows(tactic.abort?.cases);
   return <div className="rounded-sm border border-arena-edge bg-arena-panel/80 p-1.5 shadow-sm"
     data-testid="map-first-timeline">
-    <div className="mb-1.5 flex min-w-0 items-center gap-1.5 border-b border-arena-edge pb-1.5">
-      <span className="type-display min-w-20 grow truncate px-1 text-[14px]">{tactic.name}</span>
+    <div className="mb-1.5 flex min-w-0 flex-wrap items-center gap-1.5 border-b border-arena-edge pb-1.5">
+      <button type="button" className="btn shrink-0" onClick={onCancel}
+        title={dirty ? 'Discard tactic changes and return to the Sheet' : 'Return to the Sheet'}>
+        ← Back to Sheet
+      </button>
+      <span className="min-w-28 grow px-1">
+        <span className="type-display block truncate text-[14px]">{tactic.name}</span>
+        <span className={`block text-[9.5px] ${dirty ? 'text-arena-warning' : 'text-arena-dim'}`}>
+          {dirty ? 'Unsaved tactic changes' : 'Editing tactic'}
+        </span>
+      </span>
       <nav className="flex shrink-0 items-center gap-1" aria-label="Tactic controls">
         <TacticsIconButton icon="start"
           label={`Start: ${tactic.start.mode === 'always' ? 'always' : `${startRows} condition${startRows === 1 ? '' : 's'}`}`}
@@ -74,11 +87,14 @@ export function MapFirstTimeline({
           configured={Boolean(tactic.abort)} pressed={focus?.kind === 'abort'}
           testId="map-first-abort" onClick={() => onFocus({ kind: 'abort' })} />
       </nav>
+      <button type="button" className={`btn shrink-0 ${squadSize < 8 ? 'text-arena-hot' : ''}`}
+        onClick={onEditSquad} data-testid="tactic-edit-squad">
+        Squad {squadSize}/8
+      </button>
       <span className="mx-0.5 h-5 border-l border-arena-edge" />
-      <TacticsIconButton icon="close" label="Cancel tactic editing" onClick={onCancel} />
-      <TacticsIconButton icon="save" label={gate ?? 'Save tactic'} disabled={gate !== null}
-        className="!border-arena-material/65 !text-arena-material"
-        onClick={onCommit} testId="map-first-commit" />
+      <button type="button" className="btn btn-primary shrink-0" disabled={gate !== null}
+        title={gate ?? 'Apply this tactic to the Sheet'} onClick={onCommit}
+        data-testid="map-first-commit">Done</button>
     </div>
     {gate && <p className="mb-1 truncate px-1 text-[9.5px] text-arena-hot" title={gate}>{gate}</p>}
     <div className="flex min-w-0 items-stretch gap-1 overflow-x-auto"

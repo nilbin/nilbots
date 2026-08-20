@@ -303,6 +303,28 @@ test('the pincer recipe is a four-phase operation with a sequential spine', () =
   assert.equal(tactic.phases[3].continue, undefined);
 });
 
+test('recipes assign the available squad deterministically without duplicate or invented slots', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+
+  const pincer = instantiateRecipe(recipeById('pincer'), document).tactic;
+  assert.deepEqual(pincer.groups.map((group) => group.slots), [
+    [0, 1], [2, 3, 4, 5, 6, 7],
+  ]);
+  assert.equal(new Set(pincer.groups.flatMap((group) => group.slots)).size, 8);
+
+  const blank = instantiateRecipe(recipeById('blank'), document).tactic;
+  assert.deepEqual(blank.groups[0].slots, [0, 1, 2, 3, 4, 5, 6, 7]);
+
+  const incomplete = makeDocument(catalog);
+  incomplete.squad = [incomplete.squad[5], incomplete.squad[2], incomplete.squad[7]];
+  const flexibleRecipe = structuredClone(recipeById('pincer'));
+  flexibleRecipe.groups[1].size = null;
+  const flexible = instantiateRecipe(flexibleRecipe, incomplete).tactic;
+  assert.deepEqual(flexible.groups.map((group) => group.slots), [[5, 2], [7]]);
+  assert.deepEqual(flexible.groups.flatMap((group) => group.slots), [5, 2, 7]);
+});
+
 test('strictly sequential transitions and phase-one geometry are enforced', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);

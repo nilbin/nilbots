@@ -113,6 +113,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [dragTactic, setDragTactic] = useState<{ id: string; over: number | null; below: boolean }| null>(null);
   const toastSeq = useRef(0);
   const bootstrapped = useRef(false);
+  const tacticWorkspaceRef = useRef<HTMLElement>(null);
 
   // The mock's toast rack: transient action feedback, self-clearing.
   const toast = useCallback((text: string, tone: 'ok' | 'hot' = 'ok') => {
@@ -243,6 +244,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const document = viewDocument(draft, wizard);
   const editingTacticId = wizard?.tactic.id ?? null;
+  const tacticDirty = wizard
+    ? !wizard.editing || JSON.stringify(wizard.tactic) !== JSON.stringify(
+      draft.document.tactics.find((tactic) => tactic.id === wizard.originalId))
+    : false;
 
   const commitWizard = () => {
     if (!wizard) return;
@@ -301,6 +306,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   };
 
   const openWizard = (tactic: Tactic, hints: RecipeHints, editing: boolean) => {
+    const assigned = tactic.groups.flatMap((group) => group.slots);
+    const uniqueAssigned = new Set(assigned);
+    const membershipComplete = document.squad.length === 8
+      && assigned.length === 8 && uniqueAssigned.size === 8;
     setWizard({
       tactic: structuredClone(tactic),
       hints,
@@ -314,7 +323,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setServerIssues([]);
     setSelectedGroupId(tactic.groups[0]?.id ?? null);
     setSelectedSlots([]);
-    setMapFirstPanel(!editing ? { kind: 'groups' } : null);
+    setMapFirstPanel(!editing && !membershipComplete ? { kind: 'groups' } : null);
+    if (window.innerWidth < 1024) {
+      window.setTimeout(() => {
+        tacticWorkspaceRef.current?.focus({ preventScroll: true });
+        tacticWorkspaceRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      }, 0);
+    }
   };
 
   const stepProps: StepProps = {
@@ -813,10 +828,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   return (
     // The map-first workspace grows in normal page flow, so its legend and
     // behavior rail can never paint through the footer.
-    <div className="grid gap-3 lg:min-h-[calc(100dvh-150px)] lg:grid-cols-[260px_minmax(0,1fr)]"
+    <div className={wizard
+      ? 'min-h-[calc(100dvh-150px)] min-w-0'
+      : 'grid gap-3 lg:min-h-[calc(100dvh-150px)] lg:grid-cols-[260px_minmax(0,1fr)]'}
       data-layout="map-first">
       {/* ------------------------------------------------------- the rail --- */}
-      <section className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5">
+      {!wizard && <section className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5"
+        data-testid="sheet-overview">
         <div className="panel pad">
           <div className="mb-2 flex items-center gap-2">
             <span className="lab">The Sheet</span>
@@ -919,14 +937,18 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             });
             toast('Squad filled out.');
           } : undefined} />
-      </section>
+      </section>}
 
       {/* -------------------------------------------------------- the map --- */}
-      <section className="flex min-w-0 flex-col gap-2 lg:min-h-0">
+      <section ref={tacticWorkspaceRef} tabIndex={-1}
+        className="flex min-w-0 flex-col gap-2 focus:outline-none lg:min-h-0"
+        data-testid="tactic-workspace">
         {wizard && (
           <MapFirstTimeline tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
-            focus={mapFirstPanel} gate={gate} onFocus={focusMapFirst}
-            onAddPhase={addMapFirstPhase} onCommit={commitWizard} onCancel={cancelWizard} />
+            focus={mapFirstPanel} gate={gate} dirty={tacticDirty}
+            squadSize={document.squad.length} onFocus={focusMapFirst}
+            onAddPhase={addMapFirstPhase} onEditSquad={() => setSquadOpen(true)}
+            onCommit={commitWizard} onCancel={cancelWizard} />
         )}
         <div className={wizard
           ? 'grid min-w-0 items-start gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)] min-[1240px]:grid-cols-[168px_minmax(0,1fr)_232px]'

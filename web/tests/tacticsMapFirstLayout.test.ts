@@ -15,6 +15,22 @@ test('the map-first workspace is the sole editor over the real draft and wizard'
     'timeline chrome must not own a reduced/forked condition mutation path');
 });
 
+test('tactic editing replaces the Sheet overview with one focused workspace', () => {
+  assert.match(page, /!wizard && <section[\s\S]*data-testid="sheet-overview"/);
+  assert.match(page, /data-testid="tactic-workspace"/);
+  assert.match(page, /tacticWorkspaceRef\.current\?\.scrollIntoView/);
+  assert.match(chrome, /← Back to Sheet/);
+  assert.match(chrome, /Unsaved tactic changes/);
+  assert.match(chrome, /data-testid="tactic-edit-squad"/);
+  assert.match(chrome, /data-testid="map-first-commit">Done/);
+  assert.doesNotMatch(chrome, /Save tactic/);
+});
+
+test('a fully allocated recipe opens on its phase while incomplete membership remains guided', () => {
+  assert.match(page, /const membershipComplete = document\.squad\.length === 8/);
+  assert.match(page, /!editing && !membershipComplete \? \{ kind: 'groups' \} : null/);
+});
+
 test('start, abort and every sequential transition route to full existing controls', () => {
   assert.match(chrome, /map-first-start/);
   assert.match(chrome, /map-first-abort/);

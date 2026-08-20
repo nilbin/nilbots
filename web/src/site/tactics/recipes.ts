@@ -254,6 +254,7 @@ export function instantiateRecipe(
     hints.targetSizes.set(group.id, prefill.size);
     return group;
   });
+  assignRecipeMembership(groups, recipe.groups, document);
   const usedPhaseIds = new Set<string>();
   const phases: TacticPhaseDef[] = recipe.phases.map((prefill, index) => {
     let phaseId = identifierFromName(prefill.name, `phase-${index + 1}`);
@@ -288,6 +289,40 @@ export function instantiateRecipe(
     tactic.maxDuration = recipe.maxDuration;
   }
   return { tactic, hints };
+}
+
+/**
+ * A recipe already declares its intended split, so opening one should begin
+ * with tactics rather than membership bookkeeping. Fixed-size Groups receive
+ * real squad slots first, in recipe and squad order. Flexible Groups then
+ * divide the honest remainder in recipe order. An incomplete squad therefore
+ * stays incomplete — no synthetic slot can leak into validation or runtime.
+ */
+function assignRecipeMembership(
+  groups: TacticGroup[],
+  prefills: RecipeGroupPrefill[],
+  document: TacticsDocument,
+): void {
+  const available = [...new Set(document.squad.map((bot) => bot.slot))];
+  let cursor = 0;
+
+  groups.forEach((group, index) => {
+    const requested = prefills[index]?.size;
+    if (requested == null) return;
+    group.slots = available.slice(cursor, cursor + Math.max(0, requested));
+    cursor += group.slots.length;
+  });
+
+  const flexible = groups
+    .map((group, index) => ({ group, size: prefills[index]?.size }))
+    .filter((entry) => entry.size == null);
+  flexible.forEach(({ group }, index) => {
+    const remaining = available.length - cursor;
+    const flexibleLeft = flexible.length - index;
+    const take = Math.ceil(remaining / flexibleLeft);
+    group.slots = available.slice(cursor, cursor + take);
+    cursor += group.slots.length;
+  });
 }
 
 export function makeGroup(prefill: RecipeGroupPrefill, index: number): TacticGroup {
