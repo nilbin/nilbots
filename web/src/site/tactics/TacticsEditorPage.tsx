@@ -89,6 +89,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   }, [task, endMapTask]);
   const [selectedTacticId, setSelectedTacticId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
+  const [showAllPhases, setShowAllPhases] = useState(false);
   const [zoom, setZoom] = useState<1 | 1.5 | 2>(1);
   const [squadOpen, setSquadOpen] = useState(false);
   const [recipeOpen, setRecipeOpen] = useState(false);
@@ -475,6 +476,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         if (!conds) return;
         if (task.target.row === 'cleared') {
           if (conds.cleared) conds.cleared.zone = { rect };
+        } else if (task.target.row === 'notFighting') {
+          if (conds.notFighting) conds.notFighting.zone = { rect };
         } else if (conds.enemiesAt) {
           conds.enemiesAt.zone = { rect };
         }
@@ -719,6 +722,11 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               onChange={(event) => setShowAll(event.target.checked)} />
             Show every Tactic
           </label>
+          <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
+            <input type="checkbox" checked={showAllPhases}
+              onChange={(event) => setShowAllPhases(event.target.checked)} />
+            Show every phase
+          </label>
           <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
             {([1, 1.5, 2] as const).map((level) => (
               <button key={level} type="button"
@@ -739,9 +747,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 catalog={catalog}
                 document={document}
                 editingTacticId={editingTacticId}
-                activePhaseIndex={wizard && wizard.step === 'phases' ? wizard.phaseIndex : null}
+                activePhaseIndex={wizard?.phaseIndex ?? null}
                 selectedTacticId={selectedTacticId}
                 showAll={showAll}
+                showAllPhases={showAllPhases}
                 task={task}
                 hints={wizard?.hints.groups ?? null}
                 onTilePicked={onTilePicked}
@@ -1169,7 +1178,9 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
     ? `Placing ${whose} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
     : task.kind === 'watch'
       ? task.target.row === 'cleared'
-        ? 'Drag the box that must be clear of enemies'
+        ? 'Drag the area your team must freshly check and clear'
+        : task.target.row === 'notFighting'
+          ? 'Drag the area where local fighting must have ended'
         : task.target.scope === 'start'
           ? 'Drag the box this Tactic watches to Start — it applies once enemies gather inside'
           : task.target.scope === 'abort'
@@ -1194,6 +1205,7 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
   // zone teal for a cleared box.
   const accent = task.kind === 'watch'
     ? (task.target.row === 'cleared' ? '#38d9c5'
+      : task.target.row === 'notFighting' ? '#f0b35a'
       : task.target.scope === 'start' ? '#e6ddd4' : '#c8763c')
     : task.kind === 'carry' ? '#b49cff'
       : wizard ? groupColor(wizard.tactic, task.groupId) : '#e6ddd4';

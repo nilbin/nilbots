@@ -12,7 +12,8 @@ internal static class TacticalTargetCapacityAllocator
         int Limit,
         int Distance,
         string? Selection = null,
-        int VeteranLevel = 1);
+        int VeteranLevel = 1,
+        int? ScopeLimit = null);
 
     internal static Dictionary<int, T> Allocate<T>(
         IReadOnlyDictionary<int, IReadOnlyList<Candidate<T>>> candidatesByBody)
@@ -20,6 +21,8 @@ internal static class TacticalTargetCapacityAllocator
         var selected = new Dictionary<int, T>();
         var indexes = candidatesByBody.Keys.ToDictionary(bodyId => bodyId, _ => 0);
         var claimed = new Dictionary<(string Scope, string Target), int>();
+        var claimedScopes = new Dictionary<string, int>(StringComparer.Ordinal);
+        var scopeLimits = new Dictionary<string, int>(StringComparer.Ordinal);
 
         while (indexes.Count > 0)
         {
@@ -78,6 +81,25 @@ internal static class TacticalTargetCapacityAllocator
                 int remaining = Math.Max(
                     0,
                     limits[0] - claimed.GetValueOrDefault(group.Key));
+                int? scopeLimit = group.Select(value =>
+                        value.Candidate.ScopeLimit)
+                    .Distinct()
+                    .SingleOrDefault();
+                if (scopeLimit is int bounded)
+                {
+                    if (scopeLimits.TryGetValue(
+                            group.Key.Scope, out int prior)
+                        && prior != bounded)
+                    {
+                        throw new InvalidOperationException(
+                            $"Capacity {group.Key.Scope} has inconsistent scope limits.");
+                    }
+                    scopeLimits[group.Key.Scope] = bounded;
+                    remaining = Math.Min(
+                        remaining,
+                        Math.Max(0, bounded
+                            - claimedScopes.GetValueOrDefault(group.Key.Scope)));
+                }
                 IEnumerable<(int BodyId, Candidate<T> Candidate)> ranked = group;
                 ranked = string.Equals(selections[0], "highest-veteran",
                         StringComparison.Ordinal)
@@ -99,6 +121,9 @@ internal static class TacticalTargetCapacityAllocator
                     indexes.Remove(bodyId);
                 }
                 claimed[group.Key] = claimed.GetValueOrDefault(group.Key)
+                    + winners.Length;
+                claimedScopes[group.Key.Scope] =
+                    claimedScopes.GetValueOrDefault(group.Key.Scope)
                     + winners.Length;
 
                 foreach ((int bodyId, _) in group.Where(value =>

@@ -707,6 +707,50 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
     }
 
     [Fact]
+    public void ScanIsAnOrdinaryZoneBoundedInstructionAction()
+    {
+        JsonObject source = Source("demolition-march-v1");
+        JsonObject map = MapPlan("demolition-march-v1");
+        JsonArray orders = source["roles"]![0]!["orders"]!.AsArray();
+        orders.Insert(0, new JsonObject
+        {
+            ["id"] = "confirm-centre-clearance",
+            ["scan"] = new JsonObject
+            {
+                ["zone"] = "centre-overwatch",
+                ["freshWithinTicks"] = 20,
+            },
+        });
+
+        TacticalPlaybookCompilation compilation = Compile(source, map);
+
+        Assert.True(compilation.UsesOrderTree);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(601)]
+    public void ScanRejectsFreshnessOutsideTheMatchEnvelope(int freshness)
+    {
+        JsonObject source = Source("demolition-march-v1");
+        JsonObject map = MapPlan("demolition-march-v1");
+        source["roles"]![0]!["orders"]!.AsArray().Insert(0, new JsonObject
+        {
+            ["id"] = "invalid-scan",
+            ["scan"] = new JsonObject
+            {
+                ["zone"] = "centre-overwatch",
+                ["freshWithinTicks"] = freshness,
+            },
+        });
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, map));
+
+        Assert.Contains("freshWithinTicks must be in [1, 600]", error.Message);
+    }
+
+    [Fact]
     public void CarrierFollowAndBoundedHealingUseOnlyTheirPublishedShapes()
     {
         JsonObject source = Source("starter-tapline-v2");

@@ -470,9 +470,11 @@ public static class ToolchainInfo
     /// 0.9.66 promotes Tapline-9's owner-approved sealed outer-Well entrances
     /// with staggered Mid cover as the local, editor and hosted default in
     /// immutable playlist v26.
+    /// 0.9.67 adds epistemic clearance, generated Scan Instructions,
+    /// zone-bounded fight state and truthful Hold defence to Tactics/Orders.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.66";
+    public const string CliVersion = "0.9.67";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

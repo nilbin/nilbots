@@ -40,6 +40,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "enemy-reactor-charge",
             "ticks-without-objective-progress", "friendlies-in-zone",
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
+            "zone-cleared", "friendly-fights-in-zone",
             "known-loose-cores-in-zone", "well-has-outstanding-core",
             "well-ticks-until-birth", "well-socket-filled",
             "observed-enemy-entries-in-zone",
@@ -77,6 +78,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "role-in-zone-count", "role-deployments-in-zone-count",
             "friendlies-in-zone",
             "visible-enemies-in-zone", "remembered-enemies-in-zone",
+            "zone-cleared", "friendly-fights-in-zone",
             "known-loose-cores-in-zone", "observed-enemy-entries-in-zone",
             "distinct-enemy-lives-observed-in-zone",
             "confirmed-enemy-destructions-in-zone",
@@ -822,7 +824,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         if (!orderIds.Add(id))
             throw Error(path, $"duplicate expanded order id '{id}' in role '{role.Id}'.");
 
-        string[] actionKeys = ["orders", "move", "fight", "use", "handoff", "drop"];
+        string[] actionKeys =
+            ["orders", "move", "fight", "scan", "use", "handoff", "drop"];
         string[] found = actionKeys.Where(name => value.TryGetProperty(name, out _))
             .ToArray();
         if (found.Length != 1)
@@ -889,6 +892,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             case "fight":
                 ValidateFight(value.GetProperty("fight"), path, consumers);
                 break;
+            case "scan":
+                ValidateScan(value.GetProperty("scan"), path, consumers);
+                break;
             case "use":
                 ValidateUse(
                     value.GetProperty("use"), path, role, roles, consumers);
@@ -901,6 +907,23 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     throw Error($"{path}.drop", "drop must be true.");
                 break;
         }
+    }
+
+    private static void ValidateScan(
+        JsonElement value,
+        string path,
+        ConsumerLedger consumers)
+    {
+        string at = $"{path}.scan";
+        if (value.ValueKind != JsonValueKind.Object)
+            throw Error(at, "expected object.");
+        Object(value, at, ["zone", "freshWithinTicks"]);
+        string zone = StringValue(value.GetProperty("zone"), $"{at}.zone");
+        IdentifierValue(zone, $"{at}.zone", "zone");
+        consumers.ReferenceZone(zone, path);
+        int freshness = RequiredInt(value, "freshWithinTicks", at);
+        if (freshness is < 1 or > 600)
+            throw Error(at, "freshWithinTicks must be in [1, 600].");
     }
 
     private static void ValidateLifecycle(

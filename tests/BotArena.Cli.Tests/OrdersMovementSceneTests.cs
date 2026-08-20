@@ -17,6 +17,106 @@ namespace BotArena.Cli.Tests;
 /// </summary>
 public sealed class OrdersMovementSceneTests
 {
+    [Theory]
+    [InlineData(16, 12)] // east/front of the authored resting facing
+    [InlineData(14, 12)] // west/rear
+    [InlineData(15, 11)] // north side
+    [InlineData(15, 13)] // south side
+    public void HoldDefenderTracksAndFiresWithoutLeavingItsPost(
+        int hostileX,
+        int hostileY)
+    {
+        string root = FindRepoRoot();
+        var hostilePost = new Position(hostileX, hostileY);
+        TacticalPlaybookCompilation defender = CompileHoldDefenceFixture(
+            root, defender: true, hostilePost);
+        TacticalPlaybookCompilation visitor = CompileHoldDefenceFixture(
+            root, defender: false, hostilePost);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            defender.Composition,
+            visitor.Composition,
+            loopProfile: ArcRelayLoopProfile.Current);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, defender), Participant(1, visitor)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        var post = new Position(15, 12);
+        bool fired = false;
+        bool targetDestroyed = false;
+        bool resumedRestingFacing = false;
+        int fightCommands = 0;
+        int cadenceCommands = 0;
+        Position? lastVisitor = null;
+        Position? lastHolder = null;
+        Direction? lastHolderFacing = null;
+        string lastHolderReason = "";
+        while (!session.IsCompleted && !resumedRestingFacing)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindCommandResolution holder = step.MindTurns
+                .Single(turn => turn.TeamId == 0).Commands
+                .Single(command => command.Command.UnitId == 0);
+            string reason = holder.Command.DebugMessage ?? "";
+            lastHolderReason = reason;
+            GenericMindRuntimeObservation.ObservedBodyState before = step.TickStart
+                .MindObservations.Single(value => value.TeamId == 0)
+                .Bodies.Single(value => value.ActorId.UnitId == 0);
+            if (reason.Contains(
+                    "holder > hold-visible-hostile:",
+                    StringComparison.Ordinal))
+            {
+                fightCommands++;
+                if (reason.Contains(":cadence:", StringComparison.Ordinal))
+                    cadenceCommands++;
+                Assert.Equal(post, before.Position);
+                Assert.DoesNotContain("move", holder.Command.ActionId,
+                    StringComparison.OrdinalIgnoreCase);
+                fired |= reason.Contains("; cover ", StringComparison.Ordinal);
+            }
+            targetDestroyed |= step.AuthoritativeEvents.Any(value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .Destruction destroyed
+                && destroyed.ActorId.TeamId == 1
+                && destroyed.ActorId.UnitId == 0);
+            if (targetDestroyed
+                && (reason.Contains("face-anchor:rest-face",
+                        StringComparison.Ordinal)
+                    || reason.Contains("facing-anchor:rest-face",
+                        StringComparison.Ordinal)))
+            {
+                GenericActorWorldSnapshot.LifeSnapshot after = step.PostState
+                    .ActiveLives.Single(value =>
+                        value.ActorId.TeamId == 0
+                        && value.ActorId.UnitId == 0);
+                resumedRestingFacing = after.Facing == Direction.East;
+            }
+            GenericActorWorldSnapshot.LifeSnapshot? visitorLife = step.PostState
+                .ActiveLives.FirstOrDefault(value =>
+                    value.ActorId.TeamId == 1 && value.ActorId.UnitId == 0);
+            lastVisitor = visitorLife?.Position;
+            GenericActorWorldSnapshot.LifeSnapshot? holderAfter = step.PostState
+                .ActiveLives.FirstOrDefault(value =>
+                    value.ActorId.TeamId == 0 && value.ActorId.UnitId == 0);
+            lastHolder = holderAfter?.Position;
+            lastHolderFacing = holderAfter?.Facing;
+        }
+
+        string diagnostic = $"visitor={lastVisitor},holder={lastHolder},"
+            + $"facing={lastHolderFacing},reason={lastHolderReason}";
+        Assert.True(fightCommands > 0,
+            $"the Hold defender never selected Fight; {diagnostic}");
+        Assert.True(fired, $"the Hold defender never fired; {diagnostic}");
+        Assert.True(cadenceCommands > 0,
+            $"the Hold defender never retained combat facing through cadence; {diagnostic}");
+        Assert.True(targetDestroyed,
+            $"the Hold defender never finished its target; {diagnostic}");
+        Assert.True(resumedRestingFacing,
+            $"the Hold defender did not restore its authored east facing; {diagnostic}");
+    }
+
     [Fact]
     public void PremiumCustodyHandoffRetargetsEscortAndBanksTheSameCore()
     {
@@ -1934,6 +2034,202 @@ public sealed class OrdersMovementSceneTests
             File.ReadAllBytes(mapPlan),
             playbook,
             mapPlan);
+    }
+
+    private static TacticalPlaybookCompilation CompileHoldDefenceFixture(
+        string root,
+        bool defender,
+        Position hostilePost)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string sourcePath = Path.Combine(
+            package, "playbooks", "idle-field-v1.json");
+        string mapPath = Path.Combine(
+            package, "map-plans", "tapline-9", "idle-field-v1.json");
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(sourcePath))!
+            .AsObject();
+        JsonObject map = JsonNode.Parse(File.ReadAllBytes(mapPath))!.AsObject();
+        string side = defender ? "defender" : "visitor";
+        source["sheetId"] = $"hold-{side}-proof";
+        source["mapPlan"] = "map-plan.json";
+        map["mapPlanId"] = $"hold-{side}-proof";
+        map["zones"] = defender
+            ? new JsonObject
+            {
+                ["duel"] = new JsonObject
+                {
+                    ["rect"] = new JsonArray(
+                        hostilePost.X, hostilePost.Y,
+                        hostilePost.X, hostilePost.Y),
+                },
+                ["holder-post"] = new JsonObject
+                {
+                    ["rect"] = new JsonArray(15, 12, 15, 12),
+                },
+            }
+            : new JsonObject();
+        Position authoredHostile = defender
+            ? hostilePost
+            : new Position(30 - hostilePost.X, 26 - hostilePost.Y);
+        map["anchors"] = defender
+            ? new JsonObject
+            {
+                ["defence-post"] = new JsonArray(15, 12),
+                ["rest-face"] = new JsonArray(18, 12),
+            }
+            : new JsonObject
+            {
+                ["visit-post"] = new JsonArray(
+                    authoredHostile.X, authoredHostile.Y),
+            };
+        source["conditions"] = defender
+            ? new JsonObject
+            {
+                ["enemy-at-duel"] = new JsonObject
+                {
+                    ["fact"] = "visible-enemies-in-zone",
+                    ["operator"] = "at-least",
+                    ["value"] = 1,
+                    ["zone"] = "duel",
+                },
+                ["enemy-close"] = new JsonObject
+                {
+                    ["fact"] = "self-nearest-visible-enemy-distance",
+                    ["operator"] = "at-most",
+                    ["value"] = 3,
+                },
+                ["holder-at-post"] = new JsonObject
+                {
+                    ["fact"] = "self-in-zone",
+                    ["operator"] = "equals",
+                    ["value"] = 1,
+                    ["zone"] = "holder-post",
+                },
+                ["impossible"] = new JsonObject
+                {
+                    ["fact"] = "self-health-percent",
+                    ["operator"] = "less-than",
+                    ["value"] = 0,
+                },
+            }
+            : new JsonObject
+            {
+                ["impossible"] = new JsonObject
+                {
+                    ["fact"] = "self-health-percent",
+                    ["operator"] = "less-than",
+                    ["value"] = 0,
+                },
+            };
+        var otherClasses = new JsonArray(
+            "palisade", "towline", "patchbay", "lantern", "mortar",
+            "minesmith", "hush");
+        source["roles"] = defender
+            ? new JsonArray(
+                new JsonObject
+                {
+                    ["id"] = "holder",
+                    ["classes"] = new JsonArray("longshot"),
+                    ["upgradePath"] = new JsonArray("damage", "reach"),
+                    ["orders"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["id"] = "hold-visible-hostile",
+                            ["when"] = new JsonObject
+                            {
+                                ["all"] = new JsonArray(
+                                    "enemy-at-duel", "enemy-close",
+                                    "holder-at-post"),
+                            },
+                            ["fight"] = new JsonObject
+                            {
+                                ["targets"] = new JsonArray("nearest"),
+                                ["style"] = "hold",
+                                ["chaseLimit"] = 0,
+                                ["zone"] = "duel",
+                            },
+                        },
+                        new JsonObject
+                        {
+                            ["id"] = "hold-post",
+                            ["move"] = new JsonObject
+                            {
+                                ["to"] = new JsonObject
+                                {
+                                    ["anchor"] = "defence-post",
+                                },
+                                ["face"] = new JsonObject
+                                {
+                                    ["anchor"] = "rest-face",
+                                },
+                            },
+                        }),
+                },
+                new JsonObject
+                {
+                    ["id"] = "observers",
+                    ["classes"] = otherClasses,
+                    ["upgradePath"] = new JsonArray("vitality"),
+                    ["orders"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["id"] = "remain-idle",
+                            ["when"] = "impossible",
+                            ["move"] = new JsonObject
+                            {
+                                ["to"] = "own-reactor",
+                            },
+                        }),
+                })
+            : new JsonArray(
+                new JsonObject
+                {
+                    ["id"] = "visitor",
+                    ["classes"] = new JsonArray("palisade"),
+                    ["upgradePath"] = new JsonArray(
+                        "vitality", "vitality", "vitality"),
+                    ["orders"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["id"] = "visit-holder",
+                            ["move"] = new JsonObject
+                            {
+                                ["to"] = new JsonObject
+                                {
+                                    ["anchor"] = "visit-post",
+                                },
+                            },
+                        }),
+                },
+                new JsonObject
+                {
+                    ["id"] = "observers",
+                    ["classes"] = new JsonArray(
+                        "longshot", "towline", "patchbay", "lantern",
+                        "mortar", "minesmith", "hush"),
+                    ["upgradePath"] = new JsonArray("vitality"),
+                    ["orders"] = new JsonArray(
+                        new JsonObject
+                        {
+                            ["id"] = "remain-idle",
+                            ["when"] = "impossible",
+                            ["move"] = new JsonObject
+                            {
+                                ["to"] = "own-reactor",
+                            },
+                        }),
+                });
+        source["sharedOrders"] = new JsonObject();
+        source["capacities"] = new JsonObject();
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            Encoding.UTF8.GetBytes(source.ToJsonString()),
+            Encoding.UTF8.GetBytes(map.ToJsonString()),
+            sourcePath + $"#{side}",
+            mapPath + $"#{side}");
     }
 
     private static Position[] RoutePoints(

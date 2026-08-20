@@ -34,7 +34,7 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
  * of a flat list (the old "More conditions" fold is gone). */
 const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
   { label: 'Our team', kinds: ['groupsSet', 'healed', 'losses', 'lossesWithin'] },
-  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'kills', 'killsWithin'] },
+  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'notFighting', 'kills', 'killsWithin'] },
   { label: 'Cores', kinds: ['carrier', 'coreLoose', 'coreSoon', 'coreAcquired', 'coreBanked', 'coreLost'] },
   { label: 'Time & ground', kinds: ['held', 'reached', 'observed'] },
 ];
@@ -51,9 +51,9 @@ export function ConditionRows({
   /** Names the box's colour in the hint ("pale", "orange"). */
   watchAdjective?: string;
   /** Which drawable row of THIS rows object is being drawn right now. */
-  watchingRow?: 'enemiesAt' | 'cleared' | null;
+  watchingRow?: 'enemiesAt' | 'cleared' | 'notFighting' | null;
   onChange: (conds: TacticConds) => void;
-  onDrawWatch?: (row: 'enemiesAt' | 'cleared') => void;
+  onDrawWatch?: (row: 'enemiesAt' | 'cleared' | 'notFighting') => void;
   onStopWatch?: () => void;
   /** Fork this case on one ticked row: a new alternative keeps everything
    * else and reads this row the other way (moved to Unless). */
@@ -93,7 +93,14 @@ export function ConditionRows({
           else if (kind === 'lossesWithin') next.lossesWithin = { count: 4, ticks: 30 };
           else if (kind === 'killsWithin') next.killsWithin = { count: 4, ticks: 40 };
           else if (kind === 'kills') next.kills = { count: 3 };
-          else if (kind === 'cleared') next.cleared = { zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
+          else if (kind === 'cleared') next.cleared = {
+            zone: structuredClone(next.notFighting?.zone
+              ?? { name: 'mid', rect: ZONE_OPTIONS[0].rect }),
+          };
+          else if (kind === 'notFighting') next.notFighting = {
+            zone: structuredClone(next.cleared?.zone
+              ?? { name: 'mid', rect: ZONE_OPTIONS[0].rect }),
+          };
           else if (kind === 'coreAcquired') next.coreAcquired = true;
           else if (kind === 'coreBanked') next.coreBanked = true;
           else if (kind === 'coreLost') next.coreLost = true;
@@ -104,7 +111,7 @@ export function ConditionRows({
     );
   };
 
-  const drawChrome = (which: 'enemiesAt' | 'cleared', key: string, text: string) => (
+  const drawChrome = (which: 'enemiesAt' | 'cleared' | 'notFighting', key: string, text: string) => (
     <div key={key}
       className="flex min-h-8 items-center gap-2 rounded-sm border border-arena-edge px-2 t-micro text-arena-dim"
       style={accent ? { borderColor: `${accent}55` } : undefined}>
@@ -137,13 +144,25 @@ export function ConditionRows({
     }
     if (kind === 'cleared') {
       const on = Boolean(conds.cleared);
-      rows.push(row('cleared', 'An area is cleared of enemies', on && conds.cleared && (
+      rows.push(row('cleared', 'Area is cleared of enemies', on && conds.cleared && (
         <ZoneSelect zone={conds.cleared.zone}
           onChange={(zone) => set((next) => { next.cleared = { zone }; })} />
       ), on));
       if (on) {
         rows.push(drawChrome('cleared', 'cleared-draw',
-          'The teal box on the map must be clear of enemies.'));
+          'Your team must have checked the whole area within the last 20 ticks, with no enemy known to remain.'));
+      }
+      return;
+    }
+    if (kind === 'notFighting') {
+      const on = Boolean(conds.notFighting);
+      rows.push(row('notFighting', 'No one is currently fighting in this area', on && conds.notFighting && (
+        <ZoneSelect zone={conds.notFighting.zone}
+          onChange={(zone) => set((next) => { next.notFighting = { zone }; })} />
+      ), on));
+      if (on) {
+        rows.push(drawChrome('notFighting', 'not-fighting-draw',
+          'No friendly Fight Instruction may begin inside, target into, or strike into this box.'));
       }
       return;
     }
@@ -309,8 +328,8 @@ export function CaseListEditor<T extends TacticCase>({
   onChange: (cases: T[]) => void;
   caseFooter?: (value: T, update: (apply: (next: T) => void) => void, index: number) => React.ReactNode;
   /** Which case/side/row is being drawn on the map, if any. */
-  watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' } | null;
-  onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared') => void;
+  watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' | 'notFighting' } | null;
+  onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared' | 'notFighting') => void;
   onStopWatch?: () => void;
 }) {
   const update = (index: number, apply: (next: T) => void) => {

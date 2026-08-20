@@ -9345,3 +9345,30 @@ v26 starts a fresh 1200 rating book. Playlist v25 and Tapline-8 remain exact,
 readable history; no old profile, map, playlist definition, or replay is
 mutated. Demolition March remains the primary current deathball regression
 opponent rather than preserving every experimental Tapline sheet.
+
+## 351. Clearance is earned by observation; phase groups perform the Scan
+
+Owner ruling (2026-08-20): **Area is cleared of enemies** is no longer the
+absence of a currently visible enemy. Every walkable tile in the authored zone
+must have been observed through real team vision during the rolling last 20
+ticks, with no unresolved live-enemy observation left there. Unseen, partial or
+expired coverage is not clearance. Destruction, later observation outside, or
+observing the last-known tile empty resolves enemy memory. The old instantaneous
+fact remains advanced-only and is named **No enemies currently visible in this
+area**.
+
+The condition remains pure. A positive phase-transition clearance row generates
+ordinary `scan` Instructions only for groups whose current phase ground overlaps
+or touches that zone. Scan uses existing rotation, movement, reservation and
+capacity machinery—at most two scanners per zone and one per viewing tile—and
+sits below custody/recovery/Fight/committed signatures but above passive Hold.
+Start and abort clearance never recruit scanners. No Tactics job, allocator,
+scheduler or state machine was added.
+
+The paired **No one is currently fighting in this area** row reads selected
+friendly Fight Instructions and pending strikes intersecting that zone; unrelated
+combat and visibility alone do not count. Its unavoidable one-decision-boundary
+delay is part of the contract. Hold now means retain ground rather than retain
+facing: empty-handed holders track and fire in every direction from their post,
+then resume resting facing. The editor focuses the active phase with its adjacent
+phases dimmed; the independent **Show every phase** control reveals the rest.

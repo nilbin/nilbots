@@ -60,7 +60,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     /// (coreLost also aborts).</summary>
     private static readonly string[] TacticStartRows =
     [
-        "enemiesAt", "contact", "cleared", "coreLoose", "coreSoon",
+        "enemiesAt", "contact", "cleared", "notFighting", "coreLoose", "coreSoon",
         "enemiesDown", "carrier", "losses", "lossesWithin", "killsWithin",
         "healed",
     ];
@@ -69,14 +69,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     [
         "groupsSet", "held", "healed", "contact", "enemiesAt", "coreLoose",
         "coreSoon", "enemiesDown", "kills", "killsWithin", "losses",
-        "lossesWithin", "cleared", "coreAcquired", "coreBanked", "coreLost",
+        "lossesWithin", "cleared", "notFighting", "coreAcquired", "coreBanked", "coreLost",
         "reached", "observed",
     ];
 
     private static readonly string[] TacticAbortRows =
     [
         "losses", "lossesWithin", "coreLost", "enemiesAt", "contact",
-        "cleared", "carrier", "enemiesDown", "coreLoose", "coreSoon",
+        "cleared", "notFighting", "carrier", "enemiesDown", "coreLoose", "coreSoon",
         "killsWithin", "healed",
     ];
 
@@ -1185,6 +1185,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             cleared = ValidateZoneRef(
                 clearedValue.GetProperty("zone"), $"{at}.zone", width, height);
         }
+        ArcRelayTacticZoneRef? notFighting = null;
+        if (value.TryGetProperty("notFighting", out JsonElement quietValue))
+        {
+            string at = $"{path}.notFighting";
+            Object(quietValue, at, ["zone"]);
+            notFighting = ValidateZoneRef(
+                quietValue.GetProperty("zone"), $"{at}.zone", width, height);
+        }
         // coreAcquired: true (any Core) or { "well": ... } — "THAT Well's
         // Core is taken this phase" is the claim a Claim phase means.
         ArcRelayTacticLossesWithinRow? killsWithin = null;
@@ -1220,7 +1228,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         return new ArcRelayTacticConditionRows(
             enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
             carrier, losses, lossesWithin, groupsSet, heldTicks, healed,
-            kills, cleared, coreAcquired, coreBanked, coreLost, reached,
+            kills, cleared, notFighting, coreAcquired, coreBanked, coreLost, reached,
             observed, coreAcquiredWell, killsWithin);
     }
 
@@ -1356,6 +1364,7 @@ internal sealed record ArcRelayTacticConditionRows(
     int? Healed,
     int? Kills,
     ArcRelayTacticZoneRef? Cleared,
+    ArcRelayTacticZoneRef? NotFighting,
     bool CoreAcquired,
     bool CoreBanked,
     bool CoreLost,
@@ -1372,6 +1381,7 @@ internal sealed record ArcRelayTacticConditionRows(
         + (GroupsSet ? 1 : 0) + (HeldTicks is null ? 0 : 1)
         + (Healed is null ? 0 : 1)
         + (Kills is null ? 0 : 1) + (Cleared is null ? 0 : 1)
+        + (NotFighting is null ? 0 : 1)
         + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
         + (Reached ? 1 : 0) + (Observed ? 1 : 0)
         + (KillsWithin is null ? 0 : 1);

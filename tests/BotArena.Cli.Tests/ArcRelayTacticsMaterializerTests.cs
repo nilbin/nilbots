@@ -708,6 +708,124 @@ public sealed class ArcRelayTacticsMaterializerTests
                 && id.GetString() == "t1-p1-g1-move");
     }
 
+    [Fact]
+    public void ClearedPhaseTransitionGeneratesVisibleLocalScanBetweenCombatAndFloor()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement vex = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "vex");
+        JsonElement phase = vex.GetProperty("orders").EnumerateArray().First()
+            .GetProperty("orders").EnumerateArray().Single(node =>
+                node.TryGetProperty("id", out JsonElement id)
+                && id.GetString() == "t1-p2");
+        JsonElement[] leaves = phase.GetProperty("orders").EnumerateArray()
+            .ToArray();
+        int fight = Array.FindIndex(leaves, node =>
+            node.TryGetProperty("shared", out JsonElement shared)
+            && shared.GetString() == "t1-p2-g2-fight");
+        int recovery = Array.FindIndex(leaves, node =>
+            node.TryGetProperty("shared", out JsonElement shared)
+            && shared.GetString() == "t1-p2-g2-recovery");
+        int signature = Array.FindIndex(leaves, node =>
+            node.TryGetProperty("id", out JsonElement id)
+            && id.GetString()!.EndsWith("-sig", StringComparison.Ordinal));
+        int scan = Array.FindIndex(leaves, node =>
+            node.TryGetProperty("scan", out _));
+        int floor = Array.FindIndex(leaves, node =>
+            node.TryGetProperty("shared", out JsonElement shared)
+            && shared.GetString() == "t1-p2-g2-move");
+
+        Assert.True(fight >= 0 && scan > fight && floor > scan);
+        if (recovery >= 0)
+            Assert.True(recovery < scan);
+        Assert.True(signature >= 0 && signature < scan);
+        JsonElement scanAction = leaves[scan].GetProperty("scan");
+        Assert.Equal(20,
+            scanAction.GetProperty("freshWithinTicks").GetInt32());
+        Assert.False(string.IsNullOrWhiteSpace(
+            scanAction.GetProperty("zone").GetString()));
+        string scanWhen = leaves[scan].GetProperty("when").GetString()!;
+        JsonElement scanCondition = orders.RootElement.GetProperty("conditions")
+            .GetProperty(scanWhen);
+        Assert.Equal("zone-cleared",
+            scanCondition.GetProperty("fact").GetString());
+        Assert.Equal(0, scanCondition.GetProperty("value").GetInt32());
+        JsonElement fightOrder = orders.RootElement.GetProperty("sharedOrders")
+            .GetProperty("t1-p2-g2-fight");
+        Assert.Contains("empty-handed",
+            fightOrder.GetProperty("when").GetProperty("all")
+                .EnumerateArray().Select(value => value.GetString()));
+    }
+
+    [Fact]
+    public void ClearedStartAndAbortRemainObservationOnly()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        tactic["finish"]!["outcomes"]!.AsObject().Remove("cleared");
+        tactic["start"] = JsonNode.Parse(
+            """{"mode":"when","cases":[{"required":{"cleared":{"zone":{"name":"mid","rect":[13,11,17,15]}}}}]}""");
+        tactic["abort"] = JsonNode.Parse(
+            """{"cases":[{"required":{"cleared":{"zone":{"name":"mid","rect":[13,11,17,15]}}}}]}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+
+        Assert.DoesNotContain(Descendants(orders.RootElement), element =>
+            element.ValueKind == JsonValueKind.Object
+            && element.TryGetProperty("scan", out _));
+    }
+
+    [Fact]
+    public void ClearedTransitionRejectsAreaWithoutLocalPhaseGroup()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["tactics"]![0]!["finish"]!["outcomes"]!["cleared"] =
+            JsonNode.Parse(
+                """{"zone":{"name":"remote","rect":[0,0,1,1]}}""");
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+
+        Assert.Contains("no phase group has ground overlapping or touching",
+            error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ClearedAndNotFightingReuseOneZoneWithDistinctFacts()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["tactics"]![0]!["finish"]!["outcomes"]!["notFighting"] =
+            JsonNode.Parse(
+                """{"zone":{"name":"mid","rect":[13,11,17,15]}}""");
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement[] conditions = orders.RootElement.GetProperty("conditions")
+            .EnumerateObject().Select(value => value.Value).ToArray();
+        JsonElement cleared = conditions.Single(value =>
+            value.GetProperty("fact").GetString() == "zone-cleared"
+            && value.GetProperty("operator").GetString() == "equals"
+            && value.GetProperty("value").GetInt32() == 1);
+        JsonElement quiet = conditions.Single(value =>
+            value.GetProperty("fact").GetString()
+                == "friendly-fights-in-zone");
+
+        Assert.Equal(
+            cleared.GetProperty("zone").GetString(),
+            quiet.GetProperty("zone").GetString());
+    }
+
     [Theory]
     [InlineData("start", """{"mode":"when","conds":{}}""",
         "at least one active condition row")]
@@ -977,7 +1095,7 @@ public sealed class ArcRelayTacticsMaterializerTests
             "outcomes": {
               "kills": {"count": {{{index % 8 + 1}}}},
               "losses": {"count": {{{index % 8 + 1}}}},
-              "cleared": {"zone": {"rect": [13, {{{y}}}, 17, {{{y + 2}}}]}},
+              "cleared": {"zone": {"rect": [19, {{{y}}}, 21, {{{y + 2}}}]}},
               "coreAcquired": true,
               "coreBanked": true,
               "coreLost": true,
@@ -1086,6 +1204,23 @@ public sealed class ArcRelayTacticsMaterializerTests
 
     private static string TacticsFixtureDirectory() => Path.Combine(
         Root(), "tests", "BotArena.Cli.Tests", "Fixtures", "tactics");
+
+    private static IEnumerable<JsonElement> Descendants(JsonElement value)
+    {
+        yield return value;
+        if (value.ValueKind == JsonValueKind.Object)
+        {
+            foreach (JsonProperty property in value.EnumerateObject())
+            foreach (JsonElement descendant in Descendants(property.Value))
+                yield return descendant;
+        }
+        else if (value.ValueKind == JsonValueKind.Array)
+        {
+            foreach (JsonElement item in value.EnumerateArray())
+            foreach (JsonElement descendant in Descendants(item))
+                yield return descendant;
+        }
+    }
 
     private static string Root()
     {

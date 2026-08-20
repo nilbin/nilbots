@@ -338,7 +338,7 @@ The v2 fact catalog is intentionally finite:
 | body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-carrying-core-from-well`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `deployment-lifetime-percent`, `deployment-durability-percent`, `self-deployment-in-zone` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count`, `role-deployments-in-zone-count` |
 | team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `friendly-carriers-in-roles`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress`, `friendly-destructions` (historical: windowTicks/since), `elapsed-ticks` (the evaluation's own anchor: ticks-in-order on a node, ticks-in-phase in a program case) |
-| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
+| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `zone-cleared`, `friendly-fights-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 | Core evidence | `friendly-core-pickups`, `friendly-core-acquisitions`, `friendly-core-banks`, `friendly-core-drops`, `friendly-core-losses`, `friendly-core-resolutions` |
 
@@ -358,10 +358,20 @@ public tell/acquisition and channel phases. It excludes independent in-flight
 effects and persistent deployments after the caster is free. It exists so an
 ordinary sibling may intentionally hold without copying a signature duration.
 
-## 6. Five actions
+`visible-enemies-in-zone` is the instantaneous advanced fact labelled **No
+enemies currently visible in this area** when compared with zero. It is not
+clearance. `zone-cleared` is one only after every walkable zone tile has been
+observed through team vision in the rolling last 20 ticks and no unresolved
+live-enemy observation remains there. Later observation outside the zone,
+confirmed destruction, observing the last-known tile empty, or expiry resolves
+that memory. `friendly-fights-in-zone` counts selected friendly Fight
+Instructions whose fighter or target intersects the zone and pending strikes
+aimed into it. It reads the previous normal decision's selections by design.
 
-Only leaves act. Their action key is exactly one of `move`, `fight`, `use`,
-`handoff`, and `drop`.
+## 6. Six actions
+
+Only leaves act. Their action key is exactly one of `move`, `fight`, `scan`,
+`use`, `handoff`, and `drop`.
 
 ### 6.1 `move`
 
@@ -433,7 +443,23 @@ the next order is considered. Carrying does not implicitly drop a Core and a
 class unable to shoot receives a traceable action-decline; authors normally put
 an explicit empty-handed condition on combat orders.
 
-### 6.3 `use`
+### 6.3 `scan`
+
+```json
+{ "scan": { "zone": "mid-clearance", "freshWithinTicks": 20 } }
+```
+
+Scan is executor micro expressed in the Orders tree; it is not an engine action,
+a Tactics job, or an allocator. The executor proposes deterministic legal
+viewing positions using the actual map walls, cardinal facing and the body's
+vision profile. It prefers a useful rotation in place, otherwise ordinary
+movement, and holds a useful target until it is satisfied, invalid,
+unreachable or pre-empted. Generated phase scans use existing target capacity:
+one body per viewing tile and at most two per zone. The leaf stops proposing
+when its clearance evidence is satisfied. `freshWithinTicks` is `1..600`;
+Tactics-generated clearance always writes `20`.
+
+### 6.4 `use`
 
 ```json
 { "use": { "skill": "repair-beam", "target": "weakest-ally" } }
@@ -479,7 +505,7 @@ ambiguous folded projection, illegal/blocked headings, or insufficient gain.
 The following ordinary sibling runs in that same tick. A successful relocation
 rejoins monotonically and cannot reset route progress behind the body.
 
-### 6.4 `handoff`
+### 6.5 `handoff`
 
 ```json
 { "handoff": { "target": "nearest-ally-toward-own-reactor" } }
@@ -496,7 +522,7 @@ order runs.
 The receiver does not need to author a matching order. It must be alive,
 empty-handed, adjacent at resolution, and eligible to reclaim that Core.
 
-### 6.5 `drop`
+### 6.6 `drop`
 
 ```json
 { "drop": true }

@@ -60,6 +60,7 @@ export interface TacticConds {
   killsWithin?: { count: number; ticks: number };
   kills?: { count: number };
   cleared?: { zone: ZoneRef };
+  notFighting?: { zone: ZoneRef };
   /** true = any Core taken since this phase began; a well narrows it to
    * that source's Core — the claim a Claim phase means. */
   coreAcquired?: true | { well: WellChoice };
@@ -72,19 +73,19 @@ export interface TacticConds {
 export type CondKind = keyof TacticConds;
 
 export const START_ROWS: CondKind[] = [
-  'enemiesAt', 'contact', 'cleared', 'coreLoose', 'coreSoon', 'enemiesDown',
+  'enemiesAt', 'contact', 'cleared', 'notFighting', 'coreLoose', 'coreSoon', 'enemiesDown',
   'carrier', 'losses', 'lossesWithin', 'killsWithin', 'healed',
 ];
 
 export const TRANSITION_ROWS: CondKind[] = [
   'groupsSet', 'held', 'healed', 'contact', 'enemiesAt', 'coreLoose',
   'coreSoon', 'enemiesDown', 'kills', 'killsWithin', 'losses',
-  'lossesWithin', 'cleared', 'coreAcquired', 'coreBanked', 'coreLost',
+  'lossesWithin', 'cleared', 'notFighting', 'coreAcquired', 'coreBanked', 'coreLost',
   'reached', 'observed',
 ];
 
 export const ABORT_ROWS: CondKind[] = [
-  'losses', 'lossesWithin', 'coreLost', 'enemiesAt', 'contact', 'cleared',
+  'losses', 'lossesWithin', 'coreLost', 'enemiesAt', 'contact', 'cleared', 'notFighting',
   'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'killsWithin', 'healed',
 ];
 

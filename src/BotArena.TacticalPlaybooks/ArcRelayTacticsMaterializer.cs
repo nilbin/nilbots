@@ -283,6 +283,21 @@ internal static class ArcRelayTacticsMaterializer
                     var rules = new List<(CaseSpec When, string To)>();
                     foreach (ArcRelayTacticTransition transition in phase.Continue)
                     {
+                        foreach (ArcRelayTacticZoneRef cleared
+                                 in PositiveClearanceZones(transition.When))
+                        {
+                            if (!tactic.Groups.Any(group =>
+                                    IsLocalClearanceGroup(
+                                        tactic, phase, group.Id,
+                                        cleared.Rect)))
+                            {
+                                throw new InvalidDataException(
+                                    $"Tactic '{tactic.Name}' phase "
+                                    + $"'{phase.Name}' asks to clear "
+                                    + $"'{cleared.Name}', but no phase group "
+                                    + "has ground overlapping or touching that area.");
+                            }
+                        }
                         string to = transition.To is "next" or "finish"
                             ? transition.To
                             : $"p{tactic.Phases.ToList().FindIndex(candidate =>
@@ -495,8 +510,17 @@ internal static class ArcRelayTacticsMaterializer
             {
                 string zone = Zone(cleared.Rect, $"g-{prefix}-cleared");
                 Add(new ConditionShape(
-                        "visible-enemies-in-zone", "equals", 0, ZoneId: zone),
+                        "zone-cleared", "equals", 1, ZoneId: zone),
                     $"c-{prefix}-cleared");
+            }
+            if (rows.NotFighting is ArcRelayTacticZoneRef notFighting)
+            {
+                string zone = Zone(
+                    notFighting.Rect, $"g-{prefix}-not-fighting");
+                Add(new ConditionShape(
+                        "friendly-fights-in-zone", "equals", 0,
+                        ZoneId: zone),
+                    $"c-{prefix}-not-fighting");
             }
             if (rows.CoreBanked)
             {
@@ -745,6 +769,8 @@ internal static class ArcRelayTacticsMaterializer
                 }
                 AddSignatureLeaves(
                     leaves, scope, group, bot, raw.Posture, raw.Sigs);
+                AddScanLeaves(
+                    leaves, scope, tactic, phase, group, effective);
                 if (effective is not null)
                     AddFloor(leaves, scope, effective, group, bot);
                 if (leaves.Count > 0)
@@ -819,6 +845,82 @@ internal static class ArcRelayTacticsMaterializer
                     ], 2),
                 _ => null,
             };
+
+        private void AddScanLeaves(
+            List<Node> leaves,
+            LeafScope scope,
+            ArcRelayTactic tactic,
+            ArcRelayTacticPhaseDef phase,
+            ArcRelayTacticGroup group,
+            ArcRelayTacticJob? effective)
+        {
+            if (effective is null)
+                return;
+            int[]? ground = GroundFootprint(effective);
+            if (ground is null)
+                return;
+            ArcRelayTacticZoneRef[] zones = phase.Continue
+                .SelectMany(transition =>
+                    PositiveClearanceZones(transition.When))
+                .GroupBy(value => string.Join(',', value.Rect),
+                    StringComparer.Ordinal)
+                .Select(values => values.First())
+                .ToArray();
+            int index = 0;
+            foreach (ArcRelayTacticZoneRef cleared in zones)
+            {
+                if (!RectsTouch(ground, cleared.Rect))
+                    continue;
+                string zone = Zone(
+                    cleared.Rect,
+                    $"g-{scope.Prefix}-{scope.PhaseTag}-scan-{index + 1}");
+                string needsScan = Condition(
+                    new ConditionShape(
+                        "zone-cleared", "equals", 0, ZoneId: zone),
+                    $"c-{scope.Prefix}-{scope.PhaseTag}-scan-{index + 1}");
+                int ordinal = ++index;
+                leaves.Add(new Node
+                {
+                    Id = scope.Id($"scan-{ordinal}"),
+                    When = Expr.One(needsScan),
+                    Action = writer =>
+                    {
+                        writer.WriteStartObject("scan");
+                        writer.WriteString("zone", zone);
+                        writer.WriteNumber("freshWithinTicks", 20);
+                        writer.WriteEndObject();
+                    },
+                });
+            }
+        }
+
+        private bool IsLocalClearanceGroup(
+            ArcRelayTactic tactic,
+            ArcRelayTacticPhaseDef phase,
+            string groupId,
+            int[] zone)
+        {
+            ArcRelayTacticJob? effective = EffectiveJob(
+                tactic, phase, groupId);
+            int[]? ground = effective is null
+                ? null : GroundFootprint(effective);
+            return ground is not null && RectsTouch(ground, zone);
+        }
+
+        private static IEnumerable<ArcRelayTacticZoneRef>
+            PositiveClearanceZones(ArcRelayTacticCase value)
+        {
+            if (value.Required?.Cleared is ArcRelayTacticZoneRef required)
+                yield return required;
+            if (value.Triggers?.Cleared is ArcRelayTacticZoneRef trigger)
+                yield return trigger;
+        }
+
+        private static bool RectsTouch(int[] first, int[] second) =>
+            first[0] <= second[2] + 1
+            && first[2] + 1 >= second[0]
+            && first[1] <= second[3] + 1
+            && first[3] + 1 >= second[1];
 
         private void AddRecovery(
             List<Node> leaves,

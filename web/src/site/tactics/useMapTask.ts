@@ -14,20 +14,20 @@ export type WatchTarget =
     scope: 'start';
     caseIndex: number;
     side: 'required' | 'triggers' | 'unless';
-    row: 'enemiesAt' | 'cleared';
+    row: 'enemiesAt' | 'cleared' | 'notFighting';
   }
   | {
     scope: 'abort';
     caseIndex: number;
     side: 'required' | 'triggers' | 'unless';
-    row: 'enemiesAt' | 'cleared';
+    row: 'enemiesAt' | 'cleared' | 'notFighting';
   }
   | {
     scope: 'continue';
     phaseIndex: number;
     ruleIndex: number;
     side: 'required' | 'triggers' | 'unless';
-    row: 'enemiesAt' | 'cleared';
+    row: 'enemiesAt' | 'cleared' | 'notFighting';
   };
 
 export type MapTask =

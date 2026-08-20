@@ -40,6 +40,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<FiringEpisodeKey, int[]> _firingEpisodeFields = [];
     private readonly Dictionary<FiringGroundKey, Position[]> _firingGround = [];
     private readonly OrdersEvidenceLedger _evidence = new();
+    private readonly Dictionary<int, ScanCommitment> _scanCommitments = [];
+    // The previous decision's selected Fight leaves are the coordinator's
+    // deterministic view of "currently fighting". Program conditions run
+    // before this tick's leaves are selected, so this intentionally carries
+    // the ordinary one-decision-boundary delay instead of inventing a second
+    // combat state machine.
+    private TacticalZoneFightState.ActiveFight[] _activeFights = [];
 
     private GenericActorResolvedMatchContract? _contract;
     private OrdersPackage? _package;
@@ -76,6 +83,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _contract = start.Contract;
         _teamId = start.TeamId;
         _evidence.Reset();
+        _activeFights = [];
         if (start.Contract.ModeMapBinding is not
             GenericActorResolvedMatchContract.ArcRelayModeMapBinding binding)
         {
@@ -213,6 +221,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         Dictionary<int, Proposal> selected = Allocate(proposalsByBody);
         ReconcileSelections(mind, selected);
+        TacticalZoneFightState.ActiveFight[] nextActiveFights = selected.Values
+            .Where(value => value.Leaf.Node.Action
+                is OrdersPackage.FightAction)
+            .Select(value => new TacticalZoneFightState.ActiveFight(
+                value.Body.ActorId,
+                value.Body.Position,
+                value.Target.Position,
+                value.Leaf.Node.Path))
+            .OrderBy(value => value.Fighter.UnitId)
+            .ToArray();
         Dictionary<int, MovePlan> movePlans = PrepareMovePlans(
             contract, mind, package, selected);
         // A follow rung promises that its leader owns the front of the file.
@@ -294,6 +312,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, mind, arc, package, body, proposal,
                 movePlans.GetValueOrDefault(body.UnitId), claims, carried);
         }
+        _activeFights = nextActiveFights;
     }
 
     /// <summary>
@@ -477,7 +496,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             contract, body, targetPosition)
                         || fight.Style == "hold")
                     {
-                        result.Add(Hold($"fight-position:{targetKey}"));
+                        result.Add(Hold(
+                            $"fight-position:{targetKey}",
+                            pinned: fight.Style == "hold"));
                         break;
                     }
                     bool inLeash = fight.ChaseLimit == 0
@@ -511,6 +532,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         LeaderUnitId: null,
                         RouteClass: SquadRouteClass.Ordinary,
                         $"fight-close:{targetKey}"));
+                    break;
+                }
+                case OrdersPackage.ScanAction scan:
+                {
+                    MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
+                    if (plan is null || plan.Arrived)
+                    {
+                        result.Add(Hold(
+                            $"scan-view:{scan.Zone}:{proposal.Target.Key}",
+                            pinned: true));
+                        break;
+                    }
+                    result.Add(new SquadMovementIntent(
+                        body,
+                        key,
+                        $"scan:{scan.Zone}:{proposal.Target.Key}",
+                        plan.Goals,
+                        null,
+                        priority,
+                        Pinned: false,
+                        PrefersHold: false,
+                        CanStage: true,
+                        LeaderUnitId: null,
+                        RouteClass: SquadRouteClass.Ordinary,
+                        $"scan-move:{scan.Zone}:{proposal.Target.Key}"));
                     break;
                 }
                 default:
@@ -583,8 +629,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 skippedFight = decline;
             foreach (ResolvedTarget target in targets)
             {
-                string? scope = leaf.Node.Capacity?.Id;
-                int limit = leaf.Node.Capacity is null
+                bool scan = leaf.Node.Action is OrdersPackage.ScanAction;
+                string? scope = scan
+                    ? $"scan-zone:{((OrdersPackage.ScanAction)leaf.Node.Action!).Zone}"
+                    : leaf.Node.Capacity?.Id;
+                int limit = scan
+                    ? 1
+                    : leaf.Node.Capacity is null
                     ? 8
                     : leaf.Node.Capacity.InlineValue
                         ?? package.Capacities[leaf.Node.Capacity.Id];
@@ -593,7 +644,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     ?? int.MaxValue;
                 distance = target.WalkingDistance ?? distance;
                 result.Add(new Proposal(
-                    body, role, leaf, priority, target, scope, limit, distance,
+                    body, role, leaf, priority, target, scope, limit,
+                    scan ? 2 : null, distance,
                     CombineTrace(
                         skippedFight,
                         leaf.Node.Selection == "highest-veteran"
@@ -637,6 +689,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             case OrdersPackage.FightAction fight:
                 return ResolveEnemyTargets(
                     contract, mind, arc, package, body, leaf, fight, out decline);
+            case OrdersPackage.ScanAction scan:
+                return ResolveScanTargets(
+                    contract, mind, package, body, leaf, scan);
             case OrdersPackage.UseAction use:
             {
                 ResolvedTarget[] targets = ResolveUseTargets(
@@ -675,6 +730,48 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             default:
                 return [];
         }
+    }
+
+    private ResolvedTarget[] ResolveScanTargets(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        OrdersPackage package,
+        MindBody body,
+        OrderTreeRuntime.EligibleLeaf leaf,
+        OrdersPackage.ScanAction scan)
+    {
+        Position[] zoneTiles = package.ZoneTiles(scan.Zone, contract.Map);
+        OrdersEvidenceLedger.ClearanceRead clearance =
+            _evidence.ReadClearance(
+                zoneTiles,
+                position => package.Contains(scan.Zone, position),
+                mind.Tick,
+                scan.FreshWithinTicks);
+        if (clearance.Cleared || clearance.StaleTiles.Length == 0)
+            return [];
+        int[] distances = WalkingDistanceField(contract, mind, body);
+        TacticalScanPlanner.ViewTarget[] targets = TacticalScanPlanner.Targets(
+            contract,
+            body,
+            clearance.StaleTiles,
+            position => ArenaBasics.DistanceFromField(
+                contract.Map, distances, position),
+            _scanCommitments.TryGetValue(
+                body.UnitId, out ScanCommitment? held)
+            && held.Actor == body.ActorId
+            && held.Path == leaf.Node.Path
+                ? held.TargetKey
+                : null);
+        return targets.Select(target => new ResolvedTarget(
+                $"scan:{scan.Zone}:{target.Key}",
+                target.Position,
+                [target.Position],
+                null,
+                null,
+                $"scan-{scan.Zone}-useful-{target.UsefulTileCount}",
+                target.WalkingDistance,
+                target.Facing))
+            .ToArray();
     }
 
     private string ForwardRouteDeclineTrace(
@@ -1820,11 +1917,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         TacticalTargetCapacityAllocator.Candidate<Proposal>(
                             proposal,
                             proposal.CapacityScope,
-                            proposal.Target.Key,
+                            proposal.Leaf.Node.Action is OrdersPackage.ScanAction
+                                ? $"view:{proposal.Target.Position.X},"
+                                    + proposal.Target.Position.Y
+                                : proposal.Target.Key,
                             proposal.CapacityLimit,
                             proposal.Distance,
                             proposal.Leaf.Node.Selection,
-                            CurrentLevel(proposal.Body)))
+                            CurrentLevel(proposal.Body),
+                            proposal.CapacityScopeLimit))
                     .ToArray()));
 
     private Dictionary<int, MovePlan> PrepareMovePlans(
@@ -1864,6 +1965,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         null,
                         Arrived: false));
                 }
+                continue;
+            }
+            if (proposal.Leaf.Node.Action is OrdersPackage.ScanAction)
+            {
+                result.Add(unitId, new MovePlan(
+                    proposal.Leaf.Node.Path,
+                    proposal.Target.Position,
+                    [proposal.Target.Position],
+                    null,
+                    Arrived: proposal.Body.Position
+                        == proposal.Target.Position));
                 continue;
             }
             if (proposal.Leaf.Node.Action is not OrdersPackage.MoveAction move)
@@ -2235,6 +2347,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ExecuteFight(
                     contract, mind, arc, body, proposal, fight, claims, reason);
                 return;
+            case OrdersPackage.ScanAction scan:
+                ExecuteScan(
+                    contract, mind, body, proposal, scan, movePlan, claims,
+                    reason);
+                return;
             case OrdersPackage.UseAction use:
                 if (ExecuteUse(
                         contract, package, body, proposal.Target, use, reason))
@@ -2272,6 +2389,40 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body.Hold($"{reason}:unknown-action");
                 return;
         }
+    }
+
+    private void ExecuteScan(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Proposal proposal,
+        OrdersPackage.ScanAction scan,
+        MovePlan? plan,
+        ArenaBasics.Claims claims,
+        string reason)
+    {
+        string scanReason = $"{reason}:scan:{scan.Zone}"
+            + $":target-{proposal.Target.Key}";
+        if (body.Position == proposal.Target.Position)
+        {
+            if (proposal.Target.Facing is Direction facing
+                && ArenaBasics.TryRotate(
+                    contract, body, facing,
+                    $"{scanReason}:rotate-to-refresh"))
+            {
+                return;
+            }
+            body.Hold($"{scanReason}:observe-facing-{body.Facing}");
+            return;
+        }
+        if (plan is not null
+            && ArenaBasics.TryMoveToward(
+                contract, mind, body, plan.Goals, claims,
+                $"{scanReason}:move-to-view:{_stepper.Trace(body.UnitId)}"))
+        {
+            return;
+        }
+        body.Hold($"{scanReason}:view-path-blocked-wait");
     }
 
     private void ExecuteMove(
@@ -2469,8 +2620,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return;
         if (ArenaBasics.CanAimAtPosition(contract, body, targetPosition))
         {
-            if (TryRestingYield(contract, mind, body, claims, reason))
+            // A Hold fighter owns its authored ground while the Fight leaf
+            // remains selected. Cadence never hands its facing or tile back
+            // to resting/Scan micro; ordinary floors resume next decision
+            // after the fight actually ends.
+            if (fight.Style != "hold"
+                && TryRestingYield(contract, mind, body, claims, reason))
+            {
                 return;
+            }
             body.Hold($"{reason}:cadence:{targetKey}");
             return;
         }
@@ -2479,6 +2637,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 contract, mind, body, [targetPosition], claims,
                 $"{reason}:close:{targetKey}:{physical}"))
             return;
+        if (fight.Style == "hold")
+        {
+            body.Hold($"{reason}:hold-track:{targetKey}:{physical}");
+            return;
+        }
         if (!TryRestingYield(contract, mind, body, claims, reason))
         {
             body.Hold($"{reason}:hold:{targetKey}"
@@ -2601,7 +2764,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             OrdersPackage.Condition condition = package.Conditions[name];
             int actual;
             string? trace = null;
-            if (condition.WindowTicks is not null || condition.Since is not null)
+            if (condition.Fact == "zone-cleared")
+            {
+                OrdersEvidenceLedger.ClearanceRead read =
+                    _evidence.ReadClearance(
+                        package.ZoneTiles(condition.Zone!, contract.Map),
+                        position => package.Contains(
+                            condition.Zone!, position),
+                        mind.Tick,
+                        freshWithinTicks: 20);
+                actual = read.Cleared ? 1 : 0;
+                trace = $"{condition.Id}={read.Trace}";
+            }
+            else if (condition.Fact == "friendly-fights-in-zone")
+            {
+                actual = ActiveFightsInZone(
+                    package, condition.Zone!, arc);
+                trace = $"{condition.Id}={actual}-local-fights-prev-decision";
+            }
+            else if (condition.WindowTicks is not null || condition.Since is not null)
             {
                 OrdersEvidenceLedger.EvidenceRead read = _evidence.Read(
                     package, contract.Map, condition, mind.Tick, orderTicks,
@@ -2655,6 +2836,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string.IsNullOrEmpty(explanation)
                 ? value ? "condition-true" : "condition-false"
                 : explanation);
+    }
+
+    private int ActiveFightsInZone(
+        OrdersPackage package,
+        string zone,
+        GenericActorContext.ModeObservationState.ArcRelay arc)
+    {
+        return TacticalZoneFightState.Count(
+            _teamId,
+            position => package.Contains(zone, position),
+            _activeFights,
+            arc.PendingStrikes);
     }
 
     private int Fact(
@@ -3094,6 +3287,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _ingress.Reset(stale);
             _routes.Reset(stale);
             _wedgedPresses.Remove(stale);
+            _scanCommitments.Remove(stale);
         }
         foreach ((ActorIdentity actor, string path) in _fightAnchors.Keys
                      .Where(key => !liveActors.Contains(key.Actor)).ToArray())
@@ -3120,6 +3314,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             // the same ordinary episode. RoutePlan itself replaces a cursor
             // when a genuinely different route/state next asks to move.
             _selectedPaths[body.UnitId] = path;
+            Proposal? proposal = selected.GetValueOrDefault(body.UnitId);
+            if (proposal?.Leaf.Node.Action is OrdersPackage.ScanAction)
+            {
+                _scanCommitments[body.UnitId] = new ScanCommitment(
+                    body.ActorId, path, proposal.Target.Key);
+            }
+            else
+            {
+                _scanCommitments.Remove(body.UnitId);
+            }
         }
     }
 
@@ -3418,6 +3622,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ResolvedTarget Target,
         string? CapacityScope,
         int CapacityLimit,
+        int? CapacityScopeLimit,
         int Distance,
         string? SelectionTrace,
         string? EligibilityTrace = null);
@@ -3429,7 +3634,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity? Actor,
         string? CoreKey,
         string? Trace = null,
-        int? WalkingDistance = null);
+        int? WalkingDistance = null,
+        Direction? Facing = null);
 
     private sealed record MovePlan(
         string Path,
@@ -3437,6 +3643,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position[] Goals,
         TacticalRouteGovernor.CourseStep? Course,
         bool Arrived);
+
+    private sealed record ScanCommitment(
+        ActorIdentity Actor,
+        string Path,
+        string TargetKey);
 
     private sealed class RouteCursor
     {

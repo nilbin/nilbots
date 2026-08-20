@@ -399,6 +399,8 @@ internal sealed class OrdersPackage
             ? ParseMove(move)
             : value.TryGetProperty("fight", out JsonElement fight)
                 ? ParseFight(fight)
+                : value.TryGetProperty("scan", out JsonElement scan)
+                    ? ParseScan(scan)
                 : value.TryGetProperty("use", out JsonElement use)
                     ? ParseUse(use)
                     : value.TryGetProperty("handoff", out JsonElement handoff)
@@ -486,6 +488,10 @@ internal sealed class OrdersPackage
         value.GetProperty("style").GetString()!,
         value.GetProperty("chaseLimit").GetInt32(),
         Optional(value, "zone"));
+
+    private static ScanAction ParseScan(JsonElement value) => new(
+        value.GetProperty("zone").GetString()!,
+        value.GetProperty("freshWithinTicks").GetInt32());
 
     private static UseAction ParseUse(JsonElement value)
     {
@@ -771,6 +777,9 @@ internal sealed class OrdersPackage
         string Style,
         int ChaseLimit,
         string? Zone) : OrderAction;
+    internal sealed record ScanAction(
+        string Zone,
+        int FreshWithinTicks) : OrderAction;
     internal sealed record UseAction(
         string Skill,
         string TargetKind,

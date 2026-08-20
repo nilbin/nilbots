@@ -59,7 +59,7 @@ export function watchConds(tactic: Tactic, target: WatchTarget): TacticConds | n
 
 export function TacticsMapCanvas({
   catalog, document, editingTacticId, activePhaseIndex, selectedTacticId,
-  showAll, task, hints,
+  showAll, showAllPhases, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
   onSelect, onTaskDone, onTileRejected, onPostsSwapped,
 }: {
@@ -70,6 +70,7 @@ export function TacticsMapCanvas({
   activePhaseIndex: number | null;
   selectedTacticId: string | null;
   showAll: boolean;
+  showAllPhases: boolean;
   task: MapTask | null;
   hints: Map<string, { rect: Rect; text: string }> | null;
   onTilePicked: (x: number, y: number) => void;
@@ -257,7 +258,9 @@ export function TacticsMapCanvas({
         const conds = watchConds(tactic, drag.target);
         const holder = drag.target.row === 'cleared'
           ? conds?.cleared
-          : conds?.enemiesAt;
+          : drag.target.row === 'notFighting'
+            ? conds?.notFighting
+            : conds?.enemiesAt;
         if (!holder) return;
         const rect: Rect = [...holder.zone.rect];
         if (drag.kind === 'watchsize') {
@@ -376,15 +379,22 @@ export function TacticsMapCanvas({
           <g key={tactic.id}>
             <g opacity={dim ? .32 : 1}>
               <ConditionFootprints tactic={tactic} catalog={catalog} dim={dim}
-                editable={editable(tactic)} startDrag={startDrag} pathfinder={path} />
-              {tactic.phases.map((phase, phaseIndex) => (
+                editable={editable(tactic)} startDrag={startDrag} pathfinder={path}
+                activePhaseIndex={activePhaseIndex} showAllPhases={showAllPhases} />
+              {tactic.phases.map((phase, phaseIndex) => {
+                const focus = activePhaseIndex ?? 0;
+                const distance = Math.abs(phaseIndex - focus);
+                if (!showAllPhases && distance > 1) return null;
+                const phaseOpacity = phaseIndex === focus
+                  ? 1 : distance === 1 ? .24 : .12;
+                return (
                 <g key={phase.id}
-                  opacity={editable(tactic) && activePhaseIndex !== null
-                    && phaseIndex !== activePhaseIndex ? .45 : 1}>
+                  opacity={phaseOpacity}>
                   {tactic.groups.map((group) => (
                     <JobOverlay key={group.id} tactic={tactic} group={group}
                       phaseIndex={phaseIndex} bots={bots}
-                      catalog={catalog} dim={dim} editable={editable(tactic)}
+                      catalog={catalog} dim={dim}
+                      editable={editable(tactic) && phaseIndex === focus}
                       startDrag={startDrag} pathfinder={path} />
                   ))}
                   {phase.custody?.via && phase.custody.via.length > 1
@@ -410,7 +420,8 @@ export function TacticsMapCanvas({
                       </g>;
                     })()}
                 </g>
-              ))}
+                );
+              })}
             </g>
             {tagAnchor && tag && <ChipLabel x={tagAnchor[0] + .5} y={tagAnchor[1] - .35}
               text={tag} color="#7694a8" opacity={.9} mapWidth={width} mapHeight={height} />}
@@ -423,19 +434,24 @@ export function TacticsMapCanvas({
   );
 }
 
-function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfinder }: {
+function ConditionFootprints({
+  tactic, catalog, dim, editable, startDrag, pathfinder,
+  activePhaseIndex, showAllPhases,
+}: {
   tactic: Tactic;
   catalog: TacticalSheetCatalog;
   dim: boolean;
   editable: boolean;
   startDrag: (event: React.PointerEvent, target: DragTarget) => void;
   pathfinder: ReturnType<typeof makePathfinder>;
+  activePhaseIndex: number | null;
+  showAllPhases: boolean;
 }) {
   const parts: React.ReactNode[] = [];
 
   const watchBoxes = (
     conds: TacticConds | undefined,
-    makeTarget: (row: 'enemiesAt' | 'cleared') => WatchTarget,
+    makeTarget: (row: 'enemiesAt' | 'cleared' | 'notFighting') => WatchTarget,
     color: string,
     symbol: string,
     select: string,
@@ -479,6 +495,25 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
         </>}
       </g>);
     }
+    if (conds?.notFighting) {
+      const [x0, y0, x1, y1] = conds.notFighting.zone.rect;
+      const quiet = '#f0b35a';
+      const rowTarget = makeTarget('notFighting');
+      parts.push(<g key={`${key}-not-fighting`}>
+        <rect x={x0 + .16} y={y0 + .16} width={x1 - x0 + .68} height={y1 - y0 + .68} rx={.14}
+          fill="none" stroke={quiet} strokeWidth={.07} strokeDasharray=".12 .18" opacity=".8"
+          data-select={select} cursor="pointer" />
+        {!dim && <ChipLabel x={x0 + 1} y={y0 - .35}
+          text={`${negated ? '✕ UNLESS' : '◇'} NO FIGHT HERE`} color={quiet}
+          select={select} opacity={.95} />}
+        {editable && <>
+          <Handle cx={x0} cy={y0} cursor="move"
+            onDown={(event) => startDrag(event, { kind: 'watchmove', target: rowTarget })} />
+          <Handle cx={x1 + 1} cy={y1 + 1}
+            onDown={(event) => startDrag(event, { kind: 'watchsize', target: rowTarget })} />
+        </>}
+      </g>);
+    }
     if (conds?.coreLoose) {
       const at = wellCentre(catalog, conds.coreLoose.well);
       if (at) {
@@ -501,6 +536,8 @@ function ConditionFootprints({ tactic, catalog, dim, editable, startDrag, pathfi
     }
   });
   tactic.phases.forEach((phase, phaseIndex) => {
+    const focus = activePhaseIndex ?? 0;
+    if (!showAllPhases && Math.abs(phaseIndex - focus) > 1) return;
     (phase.continue ?? []).forEach((rule, ruleIndex) => {
       for (const side of ['required', 'triggers', 'unless'] as const) {
         watchBoxes(rule[side],
@@ -814,7 +851,8 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
   // job and signature tasks, the watch chrome's for condition boxes.
   const taskColor = task.kind === 'watch'
     ? (task.target.scope === 'start' ? '#e6ddd4'
-      : task.target.row === 'cleared' ? '#38d9c5' : '#c8763c')
+      : task.target.row === 'cleared' ? '#38d9c5'
+        : task.target.row === 'notFighting' ? '#f0b35a' : '#c8763c')
     : task.kind === 'carry' ? '#b49cff'
       : (tactic ? groupColor(tactic, task.groupId) : '#e6ddd4');
   let hint = task.kind === 'job'
@@ -825,13 +863,17 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
     // A watch task pulses the currently watched preset zone until a custom
     // box has been dragged in its place.
     const conds = watchConds(tactic, task.target);
-    const holder = task.target.row === 'cleared' ? conds?.cleared : conds?.enemiesAt;
+    const holder = task.target.row === 'cleared' ? conds?.cleared
+      : task.target.row === 'notFighting' ? conds?.notFighting
+        : conds?.enemiesAt;
     if (holder) {
       hint = {
         rect: holder.zone.rect,
         text: task.target.row === 'cleared'
-          ? 'This ground must be clear of enemies.'
-          : 'Enemies are counted inside the box.',
+          ? 'Your team must freshly check this whole ground.'
+          : task.target.row === 'notFighting'
+            ? 'No friendly Fight may intersect this ground.'
+            : 'Enemies are counted inside the box.',
       };
       hasGeometry = !holder.zone.name && Boolean(holder.zone.rect);
     }

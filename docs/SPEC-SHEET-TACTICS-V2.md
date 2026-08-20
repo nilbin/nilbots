@@ -107,7 +107,8 @@ what phases are.
 | `lossesWithin` | `{ "count": 1..8, "ticks": 1..600 }` | all | we lost N bots within the last T ticks (the remembered-casualty row — a Regroup's start and an abort may share it) |
 | `killsWithin` | `{ "count": 1..8, "ticks": 1..600 }` | all | we destroyed N enemies within the last T ticks — the durable "rout" form of `enemiesDown`, which respawn waves stand back up |
 | `kills` | `{ "count": 1..8 }` | continue | N confirmed destructions since THIS phase began |
-| `cleared` | `{ "zone": {…} }` | all | no visible enemies in the box |
+| `cleared` | `{ "zone": {…} }` | all | every walkable tile was checked through team vision in the rolling last 20 ticks and no unresolved enemy observation remains |
+| `notFighting` | `{ "zone": {…} }` | all | no selected friendly Fight intersects the box through its fighter, target or pending strike |
 | `coreAcquired` | `true` \| `{ "well": … }` | continue | a Core was PICKED UP since this phase began (the event, not the carrier snapshot — `carrier` is the snapshot); a well narrows it to that source's Core |
 | `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence since phase entry |
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
@@ -264,6 +265,33 @@ Coordinator semantics — selection, one-transition-per-tick, abort ordering,
 rearm, dark-state clearing, respawns joining the current phase — are the
 Orders spec §4b contract, proved in `TacticsProgramCoordinatorTests` and
 `TacticsEncodingLifecycleTests`.
+
+`cleared` is a pure condition. On a phase transition, each positive `cleared`
+row also materializes visible `scan` Instructions for the phase groups whose
+effective ground overlaps or touches its zone. They sit after recovery, Fight
+and signature opportunities and before passive positioning. A remote area with
+no local phase group is invalid; Tactic start and abort rows remain
+observation-only and generate no actions. The editor labels this **Area is
+cleared of enemies** and explains the 20-tick full-coverage rule.
+
+`notFighting` compiles to the ordinary `friendly-fights-in-zone` fact compared
+with zero. The common transition pairs it with `cleared` over the same zone:
+the editor copies that geometry by default. It counts a friendly inside the
+zone fighting out, a friendly outside fighting or striking in, and ongoing
+Fight selection during rotation or cadence. Unrelated combat elsewhere and
+mere enemy visibility do not count. Because program conditions run before the
+current decision selects leaves, it has one documented decision-boundary delay.
+
+A `hold` phase owns its authored ground, not its resting facing. Its empty-handed
+holders rotate, track and fire at actionable enemies from every direction
+without chasing outside the ground; cadence keeps combat facing. Resting facing
+resumes only after the Fight leaf ends. Carriers retain their existing
+non-fighting behavior.
+
+In the map editor, the selected phase is full strength, its immediate previous
+and next phases are dim, and distant phases are hidden. **Show every phase**
+reveals distant phases still more faintly without changing **Show every
+Tactic**; only selected-phase geometry is editable.
 
 ## 3. Migration from v1
 

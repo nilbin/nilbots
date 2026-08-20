@@ -257,7 +257,7 @@ The finite fact catalog is:
 | body | `self-health-percent`, `self-level`, `self-carrying`, `self-carried-core-bank-value`, `self-carrying-core-from-well`, `self-stuck-ticks`, `self-order-ticks`, `self-in-zone`, `self-nearest-visible-enemy-distance`, `self-nearest-visible-loose-core-distance`, `self-nearest-heal-zone-distance`, `self-ticks-since-signature-use`, `signature-ready`, `signature-commitment-active`, `deployment-active`, `self-deployment-in-zone`, `deployment-lifetime-percent`, `deployment-durability-percent` |
 | role | `role-live-count`, `role-lowest-health-percent`, `role-highest-level`, `role-in-zone-count`, `role-deployments-in-zone-count` |
 | team | `live-friendlies`, `live-enemies`, `friendly-carriers`, `friendly-carriers-in-roles`, `known-enemy-carriers`, `visible-enemy-carriers`, `known-loose-cores`, `visible-loose-cores`, `secured-cores`, `reactor-integrity`, `reactor-charge`, `reactor-pulses`, `enemy-reactor-charge`, `friendly-respawns-next-wave`, `enemy-respawns-next-wave`, `ticks-until-respawn-wave`, `ticks-without-objective-progress` |
-| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
+| zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `zone-cleared`, `friendly-fights-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | history | `friendly-core-pickups`, `friendly-core-acquisitions`, `friendly-core-banks`, `friendly-core-drops`, `friendly-core-losses`, `friendly-core-resolutions` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
 
@@ -320,6 +320,16 @@ bodies are transient traffic and do not. Use an upper-bound comparison in
 bound.
 `visible-enemies-in-zone` remains the explicit non-distance team-perception
 fact for a coordinated response to contact reported anywhere in a named zone.
+It means only **No enemies currently visible in this area** and is never
+presented as clearance. `zone-cleared` is the epistemic form: every walkable
+tile in the zone was observed through real team vision during the rolling last
+20 ticks and no unresolved live-enemy observation remains there. An enemy is
+resolved by destruction, later observation outside, or observing its last tile
+empty; stale coverage and completely unseen ground both fail. Scan uses this
+same evidence. `friendly-fights-in-zone` reads selected friendly Fight
+Instructions whose fighter or target intersects the zone, plus pending strikes
+aimed into it. It intentionally trails selection by one normal decision
+boundary rather than creating parallel combat state.
 
 `self-ticks-since-signature-use` is the age of this body's last successfully
 accepted signature action, capped above the authored `0..1200` comparison
@@ -332,7 +342,7 @@ signature operation is in its public tell/acquisition or channel phase. It is
 `0` for independent in-flight effects and persistent deployments after the
 caster is free. This observes engine state; it is not an authored duration.
 
-## 6. Five actions
+## 6. Six actions
 
 ### `move`
 
@@ -439,6 +449,23 @@ entered; zero means fight in place.
 There is no hidden engage or disengage condition. Lifecycle fields own entry
 and exit. An unresolved target falls through to the next order. Fighting while
 carrying never implicitly drops the Core.
+
+### `scan`
+
+```json
+{ "scan": { "zone": "mid-clearance", "freshWithinTicks": 20 } }
+```
+
+Scan is an advanced Orders/Instruction executor primitive, not a player-facing
+Tactics job or a new engine action. It resolves to existing rotate, move and
+hold commands. The body first rotates in place when that can refresh useful
+stale ground; otherwise it walks to a deterministic legal viewing position
+computed from the real map, walls, facing and class vision profile. A useful
+view remains sticky until satisfied, invalid, unreachable or pre-empted.
+Generated phase scans share one zone capacity: at most two scanners and one
+body per viewing tile. They stop yielding proposals once `zone-cleared` is
+true. Ordinary tree priority remains authoritative: custody, recovery, Fight
+and committed signatures precede generated Scan, and passive ground follows.
 
 ### `use`
 
@@ -701,6 +728,15 @@ its whole operation back phase by phase in plain language, and every drawn
 footprint stays draggable on the map. The browser keeps a local draft, so
 compile failure and phone-tab eviction do not erase work; server diagnostics
 attach back to document fields.
+
+The map defaults to the selected phase at full strength, its immediate previous
+and next phases dimmed, and all more distant phases hidden. **Show every phase**
+reveals the remaining phases more faintly and is independent from **Show every
+Tactic**. Only the selected phase is editable. A phase-transition condition
+labelled **Area is cleared of enemies** materializes local Scan Instructions for
+groups whose phase ground overlaps or touches that area; start and abort
+clearance remains observation-only. The paired **No one is currently fighting
+in this area** row defaults to the same zone.
 
 Practice attribution needs no sidecar: the materializer mints ordinal ids
 (`vex > t2 > t2-p1 > t2-p1-g1-move`), the coordinator prefixes every

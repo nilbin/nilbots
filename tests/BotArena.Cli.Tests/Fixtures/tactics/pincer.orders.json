@@ -56,6 +56,14 @@
                   }
                 },
                 {
+                  "id": "t1-p2-g2-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
+                  }
+                },
+                {
                   "shared": "t1-p2-g2-move"
                 }
               ]
@@ -129,6 +137,14 @@
                   "use": {
                     "skill": "exchange",
                     "target": "healthiest-ally"
+                  }
+                },
+                {
+                  "id": "t1-p2-g2-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
                   }
                 },
                 {
@@ -274,6 +290,14 @@
                   }
                 },
                 {
+                  "id": "t1-p2-g1-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
+                  }
+                },
+                {
                   "id": "t1-p2-g1-move",
                   "move": {
                     "to": {
@@ -353,6 +377,14 @@
                   }
                 },
                 {
+                  "id": "t1-p2-g2-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
+                  }
+                },
+                {
                   "shared": "t1-p2-g2-move"
                 }
               ]
@@ -426,6 +458,14 @@
                   "use": {
                     "skill": "survey-flare",
                     "target": "nearest-enemy"
+                  }
+                },
+                {
+                  "id": "t1-p2-g2-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
                   }
                 },
                 {
@@ -560,6 +600,14 @@
                   }
                 },
                 {
+                  "id": "t1-p2-g1-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
+                  }
+                },
+                {
                   "id": "t1-p2-g1-move",
                   "move": {
                     "to": {
@@ -643,6 +691,14 @@
                   }
                 },
                 {
+                  "id": "t1-p2-g2-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
+                  }
+                },
+                {
                   "shared": "t1-p2-g2-move"
                 }
               ]
@@ -710,6 +766,14 @@
                   "use": {
                     "skill": "repair-beam",
                     "target": "weakest-ally"
+                  }
+                },
+                {
+                  "id": "t1-p2-g2-scan-1",
+                  "when": "c-t1-p2-scan-1",
+                  "scan": {
+                    "zone": "g-t1-p1-watch",
+                    "freshWithinTicks": 20
                   }
                 },
                 {
@@ -1040,9 +1104,9 @@
       "since": "phase-entry"
     },
     "c-t1-cleared": {
-      "fact": "visible-enemies-in-zone",
+      "fact": "zone-cleared",
       "operator": "equals",
-      "value": 0,
+      "value": 1,
       "zone": "g-t1-p1-watch"
     },
     "core-in-reach": {
@@ -1059,6 +1123,12 @@
       "fact": "signature-ready",
       "operator": "equals",
       "value": 1
+    },
+    "c-t1-p2-scan-1": {
+      "fact": "zone-cleared",
+      "operator": "equals",
+      "value": 0,
+      "zone": "g-t1-p1-watch"
     },
     "c-t1-g1-at-post-1-self": {
       "fact": "self-in-zone",

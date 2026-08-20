@@ -78,4 +78,30 @@ public sealed class TacticalTargetCapacityAllocatorTests
         selected = TacticalTargetCapacityAllocator.Allocate(candidates);
         Assert.Equal("level-four", Assert.Single(selected).Value);
     }
+
+    [Fact]
+    public void ScanScopeSelectsAtMostTwoBodiesAtDistinctViewingTargets()
+    {
+        const string scope = "scan-zone:mid";
+        var candidates = new Dictionary<int, IReadOnlyList<
+            TacticalTargetCapacityAllocator.Candidate<string>>>
+        {
+            [0] = [Scan("view-a", 1, "0a"), Scan("view-b", 3, "0b")],
+            [1] = [Scan("view-a", 2, "1a"), Scan("view-c", 4, "1c")],
+            [2] = [Scan("view-b", 1, "2b"), Scan("view-c", 2, "2c")],
+        };
+
+        Dictionary<int, string> selected =
+            TacticalTargetCapacityAllocator.Allocate(candidates);
+
+        Assert.Equal(2, selected.Count);
+        Assert.Equal(["0a", "2b"], selected.Values.Order().ToArray());
+
+        static TacticalTargetCapacityAllocator.Candidate<string> Scan(
+            string target,
+            int distance,
+            string value) => new(
+                value, scope, target, Limit: 1, distance,
+                ScopeLimit: 2);
+    }
 }

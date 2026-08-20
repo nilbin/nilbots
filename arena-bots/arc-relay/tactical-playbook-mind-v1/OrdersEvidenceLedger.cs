@@ -323,6 +323,88 @@ internal sealed class OrdersEvidenceLedger
                 1, $"{condition.Id}=coverage-full@{interval}");
     }
 
+    /// <summary>
+    /// The rolling epistemic read used by Tactics clearance and Scan. A tile
+    /// needs one real team-vision observation inside the window; unlike the
+    /// older throughout-interval fact, different tiles may be refreshed on
+    /// different ticks. Enemy memory is resolved only by later authoritative
+    /// evidence, never by the absence of current visibility alone.
+    /// </summary>
+    internal ClearanceRead ReadClearance(
+        IReadOnlyCollection<Position> zoneTiles,
+        Func<Position, bool> inZone,
+        int decisionTick,
+        int freshWithinTicks)
+    {
+        int start = Math.Max(0, decisionTick - freshWithinTicks);
+        HashSet<Position> recentlyVisible = _visibleAfterTick
+            .Where(pair => pair.Key >= start && pair.Key < decisionTick)
+            .SelectMany(pair => pair.Value)
+            .ToHashSet();
+        Position[] stale = zoneTiles
+            .Where(tile => !recentlyVisible.Contains(tile))
+            .OrderBy(tile => tile.Y)
+            .ThenBy(tile => tile.X)
+            .ToArray();
+
+        ActorIdentity[] unresolved = _enemySamples
+            .Where(sample => sample.Tick < decisionTick)
+            .GroupBy(sample => sample.Actor)
+            .Select(group => group
+                .OrderByDescending(sample => sample.Tick)
+                .ThenByDescending(sample => sample.Position.Y)
+                .ThenByDescending(sample => sample.Position.X)
+                .First())
+            .Where(sample => sample.Tick >= start && inZone(sample.Position))
+            .Where(sample => !_destructions.Any(value =>
+                value.Actor == sample.Actor
+                && value.Tick > sample.Tick
+                && value.Tick < decisionTick))
+            .Where(sample => !LastKnownTileWasObservedEmpty(
+                sample, decisionTick))
+            .Select(sample => sample.Actor)
+            .OrderBy(actor => actor.TeamId)
+            .ThenBy(actor => actor.UnitId)
+            .ThenBy(actor => actor.LifeId)
+            .ToArray();
+
+        bool cleared = zoneTiles.Count > 0
+            && stale.Length == 0
+            && unresolved.Length == 0;
+        return new ClearanceRead(
+            cleared,
+            stale,
+            unresolved,
+            cleared
+                ? $"cleared:fresh-{freshWithinTicks}:tiles-{zoneTiles.Count}"
+                : $"not-cleared:fresh-{freshWithinTicks}:stale-{stale.Length}"
+                    + $":unresolved-{unresolved.Length}");
+    }
+
+    private bool LastKnownTileWasObservedEmpty(
+        EnemySample sample,
+        int decisionTick)
+    {
+        for (int tick = sample.Tick + 1; tick < decisionTick; tick++)
+        {
+            if (!_visibleAfterTick.TryGetValue(
+                    tick, out HashSet<Position>? visible)
+                || !visible.Contains(sample.Position))
+            {
+                continue;
+            }
+            // "Observed empty" means no enemy occupied the remembered tile,
+            // not merely that this one actor was absent. Another hostile on
+            // the tile is still unresolved local danger.
+            bool stillThere = _enemySamples.Any(value =>
+                value.Tick == tick
+                && value.Position == sample.Position);
+            if (!stillThere)
+                return true;
+        }
+        return false;
+    }
+
     private static (int Start, int End) Interval(
         OrdersPackage.Condition condition,
         int decisionTick,
@@ -357,6 +439,11 @@ internal sealed class OrdersEvidenceLedger
     }
 
     internal readonly record struct EvidenceRead(int Actual, string Trace);
+    internal sealed record ClearanceRead(
+        bool Cleared,
+        Position[] StaleTiles,
+        ActorIdentity[] UnresolvedEnemies,
+        string Trace);
     private sealed record EnemySample(
         int Tick, ActorIdentity Actor, Position Position);
     private sealed record EnemyEntry(

@@ -130,6 +130,24 @@ test('the map draws condition footprints under grabbable group geometry', () => 
   assert.match(canvas, /data-testid="tactics-map"/);
 });
 
+test('clearance and local fighting use truthful map-first language', () => {
+  assert.match(conditions, /Area is cleared of enemies/);
+  assert.match(conditions,
+    /checked the whole area within the last 20 ticks, with no enemy known to remain/);
+  assert.match(conditions, /No one is currently fighting in this area/);
+  assert.match(conditions, /next\.notFighting\?\.zone/);
+  assert.match(conditions, /next\.cleared\?\.zone/);
+  assert.match(canvas, /NO FIGHT HERE/);
+  assert.match(summary, /fully checked within 20 ticks and no enemy is known to remain/);
+});
+
+test('the phase map focuses current context without hiding its neighbours', () => {
+  assert.match(editor, /Show every phase/);
+  assert.match(canvas, /if \(!showAllPhases && distance > 1\) return null/);
+  assert.match(canvas, /phaseIndex === focus\s*\? 1 : distance === 1 \? \.24 : \.12/);
+  assert.match(canvas, /editable\(tactic\) && phaseIndex === focus/);
+});
+
 test('engine vocabulary never reaches the player surface', () => {
   for (const source of allEditorSource) {
     assert.doesNotMatch(source,

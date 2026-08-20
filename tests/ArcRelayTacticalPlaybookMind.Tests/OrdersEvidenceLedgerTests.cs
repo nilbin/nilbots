@@ -369,6 +369,82 @@ public sealed class OrdersEvidenceLedgerTests
         Assert.Equal(expected, actual);
     }
 
+    [Fact]
+    public void ClearanceRequiresFreshCompleteCoverage()
+    {
+        var unseen = new OrdersEvidenceLedger();
+        Assert.False(Clearance(unseen, decisionTick: 1).Cleared);
+        Assert.Equal(2, Clearance(unseen, decisionTick: 1).StaleTiles.Length);
+
+        var partial = new OrdersEvidenceLedger();
+        partial.ObserveSnapshot(0, 1, [ZoneTiles[0]], [], []);
+        Assert.False(Clearance(partial, decisionTick: 1).Cleared);
+        Assert.Equal([ZoneTiles[1]],
+            Clearance(partial, decisionTick: 1).StaleTiles);
+
+        var full = new OrdersEvidenceLedger();
+        full.ObserveSnapshot(0, 1, ZoneTiles, [], []);
+        Assert.True(Clearance(full, decisionTick: 1).Cleared);
+
+        // The one observation was completed at tick zero and has left the
+        // rolling [2,22) window.
+        Assert.False(Clearance(full, decisionTick: 22).Cleared);
+        Assert.Equal(2, Clearance(full, decisionTick: 22).StaleTiles.Length);
+    }
+
+    [Fact]
+    public void EnemyMemoryBlocksUntilSeenOutsideDestroyedOrItsTileIsEmpty()
+    {
+        var outside = EnemyLedger();
+        Assert.False(Clearance(outside, decisionTick: 1).Cleared);
+        outside.ObserveSnapshot(
+            0, 2, ZoneTiles,
+            [Enemy(EnemyLife0, new Position(2, 0))], []);
+        Assert.True(Clearance(outside, decisionTick: 2).Cleared);
+
+        var destroyed = EnemyLedger();
+        destroyed.ObserveSnapshot(
+            0, 2, ZoneTiles, [],
+            [Destruction("clearance-kill", 1, EnemyLife0, ZoneTiles[0])]);
+        Assert.True(Clearance(destroyed, decisionTick: 2).Cleared);
+
+        var empty = EnemyLedger();
+        empty.ObserveSnapshot(0, 2, ZoneTiles, [], []);
+        Assert.True(Clearance(empty, decisionTick: 2).Cleared);
+    }
+
+    [Fact]
+    public void RememberedTileOccupiedByAnotherEnemyIsNotObservedEmpty()
+    {
+        var ledger = EnemyLedger();
+        ledger.ObserveSnapshot(
+            0, 2, ZoneTiles,
+            [Enemy(EnemyLife1, ZoneTiles[0])], []);
+
+        OrdersEvidenceLedger.ClearanceRead read = Clearance(
+            ledger, decisionTick: 2);
+
+        Assert.False(read.Cleared);
+        Assert.Contains(EnemyLife1, read.UnresolvedEnemies);
+    }
+
+    private static OrdersEvidenceLedger EnemyLedger()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        ledger.ObserveSnapshot(
+            0, 1, ZoneTiles,
+            [Enemy(EnemyLife0, ZoneTiles[0])], []);
+        return ledger;
+    }
+
+    private static OrdersEvidenceLedger.ClearanceRead Clearance(
+        OrdersEvidenceLedger ledger,
+        int decisionTick) => ledger.ReadClearance(
+            ZoneTiles,
+            InZone,
+            decisionTick,
+            freshWithinTicks: 20);
+
     private static bool InZone(Position position) => position.X == 1;
 
     private static OrdersPackage.Condition Condition(

@@ -186,7 +186,13 @@ export function condClauses(conds: TacticConds | undefined): string[] {
     const [x0, y0, x1, y1] = conds.cleared.zone.rect;
     const place = conds.cleared.zone.name === 'mid' ? 'Mid'
       : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
-    out.push(`${place} is cleared`);
+    out.push(`${place} was fully checked within 20 ticks and no enemy is known to remain`);
+  }
+  if (conds.notFighting) {
+    const [x0, y0, x1, y1] = conds.notFighting.zone.rect;
+    const place = conds.notFighting.zone.name === 'mid' ? 'Mid'
+      : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
+    out.push(`no one is currently fighting ${inPlace(place)}`);
   }
   if (conds.coreAcquired) {
     const well = typeof conds.coreAcquired === 'object'
