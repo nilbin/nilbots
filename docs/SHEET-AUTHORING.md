@@ -446,6 +446,15 @@ resets or advances its chase anchor.
 `chaseLimit` is `0..12` tiles from the body's position when the fight node
 entered; zero means fight in place.
 
+Tactics `hold` posture materializes a carrier-first Hold fight with a bounded
+five-tile defence leash. The fight may begin only from the body's authored
+post/area. Its activation position then remains the fixed leash anchor while
+the holder closes on an escaping visible Core carrier or on a visible attacker
+that can shoot it from beyond its own range. It does not chase ordinary
+retreating enemies. Once the threat is no longer actionable—or the holder
+itself acquires a Core—the episode ends and the ordinary ground Instruction
+returns the body to its authored position and resting facing.
+
 There is no hidden engage or disengage condition. Lifecycle fields own entry
 and exit. An unresolved target falls through to the next order. Fighting while
 carrying never implicitly drops the Core.
@@ -710,9 +719,13 @@ materialization TARGET, with §4b of the Orders spec carrying the v3 program).
   with optimistic revisions: `{name, expectedRevision, tacticsJson,
   enterLadder?}` in, the document plus the materialized pair out. The raw
   tactics ceiling is 192 KiB.
-- `POST /api/sheets/{id}/trial` runs the saved sheet against a frozen stock
-  opponent and opens the fully revealed replay immediately; the match
-  snapshots the exact tactics revision for attribution.
+- `POST /api/sheets/{id}/trial` compiles the saved Tactics source with the
+  currently running compiler, runs it against a frozen stock opponent, and
+  opens the fully revealed replay immediately. The match snapshots those exact
+  generated Instructions and map plan for attribution and reproduction. This
+  keeps Practice truthful after a local compiler restart even when the saved
+  revision's older generated siblings have not been rewritten; ranked and
+  scrimmage admission continue using their persisted immutable materialization.
 - Saving fields a sheet in the current ladder by default, subject to the
   account cap; opting out is deliberate.
 

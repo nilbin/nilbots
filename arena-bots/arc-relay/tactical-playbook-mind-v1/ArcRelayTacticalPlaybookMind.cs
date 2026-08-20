@@ -493,20 +493,25 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         break;
                     }
                     if (ArenaBasics.CanAimAtPosition(
-                            contract, body, targetPosition)
-                        || fight.Style == "hold")
+                            contract, body, targetPosition))
                     {
                         result.Add(Hold(
                             $"fight-position:{targetKey}",
                             pinned: fight.Style == "hold"));
                         break;
                     }
+                    string holdMotive = "";
+                    bool holdClose = fight.Style == "hold"
+                        && HoldMayClose(
+                            contract, mind, body, target?.ActorId,
+                            out holdMotive);
                     bool inLeash = fight.ChaseLimit == 0
                         ? body.Position == anchor
                         : ArenaBasics.StaticDistance(
                             contract.Map, body.Position, anchor)
                             <= fight.ChaseLimit;
-                    if (!inLeash || fight.Style != "advance")
+                    if (!inLeash
+                        || fight.Style != "advance" && !holdClose)
                     {
                         result.Add(Hold($"fight-leash:{targetKey}"));
                         break;
@@ -531,7 +536,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         CanStage: true,
                         LeaderUnitId: null,
                         RouteClass: SquadRouteClass.Ordinary,
-                        $"fight-close:{targetKey}"));
+                        holdClose
+                            ? $"hold-{holdMotive}-close:{targetKey}"
+                            : $"fight-close:{targetKey}"));
                     break;
                 }
                 case OrdersPackage.ScanAction scan:
@@ -1290,7 +1297,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 leaf,
                 fight,
                 target.Position,
-                target.Actor is not null),
+                target.Actor),
         }).ToArray();
         if (classified.All(value => !value.Actionable))
         {
@@ -1345,17 +1352,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         OrderTreeRuntime.EligibleLeaf leaf,
         OrdersPackage.FightAction fight,
         Position target,
-        bool bodyTarget)
+        ActorIdentity? targetActor)
     {
         if (ArenaBasics.CanAimAtPosition(contract, body, target))
             return true;
-        if (bodyTarget
+        if (targetActor is not null
             && fight.Style == "kite"
             && body.Position.ChebyshevDistance(target) <= 2)
         {
             return true;
         }
-        if (fight.Style == "hold")
+        if (fight.Style == "hold"
+            && !HoldMayClose(
+                contract, mind, body, targetActor, out _))
             return false;
 
         Position anchor = FightEpisodeAnchor(body, leaf);
@@ -1369,6 +1378,44 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return FiringContributionGoals(
             contract, mind, body, target, anchor,
             fight.ChaseLimit).Length > 0;
+    }
+
+    /// <summary>
+    /// Hold owns a bounded defence leash rather than a universal chase. It
+    /// closes only on a visible Core carrier or on a visible gun that can hit
+    /// the holder from its present tile while the holder cannot answer. Every
+    /// other out-of-range enemy is allowed to leave without dragging the
+    /// defender away from its authored ground.
+    /// </summary>
+    private static bool HoldMayClose(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        ActorIdentity? targetActor,
+        out string motive)
+    {
+        motive = "";
+        if (targetActor is null)
+            return false;
+        GenericActorContext.ObservedEnemyState? target = mind.Enemies
+            .FirstOrDefault(value => value.ActorId == targetActor);
+        if (target is null)
+            return false;
+        if (ArenaBasics.CarriedCore(mind, target.ActorId) is not null)
+        {
+            motive = "carrier";
+            return true;
+        }
+        if (ArenaBasics.CanAimFrom(
+                contract,
+                target.FormId,
+                target.Position,
+                body.Position))
+        {
+            motive = "counter-range";
+            return true;
+        }
+        return false;
     }
 
     private static bool IsDeploymentKind(string kind) => kind is
@@ -1943,12 +1990,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     ? mind.Enemies.Any(value => value.ActorId == actor)
                     : proposal.Target.Key.StartsWith(
                         "deployment:", StringComparison.Ordinal);
-                if (!targetExists || fight.Style == "hold"
+                if (!targetExists
                     || ArenaBasics.CanAimAtPosition(
                         contract, proposal.Body, proposal.Target.Position))
                 {
                     continue;
                 }
+                bool holdClose = fight.Style == "hold"
+                    && HoldMayClose(
+                        contract,
+                        mind,
+                        proposal.Body,
+                        proposal.Target.Actor,
+                        out _);
                 Position anchor = FightEpisodeAnchor(
                     proposal.Body, proposal.Leaf);
                 bool inLeash = fight.ChaseLimit == 0
@@ -1956,7 +2010,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     : ArenaBasics.StaticDistance(
                         contract.Map, proposal.Body.Position, anchor)
                         <= fight.ChaseLimit;
-                if (inLeash && fight.Style == "advance")
+                if (inLeash && (fight.Style == "advance" || holdClose))
                 {
                     result.Add(unitId, new MovePlan(
                         proposal.Leaf.Node.Path,
@@ -2632,11 +2686,26 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             body.Hold($"{reason}:cadence:{targetKey}");
             return;
         }
-        if (fight.Style != "hold" && inLeash
-            && ArenaBasics.TryMoveToward(
-                contract, mind, body, [targetPosition], claims,
-                $"{reason}:close:{targetKey}:{physical}"))
-            return;
+        string holdMotive = "";
+        bool holdClose = fight.Style == "hold"
+            && HoldMayClose(
+                contract, mind, body, target?.ActorId, out holdMotive);
+        if ((fight.Style != "hold" || holdClose) && inLeash)
+        {
+            Position[] firing = FiringContributionGoals(
+                contract, mind, body, targetPosition, anchor,
+                fight.ChaseLimit);
+            if (firing.Length > 0
+                && ArenaBasics.TryMoveToward(
+                    contract, mind, body, firing, claims,
+                    holdClose
+                        ? $"{reason}:hold-{holdMotive}-close:{targetKey}:"
+                            + physical
+                        : $"{reason}:close:{targetKey}:{physical}"))
+            {
+                return;
+            }
+        }
         if (fight.Style == "hold")
         {
             body.Hold($"{reason}:hold-track:{targetKey}:{physical}");

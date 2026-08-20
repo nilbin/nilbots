@@ -43,7 +43,7 @@ public sealed class ArcRelayMatchAdmissionService(
         CancellationToken cancellationToken)
     {
         ParticipantMaterial candidate = await MaterializeAsync(
-            sheet, cancellationToken);
+            sheet, cancellationToken, currentTacticsForPractice: true);
         ParticipantMaterial stock = await StockFixtureAsync(
             templates.GetStock(stockSheetId), cancellationToken);
         return await CreateCoreAsync(
@@ -147,7 +147,8 @@ public sealed class ArcRelayMatchAdmissionService(
 
     private async Task<ParticipantMaterial> MaterializeAsync(
         ArcRelayEntrant entrant,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool currentTacticsForPractice = false)
     {
         string owner = await db.Users.Where(value =>
                 value.Id == entrant.OwnerUserId)
@@ -157,12 +158,25 @@ public sealed class ArcRelayMatchAdmissionService(
         {
             TacticalSheet sheet = await db.TacticalSheets.SingleAsync(
                 value => value.Id == entrant.Id, cancellationToken);
-            ValidatedTacticalSheet compiled = sheetCompiler.Compile(
-                sheet.PlaybookJson,
-                sheet.LayoutJson,
-                EveryClass(),
-                $"{sheet.Id}:r{sheet.Revision}");
-            if (!string.Equals(
+            // Ranked/scrimmage admission snapshots the immutable materialized
+            // revision. Practice is an authoring loop: compile its player-owned
+            // Tactics source with the server that is about to execute it. A
+            // restarted compiler must not silently run yesterday's generated
+            // Orders merely because the player made no edit worth another
+            // saved revision.
+            ValidatedTacticalSheet compiled = currentTacticsForPractice
+                && sheet.TacticsJson is string tactics
+                    ? sheetCompiler.CompileTactics(
+                        tactics,
+                        EveryClass(),
+                        $"{sheet.Id}:practice-r{sheet.Revision}")
+                    : sheetCompiler.Compile(
+                        sheet.PlaybookJson,
+                        sheet.LayoutJson,
+                        EveryClass(),
+                        $"{sheet.Id}:r{sheet.Revision}");
+            if (!currentTacticsForPractice
+                && !string.Equals(
                     compiled.ContentHash,
                     sheet.ContentHash,
                     StringComparison.Ordinal))
@@ -170,6 +184,14 @@ public sealed class ArcRelayMatchAdmissionService(
                 throw new InvalidDataException(
                     "Saved tactical sheet content hash failed verification.");
             }
+            string playbookJson = compiled.Compilation.MaterializedOrders is { }
+                ? Encoding.UTF8.GetString(
+                    compiled.Compilation.MaterializedOrders)
+                : sheet.PlaybookJson;
+            string layoutJson = compiled.Compilation.MaterializedMapPlan is { }
+                ? Encoding.UTF8.GetString(
+                    compiled.Compilation.MaterializedMapPlan)
+                : sheet.LayoutJson;
             (Bot bot, BotVersion version) = await TacticalArtifactAsync(
                 cancellationToken);
             return new ParticipantMaterial(
@@ -188,9 +210,9 @@ public sealed class ArcRelayMatchAdmissionService(
                 compiled.Composition.ContentHash,
                 sheet.Id,
                 sheet.Revision,
-                sheet.ContentHash,
-                sheet.PlaybookJson,
-                sheet.LayoutJson,
+                compiled.ContentHash,
+                playbookJson,
+                layoutJson,
                 compiled.Compilation.LinkedData);
         }
 

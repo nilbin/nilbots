@@ -961,13 +961,20 @@
           "c-t1-g2-on-station"
         ]
       },
+      "until": {
+        "any": [
+          "carrying-core",
+          "enemy-no-longer-nearby"
+        ]
+      },
       "fight": {
         "targets": [
+          "carrier",
           "nearest",
           "weakest"
         ],
         "style": "hold",
-        "chaseLimit": 1
+        "chaseLimit": 5
       }
     },
     "t1-p1-g2-move": {
@@ -996,13 +1003,20 @@
           "c-t1-g2-on-station"
         ]
       },
+      "until": {
+        "any": [
+          "carrying-core",
+          "enemy-no-longer-nearby"
+        ]
+      },
       "fight": {
         "targets": [
+          "carrier",
           "nearest",
           "weakest"
         ],
         "style": "hold",
-        "chaseLimit": 1
+        "chaseLimit": 5
       }
     },
     "t1-p2-g2-move": {
@@ -1202,6 +1216,11 @@
       "operator": "equals",
       "value": 1,
       "zone": "g-t1-g2-set"
+    },
+    "enemy-no-longer-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "greater-than",
+      "value": 7
     }
   },
   "program": {

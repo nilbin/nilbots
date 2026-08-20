@@ -283,10 +283,15 @@ mere enemy visibility do not count. Because program conditions run before the
 current decision selects leaves, it has one documented decision-boundary delay.
 
 A `hold` phase owns its authored ground, not its resting facing. Its empty-handed
-holders rotate, track and fire at actionable enemies from every direction
-without chasing outside the ground; cadence keeps combat facing. Resting facing
-resumes only after the Fight leaf ends. Carriers retain their existing
-non-fighting behavior.
+holders rotate, track and fire at actionable enemies from every direction;
+cadence keeps combat facing. A Hold fight starts only from authored ground and
+normally stays there, with one bounded exception: it may close at most five
+terrain steps from its fixed activation anchor to stop an escaping visible Core
+carrier or answer a visible attacker that can shoot it from beyond its own
+range. It does not pursue an ordinary retreating enemy. The episode ends when
+the threat is no longer actionable or the holder acquires a Core, after which
+the floor Instruction returns it to ground and resting facing. Carriers retain
+their existing non-fighting behavior.
 
 In the map editor, the selected phase is full strength, its immediate previous
 and next phases are dim, and distant phases are hidden. **Show every phase**

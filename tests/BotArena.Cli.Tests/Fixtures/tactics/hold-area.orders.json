@@ -38,13 +38,20 @@
                       "c-t1-g1-at-post-0-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -128,13 +135,20 @@
                       "c-t1-g1-at-post-1-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -218,13 +232,20 @@
                       "c-t1-g1-at-post-2-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -308,13 +329,20 @@
                       "c-t1-g1-at-post-3-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -398,13 +426,20 @@
                       "c-t1-g1-at-post-4-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -488,13 +523,20 @@
                       "c-t1-g1-at-post-5-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -578,13 +620,20 @@
                       "c-t1-g1-at-post-6-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -667,13 +716,20 @@
                       "c-t1-g1-at-post-7-self"
                     ]
                   },
+                  "until": {
+                    "any": [
+                      "carrying-core",
+                      "enemy-no-longer-nearby"
+                    ]
+                  },
                   "fight": {
                     "targets": [
+                      "carrier",
                       "nearest",
                       "weakest"
                     ],
                     "style": "hold",
-                    "chaseLimit": 1
+                    "chaseLimit": 5
                   }
                 },
                 {
@@ -843,6 +899,11 @@
       "operator": "equals",
       "value": 1,
       "zone": "g-t1-g1-post-0"
+    },
+    "enemy-no-longer-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "greater-than",
+      "value": 7
     },
     "signature-ready": {
       "fact": "signature-ready",

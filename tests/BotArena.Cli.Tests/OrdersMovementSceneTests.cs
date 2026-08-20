@@ -118,6 +118,179 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
+    public void HoldDefenderClosesWithinItsLeashAgainstAnOutrangingAttacker()
+    {
+        string root = FindRepoRoot();
+        var holderPost = new Position(12, 15);
+        var hostilePost = new Position(18, 15);
+        TacticalPlaybookCompilation defender = CompileHoldDefenceFixture(
+            root,
+            defender: true,
+            hostilePost,
+            defenderClass: "palisade",
+            visitorClass: "longshot",
+            chaseLimit: 5,
+            visitorFights: true,
+            enemyDistanceLimit: 7,
+            holderPost: holderPost);
+        TacticalPlaybookCompilation visitor = CompileHoldDefenceFixture(
+            root,
+            defender: false,
+            hostilePost,
+            defenderClass: "palisade",
+            visitorClass: "longshot",
+            chaseLimit: 5,
+            visitorFights: true,
+            enemyDistanceLimit: 7,
+            holderPost: holderPost);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            defender.Composition,
+            visitor.Composition,
+            loopProfile: ArcRelayLoopProfile.Current);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, defender), Participant(1, visitor)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        Position post = holderPost;
+        bool counterRangeClose = false;
+        bool holderFired = false;
+        bool visitorDestroyed = false;
+        bool holderReturned = false;
+        int maximumExcursion = 0;
+        string lastReason = "";
+        while (!session.IsCompleted && !holderReturned)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindCommandResolution holder = step.MindTurns
+                .Single(turn => turn.TeamId == 0).Commands
+                .Single(command => command.Command.UnitId == 0);
+            string holderReason = holder.Command.DebugMessage ?? "";
+            lastReason = holderReason;
+            counterRangeClose |= holderReason.Contains(
+                "hold-counter-range-close", StringComparison.Ordinal);
+            GenericActorWorldSnapshot.LifeSnapshot? holderLife = step.PostState
+                .ActiveLives.FirstOrDefault(value =>
+                    value.ActorId.TeamId == 0 && value.ActorId.UnitId == 0);
+            if (counterRangeClose && !visitorDestroyed && holderLife is not null)
+            {
+                maximumExcursion = Math.Max(
+                    maximumExcursion,
+                    holderLife.Position.ChebyshevDistance(post));
+            }
+            holderFired |= holderReason.Contains(
+                ":fight:", StringComparison.Ordinal);
+            visitorDestroyed |= step.AuthoritativeEvents.Any(value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .Destruction destroyed
+                && destroyed.ActorId.TeamId == 1
+                && destroyed.ActorId.UnitId == 0);
+            holderReturned = visitorDestroyed
+                && holderLife?.Position == post;
+        }
+
+        string diagnostic = $"close={counterRangeClose},"
+            + $"fired={holderFired},destroyed={visitorDestroyed},"
+            + $"returned={holderReturned},"
+            + $"excursion={maximumExcursion},reason={lastReason}";
+        Assert.True(counterRangeClose,
+            $"Hold never closed on the unanswered ranged threat; {diagnostic}");
+        Assert.True(holderFired,
+            $"the Hold defender closed but never counter-fired; {diagnostic}");
+        Assert.InRange(maximumExcursion, 1, 5);
+        Assert.True(visitorDestroyed,
+            $"the Hold defender never removed the ranged threat; {diagnostic}");
+        Assert.True(holderReturned,
+            $"the Hold defender never returned to its authored ground; {diagnostic}");
+    }
+
+    [Fact]
+    public void HoldDefenderPursuesAnEscapingCarrierWithinItsLeashThenReturns()
+    {
+        string root = FindRepoRoot();
+        var holderPost = new Position(10, 13);
+        TacticalPlaybookCompilation defender = CompileHoldDefenceFixture(
+            root,
+            defender: true,
+            hostilePost: new Position(20, 13),
+            defenderClass: "kestrel",
+            visitorClass: "palisade",
+            chaseLimit: 5,
+            enemyDistanceLimit: 7,
+            holderPost: holderPost);
+        TacticalPlaybookCompilation visitor = CompileCoreRunnerFixture(root);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            defender.Composition,
+            visitor.Composition,
+            loopProfile: ArcRelayLoopProfile.Current);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, defender), Participant(1, visitor)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        bool pickedUp = false;
+        bool carrierClose = false;
+        bool holderFired = false;
+        bool carrierDestroyed = false;
+        bool holderReturned = false;
+        int maximumExcursion = 0;
+        string lastReason = "";
+        while (!session.IsCompleted && !holderReturned)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindCommandResolution holder = step.MindTurns
+                .Single(turn => turn.TeamId == 0).Commands
+                .Single(command => command.Command.UnitId == 0);
+            string reason = holder.Command.DebugMessage ?? "";
+            lastReason = reason;
+            var arc = Assert.IsType<GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay>(step.PostState.Mode);
+            pickedUp |= arc.VisibleCores.Any(core =>
+                core.CarrierActorId is { TeamId: 1, UnitId: 0 });
+            carrierClose |= reason.Contains(
+                "hold-carrier-close", StringComparison.Ordinal);
+            holderFired |= carrierClose && reason.Contains(
+                ":fight:", StringComparison.Ordinal);
+            GenericActorWorldSnapshot.LifeSnapshot? holderLife = step.PostState
+                .ActiveLives.FirstOrDefault(value =>
+                    value.ActorId.TeamId == 0 && value.ActorId.UnitId == 0);
+            if (carrierClose && !carrierDestroyed && holderLife is not null)
+            {
+                maximumExcursion = Math.Max(
+                    maximumExcursion,
+                    holderLife.Position.ChebyshevDistance(holderPost));
+            }
+            carrierDestroyed |= step.AuthoritativeEvents.Any(value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .Destruction destroyed
+                && destroyed.ActorId.TeamId == 1
+                && destroyed.ActorId.UnitId == 0);
+            holderReturned = carrierDestroyed
+                && holderLife?.Position == holderPost;
+        }
+
+        string diagnostic = $"pickup={pickedUp},close={carrierClose},"
+            + $"fired={holderFired},destroyed={carrierDestroyed},"
+            + $"returned={holderReturned},excursion={maximumExcursion},"
+            + $"reason={lastReason}";
+        Assert.True(pickedUp,
+            $"the runner never became a Core carrier; {diagnostic}");
+        Assert.True(carrierClose,
+            $"Hold let the visible carrier escape without pursuit; {diagnostic}");
+        Assert.True(holderFired,
+            $"Hold pursued the carrier but never fired; {diagnostic}");
+        Assert.InRange(maximumExcursion, 1, 5);
+        Assert.True(carrierDestroyed,
+            $"the bounded defence never stopped the carrier; {diagnostic}");
+        Assert.True(holderReturned,
+            $"the defender never returned to its authored ground; {diagnostic}");
+    }
+
+    [Fact]
     public void PremiumCustodyHandoffRetargetsEscortAndBanksTheSameCore()
     {
         string root = FindRepoRoot();
@@ -2039,7 +2212,13 @@ public sealed class OrdersMovementSceneTests
     private static TacticalPlaybookCompilation CompileHoldDefenceFixture(
         string root,
         bool defender,
-        Position hostilePost)
+        Position hostilePost,
+        string defenderClass = "longshot",
+        string visitorClass = "palisade",
+        int chaseLimit = 0,
+        bool visitorFights = false,
+        int enemyDistanceLimit = 3,
+        Position? holderPost = null)
     {
         string package = Path.Combine(
             root,
@@ -2057,29 +2236,46 @@ public sealed class OrdersMovementSceneTests
         source["sheetId"] = $"hold-{side}-proof";
         source["mapPlan"] = "map-plan.json";
         map["mapPlanId"] = $"hold-{side}-proof";
+        Position defencePost = holderPost ?? new Position(15, 12);
+        Position authoredHostile = defender
+            ? hostilePost
+            : new Position(30 - hostilePost.X, 26 - hostilePost.Y);
         map["zones"] = defender
             ? new JsonObject
             {
                 ["duel"] = new JsonObject
                 {
                     ["rect"] = new JsonArray(
-                        hostilePost.X, hostilePost.Y,
-                        hostilePost.X, hostilePost.Y),
+                        Math.Min(defencePost.X, hostilePost.X),
+                        Math.Min(defencePost.Y, hostilePost.Y),
+                        Math.Max(defencePost.X, hostilePost.X),
+                        Math.Max(defencePost.Y, hostilePost.Y)),
                 },
                 ["holder-post"] = new JsonObject
                 {
-                    ["rect"] = new JsonArray(15, 12, 15, 12),
+                    ["rect"] = new JsonArray(
+                        defencePost.X, defencePost.Y,
+                        defencePost.X, defencePost.Y),
                 },
             }
-            : new JsonObject();
-        Position authoredHostile = defender
-            ? hostilePost
-            : new Position(30 - hostilePost.X, 26 - hostilePost.Y);
+            : visitorFights
+                ? new JsonObject
+            {
+                ["visitor-post"] = new JsonObject
+                {
+                    ["rect"] = new JsonArray(
+                        authoredHostile.X, authoredHostile.Y,
+                    authoredHostile.X, authoredHostile.Y),
+                },
+            }
+                : new JsonObject();
         map["anchors"] = defender
             ? new JsonObject
             {
-                ["defence-post"] = new JsonArray(15, 12),
-                ["rest-face"] = new JsonArray(18, 12),
+                ["defence-post"] = new JsonArray(
+                    defencePost.X, defencePost.Y),
+                ["rest-face"] = new JsonArray(
+                    Math.Min(29, defencePost.X + 3), defencePost.Y),
             }
             : new JsonObject
             {
@@ -2100,7 +2296,13 @@ public sealed class OrdersMovementSceneTests
                 {
                     ["fact"] = "self-nearest-visible-enemy-distance",
                     ["operator"] = "at-most",
-                    ["value"] = 3,
+                    ["value"] = enemyDistanceLimit,
+                },
+                ["enemy-gone"] = new JsonObject
+                {
+                    ["fact"] = "self-nearest-visible-enemy-distance",
+                    ["operator"] = "greater-than",
+                    ["value"] = enemyDistanceLimit,
                 },
                 ["holder-at-post"] = new JsonObject
                 {
@@ -2116,7 +2318,30 @@ public sealed class OrdersMovementSceneTests
                     ["value"] = 0,
                 },
             }
-            : new JsonObject
+            : visitorFights
+                ? new JsonObject
+                {
+                    ["enemy-close"] = new JsonObject
+                    {
+                        ["fact"] = "self-nearest-visible-enemy-distance",
+                        ["operator"] = "at-most",
+                        ["value"] = enemyDistanceLimit,
+                    },
+                    ["visitor-at-post"] = new JsonObject
+                    {
+                        ["fact"] = "self-in-zone",
+                        ["operator"] = "equals",
+                        ["value"] = 1,
+                        ["zone"] = "visitor-post",
+                    },
+                    ["impossible"] = new JsonObject
+                    {
+                        ["fact"] = "self-health-percent",
+                        ["operator"] = "less-than",
+                        ["value"] = 0,
+                    },
+                }
+                : new JsonObject
             {
                 ["impossible"] = new JsonObject
                 {
@@ -2133,7 +2358,7 @@ public sealed class OrdersMovementSceneTests
                 new JsonObject
                 {
                     ["id"] = "holder",
-                    ["classes"] = new JsonArray("longshot"),
+                    ["classes"] = new JsonArray(defenderClass),
                     ["upgradePath"] = new JsonArray("damage", "reach"),
                     ["orders"] = new JsonArray(
                         new JsonObject
@@ -2145,11 +2370,12 @@ public sealed class OrdersMovementSceneTests
                                     "enemy-at-duel", "enemy-close",
                                     "holder-at-post"),
                             },
+                            ["until"] = "enemy-gone",
                             ["fight"] = new JsonObject
                             {
                                 ["targets"] = new JsonArray("nearest"),
                                 ["style"] = "hold",
-                                ["chaseLimit"] = 0,
+                                ["chaseLimit"] = chaseLimit,
                                 ["zone"] = "duel",
                             },
                         },
@@ -2189,11 +2415,39 @@ public sealed class OrdersMovementSceneTests
                 new JsonObject
                 {
                     ["id"] = "visitor",
-                    ["classes"] = new JsonArray("palisade"),
+                    ["classes"] = new JsonArray(visitorClass),
                     ["upgradePath"] = new JsonArray(
                         "vitality", "vitality", "vitality"),
-                    ["orders"] = new JsonArray(
-                        new JsonObject
+                    ["orders"] = visitorFights
+                        ? new JsonArray(
+                            new JsonObject
+                            {
+                                ["id"] = "attack-holder",
+                                ["when"] = new JsonObject
+                                {
+                                    ["all"] = new JsonArray(
+                                        "enemy-close", "visitor-at-post"),
+                                },
+                                ["fight"] = new JsonObject
+                                {
+                                    ["targets"] = new JsonArray("nearest"),
+                                    ["style"] = "hold",
+                                    ["chaseLimit"] = 0,
+                                },
+                            },
+                            new JsonObject
+                            {
+                                ["id"] = "visit-holder",
+                                ["move"] = new JsonObject
+                                {
+                                    ["to"] = new JsonObject
+                                    {
+                                        ["anchor"] = "visit-post",
+                                    },
+                                },
+                            })
+                        : new JsonArray(
+                            new JsonObject
                         {
                             ["id"] = "visit-holder",
                             ["move"] = new JsonObject
@@ -2230,6 +2484,87 @@ public sealed class OrdersMovementSceneTests
             Encoding.UTF8.GetBytes(map.ToJsonString()),
             sourcePath + $"#{side}",
             mapPath + $"#{side}");
+    }
+
+    private static TacticalPlaybookCompilation CompileCoreRunnerFixture(
+        string root)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string sourcePath = Path.Combine(
+            package, "playbooks", "idle-field-v1.json");
+        string mapPath = Path.Combine(
+            package, "map-plans", "tapline-9", "idle-field-v1.json");
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(sourcePath))!
+            .AsObject();
+        JsonObject map = JsonNode.Parse(File.ReadAllBytes(mapPath))!.AsObject();
+        source["sheetId"] = "hold-carrier-runner-proof";
+        source["mapPlan"] = "map-plan.json";
+        map["mapPlanId"] = "hold-carrier-runner-proof";
+        source["conditions"] = new JsonObject
+        {
+            ["carrying"] = new JsonObject
+            {
+                ["fact"] = "self-carrying",
+                ["operator"] = "equals",
+                ["value"] = 1,
+            },
+            ["impossible"] = new JsonObject
+            {
+                ["fact"] = "self-health-percent",
+                ["operator"] = "less-than",
+                ["value"] = 0,
+            },
+        };
+        source["roles"] = new JsonArray(
+            new JsonObject
+            {
+                ["id"] = "runner",
+                ["classes"] = new JsonArray("palisade"),
+                ["upgradePath"] = new JsonArray(
+                    "vitality", "vitality", "vitality"),
+                ["orders"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "return-core",
+                        ["when"] = "carrying",
+                        ["urgency"] = "urgent",
+                        ["move"] = new JsonObject { ["to"] = "own-reactor" },
+                    },
+                    new JsonObject
+                    {
+                        ["id"] = "take-centre-core",
+                        ["move"] = new JsonObject
+                        {
+                            ["to"] = new JsonObject { ["well"] = "centre" },
+                        },
+                    }),
+            },
+            new JsonObject
+            {
+                ["id"] = "observers",
+                ["classes"] = new JsonArray(
+                    "longshot", "towline", "patchbay", "lantern",
+                    "mortar", "minesmith", "hush"),
+                ["upgradePath"] = new JsonArray("vitality"),
+                ["orders"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "remain-idle",
+                        ["when"] = "impossible",
+                        ["move"] = new JsonObject { ["to"] = "own-reactor" },
+                    }),
+            });
+        source["sharedOrders"] = new JsonObject();
+        source["capacities"] = new JsonObject();
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            Encoding.UTF8.GetBytes(source.ToJsonString()),
+            Encoding.UTF8.GetBytes(map.ToJsonString()),
+            sourcePath + "#carrier-runner",
+            mapPath + "#carrier-runner");
     }
 
     private static Position[] RoutePoints(

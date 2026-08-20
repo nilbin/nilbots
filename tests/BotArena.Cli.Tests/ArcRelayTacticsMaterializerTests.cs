@@ -305,6 +305,38 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void HoldPosturePrefersCarriersAndPublishesItsBoundedDefenceLeash()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Fixture("hold-area"));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement[] holdNodes = Descendants(orders.RootElement)
+            .Where(value => value.ValueKind == JsonValueKind.Object
+                && value.TryGetProperty("fight", out JsonElement fight)
+                && fight.TryGetProperty("style", out JsonElement style)
+                && style.GetString() == "hold")
+            .ToArray();
+
+        Assert.NotEmpty(holdNodes);
+        Assert.All(holdNodes, node =>
+        {
+            JsonElement fight = node.GetProperty("fight");
+            Assert.Equal(5, fight.GetProperty("chaseLimit").GetInt32());
+            Assert.Equal(
+                ["carrier", "nearest", "weakest"],
+                fight.GetProperty("targets").EnumerateArray()
+                    .Select(value => value.GetString()!).ToArray());
+            Assert.Equal(
+                ["carrying-core", "enemy-no-longer-nearby"],
+                node.GetProperty("until").GetProperty("any")
+                    .EnumerateArray()
+                    .Select(value => value.GetString()!).ToArray());
+        });
+    }
+
+    [Fact]
     public void QuietTravelGatesAMoversFightToItsDestination()
     {
         // "Quietly on the way, Aggressive there" on a converge: the march

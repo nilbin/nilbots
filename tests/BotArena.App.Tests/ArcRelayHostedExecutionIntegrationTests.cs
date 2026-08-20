@@ -397,6 +397,20 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             Assert.Equal(replayHash, repeated.ReplayHash);
         }
 
+        // Practice compiles the player-owned Tactics source with the running
+        // server. Simulate a sheet saved by an older materializer: its sibling
+        // Orders/map/hash are internally consistent but belong to another
+        // source. Scrimmage/ranked continue pinning those saved bytes; Practice
+        // must not execute them after a compiler restart.
+        await using (AppDbContext db = database.CreateContext())
+        {
+            TacticalSheet stale = await db.TacticalSheets.SingleAsync(
+                value => value.Id == first.Id);
+            stale.PlaybookJson = second.OrdersJson;
+            stale.LayoutJson = second.MapPlanJson;
+            stale.ContentHash = second.ContentHash;
+            await db.SaveChangesAsync();
+        }
         HttpResponseMessage trialQueued = await client.PostAsJsonAsync(
             $"/api/sheets/{first.Id}/trial",
             new TrialTacticalSheetRequest(
@@ -411,6 +425,14 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.True(authoring.AttributionAvailable);
         Assert.Equal(first.Id, authoring.SheetId);
         Assert.Equal(first.Revision, authoring.Revision);
+        Assert.Equal(first.ContentHash, authoring.ContentHash);
+        Assert.True(JsonNode.DeepEquals(
+            JsonNode.Parse(first.OrdersJson),
+            JsonNode.Parse(authoring.OrdersJson)));
+        Assert.True(JsonNode.DeepEquals(
+            JsonNode.Parse(first.MapPlanJson),
+            JsonNode.Parse(authoring.MapPlanJson)));
+        Assert.NotEqual(second.ContentHash, authoring.ContentHash);
         Assert.Contains(
             "arc-relay-tactics-v2", authoring.TacticsJson,
             StringComparison.Ordinal);

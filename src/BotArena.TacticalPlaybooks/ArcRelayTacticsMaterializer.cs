@@ -1193,7 +1193,12 @@ internal static class ArcRelayTacticsMaterializer
         {
             (string[] Targets, string Style, int Chase)? fight = posture switch
             {
-                "hold" => (["nearest", "weakest"], "hold", 1),
+                // Hold keeps ordinary enemies from dragging the body away,
+                // but a defender is allowed a bounded excursion to stop a
+                // visible carrier or close on a gun that can otherwise shoot
+                // it unanswered. Carrier-first targeting and the five-tile
+                // defence leash make that expectation explicit in Orders.
+                "hold" => (["carrier", "nearest", "weakest"], "hold", 5),
                 "aggressive" => (["carrier", "weakest", "nearest"], "advance", 6),
                 "steal" => (["carrier", "nearest"], "advance", 6),
                 "escort" => (["nearest"], "hold", 2),
@@ -1212,6 +1217,15 @@ internal static class ArcRelayTacticsMaterializer
                 When = onStation is null
                     ? Expr.All(EmptyHanded(), EnemyNearby())
                     : Expr.All(EmptyHanded(), EnemyNearby(), onStation),
+                // Hold is admitted only from its authored ground, but that
+                // station gate must not terminate the episode after the first
+                // bounded defensive step. Once active, it owns the same fixed
+                // executor anchor until contact is no longer actionable or
+                // this body acquires a Core. Ordinary floor movement then
+                // returns it to its post/area and resting facing.
+                Until = posture == "hold"
+                    ? Expr.Any([CarryingCore(), EnemyNoLongerNearby()])
+                    : null,
                 Action = Fight(fight.Value.Targets, fight.Value.Style,
                     fight.Value.Chase),
             };
@@ -1714,6 +1728,11 @@ internal static class ArcRelayTacticsMaterializer
             new ConditionShape(
                 "self-nearest-visible-enemy-distance", "at-most", 7),
             "enemy-nearby");
+
+        private string EnemyNoLongerNearby() => Condition(
+            new ConditionShape(
+                "self-nearest-visible-enemy-distance", "greater-than", 7),
+            "enemy-no-longer-nearby");
 
         private string SignatureReady() => Condition(
             new ConditionShape("signature-ready", "equals", 1),
