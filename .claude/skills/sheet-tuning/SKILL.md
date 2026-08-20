@@ -83,6 +83,41 @@ Do not infer a deployment checkpoint from “show me,” “try it,” “galler
 approval of the gameplay idea, merging to `main`, or calling a version the new
 default. Deployment approval is a separate product decision.
 
+## Local App review handoff
+
+When the owner will use the local site, editor, or Practice lane, hand over the
+processes that are actually running—not merely current source or a successful
+build. A long-lived App process keeps the .NET assemblies it loaded at startup;
+building or committing newer code does not update that process. The App also
+serves `web/dist`, so a web source change is not visible there until the web
+production build has refreshed that directory.
+
+Before giving the owner a local URL:
+
+1. Rebuild every layer changed by the task. Build the relevant .NET projects
+   after App, engine, compiler, mind, or server changes; run `npm run build`
+   from `web/` after site/editor/viewer source or assets change. Do not rebuild
+   an unchanged layer as ceremony.
+2. Restart the exact local App or frontend process when it has already loaded a
+   changed layer. Preserve the configured persistent PostgreSQL container,
+   object store, authentication environment, and other local data; an App
+   restart is not authorization to recreate the database. A static `web/dist`
+   refresh normally needs no App restart, while a development server may need
+   one when its configuration or dependencies changed.
+3. Resolve the current listener and process before stopping anything. Stop only
+   the session/PID belonging to this review, account for surviving child
+   processes that may still hold the port, and verify the replacement has a new
+   start time and is listening on the intended URL.
+4. From a separate command, load the exact local URL and exercise one cheap
+   end-to-end path that uses the changed layer. For Practice behavior, confirm
+   the newly created match/replay was produced after the replacement process
+   started; an old replay does not prove the new runtime is loaded.
+
+Record the running build/commit in the server log or session name when
+practical. If the handed-over server predates the implementation under review,
+the handoff has failed even when all tests passed. Galleries served from their
+own built directory remain independent and do not require restarting the App.
+
 ## Fast exhibit loop
 
 Use the standard review cells in this order:
