@@ -692,6 +692,28 @@ export function parseDocument(json: string): TacticsDocument {
   return normalizeDocument(JSON.parse(json));
 }
 
+/** Open an editable saved draft on the map the current authoring catalog
+ * actually renders. This deliberately does not project or otherwise move a
+ * single coordinate: the normal current-map validation below must surface any
+ * route, post or target that the new terrain made invalid. A dimension change
+ * is not safe to relabel and remains an explicit migration problem. */
+export function normalizeEditableDocumentForCatalog(
+  document: unknown,
+  catalog: TacticalSheetCatalog,
+): TacticsDocument {
+  const loaded = normalizeDocument(document);
+  if (loaded.mapWidth !== catalog.map.width || loaded.mapHeight !== catalog.map.height) {
+    throw new Error(
+      `Saved map is ${loaded.mapWidth}x${loaded.mapHeight}; current map is `
+      + `${catalog.map.width}x${catalog.map.height}.`,
+    );
+  }
+  loaded.mapId = catalog.map.id;
+  loaded.mapWidth = catalog.map.width;
+  loaded.mapHeight = catalog.map.height;
+  return loaded;
+}
+
 export function stringifyDocument(document: TacticsDocument): string {
   return JSON.stringify(document, null, 2);
 }

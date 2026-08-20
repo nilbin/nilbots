@@ -18,7 +18,7 @@ import {
 } from './TacticsMapCanvas';
 import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
-  normalizeDocument, parseDocument, postFacingIssue, reversedWayIn,
+  normalizeEditableDocumentForCatalog, postFacingIssue, reversedWayIn,
   signatureMarkGeometry, stringifyDocument,
   tacticCanFinish, validateDocument, sheetIssueFromCompilerError,
   type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
@@ -156,7 +156,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         sheetId: server.id,
         revision: server.revision,
         enterLadder: server.entrant.ladderOptedIn,
-        document: parseDocument(server.tacticsJson),
+        document: normalizeEditableDocumentForCatalog(
+          JSON.parse(server.tacticsJson), catalog),
       };
       // A device draft may predate the current schema: normalize it through
       // the same migration the server copy gets, and never let an unreadable
@@ -164,7 +165,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       let restored: TacticsDraft | null = null;
       if (stored && stored.draft.revision === server.revision) {
         try {
-          const document = normalizeDocument(stored.draft.document);
+          const document = normalizeEditableDocumentForCatalog(
+            stored.draft.document, catalog);
           if (JSON.stringify(document) !== JSON.stringify(serverDraft.document)) {
             restored = {
               ...stored.draft, document,
@@ -548,7 +550,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           sheetId: saved.id,
           revision: saved.revision,
           enterLadder: saved.entrant.ladderOptedIn,
-          document: parseDocument(saved.tacticsJson),
+          document: normalizeEditableDocumentForCatalog(
+            JSON.parse(saved.tacticsJson), catalog),
         });
         setNotice(`Saved · revision ${saved.revision}.`);
         toast(`Saved · revision ${saved.revision}.`);

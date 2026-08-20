@@ -4,7 +4,7 @@ import type { TacticalSheetCatalog } from '../src/site/api';
 import { instantiateRecipe, recipeById } from '../src/site/tactics/recipes';
 import {
   blankDocument, followMembership, freshJob, migrateDocument,
-  normalizeDocument, parseDocument,
+  normalizeDocument, normalizeEditableDocumentForCatalog, parseDocument,
   signatureMarkGeometry, validateDocument,
   type MembershipPocket, type Tactic, type TacticsDocument,
 } from '../src/site/tactics/tacticsDocument';
@@ -503,6 +503,29 @@ test('a v1 document migrates to phases exactly like the server', () => {
   assert.equal(normalized.schema, 'arc-relay-tactics-v2');
   assert.equal(normalized.tactics[0].phases.length, 2);
   assert.throws(() => normalizeDocument({ schema: 'something-else' }));
+});
+
+test('an editable saved draft rebinds to the current map without projecting its geometry', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const originalPost: [number, number] = [12, 9];
+  tactic.phases[0].jobs[tactic.groups[0].id].posts![0].at = originalPost;
+  document.tactics.push(tactic);
+  document.mapId = 'arc-relay-tapline-02';
+
+  const rebound = normalizeEditableDocumentForCatalog(
+    JSON.parse(JSON.stringify(document)), catalog);
+
+  assert.equal(rebound.mapId, 'arc-relay-tapline-03');
+  assert.deepEqual(
+    rebound.tactics[0].phases[0].jobs[tactic.groups[0].id].posts![0].at,
+    originalPost,
+  );
+  assert.throws(() => normalizeEditableDocumentForCatalog({
+    ...document,
+    mapWidth: 30,
+  }, catalog), /Saved map is 30x27; current map is 31x27/);
 });
 
 test('order ids resolve to the author’s names for viewer chips', () => {
