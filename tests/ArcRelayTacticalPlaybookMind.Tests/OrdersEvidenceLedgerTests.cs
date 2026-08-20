@@ -428,6 +428,57 @@ public sealed class OrdersEvidenceLedgerTests
         Assert.Contains(EnemyLife1, read.UnresolvedEnemies);
     }
 
+    [Fact]
+    public void FormationReadinessFreezesThePhaseEntryLives()
+    {
+        var ledger = new OrdersEvidenceLedger();
+        var first = new ActorIdentity(0, 0, 0);
+        var second = new ActorIdentity(0, 1, 0);
+        ledger.ObserveFriendlyLivesSnapshot(10, new Dictionary<int, ActorIdentity>
+        {
+            [0] = first,
+            [1] = second,
+            // Unit 2 was dead on entry and therefore absent.
+        });
+        (int UnitId, string Zone)[] assignments =
+            [(0, "post-a"), (1, "post-b"), (2, "post-c")];
+
+        int late = ledger.FormationLateCount(
+            currentTick: 15,
+            phaseTicks: 5,
+            assignments,
+            new Dictionary<int, OrdersEvidenceLedger.FriendlyLife>
+            {
+                [0] = new(first, new Position(1, 1)),
+                [1] = new(second, new Position(9, 9)),
+                // A respawn of the life that was dead on entry performs the
+                // job, but cannot add itself to the wait cohort.
+                [2] = new(new ActorIdentity(0, 2, 1), new Position(9, 9)),
+            },
+            (zone, position) => zone switch
+            {
+                "post-a" => position == new Position(1, 1),
+                "post-b" => position == new Position(2, 2),
+                "post-c" => position == new Position(3, 3),
+                _ => false,
+            });
+
+        Assert.Equal(1, late);
+
+        // Death while assembling excuses unit 1. A later life in the same
+        // slot remains excused and therefore cannot make readiness flap.
+        var respawned = new Dictionary<int, OrdersEvidenceLedger.FriendlyLife>
+        {
+            [0] = new(first, new Position(1, 1)),
+            [1] = new(new ActorIdentity(0, 1, 1), new Position(9, 9)),
+            [2] = new(new ActorIdentity(0, 2, 1), new Position(9, 9)),
+        };
+        Assert.Equal(0, ledger.FormationLateCount(
+            16, 6, assignments, respawned,
+            (zone, position) => zone == "post-a"
+                && position == new Position(1, 1)));
+    }
+
     private static OrdersEvidenceLedger EnemyLedger()
     {
         var ledger = new OrdersEvidenceLedger();

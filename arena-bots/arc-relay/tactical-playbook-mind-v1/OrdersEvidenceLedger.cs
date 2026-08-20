@@ -8,6 +8,8 @@ internal sealed class OrdersEvidenceLedger
 {
     private readonly Dictionary<int, HashSet<Position>> _visibleAtDecision = [];
     private readonly Dictionary<int, HashSet<Position>> _visibleAfterTick = [];
+    private readonly Dictionary<int, Dictionary<int, ActorIdentity>>
+        _friendlyLivesAtDecision = [];
     private readonly List<EnemySample> _enemySamples = [];
     private readonly List<EnemyEntry> _entries = [];
     private readonly List<EnemyDestruction> _destructions = [];
@@ -20,6 +22,7 @@ internal sealed class OrdersEvidenceLedger
     {
         _visibleAtDecision.Clear();
         _visibleAfterTick.Clear();
+        _friendlyLivesAtDecision.Clear();
         _enemySamples.Clear();
         _entries.Clear();
         _destructions.Clear();
@@ -30,12 +33,91 @@ internal sealed class OrdersEvidenceLedger
     }
 
     public void Observe(int teamId, MindContext mind)
-        => ObserveSnapshot(
+    {
+        ObserveFriendlyLivesSnapshot(
+            mind.Tick,
+            mind.Bodies.ToDictionary(body => body.UnitId, body => body.ActorId));
+        ObserveSnapshot(
             teamId,
             mind.Tick,
             mind.VisibleTiles.Select(tile => tile.Position),
             mind.Enemies,
             mind.VisibleEvents);
+    }
+
+    internal void ObserveFriendlyLivesSnapshot(
+        int tick,
+        IReadOnlyDictionary<int, ActorIdentity> lives)
+    {
+        _friendlyLivesAtDecision[tick] = lives.ToDictionary(
+            pair => pair.Key, pair => pair.Value);
+    }
+
+    /// <summary>Count phase-entry lives that are still alive but have not
+    /// reached their own authored ground. A life absent at phase entry is
+    /// excused; once a required life dies its later respawn is not added to
+    /// the wait cohort. Roles and zones are positional pairs.</summary>
+    internal int FormationLateCount(
+        OrdersPackage package,
+        MindContext mind,
+        IReadOnlyList<string> roles,
+        IReadOnlyList<string> zones,
+        int phaseTicks)
+    {
+        if (roles.Count != zones.Count)
+            throw new InvalidOperationException(
+                "Formation readiness roles and zones must pair exactly.");
+        var assignments = new (int UnitId, string Zone)[roles.Count];
+        for (int index = 0; index < roles.Count; index++)
+        {
+            assignments[index] = (
+                package.RolesByUnit.Single(pair => string.Equals(
+                        pair.Value.Id, roles[index], StringComparison.Ordinal))
+                    .Key,
+                zones[index]);
+        }
+        return FormationLateCount(
+            mind.Tick,
+            phaseTicks,
+            assignments,
+            mind.Bodies.ToDictionary(
+                body => body.UnitId,
+                body => new FriendlyLife(body.ActorId, body.Position)),
+            package.Contains);
+    }
+
+    /// <summary>Testable core of the stable readiness rule. The assignments
+    /// are fixed slot/zone pairs; the entry snapshot fixes the required life
+    /// for each slot.</summary>
+    internal int FormationLateCount(
+        int currentTick,
+        int phaseTicks,
+        IReadOnlyList<(int UnitId, string Zone)> assignments,
+        IReadOnlyDictionary<int, FriendlyLife> current,
+        Func<string, Position, bool> contains)
+    {
+        int entryTick = Math.Max(0, currentTick - phaseTicks);
+        IReadOnlyDictionary<int, ActorIdentity> entryLives =
+            _friendlyLivesAtDecision.TryGetValue(
+                entryTick, out Dictionary<int, ActorIdentity>? snapshot)
+                ? snapshot
+                : current.ToDictionary(
+                    pair => pair.Key, pair => pair.Value.ActorId);
+        int late = 0;
+        foreach ((int unit, string zone) in assignments)
+        {
+            if (!entryLives.TryGetValue(unit, out ActorIdentity? entryLife))
+                continue;
+            if (!current.TryGetValue(unit, out FriendlyLife? body)
+                || body.ActorId != entryLife)
+                continue;
+            if (!contains(zone, body.Position))
+                late++;
+        }
+        return late;
+    }
+
+    internal sealed record FriendlyLife(ActorIdentity ActorId, Position Position);
 
     internal void ObserveSnapshot(
         int teamId,

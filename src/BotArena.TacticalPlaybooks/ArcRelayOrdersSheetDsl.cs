@@ -30,6 +30,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "role-live-count", "role-lowest-health-percent",
             "role-highest-level", "role-in-zone-count",
             "role-deployments-in-zone-count", "live-friendlies",
+            "formation-late-count",
             "friendly-carriers", "live-enemies",
             "friendly-carriers-in-roles",
             "friendly-respawns-next-wave", "enemy-respawns-next-wave",
@@ -104,7 +105,17 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "friendly-carriers-in-roles", "friendly-core-pickups",
             "friendly-core-acquisitions", "friendly-core-banks",
             "friendly-core-drops", "friendly-core-losses",
-            "friendly-core-resolutions",
+            "friendly-core-resolutions", "formation-late-count",
+        };
+
+    /// <summary>Facts whose spatial subject may be a disconnected union.
+    /// The singular zone spelling remains valid for ordinary Orders; Tactics
+    /// materialization uses zones so overlap is canonicalized at runtime.</summary>
+    private static readonly HashSet<string> MultiZoneFacts =
+        new(StringComparer.Ordinal)
+        {
+            "remembered-enemies-in-zone", "zone-cleared",
+            "friendly-fights-in-zone", "formation-late-count",
         };
 
     private static readonly HashSet<string> CoreEvidenceFacts =
@@ -309,7 +320,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 [
                     "role", "zone", "well", "freshnessTicks",
                     "windowTicks", "since", "signature", "coreBankValue",
-                    "roles", "correlateAcquisition", "outcomes",
+                    "roles", "zones", "correlateAcquisition", "outcomes",
                 ]);
             string fact = RequiredString(property.Value, "fact", at);
             if (!ConditionFacts.Contains(fact))
@@ -361,10 +372,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 throw Error(at, $"'{fact}' must be in [0, 8].");
             }
+            if (fact == "formation-late-count" && comparison is < 0 or > 2)
+                throw Error(at, "formation allowed-late must be in [0, 2].");
 
             bool hasRole = property.Value.TryGetProperty("role", out JsonElement role);
             bool hasRoles = property.Value.TryGetProperty("roles", out JsonElement roleList);
             bool hasZone = property.Value.TryGetProperty("zone", out JsonElement zone);
+            bool hasZones = property.Value.TryGetProperty("zones", out JsonElement zoneList);
             bool hasWell = property.Value.TryGetProperty("well", out JsonElement well);
             bool hasFreshness = property.Value.TryGetProperty(
                 "freshnessTicks", out JsonElement freshness);
@@ -396,7 +410,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             else if (hasRole)
                 throw Error(at, $"'{fact}' does not take role.");
-            if (fact == "friendly-carriers-in-roles" && !hasRoles)
+            if (fact is "friendly-carriers-in-roles" or "formation-late-count"
+                && !hasRoles)
                 throw Error(at, $"'{fact}' needs declared roles.");
             bool takesRoleList = RoleListFacts.Contains(fact)
                 || fact == "role-live-count";
@@ -421,19 +436,52 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             else if (hasOutcomes)
                 throw Error(at, $"'{fact}' does not take outcomes.");
-            if (ZoneFacts.Contains(fact))
+            string[] selectedZones = [];
+            if (MultiZoneFacts.Contains(fact))
+            {
+                if (hasZone == hasZones)
+                    throw Error(at, $"'{fact}' needs exactly one of zone or zones.");
+                if (hasZone && zone.ValueKind != JsonValueKind.String)
+                    throw Error(at, $"'{fact}' needs a valid zone.");
+                selectedZones = hasZone
+                    ? [zone.GetString()!]
+                    : fact == "formation-late-count"
+                        ? StringValues(zoneList, $"{at}.zones", 1, 8)
+                        : StringArray(zoneList, $"{at}.zones", 1, 8);
+                foreach (string selectedZone in selectedZones)
+                    IdentifierValue(selectedZone, at, "zone");
+                if (fact != "formation-late-count"
+                    && selectedZones.Distinct(StringComparer.Ordinal).Count()
+                        != selectedZones.Length)
+                    throw Error(at, $"'{fact}' needs unique zones.");
+            }
+            else if (ZoneFacts.Contains(fact))
             {
                 if (!hasZone || zone.ValueKind != JsonValueKind.String)
                     throw Error(at, $"'{fact}' needs a zone.");
-                IdentifierValue(zone.GetString()!, at, "zone");
+                selectedZones = [zone.GetString()!];
+                IdentifierValue(selectedZones[0], at, "zone");
+                if (hasZones)
+                    throw Error(at, $"'{fact}' does not take zones.");
             }
-            else if (hasZone)
+            else if (hasZone || hasZones)
             {
-                if (fact != "self-nearest-visible-enemy-distance")
-                    throw Error(at, $"'{fact}' does not take zone.");
+                if (fact != "self-nearest-visible-enemy-distance" || hasZones)
+                    throw Error(at, $"'{fact}' does not take zone(s).");
                 if (zone.ValueKind != JsonValueKind.String)
                     throw Error(at, $"'{fact}' needs a valid zone when supplied.");
-                IdentifierValue(zone.GetString()!, at, "zone");
+                selectedZones = [zone.GetString()!];
+                IdentifierValue(selectedZones[0], at, "zone");
+            }
+            if (fact == "formation-late-count")
+            {
+                string[] selectedRoles = StringArray(
+                    roleList, $"{at}.roles", 1, 8);
+                if (selectedRoles.Length != selectedZones.Length)
+                {
+                    throw Error(at,
+                        "formation-late-count pairs each role with one zone.");
+                }
             }
             if (WellFacts.Contains(fact))
             {
@@ -552,7 +600,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
             result.Add(id, new ConditionInfo(
                 fact,
-                hasZone ? zone.GetString() : null,
+                selectedZones,
                 hasSince ? since.GetString() : null));
         }
         return result;
@@ -609,7 +657,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             for (int p = 0; p < phases.Length; p++)
             {
                 string phaseAt = $"{at}.phases[{p}]";
-                Object(phases[p], phaseAt, ["id", "name"], ["continue"]);
+                Object(phases[p], phaseAt, ["id", "name"],
+                    ["continue", "custodyGroups"]);
                 string phaseId = Identifier(phases[p], "id", phaseAt);
                 if (phaseId.Length > 24)
                     throw Error($"{phaseAt}.id",
@@ -620,6 +669,30 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 phaseIds.Add(phaseId);
                 consumers.DeclaredPhaseTags.Add($"{id}/{phaseId}");
                 consumers.DeclaredProgramTags.Add($"{id}/{phaseId}");
+                if (phases[p].TryGetProperty(
+                        "custodyGroups", out JsonElement custodyGroups))
+                {
+                    JsonElement[] groups = BoundedArray(
+                        custodyGroups, $"{phaseAt}.custodyGroups", 1, 3);
+                    var seen = new HashSet<int>();
+                    for (int group = 0; group < groups.Length; group++)
+                    {
+                        foreach (JsonElement unitValue in BoundedArray(
+                                     groups[group],
+                                     $"{phaseAt}.custodyGroups[{group}]", 1, 8))
+                        {
+                            if (unitValue.ValueKind != JsonValueKind.Number
+                                || !unitValue.TryGetInt32(out int unit)
+                                || unit is < 0 or > 7
+                                || !seen.Add(unit))
+                            {
+                                throw Error(
+                                    $"{phaseAt}.custodyGroups[{group}]",
+                                    "custody groups contain unique unit ids 0..7.");
+                            }
+                        }
+                    }
+                }
             }
             consumers.DeclaredProgramTags.Add(id);
             for (int p = 0; p < phases.Length; p++)
@@ -742,7 +815,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 + "anchor at phase-entry.");
         }
         consumers.Conditions[name]++;
-        if (info.Zone is string zone)
+        foreach (string zone in info.Zones)
             consumers.ReferenceZone(zone, path);
     }
 
@@ -980,7 +1053,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     $"condition '{id}' anchors at phase-entry and is legal only in program cases.");
             }
             consumers.Conditions[id]++;
-            if (conditions[id].Zone is string zone)
+            foreach (string zone in conditions[id].Zones)
                 consumers.ReferenceZone(zone, path);
             return;
         }
@@ -1042,7 +1115,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     $"condition '{name}' anchors at phase-entry and is legal only in program cases.");
             }
             consumers.Conditions[name]++;
-            if (conditions[name].Zone is string zone)
+            foreach (string zone in conditions[name].Zones)
                 consumers.ReferenceZone(zone, path);
         }
     }
@@ -1683,7 +1756,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
     private sealed record RoleInfo(string Id, string[] Classes, JsonElement Orders);
 
-    private sealed record ConditionInfo(string Fact, string? Zone, string? Since);
+    private sealed record ConditionInfo(
+        string Fact,
+        IReadOnlyList<string> Zones,
+        string? Since);
 
     private sealed record SheetValidation(
         string[] Composition,

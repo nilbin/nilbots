@@ -540,7 +540,7 @@
       {
         "id": "t1",
         "name": "Patrol",
-        "rearm": 40,
+        "rearm": 0,
         "phases": [
           {
             "id": "p1",

@@ -149,13 +149,20 @@ export function groupClause(
 export function condClauses(conds: TacticConds | undefined): string[] {
   if (!conds) return [];
   const out: string[] = [];
-  if (conds.groupsSet) out.push('every Group is in position');
+  if (conds.groupsSet) {
+    const slack = conds.groupsSet === true ? 0 : conds.groupsSet.allowedLate;
+    out.push(slack === 0 ? 'the full formation is ready'
+      : slack === 1 ? 'the formation is ready, allowing one late bot'
+        : 'the formation is ready, allowing two late bots');
+  }
   if (conds.held) out.push(`${conds.held.ticks} ticks have passed here`);
   if (conds.healed) out.push(`everyone is healed to ${conds.healed.percent}%`);
   if (conds.enemiesAt) {
-    const [x0, y0, x1, y1] = conds.enemiesAt.zone.rect;
-    const place = describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
-    out.push(`at least ${conds.enemiesAt.count} enemies are known ${inPlace(place)}`);
+    const count = zonesOf(conds.enemiesAt).length;
+    const enemies = conds.enemiesAt.count === 1
+      ? 'one enemy was'
+      : `${conds.enemiesAt.count} enemies were`;
+    out.push(`at least ${enemies} recently seen across ${count === 1 ? 'this area' : `these ${count} areas`}`);
   }
   if (conds.contact) out.push('an enemy makes contact');
   if (conds.coreLoose) {
@@ -183,16 +190,12 @@ export function condClauses(conds: TacticConds | undefined): string[] {
     out.push(`${numberWord(conds.kills.count)} enem${conds.kills.count === 1 ? 'y is' : 'ies are'} destroyed`);
   }
   if (conds.cleared) {
-    const [x0, y0, x1, y1] = conds.cleared.zone.rect;
-    const place = conds.cleared.zone.name === 'mid' ? 'Mid'
-      : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
-    out.push(`${place} was fully checked within 20 ticks and no enemy is known to remain`);
+    const count = zonesOf(conds.cleared).length;
+    out.push(`${count === 1 ? 'this area was' : `all ${count} areas were`} fully checked within 20 ticks and no enemy is known to remain`);
   }
   if (conds.notFighting) {
-    const [x0, y0, x1, y1] = conds.notFighting.zone.rect;
-    const place = conds.notFighting.zone.name === 'mid' ? 'Mid'
-      : describePlace(Math.round((x0 + x1) / 2), Math.round((y0 + y1) / 2));
-    out.push(`no one is currently fighting ${inPlace(place)}`);
+    const count = zonesOf(conds.notFighting).length;
+    out.push(`no friendly is currently fighting in ${count === 1 ? 'this area' : `these ${count} areas`}`);
   }
   if (conds.coreAcquired) {
     const well = typeof conds.coreAcquired === 'object'
@@ -207,6 +210,10 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   if (conds.reached) out.push('the destination is reached');
   if (conds.observed) out.push('the ground has been watched long enough');
   return out;
+}
+
+function zonesOf(holder: { zones?: unknown[]; zone?: unknown }): unknown[] {
+  return holder.zones ?? (holder.zone ? [holder.zone] : []);
 }
 
 export function orJoin(list: string[]): string {
@@ -281,14 +288,6 @@ export function subjectFor(tactic: Tactic, group: TacticGroup): string {
     : group.name;
 }
 
-/** Where one transition goes, as prose. */
-function destinationPhrase(tactic: Tactic, to: string): string {
-  if (to === 'finish') return 'the Tactic finishes';
-  if (to === 'next') return '';
-  const target = tactic.phases.find((phase) => phase.id === to);
-  return target ? ` they skip ahead to ${target.name}` : '';
-}
-
 export function summarize(
   tactic: Tactic,
   botName: (slot: number) => string | null,
@@ -319,8 +318,7 @@ export function summarize(
   tactic.phases.forEach((phase, index) => {
     if (index === 0) return;
     const previous = tactic.phases[index - 1];
-    const rule = (previous.continue ?? []).find((candidate) =>
-      candidate.to === 'next' || candidate.to === phase.id);
+    const rule = (previous.continue ?? [])[0];
     const when = rule ? caseClause(rule) : '';
     const movers = tactic.groups
       .filter((group) => (phase.jobs[group.id]?.kind ?? 'none') !== 'none')
@@ -335,9 +333,7 @@ export function summarize(
   });
 
   // How it ends: finish transitions, duration, abort.
-  const finishes = tactic.phases
-    .flatMap((phase) => phase.continue ?? [])
-    .filter((rule) => rule.to === 'finish')
+  const finishes = (tactic.phases[tactic.phases.length - 1]?.continue ?? [])
     .map((rule) => caseClause(rule))
     .filter((clause) => clause.length > 0);
   if (finishes.length) {
@@ -372,11 +368,11 @@ export function transitionClause(
   rule: TacticTransition,
 ): string {
   const clause = caseClause(rule);
-  const destination = destinationPhrase(tactic, rule.to);
-  if (rule.to === 'finish') {
+  const final = tactic.phases[tactic.phases.length - 1]?.continue?.includes(rule) ?? false;
+  if (final) {
     return clause ? `Finishes when ${clause}` : 'Finishes';
   }
-  return `${clause ? `Continues once ${clause}` : 'Continues'}${destination}`;
+  return clause ? `Continues to the next phase once ${clause}` : 'Continues to the next phase';
 }
 
 /** The group's job in phase context — used by drawer section headers. */

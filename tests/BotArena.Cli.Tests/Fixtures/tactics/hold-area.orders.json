@@ -958,7 +958,7 @@
       {
         "id": "t1",
         "name": "Hold Mid",
-        "rearm": 40,
+        "rearm": 0,
         "phases": [
           {
             "id": "p1",

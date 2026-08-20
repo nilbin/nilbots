@@ -35,16 +35,23 @@ export interface ZoneRef {
   rect: Rect;
 }
 
+export interface ZoneSetRef {
+  /** New documents use zones. Singular zone remains a load-only compatibility
+   * spelling and is normalized before the next intentional save. */
+  zones: ZoneRef[];
+  zone?: never;
+}
+
 /** Every condition row any case context can carry. Which rows a given
  * context accepts is the ROWS_* lists below, mirroring the server. */
 export interface TacticConds {
   /** Every Group is at its ground this phase — the dead excuse themselves. */
-  groupsSet?: true;
+  groupsSet?: true | { allowedLate: 0 | 1 | 2 };
   /** We have been at this phase for N ticks. */
   held?: { ticks: number };
   /** Every LIVING bot is at ≥N% health — the dead excuse themselves. */
   healed?: { percent: number };
-  enemiesAt?: { count: number; zone: ZoneRef };
+  enemiesAt?: { count: number; zones: ZoneRef[]; zone?: never };
   contact?: true;
   coreLoose?: { well: WellChoice };
   /** That Well's next Core births within N ticks — its one effective clock:
@@ -59,8 +66,8 @@ export interface TacticConds {
   lossesWithin?: { count: number; ticks: number };
   killsWithin?: { count: number; ticks: number };
   kills?: { count: number };
-  cleared?: { zone: ZoneRef };
-  notFighting?: { zone: ZoneRef };
+  cleared?: ZoneSetRef;
+  notFighting?: ZoneSetRef;
   /** true = any Core taken since this phase began; a well narrows it to
    * that source's Core — the claim a Claim phase means. */
   coreAcquired?: true | { well: WellChoice };
@@ -99,8 +106,9 @@ export interface TacticCase {
 
 /** One forward-only latched exit from a phase. */
 export interface TacticTransition extends TacticCase {
-  /** 'next', 'finish', or a LATER phase's id. */
-  to: string;
+  /** Loaded only for pre-pruning documents. New authoring is strictly
+   * sequential and omits this field. */
+  to?: string;
 }
 
 export interface TacticPost {
@@ -204,18 +212,20 @@ export interface TacticsDraft {
 }
 
 export const POSTURES: { id: Posture; label: string; blurb: string }[] = [
-  { id: 'wait', label: 'Wait', blurb: 'Keep quiet, keep out of fights.' },
-  { id: 'hold', label: 'Hold', blurb: 'Fight for this ground, don’t chase.' },
+  { id: 'observe', label: 'Observe', blurb: 'Stay on the assignment and do not voluntarily fight.' },
+  { id: 'hold', label: 'Hold', blurb: 'Fight for this ground with a short defensive leash.' },
   { id: 'aggressive', label: 'Aggressive', blurb: 'Chase, commit, finish kills.' },
-  { id: 'steal', label: 'Steal', blurb: 'Get the Core; fight only to take it.' },
-  { id: 'escort', label: 'Escort', blurb: 'Screen the carrier; peel attackers.' },
-  { id: 'observe', label: 'Observe', blurb: 'Watch and report; break contact.' },
+];
+
+export const TRAVEL_BEHAVIORS: { id: Posture; label: string; blurb: string }[] = [
+  { id: 'observe', label: 'Just march', blurb: 'Ignore contact on the way; destination behavior takes over on arrival.' },
+  { id: 'hold', label: 'Respond to contact', blurb: 'Answer nearby contact with a short leash, then resume this route.' },
+  { id: 'aggressive', label: 'Brawl through', blurb: 'Pursue nearby enemies while travelling, then resume the route.' },
 ];
 
 export const RECOVERIES: { id: Recovery; label: string; blurb: string }[] = [
   { id: 'fight-on', label: 'Fight on', blurb: 'No falling back — hold the plan whatever the damage.' },
-  { id: 'patch', label: 'Patch up close', blurb: 'Step back a moment, let repairs land, slot back in.' },
-  { id: 'heal-tile', label: 'Break for the heal tile', blurb: 'Badly hurt bots run to the nearest heal tile, then return.' },
+  { id: 'heal-tile', label: 'Break for the heal tile', blurb: 'At low health, run to the nearest heal tile; return after recovering.' },
   { id: 'heal-up', label: 'Heal up fully', blurb: 'Break for the heal tile at any damage and stay until completely full — pair with an “Everyone is healed up” condition.' },
 ];
 
@@ -223,15 +233,9 @@ export const RECOVERIES: { id: Recovery; label: string; blurb: string }[] = [
  * the first phase (nothing to do) than later (carry the last plan on). */
 export const JOB_KINDS: { id: JobKind; label: string; blurb: string; draw: DrawKind | null }[] = [
   { id: 'posts', label: 'Take up posts', blurb: 'Exact tiles — one per bot.', draw: 'posts' },
-  { id: 'area', label: 'Hold an area', blurb: 'Gather anywhere inside a box.', draw: 'rect' },
-  { id: 'line', label: 'Spread along a line', blurb: 'A picket between two or more points.', draw: 'route' },
-  { id: 'approach', label: 'Approach a point', blurb: 'Move up quietly and wait short of it.', draw: 'point' },
+  { id: 'area', label: 'Occupy an area', blurb: 'Use flexible positions inside a drawn area.', draw: 'rect' },
   { id: 'converge', label: 'Converge on a spot', blurb: 'Pick the destination — the route finds itself.', draw: 'point' },
-  { id: 'advance', label: 'Advance a route', blurb: 'Push waypoint to waypoint.', draw: 'route' },
   { id: 'patrol', label: 'Patrol a loop', blurb: 'Walk the beat until the phase moves on.', draw: 'route' },
-  { id: 'return', label: 'Return and bank', blurb: 'Run it home to your reactor. No drawing needed.', draw: null },
-  { id: 'escort', label: 'Stay on the carrier', blurb: 'Shadow whoever holds the Core.', draw: null },
-  { id: 'none', label: 'Carry on', blurb: 'Keep the previous phase’s job under this phase’s posture.', draw: null },
 ];
 
 export const CORE_RULES: { id: CoreRule; label: string; blurb: string }[] = [
@@ -511,7 +515,7 @@ export function freshJob(kind: JobKind, posture: Posture): TacticJob {
   return {
     kind,
     posture,
-    recovery: ['aggressive', 'steal'].includes(posture) ? 'fight-on' : 'patch',
+    recovery: 'fight-on',
   };
 }
 
@@ -526,7 +530,7 @@ export function freshPhase(tactic: Tactic, name: string): TacticPhaseDef {
   }
   const jobs: Record<string, TacticJob> = {};
   for (const group of tactic.groups) jobs[group.id] = freshJob('none', 'hold');
-  return { id, name, jobs, continue: [{ triggers: {}, to: 'next' }] };
+  return { id, name, jobs, continue: [{ triggers: {} }] };
 }
 
 /** v1 documents (Stage/Release/Act/Finish) migrate to the phase model
@@ -586,7 +590,7 @@ function migrateTactic(tactic: Record<string, unknown>): void {
 
   const finishContinue: TacticTransition[] | undefined =
     Object.keys(outcomes).length > 0
-      ? [{ triggers: outcomes, to: 'finish' }]
+      ? [{ triggers: outcomes }]
       : undefined;
   const phases: TacticPhaseDef[] = [];
   if (release?.mode === 'immediate' || !anyStage) {
@@ -600,7 +604,6 @@ function migrateTactic(tactic: Record<string, unknown>): void {
   } else {
     const releaseRule: TacticTransition = {
       required: { groupsSet: true },
-      to: 'next',
     };
     if (release?.conds && Object.keys(release.conds).length > 0) {
       releaseRule.triggers = release.conds;
@@ -654,7 +657,14 @@ export function normalizeDocument(document: unknown): TacticsDocument {
   // reshuffle — a post whose bot has left, a signature mark no member's
   // class owns, a job for a dissolved Group — are simply cleaned away.
   for (const tactic of loaded.tactics ?? []) {
-    for (const phase of tactic.phases ?? []) {
+    for (const [phaseIndex, phase] of (tactic.phases ?? []).entries()) {
+      for (const rule of phase.continue ?? []) {
+        const expected = phaseIndex + 1 < tactic.phases.length ? 'next' : 'finish';
+        if (rule.to === expected) delete rule.to;
+      }
+      for (const rows of [
+        ...(phase.continue ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
+      ]) normalizeZoneRows(rows);
       for (const [groupId, job] of Object.entries(phase.jobs ?? {})) {
         const group = tactic.groups?.find((entry) => entry.id === groupId);
         if (!group) {
@@ -685,8 +695,26 @@ export function normalizeDocument(document: unknown): TacticsDocument {
         if (flipped) phase.custody.via = flipped;
       }
     }
+    for (const rows of [
+      ...(tactic.start.cases ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
+      ...(tactic.abort?.cases ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
+    ]) normalizeZoneRows(rows);
   }
   return loaded;
+}
+
+function normalizeZoneRows(rows: TacticConds | undefined): void {
+  if (!rows) return;
+  const normalize = (holder: { zones?: ZoneRef[]; zone?: ZoneRef } | undefined) => {
+    if (!holder || holder.zones) return;
+    if (holder.zone) {
+      holder.zones = [holder.zone];
+      delete holder.zone;
+    }
+  };
+  normalize(rows.enemiesAt as { zones?: ZoneRef[]; zone?: ZoneRef } | undefined);
+  normalize(rows.cleared as { zones?: ZoneRef[]; zone?: ZoneRef } | undefined);
+  normalize(rows.notFighting as { zones?: ZoneRef[]; zone?: ZoneRef } | undefined);
 }
 
 export function parseDocument(json: string): TacticsDocument {
@@ -885,14 +913,9 @@ export function validateDocument(
       }
       rules.forEach((rule, ruleIndex) => {
         const ruleAt = `${phaseAt}.continue[${ruleIndex}]`;
-        if (rule.to === 'next') {
-          if (last) error(`${ruleAt}`, 'The final phase has no next — it can only finish.');
-        } else if (rule.to !== 'finish') {
-          const target = phaseIds.indexOf(rule.to);
-          if (target < 0) error(ruleAt, `Unknown phase '${rule.to}'.`);
-          else if (target <= phaseIndex) {
-            error(ruleAt, 'Transitions are forward-only — a phase may not jump to itself or backward.');
-          }
+        const expected = last ? 'finish' : 'next';
+        if (rule.to !== undefined && rule.to !== expected) {
+          error(ruleAt, `Phases are sequential — this phase can only ${last ? 'finish the Tactic' : 'continue to the next phase'}.`);
         }
         validateCaseRows(rule, ruleAt, TRANSITION_ROWS, error);
         for (const rows of [rule.required, rule.triggers, rule.unless]) {
@@ -951,6 +974,19 @@ function validateCaseRows(
   if (value.triggers?.healed) {
     error(`${at}.triggers`, '“Everyone is healed up” belongs in Required — all of them, not any one.');
   }
+  for (const [kind, holder] of [
+    ['enemiesAt', value.required?.enemiesAt ?? value.triggers?.enemiesAt ?? value.unless?.enemiesAt],
+    ['cleared', value.required?.cleared ?? value.triggers?.cleared ?? value.unless?.cleared],
+    ['notFighting', value.required?.notFighting ?? value.triggers?.notFighting ?? value.unless?.notFighting],
+  ] as const) {
+    const loose = holder as unknown as { zones?: ZoneRef[]; zone?: ZoneRef } | undefined;
+    const zones = loose
+      ? (loose.zones ?? (loose.zone ? [loose.zone] : []))
+      : [];
+    if (holder && (zones.length < 1 || zones.length > 3)) {
+      error(`${at}.${kind}`, `${kind} needs one to three drawn areas.`);
+    }
+  }
   for (const [side, rows] of [
     ['required', value.required], ['triggers', value.triggers],
     ['unless', value.unless],
@@ -970,12 +1006,12 @@ export function tacticCanFinish(tactic: Tactic): {
   finishCarrying: boolean;
 } {
   const last = tactic.phases[tactic.phases.length - 1];
-  const rules = tactic.phases.flatMap((phase) => phase.continue ?? []);
+  const rules = last?.continue ?? [];
   const holdsForever = (last?.continue ?? []).length === 0
     && !tactic.maxDuration
     && !tactic.abort;
-  const finishCarrying = rules.some((rule) => rule.to === 'finish'
-    && (rule.required?.coreAcquired || rule.triggers?.coreAcquired));
+  const finishCarrying = rules.some((rule) =>
+    rule.required?.coreAcquired || rule.triggers?.coreAcquired);
   return { holdsForever, finishCarrying: Boolean(finishCarrying) };
 }
 

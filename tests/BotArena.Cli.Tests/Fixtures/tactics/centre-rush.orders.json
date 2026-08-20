@@ -764,109 +764,30 @@
       "operator": "at-most",
       "value": 7
     },
-    "c-t1-g1-at-0": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "vex",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-vex": {
-      "fact": "role-live-count",
+    "c-t1-p1-formation-ready": {
+      "fact": "formation-late-count",
       "operator": "at-most",
       "value": 0,
-      "role": "vex"
-    },
-    "c-t1-g1-at-1": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "solder",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-solder": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "solder"
-    },
-    "c-t1-g1-at-2": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "gantry",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-gantry": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "gantry"
-    },
-    "c-t1-g1-at-3": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "flux",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-flux": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "flux"
-    },
-    "c-t1-g1-at-4": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "ratchet",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-ratchet": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "ratchet"
-    },
-    "c-t1-g1-at-5": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "ember",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-ember": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "ember"
-    },
-    "c-t1-g1-at-6": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "piston",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-piston": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "piston"
-    },
-    "c-t1-g1-at-7": {
-      "fact": "role-in-zone-count",
-      "operator": "at-least",
-      "value": 1,
-      "role": "cinder",
-      "zone": "g-t1-g1-set"
-    },
-    "dn-cinder": {
-      "fact": "role-live-count",
-      "operator": "at-most",
-      "value": 0,
-      "role": "cinder"
+      "zones": [
+        "g-t1-g1-set",
+        "g-t1-g1-set",
+        "g-t1-g1-set",
+        "g-t1-g1-set",
+        "g-t1-g1-set",
+        "g-t1-g1-set",
+        "g-t1-g1-set",
+        "g-t1-g1-set"
+      ],
+      "roles": [
+        "vex",
+        "solder",
+        "gantry",
+        "flux",
+        "ratchet",
+        "ember",
+        "piston",
+        "cinder"
+      ]
     },
     "c-t1-acquired": {
       "fact": "friendly-core-acquisitions",
@@ -909,7 +830,7 @@
         "id": "t1",
         "name": "Centre Rush",
         "maxTicks": 180,
-        "rearm": 40,
+        "rearm": 0,
         "phases": [
           {
             "id": "p1",
@@ -918,54 +839,7 @@
               {
                 "when": {
                   "all": [
-                    {
-                      "any": [
-                        "c-t1-g1-at-0",
-                        "dn-vex"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-1",
-                        "dn-solder"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-2",
-                        "dn-gantry"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-3",
-                        "dn-flux"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-4",
-                        "dn-ratchet"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-5",
-                        "dn-ember"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-6",
-                        "dn-piston"
-                      ]
-                    },
-                    {
-                      "any": [
-                        "c-t1-g1-at-7",
-                        "dn-cinder"
-                      ]
-                    }
+                    "c-t1-p1-formation-ready"
                   ]
                 },
                 "to": "next"

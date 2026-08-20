@@ -105,18 +105,20 @@ public sealed class ArcRelayTacticsMaterializerTests
             .GetProperty("phases").EnumerateArray().First()
             .GetProperty("continue").EnumerateArray().Single()
             .GetProperty("when");
-        // Every one of the eight bots is individually demanded — at its
-        // ground or dead — with no quorum approximation anywhere.
+        // Formation readiness is one executor fact. It freezes the phase-entry
+        // lives and counts how many of that cohort remain late, rather than
+        // expanding eight subtly different role/zone predicates.
         JsonElement[] pairs = when.GetProperty("all").EnumerateArray().ToArray();
-        Assert.Equal(8, pairs.Length);
-        string[] gateNames = pairs
-            .SelectMany(entry => entry.GetProperty("any").EnumerateArray()
-                .Select(name => name.GetString()!))
-            .ToArray();
-        Assert.Contains("c-t1-g1-at-0", gateNames);
-        Assert.Contains("dn-ember", gateNames);
-        Assert.Contains("c-t1-g2-at-5", gateNames);
-        Assert.Contains("dn-cinder", gateNames);
+        Assert.Single(pairs);
+        Assert.Equal("c-t1-p1-formation-ready", pairs[0].GetString());
+        JsonElement formation = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p1-formation-ready");
+        Assert.Equal("formation-late-count",
+            formation.GetProperty("fact").GetString());
+        Assert.Equal("at-most", formation.GetProperty("operator").GetString());
+        Assert.Equal(0, formation.GetProperty("value").GetInt32());
+        Assert.Equal(8, formation.GetProperty("roles").GetArrayLength());
+        Assert.Equal(8, formation.GetProperty("zones").GetArrayLength());
         string[] rows = when.GetProperty("any").EnumerateArray()
             .Select(entry => entry.GetString()!).ToArray();
         Assert.Equal(["c-t1-p1-enemies", "enemy-contact"], rows);
@@ -125,6 +127,106 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.DoesNotContain(
             "\"rejoin\"",
             Encoding.UTF8.GetString(compilation.MaterializedOrders!));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void FormationReadinessMaterializesTheAuthoredLateBodyAllowance(
+        int allowedLate)
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["required"]!
+            ["groupsSet"] = JsonNode.Parse(
+                $$"""{"allowedLate":{{allowedLate}}}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement formation = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p1-formation-ready");
+        Assert.Equal(allowedLate, formation.GetProperty("value").GetInt32());
+    }
+
+    [Fact]
+    public void FormationReadinessRejectsMoreThanTwoLateBodies()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["required"]!
+            ["groupsSet"] = JsonNode.Parse("""{"allowedLate":3}""");
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("allowedLate", error.Message);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    public void ZoneConditionsAcceptOneToThreeAreas(int count)
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonArray zones = new(Enumerable.Range(0, count)
+            .Select(index => (JsonNode?)JsonNode.Parse(
+                $$"""{"name":"area-{{index + 1}}","rect":[{{10 + index}},10,{{10 + index}},10]}"""))
+            .ToArray());
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["triggers"] =
+            new JsonObject
+            {
+                ["enemiesAt"] = new JsonObject
+                {
+                    ["count"] = 2,
+                    ["zones"] = zones,
+                },
+            };
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement condition = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p1-enemies");
+        Assert.Equal(count, condition.GetProperty("zones").GetArrayLength());
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    public void ZoneConditionsRejectEmptyOrOversizedAreaUnions(int count)
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonArray zones = new(Enumerable.Range(0, count)
+            .Select(index => (JsonNode?)JsonNode.Parse(
+                $$"""{"rect":[{{10 + index}},10,{{10 + index}},10]}"""))
+            .ToArray());
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["triggers"] =
+            new JsonObject
+            {
+                ["enemiesAt"] = new JsonObject
+                {
+                    ["count"] = 2,
+                    ["zones"] = zones,
+                },
+            };
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("zones", error.Message);
     }
 
     [Fact]
@@ -605,7 +707,7 @@ public sealed class ArcRelayTacticsMaterializerTests
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             ArcRelayTacticalPlaybookCompiler.CompileTactics(
                 Encoding.UTF8.GetBytes(document.ToJsonString())));
-        Assert.Contains("forward-only", error.Message);
+        Assert.Contains("strictly in order", error.Message);
     }
 
     [Fact]
@@ -687,7 +789,7 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Equal("t1", tactic.GetProperty("id").GetString());
         Assert.Equal("Pincer", tactic.GetProperty("name").GetString());
         Assert.Equal(180, tactic.GetProperty("maxTicks").GetInt32());
-        Assert.Equal(40, tactic.GetProperty("rearm").GetInt32());
+        Assert.Equal(0, tactic.GetProperty("rearm").GetInt32());
         JsonElement[] phases = tactic.GetProperty("phases").EnumerateArray()
             .ToArray();
         Assert.Equal(
@@ -794,6 +896,82 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void MultiZoneClearanceRecruitsOnlyGroupsLocalToEachArea()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject phase = document["tactics"]![0]!["phases"]![1]!.AsObject();
+        phase["jobs"]!["mid-guard"] = JsonNode.Parse(
+            """
+            {"kind":"posts","posture":"hold","recovery":"fight-on",
+             "posts":[{"at":[4,4],"facing":"e"},{"at":[5,4],"facing":"e"}]}
+            """);
+        phase["jobs"]!["flankers"] = JsonNode.Parse(
+            """
+            {"kind":"converge","posture":"hold","recovery":"fight-on",
+             "point":[25,22]}
+            """);
+        phase["continue"] = JsonNode.Parse(
+            """
+            [{"required":{"cleared":{"zones":[
+              {"name":"west-check","rect":[3,3,6,5]},
+              {"name":"east-check","rect":[24,21,26,23]}
+            ]}}}]
+            """);
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+
+        static string[] ScanZones(JsonElement root, string roleId) =>
+            root.GetProperty("roles").EnumerateArray()
+                .Single(role => role.GetProperty("id").GetString() == roleId)
+                .GetProperty("orders").EnumerateArray().First()
+                .GetProperty("orders").EnumerateArray()
+                .Single(node => node.TryGetProperty("id", out JsonElement id)
+                    && id.GetString() == "t1-p2")
+                .GetProperty("orders").EnumerateArray()
+                .Where(node => node.TryGetProperty("scan", out _))
+                .Select(node => node.GetProperty("scan").GetProperty("zone")
+                    .GetString()!)
+                .ToArray();
+
+        string[] guard = ScanZones(orders.RootElement, "ember");
+        string[] flanker = ScanZones(orders.RootElement, "vex");
+        Assert.Single(guard);
+        Assert.Single(flanker);
+        Assert.NotEqual(guard[0], flanker[0]);
+    }
+
+    [Fact]
+    public void EscortCustodyCarriesPickupPhaseGroupMembershipIntoTheProgram()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["custody"] =
+            JsonNode.Parse("""{"plan":"escort"}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement groups = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().Single()
+            .GetProperty("phases").EnumerateArray().First()
+            .GetProperty("custodyGroups");
+        Assert.Equal(2, groups.GetArrayLength());
+        Assert.Equal([5, 2], groups[0].EnumerateArray()
+            .Select(value => value.GetInt32()).ToArray());
+        Assert.Equal([0, 1, 3, 4, 6, 7], groups[1].EnumerateArray()
+            .Select(value => value.GetInt32()).ToArray());
+    }
+
+    [Fact]
     public void ClearedStartAndAbortRemainObservationOnly()
     {
         JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
@@ -854,8 +1032,10 @@ public sealed class ArcRelayTacticsMaterializerTests
                 == "friendly-fights-in-zone");
 
         Assert.Equal(
-            cleared.GetProperty("zone").GetString(),
-            quiet.GetProperty("zone").GetString());
+            cleared.GetProperty("zones").EnumerateArray()
+                .Select(value => value.GetString()).ToArray(),
+            quiet.GetProperty("zones").EnumerateArray()
+                .Select(value => value.GetString()).ToArray());
     }
 
     [Theory]

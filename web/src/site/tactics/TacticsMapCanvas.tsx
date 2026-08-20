@@ -262,16 +262,18 @@ export function TacticsMapCanvas({
             ? conds?.notFighting
             : conds?.enemiesAt;
         if (!holder) return;
-        const rect: Rect = [...holder.zone.rect];
+        const zone = holder.zones[drag.target.zoneIndex];
+        if (!zone) return;
+        const rect: Rect = [...zone.rect];
         if (drag.kind === 'watchsize') {
-          holder.zone = { rect: [rect[0], rect[1], Math.max(rect[0], x), Math.max(rect[1], y)] };
+          holder.zones[drag.target.zoneIndex] = { rect: [rect[0], rect[1], Math.max(rect[0], x), Math.max(rect[1], y)] };
         } else {
           // Clamp inside the border wall ring, not just the map bounds.
           const w = rect[2] - rect[0];
           const h = rect[3] - rect[1];
           const nx = Math.min(Math.max(x, 1), width - 2 - w);
           const ny = Math.min(Math.max(y, 1), height - 2 - h);
-          holder.zone = { rect: [nx, ny, nx + w, ny + h] };
+          holder.zones[drag.target.zoneIndex] = { rect: [nx, ny, nx + w, ny + h] };
         }
         return;
       }
@@ -451,7 +453,7 @@ function ConditionFootprints({
 
   const watchBoxes = (
     conds: TacticConds | undefined,
-    makeTarget: (row: 'enemiesAt' | 'cleared' | 'notFighting') => WatchTarget,
+    makeTarget: (row: 'enemiesAt' | 'cleared' | 'notFighting', zoneIndex: number) => WatchTarget,
     color: string,
     symbol: string,
     select: string,
@@ -461,14 +463,16 @@ function ConditionFootprints({
   ) => {
     const no = negated ? 'UNLESS ' : '';
     if (conds?.enemiesAt) {
-      const [x0, y0, x1, y1] = conds.enemiesAt.zone.rect;
-      const rowTarget = makeTarget('enemiesAt');
-      parts.push(<g key={`${key}-enemies`}>
+      const enemiesAt = conds.enemiesAt;
+      enemiesAt.zones.forEach((zone, zoneIndex) => {
+      const [x0, y0, x1, y1] = zone.rect;
+      const rowTarget = makeTarget('enemiesAt', zoneIndex);
+      parts.push(<g key={`${key}-enemies-${zoneIndex}`}>
         <rect x={x0 + .06} y={y0 + .06} width={x1 - x0 + .88} height={y1 - y0 + .88} rx={.16}
           fill={`${color}0e`} stroke={color} strokeWidth={.1} strokeDasharray=".12 .2"
           data-select={select} cursor="pointer" />
         {!dim && <ChipLabel x={(x0 + x1 + 1) / 2} y={above ? y0 - .35 : y1 + 2.15}
-          text={`${symbol} ${no}${conds.enemiesAt.count}+ ENEMIES HERE`} color={color} select={select} />}
+          text={`${symbol} ${no}${enemiesAt.count}+ ENEMIES · AREA ${zoneIndex + 1}`} color={color} select={select} />}
         {editable && <>
           <Handle cx={x0} cy={y0} cursor="move"
             onDown={(event) => startDrag(event, { kind: 'watchmove', target: rowTarget })} />
@@ -476,16 +480,18 @@ function ConditionFootprints({
             onDown={(event) => startDrag(event, { kind: 'watchsize', target: rowTarget })} />
         </>}
       </g>);
+      });
     }
     if (conds?.cleared) {
-      const [x0, y0, x1, y1] = conds.cleared.zone.rect;
       const teal = '#38d9c5';
-      const rowTarget = makeTarget('cleared');
-      parts.push(<g key={`${key}-cleared`}>
+      conds.cleared.zones.forEach((zone, zoneIndex) => {
+      const [x0, y0, x1, y1] = zone.rect;
+      const rowTarget = makeTarget('cleared', zoneIndex);
+      parts.push(<g key={`${key}-cleared-${zoneIndex}`}>
         <rect x={x0 + .28} y={y0 + .28} width={x1 - x0 + .44} height={y1 - y0 + .44} rx={.14}
           fill="none" stroke={teal} strokeWidth={.07} strokeDasharray=".3 .16" opacity=".8"
           data-select={select} cursor="pointer" />
-        {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text={`${negated ? '✕ UNLESS' : '✓'} CLEARED HERE`} color={teal}
+        {!dim && <ChipLabel x={x1 - .8} y={y1 + 1.35} text={`${negated ? '✕ UNLESS' : '✓'} CLEAR · AREA ${zoneIndex + 1}`} color={teal}
           select={select} opacity={.95} />}
         {editable && <>
           <Handle cx={x0} cy={y0} cursor="move"
@@ -494,17 +500,19 @@ function ConditionFootprints({
             onDown={(event) => startDrag(event, { kind: 'watchsize', target: rowTarget })} />
         </>}
       </g>);
+      });
     }
     if (conds?.notFighting) {
-      const [x0, y0, x1, y1] = conds.notFighting.zone.rect;
       const quiet = '#f0b35a';
-      const rowTarget = makeTarget('notFighting');
-      parts.push(<g key={`${key}-not-fighting`}>
+      conds.notFighting.zones.forEach((zone, zoneIndex) => {
+      const [x0, y0, x1, y1] = zone.rect;
+      const rowTarget = makeTarget('notFighting', zoneIndex);
+      parts.push(<g key={`${key}-not-fighting-${zoneIndex}`}>
         <rect x={x0 + .16} y={y0 + .16} width={x1 - x0 + .68} height={y1 - y0 + .68} rx={.14}
           fill="none" stroke={quiet} strokeWidth={.07} strokeDasharray=".12 .18" opacity=".8"
           data-select={select} cursor="pointer" />
         {!dim && <ChipLabel x={x0 + 1} y={y0 - .35}
-          text={`${negated ? '✕ UNLESS' : '◇'} NO FIGHT HERE`} color={quiet}
+          text={`${negated ? '✕ UNLESS' : '◇'} NO FIGHT · AREA ${zoneIndex + 1}`} color={quiet}
           select={select} opacity={.95} />}
         {editable && <>
           <Handle cx={x0} cy={y0} cursor="move"
@@ -513,6 +521,7 @@ function ConditionFootprints({
             onDown={(event) => startDrag(event, { kind: 'watchsize', target: rowTarget })} />
         </>}
       </g>);
+      });
     }
     if (conds?.coreLoose) {
       const at = wellCentre(catalog, conds.coreLoose.well);
@@ -530,7 +539,7 @@ function ConditionFootprints({
   (tactic.start.cases ?? []).forEach((entry, caseIndex) => {
     for (const side of ['required', 'triggers', 'unless'] as const) {
       watchBoxes(entry[side],
-        (row) => ({ scope: 'start', caseIndex, side, row }),
+        (row, zoneIndex) => ({ scope: 'start', caseIndex, side, row, zoneIndex }),
         '#e6ddd4', '▶', `${tactic.id}:start`, `start-${caseIndex}-${side}`, true,
         side === 'unless');
     }
@@ -541,7 +550,7 @@ function ConditionFootprints({
     (phase.continue ?? []).forEach((rule, ruleIndex) => {
       for (const side of ['required', 'triggers', 'unless'] as const) {
         watchBoxes(rule[side],
-          (row) => ({ scope: 'continue', phaseIndex, ruleIndex, side, row }),
+          (row, zoneIndex) => ({ scope: 'continue', phaseIndex, ruleIndex, side, row, zoneIndex }),
           '#c8763c', '⚡', `${tactic.id}:phase:${phaseIndex}`,
           `continue-${phaseIndex}-${ruleIndex}-${side}`, false,
           side === 'unless');
@@ -867,15 +876,17 @@ function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
       : task.target.row === 'notFighting' ? conds?.notFighting
         : conds?.enemiesAt;
     if (holder) {
+      const zone = holder.zones[task.target.zoneIndex];
+      if (!zone) return null;
       hint = {
-        rect: holder.zone.rect,
+        rect: zone.rect,
         text: task.target.row === 'cleared'
           ? 'Your team must freshly check this whole ground.'
           : task.target.row === 'notFighting'
             ? 'No friendly Fight may intersect this ground.'
             : 'Enemies are counted inside the box.',
       };
-      hasGeometry = !holder.zone.name && Boolean(holder.zone.rect);
+      hasGeometry = !zone.name && Boolean(zone.rect);
     }
   }
   if (hint && !hasGeometry) {

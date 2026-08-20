@@ -224,7 +224,14 @@ internal sealed class OrdersPackage
                 phases.Add(new ProgramPhase(
                     phase.GetProperty("id").GetString()!,
                     phase.GetProperty("name").GetString()!,
-                    [.. rules]));
+                    [.. rules],
+                    phase.TryGetProperty(
+                        "custodyGroups", out JsonElement custodyGroups)
+                        ? custodyGroups.EnumerateArray()
+                            .Select(group => group.EnumerateArray()
+                                .Select(unit => unit.GetInt32()).ToArray())
+                            .ToArray()
+                        : []));
             }
             tactics.Add(new ProgramTactic(
                 tactic.GetProperty("id").GetString()!,
@@ -301,6 +308,18 @@ internal sealed class OrdersPackage
         }
         return [.. result];
     }
+
+    public bool ContainsAny(IReadOnlyList<string> zoneIds, Position world) =>
+        zoneIds.Any(zone => Contains(zone, world));
+
+    public Position[] ZoneTilesUnion(
+        IReadOnlyList<string> zoneIds,
+        GenericActorMapContract map) => zoneIds
+            .SelectMany(zone => ZoneTiles(zone, map))
+            .Distinct()
+            .OrderBy(position => position.Y)
+            .ThenBy(position => position.X)
+            .ToArray();
 
     public Position ZoneCenter(string zoneId)
     {
@@ -603,6 +622,9 @@ internal sealed class OrdersPackage
             && correlation.GetBoolean(),
         value.TryGetProperty("outcomes", out JsonElement outcomes)
             ? outcomes.EnumerateArray().Select(entry => entry.GetString()!).ToArray()
+            : null,
+        value.TryGetProperty("zones", out JsonElement zones)
+            ? zones.EnumerateArray().Select(entry => entry.GetString()!).ToArray()
             : null);
 
     private static CoreBankValueFilter ParseCoreBankValue(JsonElement value) =>
@@ -724,7 +746,12 @@ internal sealed class OrdersPackage
     internal sealed record ProgramPhase(
         string Id,
         string Name,
-        TransitionRule[] Continue);
+        TransitionRule[] Continue,
+        int[][] CustodyGroups)
+    {
+        public ProgramPhase(string id, string name, TransitionRule[] next)
+            : this(id, name, next, []) { }
+    }
 
     /// <summary>To is "next", "finish", or a later phase id.</summary>
     internal sealed record TransitionRule(ProgramCase When, string To);
@@ -747,7 +774,13 @@ internal sealed class OrdersPackage
         CoreBankValueFilter? CoreBankValue,
         string[]? Roles = null,
         bool CorrelateAcquisition = false,
-        string[]? Outcomes = null);
+        string[]? Outcomes = null,
+        string[]? Zones = null)
+    {
+        public string[] ZoneSet => Zones is { Length: > 0 }
+            ? Zones
+            : Zone is null ? [] : [Zone];
+    }
     internal sealed record CoreBankValueFilter(string Operator, int Value)
     {
         public bool Matches(int actual) => Operator switch

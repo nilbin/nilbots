@@ -601,24 +601,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             for (int rule = 0; rule < ruleValues.Length; rule++)
             {
                 string ruleAt = $"{at}.continue[{rule}]";
-                Object(ruleValues[rule], ruleAt,
-                    ["to"], ["required", "triggers", "unless"]);
-                string to = RequiredString(ruleValues[rule], "to", ruleAt);
-                if (to == "next")
+                Object(ruleValues[rule], ruleAt, [],
+                    ["to", "required", "triggers", "unless"]);
+                string to = last ? "finish" : "next";
+                if (ruleValues[rule].TryGetProperty(
+                        "to", out JsonElement authoredTo))
                 {
-                    if (last)
+                    string legacyTo = StringValue(authoredTo, $"{ruleAt}.to");
+                    if (!string.Equals(legacyTo, to, StringComparison.Ordinal))
+                    {
                         throw Error($"{ruleAt}.to",
-                            "the final phase has no next; use 'finish'.");
-                }
-                else if (to != "finish")
-                {
-                    int target = phaseIds.IndexOf(to);
-                    if (target < 0)
-                        throw Error($"{ruleAt}.to", $"unknown phase '{to}'.");
-                    if (target <= index)
-                        throw Error($"{ruleAt}.to",
-                            "transitions are forward-only; a phase may not "
-                            + "jump to itself or backward.");
+                            "phases now advance strictly in order; remove the "
+                            + $"explicit target (this phase continues to '{to}').");
+                    }
                 }
                 ArcRelayTacticCase when = ValidateCase(
                     ruleValues[rule], ruleAt, width, height,
@@ -684,7 +679,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "'reached' needs a group that converges or advances "
                     + "somewhere in this phase.");
             }
-            if (rows.GroupsSet && !phase.Jobs.Values.Any(job =>
+            if (rows.GroupsSet is not null && !phase.Jobs.Values.Any(job =>
                     job.HasGeometry))
             {
                 throw Error(path,
@@ -1043,7 +1038,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             triggers = ValidateConditionRows(
                 triggerValue, $"{path}.triggers", width, height, allowedRows);
-            if (triggers.GroupsSet)
+            if (triggers.GroupsSet is not null)
             {
                 throw Error($"{path}.triggers",
                     "groupsSet belongs in required — every group must be in "
@@ -1061,7 +1056,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             unless = ValidateConditionRows(
                 unlessValue, $"{path}.unless", width, height, allowedRows);
-            if (unless.GroupsSet)
+            if (unless.GroupsSet is not null)
             {
                 throw Error($"{path}.unless",
                     "groupsSet reads one way; readiness belongs in required.");
@@ -1081,12 +1076,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         Object(value, path, [], allowedRows);
 
-        bool groupsSet = false;
+        ArcRelayTacticReadiness? groupsSet = null;
         if (value.TryGetProperty("groupsSet", out JsonElement groupsSetValue))
         {
-            if (groupsSetValue.ValueKind != JsonValueKind.True)
-                throw Error($"{path}.groupsSet", "groupsSet must be true.");
-            groupsSet = true;
+            int allowedLate;
+            if (groupsSetValue.ValueKind == JsonValueKind.True)
+            {
+                allowedLate = 0;
+            }
+            else
+            {
+                string at = $"{path}.groupsSet";
+                Object(groupsSetValue, at, ["allowedLate"]);
+                allowedLate = Range(
+                    groupsSetValue, "allowedLate", at, 0, 2);
+            }
+            groupsSet = new ArcRelayTacticReadiness(allowedLate);
         }
         int? heldTicks = null;
         if (value.TryGetProperty("held", out JsonElement heldValue))
@@ -1106,12 +1111,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         if (value.TryGetProperty("enemiesAt", out JsonElement enemies))
         {
             string at = $"{path}.enemiesAt";
-            Object(enemies, at, ["count", "zone"]);
+            Object(enemies, at, ["count"], ["zone", "zones"]);
             int count = Range(enemies, "count", at, 1, 8);
             enemiesAt = new ArcRelayTacticEnemiesAtRow(
                 count,
-                ValidateZoneRef(enemies.GetProperty("zone"), $"{at}.zone",
-                    width, height));
+                ValidateZoneRefs(enemies, at, width, height));
         }
         bool contact = false;
         if (value.TryGetProperty("contact", out JsonElement contactValue))
@@ -1177,21 +1181,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(killsValue, at, ["count"]);
             kills = Range(killsValue, "count", at, 1, 8);
         }
-        ArcRelayTacticZoneRef? cleared = null;
+        IReadOnlyList<ArcRelayTacticZoneRef>? cleared = null;
         if (value.TryGetProperty("cleared", out JsonElement clearedValue))
         {
             string at = $"{path}.cleared";
-            Object(clearedValue, at, ["zone"]);
-            cleared = ValidateZoneRef(
-                clearedValue.GetProperty("zone"), $"{at}.zone", width, height);
+            Object(clearedValue, at, [], ["zone", "zones"]);
+            cleared = ValidateZoneRefs(clearedValue, at, width, height);
         }
-        ArcRelayTacticZoneRef? notFighting = null;
+        IReadOnlyList<ArcRelayTacticZoneRef>? notFighting = null;
         if (value.TryGetProperty("notFighting", out JsonElement quietValue))
         {
             string at = $"{path}.notFighting";
-            Object(quietValue, at, ["zone"]);
-            notFighting = ValidateZoneRef(
-                quietValue.GetProperty("zone"), $"{at}.zone", width, height);
+            Object(quietValue, at, [], ["zone", "zones"]);
+            notFighting = ValidateZoneRefs(quietValue, at, width, height);
         }
         // coreAcquired: true (any Core) or { "well": ... } — "THAT Well's
         // Core is taken this phase" is the claim a Claim phase means.
@@ -1260,6 +1262,33 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             IdentifierValue(name, $"{path}.name", "zone name");
         }
         return new ArcRelayTacticZoneRef(name, rect);
+    }
+
+    /// <summary>New authoring uses one-to-three zones. The singular zone
+    /// spelling remains a one-element compatibility form for loaded drafts;
+    /// an object may never carry both spellings.</summary>
+    private static IReadOnlyList<ArcRelayTacticZoneRef> ValidateZoneRefs(
+        JsonElement value,
+        string path,
+        int width,
+        int height)
+    {
+        bool singular = value.TryGetProperty("zone", out JsonElement zone);
+        bool plural = value.TryGetProperty("zones", out JsonElement zones);
+        if (singular == plural)
+        {
+            throw Error(path,
+                "exactly one of zone or zones is required.");
+        }
+        if (singular)
+        {
+            return [ValidateZoneRef(zone, $"{path}.zone", width, height)];
+        }
+        JsonElement[] values = BoundedArray(
+            zones, $"{path}.zones", 1, 3);
+        return values.Select((entry, index) => ValidateZoneRef(
+                entry, $"{path}.zones[{index}]", width, height))
+            .ToArray();
     }
 
     private static int[] BoundedPoint(
@@ -1359,12 +1388,12 @@ internal sealed record ArcRelayTacticConditionRows(
     bool Carrier,
     int? Losses,
     ArcRelayTacticLossesWithinRow? LossesWithin,
-    bool GroupsSet,
+    ArcRelayTacticReadiness? GroupsSet,
     int? HeldTicks,
     int? Healed,
     int? Kills,
-    ArcRelayTacticZoneRef? Cleared,
-    ArcRelayTacticZoneRef? NotFighting,
+    IReadOnlyList<ArcRelayTacticZoneRef>? Cleared,
+    IReadOnlyList<ArcRelayTacticZoneRef>? NotFighting,
     bool CoreAcquired,
     bool CoreBanked,
     bool CoreLost,
@@ -1378,7 +1407,7 @@ internal sealed record ArcRelayTacticConditionRows(
         + (CoreLooseWell is null ? 0 : 1) + (CoreSoon is null ? 0 : 1)
         + (EnemiesDown is null ? 0 : 1) + (Carrier ? 1 : 0)
         + (Losses is null ? 0 : 1) + (LossesWithin is null ? 0 : 1)
-        + (GroupsSet ? 1 : 0) + (HeldTicks is null ? 0 : 1)
+        + (GroupsSet is null ? 0 : 1) + (HeldTicks is null ? 0 : 1)
         + (Healed is null ? 0 : 1)
         + (Kills is null ? 0 : 1) + (Cleared is null ? 0 : 1)
         + (NotFighting is null ? 0 : 1)
@@ -1397,7 +1426,9 @@ internal sealed record ArcRelayTacticCoreSoonRow(string Well, int Ticks);
 
 internal sealed record ArcRelayTacticEnemiesAtRow(
     int Count,
-    ArcRelayTacticZoneRef Zone);
+    IReadOnlyList<ArcRelayTacticZoneRef> Zones);
+
+internal sealed record ArcRelayTacticReadiness(int AllowedLate);
 
 internal sealed record ArcRelayTacticZoneRef(string? Name, int[] Rect);
 

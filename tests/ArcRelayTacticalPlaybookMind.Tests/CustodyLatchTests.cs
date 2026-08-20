@@ -21,6 +21,24 @@ public sealed class CustodyLatchTests
     }
 
     [Fact]
+    public void PickupPhaseCustodyClaimsOnlyTheCarriersOwnGroup()
+    {
+        var latch = new CustodyLatch();
+        latch.Observe([Carrier], "t1", "p2", [[3, 4, 6], [0, 1, 2]]);
+        var advanced = new HashSet<string> { "t1", "t1/p3" };
+
+        Assert.Contains("t1/p2", latch.Augment(3, advanced)!);
+        Assert.Contains("t1/p2", latch.Augment(4, advanced)!);
+        Assert.Contains("t1/p2", latch.Augment(6, advanced)!);
+        Assert.Same(advanced, latch.Augment(1, advanced));
+
+        // Bank, loss or drop ends the temporary branch for carrier and
+        // potential escorts together; the squad remains in its current phase.
+        latch.Observe([], "t1", "p3", [[3, 4, 6], [0, 1, 2]]);
+        Assert.Same(advanced, latch.Augment(4, advanced));
+    }
+
+    [Fact]
     public void TheLatchDissolvesWhenTheCoreLeavesItsHands()
     {
         var latch = new CustodyLatch();

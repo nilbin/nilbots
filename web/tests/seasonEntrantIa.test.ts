@@ -85,24 +85,24 @@ test('phases are latched, forward-only, and carry-on keeps everyone busy', () =>
   assert.match(steps, /its “Continue when…” is latched/);
   assert.match(steps, /Transitions only ever go forward\./);
   assert.match(steps, /the moment it fires, the operation moves forward/);
-  assert.match(documentModel, /Keep the previous phase’s job under this phase’s posture\./);
+  assert.match(documentModel, /carries the previous phase's plan/);
   assert.match(steps, /leave empty to hold here forever/);
 });
 
 test('cases hide boolean words behind Required, Triggered by, and Add alternative', () => {
-  assert.match(conditions, /Enemies gather somewhere/);
+  assert.match(conditions, /At least N enemies were recently seen here/);
   assert.match(conditions, /A Core is up for grabs/);
   assert.match(conditions, /We hold a Core — a friendly carrier exists/);
   assert.match(conditions, /Required — all must hold/);
   assert.match(conditions, /Triggered by — any may fire/);
   assert.match(conditions, /＋ Add alternative/);
-  assert.match(conditions, /Every Group is in position \(the dead excuse themselves\)/);
+  assert.match(conditions, /Formation is ready/);
   // Rows are bucketed under small group headings instead of a fold, so a
   // player scans for "the Core rows" rather than a flat list.
   assert.match(conditions, /Our team/);
   assert.match(conditions, /Enemies/);
   assert.match(conditions, /Cores/);
-  assert.match(conditions, /Time & ground/);
+  assert.doesNotMatch(conditions, /Time & ground/);
   assert.match(conditions, /Unless — none of these/);
   // Alternatives fold to their plain-English line, and any ticked row can
   // branch into "the same, but this one reads the other way".
@@ -111,6 +111,16 @@ test('cases hide boolean words behind Required, Triggered by, and Add alternativ
   assert.match(conditions, /add an alternative where this reads the other way/);
   assert.doesNotMatch(conditions, /\bAND\b|\bOR\b/,
     'no bare boolean vocabulary on the player surface');
+});
+
+test('phase pruning keeps destructive changes safe and multi-area drawing explicit', () => {
+  assert.match(steps, /window\.confirm/);
+  assert.match(steps, /Cancel keeps everything/);
+  assert.match(steps, /Undo job change/);
+  assert.match(conditions, /Area \{zoneIndex \+ 1\}/);
+  assert.match(conditions, /Add another area/);
+  assert.match(conditions, /zones\.length < 3/);
+  assert.doesNotMatch(steps, /Choose next phase|Jump to phase/);
 });
 
 test('the readback speaks player language with real places', () => {
@@ -124,20 +134,20 @@ test('the readback speaks player language with real places', () => {
 
 test('the map draws condition footprints under grabbable group geometry', () => {
   assert.match(canvas, /footprints render under group geometry/);
-  assert.match(canvas, /ENEMIES HERE/);
-  assert.match(canvas, /CLEARED HERE/);
+  assert.match(canvas, /ENEMIES · AREA/);
+  assert.match(canvas, /CLEAR · AREA/);
   assert.match(canvas, /CORE RUN/);
   assert.match(canvas, /data-testid="tactics-map"/);
 });
 
 test('clearance and local fighting use truthful map-first language', () => {
-  assert.match(conditions, /Area is cleared of enemies/);
+  assert.match(conditions, /This area has been verified clear/);
   assert.match(conditions,
     /checked the whole area within the last 20 ticks, with no enemy known to remain/);
-  assert.match(conditions, /No one is currently fighting in this area/);
-  assert.match(conditions, /next\.notFighting\?\.zone/);
-  assert.match(conditions, /next\.cleared\?\.zone/);
-  assert.match(canvas, /NO FIGHT HERE/);
+  assert.match(conditions, /No friendly is currently fighting in this area/);
+  assert.match(conditions, /next\.notFighting\?\.zones/);
+  assert.match(conditions, /next\.cleared\?\.zones/);
+  assert.match(canvas, /NO FIGHT · AREA/);
   assert.match(summary, /fully checked within 20 ticks and no enemy is known to remain/);
 });
 

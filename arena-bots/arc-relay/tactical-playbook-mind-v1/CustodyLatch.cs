@@ -3,10 +3,11 @@ using BotArena.Sdk;
 /// <summary>
 /// Custody latches at pickup (owner ruling, DECISIONS #348): a body that
 /// takes a Core while a program phase is active finishes that carry under
-/// the phase that began it — the pickup phase's tags stay lit for THAT
-/// body even after the squad advances, so its custody leaves (bank plan,
-/// drawn way home, escort arrangement) outrank the new phase's in tree
-/// order. The latch dissolves the moment the Core leaves its hands: bank,
+/// the phase that began it — the pickup phase's tags stay lit for the
+/// carrier and that phase Group's potential escorts after the squad
+/// advances, so its custody leaves (bank plan, drawn way home, escort
+/// arrangement) outrank the new phase's in tree order. The latch dissolves
+/// the moment the Core leaves its hands: bank,
 /// drop, death, or pass (the catcher latches fresh at ITS current phase).
 /// Squad-level phase progress is untouched — only the carrier's own view
 /// of which subtrees are lit widens.
@@ -16,7 +17,8 @@ internal sealed class CustodyLatch
     internal sealed record Latch(
         ActorIdentity Carrier,
         string TacticTag,
-        string PhaseTag);
+        string PhaseTag,
+        int[] ClaimedUnits);
 
     private readonly Dictionary<int, Latch> _byUnit = new();
 
@@ -26,7 +28,8 @@ internal sealed class CustodyLatch
     public void Observe(
         IReadOnlyCollection<ActorIdentity> carriers,
         string? tacticId,
-        string? phaseId)
+        string? phaseId,
+        IReadOnlyList<int[]>? custodyGroups = null)
     {
         foreach (int unit in _byUnit.Keys.ToArray())
         {
@@ -39,13 +42,20 @@ internal sealed class CustodyLatch
         {
             if (!_byUnit.ContainsKey(carrier.UnitId))
             {
+                int[] claimed = (custodyGroups ?? []).FirstOrDefault(group =>
+                        group.Contains(carrier.UnitId))
+                    ?? [carrier.UnitId];
                 _byUnit[carrier.UnitId] = new Latch(
-                    carrier, tacticId, $"{tacticId}/{phaseId}");
+                    carrier, tacticId, $"{tacticId}/{phaseId}", claimed);
             }
         }
     }
 
-    public Latch? For(int unitId) => _byUnit.GetValueOrDefault(unitId);
+    public Latch? For(int unitId) =>
+        _byUnit.GetValueOrDefault(unitId)
+        ?? _byUnit.OrderBy(pair => pair.Key)
+            .Select(pair => pair.Value)
+            .FirstOrDefault(latch => latch.ClaimedUnits.Contains(unitId));
 
     /// <summary>This body's enabled set: the squad's tags plus its own
     /// latched carry tags. Null (a legacy sheet with no program) stays
@@ -57,7 +67,7 @@ internal sealed class CustodyLatch
     {
         if (squadTags is null)
             return null;
-        Latch? latch = _byUnit.GetValueOrDefault(unitId);
+        Latch? latch = For(unitId);
         if (latch is null
             || (squadTags.Contains(latch.TacticTag)
                 && squadTags.Contains(latch.PhaseTag)))

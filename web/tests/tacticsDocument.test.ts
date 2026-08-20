@@ -4,6 +4,7 @@ import type { TacticalSheetCatalog } from '../src/site/api';
 import { instantiateRecipe, recipeById } from '../src/site/tactics/recipes';
 import {
   blankDocument, followMembership, freshJob, migrateDocument,
+  JOB_KINDS, POSTURES, RECOVERIES, TRAVEL_BEHAVIORS,
   normalizeDocument, normalizeEditableDocumentForCatalog, parseDocument,
   signatureMarkGeometry, validateDocument,
   type MembershipPocket, type Tactic, type TacticsDocument,
@@ -107,26 +108,82 @@ test('an instantiated pincer with drawn geometry validates cleanly', () => {
   assert.deepEqual(issues.filter((issue) => issue.severity === 'error'), []);
 });
 
-test('the pincer recipe is a four-phase operation with a forward-only spine', () => {
+test('normal phase authoring exposes exactly the pruned vocabulary', () => {
+  assert.deepEqual(JOB_KINDS.map((value) => value.id),
+    ['posts', 'area', 'converge', 'patrol']);
+  assert.deepEqual(POSTURES.map((value) => value.id),
+    ['observe', 'hold', 'aggressive']);
+  assert.deepEqual(TRAVEL_BEHAVIORS.map((value) => value.id),
+    ['observe', 'hold', 'aggressive']);
+  assert.deepEqual(RECOVERIES.map((value) => value.id),
+    ['fight-on', 'heal-tile', 'heal-up']);
+});
+
+test('readiness slack and one-to-three zone unions round-trip', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases[0].continue = [{
+    required: {
+      groupsSet: { allowedLate: 1 },
+      enemiesAt: {
+        count: 4,
+        zones: [
+          { rect: [10, 10, 12, 12] },
+          { rect: [18, 10, 20, 12] },
+          { rect: [14, 14, 16, 16] },
+        ],
+      },
+    },
+  }];
+  document.tactics.push(tactic);
+  const loaded = normalizeDocument(JSON.parse(JSON.stringify(document)));
+  assert.deepEqual(loaded.tactics[0].phases[0].continue![0].required?.groupsSet,
+    { allowedLate: 1 });
+  assert.equal(loaded.tactics[0].phases[0].continue![0].required?.enemiesAt?.zones.length, 3);
+  assert.deepEqual(validateDocument(loaded, catalog).filter((issue) => issue.severity === 'error'), []);
+
+  loaded.tactics[0].phases[0].continue![0].required!.enemiesAt!.zones = [];
+  assert.ok(validateDocument(loaded, catalog).some((issue) => /one to three/.test(issue.message)));
+  loaded.tactics[0].phases[0].continue![0].required!.enemiesAt!.zones = [
+    { rect: [1, 1, 2, 2] }, { rect: [3, 1, 4, 2] },
+    { rect: [5, 1, 6, 2] }, { rect: [7, 1, 8, 2] },
+  ];
+  assert.ok(validateDocument(loaded, catalog).some((issue) => /one to three/.test(issue.message)));
+});
+
+test('legacy single zones normalize to the editable union shape', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases[0].continue = [{ required: {
+    cleared: { zone: { name: 'mid', rect: [12, 10, 18, 16] } },
+  } as never }];
+  document.tactics.push(tactic);
+  const loaded = normalizeDocument(JSON.parse(JSON.stringify(document)));
+  const cleared = loaded.tactics[0].phases[0].continue![0].required?.cleared;
+  assert.equal(cleared?.zones.length, 1);
+  assert.equal((cleared as unknown as { zone?: unknown }).zone, undefined);
+});
+
+test('the pincer recipe is a four-phase operation with a sequential spine', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
   const { tactic } = instantiateRecipe(recipeById('pincer'), document);
   assert.deepEqual(
     tactic.phases.map((phase) => phase.name),
-    ['Set the trap', 'Close the trap', 'Exploit the opening', 'Extract the Core']);
+    ['Set the trap', 'Close the trap', 'Exploit the opening', 'Secure the opening']);
   // The release rule demands every Group in place AND a trigger.
   const release = tactic.phases[0].continue![0];
-  assert.equal(release.required?.groupsSet, true);
+  assert.deepEqual(release.required?.groupsSet, { allowedLate: 0 });
   assert.ok(release.triggers?.enemiesAt);
-  assert.equal(release.to, 'next');
-  // The final phase finishes on the Core landing either way.
-  const finish = tactic.phases[3].continue![0];
-  assert.equal(finish.to, 'finish');
-  assert.equal(finish.triggers?.coreBanked, true);
-  assert.equal(finish.triggers?.coreLost, true);
+  assert.equal(release.to, undefined);
+  // The final phase deliberately holds; custody handles a Core temporarily
+  // without requiring a bank/loss phase transition.
+  assert.equal(tactic.phases[3].continue, undefined);
 });
 
-test('forward-only transitions and phase-one geometry are enforced', () => {
+test('strictly sequential transitions and phase-one geometry are enforced', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
   const tactic = drawnPincer(document);
@@ -134,15 +191,15 @@ test('forward-only transitions and phase-one geometry are enforced', () => {
   // A backward jump is named in player language.
   tactic.phases[2].continue = [{ triggers: { coreAcquired: true }, to: tactic.phases[0].id }];
   let messages = validateDocument(document, catalog).map((issue) => issue.message);
-  assert.ok(messages.some((message) => /forward-only/.test(message)));
-  tactic.phases[2].continue = [{ triggers: { coreAcquired: true }, to: 'next' }];
+  assert.ok(messages.some((message) => /sequential/.test(message)));
+  tactic.phases[2].continue = [{ triggers: { coreAcquired: true } }];
   // A middle phase without a continue rule is a dead end.
   delete tactic.phases[1].continue;
   messages = validateDocument(document, catalog).map((issue) => issue.message);
   assert.ok(messages.some((message) => /only the final phase may hold forever/.test(message)));
-  tactic.phases[1].continue = [{ triggers: { kills: { count: 2 } }, to: 'next' }];
+  tactic.phases[1].continue = [{ triggers: { enemiesDown: { count: 2 } } }];
   // groupsSet is a Required idea — any-one-bot makes no sense.
-  tactic.phases[1].continue = [{ triggers: { groupsSet: true }, to: 'next' }];
+  tactic.phases[1].continue = [{ triggers: { groupsSet: true } }];
   messages = validateDocument(document, catalog).map((issue) => issue.message);
   assert.ok(messages.some((message) => /belongs in Required/.test(message)));
 });
@@ -242,7 +299,6 @@ test('core-soon and enemies-down rows validate and read back', () => {
   tactic.phases[0].continue = [{
     required: { groupsSet: true },
     triggers: { coreSoon: { well: 'centre', ticks: 20 } },
-    to: 'next',
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
@@ -264,14 +320,17 @@ test('two event rows AND together through Required, no trigger needed', () => {
       enemiesAt: { count: 5, zone: { rect: [12, 10, 18, 16] } },
       coreSoon: { well: 'centre', ticks: 20 },
     },
-    to: 'next',
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
     validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence,
-    /every Group is in position, at least 5 enemies are known at Mid and the Centre Well births its next Core within 20 ticks/);
+    /the full formation is ready, at least 5 enemies were recently seen across this area and the Centre Well births its next Core within 20 ticks/);
+  tactic.phases[0].continue![0].required!.enemiesAt!.count = 1;
+  assert.match(
+    summarize(tactic, (slot) => document.squad[slot]?.name ?? null),
+    /at least one enemy was recently seen across this area/);
 });
 
 test('healed gate, travel posture and heal-up recovery validate and read back', () => {
@@ -283,7 +342,6 @@ test('healed gate, travel posture and heal-up recovery validate and read back', 
   tactic.phases[0].jobs[flankers.id].recovery = 'heal-up';
   tactic.phases[0].continue = [{
     required: { groupsSet: true, healed: { percent: 80 } },
-    to: 'next',
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
@@ -293,7 +351,7 @@ test('healed gate, travel posture and heal-up recovery validate and read back', 
   assert.match(sentence, /answering attacks on the way/);
   assert.match(sentence, /topping up fully at the heal tile/);
   // healed is a Required idea — "any one bot is topped up" makes no sense.
-  tactic.phases[0].continue = [{ triggers: { healed: { percent: 80 } }, to: 'next' }];
+  tactic.phases[0].continue = [{ triggers: { healed: { percent: 80 } } }];
   const messages = validateDocument(document, catalog).map((issue) => issue.message);
   assert.ok(messages.some((message) => /belongs in Required/.test(message)));
 });
@@ -305,17 +363,16 @@ test('an unless side validates, refuses readiness, and reads back inverted', () 
   tactic.phases[0].continue = [{
     required: { groupsSet: true },
     unless: { contact: true, coreLoose: { well: 'centre' } },
-    to: 'next',
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
     validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence,
-    /every Group is in position — unless an enemy makes contact, or a Core is up for grabs at the Centre Well/);
+    /the full formation is ready — unless an enemy makes contact, or a Core is up for grabs at the Centre Well/);
   // Readiness reads one way; unless refuses it.
   tactic.phases[0].continue = [{
-    triggers: { contact: true }, unless: { groupsSet: true }, to: 'next',
+    triggers: { contact: true }, unless: { groupsSet: true },
   }];
   const messages = validateDocument(document, catalog).map((issue) => issue.message);
   assert.ok(messages.some((message) => /reads one way/.test(message)));
@@ -351,7 +408,6 @@ test('current-state rows read in every context and healed inverts under unless',
   tactic.phases[0].continue = [{
     required: { groupsSet: true },
     unless: { healed: { percent: 80 } },
-    to: 'next',
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
@@ -368,7 +424,6 @@ test('a rout window pairs with an event row and reads back', () => {
   // forms of both sides, so the AND meets across staggered timing.
   tactic.phases[0].continue = [{
     required: { killsWithin: { count: 4, ticks: 40 }, coreAcquired: true },
-    to: 'next',
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
@@ -382,7 +437,7 @@ test('a well-scoped core claim validates and reads back possessively', () => {
   const document = makeDocument(catalog);
   const tactic = drawnPincer(document);
   tactic.phases[2].continue = [{
-    required: { coreAcquired: { well: 'enemy' } }, to: 'next',
+    required: { coreAcquired: { well: 'enemy' } },
   }];
   document.tactics.push(tactic);
   assert.deepEqual(
@@ -436,11 +491,11 @@ test('the readback walks a pincer through its named phases', () => {
   const tactic = drawnPincer(document);
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence, /^Two bots hold posts at Mid/);
-  assert.match(sentence, /while six (stage|wait)/);
-  assert.match(sentence, /every Group is in position/);
+  assert.match(sentence, /while six keep watch/);
+  assert.match(sentence, /the full formation is ready/);
   assert.match(sentence, /Close the trap: the six converge on Mid aggressively\./);
-  assert.match(sentence, /Extract the Core/);
-  assert.match(sentence, /Finish when a Core is banked, or the Core is lost — or the time limit expires\./);
+  assert.match(sentence, /Secure the opening/);
+  assert.match(sentence, /Finish when the time limit expires\./);
 });
 
 test('a v1 document migrates to phases exactly like the server', () => {
@@ -478,7 +533,7 @@ test('a v1 document migrates to phases exactly like the server', () => {
   const release = tactic.phases[0].continue![0];
   assert.equal(release.required?.groupsSet, true);
   assert.equal(release.triggers?.contact, true);
-  assert.equal(release.to, 'next');
+  assert.equal(release.to, undefined);
   // Stage geometry and its marks moved into the phase-one job.
   const stageJob = tactic.phases[0].jobs.g1;
   assert.deepEqual(stageJob.rect, [8, 10, 13, 15]);
@@ -487,7 +542,7 @@ test('a v1 document migrates to phases exactly like the server', () => {
   // was dropped from the rows (an empty final continue is the persistent
   // form, and this tactic has a real ending).
   const finish = tactic.phases[1].continue![0];
-  assert.equal(finish.to, 'finish');
+  assert.equal(finish.to, undefined);
   assert.equal(finish.triggers?.coreBanked, true);
   assert.ok(!('persistent' in (finish.triggers ?? {})));
   // Groups shrank to membership.

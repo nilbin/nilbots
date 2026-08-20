@@ -15,7 +15,7 @@ namespace BotArena.TacticalPlaybooks;
 /// </summary>
 internal static class ArcRelayTacticsMaterializer
 {
-    private const int RearmTicks = 40;
+    private const int RearmTicks = 0;
     private const int BriefTimeout = 60;
     private const int StandardTimeout = 180;
     private const int LongTimeout = 420;
@@ -307,7 +307,12 @@ internal static class ArcRelayTacticsMaterializer
                             phase, tactic), to));
                     }
                     phases.Add(new ProgramPhaseSpec(
-                        $"p{phaseIndex + 1}", phase.Name, rules));
+                        $"p{phaseIndex + 1}", phase.Name, rules,
+                        (phase.Custody?.Plan ?? tactic.Delivery.Plan) == "escort"
+                            ? tactic.Groups
+                                .Select(group => group.Slots.ToArray())
+                                .ToArray()
+                            : []));
                 }
                 tactics.Add(new ProgramTacticSpec(
                     prefix,
@@ -391,8 +396,12 @@ internal static class ArcRelayTacticsMaterializer
                 Condition(
                     invert ? Invert(shape) : shape,
                     invert ? $"no-{name}" : name));
-            if (rows.GroupsSet && phase is not null && !invert)
-                AddReadinessEntries(entries, prefix, context, phase, tactic);
+            if (rows.GroupsSet is ArcRelayTacticReadiness readiness
+                && phase is not null && !invert)
+            {
+                AddReadinessEntry(
+                    entries, prefix, context, phase, tactic, readiness);
+            }
             if (rows.HeldTicks is int held)
             {
                 Add(new ConditionShape("elapsed-ticks", "at-least", held),
@@ -421,11 +430,14 @@ internal static class ArcRelayTacticsMaterializer
             }
             if (rows.EnemiesAt is ArcRelayTacticEnemiesAtRow enemies)
             {
-                string zone = Zone(
-                    enemies.Zone.Rect, $"g-{prefix}-{context}-watch");
+                string[] zones = enemies.Zones.Select((zone, index) => Zone(
+                        zone.Rect,
+                        $"g-{prefix}-{context}-watch-{index + 1}"))
+                    .ToArray();
                 Add(new ConditionShape(
                         "remembered-enemies-in-zone", "at-least", enemies.Count,
-                        ZoneId: zone, FreshnessTicks: RememberedFreshnessTicks),
+                        ZoneIds: zones,
+                        FreshnessTicks: RememberedFreshnessTicks),
                     $"c-{prefix}-{context}-enemies");
             }
             if (rows.Contact)
@@ -506,20 +518,24 @@ internal static class ArcRelayTacticsMaterializer
                         kills, ZoneId: AnywhereZone(), Since: "phase-entry"),
                     $"c-{prefix}-kills");
             }
-            if (rows.Cleared is ArcRelayTacticZoneRef cleared)
+            if (rows.Cleared is { Count: > 0 } cleared)
             {
-                string zone = Zone(cleared.Rect, $"g-{prefix}-cleared");
+                string[] zones = cleared.Select((zone, index) => Zone(
+                        zone.Rect, $"g-{prefix}-cleared-{index + 1}"))
+                    .ToArray();
                 Add(new ConditionShape(
-                        "zone-cleared", "equals", 1, ZoneId: zone),
+                        "zone-cleared", "equals", 1, ZoneIds: zones),
                     $"c-{prefix}-cleared");
             }
-            if (rows.NotFighting is ArcRelayTacticZoneRef notFighting)
+            if (rows.NotFighting is { Count: > 0 } notFighting)
             {
-                string zone = Zone(
-                    notFighting.Rect, $"g-{prefix}-not-fighting");
+                string[] zones = notFighting.Select((zone, index) => Zone(
+                        zone.Rect,
+                        $"g-{prefix}-not-fighting-{index + 1}"))
+                    .ToArray();
                 Add(new ConditionShape(
                         "friendly-fights-in-zone", "equals", 0,
-                        ZoneId: zone),
+                        ZoneIds: zones),
                     $"c-{prefix}-not-fighting");
             }
             if (rows.CoreBanked)
@@ -586,13 +602,16 @@ internal static class ArcRelayTacticsMaterializer
         /// no short-handed approximation — the coordinator evaluates this
         /// once at squad level, where per-body gate budgets no longer bind.
         /// </summary>
-        private void AddReadinessEntries(
+        private void AddReadinessEntry(
             List<object> entries,
             string prefix,
             string context,
             ArcRelayTacticPhaseDef phase,
-            ArcRelayTactic tactic)
+            ArcRelayTactic tactic,
+            ArcRelayTacticReadiness readiness)
         {
+            var roles = new List<string>();
+            var zones = new List<string>();
             for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
             {
                 ArcRelayTacticGroup group = tactic.Groups[groupIndex];
@@ -600,11 +619,6 @@ internal static class ArcRelayTacticsMaterializer
                 if (job is null)
                     continue;
                 string groupTag = $"g{groupIndex + 1}";
-                // Small posts groups gate each bot at its own post; larger
-                // ones share the posts footprint so the zone table stays
-                // affordable — either way the check is per bot and exact.
-                bool perPostZones = job.Kind == "posts"
-                    && group.Slots.Count <= 3;
                 int[]? footprint = job.Kind switch
                 {
                     "posts" => PadBounds(BoundingBox(
@@ -632,31 +646,29 @@ internal static class ArcRelayTacticsMaterializer
                     continue;
                 for (int member = 0; member < group.Slots.Count; member++)
                 {
-                    int[] rect = perPostZones
+                    // Posts are always slot-exact, including a full eight-body
+                    // group. A large formation is not a bounding-box quorum.
+                    int[] rect = job.Kind == "posts"
                         ? PadBounds(
                             [
                                 job.Posts![member].At[0], job.Posts[member].At[1],
                                 job.Posts[member].At[0], job.Posts[member].At[1],
                             ], 1)
                         : footprint;
-                    string zone = perPostZones
+                    string zone = job.Kind == "posts"
                         ? Zone(rect, $"g-{prefix}-{groupTag}-near-post-{member}")
                         : Zone(rect, $"g-{prefix}-{groupTag}-set");
-                    string atGround = Condition(
-                        new ConditionShape(
-                            "role-in-zone-count", "at-least", 1,
-                            Role: RoleId(group.Slots[member]), ZoneId: zone),
-                        $"c-{prefix}-{groupTag}-at-{member}");
-                    // Role-scoped name: the same bot's excuse interns once
-                    // and every gate references it.
-                    string down = Condition(
-                        new ConditionShape(
-                            "role-live-count", "at-most", 0,
-                            Role: RoleId(group.Slots[member])),
-                        $"dn-{RoleId(group.Slots[member])}");
-                    entries.Add(new Expr("any", [atGround, down]));
+                    roles.Add(RoleId(group.Slots[member]));
+                    zones.Add(zone);
                 }
             }
+            if (roles.Count == 0)
+                return;
+            entries.Add(Condition(
+                new ConditionShape(
+                    "formation-late-count", "at-most", readiness.AllowedLate,
+                    Roles: roles.ToArray(), ZoneIds: zones.ToArray()),
+                $"c-{prefix}-{context}-formation-ready"));
         }
 
         public RoleEmission BuildRole(ArcRelayTacticsSquadBot bot)
@@ -910,10 +922,16 @@ internal static class ArcRelayTacticsMaterializer
         private static IEnumerable<ArcRelayTacticZoneRef>
             PositiveClearanceZones(ArcRelayTacticCase value)
         {
-            if (value.Required?.Cleared is ArcRelayTacticZoneRef required)
-                yield return required;
-            if (value.Triggers?.Cleared is ArcRelayTacticZoneRef trigger)
-                yield return trigger;
+            if (value.Required?.Cleared is { } required)
+            {
+                foreach (ArcRelayTacticZoneRef zone in required)
+                    yield return zone;
+            }
+            if (value.Triggers?.Cleared is { } trigger)
+            {
+                foreach (ArcRelayTacticZoneRef zone in trigger)
+                    yield return zone;
+            }
         }
 
         private static bool RectsTouch(int[] first, int[] second) =>
@@ -1956,12 +1974,14 @@ internal static class ArcRelayTacticsMaterializer
         int? FreshnessTicks = null,
         int? WindowTicks = null,
         string? Since = null,
-        string[]? Roles = null)
+        string[]? Roles = null,
+        string[]? ZoneIds = null)
     {
         public string Key => string.Join('|',
             Fact, Operator, Value, Role, ZoneId, Well, FreshnessTicks,
             WindowTicks, Since,
-            Roles is null ? null : string.Join(',', Roles));
+            Roles is null ? null : string.Join(',', Roles),
+            ZoneIds is null ? null : string.Join(',', ZoneIds));
     }
 
     private sealed record ConditionDef(string Id, ConditionShape Shape)
@@ -1976,6 +1996,13 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteString("role", Shape.Role);
             if (Shape.ZoneId is not null)
                 writer.WriteString("zone", Shape.ZoneId);
+            if (Shape.ZoneIds is not null)
+            {
+                writer.WriteStartArray("zones");
+                foreach (string zone in Shape.ZoneIds)
+                    writer.WriteStringValue(zone);
+                writer.WriteEndArray();
+            }
             if (Shape.Well is not null)
                 writer.WriteString("well", Shape.Well);
             if (Shape.FreshnessTicks is int freshness)
@@ -2032,6 +2059,18 @@ internal static class ArcRelayTacticsMaterializer
                         }
                         writer.WriteEndArray();
                     }
+                    if (phase.CustodyGroups.Count > 0)
+                    {
+                        writer.WriteStartArray("custodyGroups");
+                        foreach (IReadOnlyList<int> group in phase.CustodyGroups)
+                        {
+                            writer.WriteStartArray();
+                            foreach (int unit in group)
+                                writer.WriteNumberValue(unit);
+                            writer.WriteEndArray();
+                        }
+                        writer.WriteEndArray();
+                    }
                     writer.WriteEndObject();
                 }
                 writer.WriteEndArray();
@@ -2067,7 +2106,8 @@ internal static class ArcRelayTacticsMaterializer
     private sealed record ProgramPhaseSpec(
         string Id,
         string Name,
-        IReadOnlyList<(CaseSpec When, string To)> Continue);
+        IReadOnlyList<(CaseSpec When, string To)> Continue,
+        IReadOnlyList<IReadOnlyList<int>> CustodyGroups);
 
     /// <summary>all(All…) AND any(Any…); entries are interned condition
     /// names or one-level nested any/all groups (readiness pairs).</summary>

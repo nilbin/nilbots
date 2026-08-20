@@ -26,7 +26,7 @@ export interface RecipePhasePrefill {
   /** One job per group, aligned with the groups array; null = carry on. */
   jobs: ({ kind: JobKind; posture: Posture } | null)[];
   /** Absent on the final phase = the operation holds there forever. */
-  continue?: { required?: TacticConds; triggers?: TacticConds; to: string }[];
+  continue?: { required?: TacticConds; triggers?: TacticConds }[];
 }
 
 export interface Recipe {
@@ -74,15 +74,14 @@ export const RECIPES: Recipe[] = [
     phases: [
       {
         name: 'Assemble',
-        jobs: [{ kind: 'area', posture: 'wait' }],
-        continue: [{ required: { groupsSet: true }, to: 'next' }],
+        jobs: [{ kind: 'area', posture: 'observe' }],
+        continue: [{ required: { groupsSet: { allowedLate: 0 } } }],
       },
       {
         name: 'Push',
-        jobs: [{ kind: 'advance', posture: 'aggressive' }],
+        jobs: [{ kind: 'converge', posture: 'aggressive' }],
         continue: [{
-          triggers: { kills: { count: 3 }, coreAcquired: true, reached: true },
-          to: 'finish',
+          triggers: { enemiesDown: { count: 3 }, coreAcquired: true },
         }],
       },
     ],
@@ -108,34 +107,28 @@ export const RECIPES: Recipe[] = [
         name: 'Set the trap',
         jobs: [
           { kind: 'posts', posture: 'hold' },
-          { kind: 'area', posture: 'wait' },
+          { kind: 'area', posture: 'observe' },
         ],
         continue: [{
-          required: { groupsSet: true },
-          triggers: { enemiesAt: { count: 5, zone: { ...MID_ZONE } } },
-          to: 'next',
+          required: { groupsSet: { allowedLate: 0 } },
+          triggers: { enemiesAt: { count: 5, zones: [{ ...MID_ZONE }] } },
         }],
       },
       {
         name: 'Close the trap',
         jobs: [null, { kind: 'converge', posture: 'aggressive' }],
         continue: [{
-          triggers: { kills: { count: 2 }, cleared: { zone: { ...MID_ZONE } } },
-          to: 'next',
+          triggers: { enemiesDown: { count: 2 }, cleared: { zones: [{ ...MID_ZONE }] } },
         }],
       },
       {
         name: 'Exploit the opening',
         jobs: [null, { kind: 'area', posture: 'hold' }],
-        continue: [{ triggers: { coreAcquired: true }, to: 'next' }],
+        continue: [{ triggers: { coreAcquired: true } }],
       },
       {
-        name: 'Extract the Core',
-        jobs: [null, { kind: 'return', posture: 'escort' }],
-        continue: [{
-          triggers: { coreBanked: true, coreLost: true },
-          to: 'finish',
-        }],
+        name: 'Secure the opening',
+        jobs: [null, null],
       },
     ],
     delivery: 'escort',
@@ -160,27 +153,22 @@ export const RECIPES: Recipe[] = [
       {
         name: 'Approach',
         jobs: [
-          { kind: 'approach', posture: 'steal' },
+          { kind: 'posts', posture: 'observe' },
           { kind: 'area', posture: 'hold' },
         ],
         continue: [{
-          required: { groupsSet: true },
+          required: { groupsSet: { allowedLate: 0 } },
           triggers: { coreLoose: { well: 'enemy' } },
-          to: 'next',
         }],
       },
       {
         name: 'Steal',
-        jobs: [{ kind: 'converge', posture: 'steal' }, null],
-        continue: [{ triggers: { coreAcquired: true }, to: 'next' }],
+        jobs: [{ kind: 'converge', posture: 'aggressive' }, null],
+        continue: [{ triggers: { coreAcquired: true } }],
       },
       {
-        name: 'Return and escort',
-        jobs: [{ kind: 'return', posture: 'steal' }, null],
-        continue: [{
-          triggers: { coreBanked: true, coreLost: true },
-          to: 'finish',
-        }],
+        name: 'Hold the escape',
+        jobs: [null, { kind: 'area', posture: 'hold' }],
       },
     ],
     delivery: 'solo',
@@ -218,17 +206,12 @@ export const RECIPES: Recipe[] = [
       {
         name: 'Run it home',
         jobs: [
-          { kind: 'return', posture: 'wait' },
-          { kind: 'escort', posture: 'escort' },
+          { kind: 'converge', posture: 'observe' },
+          { kind: 'converge', posture: 'hold' },
           { kind: 'area', posture: 'hold' },
         ],
-        continue: [{
-          triggers: { coreBanked: true, coreLost: true },
-          to: 'finish',
-        }],
       },
     ],
-    start: { cases: [{ triggers: { carrier: true } }] },
     delivery: 'escort',
   },
   {

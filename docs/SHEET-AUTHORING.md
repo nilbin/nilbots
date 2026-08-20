@@ -687,19 +687,23 @@ The player-owned document is `arc-relay-tactics-v2`
 ([SPEC-SHEET-TACTICS-V2.md](SPEC-SHEET-TACTICS-V2.md)): a squad of eight
 named bots plus an ordered list of whole-team **Tactics**. Each Tactic is one
 committed operation: Groups are membership (one to three, every bot in
-exactly one), and ordered named **phases** say what every Group does — posts
-with facing, an area, a picket line, a quiet approach, a convergence, a
-push, a patrol, the run home, or carry-on (keep the previous ground under a
-new posture) — each geometry optionally reached by a drawn `via` route. Every
-phase carries a latched, forward-only "Continue when…" of bounded cases
-(Required rows all hold AND any Triggered-by row fires; alternatives OR),
-targeting the next phase, a later named phase, or finish. The Tactic owns
+exactly one), and ordered named **phases** say what every Group does. Normal
+authoring has four ground choices: assigned Posts, a convergence point, an
+area, or a patrol loop. A later phase that does not replace a Group's ground
+implicitly keeps its previous assignment; `none` is only that internal
+encoding. Posts, areas and convergence may use a drawn `via` route. Every
+phase carries a latched "Continue when…" of bounded cases (Required rows all
+hold AND any Triggered-by row fires; alternatives OR). Sequencing is strict:
+a non-final phase advances to the next array phase and the final phase
+finishes; there is no authored target or jump. The Tactic owns
 tactic-wide start and abort cases and an optional minor time limit, one
 delivery plan with a dynamic carrier, per-group Core rules, recovery presets,
 and spatial signature marks where the class descriptor admits them. Evidence
 outcomes count from their phase's entry. Tactics read top to bottom; a
-finished or aborted tactic re-arms and the list is reevaluated — a running
-one is never shadowed. Saved v1 documents migrate on load (Stage → phase 1,
+finished or aborted tactic is reevaluated — a running one is never shadowed.
+Completion has no hidden 40-tick cooldown: the ended run stays dark on its
+completion evaluation, another Tactic can start then, and the same Tactic may
+start fresh on the following tick. Saved v1 documents migrate on load (Stage → phase 1,
 Release → its continue rule, Act → phase 2, Finish → the finish transition).
 
 The server is the only materializer: every save migrates a v1 document,
@@ -735,21 +739,41 @@ questions). Creating a Tactic opens one guided wizard —
 document; the Phases step is a selectable storyboard (up to eight named
 phases) whose selected phase the map draws full-strength, and reopening a
 Tactic reopens the same answers. Recipes (Hold Area, Centre Rush, the
-four-phase Pincer, the three-phase Core Raid, Patrol, Deliver Core, Blank)
+four-phase Pincer, the three-phase Core Raid, Patrol and Blank)
 prefill the same structure and are provenance only. Every Tactic card reads
 its whole operation back phase by phase in plain language, and every drawn
 footprint stays draggable on the map. The browser keeps a local draft, so
 compile failure and phone-tab eviction do not erase work; server diagnostics
 attach back to document fields.
 
+Normal destination posture is **Observe / Hold / Aggressive**. On-the-way
+behavior is **Just march / Respond to contact / Brawl through**; it hands back
+to the destination posture on arrival. Recovery is **Fight on / Break for the
+heal tile / Heal up fully**. Loaded older values remain visible as Existing
+advanced rather than disappearing. **Formation is ready** offers Everyone,
+All but one, or All but two; it freezes the lives present at phase entry and
+checks every assigned Post against its own slot even in an eight-body Group.
+
 The map defaults to the selected phase at full strength, its immediate previous
 and next phases dimmed, and all more distant phases hidden. **Show every phase**
 reveals the remaining phases more faintly and is independent from **Show every
 Tactic**. Only the selected phase is editable. A phase-transition condition
-labelled **Area is cleared of enemies** materializes local Scan Instructions for
-groups whose phase ground overlaps or touches that area; start and abort
-clearance remains observation-only. The paired **No one is currently fighting
-in this area** row defaults to the same zone.
+labelled **This area has been verified clear** materializes local Scan
+Instructions for Groups whose phase ground overlaps or touches each selected
+area; a multi-area check recruits nearby Groups separately rather than a
+distant squad. Start and abort clearance remains observation-only. The paired
+**No friendly is currently fighting in this area** row defaults to the same
+one-to-three-area union. Normal phase conditions show only formation/healing,
+contact/recent enemies/enemies down/verified clear/no local friendly fight, and
+Core loose/soon/acquired. Loaded hidden rows remain visible as Existing
+advanced until removed.
+
+Core custody is temporary inside the phase in which pickup happened. The
+carrier and, for an escorted plan, potential escorts from that carrier's
+pickup-phase Group keep the pickup phase's custody Instructions until the Core
+is banked, lost, dropped or transferred; unrelated Groups are not recruited.
+The wider squad may advance phases, and custody ending returns survivors to
+whatever phase is currently active.
 
 Practice attribution needs no sidecar: the materializer mints ordinal ids
 (`vex > t2 > t2-p1 > t2-p1-g1-move`), the coordinator prefixes every

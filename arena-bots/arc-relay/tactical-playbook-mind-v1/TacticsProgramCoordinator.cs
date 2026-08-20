@@ -152,7 +152,10 @@ internal sealed class TacticsProgramCoordinator
             ActiveTacticId,
             ActivePhaseId,
             _active is null ? 0 : tick - _phaseEntryTick,
-            events.Count == 0 ? null : string.Join("+", events));
+            events.Count == 0 ? null : string.Join("+", events),
+            _active is null
+                ? []
+                : _active.Phases[_phaseIndex].CustodyGroups);
     }
 
     /// <summary>What the mind needs each tick: which tags are lit, the
@@ -163,5 +166,6 @@ internal sealed class TacticsProgramCoordinator
         string? TacticId,
         string? PhaseId,
         int PhaseTicks,
-        string? Marker);
+        string? Marker,
+        int[][] CustodyGroups);
 }

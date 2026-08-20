@@ -84,7 +84,7 @@ public sealed class TacticsEncodingLifecycleTests
     }
 
     [Fact]
-    public void CompletedTacticGoesDarkAndRearmsAsAStandingOrder()
+    public void CompletedTacticGoesDarkThenMayRearmOnTheNextTick()
     {
         Harness harness = Harness.ForRole("vex");
         harness.World.GuardsAtPosts = _ => true;
@@ -94,18 +94,13 @@ public sealed class TacticsEncodingLifecycleTests
 
         Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(9));
         Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(10));
-        harness.EligibleLeaf(14); // outcome fires: the tactic finishes
-        // Rearm holds the finished tactic off the list: every tick until it
-        // elapses falls through to the baseline band.
-        for (int tick = 15; tick < 55; tick += 9)
-        {
-            (string root, string leaf) = harness.FirstEligible(tick);
-            Assert.NotEqual("t1", root);
-            Assert.Equal("hold-ground", leaf);
-        }
-        // Tactics are standing orders: once the rearm elapses and it is
-        // still the first eligible choice, it restarts from phase one.
-        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(56));
+        (string root, string leaf) = harness.FirstEligible(14);
+        Assert.NotEqual("t1", root); // completion evaluation is dark
+        Assert.Equal("hold-ground", leaf);
+        // There is no hidden gameplay cooldown: if nothing else owns the
+        // team, the standing Tactic is eligible again on T+1 with fresh
+        // phase-local state.
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(15));
     }
 
     [Fact]
@@ -491,6 +486,12 @@ public sealed class TacticsEncodingLifecycleTests
 
         public bool Truth(string name, int tick, int elapsed) => name switch
         {
+            "c-t1-p1-formation-ready" =>
+                (GuardsAtPosts(tick) && GuardAtPost(0) || GuardDown(0))
+                && (GuardsAtPosts(tick) && GuardAtPost(1) || GuardDown(1))
+                && Enumerable.Range(0, 6).All(index =>
+                    FlankersReady(tick) && FlankerAt(index)
+                    || FlankerDown(index)),
             "c-t1-g1-at-0" => GuardsAtPosts(tick) && GuardAtPost(0),
             "c-t1-g1-at-1" => GuardsAtPosts(tick) && GuardAtPost(1),
             "dn-ember" => GuardDown(0),

@@ -14,6 +14,7 @@ import { describeGeometry } from './TacticsMapCanvas';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
   ABORT_ROWS, CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES,
+  TRAVEL_BEHAVIORS,
   RECOVERIES, START_ROWS, TRANSITION_ROWS,
   effectiveJob, followMembership, freshJob, freshPhase, groupColor, jobOf,
   phaseShade, signatureMarkGeometry,
@@ -85,6 +86,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         caseIndex: task.target.caseIndex,
         side: task.target.side,
         row: task.target.row,
+        zoneIndex: task.target.zoneIndex,
       }
       : null;
   const [abortOpen, setAbortOpen] = useState(Boolean(tactic.abort));
@@ -113,8 +115,8 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         makeCase={() => ({ triggers: {} })}
         onChange={(cases) => change((next) => { next.start.cases = cases; })}
         watching={watchFor('start')}
-        onDrawWatch={(caseIndex, side, row) =>
-          startWatchTask({ scope: 'start', caseIndex, side, row })}
+        onDrawWatch={(caseIndex, side, row, zoneIndex) =>
+          startWatchTask({ scope: 'start', caseIndex, side, row, zoneIndex })}
         onStopWatch={endTask}
       />
     )}
@@ -158,8 +160,8 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
             makeCase={() => ({ triggers: {} })}
             onChange={(cases) => change((next) => { next.abort = { cases }; })}
             watching={watchFor('abort')}
-            onDrawWatch={(caseIndex, side, row) =>
-              startWatchTask({ scope: 'abort', caseIndex, side, row })}
+            onDrawWatch={(caseIndex, side, row, zoneIndex) =>
+              startWatchTask({ scope: 'abort', caseIndex, side, row, zoneIndex })}
             onStopWatch={endTask}
           />
           <p className="t-micro mt-1 text-arena-dim">After an abort the whole Sheet is reread —
@@ -426,7 +428,7 @@ export function PhasesStep(props: StepProps) {
             change((next) => {
               const previous = next.phases[next.phases.length - 1];
               if ((previous.continue ?? []).length === 0) {
-                previous.continue = [{ triggers: {}, to: 'next' }];
+                previous.continue = [{ triggers: {} }];
               }
               next.phases.push(freshPhase(next, `Phase ${next.phases.length + 1}`));
               const added = next.phases[next.phases.length - 1];
@@ -452,19 +454,12 @@ export function PhasesStep(props: StepProps) {
         <button type="button" className="btn" title="Remove this phase"
           onClick={() => {
             change((next) => {
-              const removed = next.phases[index];
               next.phases.splice(index, 1);
-              for (const entry of next.phases) {
-                for (const rule of entry.continue ?? []) {
-                  if (rule.to === removed.id) rule.to = 'next';
-                }
-              }
               const tail = next.phases[next.phases.length - 1];
-              if (tail) {
-                tail.continue = (tail.continue ?? [])
-                  .map((rule) => rule.to === 'next' ? { ...rule, to: 'finish' } : rule);
-                if (tail.continue.length === 0) delete tail.continue;
-              }
+              if (tail && (tail.continue ?? []).every((rule) =>
+                Object.keys(rule.required ?? {}).length === 0
+                && Object.keys(rule.triggers ?? {}).length === 0
+                && Object.keys(rule.unless ?? {}).length === 0)) delete tail.continue;
             });
             selectPhase(Math.max(0, index - 1));
             endTask();
@@ -554,28 +549,11 @@ export function PhasesStep(props: StepProps) {
         requiredKinds={[...TRANSITION_ROWS]}
         triggerKinds={noEveryoneRows(TRANSITION_ROWS)}
         unlessKinds={noReadinessRows(TRANSITION_ROWS)}
-        makeCase={() => ({ triggers: {}, to: last ? 'finish' : 'next' })}
+        makeCase={() => ({ triggers: {} })}
         onChange={(rules) => change((next) => {
           if (rules.length === 0) delete next.phases[index].continue;
           else next.phases[index].continue = rules;
         })}
-        caseFooter={(rule, update) => (
-          <span className="flex items-center gap-1.5">
-            <span className="lab">then</span>
-            <select className="field !min-h-7 !w-auto !py-0 t-micro"
-              value={rule.to}
-              onChange={(event) => update((next) => { next.to = event.target.value; })}>
-              {!last && <option value="next">the next phase</option>}
-              {tactic.phases.map((candidate, candidateIndex) =>
-                candidateIndex > index + 1 && (
-                  <option key={candidate.id} value={candidate.id}>
-                    skip to {candidate.name}
-                  </option>
-                ))}
-              <option value="finish">the Tactic finishes</option>
-            </select>
-          </span>
-        )}
         watching={props.task?.kind === 'watch'
           && props.task.target.scope === 'continue'
           && props.task.target.phaseIndex === index
@@ -583,10 +561,11 @@ export function PhasesStep(props: StepProps) {
             caseIndex: props.task.target.ruleIndex,
             side: props.task.target.side,
             row: props.task.target.row,
+            zoneIndex: props.task.target.zoneIndex,
           }
           : null}
-        onDrawWatch={(ruleIndex, side, row) => props.startWatchTask({
-          scope: 'continue', phaseIndex: index, ruleIndex, side, row,
+        onDrawWatch={(ruleIndex, side, row, zoneIndex) => props.startWatchTask({
+          scope: 'continue', phaseIndex: index, ruleIndex, side, row, zoneIndex,
         })}
         onStopWatch={endTask}
       />
@@ -605,6 +584,7 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
   } = props;
   const tactic = wizard.tactic;
   const job = jobOf(tactic, phaseIndex, group.id);
+  const [jobUndo, setJobUndo] = useState<NonNullable<typeof job> | null>(null);
   if (!job) return null;
   const first = phaseIndex === 0;
   const carried = job.kind === 'none' && !first
@@ -631,6 +611,19 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
       if (target) apply(target);
     });
   const setKind = (kind: JobKind) => {
+    if (job.kind === kind) return;
+    const material = [
+      job.posts?.length ? `${job.posts.length} posts and their facings` : null,
+      job.rect ? 'the drawn area' : null,
+      job.path?.length ? 'the patrol route' : null,
+      job.point ? 'the destination spot' : null,
+      Object.keys(job.sigs ?? {}).length ? 'the phase’s spatial signature marks' : null,
+      job.via?.length && !viaLegal(kind) ? 'the drawn approach route' : null,
+    ].filter((value): value is string => Boolean(value));
+    if (material.length > 0 && !window.confirm(
+      `Change this job type? This removes ${material.join(', ')}.\n\nCancel keeps everything.`,
+    )) return;
+    if (material.length > 0) setJobUndo(structuredClone(job));
     mutateJob((target) => {
       if (target.kind !== kind) {
         target.kind = kind;
@@ -638,6 +631,7 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
         delete target.rect;
         delete target.path;
         delete target.point;
+        delete target.sigs;
         if (!viaLegal(kind)) delete target.via;
       }
     });
@@ -646,6 +640,7 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
     // without the override the task would draw the PREVIOUS kind's geometry.
     if (def?.draw) startJobTask(group.id, phaseIndex, undefined, def.draw);
     else endTask();
+    if (material.length > 0) props.notify?.('Job changed. Undo is available in this Group.');
   };
   const groupClasses = [...new Set(group.slots
     .map((slot) => document.squad[slot]?.class)
@@ -666,8 +661,25 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
         <span className="val">{group.slots.length} bot{group.slots.length === 1 ? '' : 's'}</span>
       </div>
       <div className="lab">This phase</div>
+      {job.kind === 'none' && !first && <div className="mb-1 rounded-sm border border-arena-edge bg-arena-panel2/40 p-2 t-micro text-arena-dim">
+        Continuing the previous assignment. Choose a job below only if this phase changes the Group’s ground.
+      </div>}
+      {!kindDef && job.kind !== 'none' && <div className="mb-1 rounded-sm border border-arena-warning/50 bg-arena-warning/5 p-2 t-micro text-arena-warning">
+        Existing advanced job: <b>{job.kind}</b>. It still runs as saved. Choose one of the four normal jobs below only when you want to replace it.
+      </div>}
       <SegChips options={kinds} value={job.kind} accent={color}
         onChange={(kind) => setKind(kind as JobKind)} />
+      {jobUndo && <button type="button" className="btn mt-1"
+        onClick={() => {
+          const restore = structuredClone(jobUndo);
+          mutateJob((target) => {
+            for (const key of Object.keys(target) as (keyof typeof target)[]) delete target[key];
+            Object.assign(target, restore);
+          });
+          setJobUndo(null);
+          endTask();
+          props.notify?.('Previous job geometry restored.');
+        }}>Undo job change</button>}
       <p className="t-micro mb-1 text-arena-dim">{kindDef?.blurb}</p>
       {kindDef?.draw
         ? <GeoStatusRow complete={complete}
@@ -741,6 +753,9 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
         />
       )}
       <div className="lab mt-2">Posture</div>
+      {!POSTURES.some((value) => value.id === job.posture) && (
+        <p className="t-micro text-arena-warning">Existing advanced posture: <b>{job.posture}</b>. It remains active until you choose a normal posture.</p>
+      )}
       <SegChips options={postures} value={job.posture} accent={color}
         onChange={(posture) => mutateJob((target) => {
           target.posture = posture as Posture;
@@ -758,46 +773,33 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
         if (!arrival || ['patrol', 'return', 'escort'].includes(arrival)) {
           return null;
         }
-        const standing = ['posts', 'area', 'line', 'approach'].includes(arrival);
         const arrived = POSTURES.find((value) => value.id === job.posture)?.label
           ?? 'The posture';
         const chosen = job.travel ?? 'same';
-        const hint = (() => {
-          if (chosen === 'same') {
-            if (!standing) return 'One posture the whole way — the march behaves exactly like the destination.';
-            if (['wait', 'observe'].includes(job.posture)) {
-              return 'They walk in without stopping to fight, and stay quiet on the ground too.';
-            }
-            return `They walk in without stopping to fight — ${arrived} starts on arrival. Pick “Answer attacks” to fight en route.`;
-          }
-          return {
-            wait: `March in the cautious rear stance without picking fights; ${arrived} takes over on arrival.`,
-            hold: `Answer attacks on the way without chasing; ${arrived} takes over on arrival.`,
-            aggressive: `Brawl the whole way in; ${arrived} takes over on arrival.`,
-            steal: `Steal on the way in; ${arrived} takes over on arrival.`,
-            escort: `Screen on the way in; ${arrived} takes over on arrival.`,
-            observe: `Watch on the way in; ${arrived} takes over on arrival.`,
-          }[chosen];
-        })();
+        const visibleTravel = TRAVEL_BEHAVIORS.find((value) =>
+          value.id === (chosen === 'same' ? 'observe' : chosen));
+        const hint = visibleTravel
+          ? `${visibleTravel.blurb} ${arrived} is the destination posture.`
+          : `Existing advanced travel behavior: ${chosen}. ${arrived} is the destination posture.`;
         return <>
           <div className="lab">On the way <span className="text-arena-dim">(optional)</span></div>
+          {job.travel && !TRAVEL_BEHAVIORS.some((value) => value.id === job.travel) && (
+            <p className="t-micro text-arena-warning">Existing advanced travel behavior: <b>{job.travel}</b>.</p>
+          )}
           <SegChips
-            options={[
-              { id: 'same', label: standing ? 'Just march' : 'Same as here' },
-              { id: 'wait', label: standing ? 'Hang back' : 'Quietly' },
-              { id: 'hold', label: 'Answer attacks' },
-              { id: 'aggressive', label: 'Brawl in' },
-            ]}
-            value={chosen}
+            options={TRAVEL_BEHAVIORS}
+            value={chosen === 'same' ? 'observe' : chosen}
             accent={color}
             onChange={(travel) => mutateJob((target) => {
-              if (travel === 'same') delete target.travel;
-              else target.travel = travel as Posture;
+              target.travel = travel as Posture;
             })} />
           <p className="t-micro mb-1 text-arena-dim">{hint}</p>
         </>;
       })()}
       <div className="lab">Recovery</div>
+      {!RECOVERIES.some((value) => value.id === job.recovery) && (
+        <p className="t-micro text-arena-warning">Existing advanced recovery: <b>{job.recovery}</b>. It remains active until replaced.</p>
+      )}
       <SegChips options={RECOVERIES} value={job.recovery} accent={color}
         onChange={(recovery) => mutateJob((target) => {
           target.recovery = recovery as Recovery;
@@ -842,17 +844,12 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
 }
 
 function posturesFor(tactic: Tactic, kind: JobKind) {
-  const coreish = tactic.delivery.plan !== 'none'
-    || tactic.groups.some((value) => value.coreRule === 'hunt')
-    || kind === 'return';
-  const standing = ['posts', 'area', 'line', 'approach', 'none'].includes(kind);
-  const ids: Posture[] = standing
-    ? ['wait', 'hold', 'observe', 'aggressive', ...(coreish ? ['steal', 'escort'] as Posture[] : [])]
-    : ['aggressive', 'hold', 'observe', ...(coreish ? ['steal', 'escort'] as Posture[] : [])];
-  return POSTURES.filter((posture) => ids.includes(posture.id));
+  void tactic;
+  void kind;
+  return POSTURES;
 }
 
-export function CoresStep({ catalog, document, wizard, change, addDeliverCore }: StepProps) {
+export function CoresStep({ catalog, document, wizard, change }: StepProps) {
   const tactic = wizard.tactic;
   const preferred = tactic.delivery.preferredSlots ?? [];
   return <>
@@ -901,12 +898,11 @@ export function CoresStep({ catalog, document, wizard, change, addDeliverCore }:
         {deliveryClause(tactic, (slot) => document.squad[slot]?.name ?? null)}.
       </Readback>
     )}
-    <DeliverCoreSuggestion document={document} tactic={tactic} change={change}
-      addDeliverCore={addDeliverCore} />
+    <DeliverCoreSuggestion tactic={tactic} change={change} />
   </>;
 }
 
-export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }: StepProps) {
+export function ReviewStep({ catalog, document, wizard, change }: StepProps) {
   const tactic = wizard.tactic;
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
   return <>
@@ -931,8 +927,7 @@ export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }
         </div>
       </div>
     ))}
-    <DeliverCoreSuggestion document={document} tactic={tactic} change={change}
-      addDeliverCore={addDeliverCore} />
+    <DeliverCoreSuggestion tactic={tactic} change={change} />
     <p className="t-micro text-arena-dim">The overlays stay live after creating — drag posts, corners,
       waypoints and destinations on the map any time this Tactic is open.</p>
   </>;
@@ -941,37 +936,22 @@ export function ReviewStep({ catalog, document, wizard, change, addDeliverCore }
 /** Content-keyed nudge: a Tactic that can finish holding a Core, with no
  * plan for the run home, gets offered one — in place, or as a one-click
  * separate Deliver Core Tactic. */
-function DeliverCoreSuggestion({ document, tactic, change, addDeliverCore }: {
-  document: TacticsDocument;
+function DeliverCoreSuggestion({ tactic, change }: {
   tactic: Tactic;
   change: (apply: (tactic: Tactic) => void) => void;
-  addDeliverCore?: () => void;
 }) {
   const wantsCore = tacticCanFinish(tactic).finishCarrying
     && tactic.delivery.plan === 'none';
-  const hasDeliver = document.tactics.some((value) =>
-    value.id !== tactic.id
-    && (value.start.cases ?? []).some((entry) =>
-      entry.triggers?.carrier || entry.required?.carrier)
-    && value.phases.some((phase) => Object.values(phase.jobs)
-      .some((job) => job.kind === 'return')));
-  if (!wantsCore || hasDeliver) return null;
+  if (!wantsCore) return null;
   return (
     <div className="panel-quiet pad">
       <div className="t-body mb-1 font-semibold">Your tactic may finish while carrying a Core.</div>
-      <p className="t-micro text-arena-dim">Plan the run home inside this Tactic, or add a separate
-        Deliver Core tactic — prefilled, carrier and escorts picked from your squad.</p>
+      <p className="t-micro text-arena-dim">Core custody is temporary inside the active phase. Add a delivery plan here so the carrier banks, then survivors resume this same phase.</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         <button type="button" className="btn btn-secondary"
           onClick={() => change((next) => { next.delivery.plan = 'escort'; })}>
           Plan the delivery in this Tactic
         </button>
-        {addDeliverCore && (
-          <button type="button" className="btn"
-            onClick={addDeliverCore}>
-            Add a separate Deliver Core tactic
-          </button>
-        )}
       </div>
     </div>
   );

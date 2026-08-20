@@ -20,9 +20,9 @@ import {
   blankDocument, expectedGeometry, freshLocalId, groupColor, identifierFromName,
   normalizeEditableDocumentForCatalog, postFacingIssue, reversedWayIn,
   signatureMarkGeometry, stringifyDocument,
-  tacticCanFinish, validateDocument, sheetIssueFromCompilerError,
+  validateDocument, sheetIssueFromCompilerError,
   type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
-  type Tactic, type TacticsDraft, type TacticsDocument,
+  type Tactic, type TacticsDraft,
 } from './tacticsDocument';
 import { loadLocalDraft, useSheetDraft } from './useSheetDraft';
 import { useMapTask, type MapTask } from './useMapTask';
@@ -475,11 +475,11 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         const conds = watchConds(tactic, task.target);
         if (!conds) return;
         if (task.target.row === 'cleared') {
-          if (conds.cleared) conds.cleared.zone = { rect };
+          if (conds.cleared) conds.cleared.zones[task.target.zoneIndex] = { rect };
         } else if (task.target.row === 'notFighting') {
-          if (conds.notFighting) conds.notFighting.zone = { rect };
+          if (conds.notFighting) conds.notFighting.zones[task.target.zoneIndex] = { rect };
         } else if (conds.enemiesAt) {
-          conds.enemiesAt.zone = { rect };
+          conds.enemiesAt.zones[task.target.zoneIndex] = { rect };
         }
       } else if (task.kind === 'job') {
         const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
@@ -692,16 +692,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               }} />
           ))}
         </div>
-        {!wizard && needsDeliverCore(draft.document) && (
-          <div className="panel-quiet pad">
-            <div className="t-body mb-1 font-semibold">A Tactic can finish holding a Core.</div>
-            <p className="t-micro text-arena-dim">Nothing in this Sheet plans the run home —
-              add a prefilled Deliver Core tactic, carrier and escorts picked from your squad.</p>
-            <button type="button" className="btn btn-secondary mt-2" onClick={addDeliverCore}>
-              Add a Deliver Core tactic
-            </button>
-          </div>
-        )}
         <SquadRail catalog={catalog} squad={document.squad}
           onOpen={() => setSquadOpen(true)}
           onAutoFill={document.squad.length < 8 ? () => {
@@ -897,7 +887,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             <button type="button" className="btn" onClick={() => setRecipeOpen(false)}>✕</button>
           </div>
           <div className="grid gap-2 sm:grid-cols-3" data-testid="recipe-chooser">
-            {RECIPES.map((recipe) => (
+            {RECIPES.filter((recipe) => recipe.id !== 'deliver-core').map((recipe) => (
               <button key={recipe.id} type="button"
                 className="choice-card flex min-h-[108px] flex-col text-left"
                 data-testid={`recipe-${recipe.id}`}
@@ -955,19 +945,6 @@ function drawKindFor(kind: JobKind) {
       : expected === 'path' ? 'route'
         : expected === 'point' ? 'point'
           : null;
-}
-
-/** True when some committed Tactic can finish holding a Core with no plan for
- * the run home — the sheet-level version of the wizard's nudge. */
-function needsDeliverCore(document: TacticsDocument): boolean {
-  const hasDeliver = document.tactics.some((tactic) =>
-    (tactic.start.cases ?? []).some((entry) =>
-      entry.triggers?.carrier || entry.required?.carrier)
-    && tactic.phases.some((phase) => Object.values(phase.jobs)
-      .some((job) => job.kind === 'return')));
-  if (hasDeliver) return false;
-  return document.tactics.some((tactic) =>
-    tacticCanFinish(tactic).finishCarrying && tactic.delivery.plan === 'none');
 }
 
 /** Round-robin over unlocked classes, one copy each before seconds, so the

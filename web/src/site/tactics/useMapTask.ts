@@ -15,12 +15,14 @@ export type WatchTarget =
     caseIndex: number;
     side: 'required' | 'triggers' | 'unless';
     row: 'enemiesAt' | 'cleared' | 'notFighting';
+    zoneIndex: number;
   }
   | {
     scope: 'abort';
     caseIndex: number;
     side: 'required' | 'triggers' | 'unless';
     row: 'enemiesAt' | 'cleared' | 'notFighting';
+    zoneIndex: number;
   }
   | {
     scope: 'continue';
@@ -28,6 +30,7 @@ export type WatchTarget =
     ruleIndex: number;
     side: 'required' | 'triggers' | 'unless';
     row: 'enemiesAt' | 'cleared' | 'notFighting';
+    zoneIndex: number;
   };
 
 export type MapTask =

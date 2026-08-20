@@ -3,22 +3,22 @@ import { CountStepper, TickRow, ZoneSelect } from './conditionControls';
 import { caseClause } from './summary';
 import { WELL_OPTIONS, ZONE_OPTIONS } from './places';
 import type {
-  CondKind, TacticCase, TacticConds, WellChoice,
+  CondKind, TacticCase, TacticConds, WellChoice, ZoneRef,
 } from './tacticsDocument';
 
 /**
  * THE condition editor: one tick row per available condition, parameters
  * inline on ticked rows. Inside "Required" every ticked row must hold;
  * inside "Triggered by" any ticked row fires — and CaseListEditor stacks
- * whole alternatives of the two. No boolean words anywhere. The less-common
- * rows sit behind a "More conditions" fold so the everyday set stays
- * uncluttered; any active folded row keeps the fold open.
+ * whole alternatives of the two. No boolean words anywhere. Normal authoring
+ * gets the pruned rows; a loaded hidden row remains visible as Existing
+ * advanced until the player removes it.
  */
 
 export type ConditionRowKind = CondKind;
 
 const ROW_LABELS: Partial<Record<CondKind, string>> = {
-  groupsSet: 'Every Group is in position (the dead excuse themselves)',
+  groupsSet: 'Formation is ready',
   held: 'We have been at this phase a while',
   contact: 'Any enemy contact',
   carrier: 'We hold a Core — a friendly carrier exists',
@@ -33,15 +33,14 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
  * headings, in this order, so a player scans for "the Core rows" instead
  * of a flat list (the old "More conditions" fold is gone). */
 const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
-  { label: 'Our team', kinds: ['groupsSet', 'healed', 'losses', 'lossesWithin'] },
-  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'notFighting', 'kills', 'killsWithin'] },
-  { label: 'Cores', kinds: ['carrier', 'coreLoose', 'coreSoon', 'coreAcquired', 'coreBanked', 'coreLost'] },
-  { label: 'Time & ground', kinds: ['held', 'reached', 'observed'] },
+  { label: 'Our team', kinds: ['groupsSet', 'healed'] },
+  { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'notFighting'] },
+  { label: 'Cores', kinds: ['coreLoose', 'coreSoon', 'coreAcquired'] },
 ];
 
 export function ConditionRows({
   conds, kinds, accent, watchSymbol = '⚡', watchAdjective,
-  watchingRow, onChange, onDrawWatch, onStopWatch, onBranch,
+  watching, onChange, onDrawWatch, onStopWatch, onBranch,
 }: {
   conds: TacticConds;
   kinds: ConditionRowKind[];
@@ -51,9 +50,9 @@ export function ConditionRows({
   /** Names the box's colour in the hint ("pale", "orange"). */
   watchAdjective?: string;
   /** Which drawable row of THIS rows object is being drawn right now. */
-  watchingRow?: 'enemiesAt' | 'cleared' | 'notFighting' | null;
+  watching?: { row: 'enemiesAt' | 'cleared' | 'notFighting'; zoneIndex: number } | null;
   onChange: (conds: TacticConds) => void;
-  onDrawWatch?: (row: 'enemiesAt' | 'cleared' | 'notFighting') => void;
+  onDrawWatch?: (row: 'enemiesAt' | 'cleared' | 'notFighting', zoneIndex: number) => void;
   onStopWatch?: () => void;
   /** Fork this case on one ticked row: a new alternative keeps everything
    * else and reads this row the other way (moved to Unless). */
@@ -80,10 +79,10 @@ export function ConditionRows({
       onToggle={() => {
         set((next) => {
           if (on) delete next[kind];
-          else if (kind === 'groupsSet') next.groupsSet = true;
+          else if (kind === 'groupsSet') next.groupsSet = { allowedLate: 0 };
           else if (kind === 'held') next.held = { ticks: 40 };
           else if (kind === 'healed') next.healed = { percent: 90 };
-          else if (kind === 'enemiesAt') next.enemiesAt = { count: 5, zone: { name: 'mid', rect: ZONE_OPTIONS[0].rect } };
+          else if (kind === 'enemiesAt') next.enemiesAt = { count: 5, zones: [{ name: 'mid', rect: ZONE_OPTIONS[0].rect }] };
           else if (kind === 'contact') next.contact = true;
           else if (kind === 'coreLoose') next.coreLoose = { well: 'centre' };
           else if (kind === 'coreSoon') next.coreSoon = { well: 'centre', ticks: 20 };
@@ -94,12 +93,12 @@ export function ConditionRows({
           else if (kind === 'killsWithin') next.killsWithin = { count: 4, ticks: 40 };
           else if (kind === 'kills') next.kills = { count: 3 };
           else if (kind === 'cleared') next.cleared = {
-            zone: structuredClone(next.notFighting?.zone
-              ?? { name: 'mid', rect: ZONE_OPTIONS[0].rect }),
+            zones: structuredClone(next.notFighting?.zones
+              ?? [{ name: 'mid', rect: ZONE_OPTIONS[0].rect }]),
           };
           else if (kind === 'notFighting') next.notFighting = {
-            zone: structuredClone(next.cleared?.zone
-              ?? { name: 'mid', rect: ZONE_OPTIONS[0].rect }),
+            zones: structuredClone(next.cleared?.zones
+              ?? [{ name: 'mid', rect: ZONE_OPTIONS[0].rect }]),
           };
           else if (kind === 'coreAcquired') next.coreAcquired = true;
           else if (kind === 'coreBanked') next.coreBanked = true;
@@ -111,17 +110,42 @@ export function ConditionRows({
     );
   };
 
-  const drawChrome = (which: 'enemiesAt' | 'cleared' | 'notFighting', key: string, text: string) => (
+  const zoneEditor = (
+    which: 'enemiesAt' | 'cleared' | 'notFighting',
+    zones: ZoneRef[],
+    update: (zones: ZoneRef[]) => void,
+  ) => <div className="mt-1 flex w-full flex-col gap-1">
+    {zones.map((zone, zoneIndex) => (
+      <div key={zoneIndex} className="flex flex-wrap items-center gap-1 rounded-sm border border-arena-edge/70 p-1">
+        <span className="lab">Area {zoneIndex + 1}</span>
+        <ZoneSelect zone={zone} onChange={(nextZone) => {
+          const next = structuredClone(zones);
+          next[zoneIndex] = nextZone;
+          update(next);
+        }} />
+        {watching?.row === which && watching.zoneIndex === zoneIndex
+          ? <button type="button" className="btn btn-on" onClick={onStopWatch}>Stop drawing</button>
+          : onDrawWatch && <button type="button" className="btn btn-secondary"
+            onClick={() => onDrawWatch(which, zoneIndex)}>Redraw</button>}
+        {zones.length > 1 && <button type="button" className="btn"
+          aria-label={`Remove Area ${zoneIndex + 1}`}
+          onClick={() => update(zones.filter((_, index) => index !== zoneIndex))}>Remove</button>}
+      </div>
+    ))}
+    {zones.length < 3 && <button type="button" className="btn self-start"
+      onClick={() => update([...zones, {
+        name: `area-${zones.length + 1}`,
+        rect: structuredClone(zones[zones.length - 1]?.rect ?? ZONE_OPTIONS[0].rect),
+      }])}>＋ Add another area</button>}
+  </div>;
+
+  const drawChrome = (key: string, text: string) => (
     <div key={key}
       className="flex min-h-8 items-center gap-2 rounded-sm border border-arena-edge px-2 t-micro text-arena-dim"
       style={accent ? { borderColor: `${accent}55` } : undefined}>
       <span style={{ color: accent ?? 'var(--color-arena-material)' }}>{watchSymbol}</span>
       <span>{text}</span>
       <span className="grow" />
-      {watchingRow === which
-        ? <button type="button" className="btn btn-on" onClick={onStopWatch}>Stop drawing</button>
-        : onDrawWatch && <button type="button" className="btn btn-secondary"
-          onClick={() => onDrawWatch(which)}>Draw it instead</button>}
     </div>
   );
 
@@ -130,40 +154,55 @@ export function ConditionRows({
     const flagLabel = ROW_LABELS[kind];
     if (kind === 'enemiesAt') {
       const on = Boolean(conds.enemiesAt);
-      rows.push(row('enemiesAt', 'Enemies gather somewhere', on && conds.enemiesAt && <>
+      rows.push(row('enemiesAt', 'At least N enemies were recently seen here', on && conds.enemiesAt && <>
         <CountStepper value={conds.enemiesAt.count}
           onChange={(value) => set((next) => { next.enemiesAt!.count = value; })} />
-        <ZoneSelect zone={conds.enemiesAt.zone}
-          onChange={(zone) => set((next) => { next.enemiesAt!.zone = zone; })} />
+        {zoneEditor('enemiesAt', conds.enemiesAt.zones,
+          (zones) => set((next) => { next.enemiesAt!.zones = zones; }))}
       </>, on));
       if (on) {
-        rows.push(drawChrome('enemiesAt', 'enemiesAt-draw',
-          `The ${watchAdjective ? `${watchAdjective} box` : 'box'} on the map is the watched ground. Drag its corners any time.`));
+        rows.push(drawChrome('enemiesAt-draw',
+          `Distinct enemies seen in the last 20 ticks count once across all ${watchAdjective ? `${watchAdjective} ` : ''}areas.`));
       }
       return;
     }
     if (kind === 'cleared') {
       const on = Boolean(conds.cleared);
-      rows.push(row('cleared', 'Area is cleared of enemies', on && conds.cleared && (
-        <ZoneSelect zone={conds.cleared.zone}
-          onChange={(zone) => set((next) => { next.cleared = { zone }; })} />
-      ), on));
+      rows.push(row('cleared', 'This area has been verified clear', on && conds.cleared
+        && zoneEditor('cleared', conds.cleared.zones,
+          (zones) => set((next) => { next.cleared = { zones }; })), on));
       if (on) {
-        rows.push(drawChrome('cleared', 'cleared-draw',
+        rows.push(drawChrome('cleared-draw',
           'Your team must have checked the whole area within the last 20 ticks, with no enemy known to remain.'));
       }
       return;
     }
     if (kind === 'notFighting') {
       const on = Boolean(conds.notFighting);
-      rows.push(row('notFighting', 'No one is currently fighting in this area', on && conds.notFighting && (
-        <ZoneSelect zone={conds.notFighting.zone}
-          onChange={(zone) => set((next) => { next.notFighting = { zone }; })} />
-      ), on));
+      rows.push(row('notFighting', 'No friendly is currently fighting in this area', on && conds.notFighting
+        && zoneEditor('notFighting', conds.notFighting.zones,
+          (zones) => set((next) => { next.notFighting = { zones }; })), on));
       if (on) {
-        rows.push(drawChrome('notFighting', 'not-fighting-draw',
-          'No friendly Fight Instruction may begin inside, target into, or strike into this box.'));
+        rows.push(drawChrome('not-fighting-draw',
+          'No friendly Fight Instruction may begin inside, target into, or strike into any selected area.'));
       }
+      return;
+    }
+    if (kind === 'groupsSet') {
+      const on = Boolean(conds.groupsSet);
+      const allowedLate = conds.groupsSet === true ? 0 : conds.groupsSet?.allowedLate ?? 0;
+      rows.push(row('groupsSet', ROW_LABELS.groupsSet!, on && (
+        <select className="field !min-h-7 !w-auto !py-0 t-micro"
+          value={allowedLate}
+          onClick={(event) => event.stopPropagation()}
+          onChange={(event) => set((next) => {
+            next.groupsSet = { allowedLate: Number(event.target.value) as 0 | 1 | 2 };
+          })}>
+          <option value={0}>Everyone</option>
+          <option value={1}>All but one</option>
+          <option value={2}>All but two</option>
+        </select>
+      ), on));
       return;
     }
     if (kind === 'healed') {
@@ -302,6 +341,16 @@ export function ConditionRows({
     }
     for (const kind of sel) renderKind(kind);
   });
+  const visible = new Set(ROW_GROUPS.flatMap((group) => group.kinds));
+  const activeAdvanced = kinds.filter((kind) =>
+    !visible.has(kind) && conds[kind] !== undefined);
+  if (activeAdvanced.length > 0) {
+    rows.push(<div key="h-existing-advanced"
+      className="mt-2 rounded-sm border border-arena-warning/40 bg-arena-warning/5 px-2 py-1 text-[9px] font-semibold uppercase tracking-[.12em] text-arena-warning">
+      Existing advanced conditions · kept for compatibility
+    </div>);
+    for (const kind of activeAdvanced) renderKind(kind);
+  }
   return <div className="flex flex-col gap-1.5">{rows}</div>;
 }
 
@@ -328,8 +377,8 @@ export function CaseListEditor<T extends TacticCase>({
   onChange: (cases: T[]) => void;
   caseFooter?: (value: T, update: (apply: (next: T) => void) => void, index: number) => React.ReactNode;
   /** Which case/side/row is being drawn on the map, if any. */
-  watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' | 'notFighting' } | null;
-  onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared' | 'notFighting') => void;
+  watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' | 'notFighting'; zoneIndex: number } | null;
+  onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared' | 'notFighting', zoneIndex: number) => void;
   onStopWatch?: () => void;
 }) {
   const update = (index: number, apply: (next: T) => void) => {
@@ -424,14 +473,15 @@ export function CaseListEditor<T extends TacticCase>({
               accent={accent}
               watchSymbol={watchSymbol}
               watchAdjective={watchAdjective}
-              watchingRow={watching && watching.caseIndex === index
-                && watching.side === 'required' ? watching.row : null}
+              watching={watching && watching.caseIndex === index
+                && watching.side === 'required'
+                ? { row: watching.row, zoneIndex: watching.zoneIndex } : null}
               onChange={(conds) => update(index, (next) => {
                 if (Object.keys(conds).length === 0) delete next.required;
                 else next.required = conds;
               })}
               onDrawWatch={onDrawWatch
-                ? (row) => onDrawWatch(index, 'required', row) : undefined}
+                ? (row, zoneIndex) => onDrawWatch(index, 'required', row, zoneIndex) : undefined}
               onStopWatch={onStopWatch}
               onBranch={canBranch
                 ? (kind) => branch(index, 'required', kind) : undefined}
@@ -444,14 +494,15 @@ export function CaseListEditor<T extends TacticCase>({
             accent={accent}
             watchSymbol={watchSymbol}
             watchAdjective={watchAdjective}
-            watchingRow={watching && watching.caseIndex === index
-              && watching.side === 'triggers' ? watching.row : null}
+            watching={watching && watching.caseIndex === index
+              && watching.side === 'triggers'
+              ? { row: watching.row, zoneIndex: watching.zoneIndex } : null}
             onChange={(conds) => update(index, (next) => {
               if (Object.keys(conds).length === 0) delete next.triggers;
               else next.triggers = conds;
             })}
             onDrawWatch={onDrawWatch
-              ? (row) => onDrawWatch(index, 'triggers', row) : undefined}
+              ? (row, zoneIndex) => onDrawWatch(index, 'triggers', row, zoneIndex) : undefined}
             onStopWatch={onStopWatch}
             onBranch={canBranch
               ? (kind) => branch(index, 'triggers', kind) : undefined}
@@ -466,14 +517,15 @@ export function CaseListEditor<T extends TacticCase>({
                   accent={accent}
                   watchSymbol={watchSymbol}
                   watchAdjective={watchAdjective}
-                  watchingRow={watching && watching.caseIndex === index
-                    && watching.side === 'unless' ? watching.row : null}
+                  watching={watching && watching.caseIndex === index
+                    && watching.side === 'unless'
+                    ? { row: watching.row, zoneIndex: watching.zoneIndex } : null}
                   onChange={(conds) => update(index, (next) => {
                     if (Object.keys(conds).length === 0) delete next.unless;
                     else next.unless = conds;
                   })}
                   onDrawWatch={onDrawWatch
-                    ? (row) => onDrawWatch(index, 'unless', row) : undefined}
+                    ? (row, zoneIndex) => onDrawWatch(index, 'unless', row, zoneIndex) : undefined}
                   onStopWatch={onStopWatch}
                 />
               </>

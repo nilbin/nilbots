@@ -188,7 +188,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _custodyLatch.Observe(
             carried.Keys.Where(id => id.TeamId == _teamId).ToArray(),
             program?.TacticId,
-            program?.PhaseId);
+            program?.PhaseId,
+            program?.CustodyGroups ?? []);
 
         var proposalsByBody = new Dictionary<int, IReadOnlyList<Proposal>>();
         var eligibilityByBody = new Dictionary<int, string?>();
@@ -2835,11 +2836,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             string? trace = null;
             if (condition.Fact == "zone-cleared")
             {
+                string[] zones = condition.ZoneSet;
                 OrdersEvidenceLedger.ClearanceRead read =
                     _evidence.ReadClearance(
-                        package.ZoneTiles(condition.Zone!, contract.Map),
-                        position => package.Contains(
-                            condition.Zone!, position),
+                        package.ZoneTilesUnion(zones, contract.Map),
+                        position => package.ContainsAny(zones, position),
                         mind.Tick,
                         freshWithinTicks: 20);
                 actual = read.Cleared ? 1 : 0;
@@ -2848,8 +2849,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             else if (condition.Fact == "friendly-fights-in-zone")
             {
                 actual = ActiveFightsInZone(
-                    package, condition.Zone!, arc);
+                    package, condition.ZoneSet, arc);
                 trace = $"{condition.Id}={actual}-local-fights-prev-decision";
+            }
+            else if (condition.Fact == "formation-late-count")
+            {
+                actual = _evidence.FormationLateCount(
+                    package, mind, condition.Roles ?? [], condition.ZoneSet,
+                    orderTicks);
+                trace = $"{condition.Id}={actual}-late-phase-entry-lives";
             }
             else if (condition.WindowTicks is not null || condition.Since is not null)
             {
@@ -2909,12 +2917,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private int ActiveFightsInZone(
         OrdersPackage package,
-        string zone,
+        IReadOnlyList<string> zones,
         GenericActorContext.ModeObservationState.ArcRelay arc)
     {
         return TacticalZoneFightState.Count(
             _teamId,
-            position => package.Contains(zone, position),
+            position => package.ContainsAny(zones, position),
             _activeFights,
             arc.PendingStrikes);
     }
@@ -3157,17 +3165,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return mind.Tick - _lastObjectiveProgressTick;
         if (fact == "friendlies-in-zone")
             return mind.Bodies.Count(candidate =>
-                package.Contains(condition.Zone!, candidate.Position));
+                package.ContainsAny(condition.ZoneSet, candidate.Position));
         if (fact == "visible-enemies-in-zone")
             return mind.Enemies.Count(enemy =>
-                package.Contains(condition.Zone!, enemy.Position));
+                package.ContainsAny(condition.ZoneSet, enemy.Position));
         if (fact == "remembered-enemies-in-zone")
             return _rememberedEnemies.Values.Count(enemy =>
                 mind.Tick - enemy.Tick <= condition.FreshnessTicks
-                && package.Contains(condition.Zone!, enemy.Position));
+                && package.ContainsAny(condition.ZoneSet, enemy.Position));
         if (fact == "known-loose-cores-in-zone")
             return _knownLooseCores.Values.Count(core =>
-                package.Contains(condition.Zone!, core.Position));
+                package.ContainsAny(condition.ZoneSet, core.Position));
         GenericActorContext.ArcRelayWellState well = ResolveWell(
             contract, arc, condition.Well!);
         if (fact == "well-has-outstanding-core")

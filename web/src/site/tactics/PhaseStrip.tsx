@@ -7,8 +7,7 @@ export function PhaseStrip({ tactic, big = false }: { tactic: Tactic; big?: bool
   const gated = tactic.start.mode === 'when'
     && (tactic.start.cases ?? []).some((value) =>
       condClauses(value.required).length + condClauses(value.triggers).length > 0);
-  const finishes = tactic.phases.some((phase) =>
-    (phase.continue ?? []).some((rule) => rule.to === 'finish'))
+  const finishes = (tactic.phases[tactic.phases.length - 1]?.continue ?? []).length > 0
     || (tactic.maxDuration && tactic.maxDuration !== 'none');
   const chip = (label: string, tone?: string, key?: string) => (
     <span key={key ?? label}
