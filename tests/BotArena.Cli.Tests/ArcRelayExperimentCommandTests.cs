@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_mid_well_ribs_Tapline9_product_line()
+    public void Default_is_the_compact_range_Tapline10_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,7 +69,7 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-09",
+            "arc-relay-tapline-10",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
@@ -88,6 +88,29 @@ public sealed class ArcRelayExperimentCommandTests
                 .GetProperty("gameMode")
                 .GetProperty("bankTriggeredWellRechargeTicks")
                 .GetInt32());
+        Assert.Equal(
+            5,
+            document.RootElement.GetProperty("rules")
+                .GetProperty("visionProfiles")[0]
+                .GetProperty("range")
+                .GetInt32());
+        Assert.Equal(
+            new Dictionary<string, int>(StringComparer.Ordinal)
+            {
+                ["short-fast"] = 3,
+                ["medium-steady"] = 4,
+                ["long-slow"] = 6,
+            },
+            document.RootElement.GetProperty("rules")
+                .GetProperty("attackProfiles")
+                .EnumerateArray()
+                .Where(value => value.GetProperty("id").GetString() is
+                    "short-fast" or "medium-steady" or "long-slow")
+                .ToDictionary(
+                    value => value.GetProperty("id").GetString()!,
+                    value => value.GetProperty("projectile")
+                        .GetProperty("maxTravelTiles").GetInt32(),
+                    StringComparer.Ordinal));
         JsonElement toss = document.RootElement.GetProperty("rules")
             .GetProperty("gameMode")
             .GetProperty("signatures")

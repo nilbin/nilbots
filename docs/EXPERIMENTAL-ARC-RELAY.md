@@ -53,7 +53,7 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 ## Objective
 
 Three public Wells stand at north `(11,6)`, centre `(15,13)`, and south
-`(19,20)`. Tapline-9 keeps the current opening: all three are nominally tick
+`(19,20)`. Tapline-10 keeps the current opening: all three are nominally tick
 50 with public ±6-tick seed jitter (the rotational flank pair shares one
 draw). After that opening, supply is source-local. A Well has exactly one
 active Core until that Core is banked into either reactor; banking starts a
@@ -115,12 +115,14 @@ commitment, not speed:
 - `deliberate`: movement is allowed only in the current cardinal facing, so
   changing travel direction costs a rotation.
 
-All bodies have facing-quadrant vision range 7 plus adjacency sight. A mobile
+All bodies have facing-quadrant vision range 5 plus adjacency sight. A mobile
 basic gun may fire in three headings relative to the body's cardinal facing:
 straight and the two adjacent diagonals. The legality mask publishes those
 exact headings each tick. An off-cone target therefore costs orientation; a
-shot does not silently rotate the body. Short/fast range is 4 with cooldown 2,
-medium/steady range 6 with cooldown 3, and long/slow range 9 with cooldown 5.
+shot does not silently rotate the body. Short/fast range is 3 with cooldown 2,
+medium/steady range 4 with cooldown 3, and long/slow range 6 with cooldown 5.
+Team perception is an immediate union of allied sensors, so Longshot may use a
+teammate's contact to fire the sixth tile beyond its own five-tile sight.
 A basic hit deals 1 hull. Signature targeting is unchanged, and the deployed,
 faceless Sentinel remains an omnidirectional automated exception.
 

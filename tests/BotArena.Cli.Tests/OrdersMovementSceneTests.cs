@@ -122,7 +122,9 @@ public sealed class OrdersMovementSceneTests
     {
         string root = FindRepoRoot();
         var holderPost = new Position(12, 15);
-        var hostilePost = new Position(18, 15);
+        // Tapline-10's five-tile sight still exposes an attacker whose
+        // six-tile Longshot gun outranges the Palisade's short gun.
+        var hostilePost = new Position(17, 15);
         TacticalPlaybookCompilation defender = CompileHoldDefenceFixture(
             root,
             defender: true,
@@ -210,7 +212,7 @@ public sealed class OrdersMovementSceneTests
     public void HoldDefenderPursuesAnEscapingCarrierWithinItsLeashThenReturns()
     {
         string root = FindRepoRoot();
-        var holderPost = new Position(10, 13);
+        var holderPost = new Position(11, 13);
         TacticalPlaybookCompilation defender = CompileHoldDefenceFixture(
             root,
             defender: true,
@@ -2524,8 +2526,10 @@ public sealed class OrdersMovementSceneTests
             {
                 ["id"] = "runner",
                 ["classes"] = new JsonArray("palisade"),
-                ["upgradePath"] = new JsonArray(
-                    "vitality", "vitality", "vitality"),
+                // This fixture proves bounded carrier interception, not a
+                // three-tier durability race. Tapline-10's shorter gun reach
+                // leaves fewer firing beats inside the same five-tile leash.
+                ["upgradePath"] = new JsonArray("vitality"),
                 ["orders"] = new JsonArray(
                     new JsonObject
                     {

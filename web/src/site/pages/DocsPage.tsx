@@ -52,14 +52,14 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v26 and the local <code>nilbots arc-relay</code>
-          default both run tapline-9 on the accepted equal-return Tapline with
+          Hosted playlist v27 and the local <code>nilbots arc-relay</code>
+          default both run tapline-10 on the accepted equal-return Tapline with
           the owner-approved sealed outer-Well entrances and staggered Mid cover,
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
           remain match history but are not accepted by the current editor;
-          coordinates are never projected between maps. Tapline-9 values a Core at 1, 2,
+          coordinates are never projected between maps. Tapline-10 values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
           requires at least seven distinct classes, and makes deployments durable targets.
@@ -67,8 +67,11 @@ export default function DocsPage() {
           the first beat for scouting and counter-positioning before the two-charge Core.
           A centre Core has a 19-step fast return or a 29-step healing-side return;
           that visible distance tradeoff lets a Program choose speed or recovery.
-          Playlist v26 opens a fresh rating book at 1200; playlists v23–v25 remain
-          readable history and their ratings are not carried into v26.
+          Facing-quadrant vision reaches 5 tiles, while short, medium and long basic
+          guns reach 3, 4 and 6. Immediate team-shared sight lets Longshot use that
+          sixth tile when an ally supplies contact. Playlist v27 opens a fresh rating
+          book at 1200; playlists v23–v26 remain readable history and their ratings
+          are not carried into v27.
         </p>
         <p className="mt-2 text-arena-dim">
           Ranked, practice, the Tactics editor and the local CLI all run that same
@@ -87,6 +90,8 @@ export default function DocsPage() {
           sideways but turn around on a rear move; Deliberate bodies move only forward
           until they spend a turn action. Signature targeting keeps each class&apos;s own
           authored rules, and deployed Sentinels remain omnidirectional.
+          Basic short, medium and long guns reach 3, 4 and 6 tiles respectively;
+          every body&apos;s facing-quadrant vision reaches 5 tiles.
         </p>
         <p className="mt-2 text-arena-dim">
           Your mind should read the action legality mask every tick. If a visible target

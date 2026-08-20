@@ -68,7 +68,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                     "{\"midWellRibs\":true}";
                 await db.Database.ExecuteSqlInterpolatedAsync($"""
                     UPDATE "PlaylistVersions"
-                    SET "DefinitionFingerprint" = {
+                    SET "Version" = {
+                            ArcRelayEntrantPlaylistDefinition.Tapline9Version},
+                        "DefinitionFingerprint" = {
                         ArcRelayEntrantPlaylistSeeder
                             .UnpublishedMistakenTapline9DefinitionFingerprint},
                         "CanonicalDefinition" = CAST({mistakenCanonical} AS jsonb),
@@ -89,7 +91,10 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             ArcRelayEntrantSeedResult repaired = await scope.ServiceProvider
                 .GetRequiredService<ArcRelayEntrantPlaylistSeeder>()
                 .SeedAsync();
-            Assert.Equal(versionId, repaired.PlaylistVersion.Id);
+            Assert.Equal(
+                ArcRelayEntrantPlaylistDefinition.Version,
+                repaired.PlaylistVersion.Version);
+            Assert.NotEqual(versionId, repaired.PlaylistVersion.Id);
         }
 
         await using (AppDbContext db = database.CreateContext())
@@ -98,7 +103,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 value.Key == ArcRelayEntrantPlaylistDefinition.PlaylistKey);
             PlaylistVersion repaired = await db.PlaylistVersions.SingleAsync(
                 value => value.Id == versionId);
-            ArcRelayEntrantPlaylistDefinition.Create()
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV26()
                 .Validate(playlist, repaired);
         }
     }
@@ -135,7 +140,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Tapline9.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Tapline10.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(2, catalog.StockOpponents.Count);
@@ -162,6 +167,11 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         });
         Assert.Equal(16, catalog.Classes.Select(entry =>
             entry.SignatureAuthoring.Preset.Id).Distinct().Count());
+        Assert.All(catalog.Classes, entry => Assert.Equal(5, entry.VisionRange));
+        Assert.Equal(
+            [3, 4, 6],
+            catalog.Classes.Select(entry => entry.AttackRange)
+                .Distinct().Order().ToArray());
         TacticalSheetClassResponse kestrel = catalog.Classes.Single(value =>
             value.Id == "kestrel");
         Assert.True(kestrel.SignatureAuthoring.AllowsRouteForward);
@@ -227,9 +237,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Tapline9.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Tapline10.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Tapline9.RulesetId,
+                ArcRelayLoopProfile.Tapline10.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -264,7 +274,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Tapline9.RulesetId,
+                ArcRelayLoopProfile.Tapline10.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)

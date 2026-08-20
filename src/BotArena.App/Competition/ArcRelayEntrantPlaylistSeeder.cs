@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v26 deliberately starts
-/// a fresh rating book because Tapline-9 changes the registered map geometry;
-/// immutable v8-v25 ladders remain readable.
+/// Seeds the current immutable entrant lane. Playlist v27 deliberately starts
+/// a fresh rating book because Tapline-10 changes vision and gun reach;
+/// immutable v8-v26 ladders remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -248,6 +248,27 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV25()
                 .Validate(playlist, tapline8Version);
         }
+        PlaylistVersion? tapline9Version = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.Tapline9Version,
+                cancellationToken);
+        if (tapline9Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition expectedTapline9 =
+                ArcRelayEntrantPlaylistDefinition.CreateHistoricalV26();
+            if (string.Equals(
+                    tapline9Version.DefinitionFingerprint,
+                    UnpublishedMistakenTapline9DefinitionFingerprint,
+                    StringComparison.Ordinal))
+            {
+                await RepairUnpublishedTapline9Async(
+                    tapline9Version,
+                    expectedTapline9,
+                    cancellationToken);
+            }
+            expectedTapline9.Validate(playlist, tapline9Version);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
@@ -292,63 +313,6 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             };
             db.PlaylistVersions.Add(version);
             await db.SaveChangesAsync(cancellationToken);
-        }
-        else if (string.Equals(
-                     version.DefinitionFingerprint,
-                     UnpublishedMistakenTapline9DefinitionFingerprint,
-                     StringComparison.Ordinal))
-        {
-            bool hasMatchHistory = await db.Matches.AnyAsync(
-                    value => value.PlaylistVersionId == version.Id,
-                    cancellationToken)
-                || await db.MatchSets.AnyAsync(
-                    value => value.PlaylistVersionId == version.Id,
-                    cancellationToken);
-            if (hasMatchHistory)
-            {
-                throw new InvalidOperationException(
-                    "The unpublished mistaken Arc Relay v26 definition has "
-                    + "match history and cannot be corrected in place.");
-            }
-
-            // Owner-authorized correction of the unpublished local identity.
-            // PostgreSQL normally rejects every PlaylistVersion mutation. Open
-            // that guard only around this exact fingerprint-gated row, retain
-            // its identity/rating book, then restore the guard before the
-            // ordinary immutable validation below.
-            await db.Database.ExecuteSqlRawAsync(
-                "ALTER TABLE \"PlaylistVersions\" DISABLE TRIGGER "
-                + "\"TR_PlaylistVersions_Immutable\";",
-                cancellationToken);
-            try
-            {
-                await db.Database.ExecuteSqlInterpolatedAsync($"""
-                    UPDATE "PlaylistVersions"
-                    SET "GameModeId" = {expected.Match.Rules.GameMode.ModeId},
-                        "RulesetId" = {expected.Match.Rules.RulesetId},
-                        "MatchFormatId" = {expected.Match.Format.FormatId},
-                        "MapPoolId" = {expected.Match.Map.Id},
-                        "SeriesPolicyId" = {ArcRelayEntrantPlaylistDefinition.SeriesPolicyId},
-                        "MatchmakingPolicyId" = {ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId},
-                        "AdmissionPolicyId" = {expected.AdmissionPolicyId},
-                        "ExecutionPolicyId" = {expected.ExecutionPolicyId},
-                        "ExecutionEngineVersion" = {expected.ExecutionEngineVersion},
-                        "CanonicalDefinition" = CAST({expected.CanonicalDefinition} AS jsonb),
-                        "DefinitionFingerprint" = {expected.DefinitionFingerprint},
-                        "Provenance" = CAST({expected.Provenance} AS jsonb),
-                        "Visibility" = {ArcRelayEntrantPlaylistDefinition.Visibility}
-                    WHERE "Id" = {version.Id}
-                      AND "DefinitionFingerprint" = {UnpublishedMistakenTapline9DefinitionFingerprint};
-                    """, cancellationToken);
-            }
-            finally
-            {
-                await db.Database.ExecuteSqlRawAsync(
-                    "ALTER TABLE \"PlaylistVersions\" ENABLE TRIGGER "
-                    + "\"TR_PlaylistVersions_Immutable\";",
-                    cancellationToken);
-            }
-            await db.Entry(version).ReloadAsync(cancellationToken);
         }
         expected.Validate(playlist, version);
 
@@ -449,7 +413,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v26 Tapline-9 " +
+                "An open Arc Relay Season 1 can start the fresh v27 Tapline-10 " +
                 "rating book only from one open prior immutable ladder.");
         }
         Ladder previous = open[0].Ladder;
@@ -458,7 +422,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v26 ladder already contains ratings.");
+                "The draft Arc Relay v27 ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants
@@ -480,6 +444,63 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         current.Status = LadderStatus.Open;
         current.IsListed = true;
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task RepairUnpublishedTapline9Async(
+        PlaylistVersion version,
+        ArcRelayEntrantPlaylistDefinition expected,
+        CancellationToken cancellationToken)
+    {
+        bool hasMatchHistory = await db.Matches.AnyAsync(
+                value => value.PlaylistVersionId == version.Id,
+                cancellationToken)
+            || await db.MatchSets.AnyAsync(
+                value => value.PlaylistVersionId == version.Id,
+                cancellationToken);
+        if (hasMatchHistory)
+        {
+            throw new InvalidOperationException(
+                "The unpublished mistaken Arc Relay v26 definition has "
+                + "match history and cannot be corrected in place.");
+        }
+
+        // Owner-authorized correction of the unpublished local identity.
+        // PostgreSQL normally rejects every PlaylistVersion mutation. Open
+        // that guard only around this exact fingerprint-gated row, retain its
+        // identity/rating book, then restore the guard before validation.
+        await db.Database.ExecuteSqlRawAsync(
+            "ALTER TABLE \"PlaylistVersions\" DISABLE TRIGGER "
+            + "\"TR_PlaylistVersions_Immutable\";",
+            cancellationToken);
+        try
+        {
+            await db.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE "PlaylistVersions"
+                SET "GameModeId" = {expected.Match.Rules.GameMode.ModeId},
+                    "RulesetId" = {expected.Match.Rules.RulesetId},
+                    "MatchFormatId" = {expected.Match.Format.FormatId},
+                    "MapPoolId" = {expected.Match.Map.Id},
+                    "SeriesPolicyId" = {ArcRelayEntrantPlaylistDefinition.SeriesPolicyId},
+                    "MatchmakingPolicyId" = {ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId},
+                    "AdmissionPolicyId" = {expected.AdmissionPolicyId},
+                    "ExecutionPolicyId" = {expected.ExecutionPolicyId},
+                    "ExecutionEngineVersion" = {expected.ExecutionEngineVersion},
+                    "CanonicalDefinition" = CAST({expected.CanonicalDefinition} AS jsonb),
+                    "DefinitionFingerprint" = {expected.DefinitionFingerprint},
+                    "Provenance" = CAST({expected.Provenance} AS jsonb),
+                    "Visibility" = {ArcRelayEntrantPlaylistDefinition.Visibility}
+                WHERE "Id" = {version.Id}
+                  AND "DefinitionFingerprint" = {UnpublishedMistakenTapline9DefinitionFingerprint};
+                """, cancellationToken);
+        }
+        finally
+        {
+            await db.Database.ExecuteSqlRawAsync(
+                "ALTER TABLE \"PlaylistVersions\" ENABLE TRIGGER "
+                + "\"TR_PlaylistVersions_Immutable\";",
+                cancellationToken);
+        }
+        await db.Entry(version).ReloadAsync(cancellationToken);
     }
 }
 

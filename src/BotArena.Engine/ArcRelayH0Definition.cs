@@ -687,7 +687,7 @@ public static class ArcRelayH0Definition
         ];
         ActorVisionProfileDefinition vision = new(
             "arc-facing-vision",
-            range: 7,
+            range: loopProfile.VisionRange,
             ActorVisionDistanceMetric.Chebyshev,
             ActorVisionShape.FacingQuadrant,
             omnidirectionalProximityRange: loopProfile.OmniProximityRange,
@@ -704,15 +704,18 @@ public static class ArcRelayH0Definition
             // a long one through the existing range/cadence triangle.
             // Signature bolts keep their historical behavior — they are
             // utility casts, not the combat model under test.
-            Attack("short-fast", range: 4, nextFireInterval: 2,
+            Attack("short-fast", range: loopProfile.ShortAttackRange,
+                nextFireInterval: 2,
                 loopProfile.DirectionalCombat,
                 loopProfile.StrikeWindupTicks,
                 damagePerHit: loopProfile.CombatMagnitudeScale),
-            Attack("medium-steady", range: 6, nextFireInterval: 3,
+            Attack("medium-steady", range: loopProfile.MediumAttackRange,
+                nextFireInterval: 3,
                 loopProfile.DirectionalCombat,
                 loopProfile.StrikeWindupTicks,
                 damagePerHit: loopProfile.CombatMagnitudeScale),
-            Attack("long-slow", range: 9, nextFireInterval: 5,
+            Attack("long-slow", range: loopProfile.LongAttackRange,
+                nextFireInterval: 5,
                 loopProfile.DirectionalCombat,
                 loopProfile.StrikeWindupTicks,
                 damagePerHit: loopProfile.CombatMagnitudeScale),

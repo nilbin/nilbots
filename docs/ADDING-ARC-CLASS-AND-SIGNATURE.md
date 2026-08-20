@@ -109,7 +109,7 @@ but not rules, map, or match fingerprints. Absence selects the frozen legacy
 treatment; an unknown ID or signature renders a generic public phase/footprint
 marker instead of disappearing or borrowing today's treatment.
 
-Current Tapline-9 grammar-3 replays use `arc-relay-signatures-v3`. V3 removes
+Current Tapline-10 grammar-3 replays use `arc-relay-signatures-v3`. V3 removes
 Arc Toss's tell and aligns its body, Core and launch-audio release after
 same-tick combat. V2 remains the recognized one-tick Toss package, and V1 keeps
 its original audio bindings. A future visual change still mints a new package

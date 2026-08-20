@@ -38,7 +38,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Entrant_v26_promotes_Tapline9_while_v2_through_v25_remain_resolvable_history()
+    public void Entrant_v27_promotes_Tapline10_while_v2_through_v26_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -90,11 +90,13 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV24();
         ArcRelayEntrantPlaylistDefinition tapline8V25 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV25();
+        ArcRelayEntrantPlaylistDefinition tapline9V26 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV26();
 
-        Assert.Equal(26, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline9.MapId, current.Match.Map.Id);
+        Assert.Equal(27, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline10.MapId, current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline9.RulesetId,
+            ArcRelayLoopProfile.Tapline10.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline4TacticalArtifactHash,
@@ -112,13 +114,17 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline9", current.Provenance);
+        Assert.Contains("ownerApprovedTapline10", current.Provenance);
+        Assert.Contains("\"baseVisionRange\":5", current.Provenance);
+        Assert.Contains("\"shortAttackRange\":3", current.Provenance);
+        Assert.Contains("\"mediumAttackRange\":4", current.Provenance);
+        Assert.Contains("\"longAttackRange\":6", current.Provenance);
         Assert.Contains("sealedOuterWellEntrancesStaggeredMidCover", current.Provenance);
         Assert.Contains("sourceLocalWellSupply", current.Provenance);
         Assert.Contains("bankTriggeredWellRecharge", current.Provenance);
         Assert.Contains("noTellArcToss", current.Provenance);
         Assert.Contains("equalReturnFork", current.Provenance);
-        Assert.Contains("newImmutableMapIdentity", current.Provenance);
+        Assert.DoesNotContain("newImmutableMapIdentity", current.Provenance);
         Assert.Contains("delayedCentreOpening", current.Provenance);
         Assert.Contains("stockArtifactReusedFromTapline4", current.Provenance);
         Assert.Contains("teamRelativeCoreCharge", current.Provenance);
@@ -137,6 +143,16 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(26, tapline9V26.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline9.RulesetId,
+            tapline9V26.Match.Rules.RulesetId);
+        Assert.Equal("arc-relay-tapline-03", tapline9V26.Match.Map.Id);
+        Assert.Contains("ownerApprovedTapline9", tapline9V26.Provenance);
+        Assert.Contains("newImmutableMapIdentity", tapline9V26.Provenance);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
+            tapline9V26.CanonicalDefinition);
         Assert.Equal(25, tapline8V25.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.Tapline8.RulesetId,
@@ -398,7 +414,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 trafficDetourV15, stableCarrierV16, looseCoreMemoryV17,
                 claimableCoreV18, taplineV19, ordersV20, tapline3V21,
                 tapline4V22, tapline5V23, tapline6V24, tapline8V25,
-                current]);
+                tapline9V26, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -471,6 +487,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(tapline8V25, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Tapline8Version));
+        Assert.Same(tapline9V26, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Tapline9Version));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));

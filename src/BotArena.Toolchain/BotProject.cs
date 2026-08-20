@@ -475,9 +475,12 @@ public static class ToolchainInfo
     /// 0.9.68 makes Hold defence boundedly pursue Core carriers and unanswered
     /// ranged threats, and makes Practice rematerialize saved Tactics through
     /// the currently running compiler.
+    /// 0.9.69 promotes Tapline-10's five-tile team vision and 3/4/6 basic-gun
+    /// ranges as the local, editor and hosted default in immutable playlist
+    /// v27 while preserving Tapline-9/v26 exactly.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
-    public const string CliVersion = "0.9.68";
+    public const string CliVersion = "0.9.69";
     // 0.2.0: BotContext.Slot + documented event semantics (DECISIONS #46).
     // 0.3.0: BotContext.Energy for the energy-shot rules candidate (DECISIONS #47).
     // 0.4.0: strafe actions + map dims + zone-control fields for the rules 0.3 slate

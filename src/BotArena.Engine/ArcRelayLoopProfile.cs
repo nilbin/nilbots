@@ -51,7 +51,11 @@ public sealed record ArcRelayLoopProfile
         ArcRelaySignatureDefinition.ActivationTimingKind
             arcTossActivationTiming = ArcRelaySignatureDefinition
                 .ActivationTimingKind.BeforeCombat,
-        int bankTriggeredWellRechargeTicks = 0)
+        int bankTriggeredWellRechargeTicks = 0,
+        int visionRange = 7,
+        int shortAttackRange = 4,
+        int mediumAttackRange = 6,
+        int longAttackRange = 9)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -69,6 +73,14 @@ public sealed record ArcRelayLoopProfile
             throw new ArgumentOutOfRangeException(
                 nameof(bankTriggeredWellRechargeTicks));
         }
+        if (visionRange <= 0)
+            throw new ArgumentOutOfRangeException(nameof(visionRange));
+        if (shortAttackRange <= 0)
+            throw new ArgumentOutOfRangeException(nameof(shortAttackRange));
+        if (mediumAttackRange < shortAttackRange)
+            throw new ArgumentOutOfRangeException(nameof(mediumAttackRange));
+        if (longAttackRange < mediumAttackRange)
+            throw new ArgumentOutOfRangeException(nameof(longAttackRange));
         CombatMagnitudeScale = combatMagnitudeScale;
         BodyHullBonus = bodyHullBonus;
         CentreOpeningDelayTicks = centreOpeningDelayTicks;
@@ -76,6 +88,10 @@ public sealed record ArcRelayLoopProfile
         ArcTossTravelTilesPerTick = arcTossTravelTilesPerTick;
         ArcTossActivationTiming = arcTossActivationTiming;
         BankTriggeredWellRechargeTicks = bankTriggeredWellRechargeTicks;
+        VisionRange = visionRange;
+        ShortAttackRange = shortAttackRange;
+        MediumAttackRange = mediumAttackRange;
+        LongAttackRange = longAttackRange;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -177,6 +193,16 @@ public sealed record ArcRelayLoopProfile
     /// every historical profile keeps zero and its scheduled-beat semantics.
     /// </summary>
     internal int BankTriggeredWellRechargeTicks { get; }
+
+    /// <summary>
+    /// Versioned perception and basic-gun reach. Defaults retain the exact
+    /// historical 7 / 4 / 6 / 9 contract; promoted profiles may tune the
+    /// spatial combat envelope without rewriting prior replay identities.
+    /// </summary>
+    internal int VisionRange { get; }
+    internal int ShortAttackRange { get; }
+    internal int MediumAttackRange { get; }
+    internal int LongAttackRange { get; }
 
     public static ArcRelayLoopProfile H0 { get; } = new(
         "h0",
@@ -1302,11 +1328,57 @@ public sealed record ArcRelayLoopProfile
         bankTriggeredWellRechargeTicks: 46);
 
     /// <summary>
+    /// Tapline-9's complete map, economy, lifecycle, and signature stack with
+    /// a tighter positional-combat envelope. Facing-quadrant vision contracts
+    /// from seven to five tiles; short, medium, and long guns contract from
+    /// 4/6/9 to 3/4/6. Team perception remains the immediate union of allied
+    /// sensors, so Longshot can deliberately fire one tile beyond its own
+    /// sight when a teammate supplies contact.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline10 { get; } = new(
+        "tapline-10",
+        "arc-relay-tapline-10",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline9;
+    public static ArcRelayLoopProfile Current => Tapline10;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1386,6 +1458,7 @@ public sealed record ArcRelayLoopProfile
         Tapline7,
         Tapline8,
         Tapline9,
+        Tapline10,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

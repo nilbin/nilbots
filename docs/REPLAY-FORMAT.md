@@ -95,7 +95,7 @@ and regular-attack projectile identities. `signaturePresentationId` binds one
 immutable, roster-complete visual/audio treatment to the public signature
 operation grammar.
 
-Current Tapline-9 replays write `arc-relay-signatures-v3`. V3 removes Arc Toss's
+Current Tapline-10 replays write `arc-relay-signatures-v3`. V3 removes Arc Toss's
 tell treatment and aligns its body release, Core flight and launch sound with
 the post-combat release inside the accepted tick. Recorded V2 replays retain
 their one-tick Toss timing and 0.2-tick launch cue; V1 retains its original audio
