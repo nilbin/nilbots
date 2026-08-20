@@ -109,6 +109,40 @@ class Grid:
             current = previous[current]
         return list(reversed(result))
 
+    @staticmethod
+    def supercover_line(start: Point, end: Point) -> list[Point]:
+        """Match the engine's integer corner-strict supercover ray."""
+        dx, dy = end[0] - start[0], end[1] - start[1]
+        nx, ny = abs(dx), abs(dy)
+        sx = (dx > 0) - (dx < 0)
+        sy = (dy > 0) - (dy < 0)
+        x, y = start
+        result = [start]
+        ix = iy = 0
+        while ix < nx or iy < ny:
+            cross_x = (1 + 2 * ix) * ny
+            cross_y = (1 + 2 * iy) * nx
+            if cross_x == cross_y:
+                result.extend(((x + sx, y), (x, y + sy)))
+                x += sx
+                y += sy
+                ix += 1
+                iy += 1
+            elif cross_x < cross_y:
+                x += sx
+                ix += 1
+            else:
+                y += sy
+                iy += 1
+            result.append((x, y))
+        return result
+
+    def has_line_of_sight(self, start: Point, end: Point) -> bool:
+        return all(
+            position in (start, end) or self.is_open(position)
+            for position in self.supercover_line(start, end)
+        )
+
     def open_tiles(self) -> set[Point]:
         return {
             (x, y)
@@ -414,6 +448,207 @@ def analyze_routes(
     return routes, errors
 
 
+FACING_VECTORS: dict[str, Point] = {
+    "north": (0, -1),
+    "east": (1, 0),
+    "south": (0, 1),
+    "west": (-1, 0),
+}
+
+
+def in_facing_quadrant(origin: Point, target: Point, facing: str) -> bool:
+    dx, dy = target[0] - origin[0], target[1] - origin[1]
+    fx, fy = FACING_VECTORS[facing]
+    forward = dx * fx + dy * fy
+    lateral = abs(dx * fy) + abs(dy * fx)
+    return forward >= 0 and lateral <= forward
+
+
+def parse_combat_reference(
+    spec: dict[str, Any],
+    grid: Grid,
+    landmarks: dict[str, Point],
+) -> tuple[dict[str, Any] | None, list[str]]:
+    raw = spec.get("combatReference")
+    if raw is None:
+        return None, []
+    if not isinstance(raw, dict):
+        raise SpecError("combatReference must be an object")
+    origin = resolve_endpoint(raw.get("origin"), "combatReference.origin", landmarks)
+    if not grid.is_open(origin):
+        raise SpecError("combatReference.origin must be an open map tile")
+    facing = str(raw.get("facing", "east")).lower()
+    if facing not in FACING_VECTORS:
+        raise SpecError("combatReference.facing must be north, east, south, or west")
+
+    raw_vision = raw.get("vision")
+    if not isinstance(raw_vision, dict):
+        raise SpecError("combatReference.vision must be an object")
+    vision_range = raw_vision.get("range")
+    if (
+        isinstance(vision_range, bool)
+        or not isinstance(vision_range, int)
+        or vision_range < 1
+    ):
+        raise SpecError("combatReference.vision.range must be a positive integer")
+    shape = str(raw_vision.get("shape", "facing-quadrant"))
+    if shape != "facing-quadrant":
+        raise SpecError("combatReference.vision.shape must be facing-quadrant")
+    line_of_sight = str(
+        raw_vision.get("lineOfSight", "corner-strict-supercover")
+    )
+    if line_of_sight != "corner-strict-supercover":
+        raise SpecError(
+            "combatReference.vision.lineOfSight must be corner-strict-supercover"
+        )
+    point_blank_range = raw_vision.get("pointBlankRange", 1)
+    if (
+        isinstance(point_blank_range, bool)
+        or not isinstance(point_blank_range, int)
+        or point_blank_range < 0
+        or point_blank_range > vision_range
+    ):
+        raise SpecError(
+            "combatReference.vision.pointBlankRange must be between zero and vision range"
+        )
+
+    visible_tiles: list[list[int]] = []
+    for y in range(grid.height):
+        for x in range(grid.width):
+            target = (x, y)
+            distance = max(abs(x - origin[0]), abs(y - origin[1]))
+            if distance > vision_range:
+                continue
+            if distance > point_blank_range and not in_facing_quadrant(
+                origin, target, facing
+            ):
+                continue
+            if grid.has_line_of_sight(origin, target):
+                visible_tiles.append([x, y])
+
+    raw_attacks = raw.get("attacks")
+    if not isinstance(raw_attacks, list):
+        raise SpecError("combatReference.attacks must be an array")
+    attacks: list[dict[str, Any]] = []
+    ids: set[str] = set()
+    errors: list[str] = []
+    for index, attack in enumerate(raw_attacks):
+        if not isinstance(attack, dict):
+            raise SpecError(f"combatReference.attacks[{index}] must be an object")
+        attack_id = str(attack.get("id", "")).strip()
+        if not attack_id or attack_id in ids:
+            raise SpecError(
+                f"combatReference.attacks[{index}].id must be non-empty and unique"
+            )
+        ids.add(attack_id)
+        attack_range = attack.get("range")
+        if (
+            isinstance(attack_range, bool)
+            or not isinstance(attack_range, int)
+            or attack_range < 1
+        ):
+            raise SpecError(
+                f"combatReference.attacks[{index}].range must be a positive integer"
+            )
+        classes = attack.get("classes", [])
+        if not isinstance(classes, list) or not classes or not all(
+            isinstance(value, str) and value.strip() for value in classes
+        ):
+            raise SpecError(
+                f"combatReference.attacks[{index}].classes must be a non-empty array of names"
+            )
+        attacks.append(
+            {
+                "id": attack_id,
+                "label": str(attack.get("label", attack_id)),
+                "range": attack_range,
+                "classes": classes,
+                "style": str(attack.get("style", attack_id)),
+            }
+        )
+    if len(attacks) != 3:
+        errors.append(
+            f"combat range reference must declare all three attack profiles; found {len(attacks)}"
+        )
+    expected_profiles = {"short-fast", "medium-steady", "long-slow"}
+    if ids != expected_profiles:
+        errors.append(
+            "combat range reference must declare short-fast, medium-steady, and long-slow"
+        )
+    memberships = [
+        class_name
+        for attack in attacks
+        for class_name in attack["classes"]
+    ]
+    duplicate_memberships = sorted(
+        {name for name in memberships if memberships.count(name) > 1}
+    )
+    if duplicate_memberships:
+        errors.append(
+            "classes cannot belong to multiple attack profiles: "
+            + ", ".join(duplicate_memberships)
+        )
+
+    return (
+        {
+            "origin": list(origin),
+            "facing": facing,
+            "source": str(raw.get("source", "")),
+            "vision": {
+                "label": str(raw_vision.get("label", "Base vision")),
+                "range": vision_range,
+                "shape": shape,
+                "lineOfSight": line_of_sight,
+                "pointBlankRange": point_blank_range,
+                "visibleTiles": visible_tiles,
+            },
+            "attacks": sorted(attacks, key=lambda value: value["range"]),
+        },
+        errors,
+    )
+
+
+def validate_atlas_requirements(
+    spec: dict[str, Any],
+    routes: list[dict[str, Any]],
+    combat_reference: dict[str, Any] | None,
+) -> tuple[dict[str, bool], list[str]]:
+    raw = spec.get("atlasRequirements", {})
+    if not isinstance(raw, dict):
+        raise SpecError("atlasRequirements must be an object")
+    requirements: dict[str, bool] = {}
+    for key in ("distances", "combatRanges"):
+        value = raw.get(key, False)
+        if not isinstance(value, bool):
+            raise SpecError(f"atlasRequirements.{key} must be true or false")
+        requirements[key] = value
+    errors: list[str] = []
+    if requirements["distances"]:
+        required_ids = spec.get("requiredRouteIds", [])
+        route_ids = {route["id"] for route in routes}
+        if not routes:
+            errors.append("distance atlas requires at least one measured route")
+        if not required_ids:
+            errors.append("distance atlas requires a non-empty requiredRouteIds inventory")
+        elif set(required_ids) != route_ids:
+            unrequired = sorted(route_ids - set(required_ids))
+            if unrequired:
+                errors.append(
+                    "distance atlas has routes outside requiredRouteIds: "
+                    + ", ".join(unrequired)
+                )
+        unpinned = sorted(
+            route["id"] for route in routes if route["expectedSteps"] is None
+        )
+        if unpinned:
+            errors.append(
+                "distance atlas routes must pin expectedSteps: " + ", ".join(unpinned)
+            )
+    if requirements["combatRanges"] and combat_reference is None:
+        errors.append("combat range atlas requires combatReference")
+    return requirements, errors
+
+
 def topology_analysis(
     spec: dict[str, Any],
     grid: Grid,
@@ -486,7 +721,19 @@ def analyze_spec(spec: dict[str, Any], spec_path: Path) -> dict[str, Any]:
     landmarks, landmark_positions, landmark_errors = parse_landmarks(spec, grid)
     topology, topology_errors = topology_analysis(spec, grid, landmarks)
     routes, route_errors = analyze_routes(spec, grid, landmark_positions)
-    errors = [*landmark_errors, *topology_errors, *route_errors]
+    combat_reference, combat_errors = parse_combat_reference(
+        spec, grid, landmark_positions
+    )
+    atlas_requirements, requirement_errors = validate_atlas_requirements(
+        spec, routes, combat_reference
+    )
+    errors = [
+        *landmark_errors,
+        *topology_errors,
+        *route_errors,
+        *combat_errors,
+        *requirement_errors,
+    ]
     return {
         "title": str(spec.get("title", "Arc Relay map route analysis")),
         "note": str(spec.get("note", "")),
@@ -502,6 +749,8 @@ def analyze_spec(spec: dict[str, Any], spec_path: Path) -> dict[str, Any]:
         "landmarks": landmarks,
         "topology": topology,
         "routes": routes,
+        "atlasRequirements": atlas_requirements,
+        "combatReference": combat_reference,
     }
 
 
@@ -512,8 +761,8 @@ HTML_TEMPLATE = r'''<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
-:root{color-scheme:light dark;--bg:light-dark(#fff,#181818);--fg:light-dark(#1a1c1f,#fff);--panel:color-mix(in srgb,var(--fg) 5%,var(--bg));--wall:color-mix(in srgb,var(--fg) 72%,transparent);--border:color-mix(in srgb,var(--fg) 14%,transparent);--north:light-dark(#339cff,#83c3ff);--south:light-dark(#e2852f,#f59a56);--direct:light-dark(#916fe1,#aa91ef);--alternate:light-dark(#2db9af,#5acbc2);--well:light-dark(#5dc977,#74d58b);--candidate:light-dark(#eb77b1,#f08fc0);--reactor:light-dark(#297fd1,#83c3ff);--heal:light-dark(#35b9b1,#5acbc2)}
-*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}main{max-width:960px;margin:0 auto}h1{font-size:20px;font-weight:600;margin:0 0 8px}.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}button{border:1px solid var(--border);border-radius:8px;padding:5px 9px;background:transparent;color:var(--fg);font:inherit}button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}#summary,.note{margin:4px 0 8px;color:color-mix(in srgb,var(--fg) 62%,transparent)}svg{display:block;width:100%;height:auto}.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0;font-size:12px}.key{display:inline-flex;align-items:center;gap:5px}.line{width:20px;border-top:3px solid var(--north)}.line.south{border-color:var(--south)}.line.direct{border-color:var(--direct)}.box{width:12px;height:12px;background:var(--candidate)}.box.heal{background:var(--heal);text-align:center;line-height:12px}.table-wrap{max-width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border)}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}.errors{color:light-dark(#b33,#ff8b88)}@media(max-width:520px){body{padding:12px}th.ratio,td.ratio{display:none}}
+:root{color-scheme:light dark;--bg:light-dark(#fff,#181818);--fg:light-dark(#1a1c1f,#fff);--panel:color-mix(in srgb,var(--fg) 5%,var(--bg));--wall:color-mix(in srgb,var(--fg) 72%,transparent);--border:color-mix(in srgb,var(--fg) 14%,transparent);--north:light-dark(#339cff,#83c3ff);--south:light-dark(#e2852f,#f59a56);--direct:light-dark(#916fe1,#aa91ef);--alternate:light-dark(#2db9af,#5acbc2);--well:light-dark(#5dc977,#74d58b);--candidate:light-dark(#eb77b1,#f08fc0);--reactor:light-dark(#297fd1,#83c3ff);--heal:light-dark(#35b9b1,#5acbc2);--vision:light-dark(#00a9d6,#52d6f4);--short-fast:light-dark(#ee6b64,#ff8d87);--medium-steady:light-dark(#e4a22f,#f5bc55);--long-slow:light-dark(#9b6ee3,#b795f2)}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}main{max-width:960px;margin:0 auto}h1{font-size:20px;font-weight:600;margin:0 0 8px}h2{font-size:16px;margin:18px 0 4px}.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}button{border:1px solid var(--border);border-radius:8px;padding:5px 9px;background:transparent;color:var(--fg);font:inherit}button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}#summary,.note{margin:4px 0 8px;color:color-mix(in srgb,var(--fg) 62%,transparent)}svg{display:block;width:100%;height:auto;touch-action:none}.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0;font-size:12px}.key{display:inline-flex;align-items:center;gap:5px}.line{width:20px;border-top:3px solid var(--north)}.line.south{border-color:var(--south)}.line.direct{border-color:var(--direct)}.line.vision{border-color:var(--vision);border-top-style:dashed}.line.short-fast{border-color:var(--short-fast)}.line.medium-steady{border-color:var(--medium-steady)}.line.long-slow{border-color:var(--long-slow)}.box{width:12px;height:12px;background:var(--candidate)}.box.heal{background:var(--heal);text-align:center;line-height:12px}.table-wrap{max-width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}.errors{color:light-dark(#b33,#ff8b88)}#combat-reference[hidden],#reference-status[hidden]{display:none}[data-reference-handle]{cursor:grab}[data-reference-handle]:active{cursor:grabbing}@media(max-width:520px){body{padding:12px}th.ratio,td.ratio{display:none}}
 </style>
 </head>
 <body>
@@ -521,12 +770,19 @@ HTML_TEMPLATE = r'''<!doctype html>
 <h1>__TITLE__</h1>
 <div id="controls" class="controls" role="group" aria-label="Route group"></div>
 <p id="summary"></p>
+<p id="reference-status" class="note" aria-live="polite" hidden></p>
 <svg id="map" role="img"></svg>
 <div class="legend"><span class="key"><span class="line"></span>north</span><span class="key"><span class="line south"></span>south</span><span class="key"><span class="line direct"></span>direct</span><span class="key"><span class="box"></span>candidate wall</span><span class="key"><span class="box heal">+</span>healing</span><span>R reactor</span><span>1 / 2 / 4 Well value</span></div>
 <p id="landmark-summary" class="note"></p>
 <div class="table-wrap"><table><thead><tr><th>Origin</th><th>Route</th><th class="num">Steps</th><th class="num ratio">Versus shortest</th></tr></thead><tbody id="route-rows"></tbody></table></div>
+<section id="combat-reference" hidden>
+<h2>Combat range reference</h2>
+<div id="combat-legend" class="legend"></div>
+<div class="table-wrap"><table><thead><tr><th>Profile</th><th class="num">Range</th><th>Classes</th></tr></thead><tbody id="combat-rows"></tbody></table></div>
+<p id="combat-note" class="note"></p>
+</section>
 <p id="errors" class="errors"></p>
-<p class="note">Terrain-only corner-strict steps; one open tile per tick before traffic or combat. Candidate geometry only unless the specification says otherwise.</p>
+<p class="note">Routes report terrain-only corner-strict distance in steps, not elapsed match time. Carrier throttling, bodies, combat, signatures, and hesitation can all add ticks. The cyan outline is the geometric base-vision cone; cyan tile shading is actual wall-occluded vision. Attack contours are distance envelopes, not claims that every enclosed tile is a legal shot.</p>
 </main>
 <script>
 const requestedTheme=new URLSearchParams(location.search).get('theme');
@@ -536,15 +792,141 @@ const ns='http://www.w3.org/2000/svg';
 const svg=document.getElementById('map');
 const groups=[...new Set(data.routes.map(route=>route.group))];
 let active=groups[0]||'';
+let showCombat=Boolean(data.combatReference);
+const defaultReferenceOrigin=data.combatReference?[...data.combatReference.origin]:null;
+const defaultReferenceFacing=data.combatReference?data.combatReference.facing:null;
+let referenceOrigin=defaultReferenceOrigin?[...defaultReferenceOrigin]:null;
+let referenceFacing=defaultReferenceFacing;
+let draggingReference=false;
 const colour={north:'var(--north)',south:'var(--south)',direct:'var(--direct)',alternate:'var(--alternate)'};
+const attackColour={'short-fast':'var(--short-fast)','medium-steady':'var(--medium-steady)','long-slow':'var(--long-slow)'};
 const make=(name,attrs={})=>{const node=document.createElementNS(ns,name);for(const [key,value] of Object.entries(attrs))node.setAttribute(key,String(value));return node};
 const addText=(scene,x,y,cell,value,fill='var(--fg)',stroke=null)=>{const node=make('text',{x:(x+.5)*cell,y:(y+.5)*cell,'text-anchor':'middle','dominant-baseline':'central',fill,'font-size':Math.max(11,Math.min(13,cell*.7)),'font-weight':600});if(stroke){node.setAttribute('stroke',stroke);node.setAttribute('stroke-width','2.5');node.setAttribute('paint-order','stroke')}node.textContent=value;scene.appendChild(node)};
 function drawLandmark(scene,landmark,cell){const [x,y]=landmark.position;const kind=landmark.kind;if(kind==='well'){scene.appendChild(make('circle',{cx:(x+.5)*cell,cy:(y+.5)*cell,r:cell*.38,fill:'var(--well)',stroke:'var(--bg)','stroke-width':Math.max(1.5,cell*.1)}))}else{const fill=kind==='reactor'?'var(--reactor)':kind==='healing'?'var(--heal)':'var(--alternate)';scene.appendChild(make('rect',{x:(x+.1)*cell,y:(y+.1)*cell,width:cell*.8,height:cell*.8,fill,stroke:'var(--bg)','stroke-width':Math.max(1.5,cell*.1)}))}addText(scene,x,y,cell,landmark.label,kind==='reactor'?'var(--bg)':'var(--fg)','var(--bg)')}
-function draw(){const measured=Math.max(300,Math.round(svg.getBoundingClientRect().width||480));const cell=measured/data.width;const height=cell*data.height;svg.setAttribute('viewBox',`0 0 ${measured} ${height}`);const visible=data.routes.filter(route=>route.group===active);const scene=make('g');scene.appendChild(make('rect',{x:0,y:0,width:measured,height,fill:'var(--panel)',stroke:'var(--border)','stroke-width':1}));data.rows.forEach((row,y)=>[...row].forEach((tile,x)=>{if(tile===data.wall)scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell+.15,height:cell+.15,fill:'var(--wall)'}))}));data.addedWalls.forEach(([x,y])=>scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell+.15,height:cell+.15,fill:'var(--candidate)',stroke:'var(--bg)','stroke-width':Math.max(1,cell*.09)})));visible.forEach(route=>{const stroke=colour[route.style]||colour.north;scene.appendChild(make('polyline',{points:route.path.map(([x,y])=>`${(x+.5)*cell},${(y+.5)*cell}`).join(' '),fill:'none',stroke,'stroke-width':Math.max(3,cell*.22),'stroke-linecap':'round','stroke-linejoin':'round'}));const label=route.labelAt||route.path[Math.floor((route.path.length-1)/2)];const w=Math.max(24,cell*1.55),h=Math.max(16,cell*.9);scene.appendChild(make('rect',{x:(label[0]+.5)*cell-w/2,y:(label[1]+.5)*cell-h/2,width:w,height:h,rx:h*.35,fill:'var(--bg)',stroke,'stroke-width':Math.max(1.5,cell*.08)}));addText(scene,label[0],label[1],cell,String(route.steps))});data.landmarks.forEach(item=>drawLandmark(scene,item,cell));const title=make('title');title.textContent=`${data.title}: ${visible.map(route=>`${route.label} ${route.steps} steps`).join(', ')}`;const desc=make('desc');desc.textContent='Arc Relay candidate terrain, complete declared landmarks, and corner-strict route measurements.';svg.replaceChildren(title,desc,scene);svg.setAttribute('aria-label',title.textContent);document.getElementById('summary').textContent=visible.map(route=>`${route.label}: ${route.steps} ticks`).join(' · ')}
-const controls=document.getElementById('controls');groups.forEach((group,index)=>{const button=document.createElement('button');button.type='button';button.textContent=group;button.setAttribute('aria-pressed',String(index===0));button.addEventListener('click',()=>{active=group;[...controls.children].forEach(peer=>peer.setAttribute('aria-pressed',String(peer===button)));draw()});controls.appendChild(button)});
+function visionConePoints(combat,cell){
+  const [ox,oy]=combat.origin;
+  const range=combat.vision.range;
+  const centre=[(ox+.5)*cell,(oy+.5)*cell];
+  const far={
+    north:[[(ox-range+.5)*cell,(oy-range+.5)*cell],[(ox+range+.5)*cell,(oy-range+.5)*cell]],
+    east:[[(ox+range+.5)*cell,(oy-range+.5)*cell],[(ox+range+.5)*cell,(oy+range+.5)*cell]],
+    south:[[(ox-range+.5)*cell,(oy+range+.5)*cell],[(ox+range+.5)*cell,(oy+range+.5)*cell]],
+    west:[[(ox-range+.5)*cell,(oy-range+.5)*cell],[(ox-range+.5)*cell,(oy+range+.5)*cell]]
+  }[combat.facing];
+  return [centre,...far].map(([x,y])=>`${x},${y}`).join(' ');
+}
+function supercoverLine(start,end){
+  const dx=end[0]-start[0],dy=end[1]-start[1],nx=Math.abs(dx),ny=Math.abs(dy),sx=Math.sign(dx),sy=Math.sign(dy);
+  let x=start[0],y=start[1],ix=0,iy=0;
+  const result=[[x,y]];
+  while(ix<nx||iy<ny){
+    const crossX=(1+2*ix)*ny,crossY=(1+2*iy)*nx;
+    if(crossX===crossY){result.push([x+sx,y],[x,y+sy]);x+=sx;y+=sy;ix++;iy++}
+    else if(crossX<crossY){x+=sx;ix++}
+    else{y+=sy;iy++}
+    result.push([x,y]);
+  }
+  return result;
+}
+const isInBounds=([x,y])=>x>=0&&y>=0&&x<data.width&&y<data.height;
+const isOpen=([x,y])=>isInBounds([x,y])&&data.rows[y][x]!==data.wall;
+function inFacingQuadrant(origin,target,facing){
+  const vectors={north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]};
+  const [fx,fy]=vectors[facing],dx=target[0]-origin[0],dy=target[1]-origin[1];
+  const forward=dx*fx+dy*fy,lateral=Math.abs(dx*fy)+Math.abs(dy*fx);
+  return forward>=0&&lateral<=forward;
+}
+function visibleTilesFor(combat){
+  const result=[],origin=combat.origin,range=combat.vision.range,pointBlank=combat.vision.pointBlankRange;
+  for(let y=0;y<data.height;y++)for(let x=0;x<data.width;x++){
+    const target=[x,y],distance=Math.max(Math.abs(x-origin[0]),Math.abs(y-origin[1]));
+    if(distance>range)continue;
+    if(distance>pointBlank&&!inFacingQuadrant(origin,target,combat.facing))continue;
+    const visible=supercoverLine(origin,target).every(([rx,ry])=>(rx===origin[0]&&ry===origin[1])||(rx===x&&ry===y)||isOpen([rx,ry]));
+    if(visible)result.push(target);
+  }
+  return result;
+}
+function currentCombat(){
+  if(!data.combatReference)return null;
+  const combat={...data.combatReference,origin:[...referenceOrigin],facing:referenceFacing};
+  combat.vision={...data.combatReference.vision,visibleTiles:[]};
+  combat.vision.visibleTiles=visibleTilesFor(combat);
+  return combat;
+}
+function drawCombat(scene,cell,combat){
+  if(!combat||!showCombat)return;
+  combat.vision.visibleTiles.forEach(([x,y])=>scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell,height:cell,fill:'var(--vision)','fill-opacity':.16})));
+  const [ox,oy]=combat.origin;
+  [...combat.attacks].sort((a,b)=>b.range-a.range).forEach(attack=>{
+    const stroke=attackColour[attack.style]||attackColour[attack.id]||'var(--fg)';
+    scene.appendChild(make('rect',{x:(ox-attack.range)*cell,y:(oy-attack.range)*cell,width:(attack.range*2+1)*cell,height:(attack.range*2+1)*cell,fill:'none',stroke,'stroke-width':Math.max(1.5,cell*.09),'stroke-dasharray':`${Math.max(3,cell*.25)} ${Math.max(2,cell*.15)}`}));
+  });
+  scene.appendChild(make('polygon',{'data-vision-cone':'base',points:visionConePoints(combat,cell),fill:'none',stroke:'var(--vision)','stroke-width':Math.max(2,cell*.13),'stroke-linejoin':'round'}));
+  scene.appendChild(make('circle',{cx:(ox+.5)*cell,cy:(oy+.5)*cell,r:cell*.3,fill:'var(--fg)',stroke:'var(--bg)','stroke-width':Math.max(1.5,cell*.09)}));
+  const vectors={north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]};
+  const [dx,dy]=vectors[combat.facing];
+  scene.appendChild(make('line',{x1:(ox+.5)*cell,y1:(oy+.5)*cell,x2:(ox+.5+dx*.75)*cell,y2:(oy+.5+dy*.75)*cell,stroke:'var(--vision)','stroke-width':Math.max(2,cell*.16),'stroke-linecap':'round'}));
+}
+function drawReferenceHandle(scene,cell,combat){
+  if(!combat||!showCombat)return;
+  const [ox,oy]=combat.origin;
+  scene.appendChild(make('circle',{'data-reference-handle':'true',cx:(ox+.5)*cell,cy:(oy+.5)*cell,r:Math.max(14,cell*.8),fill:'transparent','pointer-events':'all'}));
+}
+function updateReferenceCopy(combat){
+  const status=document.getElementById('reference-status');
+  if(!combat){status.hidden=true;return}
+  status.hidden=false;
+  status.textContent=`Drag the reference marker · tile ${combat.origin.join(', ')} · facing ${combat.facing}`;
+  document.getElementById('combat-note').textContent=`Reference origin ${combat.origin.join(', ')}, facing ${combat.facing}. The cyan outline is the full base, unupgraded cone; shaded tiles inside it have corner-strict line of sight after walls. Drag the marker or rotate it above; changes are viewer-only. ${combat.source}`;
+}
+function draw(){
+  const measured=Math.max(300,Math.round(svg.getBoundingClientRect().width||480));
+  const cell=measured/data.width;
+  const height=cell*data.height;
+  svg.setAttribute('viewBox',`0 0 ${measured} ${height}`);
+  const visible=data.routes.filter(route=>route.group===active);
+  const combat=currentCombat();
+  const scene=make('g');
+  scene.appendChild(make('rect',{x:0,y:0,width:measured,height,fill:'var(--panel)',stroke:'var(--border)','stroke-width':1}));
+  data.rows.forEach((row,y)=>[...row].forEach((tile,x)=>{if(tile===data.wall)scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell+.15,height:cell+.15,fill:'var(--wall)'}))}));
+  drawCombat(scene,cell,combat);
+  data.addedWalls.forEach(([x,y])=>scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell+.15,height:cell+.15,fill:'var(--candidate)',stroke:'var(--bg)','stroke-width':Math.max(1,cell*.09)})));
+  visible.forEach(route=>{const stroke=colour[route.style]||colour.north;scene.appendChild(make('polyline',{points:route.path.map(([x,y])=>`${(x+.5)*cell},${(y+.5)*cell}`).join(' '),fill:'none',stroke,'stroke-width':Math.max(3,cell*.22),'stroke-linecap':'round','stroke-linejoin':'round'}));const label=route.labelAt||route.path[Math.floor((route.path.length-1)/2)];const w=Math.max(24,cell*1.55),h=Math.max(16,cell*.9);scene.appendChild(make('rect',{x:(label[0]+.5)*cell-w/2,y:(label[1]+.5)*cell-h/2,width:w,height:h,rx:h*.35,fill:'var(--bg)',stroke,'stroke-width':Math.max(1.5,cell*.08)}));addText(scene,label[0],label[1],cell,String(route.steps))});
+  data.landmarks.forEach(item=>drawLandmark(scene,item,cell));
+  drawReferenceHandle(scene,cell,combat);
+  const title=make('title');title.textContent=`${data.title}: ${visible.map(route=>`${route.label} ${route.steps} steps`).join(', ')}`;
+  const desc=make('desc');desc.textContent='Arc Relay terrain, complete declared landmarks, corner-strict route distances, and optional combat range reference.';
+  svg.replaceChildren(title,desc,scene);svg.setAttribute('aria-label',title.textContent);
+  document.getElementById('summary').textContent=visible.map(route=>`${route.label}: ${route.steps} steps`).join(' · ');
+  updateReferenceCopy(combat);
+}
+const controls=document.getElementById('controls');groups.forEach((group,index)=>{const button=document.createElement('button');button.type='button';button.dataset.kind='route';button.textContent=group;button.setAttribute('aria-pressed',String(index===0));button.addEventListener('click',()=>{active=group;[...controls.querySelectorAll('[data-kind="route"]')].forEach(peer=>peer.setAttribute('aria-pressed',String(peer===button)));draw()});controls.appendChild(button)});
+if(data.combatReference){
+  const button=document.createElement('button');button.type='button';button.textContent='Range reference';button.setAttribute('aria-pressed','true');button.addEventListener('click',()=>{showCombat=!showCombat;button.setAttribute('aria-pressed',String(showCombat));draw()});controls.appendChild(button);
+  const rotate=document.createElement('button');rotate.type='button';rotate.textContent='Rotate reference ↻';rotate.addEventListener('click',()=>{const facings=['north','east','south','west'];referenceFacing=facings[(facings.indexOf(referenceFacing)+1)%facings.length];draw()});controls.appendChild(rotate);
+  const reset=document.createElement('button');reset.type='button';reset.textContent='Reset reference';reset.addEventListener('click',()=>{referenceOrigin=[...defaultReferenceOrigin];referenceFacing=defaultReferenceFacing;draw()});controls.appendChild(reset);
+}
+function pointerTile(event){
+  const bounds=svg.getBoundingClientRect();
+  return [Math.floor((event.clientX-bounds.left)*data.width/bounds.width),Math.floor((event.clientY-bounds.top)*data.height/bounds.height)];
+}
+function moveReference(event){const tile=pointerTile(event);if(isOpen(tile)&&(tile[0]!==referenceOrigin[0]||tile[1]!==referenceOrigin[1])){referenceOrigin=tile;draw()}}
+svg.addEventListener('pointerdown',event=>{if(!showCombat||!event.target.closest('[data-reference-handle]'))return;draggingReference=true;svg.setPointerCapture(event.pointerId);event.preventDefault()});
+svg.addEventListener('pointermove',event=>{if(draggingReference)moveReference(event)});
+svg.addEventListener('pointerup',event=>{if(!draggingReference)return;moveReference(event);draggingReference=false;if(svg.hasPointerCapture(event.pointerId))svg.releasePointerCapture(event.pointerId)});
+svg.addEventListener('pointercancel',()=>{draggingReference=false});
 const tbody=document.getElementById('route-rows');data.routes.forEach(route=>{const tr=document.createElement('tr');for(const [value,className] of [[route.origin,''],[route.label,''],[route.steps,'num'],[`${route.ratioToShortest.toFixed(2)}×`,'num ratio']]){const td=document.createElement('td');td.textContent=value;td.className=className;tr.appendChild(td)}tbody.appendChild(tr)});
 document.getElementById('errors').textContent=data.errors.length?`Validation: ${data.errors.join(' · ')}`:'';
 document.getElementById('landmark-summary').textContent=`Landmarks: ${data.landmarks.map(item=>item.name).join(' · ')}`;
+if(data.combatReference){
+  const section=document.getElementById('combat-reference');section.hidden=false;
+  const combat=data.combatReference;
+  const legend=document.getElementById('combat-legend');
+  const vision=document.createElement('span');vision.className='key';vision.innerHTML=`<span class="line vision"></span>${combat.vision.label} cone ${combat.vision.range}`;legend.appendChild(vision);
+  const rows=document.getElementById('combat-rows');
+  combat.attacks.forEach(attack=>{const key=document.createElement('span');key.className='key';key.innerHTML=`<span class="line ${attack.style}"></span>${attack.label} ${attack.range}`;legend.appendChild(key);const tr=document.createElement('tr');for(const [value,className] of [[attack.label,''],[attack.range,'num'],[attack.classes.join(', '),'']]){const td=document.createElement('td');td.textContent=value;td.className=className;tr.appendChild(td)}rows.appendChild(tr)});
+}
 if(data.note){const note=document.createElement('p');note.className='note';note.textContent=data.note;document.querySelector('h1').after(note)}
 draw();new ResizeObserver(draw).observe(svg);
 </script>

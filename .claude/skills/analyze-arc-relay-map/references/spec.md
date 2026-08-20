@@ -19,12 +19,39 @@ terrain; declare gameplay objects as landmarks.
   "symmetry": "rotate-180",
   "stubAllowance": 2,
   "validateCutVertices": true,
+  "atlasRequirements": {"distances": true, "combatRanges": true},
   "landmarkRequirements": {"reactor": 2, "well": 3, "healing": 2},
   "requiredLandmarkIds": [
     "own-reactor", "enemy-reactor", "own-well", "centre-well",
     "enemy-well", "north-healing", "south-healing"
   ],
   "requiredRouteIds": ["own-direct"],
+  "combatReference": {
+    "origin": "own-well",
+    "facing": "east",
+    "source": "Active rules base profiles; upgrades and signatures excluded.",
+    "vision": {
+      "label": "Base vision",
+      "range": 5,
+      "shape": "facing-quadrant",
+      "lineOfSight": "corner-strict-supercover",
+      "pointBlankRange": 1
+    },
+    "attacks": [
+      {
+        "id": "short-fast", "label": "Short-fast", "style": "short-fast",
+        "range": 3, "classes": ["Kestrel", "Mason"]
+      },
+      {
+        "id": "medium-steady", "label": "Medium-steady",
+        "style": "medium-steady", "range": 4, "classes": ["Towline"]
+      },
+      {
+        "id": "long-slow", "label": "Long-slow", "style": "long-slow",
+        "range": 6, "classes": ["Longshot"]
+      }
+    ]
+  },
   "landmarks": [
     {
       "id": "own-well",
@@ -53,6 +80,11 @@ terrain; declare gameplay objects as landmarks.
 
 The checked-in `tapline-equal-return-candidate.json` is a runnable full
 example and regression fixture.
+
+For an owner-facing atlas, set both `atlasRequirements` flags to true. This
+makes an empty route inventory, a route omitted from `requiredRouteIds`, an
+unpinned `expectedSteps`, a missing combat reference, or fewer than three gun
+profiles fail validation. Small analyzer unit fixtures may omit the flags.
 
 ## Map sources
 
@@ -109,6 +141,29 @@ designer intended to include.
 A cyclic map has no finite unconstrained "longest route." Name the commitment
 that makes a long route finite, then express it with `via` or `authored`.
 
+## Combat reference
+
+`combatReference.origin` is a landmark ID or coordinate and must be open.
+`facing` is cardinal. Vision currently supports the Arc Relay
+`facing-quadrant` shape and `corner-strict-supercover` line of sight;
+`pointBlankRange` expresses the effective omnidirectional adjacent ring. The
+atlas outlines the full geometric cone and shades the actually visible tiles
+after wall occlusion, making range and practical sight distinguishable.
+The origin and facing are reproducible initial values. In the generated atlas,
+the reviewer can drag the shared vision/range marker to any open tile, rotate
+it through cardinal facings, and reset it; wall-occluded vision recomputes in
+the browser. These interactions do not alter the JSON specification or route
+analysis.
+
+Declare exactly three ordinary gun profiles with unique IDs, positive ranges,
+and their class names. Keep signature attacks out of this list. The atlas draws
+their ranges as nested square Chebyshev distance envelopes—the mechanically
+exact radius contours for this engine—so a designer can compare the map scale
+at a glance. Do not replace them with Euclidean circles unless the distance
+rule changes. An envelope does not imply a legal shot to every
+tile inside it; gun facing, allowed headings, projectile paths, and blockers
+remain runtime questions.
+
 ## Outputs and interpretation
 
 `--json-out` writes measurements and validation details. `--html-out` writes a
@@ -118,6 +173,9 @@ route data into a separate hand-authored page. Append `?theme=light` or
 `?theme=dark` while reviewing both palettes. A nonzero exit means the candidate
 failed validation.
 
-Steps are terrain-only lower bounds: one open tile per tick under corner-strict
-movement. They do not model bodies, combat, sight, deployments, or tactical
-risk, and therefore are geometry evidence rather than balance evidence.
+Steps are terrain distance, not elapsed time. They do not model movement
+throttles, bodies, combat, deployments, or tactical risk, and therefore are
+geometry evidence rather than balance evidence. In current Arc Relay, an
+unloaded body can normally move each tick while a Core carrier is gated by the
+Core relocation interval (currently two ticks); verify the active profile when
+turning a distance into a timing estimate.

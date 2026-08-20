@@ -1,4 +1,4 @@
 interface:
   display_name: "Analyze Arc Relay Map"
-  short_description: "Measure and plot Arc Relay map routes"
-  default_prompt: "Use $analyze-arc-relay-map to measure candidate routes, validate topology, and publish a landmark-complete 2D atlas."
+  short_description: "Plot Arc Relay distances, vision, and gun ranges"
+  default_prompt: "Use $analyze-arc-relay-map to measure candidate routes, validate topology, and publish a landmark-complete 2D atlas with vision and all three gun-range references."

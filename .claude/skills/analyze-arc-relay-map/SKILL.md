@@ -1,6 +1,6 @@
 ---
 name: analyze-arc-relay-map
-description: Measure and visualize Arc Relay map geometry with corner-strict pathfinding, explicit route families, landmark-complete 2D atlases, and symmetry, connectivity, and topology checks. Use for Nilbots Arc Relay map candidates, route-distance questions, shortest or committed-path comparisons, wall-layout changes, landmark audits, and owner-facing 2D map reviews. Do not treat its terrain-only measurements as balance evidence.
+description: Measure and visualize Arc Relay map geometry with pinned route distances, landmark-complete 2D atlases, draggable and rotatable vision/gun-range references, and topology checks. Use for Nilbots Arc Relay map candidates, route-distance or sightline questions, wall-layout changes, landmark audits, and owner-facing 2D map reviews. Do not treat its terrain-only measurements or range envelopes as balance evidence.
 ---
 
 # Analyze Arc Relay Map
@@ -21,20 +21,25 @@ scoring landmarks.
    every requested route family from every relevant origin before measuring.
    Use exact landmark requirements, `requiredLandmarkIds`, and
    `requiredRouteIds` so landmark or path omissions fail validation.
-4. Read [references/spec.md](references/spec.md), then create or adapt a JSON
+4. Read the active rules for the base, unupgraded vision profile and the three
+   ordinary gun profiles. Add one `combatReference` origin and facing that make
+   the important lanes easy to compare. Keep signature ranges separate.
+5. Read [references/spec.md](references/spec.md), then create or adapt a JSON
    specification in `sandbox/` or a temporary directory. Start from
    [references/tapline-equal-return-candidate.json](references/tapline-equal-return-candidate.json)
    when investigating the current equal-return candidate.
-5. Run the analyzer from the repository root:
+   Owner-facing atlases must set both `atlasRequirements.distances` and
+   `atlasRequirements.combatRanges` to `true`.
+6. Run the analyzer from the repository root:
 
    ```bash
    python3 .claude/skills/analyze-arc-relay-map/scripts/map_analysis.py \
      <spec.json> --json-out <analysis.json> --html-out <atlas.html>
    ```
 
-6. Treat every validation error as a blocker. Pin accepted distances with
+7. Treat every validation error as a blocker. Pin accepted distances with
    `expectedSteps` so later geometry drift fails loudly.
-7. Publish the analyzer-generated HTML as the authoritative atlas; do not keep
+8. Publish the analyzer-generated HTML as the authoritative atlas; do not keep
    a second hand-authored viewer whose route inventory can drift. Open the HTML
    and inspect every route group at desktop and narrow-phone
    widths in light and dark themes. Check that walls, both reactors, all three
@@ -50,8 +55,30 @@ scoring landmarks.
 - Use `authored` when the exact tile sequence is itself the design contract.
 - Never report a cyclic map's unconstrained "longest" route: a unit can loop
   forever. Define the purposeful commitment that makes the route finite.
-- Report route steps as a one-tile-per-tick lower bound before bodies, traffic,
-  combat, sight, deployments, or tactical hesitation.
+- Report route distance in terrain steps, not as elapsed ticks. Movement rules
+  can throttle relocation—for example, current Core carriers relocate only
+  once every two ticks—and traffic, combat, signatures, or hesitation add more.
+
+## Combat reference semantics
+
+- Outline the full base, unupgraded facing cone and separately shade the tiles
+  that remain visible after actual corner-strict wall occlusion. Keep both on
+  the same reference origin so geometric range and practical sight are legible.
+- Show all three ordinary gun profiles and their class memberships. Current
+  Tapline values are short-fast 3, medium-steady 4, long-slow 6, with base
+  vision 5; verify these in code rather than copying the numbers blindly.
+- The three attack contours are Chebyshev distance rulers. They answer “how far
+  is this?” but are not firing solutions: facing, shot headings, walls, windup,
+  bodies, and signatures still determine whether a shot is legal or useful.
+  Render them as squares: a square is the exact radius contour in the engine's
+  Chebyshev metric. Do not substitute Euclidean circles unless the game rules
+  change to Euclidean distance.
+- Place the reference origin deliberately for the question. It is a measuring
+  aid, not an extra landmark or gameplay object.
+- Generated atlases let the reviewer drag the shared vision/range reference to
+  any open tile, rotate it through the four cardinal facings, and reset it.
+  Recompute wall-occluded vision after every move. These viewer interactions
+  are temporary and must never mutate the source specification or analysis.
 
 ## Boundaries
 

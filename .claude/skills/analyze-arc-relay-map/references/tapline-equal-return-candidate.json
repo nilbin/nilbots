@@ -23,6 +23,10 @@
   "symmetry": "rotate-180",
   "stubAllowance": 2,
   "validateCutVertices": true,
+  "atlasRequirements": {
+    "distances": true,
+    "combatRanges": true
+  },
   "landmarkRequirements": {
     "reactor": 2,
     "well": 3,
@@ -53,6 +57,46 @@
     "enemy-full-north",
     "enemy-full-south"
   ],
+  "combatReference": {
+    "origin": "centre-well",
+    "facing": "west",
+    "source": "ArcRelayLoopProfile.Current (Tapline-10) base profiles; vision upgrades and signatures are not included.",
+    "vision": {
+      "label": "Base vision",
+      "range": 5,
+      "shape": "facing-quadrant",
+      "lineOfSight": "corner-strict-supercover",
+      "pointBlankRange": 1
+    },
+    "attacks": [
+      {
+        "id": "short-fast",
+        "label": "Short-fast",
+        "style": "short-fast",
+        "range": 3,
+        "classes": [
+          "Kestrel", "Palisade", "Patchbay", "Lantern", "Minesmith",
+          "Relay", "Mason", "Repulsor", "Veil"
+        ]
+      },
+      {
+        "id": "medium-steady",
+        "label": "Medium-steady",
+        "style": "medium-steady",
+        "range": 4,
+        "classes": [
+          "Towline", "Mortar", "Hush", "Switchback", "Sunder", "Nest"
+        ]
+      },
+      {
+        "id": "long-slow",
+        "label": "Long-slow",
+        "style": "long-slow",
+        "range": 6,
+        "classes": ["Longshot"]
+      }
+    ]
+  },
   "landmarks": [
     {
       "id": "own-reactor",

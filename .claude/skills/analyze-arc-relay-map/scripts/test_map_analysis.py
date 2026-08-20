@@ -70,6 +70,11 @@ class GridTests(unittest.TestCase):
         self.assertEqual(result["wall"], "x")
         self.assertIn("tile===data.wall", map_analysis.render_html(result))
 
+    def test_corner_strict_vision_cannot_see_through_a_wall_corner(self) -> None:
+        grid = map_analysis.Grid([list(".#."), list("#.."), list("...")])
+
+        self.assertFalse(grid.has_line_of_sight((0, 0), (1, 1)))
+
 
 class TaplineCandidateTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -117,6 +122,18 @@ class TaplineCandidateTests(unittest.TestCase):
         self.assertEqual(result["topology"]["cutVertices"], [])
         self.assertEqual(result["topology"]["symmetryMismatches"], [])
         self.assertEqual(result["topology"]["landmarkSymmetryMismatches"], [])
+        self.assertEqual(result["atlasRequirements"], {
+            "distances": True,
+            "combatRanges": True,
+        })
+        combat = result["combatReference"]
+        self.assertIsNotNone(combat)
+        self.assertEqual(combat["vision"]["range"], 5)
+        self.assertEqual(
+            {attack["id"]: attack["range"] for attack in combat["attacks"]},
+            {"short-fast": 3, "medium-steady": 4, "long-slow": 6},
+        )
+        self.assertIn([15, 13], combat["vision"]["visibleTiles"])
 
     def test_required_own_well_cannot_be_silently_omitted(self) -> None:
         spec = copy.deepcopy(self.spec)
@@ -149,6 +166,30 @@ class TaplineCandidateTests(unittest.TestCase):
             result["errors"],
         )
 
+    def test_distance_atlas_rejects_an_unpinned_route(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        del spec["routes"][0]["expectedSteps"]
+
+        result = map_analysis.analyze_spec(spec, EXAMPLE)
+
+        self.assertFalse(result["valid"])
+        self.assertIn(
+            "distance atlas routes must pin expectedSteps: own-direct",
+            result["errors"],
+        )
+
+    def test_combat_atlas_requires_all_three_profiles(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["combatReference"]["attacks"].pop()
+
+        result = map_analysis.analyze_spec(spec, EXAMPLE)
+
+        self.assertFalse(result["valid"])
+        self.assertIn(
+            "combat range reference must declare all three attack profiles; found 2",
+            result["errors"],
+        )
+
     def test_html_names_all_wells_and_both_healing_tiles(self) -> None:
         result = map_analysis.analyze_spec(self.spec, EXAMPLE)
         document = map_analysis.render_html(result)
@@ -159,6 +200,25 @@ class TaplineCandidateTests(unittest.TestCase):
             "Enemy Well (4)",
             "North healing tile",
             "South healing tile",
+        ):
+            self.assertIn(expected, document)
+        self.assertLess(
+            document.index("data.landmarks.forEach"),
+            document.index("drawReferenceHandle(scene,cell,combat);"),
+        )
+        for expected in (
+            "Combat range reference",
+            "Base vision",
+            "data-vision-cone",
+            "data-reference-handle",
+            "Rotate reference",
+            "Reset reference",
+            "visibleTilesFor",
+            "geometric base-vision cone",
+            "Short-fast",
+            "Medium-steady",
+            "Long-slow",
+            "Attack contours are distance envelopes",
         ):
             self.assertIn(expected, document)
 
