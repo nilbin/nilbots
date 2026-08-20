@@ -113,7 +113,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
             current.CanonicalDefinition);
         Assert.Contains("ownerApprovedTapline9", current.Provenance);
-        Assert.Contains("midWellRibs", current.Provenance);
+        Assert.Contains("sealedOuterWellEntrancesStaggeredMidCover", current.Provenance);
         Assert.Contains("sourceLocalWellSupply", current.Provenance);
         Assert.Contains("bankTriggeredWellRecharge", current.Provenance);
         Assert.Contains("noTellArcToss", current.Provenance);
@@ -143,7 +143,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
             tapline8V25.Match.Rules.RulesetId);
         Assert.Equal("arc-relay-tapline-02", tapline8V25.Match.Map.Id);
         Assert.Contains("ownerApprovedTapline8", tapline8V25.Provenance);
-        Assert.DoesNotContain("midWellRibs", tapline8V25.Provenance);
+        Assert.DoesNotContain("sealedOuterWellEntrancesStaggeredMidCover", tapline8V25.Provenance);
         Assert.DoesNotContain("newImmutableMapIdentity", tapline8V25.Provenance);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline6StockMapPlanSourceHash,

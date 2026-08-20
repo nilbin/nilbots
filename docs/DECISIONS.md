@@ -9324,17 +9324,20 @@ of asking. normalizeDocument gains the matching self-heals: stamp
 positional posts with slots, drop posts whose bot left, drop unowned
 marks, drop a dissolved Group's job entries.
 
-## 350. Tapline-9 promotes the mid-Well ribs
+## 350. Tapline-9 seals the outer-Well entrances and staggers Mid cover
 
-Owner promotion ruling (2026-08-20). The symmetric 14-wall candidate in
-`sandbox/tapline-mid-well-ribs` is the current Arc Relay terrain as immutable
-profile `tapline-9`, ruleset `arc-relay-tapline-09`, and map
-`arc-relay-tapline-03`. It keeps Tapline-8's 1/2/4 scoring, initial Well
-opening, bank-triggered 46-tick source-local recharge, exact-reactor scoring,
-signatures, combat, and 600-tick horizon. The only gameplay delta is the wall
-rib geometry: visiting Mid before rotating to the enemy Well now costs 36
-terrain steps from the reactor versus 28 for a dedicated outer push, while
-the two practical Centre returns remain equal at 24.
+Owner promotion ruling, corrected before publication (2026-08-20). The
+six-wall `sandbox/tapline-mid-well-ribs/long-way-candidate.json` geometry is
+the current Arc Relay terrain as immutable profile `tapline-9`, ruleset
+`arc-relay-tapline-09`, and map `arc-relay-tapline-03`. It keeps Tapline-8's
+1/2/4 scoring, initial Well opening, bank-triggered 46-tick source-local
+recharge, exact-reactor scoring, signatures, combat, and 600-tick horizon.
+The only gameplay delta is sealed outer-Well entrances with staggered Mid
+cover. Own-Well-to-reactor remains 12; own-Well-to-Centre and
+Centre-to-enemy-Well are each 22; Centre-to-reactor has a 19-step fast return
+and a 29-step healing-side return; enemy-Well-to-reactor is 31 directly or 41
+through Centre. The rejected 14-wall rib candidate was never published and is
+not combined with this geometry.
 
 Hosted entrant playlist v26 pins Tapline-9 and its native stock map plan,
 reusing the frozen Tapline-4 tactical artifact. Geometry changes the game, so

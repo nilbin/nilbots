@@ -3,11 +3,12 @@ using BotArena.Sdk;
 namespace BotArena.Engine.Tests;
 
 /// <summary>
-/// Executable geometry contract for the owner-promoted Mid-to-Well wall ribs.
+/// Executable geometry contract for the owner-promoted sealed outer-Well
+/// entrances with staggered Mid cover.
 /// Distances are corner-strict, terrain-only lower bounds rather than routes
 /// imposed on a mind.
 /// </summary>
-public sealed class ArcRelayTaplineMidWellRibsTests
+public sealed class ArcRelayTaplineSealedEntrancesTests
 {
     private static readonly Position OwnReactor = new(2, 5);
     private static readonly Position OwnWell = new(11, 6);
@@ -18,7 +19,7 @@ public sealed class ArcRelayTaplineMidWellRibsTests
         .CreateMap(ArcRelayLoopProfile.Tapline9);
 
     [Fact]
-    public void Tapline9AddsOnlyTheFourteenApprovedWallsAndKeepsTapline8()
+    public void Tapline9AddsOnlyTheSixApprovedWallsAndKeepsTapline8()
     {
         Assert.Same(ArcRelayLoopProfile.Tapline9, ArcRelayLoopProfile.Current);
         Assert.Equal("tapline-9", ArcRelayLoopProfile.Current.Id);
@@ -31,9 +32,8 @@ public sealed class ArcRelayTaplineMidWellRibsTests
         ActorMapDefinition after = Current();
         Position[] expected =
         [
-            new(12, 11), new(13, 11), new(14, 11), new(15, 11), new(16, 11),
-            new(22, 12), new(11, 13), new(19, 13), new(8, 14),
-            new(14, 15), new(15, 15), new(16, 15), new(17, 15), new(18, 15),
+            new(12, 9), new(15, 9), new(13, 12),
+            new(17, 14), new(15, 17), new(18, 17),
         ];
         Position[] delta = (
             from y in Enumerable.Range(0, after.Height)
@@ -53,7 +53,7 @@ public sealed class ArcRelayTaplineMidWellRibsTests
             "e536d04deff7e53296d10f2b93c38741a6a3e465a03e779a84336ba0ae1df519",
             ActorContractFingerprint.ComputeMap(before));
         Assert.Equal(
-            "27e0d0dd62544a9f77f3273f811a5171db1c0de84488af7cad92bfca9ce1e191",
+            "935cdb4225498db195145c3cd462a6907f0be8ec8bff723b537189024b4c98be",
             ActorContractFingerprint.ComputeMap(after));
     }
 
@@ -71,8 +71,9 @@ public sealed class ArcRelayTaplineMidWellRibsTests
         Assert.All(landmarks, tile => Assert.False(map.IsWall(tile)));
 
         List<Position> floor = Floor(map);
-        Assert.Equal(509, floor.Count);
-        Assert.Equal(509, Reachable(map, floor[0], without: null));
+        Assert.Equal(517, floor.Count);
+        Assert.Equal(517, Reachable(map, floor[0], without: null));
+        Assert.DoesNotContain(map.TileRows, row => row.Contains('A'));
         for (int y = 0; y < map.Height; y++)
         for (int x = 0; x < map.Width; x++)
         {
@@ -112,47 +113,27 @@ public sealed class ArcRelayTaplineMidWellRibsTests
     }
 
     [Fact]
-    public void AllSeventeenCandidateRouteMeasurementsArePinned()
+    public void AllElevenApprovedRouteMeasurementsArePinned()
     {
         ActorMapDefinition map = Current();
 
         Assert.Equal(12, Distance(map, OwnWell, OwnReactor));
-        Assert.Equal(12, Distance(map, OwnWell, CentreWell));
-        Assert.Equal(12, Distance(map, CentreWell, EnemyWell));
-        Assert.Equal(24, Via(map, CentreWell, OwnReactor, OwnWell));
-        Assert.Equal(24, Via(
-            map, CentreWell, OwnReactor, new Position(13, 17)));
-        Assert.Equal(28, Distance(map, OwnReactor, EnemyWell));
-        Assert.Equal(36, Via(
-            map, OwnReactor, EnemyWell, OwnWell, CentreWell));
-        Assert.Equal(28, Distance(map, EnemyWell, OwnReactor));
-        Assert.Equal(36, Via(
-            map, EnemyWell, OwnReactor, CentreWell, OwnWell));
-
-        Assert.Equal(31, Via(map, CentreWell, OwnReactor,
-            new(15, 3), new(15, 2), new(15, 1),
-            new(3, 1), new(3, 2), new(3, 3)));
-        Assert.Equal(47, Via(map, CentreWell, OwnReactor,
-            new(15, 23), new(15, 24), new(15, 25),
-            new(3, 25), new(3, 24), new(3, 23)));
-        Assert.Equal(48, Via(map, CentreWell, OwnReactor,
-            new(27, 3), new(27, 2), new(27, 1),
-            new(3, 1), new(3, 2), new(3, 3)));
-        Assert.Equal(70, Via(map, CentreWell, OwnReactor,
-            new(27, 23), new(27, 24), new(27, 25),
-            new(3, 25), new(3, 24), new(3, 23)));
-        Assert.Equal(43, Via(map, EnemyWell, OwnReactor,
-            new(15, 3), new(15, 2), new(15, 1),
-            new(3, 1), new(3, 2), new(3, 3)));
-        Assert.Equal(41, Via(map, EnemyWell, OwnReactor,
-            new(15, 23), new(15, 24), new(15, 25),
-            new(3, 25), new(3, 24), new(3, 23)));
-        Assert.Equal(56, Via(map, EnemyWell, OwnReactor,
-            new(27, 3), new(27, 2), new(27, 1),
-            new(3, 1), new(3, 2), new(3, 3)));
-        Assert.Equal(58, Via(map, EnemyWell, OwnReactor,
-            new(27, 23), new(27, 24), new(27, 25),
-            new(3, 25), new(3, 24), new(3, 23)));
+        Assert.Equal(22, Distance(map, OwnWell, CentreWell));
+        Assert.Equal(22, Via(
+            map, OwnWell, CentreWell, new Position(18, 7)));
+        Assert.Equal(22, Distance(map, CentreWell, EnemyWell));
+        Assert.Equal(22, Via(
+            map, CentreWell, EnemyWell, new Position(12, 19)));
+        Assert.Equal(19, Via(
+            map, CentreWell, OwnReactor, new Position(9, 11)));
+        Assert.Equal(29, Via(
+            map, CentreWell, OwnReactor, new Position(18, 7)));
+        Assert.Equal(31, Distance(map, OwnReactor, EnemyWell));
+        Assert.Equal(41, Via(
+            map, OwnReactor, EnemyWell, CentreWell));
+        Assert.Equal(31, Distance(map, EnemyWell, OwnReactor));
+        Assert.Equal(41, Via(
+            map, EnemyWell, OwnReactor, CentreWell, new Position(9, 11)));
     }
 
     private static int Via(

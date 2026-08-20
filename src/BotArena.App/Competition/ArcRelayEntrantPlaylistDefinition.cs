@@ -126,7 +126,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public const string Tapline6StockMapPlanSourceHash =
         "ec769b71ef43be9856e8a9a0632f2b196f321aba1da84f29806df0dbdceb5809";
     public const string Tapline9StockMapPlanSourceHash =
-        "ffe19d1e0231077b7f3d5aa24d34b170c1c936304e2832335e3842027c2f4167";
+        "07e7951b4aabb5c596badbfb48e60edacf337c0a2172c5928ac8c4f7bde278ba";
 
     private ArcRelayEntrantPlaylistDefinition(
         int version,
@@ -165,7 +165,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
         ArcRelayLoopProfile.Tapline9,
-        source: "arc-relay-tapline-9-mid-well-ribs",
+        source: "arc-relay-tapline-9-sealed-entrances-staggered-mid-cover",
         canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV25() => Create(
@@ -517,7 +517,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             if (version == Version)
             {
                 writer.WriteBoolean("ownerApprovedTapline9", true);
-                writer.WriteBoolean("midWellRibs", true);
+                writer.WriteBoolean("sealedOuterWellEntrancesStaggeredMidCover", true);
                 writer.WriteBoolean("newImmutableMapIdentity", true);
                 writer.WriteBoolean("sourceLocalWellSupply", true);
                 writer.WriteBoolean("bankTriggeredWellRecharge", true);

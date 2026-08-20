@@ -13,7 +13,8 @@ Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
 revisions, match history, and rating. The current CLI/editor default is `tapline-9`
-on the owner-approved equal-return map with the mid-Well ribs, coordinated movement planner, and
+on the owner-approved equal-return map with sealed outer-Well entrances and
+staggered Mid cover, coordinated movement planner, and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
 public respawn waves, a seven-distinct-class roster floor, durable deployments, and
 scaled combat durability. All three Wells keep their public opening around tick

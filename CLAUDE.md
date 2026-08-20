@@ -224,8 +224,9 @@ Project boundaries that must not be violated:
   source-local supply: banking the Well's sole active Core into either reactor
   starts a public 46-tick recharge. Pickup, carry, toss, drop and steal leave
   the clock stopped, and an active Core publishes no birth countdown.
-  Tapline-9 keeps Tapline-8's gameplay rules and adds the owner-approved,
-  symmetric mid-Well ribs as a new immutable map identity. Immutable hosted
+  Tapline-9 keeps Tapline-8's gameplay rules and adds the owner-approved
+  sealed outer-Well entrances with staggered Mid cover as a new immutable map
+  identity. Immutable hosted
   entrant playlist v26 pins `tapline-9`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
   the delayed centre opening, the equal-return map fork, bank-triggered
@@ -280,8 +281,9 @@ Project boundaries that must not be violated:
   into v25. The tactical mind bytes, Tempered Standard Orders source, map
   plan and map are unchanged; only the pinned ruleset moves to
   `arc-relay-tapline-08`.
-  v26 starts fresh because Tapline-9's mid-Well ribs change strategic terrain
-  and the registered stock gameplay; v25 ratings are never copied into v26.
+  v26 starts fresh because Tapline-9's sealed outer-Well entrances and
+  staggered Mid cover change strategic terrain and the registered stock
+  gameplay; v25 ratings are never copied into v26.
   The tactical mind bytes and Tempered Standard Orders source remain frozen,
   while the native map plan and map fingerprint are new.
   Authoritative

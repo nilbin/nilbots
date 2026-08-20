@@ -729,7 +729,8 @@ Hosted entrant playlist v26 is the promoted Orders v2/Tapline-9 line. It pins
 the coordinated EPIBT executor, body-local signature orders, the unchanged
 controlled WASM artifact and Tempered Standard sheet, the combined depth rules,
 the delayed centre opening, the equal-return map fork, the owner-approved
-mid-Well ribs, bank-triggered source-local Well supply, and a fresh rating
+sealed outer-Well entrances with staggered Mid cover, bank-triggered
+source-local Well supply, and a fresh rating
 book. Playlists v23 (Tapline-5), v24 (Tapline-6), and v25 (Tapline-8) remain
 immutable history.
 

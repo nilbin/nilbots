@@ -226,7 +226,7 @@ public static class ArcRelaySignatureStageCommand
         Direction facing = source.Spawn.Facing;
         if (id == "team-0-unit-0")
         {
-            position = ArcRelaySignatureStageMindFactory.CasterStart;
+            position = ArcRelaySignatureStageMindFactory.StartPosition(spec);
             facing = Direction.East;
         }
         else if (id == "team-0-unit-1" && spec.NeedsAlly)
@@ -300,7 +300,11 @@ public static class ArcRelaySignatureStageCommand
                 .OfType<ArcRelayEvent.BodyRelocated>()
                 .Any(value => value.SignatureId == spec.SignatureId):
                 throw new InvalidOperationException(
-                    "Focused Exchange stage completed without a real body swap.");
+                    "Focused Exchange stage completed without a real body swap; "
+                    + "signature phases: "
+                    + string.Join(", ", signatureFacts.Select(value =>
+                        $"{value.Phase}:{value.Reason}"))
+                    + ".");
             case "arc-toss" when !arcFacts
                 .OfType<ArcRelayEvent.CoreRelocated>()
                 .Any(value => value.Kind

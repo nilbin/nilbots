@@ -54,7 +54,7 @@ export default function DocsPage() {
         <p className="mt-2 text-arena-dim">
           Hosted playlist v26 and the local <code>nilbots arc-relay</code>
           default both run tapline-9 on the accepted equal-return Tapline with
-          the owner-approved mid-Well ribs,
+          the owner-approved sealed outer-Well entrances and staggered Mid cover,
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
@@ -65,8 +65,8 @@ export default function DocsPage() {
           requires at least seven distinct classes, and makes deployments durable targets.
           Its centre Well opens on the same second global beat as the outer Wells, leaving
           the first beat for scouting and counter-positioning before the two-charge Core.
-          Its two practical centre-Core returns are both 24 terrain steps, so committing
-          north or south is a tactical choice rather than a hidden distance tax.
+          A centre Core has a 19-step fast return or a 29-step healing-side return;
+          that visible distance tradeoff lets a Program choose speed or recovery.
           Playlist v26 opens a fresh rating book at 1200; playlists v23–v25 remain
           readable history and their ratings are not carried into v26.
         </p>

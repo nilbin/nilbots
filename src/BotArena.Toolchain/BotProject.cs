@@ -467,8 +467,9 @@ public static class ToolchainInfo
     /// local/editor default while preserving Tapline-7 and hosted v24.
     /// 0.9.65 promotes Tapline-8 to the hosted lane as immutable playlist v25
     /// (v24 stays exact history).
-    /// 0.9.66 promotes Tapline-9's owner-approved mid-Well ribs as the local,
-    /// editor and hosted default in immutable playlist v26.
+    /// 0.9.66 promotes Tapline-9's owner-approved sealed outer-Well entrances
+    /// with staggered Mid cover as the local, editor and hosted default in
+    /// immutable playlist v26.
     /// Keep in lockstep with BotArena.Cli.csproj's
     /// Version — PackagedCliVersionTests pins them together.</summary>
     public const string CliVersion = "0.9.66";

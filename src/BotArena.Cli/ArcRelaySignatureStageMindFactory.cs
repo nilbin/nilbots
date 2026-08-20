@@ -8,11 +8,13 @@ internal sealed class ArcRelaySignatureStageMindFactory(
     ArcRelaySignatureStageSpec spec,
     int teamId) : IGenericMindRuntimeFactory
 {
-    public static readonly Position CasterStart = new(13, 12);
+    public static readonly Position CasterStart = new(13, 11);
+    public static readonly Position ArcTossCasterStart = new(14, 12);
+    public static readonly Position ExchangeCasterStart = new(13, 11);
     public static readonly Position AllyStart = new(14, 12);
     public static readonly Position EnemyStart = new(16, 12);
     public static readonly Position KineticEnemyStart = new(14, 12);
-    public static readonly Position ExchangeCasterReady = new(13, 13);
+    public static readonly Position ExchangeCasterReady = new(13, 10);
     public static readonly Position ExchangeAllyReady = new(17, 12);
 
     private static readonly Position[] SentinelEnemyWaypoints =
@@ -23,6 +25,14 @@ internal sealed class ArcRelaySignatureStageMindFactory(
         new(12, 14),
         new(12, 12),
     ];
+
+    public static Position StartPosition(ArcRelaySignatureStageSpec value) =>
+        value.SignatureId switch
+        {
+            "arc-toss" => ArcTossCasterStart,
+            "exchange" => ExchangeCasterStart,
+            _ => CasterStart,
+        };
 
     public IGenericMindRuntime CreateRuntime() => new Runtime(spec, teamId);
 
@@ -171,7 +181,7 @@ internal sealed class ArcRelaySignatureStageMindFactory(
             }
             if (spec.Context == ArcRelaySignatureStageContext.KineticTarget)
             {
-                return body.Position.ChebyshevDistance(CasterStart) <= 1
+                return body.Position.ChebyshevDistance(StartPosition(spec)) <= 1
                     ? Wait(body, "stage-context")
                     : MoveToward(
                         observation,
@@ -237,7 +247,7 @@ internal sealed class ArcRelaySignatureStageMindFactory(
             Position objective = spec.SignatureId switch
             {
                 "vector-dash" when body.Position.X <= 14 => new Position(17, 12),
-                "vector-dash" => CasterStart,
+                "vector-dash" => StartPosition(spec),
                 "survey-flare" or "hardlight-block" or "smoke-canister"
                     => new Position(15, 14),
                 "arc-toss" => ArcTossObjective(body),

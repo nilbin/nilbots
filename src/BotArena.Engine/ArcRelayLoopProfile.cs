@@ -1261,16 +1261,17 @@ public sealed record ArcRelayLoopProfile
         bankTriggeredWellRechargeTicks: 46);
 
     /// <summary>
-    /// Tapline-8's complete rules stack on the owner-approved Mid-to-Well
-    /// wall-rib map. Fourteen symmetric walls make a Mid-first rotation to an
-    /// outer Well materially longer without moving any landmark or changing
-    /// scoring, supply, combat, signatures, or the 600-tick horizon.
+    /// Tapline-8's complete rules stack on the owner-approved sealed outer-Well
+    /// entrances with staggered Mid cover. Six symmetric walls force the
+    /// deliberate long approach between Mid and either outer Well without
+    /// moving any landmark or changing scoring, supply, combat, signatures,
+    /// or the 600-tick horizon.
     /// </summary>
     public static ArcRelayLoopProfile Tapline9 { get; } = new(
         "tapline-9",
         "arc-relay-tapline-09",
         "arc-relay-tapline-03",
-        ArcRelayMapGeometry.TaplineMidWellRibs,
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
         30, 65, 25, 1,
         directionalCombat: true,
         signatureGrammarVersion: 3,
@@ -1427,5 +1428,5 @@ internal enum ArcRelayMapGeometry
     DrawbenchHorizontal,
     TaplineWellLine,
     TaplineEqualReturn,
-    TaplineMidWellRibs,
+    TaplineSealedEntrancesStaggeredMidCover,
 }

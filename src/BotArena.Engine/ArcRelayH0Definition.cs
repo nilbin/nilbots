@@ -89,7 +89,7 @@ public static class ArcRelayH0Definition
             return CreateDrawbenchMap(loopProfile);
         if (loopProfile.Geometry is ArcRelayMapGeometry.TaplineWellLine
             or ArcRelayMapGeometry.TaplineEqualReturn
-            or ArcRelayMapGeometry.TaplineMidWellRibs)
+            or ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover)
             return CreateTaplineMap(loopProfile);
         ImmutableArray<string> rows = loopProfile.Geometry
             == ArcRelayMapGeometry.DepthLarger
@@ -525,7 +525,7 @@ public static class ArcRelayH0Definition
             "###############################",
         ];
         if (loopProfile.Geometry is ArcRelayMapGeometry.TaplineEqualReturn
-            or ArcRelayMapGeometry.TaplineMidWellRibs)
+            or ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover)
         {
             // Tapline-6 closes the single centre-to-reactor shortcut without
             // changing any landmark. These twelve tiles are the complete,
@@ -548,26 +548,25 @@ public static class ArcRelayH0Definition
             }
             rows = [.. changed.Select(row => new string(row))];
         }
-        if (loopProfile.Geometry == ArcRelayMapGeometry.TaplineMidWellRibs)
+        if (loopProfile.Geometry
+            == ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover)
         {
-            // Tapline-9 adds the owner-approved Mid-to-Well wall ribs over
-            // Tapline-8's equal-return terrain. The seven west-authored tiles
-            // and their exact 180-degree partners are the complete delta.
+            // Tapline-9 adds the owner-approved sealed outer-Well entrances
+            // with staggered Mid cover over Tapline-8. The three west-authored
+            // tiles and their exact 180-degree partners are the complete delta.
             // Keeping both immutable deltas explicit makes historical map
             // reconstruction and review straightforward.
             (int X, int Y)[] addedWalls =
             [
-                (12, 11), (13, 11), (14, 11), (15, 11), (16, 11),
-                (22, 12), (11, 13),
-                (19, 13), (8, 14),
-                (14, 15), (15, 15), (16, 15), (17, 15), (18, 15),
+                (12, 9), (15, 9), (13, 12),
+                (17, 14), (15, 17), (18, 17),
             ];
             char[][] changed = rows.Select(row => row.ToCharArray()).ToArray();
             foreach ((int x, int y) in addedWalls)
             {
                 if (changed[y][x] == '#')
                     throw new InvalidOperationException(
-                        $"Tapline Mid-to-Well rib ({x},{y}) was already closed.");
+                        $"Tapline sealed-entrance wall ({x},{y}) was already closed.");
                 changed[y][x] = '#';
             }
             rows = [.. changed.Select(row => new string(row))];
