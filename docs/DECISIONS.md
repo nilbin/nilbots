@@ -9323,3 +9323,22 @@ editor follows automatically and reports what moved in a toast instead
 of asking. normalizeDocument gains the matching self-heals: stamp
 positional posts with slots, drop posts whose bot left, drop unowned
 marks, drop a dissolved Group's job entries.
+
+## 350. Tapline-9 promotes the mid-Well ribs
+
+Owner promotion ruling (2026-08-20). The symmetric 14-wall candidate in
+`sandbox/tapline-mid-well-ribs` is the current Arc Relay terrain as immutable
+profile `tapline-9`, ruleset `arc-relay-tapline-09`, and map
+`arc-relay-tapline-03`. It keeps Tapline-8's 1/2/4 scoring, initial Well
+opening, bank-triggered 46-tick source-local recharge, exact-reactor scoring,
+signatures, combat, and 600-tick horizon. The only gameplay delta is the wall
+rib geometry: visiting Mid before rotating to the enemy Well now costs 36
+terrain steps from the reactor versus 28 for a dedicated outer push, while
+the two practical Centre returns remain equal at 24.
+
+Hosted entrant playlist v26 pins Tapline-9 and its native stock map plan,
+reusing the frozen Tapline-4 tactical artifact. Geometry changes the game, so
+v26 starts a fresh 1200 rating book. Playlist v25 and Tapline-8 remain exact,
+readable history; no old profile, map, playlist definition, or replay is
+mutated. Demolition March remains the primary current deathball regression
+opponent rather than preserving every experimental Tapline sheet.

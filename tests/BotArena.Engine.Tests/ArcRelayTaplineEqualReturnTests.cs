@@ -10,8 +10,8 @@ namespace BotArena.Engine.Tests;
 /// </summary>
 public sealed class ArcRelayTaplineEqualReturnTests
 {
-    private static ActorMapDefinition Current() => ArcRelayH0Definition
-        .Create(loopProfile: ArcRelayLoopProfile.Current).Map;
+    private static ActorMapDefinition EqualReturn() => ArcRelayH0Definition
+        .Create(loopProfile: ArcRelayLoopProfile.Tapline8).Map;
 
     private static ActorMapDefinition Historical() => ArcRelayH0Definition
         .Create(loopProfile: ArcRelayLoopProfile.Tapline5).Map;
@@ -24,15 +24,14 @@ public sealed class ArcRelayTaplineEqualReturnTests
     [Fact]
     public void Tapline8KeepsTheAcceptedProductMapWithoutMutatingTapline5()
     {
-        Assert.Same(ArcRelayLoopProfile.Tapline8, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-8", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-08", ArcRelayLoopProfile.Current.RulesetId);
-        Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Current.MapId);
+        Assert.Equal("tapline-8", ArcRelayLoopProfile.Tapline8.Id);
+        Assert.Equal("arc-relay-tapline-08", ArcRelayLoopProfile.Tapline8.RulesetId);
+        Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Tapline8.MapId);
         Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Tapline6.MapId);
         Assert.Equal("arc-relay-tapline-01", ArcRelayLoopProfile.Tapline5.MapId);
 
         ActorMapDefinition before = Historical();
-        ActorMapDefinition after = Current();
+        ActorMapDefinition after = EqualReturn();
         var delta = new List<Position>();
         for (int y = 0; y < after.Height; y++)
         for (int x = 0; x < after.Width; x++)
@@ -179,7 +178,7 @@ public sealed class ArcRelayTaplineEqualReturnTests
     [Fact]
     public void LandmarksStayOpenAndTheFloorIsOneSymmetric523TileComponent()
     {
-        ActorMapDefinition map = Current();
+        ActorMapDefinition map = EqualReturn();
         Assert.Equal((31, 27), (map.Width, map.Height));
         Position[] landmarks =
         [
@@ -204,7 +203,7 @@ public sealed class ArcRelayTaplineEqualReturnTests
     public void CornersCutVerticesAndOwnWellDeadEndsStayOutOfTheMap()
     {
         const int StubAllowance = 2;
-        ActorMapDefinition map = Current();
+        ActorMapDefinition map = EqualReturn();
         List<Position> floor = Floor(map);
         var falseCorners = new List<string>();
         foreach (Position tile in floor)
@@ -241,7 +240,7 @@ public sealed class ArcRelayTaplineEqualReturnTests
     [Fact]
     public void AllFourteenReturnMeasurementsArePinned()
     {
-        ActorMapDefinition map = Current();
+        ActorMapDefinition map = EqualReturn();
         Assert.Equal(12, Distance(map, OwnWell, OwnReactor));
 
         Assert.Equal(19, Via(map, CentreWell, OwnReactor, OwnWell));

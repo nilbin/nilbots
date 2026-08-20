@@ -64,59 +64,11 @@ public sealed class TacticalSheetTemplateCatalog
                 Resource("BotArena.Sheets.demolition-march-v1.sheet.json"),
                 Resource("BotArena.Sheets.demolition-march-v1.map-plan.json")),
             Resolve(
-                "lockbox-v1",
-                "Lockbox",
-                "Two Masons fortify the near and centre Wells while a deployment net and support unit hold the enclosure.",
-                Resource("BotArena.Sheets.lockbox-v1.sheet.json"),
-                Resource("BotArena.Sheets.lockbox-v1.map-plan.json")),
-            Resolve(
                 "idle-field-v1",
                 "Idle Field",
                 "Eight stationary bodies that never act: a clean control for routes, timing, skills, and traffic checks.",
                 Resource("BotArena.Sheets.idle-field-v1.sheet.json"),
                 Resource("BotArena.Sheets.idle-field-v1.map-plan.json")),
-            Resolve(
-                "mid-overload-drill-v1",
-                "Mid Overload drill",
-                "A deterministic marching formation for checking Posts, readiness, walls, response commitment, and Kestrel route work.",
-                Resource("BotArena.Sheets.mid-overload-drill-v1.sheet.json"),
-                Resource("BotArena.Sheets.mid-overload-drill-v1.map-plan.json")),
-            Resolve(
-                "running-relay-solo-v1",
-                "Running Relay solo control",
-                "One Relay carries through the exact Running Relay corridor without Tosses, for a direct Practice timing comparison.",
-                Resource("BotArena.Sheets.running-relay-solo-v1.sheet.json"),
-                Resource("BotArena.Sheets.running-relay-solo-v1.map-plan.json")),
-            Resolve(
-                "tempered-standard-v2",
-                "Tempered Standard",
-                "A balanced eight-class line: guns contest centre, support keeps the line alive, and couriers convert loose Cores.",
-                Resource("BotArena.Sheets.tempered-standard-v2.sheet.json"),
-                Resource("BotArena.Sheets.tempered-standard-v2.map-plan.json")),
-            Resolve(
-                "relay-circuit-v1",
-                "Relay Circuit",
-                "A premium-Core raid: one Relay steals deep while a second runs centre handoffs and the squad screens the return.",
-                Resource("BotArena.Sheets.relay-circuit-v1.sheet.json"),
-                Resource("BotArena.Sheets.relay-circuit-v1.map-plan.json")),
-            Resolve(
-                "crowned-rail-v1",
-                "Crowned Rail",
-                "A protected Longshot ace supported by repair, designator optics, a firing line, and a logistics reserve.",
-                Resource("BotArena.Sheets.crowned-rail-v1.sheet.json"),
-                Resource("BotArena.Sheets.crowned-rail-v1.map-plan.json")),
-            Resolve(
-                "rising-standard-v1",
-                "Rising Standard",
-                "A contact group grows an emergent veteran; support then rallies to that survivor while a reserve works objectives.",
-                Resource("BotArena.Sheets.rising-standard-v1.sheet.json"),
-                Resource("BotArena.Sheets.rising-standard-v1.map-plan.json")),
-            Resolve(
-                "wavebreak-v1",
-                "Wavebreak",
-                "A wave-aware force exchanges weak allies, screens its retreat, and evacuates before a large enemy return.",
-                Resource("BotArena.Sheets.wavebreak-v1.sheet.json"),
-                Resource("BotArena.Sheets.wavebreak-v1.map-plan.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;

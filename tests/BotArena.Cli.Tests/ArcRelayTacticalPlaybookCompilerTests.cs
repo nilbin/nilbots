@@ -9,19 +9,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 {
     private static readonly string[] CurrentSheets =
     [
-        "starter-tapline-v2",
-        "tempered-standard-v2",
-        "relay-circuit-v1",
-        "crowned-rail-v1",
-        "lockbox-v1",
         "demolition-march-v1",
-        "rising-standard-v1",
-        "wavebreak-v1",
         "idle-field-v1",
-        "running-relay-v1",
-        "running-relay-solo-v1",
-        "mid-overload-fork-v1",
-        "mid-overload-drill-v1",
     ];
 
     [Fact]
@@ -32,7 +21,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             using JsonDocument source = JsonDocument.Parse(
                 File.ReadAllBytes(Playbook(name)));
             Assert.Equal(
-                $"../map-plans/tapline-6/{name}.json",
+                $"../map-plans/tapline-9/{name}.json",
                 source.RootElement.GetProperty("mapPlan").GetString());
 
             TacticalPlaybookCompilation compilation =

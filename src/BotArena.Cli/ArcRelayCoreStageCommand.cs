@@ -146,10 +146,14 @@ public static class ArcRelayCoreStageCommand
 
     private static ActorResolvedMatchDefinition CreateDefinition(int maxTicks)
     {
+        // The focused choreography uses hand-authored spawn positions from
+        // Tapline-8. Pin its terrain explicitly: advancing the product's
+        // Current profile must not move this synthetic presentation scene onto
+        // newly closed tiles.
         ActorResolvedMatchDefinition source = ArcRelayH0Definition.Create(
             WestClasses,
             EastClasses,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.Tapline8);
         ActorRulesDefinition rules = source.Rules;
         ArcRelayGameModeDefinition mode = (ArcRelayGameModeDefinition)
             rules.GameMode;

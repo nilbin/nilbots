@@ -23,7 +23,8 @@ public sealed class OrdersMovementSceneTests
         string root = FindRepoRoot();
         TacticalPlaybookCompilation transfer = CompileProgramCustodyFixture(
             root, "premium-transfer-proof");
-        TacticalPlaybookCompilation idle = Compile(root, "idle-field-v1.json");
+        TacticalPlaybookCompilation idle = CompileHistoricalTapline6(
+            root, "idle-field-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             transfer.Composition,
             idle.Composition,
@@ -116,7 +117,8 @@ public sealed class OrdersMovementSceneTests
         string root = FindRepoRoot();
         TacticalPlaybookCompilation transfer = CompileProgramCustodyFixture(
             root, "premium-pass-forward-proof");
-        TacticalPlaybookCompilation idle = Compile(root, "idle-field-v1.json");
+        TacticalPlaybookCompilation idle = CompileHistoricalTapline6(
+            root, "idle-field-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             transfer.Composition,
             idle.Composition,
@@ -560,7 +562,7 @@ public sealed class OrdersMovementSceneTests
     public void SquadPlannerConsumesOscillationAvoidanceBeforeSubmission()
     {
         string root = FindRepoRoot();
-        TacticalPlaybookCompilation demolition = Compile(
+        TacticalPlaybookCompilation demolition = CompileHistoricalTapline6(
             root, "demolition-march-v1.json");
         TacticalPlaybookCompilation lockbox = CompileLockboxWithPocket(
             root, [10, 11, 12, 13]);
@@ -616,7 +618,7 @@ public sealed class OrdersMovementSceneTests
     public void ReturnLaneAmbushStagingDoesNotWaitForever()
     {
         string root = FindRepoRoot();
-        TacticalPlaybookCompilation demolition = Compile(
+        TacticalPlaybookCompilation demolition = CompileHistoricalTapline6(
             root, "demolition-march-v1.json");
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
@@ -690,7 +692,7 @@ public sealed class OrdersMovementSceneTests
     public void UrgentCarrierKeepsCourseWhenLowerPriorityAllyMustYield()
     {
         string root = FindRepoRoot();
-        TacticalPlaybookCompilation demolition = Compile(
+        TacticalPlaybookCompilation demolition = CompileHistoricalTapline6(
             root, "demolition-march-v1.json");
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
@@ -783,7 +785,7 @@ public sealed class OrdersMovementSceneTests
     public void AlliedTrafficWithoutAnAlternateRouteWaitsInsteadOfOrbiting()
     {
         string root = FindRepoRoot();
-        TacticalPlaybookCompilation demolition = Compile(
+        TacticalPlaybookCompilation demolition = CompileHistoricalTapline6(
             root, "demolition-march-v1.json");
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
@@ -840,7 +842,7 @@ public sealed class OrdersMovementSceneTests
     public void LockboxViaIngressDoesNotBecomeAStationaryTurnLoop()
     {
         string root = FindRepoRoot();
-        TacticalPlaybookCompilation demolition = Compile(
+        TacticalPlaybookCompilation demolition = CompileHistoricalTapline6(
             root, "demolition-march-v1.json");
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
@@ -911,7 +913,7 @@ public sealed class OrdersMovementSceneTests
     {
         string root = FindRepoRoot();
         TacticalPlaybookCompilation lockbox = Compile(root, "lockbox-v1.json");
-        TacticalPlaybookCompilation demolition = Compile(
+        TacticalPlaybookCompilation demolition = CompileHistoricalTapline6(
             root, "demolition-march-v1.json");
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             lockbox.Composition,
@@ -2018,6 +2020,25 @@ public sealed class OrdersMovementSceneTests
             "tactical-playbook-v1-2026-08-03");
         string playbook = Path.Combine(package, "playbooks", fileName);
         string mapPlan = Path.Combine(package, "map-plans", fileName);
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            File.ReadAllBytes(playbook),
+            File.ReadAllBytes(mapPlan),
+            playbook,
+            mapPlan);
+    }
+
+    private static TacticalPlaybookCompilation CompileHistoricalTapline6(
+        string root,
+        string fileName)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string playbook = Path.Combine(package, "playbooks", fileName);
+        string mapPlan = Path.Combine(
+            package, "map-plans", "tapline-6", fileName);
         return ArcRelayTacticalPlaybookCompiler.Compile(
             File.ReadAllBytes(playbook),
             File.ReadAllBytes(mapPlan),

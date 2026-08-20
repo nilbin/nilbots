@@ -143,7 +143,7 @@ with Orders v2 conventions — JSON keys camelCase, ids kebab):
 {
   "schema": "arc-relay-tactics-v1",
   "sheetId": "…",
-  "mapId": "arc-relay-tapline-02",
+  "mapId": "arc-relay-tapline-03",
   "squad": [ { "slot": 0, "class": "kestrel", "build": "scout", "name": "vex" }, … 8 ],
   "tactics": [
     {

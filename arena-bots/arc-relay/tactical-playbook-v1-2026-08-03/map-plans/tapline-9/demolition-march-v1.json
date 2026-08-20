@@ -1,0 +1,22 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "demolition-march-v1",
+  "mapId": "arc-relay-tapline-03",
+  "zones": {
+    "centre-overwatch": {
+      "rect": [
+        12,
+        12,
+        18,
+        14
+      ]
+    }
+  },
+  "routes": {},
+  "anchors": {
+    "enemy-centre-approach": [
+      20,
+      13
+    ]
+  }
+}

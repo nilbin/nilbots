@@ -17,21 +17,23 @@ public sealed class ArcRelayTaplineBankRechargeTests
         "e536d04deff7e53296d10f2b93c38741a6a3e465a03e779a84336ba0ae1df519";
 
     [Fact]
-    public void Tapline8IsCurrentAndLeavesTapline7ContractByteExact()
+    public void Tapline9IsCurrentAndKeepsTapline8RechargeRules()
     {
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline7);
-        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
+        ActorResolvedMatchDefinition recharge = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline8);
+        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline9);
         var historicalMode = Assert.IsType<ArcRelayGameModeDefinition>(
             historical.Rules.GameMode);
         var currentMode = Assert.IsType<ArcRelayGameModeDefinition>(
             current.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline8, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-8", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-08", current.Rules.RulesetId);
-        Assert.Equal("arc-relay-tapline-02", current.Map.Id);
+        Assert.Same(ArcRelayLoopProfile.Tapline9, ArcRelayLoopProfile.Current);
+        Assert.Equal("tapline-9", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-09", current.Rules.RulesetId);
+        Assert.Equal("arc-relay-tapline-03", current.Map.Id);
         Assert.Equal(600, current.Rules.Limits.MaxTicks);
         Assert.Equal(RechargeTicks,
             currentMode.BankTriggeredWellRechargeTicks);
@@ -56,10 +58,16 @@ public sealed class ArcRelayTaplineBankRechargeTests
                 well.CadenceTicks,
                 well.FinalBirthTick)));
         Assert.Equal(0, historicalMode.BankTriggeredWellRechargeTicks);
-        Assert.True(historical.Map.TileRows.SequenceEqual(current.Map.TileRows));
+        Assert.True(historical.Map.TileRows.SequenceEqual(recharge.Map.TileRows));
         Assert.NotEqual(
             HistoricalRulesFingerprint,
             ActorContractFingerprint.ComputeRules(current.Rules));
+
+        Assert.Equal(
+            RechargeTicks,
+            Assert.IsType<ArcRelayGameModeDefinition>(
+                recharge.Rules.GameMode).BankTriggeredWellRechargeTicks);
+        Assert.False(recharge.Map.TileRows.SequenceEqual(current.Map.TileRows));
 
         string canonical = ActorContractManifestSerializer.ToCanonicalJson(
             current);

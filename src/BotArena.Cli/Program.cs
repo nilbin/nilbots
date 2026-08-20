@@ -301,18 +301,18 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-8`: the accepted equal-return Tapline and
+            The default is `tapline-9`: the accepted mid-Well-ribs Tapline and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
             Core arrives with the outer Wells on the second global beat. The
-            two practical centre-Core returns are both 19 terrain steps. Arc
+            two practical centre-Core returns are both 24 terrain steps. Arc
             Toss has no tell, releases after the accepted tick's combat, and
             flies three tiles per tick. Each Well keeps its existing public
             opening, then owns one active Core until that Core is banked into
             either reactor. Banking starts a public 46-tick source-local
             recharge; carrying, tossing, dropping and stealing do not.
-            Hosted v25 pins `tapline-8` too; v7 through v24 remain exact history, and all
+            Hosted v26 pins `tapline-9` too; v7 through v25 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

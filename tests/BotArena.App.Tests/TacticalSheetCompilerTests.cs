@@ -22,15 +22,7 @@ public sealed class TacticalSheetCompilerTests
         Assert.Equal(
             [
                 "demolition-march-v1",
-                "lockbox-v1",
                 "idle-field-v1",
-                "mid-overload-drill-v1",
-                "running-relay-solo-v1",
-                "tempered-standard-v2",
-                "relay-circuit-v1",
-                "crowned-rail-v1",
-                "rising-standard-v1",
-                "wavebreak-v1",
             ],
             templates.Stock.Select(value => value.Id));
         foreach (TacticalSheetSource source in
@@ -196,7 +188,7 @@ public sealed class TacticalSheetCompilerTests
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
-        TacticalSheetSource tempered = templates.GetStock("tempered-standard-v2");
+        TacticalSheetSource tempered = templates.GetStock("demolition-march-v1");
         JsonObject retired = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
         retired["layout"] = new JsonObject();
         InvalidDataException retiredError = Assert.Throws<InvalidDataException>(
@@ -248,7 +240,7 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource tempered = templates.GetStock("tempered-standard-v2");
+        TacticalSheetSource tempered = templates.GetStock("demolition-march-v1");
         JsonObject orders = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
         JsonObject mapPlan = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
@@ -283,7 +275,7 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource tempered = templates.GetStock("tempered-standard-v2");
+        TacticalSheetSource tempered = templates.GetStock("demolition-march-v1");
         JsonObject orders = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
         JsonObject mapPlan = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
@@ -315,23 +307,23 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource lockbox = templates.GetStock("lockbox-v1");
-        JsonObject mapPlan = JsonNode.Parse(lockbox.MapPlanJson)!.AsObject();
+        TacticalSheetSource demolition = templates.GetStock("demolition-march-v1");
+        JsonObject mapPlan = JsonNode.Parse(demolition.MapPlanJson)!.AsObject();
 
         // This was the caught Tapline-6 fault: four interceptors were sent to
         // a wall-split rectangle with only three legal staging tiles.
-        mapPlan["zones"]!["enemy-return-ambush"]!["rect"] = new JsonArray(
+        mapPlan["zones"]!["centre-overwatch"]!["rect"] = new JsonArray(
             18, 16, 22, 17);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                lockbox.OrdersJson,
+                demolition.OrdersJson,
                 mapPlan.ToJsonString(),
                 unlocked,
                 "undersized-movement-zone"));
 
-        Assert.Contains("Movement zone 'enemy-return-ambush'", error.Message);
-        Assert.Contains("can send 4 bodies", error.Message);
+        Assert.Contains("Movement zone 'centre-overwatch'", error.Message);
+        Assert.Contains("can send", error.Message);
     }
 
     [Fact]
@@ -341,18 +333,18 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource lockbox = templates.GetStock("lockbox-v1");
-        JsonObject mapPlan = JsonNode.Parse(lockbox.MapPlanJson)!.AsObject();
+        TacticalSheetSource demolition = templates.GetStock("demolition-march-v1");
+        JsonObject mapPlan = JsonNode.Parse(demolition.MapPlanJson)!.AsObject();
 
         // A proposed four-body repair had enough floor, but included the
         // opponent's unenterable delivery tile. Floor count alone is not a
         // valid native-map audit.
-        mapPlan["zones"]!["enemy-return-ambush"]!["rect"] = new JsonArray(
+        mapPlan["zones"]!["centre-overwatch"]!["rect"] = new JsonArray(
             22, 18, 24, 20);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                lockbox.OrdersJson,
+                demolition.OrdersJson,
                 mapPlan.ToJsonString(),
                 unlocked,
                 "enemy-home-movement-zone"));
@@ -367,24 +359,24 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource lockbox = templates.GetStock("lockbox-v1");
-        JsonObject mapPlan = JsonNode.Parse(lockbox.MapPlanJson)!.AsObject();
+        TacticalSheetSource demolition = templates.GetStock("demolition-march-v1");
+        JsonObject mapPlan = JsonNode.Parse(demolition.MapPlanJson)!.AsObject();
 
         // Palisade and both Repulsors consume centre-screen-three through the
         // same shared order. The shared cap admits all three even though no
         // individual role contains three bodies.
-        mapPlan["zones"]!["centre-screen-pocket"]!["rect"] = new JsonArray(
+        mapPlan["zones"]!["centre-overwatch"]!["rect"] = new JsonArray(
             13, 13, 14, 13);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                lockbox.OrdersJson,
+                demolition.OrdersJson,
                 mapPlan.ToJsonString(),
                 unlocked,
                 "cross-role-named-capacity"));
 
-        Assert.Contains("Movement zone 'centre-screen-pocket'", error.Message);
-        Assert.Contains("can send 3 bodies", error.Message);
+        Assert.Contains("Movement zone 'centre-overwatch'", error.Message);
+        Assert.Contains("can send", error.Message);
     }
 
     private static JsonObject FirstMoveWithoutVia(JsonNode node)

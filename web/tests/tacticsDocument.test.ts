@@ -49,7 +49,7 @@ function makeCatalog(): TacticalSheetCatalog {
     playlistKey: 'arc-relay-entrants',
     playlistVersionId: '00000000-0000-4000-8000-000000000001',
     map: {
-      id: 'arc-relay-tapline-02', version: 1, formatVersion: 1,
+      id: 'arc-relay-tapline-03', version: 1, formatVersion: 1,
       width, height, tileRows, regions: [], spawnAnchors: [], tileTags: [],
     },
     slotCount: 8,

@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-tactics-v1",
   "sheetId": "first-stand-v1",
-  "mapId": "arc-relay-tapline-02",
+  "mapId": "arc-relay-tapline-03",
   "mapWidth": 31,
   "mapHeight": 27,
   "squad": [
@@ -235,14 +235,14 @@
                   17,
                   14
                 ],
-                "facing": "s"
+                "facing": "n"
               },
               {
                 "at": [
-                  15,
+                  12,
                   15
                 ],
-                "facing": "s"
+                "facing": "e"
               }
             ]
           },

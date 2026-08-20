@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-8                             # the current local Arc Relay line
+  --loop-profile tapline-9                             # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,7 +208,7 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-8`, whose atomic occupancy contract
+  `--loop-profile` defaults to `tapline-9`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
@@ -224,11 +224,14 @@ Project boundaries that must not be violated:
   source-local supply: banking the Well's sole active Core into either reactor
   starts a public 46-tick recharge. Pickup, carry, toss, drop and steal leave
   the clock stopped, and an active Core publishes no birth countdown.
-  Immutable hosted entrant playlist v25 pins `tapline-8`, Tapline-native
+  Tapline-9 keeps Tapline-8's gameplay rules and adds the owner-approved,
+  symmetric mid-Well ribs as a new immutable map identity. Immutable hosted
+  entrant playlist v26 pins `tapline-9`, Tapline-native
   Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
   the delayed centre opening, the equal-return map fork, bank-triggered
-  source-local Well supply, and the parity-proven ATL2 WASM mirror. v24
-  remains immutable, replay-only Tapline-6 history, and v23 Tapline-5. v7
+  source-local Well supply, and the parity-proven ATL2 WASM mirror. v25
+  remains immutable, replay-only Tapline-8 history, v24 Tapline-6, and v23
+  Tapline-5. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
   ratings because no game fact changed. Public Season 1 began on a separate,
@@ -277,6 +280,10 @@ Project boundaries that must not be violated:
   into v25. The tactical mind bytes, Tempered Standard Orders source, map
   plan and map are unchanged; only the pinned ruleset moves to
   `arc-relay-tapline-08`.
+  v26 starts fresh because Tapline-9's mid-Well ribs change strategic terrain
+  and the registered stock gameplay; v25 ratings are never copied into v26.
+  The tactical mind bytes and Tempered Standard Orders source remain frozen,
+  while the native map plan and map fingerprint are new.
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

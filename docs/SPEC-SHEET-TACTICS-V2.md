@@ -24,7 +24,7 @@ booleans.
 {
   "schema": "arc-relay-tactics-v2",
   "sheetId": "my-sheet",              // identifier, ≤48
-  "mapId": "arc-relay-tapline-02",
+  "mapId": "arc-relay-tapline-03",
   "mapWidth": 31, "mapHeight": 27,    // declared size; hosted save asserts it
   "squad": [                          // exactly 8, slots 0..7 in order
     { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" }, …

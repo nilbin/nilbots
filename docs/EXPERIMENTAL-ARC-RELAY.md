@@ -53,7 +53,7 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 ## Objective
 
 Three public Wells stand at north `(11,6)`, centre `(15,13)`, and south
-`(19,20)`. Tapline-8 keeps the current opening: all three are nominally tick
+`(19,20)`. Tapline-9 keeps the current opening: all three are nominally tick
 50 with public ±6-tick seed jitter (the rotational flank pair shares one
 draw). After that opening, supply is source-local. A Well has exactly one
 active Core until that Core is banked into either reactor; banking starts a

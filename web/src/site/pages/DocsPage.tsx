@@ -52,22 +52,23 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v25 and the local <code>nilbots arc-relay</code>
-          default both run tapline-8 on the accepted equal-return Tapline with
+          Hosted playlist v26 and the local <code>nilbots arc-relay</code>
+          default both run tapline-9 on the accepted equal-return Tapline with
+          the owner-approved mid-Well ribs,
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
           remain match history but are not accepted by the current editor;
-          coordinates are never projected between maps. Tapline-8 values a Core at 1, 2,
+          coordinates are never projected between maps. Tapline-9 values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
           requires at least seven distinct classes, and makes deployments durable targets.
           Its centre Well opens on the same second global beat as the outer Wells, leaving
           the first beat for scouting and counter-positioning before the two-charge Core.
-          Its two practical centre-Core returns are both 19 terrain steps, so committing
+          Its two practical centre-Core returns are both 24 terrain steps, so committing
           north or south is a tactical choice rather than a hidden distance tax.
-          Playlist v25 opens a fresh rating book at 1200; playlists v23 and v24 remain
-          readable history and their ratings are not carried into v25.
+          Playlist v26 opens a fresh rating book at 1200; playlists v23–v25 remain
+          readable history and their ratings are not carried into v26.
         </p>
         <p className="mt-2 text-arena-dim">
           Ranked, practice, the Tactics editor and the local CLI all run that same

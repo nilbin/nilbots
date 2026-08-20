@@ -51,7 +51,7 @@
 #                   each token space-separated and unquoted.
 #   EXHIBIT_LOOP_PROFILE
 #                   registered loop profile for every cell (default:
-#                   tapline-8). The gallery manifest derives its
+#                   tapline-9). The gallery manifest derives its
 #                   actual rules/map ids from each replay, so Drawbench and
 #                   future registered arenas remain honest exhibits.
 #
@@ -91,7 +91,7 @@ OUTDIR=${BATTERY_OUT:-/tmp/arc-batteries}
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 MIND=$REPO/arena-bots/arc-relay/tactical-playbook-mind-v1
 PUB=$OUTDIR/botarena-pub
-LOOP_PROFILE=${EXHIBIT_LOOP_PROFILE:-tapline-8}
+LOOP_PROFILE=${EXHIBIT_LOOP_PROFILE:-tapline-9}
 mkdir -p "$OUTDIR"
 
 # Republish when the cache predates src/, not only when it is absent. The

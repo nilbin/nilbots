@@ -1261,11 +1261,51 @@ public sealed record ArcRelayLoopProfile
         bankTriggeredWellRechargeTicks: 46);
 
     /// <summary>
+    /// Tapline-8's complete rules stack on the owner-approved Mid-to-Well
+    /// wall-rib map. Fourteen symmetric walls make a Mid-first rotation to an
+    /// outer Well materially longer without moving any landmark or changing
+    /// scoring, supply, combat, signatures, or the 600-tick horizon.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline9 { get; } = new(
+        "tapline-9",
+        "arc-relay-tapline-09",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineMidWellRibs,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline8;
+    public static ArcRelayLoopProfile Current => Tapline9;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1344,6 +1384,7 @@ public sealed record ArcRelayLoopProfile
         Tapline6,
         Tapline7,
         Tapline8,
+        Tapline9,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,
@@ -1386,4 +1427,5 @@ internal enum ArcRelayMapGeometry
     DrawbenchHorizontal,
     TaplineWellLine,
     TaplineEqualReturn,
+    TaplineMidWellRibs,
 }

@@ -60,10 +60,10 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Tapline8.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Tapline9.MapId, catalog.Map.Id);
         Assert.Equal(31, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
-        Assert.Equal(10, catalog.StockOpponents.Count);
+        Assert.Equal(2, catalog.StockOpponents.Count);
         Assert.Equal(
             ["first-stand-v1", "mid-pincer-v1"],
             catalog.StarterSheets.Select(value => value.Id));
@@ -94,10 +94,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.True(relay.SignatureAuthoring.AllowsFriendlyRole);
         TacticalStockSheetResponse stock = catalog.StockOpponents[0];
         Assert.Equal("demolition-march-v1", stock.Id);
-        Assert.Equal("lockbox-v1", catalog.StockOpponents[1].Id);
-        Assert.Equal("idle-field-v1", catalog.StockOpponents[2].Id);
-        Assert.Equal("mid-overload-drill-v1", catalog.StockOpponents[3].Id);
-        Assert.Equal("running-relay-solo-v1", catalog.StockOpponents[4].Id);
+        Assert.Equal("idle-field-v1", catalog.StockOpponents[1].Id);
 
         TacticalSheetResponse first = await SaveAsync(
             client,
@@ -152,9 +149,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Tapline8.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Tapline9.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Tapline8.RulesetId,
+                ArcRelayLoopProfile.Tapline9.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -189,7 +186,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Tapline8.RulesetId,
+                ArcRelayLoopProfile.Tapline9.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)
@@ -340,11 +337,11 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.Equal(first.Id, authoring.SheetId);
         Assert.Equal(first.Revision, authoring.Revision);
         Assert.Contains(
-            "arc-relay-tactics-v1", authoring.TacticsJson,
+            "arc-relay-tactics-v2", authoring.TacticsJson,
             StringComparison.Ordinal);
 
         JsonObject edited = JsonNode.Parse(first.TacticsJson)!.AsObject();
-        edited["tactics"]![1]!["finish"]!["maxAttempt"] = "brief";
+        edited["tactics"]![1]!["maxDuration"] = "brief";
         HttpResponseMessage editedResponse = await client.PutAsJsonAsync(
             $"/api/sheets/{first.Id}",
             new SaveTacticalSheetRequest(

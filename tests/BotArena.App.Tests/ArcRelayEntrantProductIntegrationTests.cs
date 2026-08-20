@@ -74,8 +74,15 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         TacticalSheetResponse loaded = (await client
             .GetFromJsonAsync<TacticalSheetResponse>(
                 $"/api/sheets/{sheets[0].Id}"))!;
-        Assert.Equal(catalog.StarterSheets[0].TacticsJson, loaded.TacticsJson);
-        Assert.Contains("arc-relay-orders-v2", loaded.OrdersJson);
+        using (JsonDocument normalizedTactics = JsonDocument.Parse(
+            loaded.TacticsJson))
+        {
+            Assert.Equal("arc-relay-tactics-v2", normalizedTactics.RootElement
+                .GetProperty("schema").GetString());
+            Assert.Equal(catalog.StarterSheets[0].Id, normalizedTactics.RootElement
+                .GetProperty("sheetId").GetString());
+        }
+        Assert.Contains("arc-relay-orders-v3", loaded.OrdersJson);
         Assert.Contains("arc-relay-map-plan-v2", loaded.MapPlanJson);
 
         using HttpClient otherClient = factory.CreateClient();
@@ -786,8 +793,10 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline3Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline4Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline5Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline6Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline8Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline6_v24_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Tapline9_v26_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -821,6 +830,10 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV22(),
                 ArcRelayEntrantPlaylistDefinition.Tapline5Version =>
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV23(),
+                ArcRelayEntrantPlaylistDefinition.Tapline6Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV24(),
+                ArcRelayEntrantPlaylistDefinition.Tapline8Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV25(),
                 _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
             };
             var version = new PlaylistVersion
@@ -900,17 +913,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 value.Id == predecessorLadderId);
             Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
             Assert.False(predecessorLadder.IsListed);
-            Ladder v24Ladder = await (
+            Ladder v26Ladder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v24Ladder.Status);
-            Assert.True(v24Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, v26Ladder.Status);
+            Assert.True(v26Ladder.IsListed);
             ArcRelayEntrantRating fresh = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v24Ladder.Id);
+                    value.LadderId == v26Ladder.Id);
             Assert.Equal(BotRating.DefaultRating, fresh.Rating);
             Assert.Equal(0, fresh.RankedMatches);
             ArcRelayEntrantRating historical = await db.ArcRelayEntrantRatings
