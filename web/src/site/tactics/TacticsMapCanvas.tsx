@@ -71,7 +71,7 @@ export function TacticsMapCanvas({
   showAttackRange = false, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
   onSelect, onClearSelection, onTaskDone, onTileRejected, onPostsSwapped,
-  onPostBotDropped,
+  onPostBotDropped, onGroupDropped,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
@@ -108,6 +108,8 @@ export function TacticsMapCanvas({
   onPostsSwapped?: () => void;
   /** A Map-first tray bot was dropped to author its exact Post. */
   onPostBotDropped?: (groupId: string, slot: number, at: Point) => void;
+  /** A Map-first Group tray was dropped to place/move its whole formation. */
+  onGroupDropped?: (groupId: string, at: Point) => void;
 }) {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
@@ -418,23 +420,30 @@ export function TacticsMapCanvas({
         onTaskDone();
       }}
       onDragOver={(event) => {
-        if (onPostBotDropped
-          && event.dataTransfer.types.includes('application/x-nilbots-post')) {
+        if ((onPostBotDropped && event.dataTransfer.types.includes('application/x-nilbots-post'))
+          || (onGroupDropped && event.dataTransfer.types.includes('application/x-nilbots-group'))) {
           event.preventDefault();
           event.dataTransfer.dropEffect = 'move';
         }
       }}
       onDrop={(event) => {
-        if (!onPostBotDropped) return;
-        const raw = event.dataTransfer.getData('application/x-nilbots-post');
-        if (!raw) return;
+        const groupRaw = onGroupDropped
+          ? event.dataTransfer.getData('application/x-nilbots-group') : '';
+        const raw = onPostBotDropped
+          ? event.dataTransfer.getData('application/x-nilbots-post') : '';
+        if (!groupRaw && !raw) return;
         event.preventDefault();
         const tile = clientToTile(event);
         if (!tile) return;
         try {
+          if (groupRaw) {
+            const payload = JSON.parse(groupRaw) as { groupId?: unknown };
+            if (typeof payload.groupId === 'string') onGroupDropped?.(payload.groupId, tile);
+            return;
+          }
           const payload = JSON.parse(raw) as { groupId?: unknown; slot?: unknown };
           if (typeof payload.groupId === 'string' && Number.isInteger(payload.slot)) {
-            onPostBotDropped(payload.groupId, Number(payload.slot), tile);
+            onPostBotDropped?.(payload.groupId, Number(payload.slot), tile);
           }
         } catch {
           // Ignore foreign/expired drag payloads.

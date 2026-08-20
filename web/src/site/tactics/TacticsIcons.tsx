@@ -4,7 +4,7 @@ export type TacticsIconName =
   | 'fight-on' | 'heal-tile' | 'heal-up'
   | 'core' | 'vision' | 'attack-range' | 'transition' | 'add-phase'
   | 'signature' | 'route' | 'edit' | 'members' | 'close' | 'clear'
-  | 'rotate' | 'formation' | 'layers' | 'save' | 'start' | 'abort';
+  | 'rotate' | 'move' | 'formation' | 'layers' | 'save' | 'start' | 'abort';
 
 const paths: Record<TacticsIconName, React.ReactNode> = {
   posts: <><circle cx="7" cy="7" r="2.2" /><circle cx="17" cy="7" r="2.2" /><circle cx="7" cy="17" r="2.2" /><circle cx="17" cy="17" r="2.2" /><path d="M9.5 7h5M9.5 17h5M7 9.5v5M17 9.5v5" /></>,
@@ -30,6 +30,7 @@ const paths: Record<TacticsIconName, React.ReactNode> = {
   close: <path d="m5 5 14 14M19 5 5 19" />,
   clear: <><path d="M4 7h16M9 4h6M7 7l1 13h8l1-13" /><path d="M10 10v7M14 10v7" /></>,
   rotate: <><path d="M19 8a8 8 0 1 0 1 7" /><path d="m19 3v5h-5" /></>,
+  move: <><path d="M12 2v20M2 12h20" /><path d="m8 6 4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4M18 8l4 4-4 4" /></>,
   formation: <><circle cx="6" cy="7" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="18" cy="7" r="2" /><path d="M6 9v8M18 9v8M12 14v6" /></>,
   layers: <><path d="m12 3 9 5-9 5-9-5Z" /><path d="m4 12 8 4 8-4M4 16l8 4 8-4" /></>,
   save: <><path d="M5 3h12l2 2v16H5z" /><path d="M8 3v6h8V3M8 21v-7h8v7" /></>,
@@ -77,7 +78,7 @@ export function TacticsIconButton({
 const audition: TacticsIconName[] = [
   'posts', 'patrol', 'observe', 'hold', 'aggressive', 'march', 'respond', 'brawl',
   'fight-on', 'heal-tile', 'heal-up', 'core', 'vision', 'attack-range', 'transition',
-  'add-phase', 'signature', 'route', 'edit', 'members', 'rotate', 'formation', 'layers',
+  'add-phase', 'signature', 'route', 'edit', 'members', 'rotate', 'move', 'formation', 'layers',
   'save', 'start', 'abort', 'close', 'clear',
 ];
 

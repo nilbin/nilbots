@@ -51,12 +51,27 @@ test('ordinary Map-first authoring exposes only Posts and Patrol while preservin
   assert.doesNotMatch(chrome, /label="Converge"/);
 });
 
-test('Map-first contextual editors reuse full business components and omit Review', () => {
+test('Map-first contextual editors reuse full tactic controls and keep bot focus compact', () => {
   assert.match(page, /<StartStep \{\.\.\.stepProps\} \/>/);
   assert.match(page, /<GroupsStep \{\.\.\.stepProps\} \/>/);
   assert.match(page, /<CoresStep \{\.\.\.stepProps\} \/>/);
   assert.match(page, /<PhaseCustodyEditor \{\.\.\.stepProps\}/);
-  assert.match(page, /<JobSection \{\.\.\.stepProps\}[\s\S]*mapFirst/);
+  assert.match(page, /<MapFirstBotPanel/);
+  assert.match(chrome, /data-testid="map-first-bot-panel"/);
+  assert.match(chrome, /Draw approach route/);
+  assert.match(chrome, /Place signature marks/);
+  assert.doesNotMatch(page, /Bot and Group details/);
   const mapFirstDrawer = page.slice(page.indexOf('data-testid="map-first-context-drawer"'));
   assert.doesNotMatch(mapFirstDrawer, /<ReviewStep/);
+});
+
+test('map-first placement and behavior are driven beside and directly on the map', () => {
+  assert.match(chrome, /application\/x-nilbots-group/);
+  assert.match(page, /onGroupDropped=\{layoutMode === 'map-first' \? dropWizardGroup/);
+  assert.match(page, /translatePostSelection/);
+  assert.match(page, /suggestFormationPosts/);
+  assert.match(page, /<MapFirstBehaviorPanel/);
+  assert.match(chrome, /data-testid="map-first-behavior-panel"/);
+  assert.doesNotMatch(chrome, /Suggest explicit posts/);
+  assert.doesNotMatch(page, /Tapline — your side is west/);
 });

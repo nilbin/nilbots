@@ -2,20 +2,22 @@ import { useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { classSprite } from './classArt';
 import { projectPhaseBots } from './botProjection';
+import { GeoStatusRow } from './GeoStatusRow';
 import { Modal } from './Modal';
+import { describePlace } from './places';
 import { condClauses } from './summary';
 import {
   TacticsIcon, TacticsIconButton, type TacticsIconName,
 } from './TacticsIcons';
 import {
   materializeSpatialJob, projectedPostsForLegacyJob,
-  type FormationObjective,
 } from './mapFirstSpatial';
+import type { MapTask } from './useMapTask';
 import {
   POSTURES, RECOVERIES, TRAVEL_BEHAVIORS,
   effectiveJobResolution, groupColor, phaseShade, planJobKindChange,
-  signatureMarkGeometry,
-  type JobKind, type Posture, type Recovery, type Tactic, type TacticsDocument,
+  signatureMarkGeometry, viaLegal,
+  type JobKind, type Tactic, type TacticsDocument,
 } from './tacticsDocument';
 
 export type MapFirstFocus =
@@ -56,58 +58,50 @@ export function MapFirstTimeline({
 }) {
   const startRows = activeRows(tactic.start.cases);
   const abortRows = activeRows(tactic.abort?.cases);
-  return <div className="panel p-2" data-testid="map-first-timeline">
-    <div className="mb-1.5 flex items-center gap-2">
-      <span className="type-display min-w-0 grow truncate text-[14px]">{tactic.name}</span>
-      {gate && <span className="max-w-64 truncate text-[9px] text-arena-hot" title={gate}>{gate}</span>}
-      <button type="button" className="btn !min-h-7" onClick={onCancel}>Cancel</button>
-      <button type="button" className="btn btn-primary !min-h-7" disabled={gate !== null}
-        title={gate ?? 'Save tactic'} onClick={onCommit} data-testid="map-first-commit">
-        <span className="flex items-center gap-1"><TacticsIcon name="save" size={14} /> Save tactic</span>
-      </button>
+  return <div className="rounded-sm border border-arena-edge bg-arena-panel/80 p-1.5 shadow-sm"
+    data-testid="map-first-timeline">
+    <div className="mb-1.5 flex min-w-0 items-center gap-1.5 border-b border-arena-edge pb-1.5">
+      <span className="type-display min-w-20 grow truncate px-1 text-[14px]">{tactic.name}</span>
+      <nav className="flex shrink-0 items-center gap-1" aria-label="Tactic controls">
+        <TacticsIconButton icon="start"
+          label={`Start: ${tactic.start.mode === 'always' ? 'always' : `${startRows} condition${startRows === 1 ? '' : 's'}`}`}
+          pressed={focus?.kind === 'start'} testId="map-first-start"
+          onClick={() => onFocus({ kind: 'start' })} />
+        <TacticsIconButton icon="core" label="Core plan"
+          pressed={focus?.kind === 'cores'} onClick={() => onFocus({ kind: 'cores' })} />
+        <TacticsIconButton icon="abort"
+          label={`Abort: ${tactic.abort ? `${abortRows} condition${abortRows === 1 ? '' : 's'}` : 'not set'}`}
+          configured={Boolean(tactic.abort)} pressed={focus?.kind === 'abort'}
+          testId="map-first-abort" onClick={() => onFocus({ kind: 'abort' })} />
+      </nav>
+      <span className="mx-0.5 h-5 border-l border-arena-edge" />
+      <TacticsIconButton icon="close" label="Cancel tactic editing" onClick={onCancel} />
+      <TacticsIconButton icon="save" label={gate ?? 'Save tactic'} disabled={gate !== null}
+        className="!border-arena-material/65 !text-arena-material"
+        onClick={onCommit} testId="map-first-commit" />
     </div>
-    <div className="mb-1.5 flex flex-wrap items-center gap-1.5 border-b border-arena-edge pb-1.5">
-      <span className="lab mr-1">Whole tactic</span>
-      <button type="button"
-        className={`btn !min-h-7 ${focus?.kind === 'start' ? 'btn-on' : ''}`}
-        data-testid="map-first-start"
-        onClick={() => onFocus({ kind: 'start' })}>
-        <span className="flex items-center gap-1"><TacticsIcon name="start" size={14} />
-          Start · {tactic.start.mode === 'always' ? 'Always' : `${startRows} condition${startRows === 1 ? '' : 's'}`}</span>
-      </button>
-      <button type="button"
-        className={`btn !min-h-7 ${focus?.kind === 'cores' ? 'btn-on' : ''}`}
-        onClick={() => onFocus({ kind: 'cores' })}>
-        <span className="flex items-center gap-1"><TacticsIcon name="core" size={14} /> Core plan</span>
-      </button>
-      <span className="grow" />
-      <button type="button"
-        className={`btn !min-h-7 ${focus?.kind === 'abort' ? 'btn-on' : tactic.abort ? 'text-arena-hot' : 'text-arena-dim'}`}
-        data-testid="map-first-abort"
-        onClick={() => onFocus({ kind: 'abort' })}>
-        <span className="flex items-center gap-1"><TacticsIcon name="abort" size={14} />
-          Abort · {tactic.abort ? `${abortRows} condition${abortRows === 1 ? '' : 's'}` : 'Not set'}</span>
-      </button>
-    </div>
-    <div className="flex min-w-0 items-stretch gap-1 overflow-x-auto pb-0.5"
+    {gate && <p className="mb-1 truncate px-1 text-[9.5px] text-arena-hot" title={gate}>{gate}</p>}
+    <div className="flex min-w-0 items-stretch gap-1 overflow-x-auto"
       aria-label="Phase timeline">
       {tactic.phases.map((phase, index) => {
         const rows = activeRows(phase.continue);
         const active = phaseIndex === index;
         return <div key={phase.id} className="flex shrink-0 items-center gap-1">
           <button type="button"
-            className={`flex min-w-[112px] items-center gap-2 rounded-sm border px-2 py-1.5 text-left ${active
+            className={`flex min-w-[96px] items-center gap-1.5 rounded-sm border px-1.5 py-1 text-left ${active
               ? 'border-arena-material bg-arena-material/10'
               : 'border-arena-edge bg-arena-deep/35 hover:border-arena-edge2'}`}
             data-testid={`map-first-phase-${index + 1}`}
+            title={active ? `Edit ${phase.name} details` : `Open ${phase.name}`}
             onClick={() => onFocus({ kind: 'phase', phaseIndex: index })}>
-            <span className="flex h-7 w-2 shrink-0 flex-col overflow-hidden rounded-[2px]">
+            <span className="flex h-6 w-1.5 shrink-0 flex-col overflow-hidden rounded-[2px]">
               {tactic.groups.map((group) => <span key={group.id} className="grow"
                 style={{ background: phaseShade(groupColor(tactic, group.id), index, tactic.phases.length) }} />)}
             </span>
             <span>
-              <span className="block t-micro font-semibold uppercase tracking-wide">{index + 1} · {phase.name}</span>
-              <span className="block text-[9.5px] text-arena-dim">{tactic.groups.length} Group{tactic.groups.length === 1 ? '' : 's'}</span>
+              <span className="block max-w-28 truncate t-micro font-semibold uppercase tracking-wide">
+                {index + 1} · {phase.name}
+              </span>
             </span>
           </button>
           <TacticsIconButton icon="transition"
@@ -176,10 +170,18 @@ export function MapFirstGroupTrays({
           const slot = Number(raw);
           if (Number.isInteger(slot)) onMoveBot(slot, group.id);
         }}>
-        <button type="button" className="mb-1 flex w-full items-center gap-1.5 text-left"
+        <button type="button" draggable className="mb-1 flex w-full cursor-grab items-center gap-1.5 text-left active:cursor-grabbing"
           aria-pressed={group.slots.length > 0
             && group.slots.every((slot) => selectedSlots.includes(slot))}
+          title={`Drag ${group.name} onto the map to place the whole Group`}
+          onDragStart={(event) => {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('application/x-nilbots-group', JSON.stringify({
+              tacticId: tactic.id, phaseIndex, groupId: group.id,
+            }));
+          }}
           onClick={() => onSelectGroup(group.id)}>
+          <TacticsIcon name="move" size={13} className="shrink-0 text-arena-dim" />
           <span className="t-micro min-w-0 grow truncate font-semibold">{group.name || 'Unnamed Group'}</span>
           <span className="val">{group.slots.length}</span>
         </button>
@@ -206,7 +208,6 @@ export function MapFirstGroupTrays({
               aria-pressed={selectedSlots.includes(slot)}
               onClick={(event) => onSelectBot(group.id, slot,
                 event.metaKey || event.ctrlKey || event.shiftKey)}
-              onDoubleClick={() => onFocus({ kind: 'bot', phaseIndex, groupId: group.id, slot })}
               className={`flex min-h-8 items-center gap-1.5 rounded-sm border px-1.5 text-left ${selectedSlots.includes(slot)
                 ? 'border-arena-material bg-arena-material/12'
                 : draggablePost
@@ -223,18 +224,9 @@ export function MapFirstGroupTrays({
             </button>;
           })}
         </div>
-        <div className="mt-1 flex items-center gap-1">
-          {resolution?.inherited && <button type="button"
-            className="min-w-0 grow truncate text-left text-[9.5px] text-arena-material hover:underline"
-            onClick={() => onFocus({
-              kind: 'group', phaseIndex: resolution.sourcePhaseIndex, groupId: group.id,
-            })}>
-            Carried from {tactic.phases[resolution.sourcePhaseIndex]?.name} · edit source
-          </button>}
-          <TacticsIconButton icon="edit" label={`Open ${group.name} details`}
-            className="!h-7 !w-7" onClick={() =>
-              onFocus({ kind: 'group', phaseIndex, groupId: group.id })} />
-        </div>
+        {resolution?.inherited && <p className="mt-1 truncate text-[9.5px] text-arena-material">
+          Carried from {tactic.phases[resolution.sourcePhaseIndex]?.name}
+        </p>}
         {unresolved && <p className="mt-1 text-[9.5px] text-arena-dim">
           This assignment has no honest position preview. Its saved behavior is unchanged.
         </p>}
@@ -256,40 +248,21 @@ const recoveryIcons: Record<string, TacticsIconName> = {
   'fight-on': 'fight-on', 'heal-tile': 'heal-tile', 'heal-up': 'heal-up',
 };
 
-function IconChoiceRow({ label, options, value, icons, onChange }: {
-  label: string;
-  options: readonly { id: string; label: string; blurb: string }[];
-  value: string;
-  icons: Record<string, TacticsIconName>;
-  onChange: (value: string) => void;
-}) {
-  return <div className="flex items-center gap-1" aria-label={label}>
-    <span className="lab mr-0.5 hidden xl:inline">{label}</span>
-    {options.map((option) => <TacticsIconButton key={option.id}
-      icon={icons[option.id]} label={`${label}: ${option.label}. ${option.blurb}`}
-      pressed={value === option.id} onClick={() => onChange(option.id)} />)}
-  </div>;
-}
-
 /** The ordinary phase editor: intentionally only Posts and Patrol are offered
  * as new spatial authoring. Everything else is preserved as an explicit
  * loaded/advanced state until the player deliberately converts it. */
 export function MapFirstGroupToolbar({
-  catalog, document, tactic, phaseIndex, groupId, selectedSlots,
-  change, onDrawPosts, onDrawPatrol, onOpenDetails, onOpenCores, onSuggest,
+  catalog, document, tactic, phaseIndex, groupId,
+  change, onDrawPosts, onDrawPatrol,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
   tactic: Tactic;
   phaseIndex: number;
   groupId: string;
-  selectedSlots: readonly number[];
   change: (apply: (tactic: Tactic) => void) => void;
   onDrawPosts: () => void;
   onDrawPatrol: () => void;
-  onOpenDetails: () => void;
-  onOpenCores: () => void;
-  onSuggest: (objective: FormationObjective) => void;
 }) {
   const group = tactic.groups.find((value) => value.id === groupId);
   const raw = tactic.phases[phaseIndex]?.jobs[groupId];
@@ -299,14 +272,6 @@ export function MapFirstGroupToolbar({
   if (!group || !raw || !effective) return null;
   const normal = effective.kind === 'posts' || effective.kind === 'patrol';
   const color = groupColor(tactic, groupId);
-  const activeSlots = selectedSlots.filter((slot) => group.slots.includes(slot));
-  const selectedBot = activeSlots.length === 1
-    ? document.squad.find((bot) => bot.slot === activeSlots[0]) : null;
-  const classEntry = selectedBot
-    ? catalog.classes.find((entry) => entry.id === selectedBot.class) : null;
-  const hasSpatialSignature = selectedBot
-    ? Boolean(signatureMarkGeometry(catalog, selectedBot.class)) : false;
-  const currentTravel = raw.travel ?? 'observe';
 
   const applyKind = (kind: 'posts' | 'patrol') => {
     if (effective.kind === kind) {
@@ -330,12 +295,9 @@ export function MapFirstGroupToolbar({
     catalog, document, tactic, phaseIndex, groupId);
 
   return <>
-    <div className="panel flex min-w-0 flex-wrap items-center gap-1.5 p-1.5"
+    <div className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-sm border border-arena-edge bg-arena-panel/65 p-1.5"
       data-testid="map-first-group-toolbar" style={{ borderLeft: `3px solid ${color}` }}>
-      <button type="button" className="btn !min-h-8 max-w-40 truncate"
-        onClick={onOpenDetails} title={`Open ${group.name} details`}>
-        {group.name} · {group.slots.length}
-      </button>
+      <span className="max-w-40 truncate px-1 t-micro font-semibold">{group.name} · {group.slots.length}</span>
       <span className="h-5 border-l border-arena-edge" />
       {normal ? <div className="flex items-center gap-1" role="group" aria-label="Spatial assignment">
         <TacticsIconButton icon="posts" label="Exact Posts" pressed={effective.kind === 'posts'}
@@ -360,50 +322,8 @@ export function MapFirstGroupToolbar({
         title={`Ground inherited from ${tactic.phases[resolution.sourcePhaseIndex]?.name}; first map edit makes an independent copy`}>
         Carry on · {tactic.phases[resolution.sourcePhaseIndex]?.name}
       </span>}
-      <IconChoiceRow label="Posture" options={POSTURES} value={raw.posture}
-        icons={postureIcons} onChange={(posture) => change((next) => {
-          next.phases[phaseIndex].jobs[groupId].posture = posture as Posture;
-        })} />
-      {effective.kind !== 'patrol' && <IconChoiceRow label="Travel"
-        options={TRAVEL_BEHAVIORS} value={currentTravel} icons={travelIcons}
-        onChange={(travel) => change((next) => {
-          next.phases[phaseIndex].jobs[groupId].travel = travel as Posture;
-        })} />}
-      <IconChoiceRow label="Recovery" options={RECOVERIES} value={raw.recovery}
-        icons={recoveryIcons} onChange={(recovery) => change((next) => {
-          next.phases[phaseIndex].jobs[groupId].recovery = recovery as Recovery;
-        })} />
-      <TacticsIconButton icon="core" label="Core custody and delivery" onClick={onOpenCores}
-        configured={Boolean(tactic.phases[phaseIndex].custody)} />
-      {effective.kind === 'posts' && <details className="relative">
-        <summary className="flex h-8 w-8 cursor-pointer list-none items-center justify-center rounded-sm border border-arena-edge text-arena-dim hover:border-arena-edge2 hover:text-arena-text"
-          aria-label="Suggest formation" title="Suggest formation">
-          <TacticsIcon name="formation" size={18} />
-        </summary>
-        <div className="absolute left-0 top-9 z-30 flex w-44 flex-col gap-1 rounded-sm border border-arena-edge bg-arena-panel p-1.5 shadow-lg">
-          <span className="lab">Suggest explicit posts</span>
-          {([
-            ['mid', 'Mid'], ['well-own', 'Your Well'],
-            ['well-centre', 'Centre Well'], ['well-enemy', 'Their Well'],
-          ] as const).map(([objective, label]) => <button key={objective} type="button"
-            className="btn justify-start" onClick={(event) => {
-              onSuggest(objective);
-              event.currentTarget.closest('details')?.removeAttribute('open');
-            }}>{label}</button>)}
-        </div>
-      </details>}
-      <TacticsIconButton icon="route" label="Routes, signatures and Group details"
-        configured={Boolean(effective.via?.length || effective.posts?.some((post) => post.via?.length)
-          || Object.keys(raw.sigs ?? {}).length)} onClick={onOpenDetails} />
       <span className="grow" />
-      {selectedBot ? <button type="button" className="flex min-h-8 items-center gap-1.5 rounded-sm border border-arena-edge px-1.5 text-left"
-        onClick={onOpenDetails} title={`${classEntry?.name ?? selectedBot.class}: ${classEntry?.signatureName ?? 'class details'}`}>
-        {classSprite(selectedBot.class) && <img src={classSprite(selectedBot.class)} alt="" className="h-7 w-7 object-contain" />}
-        <span className="t-micro"><b>{selectedBot.name}</b><br />{classEntry?.name ?? selectedBot.class}</span>
-        <TacticsIcon name="signature" size={15} className={hasSpatialSignature ? 'text-arena-material' : 'text-arena-dim'} />
-      </button> : activeSlots.length > 1
-        ? <span className="pill">{activeSlots.length} selected · spatial edit</span>
-        : <span className="t-micro text-arena-dim">Select a bot, or click the Group for formation editing.</span>}
+      <span className="t-micro text-arena-dim">Drag the Group or its bots directly onto the map.</span>
     </div>
     {pending && <Modal onClose={() => setPending(null)}>
       <div className="lab mb-1">Change spatial assignment?</div>
@@ -423,4 +343,179 @@ export function MapFirstGroupToolbar({
       </div>
     </Modal>}
   </>;
+}
+
+function BehaviorChoice({ icon, label, blurb, selected, onClick }: {
+  icon: TacticsIconName;
+  label: string;
+  blurb: string;
+  selected: boolean;
+  onClick: () => void;
+}) {
+  return <button type="button" aria-pressed={selected} title={blurb} onClick={onClick}
+    className={`flex min-h-9 w-full items-center gap-2 rounded-sm border px-2 py-1.5 text-left transition-colors ${selected
+      ? 'border-arena-material bg-arena-material/10 text-arena-text'
+      : 'border-arena-edge bg-arena-deep/25 text-arena-dim hover:border-arena-edge2 hover:text-arena-text'}`}>
+    <TacticsIcon name={icon} size={17} className={selected ? 'text-arena-material' : undefined} />
+    <span className="min-w-0">
+      <span className="block text-[10.5px] font-semibold leading-tight">{label}</span>
+      {selected && <span className="mt-0.5 block text-[9px] leading-snug text-arena-dim">{blurb}</span>}
+    </span>
+  </button>;
+}
+
+/** Readable behavior lives beside the map instead of competing with spatial
+ * tools above it. This remains the same three ordinary job fields. */
+export function MapFirstBehaviorPanel({ tactic, phaseIndex, groupId, change }: {
+  tactic: Tactic;
+  phaseIndex: number;
+  groupId: string;
+  change: (apply: (tactic: Tactic) => void) => void;
+}) {
+  const group = tactic.groups.find((value) => value.id === groupId);
+  const raw = tactic.phases[phaseIndex]?.jobs[groupId];
+  const effective = effectiveJobResolution(tactic, phaseIndex, groupId)?.job ?? raw;
+  if (!group || !raw || !effective) return null;
+  const color = groupColor(tactic, groupId);
+  const travel = raw.travel ?? 'observe';
+  return <aside className="flex min-w-0 flex-col gap-2 rounded-sm border border-arena-edge bg-arena-panel/55 p-2"
+    data-testid="map-first-behavior-panel" style={{ borderTop: `3px solid ${color}` }}>
+    <div>
+      <span className="lab">Behavior</span>
+      <p className="mt-0.5 truncate t-micro font-semibold">{group.name}</p>
+    </div>
+    <fieldset className="flex flex-col gap-1">
+      <legend className="lab mb-1">At the destination</legend>
+      {POSTURES.map((option) => <BehaviorChoice key={option.id}
+        icon={postureIcons[option.id]} label={option.label} blurb={option.blurb}
+        selected={raw.posture === option.id} onClick={() => change((next) => {
+          next.phases[phaseIndex].jobs[groupId].posture = option.id;
+        })} />)}
+    </fieldset>
+    {effective.kind !== 'patrol' && <fieldset className="flex flex-col gap-1">
+      <legend className="lab mb-1">On the way</legend>
+      {TRAVEL_BEHAVIORS.map((option) => <BehaviorChoice key={option.id}
+        icon={travelIcons[option.id]} label={option.label} blurb={option.blurb}
+        selected={travel === option.id} onClick={() => change((next) => {
+          next.phases[phaseIndex].jobs[groupId].travel = option.id;
+        })} />)}
+    </fieldset>}
+    <fieldset className="flex flex-col gap-1">
+      <legend className="lab mb-1">Recovery</legend>
+      {RECOVERIES.map((option) => <BehaviorChoice key={option.id}
+        icon={recoveryIcons[option.id]} label={option.label} blurb={option.blurb}
+        selected={raw.recovery === option.id} onClick={() => change((next) => {
+          next.phases[phaseIndex].jobs[groupId].recovery = option.id;
+        })} />)}
+    </fieldset>
+  </aside>;
+}
+
+/** Selecting one bot opens only the things that are truly bot-specific in
+ * this phase: its way in, its signature mark, and useful range readback. */
+export function MapFirstBotPanel({
+  catalog, document, tactic, phaseIndex, groupId, slot, task, change,
+  onDrawRoute, onDrawPatrol, onDrawSignature, onStop,
+}: {
+  catalog: TacticalSheetCatalog;
+  document: TacticsDocument;
+  tactic: Tactic;
+  phaseIndex: number;
+  groupId: string;
+  slot: number;
+  task: MapTask | null;
+  change: (apply: (tactic: Tactic) => void) => void;
+  onDrawRoute: (postIndex: number | null) => void;
+  onDrawPatrol: () => void;
+  onDrawSignature: (classId: string) => void;
+  onStop: () => void;
+}) {
+  const bot = document.squad[slot];
+  const group = tactic.groups.find((value) => value.id === groupId);
+  const raw = tactic.phases[phaseIndex]?.jobs[groupId];
+  const resolution = effectiveJobResolution(tactic, phaseIndex, groupId);
+  const effective = resolution?.job ?? raw;
+  const entry = catalog.classes.find((value) => value.id === bot?.class);
+  if (!bot || !group || !raw || !effective || !entry) return null;
+  const postIndex = effective.kind === 'posts'
+    ? effective.posts?.findIndex((post, index) => (post.slot ?? group.slots[index]) === slot) ?? -1
+    : -1;
+  const post = postIndex >= 0 ? effective.posts?.[postIndex] : null;
+  const route = post?.via ?? effective.via;
+  const routeDrawing = task?.kind === 'job' && task.groupId === groupId
+    && task.phaseIndex === phaseIndex && task.field === 'via'
+    && (postIndex < 0 || task.postIndex === postIndex);
+  const geometry = signatureMarkGeometry(catalog, bot.class);
+  const mark = raw.sigs?.[bot.class];
+  const marks = mark ? ('points' in mark ? mark.points : mark.line) : [];
+  const signatureDrawing = task?.kind === 'sig' && task.groupId === groupId
+    && task.phaseIndex === phaseIndex && task.classId === bot.class;
+  const clearRoute = route?.length ? () => change((next) => {
+    const target = materializeSpatialJob(next, phaseIndex, groupId);
+    if (!target) return;
+    if (postIndex >= 0) {
+      const targetPost = target.posts?.[postIndex];
+      if (targetPost) delete targetPost.via;
+    } else {
+      delete target.via;
+    }
+  }) : undefined;
+  return <div className="flex flex-col gap-2" data-testid="map-first-bot-panel">
+    <div className="flex items-center gap-3 rounded-sm border border-arena-edge bg-arena-panel2/30 p-2">
+      {classSprite(bot.class) && <img src={classSprite(bot.class)} alt="" className="h-14 w-14 object-contain drop-shadow" />}
+      <div className="min-w-0 grow">
+        <h3 className="type-display truncate text-[16px]">{bot.name}</h3>
+        <p className="t-micro font-semibold text-arena-material">{entry.name} · {entry.signatureName}</p>
+        <p className="mt-1 text-[9.5px] leading-snug text-arena-dim">{entry.fantasy}</p>
+      </div>
+    </div>
+    <div className="grid grid-cols-3 gap-1">
+      <span className="rounded-sm border border-arena-edge p-1.5 text-center t-micro">
+        <b className="block text-arena-text">{entry.attackRange}</b> attack
+      </span>
+      <span className="rounded-sm border border-arena-edge p-1.5 text-center t-micro">
+        <b className="block text-arena-text">{entry.visionRange}</b> vision
+      </span>
+      <span className="rounded-sm border border-arena-edge p-1.5 text-center t-micro">
+        <b className="block text-arena-text">{entry.visionProximityRange}</b> nearby
+      </span>
+    </div>
+    <div>
+      <div className="lab mb-1">Movement</div>
+      {effective.kind === 'patrol' ? <GeoStatusRow complete={(effective.path?.length ?? 0) >= 2}
+        label={effective.path?.length
+          ? `Group patrol · ${effective.path.length} waypoints`
+          : 'Group patrol has no route yet'}
+        drawing={task?.kind === 'job' && task.groupId === groupId
+          && task.phaseIndex === phaseIndex && task.draw === 'route' && task.field !== 'via'}
+        drawLabel="Draw patrol route" onDraw={onDrawPatrol} onStop={onStop} />
+        : (postIndex >= 0 || viaLegal(effective.kind))
+          ? <GeoStatusRow complete={(route?.length ?? 0) >= 2}
+            label={route?.length
+              ? `Approach route · ${route.length} waypoints before arrival`
+              : post ? `Direct approach to the post at ${describePlace(...post.at)}`
+                : 'Direct approach to the destination'}
+            drawing={routeDrawing} drawLabel="Draw approach route"
+            onDraw={() => onDrawRoute(postIndex >= 0 ? postIndex : null)}
+            onStop={onStop} onClear={clearRoute} />
+          : <p className="t-micro text-arena-dim">This assignment works out its own movement.</p>}
+    </div>
+    <div>
+      <div className="lab mb-1">Signature</div>
+      {geometry ? <GeoStatusRow complete={marks.length > 0}
+        label={marks.length
+          ? `${geometry.label} · ${marks.length}/${geometry.max} mark${marks.length === 1 ? '' : 's'}`
+          : `${geometry.label} · no map marks yet`}
+        drawing={signatureDrawing} drawLabel="Place signature marks"
+        onDraw={() => onDrawSignature(bot.class)} onStop={onStop}
+        onClear={marks.length ? () => change((next) => {
+          const target = next.phases[phaseIndex]?.jobs[groupId];
+          if (target?.sigs) delete target.sigs[bot.class];
+        }) : undefined} />
+        : <div className="rounded-sm border border-arena-edge bg-arena-deep/30 p-2">
+          <p className="t-micro font-semibold">{entry.signatureName}</p>
+          <p className="mt-1 t-micro text-arena-dim">Used automatically when this bot’s behavior calls for it; no map mark is needed.</p>
+        </div>}
+    </div>
+  </div>;
 }

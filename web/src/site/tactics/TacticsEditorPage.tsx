@@ -11,12 +11,12 @@ import { Modal } from './Modal';
 import { PhaseStrip } from './PhaseStrip';
 import { BotChip } from './BotChip';
 import {
-  MapFirstGroupToolbar, MapFirstGroupTrays, MapFirstTimeline, type MapFirstFocus,
+  MapFirstBehaviorPanel, MapFirstBotPanel, MapFirstGroupToolbar,
+  MapFirstGroupTrays, MapFirstTimeline, type MapFirstFocus,
 } from './MapFirstChrome';
 import { TacticsIcon, TacticsIconButton } from './TacticsIcons';
 import {
-  formationObjectivePoint, materializeSpatialJob, suggestFormationPosts,
-  type FormationObjective,
+  materializeSpatialJob, suggestFormationPosts, translatePostSelection,
 } from './mapFirstSpatial';
 import { classSprite, slotAccent } from './classArt';
 import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './recipes';
@@ -27,7 +27,7 @@ import {
 import {
   blankDocument, effectiveJobResolution, expectedGeometry, followMembership, freshLocalId, freshPhase, groupColor, identifierFromName,
   normalizeEditableDocumentForCatalog, postFacingIssue, reversedWayIn,
-  signatureMarkGeometry, stringifyDocument, tilePlacementIssue,
+  planJobKindChange, signatureMarkGeometry, stringifyDocument, tilePlacementIssue,
   validateDocument, sheetIssueFromCompilerError,
   type Build, type Facing, type JobKind, type SheetIssue, type SquadBot,
   type Tactic, type TacticsDraft,
@@ -35,7 +35,7 @@ import {
 import { loadLocalDraft, useSheetDraft } from './useSheetDraft';
 import { useMapTask, type MapTask } from './useMapTask';
 import {
-  CoresStep, GroupsStep, JobSection, PhaseCustodyEditor, PhasesStep,
+  CoresStep, GroupsStep, PhaseCustodyEditor, PhasesStep,
   ReviewStep, StartStep, TransitionEditor, type StepProps,
 } from './WizardSteps';
 import { BUILDS } from './tacticsDocument';
@@ -230,6 +230,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         else undo();
       } else if (event.key === 'Escape' && task) {
         endTask();
+      } else if (event.key === 'Escape' && mapFirstPanel) {
+        setMapFirstPanel(null);
       } else if (event.key === 'Enter' && task && task.kind !== 'watch'
         && task.draw === 'route') {
         endTask();
@@ -237,7 +239,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [endTask, redo, task, undo]);
+  }, [endTask, mapFirstPanel, redo, task, undo]);
 
   if (initialSheetId && sheetQuery.isError) {
     return <ErrorState error={sheetQuery.error} onRetry={() => void sheetQuery.refetch()} />;
@@ -525,7 +527,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           wizard.tactic, ref.phaseIndex, ref.groupId)?.job;
         const slot = effective?.posts?.[ref.postIndex]?.slot ?? group?.slots[ref.postIndex];
         setSelectedGroupId(ref.groupId);
-        if (slot != null) selectMapFirstBot(ref.groupId, slot, additive);
+        if (slot != null) selectMapFirstBot(ref.groupId, slot, additive, ref.phaseIndex);
         if (layoutMode === 'map-first') {
           setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
           return;
@@ -552,7 +554,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           setSelectedGroupId(ref.groupId);
           if (ref.part === 'group' && layoutMode === 'map-first') selectMapFirstGroup(ref.groupId);
           if (ref.part === 'bot' && layoutMode === 'map-first') {
-            selectMapFirstBot(ref.groupId, ref.slot, additive);
+            selectMapFirstBot(ref.groupId, ref.slot, additive, ref.phaseIndex);
           }
           window.setTimeout(() => {
             window.document.getElementById(`section-${ref.groupId}-${ref.phaseIndex}`)
@@ -636,6 +638,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const focusMapFirst = (focus: MapFirstFocus) => {
     if (!wizard) return;
+    const reopeningActivePhase = focus.kind === 'phase'
+      && focus.phaseIndex === wizard.phaseIndex;
     let step = wizard.step;
     let phaseIndex = wizard.phaseIndex;
     if (focus.kind === 'start') {
@@ -657,7 +661,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       }
     }
     setWizard({ ...wizard, step, phaseIndex });
-    setMapFirstPanel(focus);
+    // Moving between phases is ordinary navigation, not a reason to cover the
+    // map. Clicking the already-active phase again opens rename/delete.
+    setMapFirstPanel(focus.kind === 'phase' && !reopeningActivePhase ? null : focus);
     endTask();
     if (focus.kind === 'start' || focus.kind === 'abort') {
       const id = focus.kind === 'start' ? 'start-controls' : 'abort-controls';
@@ -695,33 +701,27 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     const group = wizard.tactic.groups.find((value) => value.id === groupId);
     setSelectedGroupId(groupId);
     setSelectedSlots(group?.slots ?? []);
+    setMapFirstPanel(null);
   };
 
-  const selectMapFirstBot = (groupId: string, slot: number, additive: boolean) => {
-    setSelectedGroupId(groupId);
-    setSelectedSlots((current) => additive
-      ? current.includes(slot) ? current.filter((value) => value !== slot) : [...current, slot]
-      : [slot]);
-  };
-
-  const suggestMapFirstFormation = (objective: FormationObjective) => {
-    if (!wizard || !selectedGroupId) return;
-    const target = formationObjectivePoint(catalog, objective);
-    const group = wizard.tactic.groups.find((value) => value.id === selectedGroupId);
-    if (!target || !group) return;
-    const slots = selectedSlots.filter((slot) => group.slots.includes(slot));
-    const moving = slots.length ? slots : group.slots;
-    changeWizard((next) => {
-      const job = materializeSpatialJob(next, wizard.phaseIndex, group.id);
-      if (!job || job.kind !== 'posts') return;
-      job.posts = job.posts ?? [];
-      job.posts.forEach((post, index) => { if (post.slot == null) post.slot = group.slots[index]; });
-      const keep = job.posts.filter((post) => post.slot == null || !moving.includes(post.slot));
-      const suggested = suggestFormationPosts(catalog, moving, target,
-        keep.map((post) => post.at), `${next.id}:${wizard.phaseIndex}:${group.id}:${objective}`);
-      job.posts = [...keep, ...suggested];
-    });
-    toast(`${group.name} formed on ${objective.replace('well-', '')}.`);
+  const selectMapFirstBot = (
+    groupId: string, slot: number, additive: boolean,
+    phaseIndex = wizard?.phaseIndex ?? 0,
+  ) => {
+    if (!wizard) return;
+    const next = additive
+      ? selectedSlots.includes(slot)
+        ? selectedSlots.filter((value) => value !== slot)
+        : [...selectedSlots, slot]
+      : [slot];
+    const loneSlot = next.length === 1 ? next[0] : null;
+    const loneGroup = loneSlot == null ? null
+      : wizard.tactic.groups.find((group) => group.slots.includes(loneSlot));
+    setSelectedGroupId(loneGroup?.id ?? groupId);
+    setSelectedSlots(next);
+    setMapFirstPanel(loneSlot != null && loneGroup
+      ? { kind: 'bot', phaseIndex, groupId: loneGroup.id, slot: loneSlot }
+      : null);
   };
 
   /** A tray-to-tray move uses the same slot-keyed belongings migration as
@@ -738,6 +738,65 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setWizard({ ...wizard, tactic });
     if (summary) toast(summary);
     setSelectedGroupId(targetGroupId);
+  };
+
+  /** Dragging a Group onto the map is the beginner-friendly formation tool:
+   * existing exact Posts move rigidly; other/partial ground becomes a legal
+   * ordinary Posts formation centred on the dropped tile. */
+  const dropWizardGroup = (groupId: string, at: [number, number]) => {
+    if (!wizard) return;
+    const phaseIndex = wizard.phaseIndex;
+    const currentGroup = wizard.tactic.groups.find((group) => group.id === groupId);
+    if (!currentGroup || currentGroup.slots.length === 0) return;
+    const tactic = structuredClone(wizard.tactic);
+    let snapped = true;
+    const group = tactic.groups.find((value) => value.id === groupId);
+    let job = materializeSpatialJob(tactic, phaseIndex, groupId);
+    if (!group || !job) return;
+    if (job.kind !== 'posts') {
+      const plan = planJobKindChange(job, 'posts');
+      tactic.phases[phaseIndex].jobs[groupId] = structuredClone(plan.next);
+      job = tactic.phases[phaseIndex].jobs[groupId];
+    }
+    job.posts = job.posts ?? [];
+    job.posts.forEach((post, index) => {
+      if (post.slot == null) post.slot = group.slots[index];
+    });
+    const complete = group.slots.every((slot) =>
+      job.posts?.some((post) => post.slot === slot));
+    if (!complete || job.posts.length !== group.slots.length) {
+      job.posts = suggestFormationPosts(catalog, group.slots, at, [],
+        `${tactic.id}:${phaseIndex}:${groupId}:drop`);
+      snapped = job.posts.length === group.slots.length;
+    } else {
+      const anchorSlot = group.slots[0];
+      const anchor = job.posts.find((post) => post.slot === anchorSlot);
+      if (!anchor) return;
+      const centre: [number, number] = [
+        Math.round(job.posts.reduce((sum, post) => sum + post.at[0], 0) / job.posts.length),
+        Math.round(job.posts.reduce((sum, post) => sum + post.at[1], 0) / job.posts.length),
+      ];
+      const anchorDestination: [number, number] = [
+        anchor.at[0] + at[0] - centre[0], anchor.at[1] + at[1] - centre[1],
+      ];
+      const translated = translatePostSelection(
+        catalog, job.posts, group.slots, anchorSlot, anchorDestination);
+      if (!translated) {
+        snapped = false;
+      } else {
+        for (const post of job.posts) {
+          const translatedAt = post.slot == null ? null : translated.positions.get(post.slot);
+          if (translatedAt) post.at = translatedAt;
+        }
+      }
+    }
+    if (snapped) setWizard({ ...wizard, tactic });
+    setSelectedGroupId(groupId);
+    setSelectedSlots(currentGroup.slots);
+    setMapFirstPanel(null);
+    toast(snapped
+      ? `${currentGroup.name} placed — drag any selected bot to refine the formation.`
+      : `${currentGroup.name} could not fit near that tile.`, snapped ? 'ok' : 'hot');
   };
 
   /** Dropping an unposted tray bot is real Posts authoring. Preview bots for
@@ -775,9 +834,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   };
 
   return (
-    // The mock's workbench: on desktop the three panes fill the viewport,
-    // the rail and drawer scroll internally, and the map owns the rest.
-    <div className={`grid gap-3 lg:h-[calc(100dvh-150px)] ${layoutMode === 'map-first'
+    // Map-first grows in normal page flow: its legend and behavior rail can
+    // never overflow through the footer. Classic keeps its three-pane shape.
+    <div className={`grid gap-3 lg:min-h-[calc(100dvh-150px)] ${layoutMode === 'map-first'
       ? 'lg:grid-cols-[260px_minmax(0,1fr)]'
       : 'lg:grid-cols-[316px_minmax(0,1fr)_396px]'}`}
       data-layout={layoutMode}>
@@ -904,138 +963,134 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
             focus={mapFirstPanel} gate={gate} onFocus={focusMapFirst}
             onAddPhase={addMapFirstPhase} onCommit={commitWizard} onCancel={cancelWizard} />
         )}
-        {layoutMode === 'map-first' && wizard && activeMapGroupId && (
-          <MapFirstGroupToolbar key={`${wizard.tactic.id}:${wizard.phaseIndex}:${activeMapGroupId}`}
-            catalog={catalog} document={document}
-            tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
-            groupId={activeMapGroupId} selectedSlots={selectedSlots}
-            change={changeWizard}
-            onDrawPosts={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'posts')}
-            onDrawPatrol={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'route')}
-            onOpenDetails={() => focusMapFirst({ kind: 'group', phaseIndex: wizard.phaseIndex, groupId: activeMapGroupId })}
-            onOpenCores={() => focusMapFirst({ kind: 'cores' })}
-            onSuggest={suggestMapFirstFormation} />
-        )}
-        <div className="flex items-center gap-2">
-          <span className="lab">Tapline — your side is west</span>
-          <span className="grow" />
-          {layoutMode === 'map-first' ? <>
-            <TacticsIconButton icon="layers" label="Show every Tactic"
-              pressed={showAll} onClick={() => setShowAll((value) => !value)} />
-            <TacticsIconButton icon="transition" label="Show every phase"
-              pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
-            <TacticsIconButton icon="vision" label="Selected bot vision"
-              pressed={showVision} disabled={selectedSlots.length === 0}
-              onClick={() => setShowVision((value) => !value)} />
-            <TacticsIconButton icon="attack-range" label="Selected bot attack reach"
-              pressed={showAttackRange} disabled={selectedSlots.length === 0}
-              onClick={() => setShowAttackRange((value) => !value)} />
-            <TacticsIconButton icon="clear" label="Clear bot selection"
-              disabled={selectedSlots.length === 0} onClick={() => setSelectedSlots([])} />
-          </> : <>
-            <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
-              <input type="checkbox" checked={showAll}
-                onChange={(event) => setShowAll(event.target.checked)} />
-              Show every Tactic
-            </label>
-            <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
-              <input type="checkbox" checked={showAllPhases}
-                onChange={(event) => setShowAllPhases(event.target.checked)} />
-              Show every phase
-            </label>
-          </>}
-          <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
-            {([1, 1.5, 2] as const).map((level) => (
-              <button key={level} type="button"
-                className={`btn !min-h-7 !border-0 ${zoom === level ? 'btn-on' : ''}`}
-                onClick={() => setZoom(level)}>
-                {level === 1 ? 'Fit' : `${level}×`}
-              </button>
-            ))}
-          </span>
-        </div>
         <div className={layoutMode === 'map-first' && wizard
-          ? 'grid min-w-0 gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)]'
+          ? 'grid min-w-0 items-start gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)] min-[1240px]:grid-cols-[168px_minmax(0,1fr)_232px]'
           : 'min-w-0'}>
-        {layoutMode === 'map-first' && wizard && (
-          <MapFirstGroupTrays catalog={catalog} document={document}
-            tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
-            selectedGroupId={activeMapGroupId} selectedSlots={selectedSlots}
-            onFocus={focusMapFirst} onMoveBot={moveWizardBot}
-            onSelectGroup={selectMapFirstGroup} onSelectBot={selectMapFirstBot} />
-        )}
-        <div className="min-w-0">
-        {/* The map fills the column, capped so it also fits the viewport
-            height — width follows from the 31:27 tile aspect. */}
-        <div className="lg:mx-auto lg:w-[min(100%,calc((100dvh-290px)*1.148))]">
-          <div className="relative">
-          <div className={`overflow-auto rounded-sm border border-arena-edge bg-arena-deep ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
-            <div style={{ width: `${zoom * 100}%` }}>
-              <TacticsMapCanvas
-                catalog={catalog}
-                document={document}
-                editingTacticId={editingTacticId}
-                activePhaseIndex={wizard?.phaseIndex ?? null}
-                selectedTacticId={selectedTacticId}
-                showAll={showAll}
-                showAllPhases={showAllPhases}
-                showProjectedBots={layoutMode === 'map-first'}
-                showAdjacentPhases={layoutMode === 'classic'}
-                allowInheritedSpatialEditing={layoutMode === 'map-first'}
-                selectedSlots={layoutMode === 'map-first' ? selectedSlots : []}
-                showVision={layoutMode === 'map-first' && showVision}
-                showAttackRange={layoutMode === 'map-first' && showAttackRange}
-                task={task}
-                hints={wizard?.hints.groups ?? null}
-                onTilePicked={onTilePicked}
-                onRectDrawn={onRectDrawn}
-                onGeometryLive={onGeometryLive}
-                onGestureStart={beginGesture}
-                onGestureEnd={() => undefined}
-                onSelect={onSelect}
-                onClearSelection={layoutMode === 'map-first' ? () => setSelectedSlots([]) : undefined}
-                onTaskDone={endTask}
-                onTileRejected={(reason) => toast(reason, 'hot')}
-                onPostsSwapped={() => toast('Swapped posts.')}
-                onPostBotDropped={layoutMode === 'map-first' ? dropPostBot : undefined}
-              />
+          {layoutMode === 'map-first' && wizard && (
+            <MapFirstGroupTrays catalog={catalog} document={document}
+              tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+              selectedGroupId={activeMapGroupId} selectedSlots={selectedSlots}
+              onFocus={focusMapFirst} onMoveBot={moveWizardBot}
+              onSelectGroup={selectMapFirstGroup} onSelectBot={selectMapFirstBot} />
+          )}
+          <div className="min-w-0">
+            {layoutMode === 'map-first' && wizard && activeMapGroupId && (
+              <MapFirstGroupToolbar key={`${wizard.tactic.id}:${wizard.phaseIndex}:${activeMapGroupId}`}
+                catalog={catalog} document={document}
+                tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+                groupId={activeMapGroupId} change={changeWizard}
+                onDrawPosts={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'posts')}
+                onDrawPatrol={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'route')} />
+            )}
+            <div className="my-1.5 flex min-w-0 items-center justify-end gap-1.5">
+              {layoutMode === 'map-first' ? <>
+                <TacticsIconButton icon="layers" label="Show every Tactic"
+                  pressed={showAll} onClick={() => setShowAll((value) => !value)} />
+                <TacticsIconButton icon="transition" label="Show every phase"
+                  pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
+                <TacticsIconButton icon="vision" label="Selected bot vision"
+                  pressed={showVision} disabled={selectedSlots.length === 0}
+                  onClick={() => setShowVision((value) => !value)} />
+                <TacticsIconButton icon="attack-range" label="Selected bot attack reach"
+                  pressed={showAttackRange} disabled={selectedSlots.length === 0}
+                  onClick={() => setShowAttackRange((value) => !value)} />
+                <TacticsIconButton icon="clear" label="Clear bot selection"
+                  disabled={selectedSlots.length === 0} onClick={() => {
+                    setSelectedSlots([]); setMapFirstPanel(null);
+                  }} />
+              </> : <>
+                <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
+                  <input type="checkbox" checked={showAll}
+                    onChange={(event) => setShowAll(event.target.checked)} />
+                  Show every Tactic
+                </label>
+                <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
+                  <input type="checkbox" checked={showAllPhases}
+                    onChange={(event) => setShowAllPhases(event.target.checked)} />
+                  Show every phase
+                </label>
+              </>}
+              <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
+                {([1, 1.5, 2] as const).map((level) => (
+                  <button key={level} type="button"
+                    className={`btn !min-h-7 !border-0 ${zoom === level ? 'btn-on' : ''}`}
+                    onClick={() => setZoom(level)}>
+                    {level === 1 ? 'Fit' : `${level}×`}
+                  </button>
+                ))}
+              </span>
+            </div>
+            {/* Left aligned and viewport-capped; the legend remains in normal
+                flow so the map can never paint through the page footer. */}
+            <div className="lg:w-[min(100%,calc((100dvh-340px)*1.148))]">
+              <div className="relative">
+                <div className={`overflow-auto rounded-sm border border-arena-edge bg-arena-deep ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
+                  <div style={{ width: `${zoom * 100}%` }}>
+                    <TacticsMapCanvas
+                      catalog={catalog} document={document}
+                      editingTacticId={editingTacticId}
+                      activePhaseIndex={wizard?.phaseIndex ?? null}
+                      selectedTacticId={selectedTacticId}
+                      showAll={showAll} showAllPhases={showAllPhases}
+                      showProjectedBots={layoutMode === 'map-first'}
+                      showAdjacentPhases={layoutMode === 'classic'}
+                      allowInheritedSpatialEditing={layoutMode === 'map-first'}
+                      selectedSlots={layoutMode === 'map-first' ? selectedSlots : []}
+                      showVision={layoutMode === 'map-first' && showVision}
+                      showAttackRange={layoutMode === 'map-first' && showAttackRange}
+                      task={task} hints={wizard?.hints.groups ?? null}
+                      onTilePicked={onTilePicked} onRectDrawn={onRectDrawn}
+                      onGeometryLive={onGeometryLive} onGestureStart={beginGesture}
+                      onGestureEnd={() => undefined} onSelect={onSelect}
+                      onClearSelection={layoutMode === 'map-first' ? () => {
+                        setSelectedSlots([]); setMapFirstPanel(null);
+                      } : undefined}
+                      onTaskDone={endTask}
+                      onTileRejected={(reason) => toast(reason, 'hot')}
+                      onPostsSwapped={() => toast('Swapped posts.')}
+                      onPostBotDropped={layoutMode === 'map-first' ? dropPostBot : undefined}
+                      onGroupDropped={layoutMode === 'map-first' ? dropWizardGroup : undefined}
+                    />
+                  </div>
+                </div>
+                {task && <TaskBanner task={task} wizard={wizard} botName={botName} onDone={endTask}
+                  onUndoPoint={() => changeWizard((tactic) => {
+                    if (task.kind === 'carry') {
+                      tactic.phases[task.phaseIndex]?.custody?.via?.pop();
+                    } else if (task.kind === 'job') {
+                      const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+                      if (!job) return;
+                      if (task.draw === 'posts') job.posts?.pop();
+                      if (task.draw === 'route') {
+                        if (task.field === 'via') {
+                          if (task.postIndex != null) job.posts?.[task.postIndex]?.via?.pop();
+                          else job.via?.pop();
+                        } else {
+                          job.path?.pop();
+                        }
+                      }
+                    } else if (task.kind === 'sig') {
+                      const mark = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
+                        ?.sigs?.[task.classId];
+                      if (mark) ('points' in mark ? mark.points : mark.line).pop();
+                    }
+                  })} />}
+              </div>
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 t-micro text-arena-dim">
+              <span><span style={{ color: '#22d3ee' }}>●</span> Group post</span>
+              <span><span style={{ color: '#22d3ee' }}>→</span> route</span>
+              <span><span style={{ color: '#c8763c' }}>⚡▭</span> watched area</span>
+              <span><span style={{ color: '#b49cff' }}>◐</span> Wells</span>
+              <span><span style={{ color: '#22d3ee' }}>◆</span> reactors</span>
             </div>
           </div>
-          {task && <TaskBanner task={task} wizard={wizard} botName={botName} onDone={endTask}
-            onUndoPoint={() => changeWizard((tactic) => {
-              if (task.kind === 'carry') {
-                tactic.phases[task.phaseIndex]?.custody?.via?.pop();
-              } else if (task.kind === 'job') {
-                const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
-                if (!job) return;
-                if (task.draw === 'posts') job.posts?.pop();
-                if (task.draw === 'route') {
-                  if (task.field === 'via') {
-                    if (task.postIndex != null) job.posts?.[task.postIndex]?.via?.pop();
-                    else job.via?.pop();
-                  } else {
-                    job.path?.pop();
-                  }
-                }
-              } else if (task.kind === 'sig') {
-                const mark = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
-                  ?.sigs?.[task.classId];
-                if (mark) ('points' in mark ? mark.points : mark.line).pop();
-              }
-            })} />}
-          </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 t-micro text-arena-dim">
-          <span><span style={{ color: '#22d3ee' }}>●</span> Group post</span>
-          <span><span style={{ color: '#22d3ee' }}>▭</span> staging area</span>
-          <span><span style={{ color: '#22d3ee' }}>→</span> Act route</span>
-          <span><span style={{ color: '#c8763c' }}>⚡▭</span> release watch</span>
-          <span><span style={{ color: '#b49cff' }}>◐</span> Wells</span>
-          <span><span style={{ color: '#22d3ee' }}>◆</span> reactors — Cores bank here</span>
-        </div>
-        <p className="t-micro text-arena-dim">Click overlays to jump to their Group — a posted bot
-          lights up its own way-in row. Drag posts, corners and destinations while editing.</p>
-        </div>
+          {layoutMode === 'map-first' && wizard && activeMapGroupId && (
+            <div className="min-[820px]:col-start-2 min-[1240px]:col-start-3 min-[1240px]:row-start-1">
+              <MapFirstBehaviorPanel tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+                groupId={activeMapGroupId} change={changeWizard} />
+            </div>
+          )}
         </div>
       </section>
 
@@ -1110,14 +1165,19 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       </section>}
 
       {layoutMode === 'map-first' && wizard && mapFirstPanel && (
-        <aside className="fixed bottom-4 right-4 top-24 z-40 flex w-[min(420px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl"
+        <>
+        <button type="button" aria-label="Close context editor"
+          className="fixed inset-0 z-30 cursor-default bg-black/5"
+          onClick={() => { setMapFirstPanel(null); endTask(); }} />
+        <aside className={`fixed right-4 top-20 z-40 flex max-h-[calc(100dvh-6rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
           data-testid="map-first-context-drawer" aria-label="Context editor">
           <div className="flex items-center gap-2 border-b border-arena-edge bg-arena-panel px-2 py-1.5">
             <TacticsIcon name={mapFirstPanel.kind === 'transition' ? 'transition'
               : mapFirstPanel.kind === 'cores' ? 'core'
                 : mapFirstPanel.kind === 'start' ? 'start'
                   : mapFirstPanel.kind === 'abort' ? 'abort'
-                    : mapFirstPanel.kind === 'groups' ? 'members' : 'edit'} size={16} />
+                    : mapFirstPanel.kind === 'groups' ? 'members'
+                      : mapFirstPanel.kind === 'bot' ? 'signature' : 'edit'} size={16} />
             <b className="t-body grow">{mapFirstPanel.kind === 'transition'
               ? `${wizard.tactic.phases[mapFirstPanel.phaseIndex]?.name} transition`
               : mapFirstPanel.kind === 'cores' ? 'Core plan and phase custody'
@@ -1125,7 +1185,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                   : mapFirstPanel.kind === 'abort' ? 'Tactic-wide abort'
                     : mapFirstPanel.kind === 'groups' ? 'Group membership'
                       : mapFirstPanel.kind === 'phase' ? 'Phase details'
-                      : mapFirstPanel.kind === 'bot' ? 'Bot and Group details' : 'Group details'}</b>
+                      : mapFirstPanel.kind === 'bot'
+                        ? document.squad[mapFirstPanel.slot]?.name ?? 'Bot'
+                        : 'Group'}</b>
             <TacticsIconButton icon="close" label="Close context editor"
               onClick={() => { setMapFirstPanel(null); endTask(); }} />
           </div>
@@ -1168,14 +1230,30 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               <CoresStep {...stepProps} />
               <PhaseCustodyEditor {...stepProps} phaseIndex={wizard.phaseIndex} />
             </>}
-            {(mapFirstPanel.kind === 'group' || mapFirstPanel.kind === 'bot') && (() => {
-              const group = wizard.tactic.groups.find((value) => value.id === mapFirstPanel.groupId);
-              return group
-                ? <JobSection {...stepProps} group={group} phaseIndex={mapFirstPanel.phaseIndex} mapFirst />
-                : null;
-            })()}
+            {mapFirstPanel.kind === 'bot' && <MapFirstBotPanel
+              catalog={catalog} document={document} tactic={wizard.tactic}
+              phaseIndex={mapFirstPanel.phaseIndex} groupId={mapFirstPanel.groupId}
+              slot={mapFirstPanel.slot} task={task} change={changeWizard}
+              onDrawRoute={(postIndex) => {
+                if (postIndex == null) {
+                  stepProps.startJobTask(mapFirstPanel.groupId, mapFirstPanel.phaseIndex, 'via');
+                } else {
+                  stepProps.startPostViaTask(mapFirstPanel.groupId, mapFirstPanel.phaseIndex, postIndex);
+                }
+                setMapFirstPanel(null);
+              }}
+              onDrawPatrol={() => {
+                stepProps.startJobTask(mapFirstPanel.groupId, mapFirstPanel.phaseIndex, undefined, 'route');
+                setMapFirstPanel(null);
+              }}
+              onDrawSignature={(classId) => {
+                stepProps.startSigTask(mapFirstPanel.groupId, mapFirstPanel.phaseIndex, classId);
+                setMapFirstPanel(null);
+              }}
+              onStop={endTask} />}
           </div>
         </aside>
+        </>
       )}
 
       <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-64 flex-col gap-1.5"
