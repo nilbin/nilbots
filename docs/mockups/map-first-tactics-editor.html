@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nilbots — Map-first tactics editor concept</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0705;
+      --deep: #06090c;
+      --panel: #191210;
+      --raise: #221913;
+      --edge: #3b2a20;
+      --edge2: #513a2b;
+      --text: #e6ddd4;
+      --dim: #94806f;
+      --material: #c8763c;
+      --material-hot: #f0a35e;
+      --ok: #38d9c5;
+      --hot: #f4526b;
+      --violet: #b49cff;
+      --own: #22d3ee;
+      --enemy: #fb7185;
+      --g1: #38bdf8;
+      --g2: #f0a35e;
+      --sans: "Archivo", "Arial Narrow", system-ui, sans-serif;
+      --mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); }
+    button, select, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+    .app { min-height: 100dvh; display: flex; flex-direction: column; background: radial-gradient(circle at 48% 0%, #26160d 0, transparent 34rem), var(--bg); }
+    .topbar { min-height: 58px; display: flex; align-items: center; gap: 16px; padding: 8px 18px; border-bottom: 1px solid var(--edge); background: rgba(11,7,5,.94); }
+    .brand { display: flex; align-items: center; gap: 9px; min-width: 168px; }
+    .brand-mark { width: 30px; height: 30px; border: 1px solid var(--material); display: grid; place-items: center; transform: rotate(45deg); background: #170d08; }
+    .brand-mark::before { content: "N"; transform: rotate(-45deg); font-weight: 900; color: var(--material-hot); font-stretch: expanded; }
+    .brand-name { font-weight: 780; letter-spacing: .12em; font-size: 14px; }
+    .product { color: var(--dim); text-transform: uppercase; letter-spacing: .14em; font-size: 10px; }
+    .document-title { flex: 1; min-width: 180px; border-left: 1px solid var(--edge); padding-left: 16px; }
+    .eyebrow { color: var(--material-hot); font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .15em; }
+    .document-title strong { display: block; margin-top: 2px; font-size: 15px; font-weight: 650; }
+    .top-actions { display: flex; gap: 7px; align-items: center; }
+    .btn { border: 1px solid var(--edge2); background: var(--panel); min-height: 32px; padding: 6px 10px; border-radius: 3px; font-size: 11px; font-weight: 650; cursor: pointer; }
+    .btn:hover { border-color: #79543b; background: var(--raise); }
+    .btn.primary { background: var(--material); color: #160b06; border-color: var(--material-hot); }
+    .btn.ghost { background: transparent; color: var(--dim); }
+    .btn.icon { width: 32px; padding: 0; font-family: var(--mono); }
+    .contextbar { margin: 0 18px; min-height: 46px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--edge); }
+    .global-chip { display: flex; align-items: center; gap: 7px; min-height: 27px; border: 1px solid var(--edge); background: #120d0b; border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 10px; }
+    .global-chip:hover { border-color: var(--edge2); }
+    .global-chip b { color: var(--text); text-transform: uppercase; letter-spacing: .1em; font-size: 9px; }
+    .global-chip span { color: var(--dim); }
+    .global-chip.abort b { color: var(--hot); }
+    .context-spacer { flex: 1; }
+    .draft-state { font-family: var(--mono); color: var(--dim); font-size: 9px; }
+    .hint-inline { color: #b49f8d; font-size: 10px; display: flex; align-items: center; gap: 6px; }
+    .hint-inline i { width: 15px; height: 15px; display: grid; place-items: center; border: 1px solid var(--edge2); border-radius: 50%; font-style: normal; color: var(--material-hot); }
+
+    .timeline-shell { position: relative; display: grid; grid-template-columns: 226px minmax(480px, 1fr) 278px; gap: 10px; padding: 9px 18px 8px; align-items: end; }
+    .timeline-label { padding: 0 3px 6px; }
+    .timeline-label strong { font-size: 13px; }
+    .timeline-label span { display: block; margin-top: 2px; color: var(--dim); font-size: 10px; }
+    .timeline { display: flex; align-items: center; min-width: 0; height: 48px; }
+    .phase { position: relative; flex: 1 1 0; min-width: 96px; height: 42px; padding: 5px 10px 5px 14px; text-align: left; border: 1px solid var(--edge); background: #120d0a; border-radius: 3px; cursor: pointer; overflow: hidden; }
+    .phase::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: #7694a8; opacity: .45; }
+    .phase.active { border-color: #7b583e; background: linear-gradient(100deg, #2b1b11, #17100c); }
+    .phase.active::before { background: var(--material-hot); opacity: 1; }
+    .phase-number { display: block; color: var(--dim); font: 8px var(--mono); letter-spacing: .1em; }
+    .phase-name { display: block; margin-top: 2px; text-transform: uppercase; font-weight: 760; font-size: 11px; letter-spacing: .09em; white-space: nowrap; }
+    .transition { flex: 0 1 auto; min-width: 84px; max-width: 116px; margin: 0 -1px; padding: 4px 6px; border: 1px solid #5b3a25; background: #1a100a; color: var(--material-hot); border-radius: 10px; font-size: 8px; line-height: 1.15; cursor: pointer; z-index: 2; }
+    .transition:hover, .transition.open { border-color: var(--material-hot); background: #2a190e; }
+    .transition::before { content: "⚡ "; }
+    .phase-add { flex: 0 0 34px; margin-left: 6px; height: 34px; border: 1px dashed var(--edge2); background: transparent; color: var(--dim); cursor: pointer; border-radius: 3px; }
+    .phase-add:hover { color: var(--text); border-color: var(--material); }
+    .timeline-side { display: flex; justify-content: flex-end; padding-bottom: 5px; }
+    .timeline-pop { position: absolute; top: 61px; left: 42%; z-index: 30; width: 292px; padding: 12px; border: 1px solid #774b2c; background: #21150e; box-shadow: 0 18px 40px #000a; display: none; }
+    .timeline-pop.show { display: block; }
+    .pop-head { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+    .pop-head strong { font-size: 12px; }
+    .pop-head small { display: block; color: var(--dim); margin-top: 2px; font-size: 9px; }
+    .pop-close { border: 0; background: none; color: var(--dim); cursor: pointer; font-size: 16px; }
+    .condition-list { display: grid; gap: 5px; }
+    .condition-option { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 7px 8px; border: 1px solid var(--edge); background: #120d0a; cursor: pointer; font-size: 10px; }
+    .condition-option.active { border-color: var(--material); background: #2a190e; }
+    .condition-icon { width: 19px; color: var(--material-hot); font-family: var(--mono); }
+    .condition-draw { margin-top: 8px; width: 100%; }
+
+    .editor-grid { flex: 1; height: calc(100dvh - 177px); min-height: 600px; display: grid; grid-template-columns: 226px minmax(480px, 1fr) 278px; gap: 10px; padding: 0 18px 16px; }
+    .surface { border: 1px solid var(--edge); background: var(--panel); border-radius: 4px; min-height: 0; }
+    .dock { display: flex; flex-direction: column; overflow: hidden; }
+    .surface-head { min-height: 45px; padding: 9px 11px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--edge); }
+    .surface-head strong { text-transform: uppercase; letter-spacing: .11em; font-size: 10px; }
+    .surface-head span { color: var(--dim); font-size: 9px; }
+    .groups { padding: 8px; display: grid; gap: 8px; overflow: auto; }
+    .group-card { position: relative; border: 1px solid var(--edge); background: #100b09; border-radius: 3px; overflow: hidden; cursor: pointer; }
+    .group-card::before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--group); }
+    .group-card.selected { border-color: color-mix(in srgb, var(--group), #fff 18%); background: #19100c; }
+    .group-card.drop { box-shadow: inset 0 0 0 2px var(--group); }
+    .group-head { display: flex; justify-content: space-between; gap: 8px; padding: 8px 8px 6px 12px; }
+    .group-head strong { font-size: 11px; }
+    .group-head small { display: block; margin-top: 1px; color: var(--dim); font-size: 8px; text-transform: uppercase; letter-spacing: .09em; }
+    .group-count { font: 9px var(--mono); color: var(--dim); }
+    .bot-tray { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 0 7px 8px 11px; }
+    .tray-bot { min-width: 0; display: flex; align-items: center; gap: 5px; height: 35px; padding: 3px 5px; border: 1px solid #33251d; background: #080a0b; cursor: grab; border-radius: 2px; }
+    .tray-bot:hover { border-color: var(--group); }
+    .tray-bot.placed { opacity: .58; }
+    .tray-bot.dragging { opacity: .25; }
+    .portrait { position: relative; flex: 0 0 25px; width: 25px; height: 25px; display: grid; place-items: center; color: var(--group); background: #10191d; border: 1px solid currentColor; clip-path: polygon(15% 0,85% 0,100% 35%,88% 100%,12% 100%,0 35%); font: 700 9px var(--mono); }
+    .portrait::after { content: ""; position: absolute; bottom: 3px; width: 9px; height: 2px; background: currentColor; opacity: .65; }
+    .bot-copy { overflow: hidden; line-height: 1.05; }
+    .bot-copy b { display: block; font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bot-copy em { display: block; margin-top: 3px; font-style: normal; color: var(--dim); text-transform: uppercase; font-size: 7px; letter-spacing: .07em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .dock-foot { margin-top: auto; border-top: 1px solid var(--edge); padding: 9px; }
+    .split-zone { width: 100%; padding: 8px; border: 1px dashed var(--edge2); background: transparent; color: var(--dim); font-size: 9px; cursor: pointer; }
+    .split-zone:hover { border-color: var(--material); color: var(--text); }
+
+    .map-panel { display: flex; flex-direction: column; background: #080b0d; overflow: hidden; }
+    .map-tools { min-height: 45px; display: flex; align-items: center; gap: 6px; padding: 7px 9px; border-bottom: 1px solid var(--edge); background: #15100d; }
+    .tool { height: 29px; padding: 4px 8px; border: 1px solid var(--edge); background: #0e0b0a; color: var(--dim); border-radius: 2px; font-size: 9px; cursor: pointer; }
+    .tool:hover { color: var(--text); }
+    .tool.active { border-color: var(--material); color: var(--material-hot); background: #27170d; }
+    .tool-divider { width: 1px; height: 22px; background: var(--edge); margin: 0 2px; }
+    .phase-readback { margin-left: auto; text-align: right; }
+    .phase-readback b { display: block; text-transform: uppercase; font-size: 9px; letter-spacing: .1em; }
+    .phase-readback span { color: var(--dim); font-size: 8px; }
+    .map-stage { position: relative; flex: 1; min-height: 0; overflow: hidden; background: #05080a; }
+    #arena { position: absolute; inset: 0; display: block; width: 100%; height: 100%; min-height: 0; touch-action: none; cursor: crosshair; }
+    #arena.select-mode { cursor: default; }
+    .carried-banner { position: absolute; top: 10px; left: 10px; display: none; gap: 8px; align-items: center; border: 1px solid #8b674e; background: rgba(21,14,10,.94); padding: 7px 9px; font-size: 9px; box-shadow: 0 8px 22px #0007; }
+    .carried-banner.show { display: flex; }
+    .carried-banner b { color: var(--material-hot); text-transform: uppercase; letter-spacing: .08em; }
+    .carried-banner button { border: 0; border-left: 1px solid var(--edge2); background: none; color: var(--text); padding-left: 8px; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+    .draw-hint { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: calc(100% - 30px); background: rgba(6,9,12,.94); border: 1px solid #6f4b33; color: #dbc9ba; padding: 7px 10px; font-size: 9px; pointer-events: none; display: none; white-space: nowrap; }
+    .draw-hint.show { display: block; }
+    .map-toast { position: absolute; right: 12px; bottom: 13px; border: 1px solid #446d69; background: rgba(7,22,22,.96); color: #a4ece3; padding: 7px 9px; font-size: 9px; opacity: 0; transform: translateY(4px); transition: .18s ease; pointer-events: none; }
+    .map-toast.show { opacity: 1; transform: translateY(0); }
+    .map-footer { min-height: 34px; display: flex; gap: 14px; align-items: center; padding: 6px 10px; border-top: 1px solid var(--edge); background: #100d0b; color: var(--dim); font-size: 8px; }
+    .legend { display: flex; gap: 10px; align-items: center; }
+    .legend i { display: inline-block; width: 15px; height: 0; border-top: 1px solid #728792; margin-right: 4px; vertical-align: 2px; }
+    .legend i.connector { border-top-style: dashed; border-color: var(--material-hot); }
+    .map-footer .coord { margin-left: auto; font-family: var(--mono); }
+
+    .inspector { display: flex; flex-direction: column; overflow: hidden; }
+    .inspector-body { padding: 11px; overflow: auto; }
+    .selection-title { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+    .selection-swatch { width: 4px; height: 36px; background: var(--group); }
+    .selection-title h2 { margin: 0; font-size: 15px; font-weight: 680; }
+    .selection-title p { margin: 3px 0 0; color: var(--dim); font-size: 9px; }
+    .carry-note { display: none; margin: -3px 0 11px; padding: 8px; border-left: 2px solid var(--material); background: #21150e; color: #cfb7a4; font-size: 9px; line-height: 1.35; }
+    .carry-note.show { display: block; }
+    .carry-note button { display: block; margin-top: 5px; padding: 0; border: 0; background: none; color: var(--text); text-decoration: underline; cursor: pointer; font-size: 9px; }
+    .field { margin-top: 13px; }
+    .field:first-child { margin-top: 0; }
+    .field-label { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; color: var(--dim); text-transform: uppercase; letter-spacing: .1em; font-size: 8px; font-weight: 700; }
+    .field-label span { text-transform: none; letter-spacing: 0; font-weight: 400; }
+    .segments { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--edge); }
+    .seg { min-height: 32px; padding: 4px 2px; border: 0; border-right: 1px solid var(--edge); background: #0e0b0a; color: var(--dim); font-size: 8px; cursor: pointer; }
+    .seg:last-child { border-right: 0; }
+    .seg:hover { color: var(--text); }
+    .seg.active { background: #2b1a10; color: var(--material-hot); box-shadow: inset 0 -2px var(--material); }
+    .segments.three { grid-template-columns: repeat(3, 1fr); }
+    .rows { border: 1px solid var(--edge); }
+    .row { min-height: 34px; display: flex; align-items: center; gap: 7px; padding: 6px 8px; border-bottom: 1px solid var(--edge); background: #100d0b; font-size: 9px; cursor: pointer; }
+    .row:last-child { border-bottom: 0; }
+    .row:hover { background: #17110e; }
+    .row input { accent-color: var(--material); }
+    .row span { color: var(--dim); margin-left: auto; }
+    .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+    .skill { min-height: 30px; border: 1px solid var(--edge); background: #0d0b0a; color: var(--dim); font-size: 8px; cursor: pointer; }
+    .skill.active { color: #c9bcff; border-color: #685799; background: #1a1630; }
+    .inspector-actions { margin-top: auto; padding: 9px 11px; border-top: 1px solid var(--edge); display: flex; gap: 6px; }
+    .inspector-actions .btn { flex: 1; }
+
+    .map-bot { cursor: grab; filter: drop-shadow(0 .12px .15px #000); }
+    .map-bot.dragging { cursor: grabbing; }
+    .map-bot .bot-shell { stroke-width: .09; }
+    .map-bot.selected .bot-shell { stroke: #fff; stroke-width: .14; }
+    .map-bot text { pointer-events: none; font-family: var(--mono); font-weight: 700; }
+    .geometry { cursor: pointer; }
+    .geometry.selected { filter: drop-shadow(0 0 .15px rgba(255,255,255,.4)); }
+    .geom-handle { cursor: grab; }
+    .connection { pointer-events: none; }
+    .objective-label { font-family: var(--sans); font-size: .44px; font-weight: 650; letter-spacing: .07em; fill: #7694a8; paint-order: stroke; stroke: #06090c; stroke-width: .12px; }
+    .tiny-map-label { font: 700 .34px var(--mono); letter-spacing: .06em; paint-order: stroke; stroke: #06090c; stroke-width: .09px; }
+
+    @media (max-width: 1120px) {
+      .timeline-shell, .editor-grid { grid-template-columns: 190px minmax(430px,1fr) 244px; }
+      .bot-tray { grid-template-columns: 1fr; }
+      .timeline-label span { display: none; }
+      .timeline-side .btn.ghost { display: none; }
+    }
+    @media (max-width: 850px) {
+      .topbar { flex-wrap: wrap; }
+      .document-title { order: 3; flex-basis: 100%; border-left: 0; padding: 0 0 4px; }
+      .contextbar { overflow-x: auto; }
+      .timeline-shell { display: block; padding-top: 10px; }
+      .timeline-label { display: none; }
+      .timeline { overflow-x: auto; padding-bottom: 5px; }
+      .timeline .phase { min-width: 126px; }
+      .timeline-side { display: none; }
+      .editor-grid { display: grid; grid-template-columns: 1fr; height: auto; min-height: 0; }
+      .dock { order: 2; }
+      .map-panel { order: 1; min-height: 560px; }
+      .map-stage { min-height: 500px; }
+      .inspector { order: 3; }
+      .bot-tray { grid-template-columns: repeat(4, minmax(105px,1fr)); }
+      .groups { overflow: visible; }
+      .timeline-pop { position: fixed; top: 110px; left: 50%; transform: translateX(-50%); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"></div>
+        <div><div class="brand-name">NILBOTS</div><div class="product">Arc Relay</div></div>
+      </div>
+      <div class="document-title"><span class="eyebrow">Tactical sheet · map workshop</span><strong>Tapline Split Pressure</strong></div>
+      <div class="top-actions">
+        <button class="btn icon" id="undoBtn" title="Undo">↶</button>
+        <button class="btn icon" id="redoBtn" title="Redo">↷</button>
+        <button class="btn ghost" id="previewBtn">Preview flow</button>
+        <button class="btn primary" id="saveBtn">Save draft</button>
+      </div>
+    </header>
+
+    <div class="contextbar">
+      <button class="global-chip" data-global="start"><b>Start</b><span>When centre Core appears</span></button>
+      <button class="global-chip abort" data-global="abort"><b>Abort</b><span>If 3+ bots are down</span></button>
+      <div class="context-spacer"></div>
+      <div class="hint-inline"><i>?</i><span>Pick a phase, then direct the highlighted squad on the map.</span></div>
+      <span class="draft-state" id="draftState">LOCAL DRAFT</span>
+    </div>
+
+    <section class="timeline-shell">
+      <div class="timeline-label"><strong>Operation flow</strong><span>Conditions live between phases</span></div>
+      <div class="timeline" id="timeline"></div>
+      <div class="timeline-side"><button class="btn ghost" id="reorderBtn">Reorder phases</button></div>
+      <div class="timeline-pop" id="transitionPop" role="dialog" aria-label="Transition condition editor">
+        <div class="pop-head"><div><strong>Advance to <span id="transitionTarget"></span></strong><small>What must be true?</small></div><button class="pop-close" id="closeTransition">×</button></div>
+        <div class="condition-list">
+          <button class="condition-option" data-condition="Formation ready"><span class="condition-icon">◎</span><span><b>Formation ready</b><br><small>Every live squad bot reaches its ground</small></span></button>
+          <button class="condition-option" data-condition="Enemy enters watch zone"><span class="condition-icon">◇</span><span><b>Enemy enters watch zone</b><br><small>Draw the watched ground on the map</small></span></button>
+          <button class="condition-option" data-condition="Core secured"><span class="condition-icon">◈</span><span><b>Core secured</b><br><small>Your team controls the chosen Core</small></span></button>
+          <button class="condition-option" data-condition="After 8 ticks"><span class="condition-icon">08</span><span><b>After 8 ticks</b><br><small>A simple minimum phase duration</small></span></button>
+        </div>
+        <button class="btn condition-draw" id="drawWatchBtn">Draw / edit watch zone</button>
+      </div>
+    </section>
+
+    <main class="editor-grid">
+      <aside class="surface dock">
+        <div class="surface-head"><strong>Squads</strong><span>Drag bots to regroup</span></div>
+        <div class="groups" id="groups"></div>
+        <div class="dock-foot"><button class="split-zone" id="newGroupBtn">＋ Split another squad</button></div>
+      </aside>
+
+      <section class="surface map-panel">
+        <div class="map-tools">
+          <button class="tool active" data-tool="select">↖ Select</button>
+          <button class="tool" data-tool="place">◆ Place bots</button>
+          <button class="tool" data-tool="ground">▧ Draw ground</button>
+          <span class="tool-divider"></span>
+          <button class="tool" id="toggleConnectors">⤳ Paths on</button>
+          <button class="tool" id="toggleAllGroups">All squads</button>
+          <div class="phase-readback"><b id="mapPhaseName">STAGE</b><span id="mapPhaseMeta">Opening positions</span></div>
+        </div>
+        <div class="map-stage" id="mapStage">
+          <svg id="arena" class="select-mode" viewBox="0 0 31 27" aria-label="Tapline tactical map"></svg>
+          <div class="carried-banner" id="carriedBanner"><b>Carried assignment</b><span id="carriedText">from Assault</span><button id="editSourceBtn">Edit source</button></div>
+          <div class="draw-hint" id="drawHint"></div>
+          <div class="map-toast" id="mapToast"></div>
+        </div>
+        <div class="map-footer">
+          <div class="legend"><span><i class="connector"></i>same bot, previous phase</span><span><i></i>assignment ground</span></div>
+          <span>Drag a bot to tune its projected tile.</span>
+          <span class="coord" id="coord">TAPLINE · 31×27</span>
+        </div>
+      </section>
+
+      <aside class="surface inspector">
+        <div class="surface-head"><strong>Inspector</strong><span id="selectionKind">Squad</span></div>
+        <div class="inspector-body">
+          <div class="selection-title">
+            <span class="selection-swatch" id="selectionSwatch"></span>
+            <div><h2 id="selectionName">Northbound</h2><p id="selectionMeta">4 bots · Stage</p></div>
+          </div>
+          <div class="carry-note" id="carryNote">This ground belongs to <b id="carrySourceName">Assault</b>. This phase can change behavior and skills without moving the inherited geometry.<button id="carryEditButton">Edit geometry in source phase →</button></div>
+          <div id="groupInspector">
+            <div class="field">
+              <div class="field-label">Assignment <span id="assignmentReadback">Exact positions</span></div>
+              <div class="segments" id="assignmentSegments">
+                <button class="seg" data-assignment="posts">Posts</button>
+                <button class="seg" data-assignment="area">Area</button>
+                <button class="seg" data-assignment="converge">Converge</button>
+                <button class="seg" data-assignment="patrol">Patrol</button>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Posture</div>
+              <div class="segments three" id="postureSegments">
+                <button class="seg" data-posture="Observe">Observe</button>
+                <button class="seg" data-posture="Hold">Hold</button>
+                <button class="seg" data-posture="Aggressive">Aggressive</button>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Movement</div>
+              <div class="rows">
+                <label class="row"><input type="checkbox" id="fightTravel"><b>Fight on the way</b><span>travel</span></label>
+                <label class="row"><input type="checkbox" id="recoverCheck" checked><b>Use repair ground</b><span>recovery</span></label>
+              </div>
+            </div>
+            <div class="field">
+              <div class="field-label">Skill marks <span>phase-local</span></div>
+              <div class="skill-grid">
+                <button class="skill active" data-skill="Dash lane">◇ Dash lane</button>
+                <button class="skill" data-skill="Focus fire">＋ Focus fire</button>
+                <button class="skill" data-skill="Smoke mark">◌ Smoke mark</button>
+                <button class="skill" data-skill="Arc toss">⌁ Arc toss</button>
+              </div>
+            </div>
+          </div>
+          <div id="botInspector" hidden></div>
+        </div>
+        <div class="inspector-actions"><button class="btn ghost" id="clearSelection">Clear</button><button class="btn" id="duplicateBtn">Duplicate phase</button></div>
+      </aside>
+    </main>
+  </div>
+
+  <script>
+  (() => {
+    'use strict';
+    const NS = 'http://www.w3.org/2000/svg';
+    const tileRows = [
+      '###############################','#.............................#','###.###########.###########.###','#......#......................#','#....#...#..###.###.##..###...#','#....#...#...#...#..#....#....#','#........#...#...#..#.##.#....#','#........#.......#.......#....#','#....#...###....##....#.......#','###......########..........##.#','#....#######......###..##.....#','#.##......##.......#....#.....#','#.....###..#.#.....#....#.....#','#..##...##...........##...##..#','#.....#....#.....#.#..###.....#','#.....#....#.......##......##.#','#.....##..###......#######....#','#.##..........########......###','#.......#....##....###...#....#','#....#.......#.......#........#','#....#.##.#..#...#...#........#','#....#....#..#...#...#...#....#','#...###..##.###.###..#...#....#','#......................#......#','###.###########.###########.###','#.............................#','###############################'
+    ];
+    const bots = [
+      {id:'vex', name:'Vex', cls:'Relay', glyph:'R', group:'north'},
+      {id:'flux', name:'Flux', cls:'Kestrel', glyph:'K', group:'north'},
+      {id:'gantry', name:'Gantry', cls:'Mason', glyph:'M', group:'north'},
+      {id:'ember', name:'Ember', cls:'Veil', glyph:'V', group:'north'},
+      {id:'anvil', name:'Anvil', cls:'Mortar', glyph:'M', group:'shield'},
+      {id:'socket', name:'Socket', cls:'Patchbay', glyph:'P', group:'shield'},
+      {id:'ratchet', name:'Ratchet', cls:'Towline', glyph:'T', group:'shield'},
+      {id:'cinder', name:'Cinder', cls:'Repulsor', glyph:'R', group:'shield'}
+    ];
+    const groups = [
+      {id:'north', name:'Northbound', color:'#38bdf8'},
+      {id:'shield', name:'Reactor Brace', color:'#f0a35e'}
+    ];
+    const phases = [
+      {id:'stage', name:'Stage', meta:'Opening positions', transition:'Formation ready', assignments:{
+        north:{type:'posts', posture:'Observe', positions:{vex:[8,6],flux:[10,8],gantry:[8,9],ember:[11,10]}, fightTravel:false, recover:true},
+        shield:{type:'area', posture:'Hold', rect:[5,17,10,22], fightTravel:true, recover:true}
+      }},
+      {id:'assault', name:'Assault', meta:'Pressure the centre', transition:'Enemy enters watch zone', watch:[13,10,18,16], assignments:{
+        north:{type:'converge', posture:'Aggressive', point:[15,13], fightTravel:true, recover:false},
+        shield:{type:'patrol', posture:'Hold', route:[[9,19],[12,17],[15,18],[18,20]], fightTravel:true, recover:true}
+      }},
+      {id:'hold', name:'Hold', meta:'Lock the crossing', transition:null, assignments:{
+        north:{type:'carry', sourcePhase:1, posture:'Hold', fightTravel:false, recover:true},
+        shield:{type:'area', posture:'Hold', rect:[20,17,25,22], fightTravel:true, recover:true}
+      }}
+    ];
+    const state = {
+      phase:0, group:'north', selected:{kind:'group', id:'north'}, tool:'select',
+      connectors:true, allGroups:true, transitionOpen:null, transitionEditing:0,
+      drawMode:null, drag:null, rectStart:null, rectDraft:null, routeEditing:false,
+      previewTimer:null, history:[], future:[]
+    };
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+    const svg = $('#arena');
+    const el = (name, attrs={}, parent=svg) => {
+      const node = document.createElementNS(NS, name);
+      Object.entries(attrs).forEach(([key,value]) => {
+        if (key === 'text') node.textContent = value;
+        else node.setAttribute(key, String(value));
+      });
+      parent.appendChild(node);
+      return node;
+    };
+    const groupById = id => groups.find(g => g.id === id);
+    const botsIn = id => bots.filter(b => b.group === id);
+    const clone = value => JSON.parse(JSON.stringify(value));
+    function snapshot() {
+      state.history.push(JSON.stringify({phases,bots:bots.map(b=>({id:b.id,group:b.group}))}));
+      if (state.history.length > 30) state.history.shift();
+      state.future = [];
+      updateUndo();
+    }
+    function restore(raw) {
+      const saved = JSON.parse(raw);
+      phases.splice(0, phases.length, ...saved.phases);
+      saved.bots.forEach(savedBot => { const bot=bots.find(b=>b.id===savedBot.id); if(bot) bot.group=savedBot.group; });
+      if (state.phase >= phases.length) state.phase=phases.length-1;
+      renderAll();
+    }
+    function updateUndo(){ $('#undoBtn').disabled=!state.history.length; $('#redoBtn').disabled=!state.future.length; }
+    function pushFuture(){ state.future.push(JSON.stringify({phases,bots:bots.map(b=>({id:b.id,group:b.group}))})); }
+    function effectiveAssignment(phaseIndex, groupId) {
+      const raw = phases[phaseIndex]?.assignments[groupId];
+      if (!raw) return {assignment:null, sourcePhase:phaseIndex, carried:false};
+      if (raw.type !== 'carry') return {assignment:raw, sourcePhase:phaseIndex, carried:false};
+      const resolved = effectiveAssignment(raw.sourcePhase ?? Math.max(0,phaseIndex-1), groupId);
+      return {assignment:{...clone(resolved.assignment), posture:raw.posture, fightTravel:raw.fightTravel, recover:raw.recover, type:resolved.assignment.type}, sourcePhase:resolved.sourcePhase, carried:true, raw};
+    }
+    function assignmentLabel(type) { return ({posts:'Exact positions', area:'Distribute in area', converge:'Converge on point', patrol:'Patrol route'})[type] || 'Carry on'; }
+    function colorFor(groupId){ return groupById(groupId)?.color || '#8496a5'; }
+    function spreadInRect(rect, ids) {
+      const [x1,y1,x2,y2]=rect; const cols=Math.max(1,Math.ceil(Math.sqrt(ids.length))); const rows=Math.ceil(ids.length/cols);
+      return Object.fromEntries(ids.map((id,i)=>{
+        const col=i%cols,row=Math.floor(i/cols);
+        return [id,[x1+1+(col*(Math.max(1,x2-x1-2)/Math.max(1,cols-1))),y1+1+(row*(Math.max(1,y2-y1-2)/Math.max(1,rows-1)))]];
+      }));
+    }
+    function pointOnRoute(route,t) {
+      if(route.length<2) return route[0]||[15,13];
+      const lengths=[]; let total=0;
+      for(let i=1;i<route.length;i++){const d=Math.hypot(route[i][0]-route[i-1][0],route[i][1]-route[i-1][1]);lengths.push(d);total+=d;}
+      let wanted=t*total;
+      for(let i=0;i<lengths.length;i++){if(wanted<=lengths[i]){const f=lengths[i]?wanted/lengths[i]:0;return [route[i][0]+(route[i+1][0]-route[i][0])*f,route[i][1]+(route[i+1][1]-route[i][1])*f];} wanted-=lengths[i];}
+      return route[route.length-1];
+    }
+    function projectedPositions(phaseIndex, groupId) {
+      const ids=botsIn(groupId).map(b=>b.id); const resolved=effectiveAssignment(phaseIndex,groupId); const a=resolved.assignment;
+      if(!a) return {};
+      let positions={};
+      if(a.type==='posts') positions={...(a.positions||{})};
+      if(a.type==='area') positions=spreadInRect(a.rect||[7,7,12,12],ids);
+      if(a.type==='converge') {
+        const p=a.point||[15,13];
+        positions=Object.fromEntries(ids.map((id,i)=>{const angle=(-Math.PI/2)+(i*Math.PI*2/Math.max(1,ids.length));return [id,[p[0]+Math.cos(angle)*1.18,p[1]+Math.sin(angle)*1.18]];}));
+      }
+      if(a.type==='patrol') positions=Object.fromEntries(ids.map((id,i)=>[id,pointOnRoute(a.route||[[10,18],[18,18]],ids.length===1?.5:i/(ids.length-1))]));
+      return {...positions,...(a.manualPositions||{})};
+    }
+    function previousPositions(phaseIndex, groupId) {
+      if(phaseIndex===0){
+        const starts=groupId==='north'?[[2,4],[3,4],[4,4],[1,5]]:[[3,5],[4,5],[1,6],[2,6]];
+        return Object.fromEntries(botsIn(groupId).map((b,i)=>[b.id,starts[i]||[2,5]]));
+      }
+      return projectedPositions(phaseIndex-1,groupId);
+    }
+    function isWall(p){const x=Math.round(p[0]),y=Math.round(p[1]);return !tileRows[y]||tileRows[y][x]==='#';}
+    function nearestFloor(p){
+      let x=Math.max(1,Math.min(29,Math.round(p[0]))),y=Math.max(1,Math.min(25,Math.round(p[1])));
+      if(!isWall([x,y])) return [x+.5,y+.5];
+      for(let r=1;r<5;r++)for(let dy=-r;dy<=r;dy++)for(let dx=-r;dx<=r;dx++)if(!isWall([x+dx,y+dy]))return[x+dx+.5,y+dy+.5];
+      return [15.5,13.5];
+    }
+    function svgPoint(evt) {
+      const p=svg.createSVGPoint(); p.x=evt.clientX; p.y=evt.clientY;
+      const out=p.matrixTransform(svg.getScreenCTM().inverse());
+      return [Math.max(.5,Math.min(30.5,out.x)),Math.max(.5,Math.min(26.5,out.y))];
+    }
+    function renderBase() {
+      svg.innerHTML='';
+      const base=el('g',{id:'base'});
+      tileRows.forEach((row,y)=>[...row].forEach((tile,x)=>{
+        el('rect',{x,y,width:1,height:1,fill:tile==='#'?'#33404a':((x+y)%2?'#0b1319':'#0f1820'),stroke:'#17232c','stroke-width':.035},base);
+      }));
+      const pads=[]; for(let y=3;y<=8;y++)for(let x=1;x<=4;x++)pads.push([x,y],[30-x,26-y]);
+      pads.forEach((p,i)=>el('rect',{x:p[0]+.06,y:p[1]+.06,width:.88,height:.88,rx:.08,fill:i%2?'#fb718510':'#22d3ee10',stroke:i%2?'#fb718545':'#22d3ee45','stroke-width':.055,'stroke-dasharray':'.18 .12'},base));
+      const landmarks=[
+        {p:[11.5,6.5],kind:'well',label:'YOUR WELL'},{p:[15.5,13.5],kind:'well',label:'CENTRE WELL'},{p:[19.5,20.5],kind:'well',label:'THEIR WELL'},
+        {p:[21.5,7.5],kind:'heal',label:'REPAIR'},{p:[9.5,19.5],kind:'heal',label:'REPAIR'},{p:[2.5,5.5],kind:'reactor',label:'REACTOR'},{p:[28.5,21.5],kind:'enemy',label:'ENEMY'}
+      ];
+      landmarks.forEach(l=>{
+        if(l.kind==='well'){el('circle',{cx:l.p[0],cy:l.p[1],r:.42,fill:'#33254f',stroke:'#c8b2ff','stroke-width':.1},base);el('circle',{cx:l.p[0],cy:l.p[1],r:.19,fill:'#aa8dff'},base);}
+        else if(l.kind==='heal'){el('rect',{x:l.p[0]-.36,y:l.p[1]-.36,width:.72,height:.72,rx:.15,fill:'#173f36',stroke:'#8ff0cd','stroke-width':.09},base);el('path',{d:`M${l.p[0]-.2} ${l.p[1]}H${l.p[0]+.2}M${l.p[0]} ${l.p[1]-.2}V${l.p[1]+.2}`,stroke:'#b9ffe6','stroke-width':.13},base);}
+        else {const c=l.kind==='reactor'?'#22d3ee':'#fb7185';el('path',{d:`M${l.p[0]} ${l.p[1]-.43}L${l.p[0]+.43} ${l.p[1]}L${l.p[0]} ${l.p[1]+.43}L${l.p[0]-.43} ${l.p[1]}Z`,fill:'#080c10',stroke:c,'stroke-width':.11},base);el('circle',{cx:l.p[0],cy:l.p[1],r:.18,fill:c},base);}
+        el('text',{x:l.p[0],y:l.p[1]+(l.p[1]<13?-1.25:1.45),'text-anchor':'middle',class:'objective-label',text:l.label},base);
+      });
+      el('text',{x:15.5,y:9.5,'text-anchor':'middle',class:'objective-label',text:'MID'},base);
+    }
+    function drawConnector(layer,from,to,color,botId,strong){
+      if(!from||!to)return;
+      const dx=to[0]-from[0],dy=to[1]-from[1]; const bend=(Number(botId.length)%3-1)*.28;
+      el('path',{d:`M${from[0]} ${from[1]} Q${(from[0]+to[0])/2-dy*.03+bend} ${(from[1]+to[1])/2+dx*.03+bend} ${to[0]} ${to[1]}`,fill:'none',stroke:color,'stroke-width':strong?.115:.07,'stroke-dasharray':strong?'.3 .2':'.22 .25',opacity:strong?.7:.3,class:'connection'},layer);
+    }
+    function drawGeometry(layer, phaseIndex, groupId, resolved, selected){
+      const a=resolved.assignment;if(!a)return;const color=colorFor(groupId);const common={stroke:color,'stroke-width':selected?.14:.08,fill:'none',opacity:selected?.9:.48,class:`geometry ${selected?'selected':''}`,'data-geometry':groupId};
+      if(a.type==='posts'){
+        Object.values(projectedPositions(phaseIndex,groupId)).forEach(p=>{el('circle',{cx:p[0],cy:p[1],r:.52,fill:color+'12',stroke:color,'stroke-width':.07,'stroke-dasharray':'.16 .10',opacity:selected?.9:.5,class:'geometry','data-geometry':groupId},layer);});
+      }
+      if(a.type==='area'){
+        const r=a.rect||[7,7,12,12];el('rect',{x:r[0]+.15,y:r[1]+.15,width:r[2]-r[0]+.7,height:r[3]-r[1]+.7,rx:.28,fill:color+'18',stroke:color,'stroke-width':selected?.15:.09,'stroke-dasharray':'.38 .16',opacity:selected?.9:.48,class:`geometry ${selected?'selected':''}`,'data-geometry':groupId},layer);
+        if(selected&&!resolved.carried){[[r[0]+.15,r[1]+.15],[r[2]+.85,r[3]+.85]].forEach((p,i)=>el('rect',{x:p[0]-.16,y:p[1]-.16,width:.32,height:.32,fill:'#0a0c0d',stroke:color,'stroke-width':.1,class:'geom-handle','data-handle':`area:${groupId}:${i}`},layer));}
+      }
+      if(a.type==='converge'){
+        const p=a.point||[15,13];el('circle',{cx:p[0],cy:p[1],r:.72,fill:color+'16',stroke:color,'stroke-width':selected?.15:.09,'stroke-dasharray':'.2 .12',class:`geometry ${selected?'selected':''}`,'data-geometry':groupId},layer);el('path',{d:`M${p[0]-.35} ${p[1]}H${p[0]+.35}M${p[0]} ${p[1]-.35}V${p[1]+.35}`,stroke:color,'stroke-width':.12,class:'geometry','data-geometry':groupId},layer);
+        Object.values(projectedPositions(phaseIndex,groupId)).forEach(pos=>el('line',{x1:pos[0],y1:pos[1],x2:p[0],y2:p[1],stroke:color,'stroke-width':.045,opacity:.45},layer));
+        if(selected&&!resolved.carried)el('circle',{cx:p[0],cy:p[1],r:.23,fill:'#0a0c0d',stroke:color,'stroke-width':.11,class:'geom-handle','data-handle':`point:${groupId}:0`},layer);
+      }
+      if(a.type==='patrol'){
+        const route=a.route||[];if(route.length){el('polyline',{points:route.map(p=>p.join(',')).join(' '),...common,'stroke-linecap':'round','stroke-linejoin':'round','stroke-dasharray':'.5 .15','data-geometry':groupId},layer);route.forEach((p,i)=>el('circle',{cx:p[0],cy:p[1],r:selected?.22:.14,fill:'#080a0b',stroke:color,'stroke-width':.09,opacity:selected?.95:.55,class:selected&&!resolved.carried?'geom-handle':'','data-handle':selected&&!resolved.carried?`route:${groupId}:${i}`:''},layer));}
+      }
+      if(resolved.carried){
+        const positions=projectedPositions(phaseIndex,groupId);const pts=Object.values(positions);if(pts.length){const x=pts.reduce((s,p)=>s+p[0],0)/pts.length,y=Math.min(...pts.map(p=>p[1]))-.75;el('text',{x,y,'text-anchor':'middle',fill:color,class:'tiny-map-label',text:`CARRIED FROM ${phases[resolved.sourcePhase].name.toUpperCase()}`},layer);}
+      }
+    }
+    function drawBot(layer,bot,p,color,selected){
+      const g=el('g',{class:`map-bot ${selected?'selected':''}`,'data-bot':bot.id,transform:`translate(${p[0]} ${p[1]})`},layer);
+      el('path',{d:'M0 -.48 L.39 -.25 L.43 .25 L0 .5 L-.43 .25 L-.39 -.25 Z',fill:'#081014',stroke:color,class:'bot-shell'},g);
+      el('path',{d:'M.17 -.34 L.48 0 L.17 .34 Z',fill:color,opacity:.75},g);
+      el('circle',{cx:0,cy:0,r:.25,fill:color+'35',stroke:color,'stroke-width':.045},g);
+      el('text',{x:0,y:.1,'text-anchor':'middle','font-size':.28,fill:'#f7f3ef',text:bot.glyph},g);
+      el('text',{x:0,y:.76,'text-anchor':'middle','font-size':.25,fill:color,class:'tiny-map-label',text:bot.name.toUpperCase()},g);
+      return g;
+    }
+    function renderMap(){
+      renderBase();const connectorLayer=el('g',{id:'connectors'}),geometryLayer=el('g',{id:'geometry'}),botLayer=el('g',{id:'bots'}),watchLayer=el('g',{id:'watch'});
+      const phase=phases[state.phase];
+      groups.forEach(group=>{
+        if(!state.allGroups&&group.id!==state.group)return;
+        const positions=projectedPositions(state.phase,group.id);const previous=previousPositions(state.phase,group.id);const selectedGroup=group.id===state.group;
+        if(state.connectors) Object.entries(positions).forEach(([id,p])=>drawConnector(connectorLayer,previous[id],p,group.color,id,selectedGroup));
+        const resolved=effectiveAssignment(state.phase,group.id);drawGeometry(geometryLayer,state.phase,group.id,resolved,selectedGroup);
+        botsIn(group.id).forEach(bot=>{const p=positions[bot.id];if(p)drawBot(botLayer,bot,p,group.color,state.selected.kind==='bot'&&state.selected.id===bot.id);});
+      });
+      if(phase.watch){const r=phase.watch;el('rect',{x:r[0]+.15,y:r[1]+.15,width:r[2]-r[0]+.7,height:r[3]-r[1]+.7,rx:.2,fill:'#f0a35e0e',stroke:'#f0a35e','stroke-width':.09,'stroke-dasharray':'.18 .16',opacity:.7},watchLayer);el('text',{x:r[0]+.4,y:r[1]-.18,fill:'#f0a35e',class:'tiny-map-label',text:'TRANSITION WATCH'},watchLayer);}
+      if(state.rectDraft){const r=state.rectDraft;el('rect',{x:Math.min(r[0],r[2]),y:Math.min(r[1],r[3]),width:Math.abs(r[2]-r[0]),height:Math.abs(r[3]-r[1]),fill:'#f0a35e12',stroke:'#f0a35e','stroke-width':.1,'stroke-dasharray':'.2 .12'},watchLayer);}
+      bindSvgTargets();
+      const resolved=effectiveAssignment(state.phase,state.group);$('#carriedBanner').classList.toggle('show',resolved.carried);$('#carriedText').textContent=`from ${phases[resolved.sourcePhase]?.name||'earlier phase'}`;
+      $('#mapPhaseName').textContent=phase.name.toUpperCase();$('#mapPhaseMeta').textContent=phase.meta;
+    }
+    function renderTimeline(){
+      const timeline=$('#timeline');timeline.innerHTML='';
+      phases.forEach((phase,index)=>{
+        const b=document.createElement('button');b.className=`phase ${index===state.phase?'active':''}`;b.innerHTML=`<span class="phase-number">PHASE ${String(index+1).padStart(2,'0')}</span><span class="phase-name">${phase.name}</span>`;b.onclick=()=>selectPhase(index);b.ondblclick=()=>renamePhase(index);timeline.appendChild(b);
+        if(index<phases.length-1){const t=document.createElement('button');t.className=`transition ${state.transitionOpen===index?'open':''}`;t.textContent=phase.transition||'Always';t.onclick=e=>{e.stopPropagation();openTransition(index,t)};timeline.appendChild(t);}
+      });
+      const add=document.createElement('button');add.className='phase-add';add.title='Add phase';add.textContent='＋';add.onclick=addPhase;timeline.appendChild(add);
+    }
+    function renderGroups(){
+      const root=$('#groups');root.innerHTML='';
+      groups.forEach(group=>{
+        const card=document.createElement('section');card.className=`group-card ${group.id===state.group?'selected':''}`;card.style.setProperty('--group',group.color);card.dataset.group=group.id;
+        const assigned=effectiveAssignment(state.phase,group.id).assignment;const type=assigned?.type||'none';
+        card.innerHTML=`<div class="group-head"><div><strong>${group.name}</strong><small>${assignmentLabel(type)}</small></div><span class="group-count">${botsIn(group.id).length}/8</span></div><div class="bot-tray"></div>`;
+        card.onclick=e=>{if(!e.target.closest('.tray-bot'))selectGroup(group.id);};
+        card.ondragover=e=>{e.preventDefault();card.classList.add('drop');};card.ondragleave=()=>card.classList.remove('drop');card.ondrop=e=>{e.preventDefault();card.classList.remove('drop');moveBotGroup(e.dataTransfer.getData('text/bot-id'),group.id);};
+        const tray=card.querySelector('.bot-tray');
+        botsIn(group.id).forEach(bot=>{
+          const placed=Boolean(projectedPositions(state.phase,group.id)[bot.id]);const node=document.createElement('div');node.className=`tray-bot ${placed?'placed':''}`;node.draggable=true;node.dataset.bot=bot.id;node.innerHTML=`<span class="portrait">${bot.glyph}</span><span class="bot-copy"><b>${bot.name}</b><em>${bot.cls}${placed?' · map':''}</em></span>`;node.onclick=e=>{e.stopPropagation();selectBot(bot.id);};node.ondragstart=e=>{node.classList.add('dragging');e.dataTransfer.setData('text/bot-id',bot.id);};node.ondragend=()=>node.classList.remove('dragging');tray.appendChild(node);
+        });root.appendChild(card);
+      });
+    }
+    function renderInspector(){
+      let groupId=state.group;let selectedBot=null;
+      if(state.selected.kind==='bot'){selectedBot=bots.find(b=>b.id===state.selected.id);if(selectedBot)groupId=selectedBot.group;}
+      const group=groupById(groupId);const resolved=effectiveAssignment(state.phase,groupId);const a=resolved.assignment;
+      $('#selectionSwatch').style.background=group.color;$('#selectionSwatch').parentElement.style.setProperty('--group',group.color);
+      $('#selectionKind').textContent=selectedBot?'Bot':'Squad';$('#selectionName').textContent=selectedBot?selectedBot.name:group.name;$('#selectionMeta').textContent=selectedBot?`${selectedBot.cls} · ${group.name} · ${phases[state.phase].name}`:`${botsIn(groupId).length} bots · ${phases[state.phase].name}`;
+      $('#carryNote').classList.toggle('show',resolved.carried);$('#carrySourceName').textContent=phases[resolved.sourcePhase]?.name||'earlier phase';
+      $('#groupInspector').hidden=Boolean(selectedBot);$('#botInspector').hidden=!selectedBot;
+      if(selectedBot){
+        const pos=projectedPositions(state.phase,groupId)[selectedBot.id];
+        $('#botInspector').innerHTML=`<div class="field"><div class="field-label">Map position</div><div class="rows"><div class="row"><b>Projected tile</b><span>${pos?`${pos[0].toFixed(1)}, ${pos[1].toFixed(1)}`:'unplaced'}</span></div><div class="row"><b>Continuity</b><span>from ${state.phase?phases[state.phase-1].name:'deployment'}</span></div></div></div><div class="field"><div class="field-label">Regroup</div><div class="rows">${groups.map(g=>`<button class="row" style="width:100%;border-left:0;border-right:0;color:inherit" data-move-group="${g.id}"><b>${g.name}</b><span>${g.id===groupId?'current':'move here'}</span></button>`).join('')}</div></div><div class="field"><div class="field-label">Direct placement</div><button class="btn" style="width:100%" id="placeSelectedBot">Drag this bot on the map</button></div>`;
+        $$('[data-move-group]').forEach(b=>b.onclick=()=>moveBotGroup(selectedBot.id,b.dataset.moveGroup));$('#placeSelectedBot').onclick=()=>{state.tool='place';state.drawMode='place';showHint(`Drag ${selectedBot.name} to a new tile`);renderTools();};
+      } else if(a) {
+        $('#assignmentReadback').textContent=resolved.carried?`Carried: ${assignmentLabel(a.type)}`:assignmentLabel(a.type);
+        $$('[data-assignment]').forEach(button=>button.classList.toggle('active',button.dataset.assignment===a.type));
+        $$('[data-posture]').forEach(button=>button.classList.toggle('active',button.dataset.posture===(resolved.raw?.posture||a.posture)));
+        $('#fightTravel').checked=Boolean(resolved.raw?.fightTravel??a.fightTravel);$('#recoverCheck').checked=Boolean(resolved.raw?.recover??a.recover);
+      }
+    }
+    function renderTools(){
+      $$('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===state.tool));svg.classList.toggle('select-mode',state.tool==='select');
+      $('#toggleConnectors').textContent=state.connectors?'⤳ Paths on':'⤳ Paths off';$('#toggleAllGroups').textContent=state.allGroups?'All squads':'Focus squad';
+    }
+    function renderAll(){renderTimeline();renderGroups();renderMap();renderInspector();renderTools();updateUndo();}
+    function selectPhase(index){state.phase=index;state.transitionOpen=null;state.drawMode=null;state.tool='select';hideHint();renderAll();}
+    function selectGroup(id){state.group=id;state.selected={kind:'group',id};renderAll();}
+    function selectBot(id){const bot=bots.find(b=>b.id===id);if(!bot)return;state.group=bot.group;state.selected={kind:'bot',id};renderAll();}
+    function renamePhase(index){const next=prompt('Name this phase',phases[index].name);if(next&&next.trim()){snapshot();phases[index].name=next.trim().slice(0,18);renderAll();}}
+    function addPhase(){snapshot();const previous=phases.length-1;phases.push({id:`phase-${Date.now()}`,name:`Phase ${phases.length+1}`,meta:'New phase',transition:null,assignments:Object.fromEntries(groups.map(g=>[g.id,{type:'carry',sourcePhase:previous,posture:'Hold',fightTravel:false,recover:true}]))});phases[previous].transition=phases[previous].transition||'Formation ready';selectPhase(phases.length-1);toast('New phase carries both squad assignments forward.');}
+    function moveBotGroup(botId,groupId){const bot=bots.find(b=>b.id===botId);if(!bot||bot.group===groupId)return;snapshot();bot.group=groupId;state.group=groupId;state.selected={kind:'bot',id:botId};renderAll();toast(`${bot.name} moved to ${groupById(groupId).name}.`);}
+    function openTransition(index,anchor){const rect=anchor.getBoundingClientRect(),shell=$('.timeline-shell').getBoundingClientRect();state.transitionOpen=index;state.transitionEditing=index;renderTimeline();const pop=$('#transitionPop');pop.classList.add('show');$('#transitionTarget').textContent=phases[index+1].name;$$('[data-condition]').forEach(b=>b.classList.toggle('active',b.dataset.condition===phases[index].transition));pop.style.left=`${Math.max(230,Math.min(shell.width-310,rect.left-shell.left+rect.width/2-146))}px`;}
+    function closeTransition(){state.transitionOpen=null;$('#transitionPop').classList.remove('show');renderTimeline();}
+    function setAssignment(type){
+      const raw=phases[state.phase].assignments[state.group];if(!raw)return;snapshot();
+      const base={posture:raw.posture||'Hold',fightTravel:Boolean(raw.fightTravel),recover:raw.recover!==false};
+      const prev=previousPositions(state.phase,state.group);const ids=botsIn(state.group).map(b=>b.id);
+      if(type==='posts') phases[state.phase].assignments[state.group]={...base,type,positions:Object.fromEntries(ids.map((id,i)=>[id,prev[id]||[8+i,8]]))};
+      if(type==='area') phases[state.phase].assignments[state.group]={...base,type,rect:state.group==='north'?[11,9,17,15]:[18,17,24,22]};
+      if(type==='converge') phases[state.phase].assignments[state.group]={...base,type,point:[15.5,13.5]};
+      if(type==='patrol') phases[state.phase].assignments[state.group]={...base,type,route:[[10,18],[13,16],[17,17],[20,20]]};
+      state.selected={kind:'group',id:state.group};state.tool=type==='posts'?'place':'ground';state.drawMode=type;
+      showHint(type==='posts'?'Drag bots to their exact posts':type==='area'?'Drag across the map to draw the squad area':type==='converge'?'Click a tile to move the converge point':'Click tiles to extend the patrol route · double-click to finish');renderAll();
+    }
+    function setPosture(value){const raw=phases[state.phase].assignments[state.group];if(!raw)return;snapshot();raw.posture=value;renderInspector();toast(`${groupById(state.group).name}: ${value.toLowerCase()} posture.`);}
+    function showHint(text){$('#drawHint').textContent=text;$('#drawHint').classList.add('show');}
+    function hideHint(){if(!state.routeEditing)$('#drawHint').classList.remove('show');}
+    let toastTimer;
+    function toast(text){const node=$('#mapToast');node.textContent=text;node.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>node.classList.remove('show'),2200);}
+    function editSource(){const resolved=effectiveAssignment(state.phase,state.group);if(resolved.carried)selectPhase(resolved.sourcePhase);}
+    function currentRaw(){return phases[state.phase].assignments[state.group];}
+    function bindSvgTargets(){
+      $$('.geometry').forEach(node=>node.addEventListener('click',e=>{e.stopPropagation();selectGroup(node.dataset.geometry);}));
+      $$('.map-bot').forEach(node=>node.addEventListener('pointerdown',e=>{e.stopPropagation();const id=node.dataset.bot;const bot=bots.find(b=>b.id===id);if(!bot)return;state.group=bot.group;state.selected={kind:'bot',id};snapshot();state.drag={kind:'bot',id,group:bot.group};renderGroups();renderInspector();node.setPointerCapture?.(e.pointerId);node.classList.add('dragging');}));
+      $$('.geom-handle').forEach(node=>node.addEventListener('pointerdown',e=>{e.stopPropagation();const [kind,groupId,index]=node.dataset.handle.split(':');snapshot();state.group=groupId;state.selected={kind:'group',id:groupId};state.drag={kind,index:Number(index),group:groupId};node.setPointerCapture?.(e.pointerId);}));
+    }
+    svg.addEventListener('pointermove',e=>{
+      const p=svgPoint(e);$('#coord').textContent=`TAPLINE · ${Math.floor(p[0])},${Math.floor(p[1])}`;
+      if(state.rectStart){state.rectDraft=[state.rectStart[0],state.rectStart[1],p[0],p[1]];renderMap();return;}
+      if(!state.drag)return;
+      const target=nearestFloor(p);const raw=phases[state.phase].assignments[state.drag.group];const resolved=effectiveAssignment(state.phase,state.drag.group);
+      if(state.drag.kind==='bot'){
+        if(raw.type==='carry'){phases[state.phase].assignments[state.drag.group]={...resolved.assignment,type:resolved.assignment.type,manualPositions:{...(resolved.assignment.manualPositions||{}),[state.drag.id]:target}};}
+        else raw.manualPositions={...(raw.manualPositions||{}),[state.drag.id]:target};
+      }
+      if(state.drag.kind==='point')raw.point=target;
+      if(state.drag.kind==='route')raw.route[state.drag.index]=target;
+      if(state.drag.kind==='area'){
+        const r=raw.rect||[8,8,14,14];if(state.drag.index===0)raw.rect=[Math.min(target[0],r[2]-1),Math.min(target[1],r[3]-1),r[2],r[3]];else raw.rect=[r[0],r[1],Math.max(target[0],r[0]+1),Math.max(target[1],r[1]+1)];
+      }
+      renderMap();renderInspector();
+    });
+    svg.addEventListener('pointerup',e=>{if(state.drag){state.drag=null;renderAll();toast('Map placement updated.');return;}if(state.rectStart){const end=svgPoint(e),start=state.rectStart;state.rectStart=null;state.rectDraft=null;const r=[Math.floor(Math.min(start[0],end[0])),Math.floor(Math.min(start[1],end[1])),Math.floor(Math.max(start[0],end[0])),Math.floor(Math.max(start[1],end[1]))];if(state.drawMode==='transitionArea'){phases[state.transitionEditing].watch=r;phases[state.transitionEditing].transition='Enemy enters watch zone';toast('Transition watch zone updated.');}else{const raw=currentRaw();if(raw.type==='area')raw.rect=r;toast('Squad area updated.');}renderAll();}});
+    svg.addEventListener('pointerdown',e=>{
+      if(e.target.closest('.map-bot,.geom-handle,.geometry'))return;const p=svgPoint(e);
+      if(state.drawMode==='area'||state.drawMode==='transitionArea'){snapshot();state.rectStart=p;state.rectDraft=[p[0],p[1],p[0],p[1]];return;}
+      if(state.drawMode==='converge'){snapshot();currentRaw().point=nearestFloor(p);renderAll();toast('Converge point moved.');return;}
+      if(state.drawMode==='patrol'){snapshot();const raw=currentRaw();raw.route=state.routeEditing?[...raw.route,nearestFloor(p)]:[nearestFloor(p)];state.routeEditing=true;showHint('Click another tile to extend · double-click to finish');renderAll();}
+    });
+    svg.addEventListener('dblclick',e=>{if(state.routeEditing){e.preventDefault();state.routeEditing=false;state.drawMode=null;state.tool='select';hideHint();renderAll();toast('Patrol route set.');}});
+
+    $$('[data-assignment]').forEach(b=>b.onclick=()=>setAssignment(b.dataset.assignment));
+    $$('[data-posture]').forEach(b=>b.onclick=()=>setPosture(b.dataset.posture));
+    $$('[data-tool]').forEach(b=>b.onclick=()=>{state.tool=b.dataset.tool;const resolved=effectiveAssignment(state.phase,state.group);state.drawMode=state.tool==='select'?null:state.tool==='place'?'place':resolved.assignment?.type;renderTools();if(state.drawMode&&state.drawMode!=='place')showHint(state.drawMode==='area'?'Drag to redraw this area':state.drawMode==='converge'?'Click a new converge point':'Click tiles to edit the route');else if(state.drawMode==='place')showHint('Drag any bot to tune its projected tile');else hideHint();});
+    $$('[data-condition]').forEach(b=>b.onclick=()=>{snapshot();const value=b.dataset.condition;phases[state.transitionEditing].transition=value;if(value==='Enemy enters watch zone'){state.drawMode='transitionArea';state.tool='ground';showHint('Drag on the map to draw the transition watch zone');}closeTransition();renderAll();toast(`Transition: ${value}.`);});
+    $$('[data-skill]').forEach(b=>b.onclick=()=>{b.classList.toggle('active');toast(`${b.dataset.skill} ${b.classList.contains('active')?'enabled':'removed'} for ${phases[state.phase].name}.`);});
+    $$('[data-global]').forEach(b=>b.onclick=()=>toast(`${b.dataset.global==='start'?'Start':'Abort'} condition selected — tactic-wide, not phase-local.`));
+    $('#closeTransition').onclick=closeTransition;$('#drawWatchBtn').onclick=()=>{state.drawMode='transitionArea';state.tool='ground';closeTransition();renderTools();showHint('Drag on the map to draw the transition watch zone');};
+    $('#toggleConnectors').onclick=()=>{state.connectors=!state.connectors;renderAll();};$('#toggleAllGroups').onclick=()=>{state.allGroups=!state.allGroups;renderAll();};
+    $('#editSourceBtn').onclick=editSource;$('#carryEditButton').onclick=editSource;$('#clearSelection').onclick=()=>selectGroup(state.group);
+    $('#fightTravel').onchange=e=>{snapshot();currentRaw().fightTravel=e.target.checked;toast(e.target.checked?'Bots may fight while moving.':'Bots prioritize travel.');};
+    $('#recoverCheck').onchange=e=>{snapshot();currentRaw().recover=e.target.checked;toast(e.target.checked?'Recovery ground is available.':'Recovery disabled for this phase.');};
+    $('#duplicateBtn').onclick=()=>{snapshot();const copy=clone(phases[state.phase]);copy.id=`${copy.id}-copy-${Date.now()}`;copy.name=`${copy.name} copy`;phases.splice(state.phase+1,0,copy);phases[state.phase].transition='Formation ready';selectPhase(state.phase+1);toast('Phase duplicated.');};
+    $('#newGroupBtn').onclick=()=>toast('Prototype keeps two color lanes; drag bots between them to test regrouping.');
+    $('#reorderBtn').onclick=()=>{snapshot();if(phases.length>2){const moved=phases.splice(1,1)[0];phases.push(moved);state.phase=phases.length-1;renderAll();toast('Assault moved to the end. Double-click phases to rename.');}};
+    $('#undoBtn').onclick=()=>{if(!state.history.length)return;pushFuture();restore(state.history.pop());};$('#redoBtn').onclick=()=>{if(!state.future.length)return;state.history.push(JSON.stringify({phases,bots:bots.map(b=>({id:b.id,group:b.group}))}));restore(state.future.pop());};
+    $('#saveBtn').onclick=()=>{const b=$('#saveBtn');b.textContent='Saved ✓';$('#draftState').textContent='SAVED JUST NOW';toast('Prototype draft saved locally for this session.');setTimeout(()=>b.textContent='Save draft',1600);};
+    $('#previewBtn').onclick=()=>{clearInterval(state.previewTimer);let i=state.phase;state.previewTimer=setInterval(()=>{i=(i+1)%phases.length;selectPhase(i);if(i===phases.length-1){clearInterval(state.previewTimer);toast('Flow preview complete.');}},900);};
+    updateUndo();renderAll();
+  })();
+  </script>
+</body>
+</html>
