@@ -114,8 +114,11 @@ test('cases hide boolean words behind Required, Triggered by, and Add alternativ
 });
 
 test('phase pruning keeps destructive changes safe and multi-area drawing explicit', () => {
-  assert.match(steps, /window\.confirm/);
-  assert.match(steps, /Cancel keeps everything/);
+  assert.doesNotMatch(steps, /window\.confirm/);
+  assert.match(steps, /Cancel · keep current job/);
+  assert.match(steps, /autoFocus/);
+  assert.match(documentModel, /planJobKindChange/);
+  assert.match(documentModel, /Signature marks are phase-local opportunities/);
   assert.match(steps, /Undo job change/);
   assert.match(conditions, /Area \{zoneIndex \+ 1\}/);
   assert.match(conditions, /Add another area/);
@@ -138,6 +141,15 @@ test('the map draws condition footprints under grabbable group geometry', () => 
   assert.match(canvas, /CLEAR · AREA/);
   assert.match(canvas, /CORE RUN/);
   assert.match(canvas, /data-testid="tactics-map"/);
+});
+
+test('carry-forward map geometry is truthful but remains owned by its source phase', () => {
+  assert.match(canvas, /effectiveJobResolution\(tactic, phaseIndex, group\.id\)/);
+  assert.match(canvas, /const geometryEditable = editable && !inherited/);
+  assert.match(canvas, /FROM \$\{sourcePhaseName\.toUpperCase\(\)\}/);
+  assert.match(canvas, /Object\.entries\(job\.sigs \?\? \{\}\)/);
+  assert.match(steps, /Edit in \{tactic\.phases\[carrySource\.sourcePhaseIndex\]\.name\}/);
+  assert.match(steps, /Current posture, recovery, travel, and signature marks still belong to this phase/);
 });
 
 test('clearance and local fighting use truthful map-first language', () => {

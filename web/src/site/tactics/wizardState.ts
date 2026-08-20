@@ -1,7 +1,7 @@
 import type { RecipeHints } from './recipes';
 import { possessive } from './summary';
 import {
-  activeCaseCount, expectedGeometry, jobHasGeometry, jobOf,
+  activeCaseCount, effectiveJob, expectedGeometry, jobHasGeometry, jobOf,
   type Tactic, type TacticsDocument,
 } from './tacticsDocument';
 
@@ -47,6 +47,9 @@ export function jobComplete(
   const group = tactic.groups.find((value) => value.id === groupId);
   const job = jobOf(tactic, phaseIndex, groupId);
   if (!group || !job) return false;
+  if (job.kind === 'none') {
+    return effectiveJob(tactic, phaseIndex, groupId) !== null;
+  }
   const expected = expectedGeometry(job.kind);
   if (expected === null) return true;
   if (expected === 'posts') {

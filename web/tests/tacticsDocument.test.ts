@@ -3,15 +3,15 @@ import test from 'node:test';
 import type { TacticalSheetCatalog } from '../src/site/api';
 import { instantiateRecipe, recipeById } from '../src/site/tactics/recipes';
 import {
-  blankDocument, followMembership, freshJob, migrateDocument,
+  blankDocument, effectiveJobResolution, followMembership, freshJob, migrateDocument,
   JOB_KINDS, POSTURES, RECOVERIES, TRAVEL_BEHAVIORS,
   normalizeDocument, normalizeEditableDocumentForCatalog, parseDocument,
-  signatureMarkGeometry, validateDocument,
+  planJobKindChange, signatureMarkGeometry, stringifyDocument, validateDocument,
   type MembershipPocket, type Tactic, type TacticsDocument,
 } from '../src/site/tactics/tacticsDocument';
 import { freshGroup } from '../src/site/tactics/recipes';
 import { parseTacticAttribution, attributionLabel } from '../src/site/tactics/practice';
-import { summarize } from '../src/site/tactics/summary';
+import { jobLabelFor, summarize } from '../src/site/tactics/summary';
 import { orderIdLabel } from '../src/site/tactics/practice';
 import { reversedWayIn } from '../src/site/tactics/tacticsDocument';
 
@@ -152,6 +152,95 @@ test('readiness slack and one-to-three zone unions round-trip', () => {
   assert.ok(validateDocument(loaded, catalog).some((issue) => /one to three/.test(issue.message)));
 });
 
+test('formation readiness accepts a previous phase assignment carried forward', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  for (const group of tactic.groups) {
+    tactic.phases[1].jobs[group.id] = {
+      kind: 'none', posture: 'hold', recovery: 'fight-on',
+    };
+  }
+  tactic.phases[1].continue = [{ required: { groupsSet: true } }];
+  document.tactics.push(tactic);
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'),
+    [],
+  );
+});
+
+test('carry-forward resolves every ground shape with current behavior and provenance', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const group = tactic.groups[0];
+  const ground = [
+    { kind: 'posts', posts: [{ at: [5, 5], facing: 'e', slot: group.slots[0] }] },
+    { kind: 'area', rect: [5, 5, 8, 8] },
+    { kind: 'converge', point: [8, 8] },
+    { kind: 'patrol', path: [[5, 5], [8, 8], [10, 5]] },
+  ] as const;
+  for (const authored of ground) {
+    tactic.phases[0].jobs[group.id] = {
+      posture: 'hold', recovery: 'fight-on', via: [[2, 2], [4, 4]],
+      sigs: { mason: { points: [[3, 3]] } },
+      ...structuredClone(authored),
+    } as never;
+    tactic.phases[1].jobs[group.id] = {
+      kind: 'none', posture: 'aggressive', travel: 'observe', recovery: 'heal-up',
+      sigs: { mason: { points: [[12, 12]] } },
+    };
+    const resolved = effectiveJobResolution(tactic, 1, group.id)!;
+    assert.equal(resolved.inherited, true);
+    assert.equal(resolved.sourcePhaseIndex, 0);
+    assert.equal(resolved.job.kind, authored.kind);
+    assert.deepEqual(resolved.job.via, [[2, 2], [4, 4]]);
+    assert.equal(resolved.job.posture, 'aggressive');
+    assert.equal(resolved.job.recovery, 'heal-up');
+    assert.deepEqual(resolved.job.sigs, { mason: { points: [[12, 12]] } });
+    assert.doesNotMatch(JSON.stringify(resolved.job), /\[3,3\]/,
+      'signature marks from the source phase are not inherited');
+    assert.match(jobLabelFor(tactic, 1, group.id), /from Set the trap/);
+  }
+});
+
+test('a genuinely groundless carry-forward stays empty and fails Formation Ready', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  for (const phase of tactic.phases) {
+    for (const group of tactic.groups) {
+      phase.jobs[group.id] = { kind: 'none', posture: 'observe', recovery: 'fight-on' };
+    }
+  }
+  tactic.phases[1].continue = [{ required: { groupsSet: true } }];
+  document.tactics.push(tactic);
+  assert.equal(effectiveJobResolution(tactic, 1, tactic.groups[0].id), null);
+  assert.ok(validateDocument(document, catalog).some((issue) =>
+    /Formation|Every Group is set|carried-forward geometry/.test(issue.message)));
+});
+
+test('job changes preserve compatible geometry and phase signature marks', () => {
+  const source = {
+    kind: 'approach' as const,
+    posture: 'hold' as const,
+    recovery: 'fight-on' as const,
+    point: [8, 8] as [number, number],
+    via: [[2, 2], [4, 4]] as [number, number][],
+    sigs: { mason: { points: [[7, 7]] as [number, number][] } },
+  };
+  const compatible = planJobKindChange(source, 'converge');
+  assert.deepEqual(compatible.removed, []);
+  assert.deepEqual(compatible.next.point, source.point);
+  assert.deepEqual(compatible.next.sigs, source.sigs);
+
+  const incompatible = planJobKindChange(source, 'area');
+  assert.ok(incompatible.removed.some((value) => /destination/.test(value)));
+  assert.equal(incompatible.next.point, undefined);
+  assert.deepEqual(incompatible.next.via, source.via);
+  assert.deepEqual(incompatible.next.sigs, source.sigs);
+});
+
 test('legacy single zones normalize to the editable union shape', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
@@ -164,6 +253,37 @@ test('legacy single zones normalize to the editable union shape', () => {
   const cleared = loaded.tactics[0].phases[0].continue![0].required?.cleared;
   assert.equal(cleared?.zones.length, 1);
   assert.equal((cleared as unknown as { zone?: unknown }).zone, undefined);
+});
+
+test('all legacy phase targets transparently normalize to array order', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const first = structuredClone(tactic.phases[0].continue![0]);
+  tactic.phases[0].continue = [
+    { ...structuredClone(first), to: tactic.phases[1].id },
+    { ...structuredClone(first), to: tactic.phases[1].id },
+    { ...structuredClone(first), to: 'next' },
+  ];
+  tactic.phases[1].continue = [
+    { ...structuredClone(first), to: tactic.phases[0].id }, // obsolete backward target
+  ];
+  tactic.phases.at(-1)!.continue = [
+    { ...structuredClone(first), to: 'finish' },
+  ];
+  document.tactics.push(tactic);
+
+  const normalized = normalizeDocument(JSON.parse(JSON.stringify(document)));
+  for (const phase of normalized.tactics[0].phases) {
+    for (const alternative of phase.continue ?? []) {
+      assert.equal(alternative.to, undefined);
+    }
+  }
+  assert.doesNotMatch(JSON.stringify(normalized), /\"to\"\s*:/);
+  assert.doesNotMatch(stringifyDocument(document), /\"to\"\s*:/,
+    'the save boundary also canonicalizes an unnormalized legacy draft');
+  assert.deepEqual(validateDocument(normalized, catalog)
+    .filter((issue) => issue.severity === 'error'), []);
 });
 
 test('the pincer recipe is a four-phase operation with a sequential spine', () => {

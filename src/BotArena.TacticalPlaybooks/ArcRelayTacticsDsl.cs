@@ -138,41 +138,73 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     }
 
     /// <summary>
-    /// Deterministic v1 → v2 document migration. A v2 (or unrecognized)
-    /// document passes through unchanged; malformed v1 fragments are left
-    /// as they are so validation reports them with real paths. Hosted saves
-    /// and the editor both migrate before validating, so v2 is the only
-    /// validated and stored shape.
+    /// Deterministic v1 → v2 migration plus v2 compatibility
+    /// normalization. Explicit phase targets are obsolete: array order is
+    /// the sole sequence, so every legacy target is removed before server
+    /// validation and persistence. An already-canonical v2 document keeps
+    /// its exact bytes.
     /// </summary>
     public static byte[] MigrateTactics(
         byte[] tacticsSource,
         string tacticsName = "tactics.json")
     {
         ArgumentNullException.ThrowIfNull(tacticsSource);
+        bool migrateV1;
         using (JsonDocument probe = Parse(tacticsSource, tacticsName))
         {
             if (probe.RootElement.ValueKind != JsonValueKind.Object
                 || !probe.RootElement.TryGetProperty(
                     "schema", out JsonElement schema)
                 || schema.ValueKind != JsonValueKind.String
-                || !string.Equals(schema.GetString(), TacticsSchema,
-                    StringComparison.Ordinal))
+                || schema.GetString() is not string schemaName
+                || schemaName is not (TacticsSchema or TacticsSchemaV2))
             {
                 return tacticsSource;
             }
+            migrateV1 = string.Equals(
+                schemaName, TacticsSchema, StringComparison.Ordinal);
         }
         JsonObject document = JsonNode.Parse(tacticsSource)!.AsObject();
-        document["schema"] = TacticsSchemaV2;
-        if (document["tactics"] is JsonArray tactics)
+        if (migrateV1)
         {
-            foreach (JsonNode? entry in tactics)
+            document["schema"] = TacticsSchemaV2;
+            if (document["tactics"] is JsonArray tactics)
             {
-                if (entry is JsonObject tactic)
-                    MigrateTactic(tactic);
+                foreach (JsonNode? entry in tactics)
+                {
+                    if (entry is JsonObject tactic)
+                        MigrateTactic(tactic);
+                }
             }
         }
+        bool removedTargets = RemoveLegacyTransitionTargets(document);
+        if (!migrateV1 && !removedTargets)
+            return tacticsSource;
         return Encoding.UTF8.GetBytes(document.ToJsonString(
             new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    private static bool RemoveLegacyTransitionTargets(JsonObject document)
+    {
+        bool changed = false;
+        if (document["tactics"] is not JsonArray tactics)
+            return false;
+        foreach (JsonNode? tacticNode in tactics)
+        {
+            if (tacticNode?["phases"] is not JsonArray phases)
+                continue;
+            foreach (JsonNode? phaseNode in phases)
+            {
+                if (phaseNode?["continue"] is not JsonArray alternatives)
+                    continue;
+                foreach (JsonNode? alternative in alternatives)
+                {
+                    if (alternative is JsonObject rule && rule.Remove("to"))
+                        changed = true;
+                }
+            }
+        }
+        return changed;
     }
 
     private static void MigrateTactic(JsonObject tactic)
@@ -246,7 +278,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             ? new JsonArray(new JsonObject
             {
                 ["triggers"] = outcomes,
-                ["to"] = "finish",
             })
             : null;
         var phases = new JsonArray();
@@ -285,7 +316,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             var releaseRule = new JsonObject
             {
                 ["required"] = new JsonObject { ["groupsSet"] = true },
-                ["to"] = "next",
             };
             if (releaseConds is { Count: > 0 })
                 releaseRule["triggers"] = releaseConds;
@@ -619,7 +649,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     ruleValues[rule], ruleAt, width, height,
                     TacticTransitionRows);
                 ValidateTransitionRowContext(
-                    when, ruleAt, phases[index], phases);
+                    when, ruleAt, index, phases);
                 transitions.Add(new ArcRelayTacticTransition(when, to));
             }
             phases[index] = phases[index] with { Continue = transitions };
@@ -664,9 +694,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     private static void ValidateTransitionRowContext(
         ArcRelayTacticCase value,
         string path,
-        ArcRelayTacticPhaseDef phase,
+        int phaseIndex,
         IReadOnlyList<ArcRelayTacticPhaseDef> phases)
     {
+        ArcRelayTacticPhaseDef phase = phases[phaseIndex];
         foreach (ArcRelayTacticConditionRows? rows in new[]
                  { value.Required, value.Triggers })
         {
@@ -679,12 +710,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "'reached' needs a group that converges or advances "
                     + "somewhere in this phase.");
             }
-            if (rows.GroupsSet is not null && !phase.Jobs.Values.Any(job =>
-                    job.HasGeometry))
+            if (rows.GroupsSet is not null && phase.Jobs.Keys.Any(groupId =>
+                    !(ArcRelayTacticsMaterializer.EffectiveJob(
+                        phases, phaseIndex, groupId)?.HasGeometry ?? false)))
             {
                 throw Error(path,
-                    "'groupsSet' needs at least one group with drawn "
-                    + "geometry in this phase.");
+                    "'groupsSet' needs every group to have drawn "
+                    + "or carried-forward geometry in this phase.");
             }
             if (rows.Observed && !phases.Any(candidate =>
                     candidate.Jobs.Values.Any(job => job.HasGeometry)))

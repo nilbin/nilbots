@@ -19,7 +19,7 @@ internal static class ArcRelayTacticsMaterializer
     private const int BriefTimeout = 60;
     private const int StandardTimeout = 180;
     private const int LongTimeout = 420;
-    private const int RememberedFreshnessTicks = 40;
+    private const int RememberedFreshnessTicks = 20;
     private const int ObservedWindowTicks = 120;
     private const int GrabWalkingSteps = 6;
 
@@ -160,6 +160,34 @@ internal static class ArcRelayTacticsMaterializer
         string ClassId,
         IReadOnlyList<string> UpgradePath,
         IReadOnlyList<Node> Orders);
+
+    /// <summary>The canonical server/compiler carry-forward resolver.
+    /// Ground and way-in come from the nearest earlier assignment; behavior
+    /// and signature marks come from the current phase.</summary>
+    internal static ArcRelayTacticJob? EffectiveJob(
+        IReadOnlyList<ArcRelayTacticPhaseDef> phases,
+        int phaseIndex,
+        string groupId)
+    {
+        ArcRelayTacticJob raw = phases[phaseIndex].Jobs[groupId];
+        if (raw.Kind != "none")
+            return raw;
+        for (int earlier = phaseIndex - 1; earlier >= 0; earlier--)
+        {
+            ArcRelayTacticJob candidate = phases[earlier].Jobs[groupId];
+            if (candidate.Kind != "none")
+            {
+                return candidate with
+                {
+                    Posture = raw.Posture,
+                    Travel = raw.Travel,
+                    Recovery = raw.Recovery,
+                    Sigs = raw.Sigs,
+                };
+            }
+        }
+        return null;
+    }
 
     private sealed class Emission
     {
@@ -433,6 +461,7 @@ internal static class ArcRelayTacticsMaterializer
                 string[] zones = enemies.Zones.Select((zone, index) => Zone(
                         zone.Rect,
                         $"g-{prefix}-{context}-watch-{index + 1}"))
+                    .Distinct(StringComparer.Ordinal)
                     .ToArray();
                 Add(new ConditionShape(
                         "remembered-enemies-in-zone", "at-least", enemies.Count,
@@ -522,6 +551,7 @@ internal static class ArcRelayTacticsMaterializer
             {
                 string[] zones = cleared.Select((zone, index) => Zone(
                         zone.Rect, $"g-{prefix}-cleared-{index + 1}"))
+                    .Distinct(StringComparer.Ordinal)
                     .ToArray();
                 Add(new ConditionShape(
                         "zone-cleared", "equals", 1, ZoneIds: zones),
@@ -532,6 +562,7 @@ internal static class ArcRelayTacticsMaterializer
                 string[] zones = notFighting.Select((zone, index) => Zone(
                         zone.Rect,
                         $"g-{prefix}-not-fighting-{index + 1}"))
+                    .Distinct(StringComparer.Ordinal)
                     .ToArray();
                 Add(new ConditionShape(
                         "friendly-fights-in-zone", "equals", 0,
@@ -815,25 +846,9 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticPhaseDef phase,
             string groupId)
         {
-            ArcRelayTacticJob raw = phase.Jobs[groupId];
-            if (raw.Kind != "none")
-                return raw;
             int index = tactic.Phases.ToList().IndexOf(phase);
-            for (int earlier = index - 1; earlier >= 0; earlier--)
-            {
-                ArcRelayTacticJob candidate = tactic.Phases[earlier].Jobs[groupId];
-                if (candidate.Kind != "none")
-                {
-                    return candidate with
-                    {
-                        Posture = raw.Posture,
-                        Travel = raw.Travel,
-                        Recovery = raw.Recovery,
-                        Sigs = raw.Sigs,
-                    };
-                }
-            }
-            return null;
+            return ArcRelayTacticsMaterializer.EffectiveJob(
+                tactic.Phases, index, groupId);
         }
 
         /// <summary>The phase ground's footprint rect, as readiness sees

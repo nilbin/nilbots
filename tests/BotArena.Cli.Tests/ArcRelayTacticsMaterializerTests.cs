@@ -168,6 +168,81 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Contains("allowedLate", error.Message);
     }
 
+    [Fact]
+    public void FormationReadinessAcceptsGeometryCarriedFromThePreviousPhase()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        JsonObject act = tactic["phases"]![1]!.AsObject();
+        JsonObject jobs = act["jobs"]!.AsObject();
+        foreach (KeyValuePair<string, JsonNode?> entry in jobs.ToArray())
+        {
+            JsonObject previous = entry.Value!.AsObject();
+            jobs[entry.Key] = new JsonObject
+            {
+                ["kind"] = "none",
+                ["posture"] = previous["posture"]?.DeepClone() ?? "observe",
+                ["recovery"] = previous["recovery"]?.DeepClone() ?? "fight-on",
+            };
+        }
+        act["continue"]![0]!["required"] =
+            new JsonObject { ["groupsSet"] = true };
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement actTransition = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().Single()
+            .GetProperty("phases").EnumerateArray().ElementAt(1)
+            .GetProperty("continue").EnumerateArray().Single();
+        string readinessId = Descendants(actTransition.GetProperty("when"))
+            .Where(value => value.ValueKind == JsonValueKind.String)
+            .Select(value => value.GetString()!)
+            .Single(value => value.Contains("formation-ready", StringComparison.Ordinal));
+        JsonElement formation = orders.RootElement.GetProperty("conditions")
+            .GetProperty(readinessId);
+        Assert.Equal(8, formation.GetProperty("roles").GetArrayLength());
+        Assert.Equal(8, formation.GetProperty("zones").GetArrayLength());
+    }
+
+    [Fact]
+    public void FormationReadinessRejectsAGroupSetWithNoGroundInAnyPhase()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        foreach (JsonNode? phaseNode in tactic["phases"]!.AsArray())
+        {
+            JsonObject phase = phaseNode!.AsObject();
+            JsonObject jobs = phase["jobs"]!.AsObject();
+            jobs["mid-guard"] = phase == tactic["phases"]![0]
+                ? new JsonObject
+                {
+                    ["kind"] = "return",
+                    ["posture"] = "observe",
+                    ["recovery"] = "fight-on",
+                }
+                : new JsonObject
+                {
+                    ["kind"] = "none",
+                    ["posture"] = "observe",
+                    ["recovery"] = "fight-on",
+                };
+        }
+        tactic["phases"]![1]!["continue"]![0]!["required"] =
+            new JsonObject { ["groupsSet"] = true };
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("every group", error.Message);
+    }
+
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
@@ -199,6 +274,46 @@ public sealed class ArcRelayTacticsMaterializerTests
         JsonElement condition = orders.RootElement.GetProperty("conditions")
             .GetProperty("c-t1-p1-enemies");
         Assert.Equal(count, condition.GetProperty("zones").GetArrayLength());
+    }
+
+    [Fact]
+    public void IdenticalAreasCollapseIntoOneSemanticUnionMember()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["triggers"] =
+            new JsonObject
+            {
+                ["enemiesAt"] = new JsonObject
+                {
+                    ["count"] = 2,
+                    ["zones"] = new JsonArray(
+                        JsonNode.Parse("""{"name":"first","rect":[10,10,12,12]}"""),
+                        JsonNode.Parse("""{"name":"clone","rect":[10,10,12,12]}""")),
+                },
+            };
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement condition = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p1-enemies");
+        Assert.Single(condition.GetProperty("zones").EnumerateArray());
+    }
+
+    [Fact]
+    public void RecentlySeenEnemyAreasUseThePromisedTwentyTickWindow()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement condition = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p1-enemies");
+        Assert.Equal(20, condition.GetProperty("freshnessTicks").GetInt32());
     }
 
     [Theory]
@@ -257,13 +372,58 @@ public sealed class ArcRelayTacticsMaterializerTests
             .EnumerateArray().Single();
         Assert.True(releaseRule.GetProperty("required")
             .GetProperty("groupsSet").GetBoolean());
-        Assert.Equal("next", releaseRule.GetProperty("to").GetString());
+        Assert.False(releaseRule.TryGetProperty("to", out _));
         JsonElement finishRule = phases[1].GetProperty("continue")
             .EnumerateArray().Single();
-        Assert.Equal("finish", finishRule.GetProperty("to").GetString());
-        // A v2 document passes through migration untouched.
+        Assert.False(finishRule.TryGetProperty("to", out _));
+        // A canonical v2 document passes through migration byte-exactly.
         Assert.Equal(migrated,
             ArcRelayTacticalPlaybookCompiler.MigrateTactics(migrated));
+    }
+
+    [Fact]
+    public void EveryLegacyExplicitPhaseTargetNormalizesBeforeValidation()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonArray stageRules = document["tactics"]![0]!["phases"]![0]!
+            ["continue"]!.AsArray();
+        JsonObject template = stageRules[0]!.AsObject();
+        stageRules.Clear();
+        foreach (string target in new[] { "act", "act", "next" })
+        {
+            JsonObject rule = template.DeepClone().AsObject();
+            rule["to"] = target;
+            stageRules.Add(rule);
+        }
+        document["tactics"]![0]!["phases"]![1]!["continue"]![0]!["to"] =
+            "finish";
+
+        byte[] normalized = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+            Encoding.UTF8.GetBytes(document.ToJsonString()));
+        Assert.DoesNotContain("\"to\"", Encoding.UTF8.GetString(normalized));
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(normalized);
+        Assert.True(compilation.UsesOrderTree);
+    }
+
+    [Theory]
+    [InlineData("stage")]
+    [InlineData("some-later-phase")]
+    public void ObsoleteBackwardAndSkipTargetsReduceToSequentialBehavior(
+        string obsoleteTarget)
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["to"] =
+            obsoleteTarget;
+        byte[] normalized = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+            Encoding.UTF8.GetBytes(document.ToJsonString()));
+        Assert.DoesNotContain("\"to\"", Encoding.UTF8.GetString(normalized));
+        Assert.True(ArcRelayTacticalPlaybookCompiler
+            .CompileTactics(normalized).UsesOrderTree);
     }
 
     [Fact]
@@ -696,7 +856,7 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
-    public void ForwardOnlyTransitionsAreEnforced()
+    public void LegacyBackwardTransitionIsReducedToSequentialBehavior()
     {
         JsonObject document = JsonNode.Parse(
             ArcRelayTacticalPlaybookCompiler.MigrateTactics(
@@ -704,10 +864,13 @@ public sealed class ArcRelayTacticsMaterializerTests
         JsonObject rule = document["tactics"]![0]!["phases"]![1]!["continue"]!
             .AsArray()[0]!.AsObject();
         rule["to"] = "stage";
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
-            ArcRelayTacticalPlaybookCompiler.CompileTactics(
-                Encoding.UTF8.GetBytes(document.ToJsonString())));
-        Assert.Contains("strictly in order", error.Message);
+        byte[] source = Encoding.UTF8.GetBytes(document.ToJsonString());
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(source);
+        Assert.True(compilation.UsesOrderTree);
+        Assert.DoesNotContain("\"to\"",
+            Encoding.UTF8.GetString(
+                ArcRelayTacticalPlaybookCompiler.MigrateTactics(source)));
     }
 
     [Fact]

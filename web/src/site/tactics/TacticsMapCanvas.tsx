@@ -6,7 +6,7 @@ import { makePathfinder } from './pathing';
 import { describePlace } from './places';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
-  FACING_DELTAS, effectiveJob, groupColor, jobOf, phaseShade, postFacingIssue,
+  FACING_DELTAS, effectiveJob, effectiveJobResolution, groupColor, jobOf, phaseShade, postFacingIssue,
   signatureMarkGeometry, tilePlacementIssue,
   type Facing, type Point, type Rect, type SquadBot, type Tactic,
   type TacticConds, type TacticGroup, type TacticJob, type TacticsDocument,
@@ -591,7 +591,7 @@ function ConditionFootprints({
 /** One group's job in one phase. The first phase renders full-bodied
  * (ground you stand on); later phases render as the onward move — arrows
  * from the previous ground for movers, dashed ground for a new stand. */
-function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, startDrag, pathfinder }: {
+export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, startDrag, pathfinder }: {
   tactic: Tactic;
   group: TacticGroup;
   phaseIndex: number;
@@ -602,15 +602,21 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
   startDrag: (event: React.PointerEvent, target: DragTarget) => void;
   pathfinder: ReturnType<typeof makePathfinder>;
 }) {
-  const job = jobOf(tactic, phaseIndex, group.id);
-  if (!job || job.kind === 'none') return null;
+  const raw = jobOf(tactic, phaseIndex, group.id);
+  const resolution = effectiveJobResolution(tactic, phaseIndex, group.id);
+  if (!raw || !resolution) return null;
+  const job = resolution.job;
+  const inherited = resolution.inherited;
+  const geometryEditable = editable && !inherited;
   const color = phaseShade(
     groupColor(tactic, group.id), phaseIndex, tactic.phases.length);
   const select = `${tactic.id}:group:${group.id}:${phaseIndex}`;
   const parts: React.ReactNode[] = [];
   const first = phaseIndex === 0;
   const phaseName = tactic.phases[phaseIndex]?.name ?? `Phase ${phaseIndex + 1}`;
-  const previous = phaseIndex > 0
+  const sourcePhaseName = tactic.phases[resolution.sourcePhaseIndex]?.name
+    ?? `Phase ${resolution.sourcePhaseIndex + 1}`;
+  const previous = !inherited && phaseIndex > 0
     ? effectiveJob(tactic, phaseIndex - 1, group.id)
     : null;
 
@@ -634,7 +640,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
           fill={`${color}22`} stroke={color} strokeWidth={.12}
           strokeDasharray={first ? '.34 .18' : '.16 .24'} rx={.1}
           data-select={select} cursor="pointer" />
-        {editable && <>
+        {geometryEditable && <>
           <Handle cx={x1 + 1} cy={y1 + 1}
             onDown={(event) => startDrag(event, { kind: 'rectsize', groupId: group.id, phaseIndex })} />
           <Handle cx={x0} cy={y0} cursor="move"
@@ -648,7 +654,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
         <polyline points={points.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
           fill="none" stroke={color} strokeWidth={.13} strokeDasharray=".3 .2"
           strokeLinejoin="round" strokeLinecap="round" data-select={select} cursor="pointer" />
-        {job.path.map(([x, y], index) => editable
+        {job.path.map(([x, y], index) => geometryEditable
           ? <Handle key={index} cx={x + .5} cy={y + .5}
             onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phaseIndex, index })} />
           : <circle key={index} cx={x + .5} cy={y + .5} r={.14} fill={color} />)}
@@ -662,7 +668,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
           fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".14 .22" opacity=".7" />}
         <circle cx={x + .5} cy={y + .5} r={.42} fill="none" stroke={color} strokeWidth={.11}
           strokeDasharray=".2 .13" data-select={select} cursor="pointer" />
-        {editable
+        {geometryEditable
           ? <Handle cx={x + .5} cy={y + .5}
             onDown={(event) => startDrag(event, { kind: 'point', groupId: group.id, phaseIndex })} />
           : <circle cx={x + .5} cy={y + .5} r={.15} fill={color} />}
@@ -702,14 +708,18 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
                 fill="#06090c" fillOpacity=".55" stroke={color} strokeWidth={.07} />
               <image href={sprite} x={x - .04} y={y - .04} width={1.08} height={1.08}
                 transform={`rotate(${deg} ${cx} ${cy})`} />
-              <title>{`${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`}</title>
+              <title>{inherited
+                ? `${bot.name} (${entry?.name ?? bot.class}) — carried from ${sourcePhaseName}`
+                : `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`}</title>
             </g>
             : <g data-select={postSelect} cursor="pointer">
               <circle cx={cx} cy={cy} r={.36} fill="#10272f" stroke={color} strokeWidth={.12} />
               <text x={cx} y={y + .64} textAnchor="middle" fontSize=".38" fontWeight="800"
                 fill="#e9fbff" pointerEvents="none">{index + 1}</text>
               <title>{bot
-                ? `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`
+                ? inherited
+                  ? `${bot.name} (${entry?.name ?? bot.class}) — carried from ${sourcePhaseName}`
+                  : `${bot.name} (${entry?.name ?? bot.class}) — drag the arrow tip to turn it`
                 : `${group.name} post ${index + 1}`}</title>
             </g>}
           {post.via && post.via.length > 1 && (
@@ -723,7 +733,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
                 <circle key={wi} cx={wx + .5} cy={wy + .5} r={.1} fill={color} opacity=".75" />)}
             </g>
           )}
-          {editable && <>
+          {geometryEditable && <>
             <Handle cx={cx} cy={cy} r={.42}
               onDown={(event) => startDrag(event, { kind: 'post', groupId: group.id, phaseIndex, index, origin: [x, y] })} />
             <Handle cx={tipX} cy={tipY} r={.3}
@@ -735,7 +745,9 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
   }
 
   if (job.kind === 'converge' && job.point) {
-    const starts = previous ? jobStarts(previous, group, pathfinder) : [[3, 5] as Point];
+    const starts = inherited
+      ? []
+      : previous ? jobStarts(previous, group, pathfinder) : [[3, 5] as Point];
     parts.push(<g key="converge" data-testid="converge-fan">
       {starts.map((from, index) => {
         const run = pathfinder.findPath(from, job.point!) ?? [from, job.point!];
@@ -747,7 +759,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
         <circle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.24} fill="none" stroke={color} strokeWidth={.1} />
         <circle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.07} fill={color} />
       </g>
-      {editable && <Handle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.62}
+      {geometryEditable && <Handle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.62}
         onDown={(event) => startDrag(event, { kind: 'point', groupId: group.id, phaseIndex })} />}
     </g>);
   }
@@ -755,7 +767,7 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
     const loop = job.kind === 'patrol' ? [...job.path, job.path[0]] : job.path;
     parts.push(<g key="mover-path">
       <ArrowPath points={pathfinder.connect(loop)} color={color} select={select} loop={job.kind === 'patrol'} />
-      {job.path.map(([x, y], index) => editable
+      {job.path.map(([x, y], index) => geometryEditable
         ? <Handle key={index} cx={x + .5} cy={y + .5}
           onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phaseIndex, index })} />
         : <circle key={index} cx={x + .5} cy={y + .5} r={.13} fill={color} />)}
@@ -836,9 +848,8 @@ function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, s
       parts.push(<ChipLabel key="chip"
         x={anchor[0] + .5}
         y={first ? anchor[1] - .48 : anchor[1] + 2.15}
-        text={first
-          ? `${group.name.toUpperCase()} · ${phaseName.toUpperCase()}`
-          : `${group.name.toUpperCase()} · ${phaseName.toUpperCase()}`}
+        text={`${group.name.toUpperCase()} · ${phaseName.toUpperCase()}${inherited
+          ? ` · FROM ${sourcePhaseName.toUpperCase()}` : ''}`}
         color={color} select={select} />);
     }
   }

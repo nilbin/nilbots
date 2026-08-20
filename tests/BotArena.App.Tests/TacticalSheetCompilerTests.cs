@@ -93,6 +93,33 @@ public sealed class TacticalSheetCompilerTests
     }
 
     [Fact]
+    public void ExistingV2PhaseTargetsNormalizeBeforeHostedSaveAndReadback()
+    {
+        var templates = new TacticalSheetTemplateCatalog();
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        ValidatedTacticalSheet seed = compiler.CompileTactics(
+            templates.Starters[1].TacticsJson!, unlocked, "canonical-seed");
+        JsonObject tactics = JsonNode.Parse(seed.TacticsJson!)!.AsObject();
+        JsonArray phases = tactics["tactics"]!.AsArray()
+            .Select(node => node!["phases"]!.AsArray())
+            .First(value => value.Count > 1);
+        foreach (JsonNode? rule in phases[0]!["continue"]!.AsArray())
+            rule!["to"] = phases[1]!["id"]!.GetValue<string>();
+        if (phases[phases.Count - 1]!["continue"] is JsonArray finalRules)
+        {
+            foreach (JsonNode? rule in finalRules)
+                rule!["to"] = "finish";
+        }
+
+        ValidatedTacticalSheet saved = compiler.CompileTactics(
+            tactics.ToJsonString(), unlocked, "legacy-phase-targets");
+        Assert.DoesNotContain("\"to\"", saved.TacticsJson);
+        Assert.True(saved.Compilation.UsesOrderTree);
+    }
+
+    [Fact]
     public void Tactics_path_rejects_a_wrongly_declared_map_size()
     {
         var templates = new TacticalSheetTemplateCatalog();

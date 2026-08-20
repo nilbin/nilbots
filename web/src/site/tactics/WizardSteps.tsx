@@ -4,6 +4,7 @@ import { BotChip } from './BotChip';
 import { ChoiceCards } from './ChoiceCards';
 import { CaseListEditor } from './ConditionRows';
 import { GeoStatusRow } from './GeoStatusRow';
+import { Modal } from './Modal';
 import { PhaseStrip } from './PhaseStrip';
 import { SegChips } from './SegChips';
 import { freshGroup } from './recipes';
@@ -16,8 +17,8 @@ import {
   ABORT_ROWS, CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES,
   TRAVEL_BEHAVIORS,
   RECOVERIES, START_ROWS, TRANSITION_ROWS,
-  effectiveJob, followMembership, freshJob, freshPhase, groupColor, jobOf,
-  phaseShade, signatureMarkGeometry,
+  effectiveJob, effectiveJobResolution, followMembership, freshJob, freshPhase, groupColor, jobOf,
+  jobHasGeometry, phaseShade, planJobKindChange, signatureMarkGeometry,
   tacticCanFinish, viaLegal,
   type CondKind, type CustodyPlan, type DrawKind, type JobKind,
   type MembershipPocket, type Posture,
@@ -580,15 +581,23 @@ export function PhasesStep(props: StepProps) {
 function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number }) {
   const {
     catalog, document, wizard, group, phaseIndex, task, change,
-    startJobTask, startPostViaTask, startSigTask, endTask, highlightPost,
+    selectPhase, startJobTask, startPostViaTask, startSigTask, endTask, highlightPost,
   } = props;
   const tactic = wizard.tactic;
   const job = jobOf(tactic, phaseIndex, group.id);
   const [jobUndo, setJobUndo] = useState<NonNullable<typeof job> | null>(null);
+  const [pendingKind, setPendingKind] = useState<{
+    kind: JobKind;
+    next: NonNullable<typeof job>;
+    removed: string[];
+  } | null>(null);
   if (!job) return null;
   const first = phaseIndex === 0;
   const carried = job.kind === 'none' && !first
     ? effectiveJob(tactic, phaseIndex, group.id)
+    : null;
+  const carrySource = job.kind === 'none'
+    ? effectiveJobResolution(tactic, phaseIndex, group.id)
     : null;
   const color = groupColor(tactic, group.id);
   const kinds = JOB_KINDS
@@ -610,37 +619,31 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
       const target = next.phases[phaseIndex]?.jobs[group.id];
       if (target) apply(target);
     });
+  const applyKindChange = (plan: NonNullable<typeof pendingKind>) => {
+    if (plan.removed.length > 0) setJobUndo(structuredClone(job));
+    change((next) => {
+      next.phases[phaseIndex].jobs[group.id] = structuredClone(plan.next);
+    });
+    setPendingKind(null);
+    const def = JOB_KINDS.find((value) => value.id === plan.kind);
+    if (def?.draw && !jobHasGeometry(plan.next)) {
+      // Arm for the kind just chosen — the wizard state has not flushed yet.
+      startJobTask(group.id, phaseIndex, undefined, def.draw);
+    } else {
+      endTask();
+    }
+    if (plan.removed.length > 0) {
+      props.notify?.('Job changed. Compatible map work was kept; Undo restores the rest.');
+    }
+  };
   const setKind = (kind: JobKind) => {
     if (job.kind === kind) return;
-    const material = [
-      job.posts?.length ? `${job.posts.length} posts and their facings` : null,
-      job.rect ? 'the drawn area' : null,
-      job.path?.length ? 'the patrol route' : null,
-      job.point ? 'the destination spot' : null,
-      Object.keys(job.sigs ?? {}).length ? 'the phase’s spatial signature marks' : null,
-      job.via?.length && !viaLegal(kind) ? 'the drawn approach route' : null,
-    ].filter((value): value is string => Boolean(value));
-    if (material.length > 0 && !window.confirm(
-      `Change this job type? This removes ${material.join(', ')}.\n\nCancel keeps everything.`,
-    )) return;
-    if (material.length > 0) setJobUndo(structuredClone(job));
-    mutateJob((target) => {
-      if (target.kind !== kind) {
-        target.kind = kind;
-        delete target.posts;
-        delete target.rect;
-        delete target.path;
-        delete target.point;
-        delete target.sigs;
-        if (!viaLegal(kind)) delete target.via;
-      }
-    });
-    const def = JOB_KINDS.find((value) => value.id === kind);
-    // Arm for the kind just chosen — the wizard state hasn't flushed yet, so
-    // without the override the task would draw the PREVIOUS kind's geometry.
-    if (def?.draw) startJobTask(group.id, phaseIndex, undefined, def.draw);
-    else endTask();
-    if (material.length > 0) props.notify?.('Job changed. Undo is available in this Group.');
+    const plan = { kind, ...planJobKindChange(job, kind) };
+    if (plan.removed.length > 0) {
+      setPendingKind(plan);
+      return;
+    }
+    applyKindChange(plan);
   };
   const groupClasses = [...new Set(group.slots
     .map((slot) => document.squad[slot]?.class)
@@ -651,7 +654,7 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
     .filter((classId) => !signatureMarkGeometry(catalog, classId));
   const className = (classId: string) =>
     catalog.classes.find((value) => value.id === classId)?.name ?? classId;
-  return (
+  return <>
     <div className="rounded-sm border border-arena-edge p-2"
       id={`section-${group.id}-${phaseIndex}`}
       style={{ borderLeft: `3px solid ${color}` }}>
@@ -662,7 +665,14 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
       </div>
       <div className="lab">This phase</div>
       {job.kind === 'none' && !first && <div className="mb-1 rounded-sm border border-arena-edge bg-arena-panel2/40 p-2 t-micro text-arena-dim">
-        Continuing the previous assignment. Choose a job below only if this phase changes the Group’s ground.
+        {carrySource
+          ? <>Continuing the assignment from <b>{tactic.phases[carrySource.sourcePhaseIndex].name}</b>.
+            {' '}Current posture, recovery, travel, and signature marks still belong to this phase.
+            <button type="button" className="btn btn-secondary ml-2"
+              onClick={() => selectPhase(carrySource.sourcePhaseIndex)}>
+              Edit in {tactic.phases[carrySource.sourcePhaseIndex].name}
+            </button></>
+          : <>No earlier assignment to continue. Choose a job and draw its ground.</>}
       </div>}
       {!kindDef && job.kind !== 'none' && <div className="mb-1 rounded-sm border border-arena-warning/50 bg-arena-warning/5 p-2 t-micro text-arena-warning">
         Existing advanced job: <b>{job.kind}</b>. It still runs as saved. Choose one of the four normal jobs below only when you want to replace it.
@@ -840,7 +850,29 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
         </p>
       )}
     </div>
-  );
+    {pendingKind && (
+      <Modal onClose={() => setPendingKind(null)}>
+        <div className="lab mb-1">Change this Group’s job?</div>
+        <h3 className="mb-2 text-xl font-semibold">Some map work does not fit the new job.</h3>
+        <p className="t-meta mb-2">
+          Switching to <b>{JOB_KINDS.find((value) => value.id === pendingKind.kind)?.label
+            ?? pendingKind.kind}</b> removes {pendingKind.removed.join(', ')}.
+          Compatible geometry and signature marks stay in place.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className="btn btn-primary" autoFocus
+            onClick={() => setPendingKind(null)}>
+            Cancel · keep current job
+          </button>
+          <button type="button" className="btn btn-secondary"
+            onClick={() => applyKindChange(pendingKind)}>
+            Change job
+          </button>
+        </div>
+        <p className="t-micro mt-2 text-arena-dim">Cancel is the default. Undo is also available after changing.</p>
+      </Modal>
+    )}
+  </>;
 }
 
 function posturesFor(tactic: Tactic, kind: JobKind) {

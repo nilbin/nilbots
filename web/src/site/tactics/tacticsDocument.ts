@@ -480,17 +480,41 @@ export function effectiveJob(
   phaseIndex: number,
   groupId: string,
 ): TacticJob | null {
+  return effectiveJobResolution(tactic, phaseIndex, groupId)?.job ?? null;
+}
+
+export interface EffectiveJobResolution {
+  job: TacticJob;
+  sourcePhaseIndex: number;
+  inherited: boolean;
+}
+
+/** The one frontend interpretation of carry-forward. Ground and its way-in
+ * come from the nearest earlier assignment; behavior and signatures belong
+ * to the current phase, exactly as the server materializer resolves them. */
+export function effectiveJobResolution(
+  tactic: Tactic,
+  phaseIndex: number,
+  groupId: string,
+): EffectiveJobResolution | null {
   const raw = jobOf(tactic, phaseIndex, groupId);
   if (!raw) return null;
-  if (raw.kind !== 'none') return raw;
+  if (raw.kind !== 'none') {
+    return { job: raw, sourcePhaseIndex: phaseIndex, inherited: false };
+  }
   for (let earlier = phaseIndex - 1; earlier >= 0; earlier--) {
     const candidate = jobOf(tactic, earlier, groupId);
     if (candidate && candidate.kind !== 'none') {
       return {
-        ...candidate,
-        posture: raw.posture,
-        travel: raw.travel,
-        recovery: raw.recovery,
+        sourcePhaseIndex: earlier,
+        inherited: true,
+        job: {
+          ...candidate,
+          posture: raw.posture,
+          travel: raw.travel,
+          recovery: raw.recovery,
+          sigs: raw.sigs,
+        },
       };
     }
   }
@@ -644,23 +668,26 @@ function actOrCarriedStage(act: TacticJob, stage: TacticJob): TacticJob {
  * Every path into editor state goes through this one boundary. */
 export function normalizeDocument(document: unknown): TacticsDocument {
   const value = document as { schema?: string };
+  let loaded: TacticsDocument;
   if (value?.schema === 'arc-relay-tactics-v1') {
-    return migrateDocument(value as Record<string, unknown>);
-  }
-  if (value?.schema !== 'arc-relay-tactics-v2') {
+    loaded = migrateDocument(value as Record<string, unknown>);
+  } else if (value?.schema === 'arc-relay-tactics-v2') {
+    loaded = value as TacticsDocument;
+  } else {
     throw new Error(`Not a tactics document: ${value?.schema}`);
   }
-  const loaded = value as TacticsDocument;
   // Self-healing on load. Backwards way-ins flip into travel order; posts
   // saved before they carried a `slot` are stamped with their positional
   // pairing (the only pairing that existed); and leftovers from a Group
   // reshuffle — a post whose bot has left, a signature mark no member's
   // class owns, a job for a dissolved Group — are simply cleaned away.
   for (const tactic of loaded.tactics ?? []) {
-    for (const [phaseIndex, phase] of (tactic.phases ?? []).entries()) {
+    for (const phase of tactic.phases ?? []) {
       for (const rule of phase.continue ?? []) {
-        const expected = phaseIndex + 1 < tactic.phases.length ? 'next' : 'finish';
-        if (rule.to === expected) delete rule.to;
+        // Explicit jumps were removed from the product. Array order is the
+        // only phase order, so every legacy spelling (phase id, next,
+        // finish, backward, or skip) canonicalizes to the implicit edge.
+        delete rule.to;
       }
       for (const rows of [
         ...(phase.continue ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
@@ -744,7 +771,10 @@ export function normalizeEditableDocumentForCatalog(
 }
 
 export function stringifyDocument(document: TacticsDocument): string {
-  return JSON.stringify(document, null, 2);
+  // Saving is a normalization boundary too. Clone so serialization cannot
+  // mutate the live editor draft while still guaranteeing compatibility-only
+  // fields such as legacy phase targets never return to persistence.
+  return JSON.stringify(normalizeDocument(structuredClone(document)), null, 2);
 }
 
 /** The document the server accepts: eight bots, at least one tactic, every
@@ -924,9 +954,9 @@ export function validateDocument(
             ['converge', 'advance'].includes(phase.jobs[group.id]?.kind ?? ''))) {
             error(ruleAt, '“Destination reached” needs a Group that converges or advances in this phase.');
           }
-          if (rows.groupsSet && !tactic.groups.some((group) =>
-            jobHasGeometry(phase.jobs[group.id] ?? null))) {
-            error(ruleAt, '“Every Group is set” needs at least one Group with drawn geometry in this phase.');
+          if (rows.groupsSet && tactic.groups.some((group) =>
+            !jobHasGeometry(effectiveJob(tactic, phaseIndex, group.id)))) {
+            error(ruleAt, '“Every Group is set” needs every Group to have drawn or carried-forward geometry in this phase.');
           }
           if (rows.observed && !tactic.phases.some((candidate) =>
             tactic.groups.some((group) => jobHasGeometry(candidate.jobs[group.id] ?? null)))) {
@@ -1163,6 +1193,41 @@ export function expectedGeometry(
 export function jobHasGeometry(job: TacticJob | null): boolean {
   if (!job) return false;
   return Boolean(job.posts?.length || job.rect || (job.path?.length ?? 0) > 1 || job.point);
+}
+
+/** Plans a job-kind switch without throwing away geometry the new kind can
+ * still consume. Signature marks are phase-local opportunities rather than
+ * job-shape geometry, so they survive every switch. The caller decides
+ * whether to ask for confirmation when `removed` is non-empty. */
+export function planJobKindChange(job: TacticJob, kind: JobKind): {
+  next: TacticJob;
+  removed: string[];
+} {
+  const next = structuredClone(job);
+  next.kind = kind;
+  const keep = expectedGeometry(kind);
+  const removed: string[] = [];
+  if (keep !== 'posts' && next.posts?.length) {
+    removed.push(`${next.posts.length} posts and their facings`);
+    delete next.posts;
+  }
+  if (keep !== 'rect' && next.rect) {
+    removed.push('the drawn area');
+    delete next.rect;
+  }
+  if (keep !== 'path' && next.path?.length) {
+    removed.push('the patrol or travel route');
+    delete next.path;
+  }
+  if (keep !== 'point' && next.point) {
+    removed.push('the destination spot');
+    delete next.point;
+  }
+  if (!viaLegal(kind) && next.via?.length) {
+    removed.push('the drawn approach route');
+    delete next.via;
+  }
+  return { next, removed };
 }
 
 /** What a bot sitting in the unassigned tray still owns: its post per phase,

@@ -3,7 +3,7 @@ import type {
   Tactic, TacticCase, TacticConds, TacticGroup, TacticJob, TacticPhaseDef,
   TacticTransition,
 } from './tacticsDocument';
-import { effectiveJob, jobOf } from './tacticsDocument';
+import { effectiveJobResolution, jobOf } from './tacticsDocument';
 
 /**
  * The natural-language readback: every Tactic card and wizard review reads its
@@ -377,11 +377,14 @@ export function transitionClause(
 
 /** The group's job in phase context — used by drawer section headers. */
 export function jobLabelFor(tactic: Tactic, phaseIndex: number, groupId: string): string {
-  const effective = effectiveJob(tactic, phaseIndex, groupId);
+  const resolved = effectiveJobResolution(tactic, phaseIndex, groupId);
+  const effective = resolved?.job ?? null;
   const raw = jobOf(tactic, phaseIndex, groupId);
   if (!raw) return 'no job';
-  if (raw.kind === 'none' && effective) {
-    return `carries on (${effective.kind})`;
+  if (raw.kind === 'none' && effective && resolved) {
+    const phase = tactic.phases[resolved.sourcePhaseIndex]?.name
+      ?? `Phase ${resolved.sourcePhaseIndex + 1}`;
+    return `carries on ${effective.kind} from ${phase}`;
   }
   return raw.kind;
 }

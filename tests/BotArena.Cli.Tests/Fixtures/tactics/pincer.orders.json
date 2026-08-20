@@ -1039,7 +1039,7 @@
       "zones": [
         "g-t1-p1-watch-1"
       ],
-      "freshnessTicks": 40
+      "freshnessTicks": 20
     },
     "c-t1-acquired": {
       "fact": "friendly-core-acquisitions",

@@ -229,6 +229,76 @@ public sealed class TacticsEncodingLifecycleTests
         Assert.Equal("t1-p2-g1-move", harness.EligibleLeaf(30));
     }
 
+    [Fact]
+    public void ObserveNeverVolunteersForFightWhileAggressiveDoesThenResumesGround()
+    {
+        Harness observe = Harness.ForRole("vex", tactics => MutateFlankerStage(
+            tactics, posture: "observe", travel: "observe", recovery: "fight-on"));
+        observe.World.AtStation = _ => true;
+        observe.World.EnemyNearby = _ => true;
+        Assert.Equal("t1-p1-g2-move", observe.EligibleLeaf(4));
+        Assert.Equal("t1-p1-g2-move", observe.EligibleLeaf(5));
+
+        Harness aggressive = Harness.ForRole("vex", tactics => MutateFlankerStage(
+            tactics, posture: "aggressive", travel: "observe", recovery: "fight-on"));
+        aggressive.World.AtStation = _ => true;
+        aggressive.World.EnemyNearby = tick => tick == 4;
+        Assert.Equal("t1-p1-g2-fight", aggressive.EligibleLeaf(4));
+        Assert.Equal("t1-p1-g2-move", aggressive.EligibleLeaf(5));
+    }
+
+    [Theory]
+    [InlineData("observe", "t1-p1-g2-move")]
+    [InlineData("hold", "t1-p1-g2-travel-fight")]
+    [InlineData("aggressive", "t1-p1-g2-travel-fight")]
+    public void EveryTravelBehaviorOwnsContactExactlyAsAuthored(
+        string travel,
+        string expected)
+    {
+        Harness harness = Harness.ForRole("vex", tactics => MutateFlankerStage(
+            tactics, posture: "observe", travel: travel, recovery: "fight-on"));
+        harness.World.AtStation = _ => false;
+        harness.World.EnemyNearby = _ => true;
+        Assert.Equal(expected, harness.EligibleLeaf(4));
+
+        // Arrival ends travel behavior; the quiet destination posture owns
+        // the same visible enemy without a hidden continuation fight.
+        harness.World.AtStation = _ => true;
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(5));
+    }
+
+    [Theory]
+    [InlineData("fight-on", "t1-p1-g2-move")]
+    [InlineData("heal-tile", "t1-p1-g2-heal")]
+    [InlineData("heal-up", "t1-p1-g2-heal-up")]
+    public void EveryRecoveryChoicePreemptsAndReturnsToTheSameGround(
+        string recovery,
+        string expected)
+    {
+        Harness harness = Harness.ForRole("vex", tactics => MutateFlankerStage(
+            tactics, posture: "observe", travel: "observe", recovery: recovery));
+        harness.World.Hurt = tick => tick == 4;
+        harness.World.BelowToppedUp = tick => tick == 4;
+        harness.World.ToppedUp = tick => tick > 4;
+        Assert.Equal(expected, harness.EligibleLeaf(4));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(5));
+    }
+
+    private static string MutateFlankerStage(
+        string tactics,
+        string posture,
+        string travel,
+        string recovery)
+    {
+        JsonObject document = JsonNode.Parse(tactics)!.AsObject();
+        JsonObject stage = document["tactics"]![0]!["groups"]![1]!["stage"]!
+            .AsObject();
+        stage["posture"] = posture;
+        stage["travel"] = travel;
+        stage["recovery"] = recovery;
+        return document.ToJsonString();
+    }
+
     /// <summary>
     /// Loads the real materialized Pincer orders (v1 fixture migrated and
     /// compiled through the real pipeline), parses the program table with
@@ -480,6 +550,10 @@ public sealed class TacticsEncodingLifecycleTests
         public Func<int, bool> EnemiesAtMid { get; set; } = _ => false;
         public Func<int, bool> Contact { get; set; } = _ => false;
         public Func<int, bool> Hurt { get; set; } = _ => false;
+        public Func<int, bool> AtStation { get; set; } = _ => false;
+        public Func<int, bool> EnemyNearby { get; set; } = _ => false;
+        public Func<int, bool> BelowToppedUp { get; set; } = _ => false;
+        public Func<int, bool> ToppedUp { get; set; } = _ => true;
         public Func<int, bool> Carrying { get; set; } = _ => false;
         public Func<int, bool> CoreInReach { get; set; } = _ => false;
         public int[] KillTicks { get; set; } = [];
@@ -522,7 +596,14 @@ public sealed class TacticsEncodingLifecycleTests
             "hurt" => Hurt(tick),
             "healthy" => !Hurt(tick),
             "patched-up" => !Hurt(tick),
-            "enemy-nearby" => false,
+            "enemy-nearby" => EnemyNearby(tick),
+            "enemy-no-longer-nearby" => !EnemyNearby(tick),
+            var value when value.Contains("-on-station", StringComparison.Ordinal) =>
+                AtStation(tick),
+            var value when value.Contains("-off-station", StringComparison.Ordinal) =>
+                !AtStation(tick),
+            "below-topped-up" => BelowToppedUp(tick),
+            "topped-up" => ToppedUp(tick),
             "signature-ready" => false,
             "core-in-reach" => CoreInReach(tick),
             "loose-core-known" => CoreInReach(tick),
