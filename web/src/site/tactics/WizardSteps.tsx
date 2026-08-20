@@ -29,6 +29,7 @@ import {
   assignedCount, jobComplete, unassignedSlots, type WizardState,
 } from './wizardState';
 import { describePlace } from './places';
+import { materializeSpatialJob } from './mapFirstSpatial';
 
 /**
  * The wizard's five steps. Each is a pure view over the wizard's working
@@ -398,7 +399,6 @@ export function PhasesStep(props: StepProps) {
   const index = Math.min(wizard.phaseIndex, tactic.phases.length - 1);
   const phase = tactic.phases[index];
   if (!phase) return null;
-  const last = index === tactic.phases.length - 1;
   return <>
     <p className="t-meta"><b>The operation, phase by phase.</b> Each phase says what every
       Group does; its “Continue when…” is latched — once the next phase begins, a lapsed
@@ -470,7 +470,20 @@ export function PhasesStep(props: StepProps) {
     {tactic.groups.map((group) => (
       <JobSection key={group.id} {...props} group={group} phaseIndex={index} />
     ))}
-    <div className="rounded-sm border border-arena-edge p-2"
+    <PhaseCustodyEditor {...props} phaseIndex={index} />
+    <TransitionEditor {...props} phaseIndex={index} />
+  </>;
+}
+
+/** Shared verbatim between Classic's phase page and Map-first's temporary
+ * Core drawer. Keeping this as the one mutation surface prevents custody
+ * behavior from drifting between layouts. */
+export function PhaseCustodyEditor(props: StepProps & { phaseIndex: number }) {
+  const { wizard, change, phaseIndex: index } = props;
+  const tactic = wizard.tactic;
+  const phase = tactic.phases[index];
+  if (!phase) return null;
+  return <div className="rounded-sm border border-arena-edge p-2"
       style={{ borderLeft: '3px solid #b49cff' }}>
       <div className="mb-1 flex items-center gap-2">
         <b className="t-body">Core custody</b>
@@ -525,8 +538,19 @@ export function PhasesStep(props: StepProps) {
             : <span className="t-micro text-arena-dim">optional — without one the carrier picks its own way</span>}
         </div>
       )}
-    </div>
-    <div className="rounded-sm border border-arena-edge p-2"
+    </div>;
+}
+
+/** The complete existing transition case editor, reusable in Map-first's
+ * temporary drawer. Required/Triggered/Unless, alternatives and every zone
+ * drawing callback remain the exact same component and mutation path. */
+export function TransitionEditor(props: StepProps & { phaseIndex: number }) {
+  const { wizard, change, endTask, phaseIndex: index } = props;
+  const tactic = wizard.tactic;
+  const phase = tactic.phases[index];
+  if (!phase) return null;
+  const last = index === tactic.phases.length - 1;
+  return <div className="rounded-sm border border-arena-edge p-2"
       id={`transition-controls-${phase.id}`}
       style={{ borderLeft: '3px solid #c8763c' }}>
       <div className="mb-1 flex items-center gap-2">
@@ -575,11 +599,14 @@ export function PhasesStep(props: StepProps) {
         <p className="t-micro mt-1 text-arena-dim">No ending ticked: once here, the squad holds
           this phase until a Tactic-wide abort, the time limit, or the match itself intervenes.</p>
       )}
-    </div>
-  </>;
+    </div>;
 }
 
-function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number }) {
+export function JobSection(props: StepProps & {
+  group: TacticGroup;
+  phaseIndex: number;
+  mapFirst?: boolean;
+}) {
   const {
     catalog, document, wizard, group, phaseIndex, task, change,
     selectPhase, startJobTask, startPostViaTask, startSigTask, endTask, highlightPost,
@@ -602,6 +629,8 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
     : null;
   const color = groupColor(tactic, group.id);
   const kinds = JOB_KINDS
+    .filter((kind) => !props.mapFirst || kind.id === 'posts' || kind.id === 'patrol'
+      || kind.id === job.kind)
     .filter((kind) => kind.id !== 'escort'
       // Escort only makes sense when someone can end up carrying — keyed off
       // content (a delivery plan or a Core habit), never off the recipe.
@@ -676,10 +705,12 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
           : <>No earlier assignment to continue. Choose a job and draw its ground.</>}
       </div>}
       {!kindDef && job.kind !== 'none' && <div className="mb-1 rounded-sm border border-arena-warning/50 bg-arena-warning/5 p-2 t-micro text-arena-warning">
-        Existing advanced job: <b>{job.kind}</b>. It still runs as saved. Choose one of the four normal jobs below only when you want to replace it.
+        Existing advanced job: <b>{job.kind}</b>. It still runs as saved. {props.mapFirst
+          ? 'Use the explicit Convert to posts action in the map toolbar only when you want to replace it.'
+          : 'Choose one of the four normal jobs below only when you want to replace it.'}
       </div>}
-      <SegChips options={kinds} value={job.kind} accent={color}
-        onChange={(kind) => setKind(kind as JobKind)} />
+      {!props.mapFirst && <SegChips options={kinds} value={job.kind} accent={color}
+        onChange={(kind) => setKind(kind as JobKind)} />}
       {jobUndo && <button type="button" className="btn mt-1"
         onClick={() => {
           const restore = structuredClone(jobUndo);
@@ -714,6 +745,32 @@ function JobSection(props: StepProps & { group: TacticGroup; phaseIndex: number 
                 ? `${group.name} starts loose — nothing to draw.`
                 : `${group.name} has no earlier ground to carry — pick a job or draw one in an earlier phase.`}
           drawing={false} />}
+      {props.mapFirst && carried?.kind === 'posts' && (carried.posts?.length ?? 0) > 0 && (
+        <div className="mt-1 rounded-sm border border-arena-material/35 bg-arena-material/5 p-1.5">
+          <div className="lab mb-1">Inherited exact Posts</div>
+          {carried.posts!.map((post, postIndex) => {
+            const bot = document.squad[post.slot ?? group.slots[postIndex]];
+            const mine = task?.kind === 'job' && task.groupId === group.id
+              && task.phaseIndex === phaseIndex && task.field === 'via'
+              && task.postIndex === postIndex;
+            return <GeoStatusRow key={postIndex}
+              complete={(post.via?.length ?? 0) >= 2}
+              label={`${bot?.name ?? `Post ${postIndex + 1}`} — way in${post.via?.length
+                ? ` · ${post.via.length} waypoints` : ' (direct)'}`}
+              drawing={mine} drawLabel="Draw route"
+              onDraw={() => {
+                change((next) => { materializeSpatialJob(next, phaseIndex, group.id); });
+                startPostViaTask(group.id, phaseIndex, postIndex);
+              }}
+              onStop={endTask}
+              onClear={post.via ? () => change((next) => {
+                const target = materializeSpatialJob(next, phaseIndex, group.id);
+                const targetPost = target?.posts?.[postIndex];
+                if (targetPost) delete targetPost.via;
+              }) : undefined} />;
+          })}
+        </div>
+      )}
       {job.kind === 'posts' && (job.posts?.length ?? 0) > 0 && (
         <p className="t-micro mt-1 text-arena-dim">Each posted bot stands on its tile facing one of
           four ways — drag its arrow tip to turn it; the wedge is what it watches.</p>

@@ -5149,6 +5149,9 @@
           "fantasy",
           "starter",
           "unlocked",
+          "visionRange",
+          "visionProximityRange",
+          "attackRange",
           "signatureAuthoring"
         ],
         "type": "object",
@@ -5176,6 +5179,18 @@
           },
           "unlocked": {
             "type": "boolean"
+          },
+          "visionRange": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "visionProximityRange": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "attackRange": {
+            "type": "integer",
+            "format": "int32"
           },
           "signatureAuthoring": {
             "$ref": "#/components/schemas/TacticalSheetSignatureAuthoringResponse"

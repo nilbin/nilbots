@@ -11,7 +11,10 @@ test('Map-first and Classic are views over the same draft and wizard', () => {
   assert.match(page, /data-layout=\{layoutMode\}/);
   assert.match(page, /<TacticsMapCanvas[\s\S]*document=\{document\}/);
   assert.match(page, /<PhasesStep \{\.\.\.stepProps\} \/>/,
-    'Map-first keeps the existing full phases editor instead of a parallel form');
+    'Classic keeps the existing full phases editor over the shared wizard');
+  assert.match(page, /layoutMode === 'classic' && <section[\s\S]*data-testid="drawer"/,
+    'the permanent wizard drawer only belongs to Classic');
+  assert.match(page, /data-testid="map-first-context-drawer"/);
   assert.doesNotMatch(chrome, /onChange=\{\(cases\)/,
     'timeline chrome must not own a reduced/forked condition mutation path');
 });
@@ -20,7 +23,7 @@ test('start, abort and every sequential transition route to full existing contro
   assert.match(chrome, /map-first-start/);
   assert.match(chrome, /map-first-abort/);
   assert.match(chrome, /map-first-transition-/);
-  assert.match(page, /focus\.kind === 'transition'[\s\S]*transition-controls-/);
+  assert.match(page, /mapFirstPanel\.kind === 'transition'[\s\S]*<TransitionEditor/);
   assert.match(steps, /id="start-controls"/);
   assert.match(steps, /id="abort-controls"/);
   assert.match(steps, /id=\{`transition-controls-\$\{phase\.id\}`\}/);
@@ -34,7 +37,26 @@ test('group trays use real sprites, truthful carry source and authoritative Post
   assert.match(chrome, /classSprite\(bot\.class\)/);
   assert.match(chrome, /Carried from \{tactic\.phases\[resolution\.sourcePhaseIndex\]\?\.name\}/);
   assert.match(chrome, /application\/x-nilbots-post/);
-  assert.match(page, /job\?\.kind !== 'posts'/);
+  assert.match(page, /effectiveJobResolution\(wizard\.tactic, phaseIndex, groupId\)/);
   assert.match(page, /target\.posts\.push\(\{ at: \[x, y\], facing, slot \}\)/);
   assert.match(page, /followMembership\(tactic, document\.squad, before, new Map\(\)\)/);
+});
+
+test('ordinary Map-first authoring exposes only Posts and Patrol while preserving legacy jobs', () => {
+  assert.match(chrome, /effective\.kind === 'posts' \|\| effective\.kind === 'patrol'/);
+  assert.match(chrome, /Loaded \{effective\.kind\}/);
+  assert.match(chrome, /Convert to posts/);
+  assert.match(chrome, /projectedPostsForLegacyJob/);
+  assert.doesNotMatch(chrome, /label="Area"/);
+  assert.doesNotMatch(chrome, /label="Converge"/);
+});
+
+test('Map-first contextual editors reuse full business components and omit Review', () => {
+  assert.match(page, /<StartStep \{\.\.\.stepProps\} \/>/);
+  assert.match(page, /<GroupsStep \{\.\.\.stepProps\} \/>/);
+  assert.match(page, /<CoresStep \{\.\.\.stepProps\} \/>/);
+  assert.match(page, /<PhaseCustodyEditor \{\.\.\.stepProps\}/);
+  assert.match(page, /<JobSection \{\.\.\.stepProps\}[\s\S]*mapFirst/);
+  const mapFirstDrawer = page.slice(page.indexOf('data-testid="map-first-context-drawer"'));
+  assert.doesNotMatch(mapFirstDrawer, /<ReviewStep/);
 });

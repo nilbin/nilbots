@@ -47,7 +47,9 @@ public static class TacticalSheetEndpoints
                 userId, cancellationToken);
             ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
                 ArcRelayLoopProfile.Current);
-            var mode = AssertArcRelayMode();
+            ActorRulesDefinition rules = ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.Current);
+            var mode = (ArcRelayGameModeDefinition)rules.GameMode;
             IReadOnlyDictionary<string, ArcRelaySignatureDefinition>
                 signatures = mode.Signatures.ToDictionary(
                     value => value.ClassId, StringComparer.Ordinal);
@@ -58,17 +60,31 @@ public static class TacticalSheetEndpoints
                 ArcRelayComposition.SlotCount,
                 ArcRelayComposition.MaximumCopiesPerClass,
                 mode.MinimumDistinctClasses,
-                classes.All.Select(value => new TacticalSheetClassResponse(
-                    value.Id,
-                    value.Name,
-                    value.SignatureId,
-                    value.ActionId,
-                    value.SignatureName,
-                    value.Fantasy,
-                    value.Starter,
-                    unlocked.Contains(value.Id),
-                    TacticalSheetSignatureAuthoringProjection.Project(
-                        signatures[value.Id]))).ToArray(),
+                classes.All.Select(value =>
+                {
+                    ActorFormDefinition form = rules.Forms.Single(entry =>
+                        entry.Id == ArcRelayH0Definition.FormPrefix + value.Id);
+                    ActorVisionProfileDefinition vision = rules.VisionProfiles
+                        .Single(entry => entry.Id == form.VisionProfileId);
+                    int attackRange = form.AttackProfileId is string attackId
+                        ? rules.AttackProfiles.Single(entry =>
+                            entry.Id == attackId).Projectile.MaxTravelTiles
+                        : 0;
+                    return new TacticalSheetClassResponse(
+                        value.Id,
+                        value.Name,
+                        value.SignatureId,
+                        value.ActionId,
+                        value.SignatureName,
+                        value.Fantasy,
+                        value.Starter,
+                        unlocked.Contains(value.Id),
+                        vision.Range,
+                        vision.OmnidirectionalProximityRange,
+                        attackRange,
+                        TacticalSheetSignatureAuthoringProjection.Project(
+                            signatures[value.Id]));
+                }).ToArray(),
                 templates.Starters.Select(value => new TacticalStarterSheetResponse(
                     value.Id,
                     value.Name,
@@ -85,10 +101,6 @@ public static class TacticalSheetEndpoints
                     value.Name,
                     value.Description,
                     value.Composition)).ToArray()));
-
-            static ArcRelayGameModeDefinition AssertArcRelayMode() =>
-                (ArcRelayGameModeDefinition)ArcRelayH0Definition.CreateRules(
-                    ArcRelayLoopProfile.Current).GameMode;
         }).Produces<TacticalSheetCatalogResponse>();
 
         group.MapGet("/", async (

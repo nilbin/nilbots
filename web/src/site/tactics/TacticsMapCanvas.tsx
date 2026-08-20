@@ -2,13 +2,17 @@ import { useMemo, useRef, useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BaseMap } from './BaseMap';
 import { projectPhaseBots } from './botProjection';
+import {
+  facingFromPointer, materializeSpatialJob, rotatePostSelection,
+  translatePostSelection,
+} from './mapFirstSpatial';
 import { classSprite } from './classArt';
 import { makePathfinder } from './pathing';
 import { describePlace } from './places';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
-  FACING_DELTAS, effectiveJob, effectiveJobResolution, groupColor, jobOf, phaseShade, postFacingIssue,
-  signatureMarkGeometry, tilePlacementIssue,
+  FACING_DELTAS, effectiveJob, effectiveJobResolution, groupColor, jobOf, phaseShade,
+  postFacingIssue, signatureMarkGeometry, tilePlacementIssue,
   type Facing, type Point, type Rect, type SquadBot, type Tactic,
   type TacticConds, type TacticGroup, type TacticJob, type TacticsDocument,
   type WellChoice,
@@ -30,8 +34,8 @@ export type MapSelectRef =
   | { tacticId: string; part: 'post'; groupId: string; phaseIndex: number; postIndex: number };
 
 type DragTarget =
-  | { kind: 'post'; groupId: string; phaseIndex: number; index: number; origin: Point }
-  | { kind: 'postface'; groupId: string; phaseIndex: number; index: number }
+  | { kind: 'post'; groupId: string; phaseIndex: number; index: number; slot: number; slots: number[]; origin: Point }
+  | { kind: 'postface'; groupId: string; phaseIndex: number; index: number; slot: number; slots: number[] }
   | { kind: 'waypoint'; groupId: string; phaseIndex: number; index: number }
   | { kind: 'point'; groupId: string; phaseIndex: number }
   | { kind: 'rectmove'; groupId: string; phaseIndex: number }
@@ -62,9 +66,11 @@ export function watchConds(tactic: Tactic, target: WatchTarget): TacticConds | n
 export function TacticsMapCanvas({
   catalog, document, editingTacticId, activePhaseIndex, selectedTacticId,
   showAll, showAllPhases, showProjectedBots = false,
-  showAdjacentPhases = true, task, hints,
+  showAdjacentPhases = true, allowInheritedSpatialEditing = false,
+  selectedSlots = [], showVision = false,
+  showAttackRange = false, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
-  onSelect, onTaskDone, onTileRejected, onPostsSwapped,
+  onSelect, onClearSelection, onTaskDone, onTileRejected, onPostsSwapped,
   onPostBotDropped,
 }: {
   catalog: TacticalSheetCatalog;
@@ -80,6 +86,11 @@ export function TacticsMapCanvas({
   /** Classic keeps its historical dim neighbours. Map-first defaults to one
    * clear active layer; its existing checkbox can still opt into all phases. */
   showAdjacentPhases?: boolean;
+  /** Map-first copy-on-write permits handles on inherited Posts/Patrol. */
+  allowInheritedSpatialEditing?: boolean;
+  selectedSlots?: readonly number[];
+  showVision?: boolean;
+  showAttackRange?: boolean;
   task: MapTask | null;
   hints: Map<string, { rect: Rect; text: string }> | null;
   onTilePicked: (x: number, y: number) => void;
@@ -87,7 +98,8 @@ export function TacticsMapCanvas({
   onGeometryLive: (edit: GeometryEdit) => void;
   onGestureStart: () => void;
   onGestureEnd: () => void;
-  onSelect: (ref: MapSelectRef) => void;
+  onSelect: (ref: MapSelectRef, additive?: boolean) => void;
+  onClearSelection?: () => void;
   /** Finish an open route task (double-click, mirroring the Done button). */
   onTaskDone?: () => void;
   /** A draw-task click landed on an illegal tile; the reason is ready to show. */
@@ -203,7 +215,7 @@ export function TacticsMapCanvas({
           tacticId: editingTacticId, part: 'post',
           groupId: drag.groupId, phaseIndex: drag.phaseIndex,
           postIndex: drag.index,
-        });
+        }, event.metaKey || event.ctrlKey || event.shiftKey);
         return;
       }
       finishDrag(drag);
@@ -244,22 +256,25 @@ export function TacticsMapCanvas({
       const raw = selectable.getAttribute('data-select')!;
       const [tacticId, part, a, b, c] = raw.split(':');
       if (part === 'group') {
-        onSelect({ tacticId, part, groupId: a, phaseIndex: Number(b) });
+        onSelect({ tacticId, part, groupId: a, phaseIndex: Number(b) },
+          event.metaKey || event.ctrlKey || event.shiftKey);
       } else if (part === 'post') {
         onSelect({
           tacticId, part, groupId: a,
           phaseIndex: Number(b), postIndex: Number(c),
-        });
+        }, event.metaKey || event.ctrlKey || event.shiftKey);
       } else if (part === 'bot') {
         onSelect({
           tacticId, part, groupId: a,
           phaseIndex: Number(b), slot: Number(c),
-        });
+        }, event.metaKey || event.ctrlKey || event.shiftKey);
       } else if (part === 'phase') {
         onSelect({ tacticId, part, phaseIndex: Number(a) });
       } else {
         onSelect({ tacticId, part: part as 'start' | 'cores' });
       }
+    } else if (!task) {
+      onClearSelection?.();
     }
   }
 
@@ -293,21 +308,30 @@ export function TacticsMapCanvas({
         }
         return;
       }
-      const job = tactic.phases[drag.phaseIndex]?.jobs[drag.groupId];
+      const job = allowInheritedSpatialEditing
+        && (drag.kind === 'post' || drag.kind === 'postface' || drag.kind === 'waypoint')
+        ? materializeSpatialJob(tactic, drag.phaseIndex, drag.groupId)
+        : tactic.phases[drag.phaseIndex]?.jobs[drag.groupId];
       if (!job) return;
+      if (job.posts) {
+        const owner = tactic.groups.find((group) => group.id === drag.groupId);
+        job.posts.forEach((post, index) => {
+          if (post.slot == null) post.slot = owner?.slots[index];
+        });
+      }
       if (drag.kind === 'postface') {
         const post = job.posts?.[drag.index];
         if (!post) return;
-        const dx = x - post.at[0];
-        const dy = y - post.at[1];
-        if (!dx && !dy) return;
-        const candidate: Facing = Math.abs(dx) >= Math.abs(dy)
-          ? (dx > 0 ? 'e' : 'w')
-          : (dy > 0 ? 's' : 'n');
-        // The tip only snaps to directions whose watched tile is legal — a
-        // post cannot be turned to stare into a wall or spawn ground.
-        if (postFacingIssue(catalog, { at: post.at, facing: candidate })) return;
-        post.facing = candidate;
+        const candidate = facingFromPointer(post.at, [x, y]);
+        if (!candidate) return;
+        if (!allowInheritedSpatialEditing) {
+          if (!postFacingIssue(catalog, { at: post.at, facing: candidate })) post.facing = candidate;
+          return;
+        }
+        if (!rotatePostSelection(catalog, job.posts ?? [], drag.slots, candidate)) return;
+        for (const target of job.posts ?? []) {
+          if (target.slot != null && drag.slots.includes(target.slot)) target.facing = candidate;
+        }
         return;
       }
       if (drag.kind === 'sigpoint') {
@@ -318,7 +342,17 @@ export function TacticsMapCanvas({
         return;
       }
       if (drag.kind === 'post') {
-        if (job.posts?.[drag.index]) job.posts[drag.index].at = [x, y];
+        if (!allowInheritedSpatialEditing) {
+          if (job.posts?.[drag.index]) job.posts[drag.index].at = [x, y];
+          return;
+        }
+        const translated = translatePostSelection(
+          catalog, job.posts ?? [], drag.slots, drag.slot, [x, y]);
+        if (!translated) return;
+        for (const post of job.posts ?? []) {
+          const at = post.slot == null ? undefined : translated.positions.get(post.slot);
+          if (at) post.at = at;
+        }
       } else if (drag.kind === 'waypoint') {
         if (job.path?.[drag.index]) job.path[drag.index] = [x, y];
       } else if (drag.kind === 'point') {
@@ -336,11 +370,10 @@ export function TacticsMapCanvas({
     });
   }
 
-  /** Dropping a posted bot onto a groupmate's tile swaps their posts. */
+  /** Map-first selection translation already resolves collisions. Classic
+   * retains its established single-Post swap behavior unchanged. */
   function finishDrag(drag: DragTarget) {
-    if (drag.kind !== 'post') return;
-    // The live drag already moved the post in the document, so a shared tile
-    // here means the drop is a swap — detect before the edit, announce after.
+    if (drag.kind !== 'post' || allowInheritedSpatialEditing) return;
     const liveJob = document.tactics
       .find((value) => value.id === editingTacticId)
       ?.phases[drag.phaseIndex]?.jobs[drag.groupId];
@@ -437,12 +470,15 @@ export function TacticsMapCanvas({
                       phaseIndex={phaseIndex} bots={bots}
                       catalog={catalog} dim={dim}
                       editable={editable(tactic) && phaseIndex === focus}
+                      allowInheritedSpatialEditing={allowInheritedSpatialEditing}
+                      selectedSlots={selectedSlots}
                       startDrag={startDrag} pathfinder={path} />
                   ))}
                   {phase.custody?.via && phase.custody.via.length > 1
                     && phase.custody.plan !== 'keep' && (() => {
                       const home: Point = [2, 5];
-                      const run = path.connect([...phase.custody.via, home]);
+                      const run = path.connectSafe([...phase.custody.via, home]);
+                      if (!run) return null;
                       const shade = phaseShade(
                         '#b49cff', phaseIndex, tactic.phases.length);
                       const mid = run[Math.floor(run.length / 2)];
@@ -467,7 +503,12 @@ export function TacticsMapCanvas({
               {showProjectedBots && !dim && (
                 <BotProjectionLayer catalog={catalog} document={document}
                   tactic={tactic} phaseIndex={activePhaseIndex ?? 0}
-                  pathfinder={path} />
+                  pathfinder={path} selectedSlots={selectedSlots} />
+              )}
+              {!dim && (showVision || showAttackRange) && (
+                <SelectedBotRanges catalog={catalog} document={document} tactic={tactic}
+                  phaseIndex={activePhaseIndex ?? 0} selectedSlots={selectedSlots}
+                  showVision={showVision} showAttackRange={showAttackRange} />
               )}
             </g>
             {tagAnchor && tag && <ChipLabel x={tagAnchor[0] + .5} y={tagAnchor[1] - .35}
@@ -484,12 +525,15 @@ export function TacticsMapCanvas({
 /** The bots implied by Area/Converge/Patrol are deliberately a preview: the
  * authored geometry remains the contract. Exact Posts are already drawn by
  * JobOverlay and are excluded here so a bot never appears twice. */
-export function BotProjectionLayer({ catalog, document, tactic, phaseIndex, pathfinder }: {
+export function BotProjectionLayer({
+  catalog, document, tactic, phaseIndex, pathfinder, selectedSlots = [],
+}: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
   tactic: Tactic;
   phaseIndex: number;
   pathfinder: ReturnType<typeof makePathfinder>;
+  selectedSlots?: readonly number[];
 }) {
   const projection = projectPhaseBots(catalog, document, tactic, phaseIndex);
   const previous = phaseIndex > 0
@@ -523,6 +567,8 @@ export function BotProjectionLayer({ catalog, document, tactic, phaseIndex, path
         data-testid={`projected-bot-${projectionBot.slot}`}>
         <circle cx={x + .5} cy={y + .5} r={.47} fill="#06090c" fillOpacity=".72"
           stroke={color} strokeWidth={.075} strokeDasharray=".12 .09" />
+        {selectedSlots.includes(projectionBot.slot) && <circle cx={x + .5} cy={y + .5}
+          r={.61} fill="none" stroke="#e9fbff" strokeWidth={.09} />}
         {sprite
           ? <image href={sprite} x={x} y={y} width={1} height={1} opacity=".9" />
           : <text x={x + .5} y={y + .64} textAnchor="middle" fontSize=".38"
@@ -542,6 +588,68 @@ export function BotProjectionLayer({ catalog, document, tactic, phaseIndex, path
         text={`${group.name.toUpperCase()} · NO POSITION PREVIEW`}
         color={groupColor(tactic, groupId)} opacity={.9}
         mapWidth={catalog.map.width} mapHeight={catalog.map.height} />;
+    })}
+  </g>;
+}
+
+/** Selected-only tactical reach. Values come from the server catalog's
+ * authoritative current actor rules; legacy catalogs simply omit a layer
+ * rather than guessing a distance. Vision is drawn only where an authored
+ * Post supplies a real facing. */
+export function SelectedBotRanges({
+  catalog, document, tactic, phaseIndex, selectedSlots, showVision, showAttackRange,
+}: {
+  catalog: TacticalSheetCatalog;
+  document: TacticsDocument;
+  tactic: Tactic;
+  phaseIndex: number;
+  selectedSlots: readonly number[];
+  showVision: boolean;
+  showAttackRange: boolean;
+}) {
+  const projection = projectPhaseBots(catalog, document, tactic, phaseIndex);
+  return <g data-testid="selected-bot-ranges" pointerEvents="none">
+    {projection.bots.filter((bot) => selectedSlots.includes(bot.slot)).map((projected) => {
+      const bot = document.squad[projected.slot];
+      const classEntry = catalog.classes.find((entry) => entry.id === bot?.class) as
+        | (TacticalSheetCatalog['classes'][number] & {
+          visionRange?: number;
+          visionProximityRange?: number;
+          attackRange?: number;
+        }) | undefined;
+      if (!bot || !classEntry) return null;
+      const resolution = effectiveJobResolution(tactic, phaseIndex, projected.groupId);
+      const post = resolution?.job.kind === 'posts'
+        ? resolution.job.posts?.find((value, index) =>
+          (value.slot ?? tactic.groups.find((group) => group.id === projected.groupId)?.slots[index])
+            === projected.slot)
+        : null;
+      const [x, y] = projected.at;
+      const cx = x + .5;
+      const cy = y + .5;
+      const color = groupColor(tactic, projected.groupId);
+      const facingAngle: Record<Facing, number> = { e: 0, s: Math.PI / 2, w: Math.PI, n: -Math.PI / 2 };
+      const angle = post ? facingAngle[post.facing] : null;
+      const vision = classEntry.visionRange ?? 0;
+      const proximity = classEntry.visionProximityRange ?? 0;
+      const attack = classEntry.attackRange ?? 0;
+      const half = Math.PI / 4;
+      const sector = angle == null || vision <= 0 ? null : (() => {
+        const x1 = cx + Math.cos(angle - half) * vision;
+        const y1 = cy + Math.sin(angle - half) * vision;
+        const x2 = cx + Math.cos(angle + half) * vision;
+        const y2 = cy + Math.sin(angle + half) * vision;
+        return `M ${cx} ${cy} L ${x1} ${y1} A ${vision} ${vision} 0 0 1 ${x2} ${y2} Z`;
+      })();
+      return <g key={`range-${projected.slot}`} data-testid={`selected-bot-range-${projected.slot}`}>
+        {showVision && sector && <path d={sector} fill={`${color}16`} stroke={color}
+          strokeWidth={.07} strokeDasharray=".16 .12" />}
+        {showVision && proximity > 0 && <circle cx={cx} cy={cy} r={proximity}
+          fill="none" stroke={color} strokeWidth={.055} strokeDasharray=".08 .14" opacity={.65} />}
+        {showAttackRange && attack > 0 && <circle cx={cx} cy={cy} r={attack}
+          fill="none" stroke="#f0b35a" strokeWidth={.075} strokeDasharray=".22 .13" opacity={.8} />}
+        <title>{`${bot.name}${showVision && angle == null ? ': vision unavailable without an exact facing' : ''}`}</title>
+      </g>;
     })}
   </g>;
 }
@@ -703,7 +811,10 @@ function ConditionFootprints({
 /** One group's job in one phase. The first phase renders full-bodied
  * (ground you stand on); later phases render as the onward move — arrows
  * from the previous ground for movers, dashed ground for a new stand. */
-export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, editable, startDrag, pathfinder }: {
+export function JobOverlay({
+  tactic, group, phaseIndex, bots, catalog, dim, editable,
+  allowInheritedSpatialEditing = false, selectedSlots = [], startDrag, pathfinder,
+}: {
   tactic: Tactic;
   group: TacticGroup;
   phaseIndex: number;
@@ -711,6 +822,8 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
   catalog: TacticalSheetCatalog;
   dim: boolean;
   editable: boolean;
+  allowInheritedSpatialEditing?: boolean;
+  selectedSlots?: readonly number[];
   startDrag: (event: React.PointerEvent, target: DragTarget) => void;
   pathfinder: ReturnType<typeof makePathfinder>;
 }) {
@@ -719,7 +832,8 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
   if (!raw || !resolution) return null;
   const job = resolution.job;
   const inherited = resolution.inherited;
-  const geometryEditable = editable && !inherited;
+  const geometryEditable = editable && (!inherited
+    || (allowInheritedSpatialEditing && (job.kind === 'posts' || job.kind === 'patrol')));
   const color = phaseShade(
     groupColor(tactic, group.id), phaseIndex, tactic.phases.length);
   const select = `${tactic.id}:group:${group.id}:${phaseIndex}`;
@@ -740,8 +854,8 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
       const from = jobCentroid(previous, pathfinder);
       const to = jobAnchor(job);
       if (to) {
-        const run = pathfinder.findPath(from, to) ?? [from, to];
-        parts.push(<ArrowPath key="onward" points={run} color={color}
+        const run = pathfinder.findPath(from, to);
+        if (run) parts.push(<ArrowPath key="onward" points={run} color={color}
           select={select} dash=".14 .2" width={.09} opacity={.7} />);
       }
     }
@@ -761,11 +875,11 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
       </g>);
     }
     if (job.path && job.path.length > 1) {
-      const points = pathfinder.connect(job.path);
+      const points = pathfinder.connectSafe(job.path);
       parts.push(<g key="path">
-        <polyline points={points.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+        {points && <polyline points={points.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
           fill="none" stroke={color} strokeWidth={.13} strokeDasharray=".3 .2"
-          strokeLinejoin="round" strokeLinecap="round" data-select={select} cursor="pointer" />
+          strokeLinejoin="round" strokeLinecap="round" data-select={select} cursor="pointer" />}
         {job.path.map(([x, y], index) => geometryEditable
           ? <Handle key={index} cx={x + .5} cy={y + .5}
             onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phaseIndex, index })} />
@@ -799,6 +913,7 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
         const tipX = cx + Math.cos(angle) * .88;
         const tipY = cy + Math.sin(angle) * .88;
         const bot = bots[post.slot ?? group.slots[index]];
+        const slot = post.slot ?? group.slots[index];
         const entry = bot ? catalog.classes.find((value) => value.id === bot.class) : null;
         const sprite = bot ? classSprite(bot.class) : undefined;
         // Facing angle in degrees: sprites are authored facing east (0°), the
@@ -808,6 +923,8 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
         // row in the drawer, not just the group section.
         const postSelect = `${tactic.id}:post:${group.id}:${phaseIndex}:${index}`;
         parts.push(<g key={`post-${index}`}>
+          {selectedSlots.includes(slot) && <circle cx={cx} cy={cy} r={.63}
+            fill="none" stroke="#e9fbff" strokeWidth={.09} pointerEvents="none" />}
           <path d={`M ${cx} ${cy}
               L ${cx + Math.cos(a1) * wr} ${cy + Math.sin(a1) * wr}
               A ${wr} ${wr} 0 0 1 ${cx + Math.cos(a2) * wr} ${cy + Math.sin(a2) * wr} Z`}
@@ -836,20 +953,29 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
             </g>}
           {post.via && post.via.length > 1 && (
             <g>
-              <polyline points={pathfinder.connect([...post.via, post.at])
-                .map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
-                fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".1 .22"
-                strokeLinejoin="round" strokeLinecap="round" opacity=".75"
-                data-select={select} cursor="pointer" />
+              {(() => {
+                const wayIn = pathfinder.connectSafe([...post.via!, post.at]);
+                return wayIn ? <polyline points={wayIn
+                  .map(([px, py]) => `${px + .5},${py + .5}`).join(' ')}
+                  fill="none" stroke={color} strokeWidth={.07} strokeDasharray=".1 .22"
+                  strokeLinejoin="round" strokeLinecap="round" opacity=".75"
+                  data-select={select} cursor="pointer" /> : null;
+              })()}
               {post.via.map(([wx, wy], wi) =>
                 <circle key={wi} cx={wx + .5} cy={wy + .5} r={.1} fill={color} opacity=".75" />)}
             </g>
           )}
           {geometryEditable && <>
             <Handle cx={cx} cy={cy} r={.42}
-              onDown={(event) => startDrag(event, { kind: 'post', groupId: group.id, phaseIndex, index, origin: [x, y] })} />
+              onDown={(event) => startDrag(event, {
+                kind: 'post', groupId: group.id, phaseIndex, index, slot,
+                slots: selectedSlots.includes(slot) ? [...selectedSlots] : [slot], origin: [x, y],
+              })} />
             <Handle cx={tipX} cy={tipY} r={.3}
-              onDown={(event) => startDrag(event, { kind: 'postface', groupId: group.id, phaseIndex, index })} />
+              onDown={(event) => startDrag(event, {
+                kind: 'postface', groupId: group.id, phaseIndex, index, slot,
+                slots: selectedSlots.includes(slot) ? [...selectedSlots] : [slot],
+              })} />
           </>}
         </g>);
       });
@@ -862,9 +988,9 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
       : previous ? jobStarts(previous, group, pathfinder) : [[3, 5] as Point];
     parts.push(<g key="converge" data-testid="converge-fan">
       {starts.map((from, index) => {
-        const run = pathfinder.findPath(from, job.point!) ?? [from, job.point!];
-        return <ArrowPath key={index} points={run} color={color} select={select}
-          width={starts.length > 1 ? .09 : .16} opacity={starts.length > 1 ? .75 : .92} />;
+        const run = pathfinder.findPath(from, job.point!);
+        return run ? <ArrowPath key={index} points={run} color={color} select={select}
+          width={starts.length > 1 ? .09 : .16} opacity={starts.length > 1 ? .75 : .92} /> : null;
       })}
       <g data-select={select} cursor="pointer">
         <circle cx={job.point[0] + .5} cy={job.point[1] + .5} r={.5} fill="none" stroke={color} strokeWidth={.1} />
@@ -877,8 +1003,9 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
   }
   if ((job.kind === 'advance' || job.kind === 'patrol') && job.path && job.path.length > 1) {
     const loop = job.kind === 'patrol' ? [...job.path, job.path[0]] : job.path;
+    const connected = pathfinder.connectSafe(loop);
     parts.push(<g key="mover-path">
-      <ArrowPath points={pathfinder.connect(loop)} color={color} select={select} loop={job.kind === 'patrol'} />
+      {connected && <ArrowPath points={connected} color={color} select={select} loop={job.kind === 'patrol'} />}
       {job.path.map(([x, y], index) => geometryEditable
         ? <Handle key={index} cx={x + .5} cy={y + .5}
           onDown={(event) => startDrag(event, { kind: 'waypoint', groupId: group.id, phaseIndex, index })} />
@@ -888,19 +1015,20 @@ export function JobOverlay({ tactic, group, phaseIndex, bots, catalog, dim, edit
   if (job.kind === 'return') {
     const start = (previous && jobAnchor(previous)) ?? [3, 5] as Point;
     const home: Point = [2, 5];
-    const run = pathfinder.findPath(start, home) ?? [start, home];
+    const run = pathfinder.findPath(start, home);
     parts.push(<g key="return">
-      <ArrowPath points={run} color={color} select={select} dash=".3 .2" />
+      {run && <ArrowPath points={run} color={color} select={select} dash=".3 .2" />}
       <circle cx={home[0] + .5} cy={home[1] + .5} r={.55} fill="none" stroke={color}
         strokeWidth={.09} strokeDasharray=".22 .14" />
     </g>);
   }
   if (job.via && job.via.length > 1) {
+    const connected = pathfinder.connectSafe(job.via);
     parts.push(<g key="via">
-      <polyline points={pathfinder.connect(job.via).map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+      {connected && <polyline points={connected.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
         fill="none" stroke={color} strokeWidth={.08} strokeDasharray=".12 .26"
         strokeLinejoin="round" strokeLinecap="round" opacity=".8"
-        data-select={select} cursor="pointer" />
+        data-select={select} cursor="pointer" />}
       {job.via.map(([x, y], index) =>
         <circle key={index} cx={x + .5} cy={y + .5} r={.11} fill={color} opacity=".8" />)}
     </g>);

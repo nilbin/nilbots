@@ -3231,6 +3231,12 @@ export interface components {
             fantasy: string;
             starter: boolean;
             unlocked: boolean;
+            /** Format: int32 */
+            visionRange: number;
+            /** Format: int32 */
+            visionProximityRange: number;
+            /** Format: int32 */
+            attackRange: number;
             signatureAuthoring: components["schemas"]["TacticalSheetSignatureAuthoringResponse"];
         };
         TacticalSheetDeletedResponse: {

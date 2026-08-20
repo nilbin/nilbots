@@ -143,9 +143,10 @@ test('the map draws condition footprints under grabbable group geometry', () => 
   assert.match(canvas, /data-testid="tactics-map"/);
 });
 
-test('carry-forward map geometry is truthful but remains owned by its source phase', () => {
+test('carry-forward map geometry is truthful and Map-first edits materialize copy-on-write', () => {
   assert.match(canvas, /effectiveJobResolution\(tactic, phaseIndex, group\.id\)/);
-  assert.match(canvas, /const geometryEditable = editable && !inherited/);
+  assert.match(canvas, /allowInheritedSpatialEditing && \(job\.kind === 'posts' \|\| job\.kind === 'patrol'\)/);
+  assert.match(canvas, /materializeSpatialJob\(tactic, drag\.phaseIndex, drag\.groupId\)/);
   assert.match(canvas, /FROM \$\{sourcePhaseName\.toUpperCase\(\)\}/);
   assert.match(canvas, /Object\.entries\(job\.sigs \?\? \{\}\)/);
   assert.match(steps, /Edit in \{tactic\.phases\[carrySource\.sourcePhaseIndex\]\.name\}/);

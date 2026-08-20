@@ -82,6 +82,9 @@ public sealed record TacticalSheetClassResponse(
     string Fantasy,
     bool Starter,
     bool Unlocked,
+    int VisionRange,
+    int VisionProximityRange,
+    int AttackRange,
     TacticalSheetSignatureAuthoringResponse SignatureAuthoring);
 
 public sealed record TacticalSheetPointResponse(int X, int Y);

@@ -3294,6 +3294,15 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("unlocked")]
         public bool Unlocked { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("visionRange")]
+        public int VisionRange { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("visionProximityRange")]
+        public int VisionProximityRange { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("attackRange")]
+        public int AttackRange { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("signatureAuthoring")]
         [System.ComponentModel.DataAnnotations.Required]
         public TacticalSheetSignatureAuthoringResponse SignatureAuthoring { get; set; } = new TacticalSheetSignatureAuthoringResponse();

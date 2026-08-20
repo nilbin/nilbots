@@ -156,6 +156,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 entry.SignatureAuthoring.ArgumentKind));
             Assert.False(string.IsNullOrWhiteSpace(
                 entry.SignatureAuthoring.Preset.Title));
+            Assert.True(entry.VisionRange > 0);
+            Assert.InRange(entry.VisionProximityRange, 0, entry.VisionRange);
+            Assert.True(entry.AttackRange >= 0);
         });
         Assert.Equal(16, catalog.Classes.Select(entry =>
             entry.SignatureAuthoring.Preset.Id).Distinct().Count());

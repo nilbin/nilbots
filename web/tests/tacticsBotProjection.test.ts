@@ -8,7 +8,7 @@ import {
 } from '../src/site/tactics/botProjection.ts';
 import { makePathfinder } from '../src/site/tactics/pathing.ts';
 import { tilePlacementIssue, type Tactic, type TacticsDocument } from '../src/site/tactics/tacticsDocument.ts';
-import { BotProjectionLayer } from './.harness/harness.entry.js';
+import { BotProjectionLayer, JobOverlay, SelectedBotRanges } from './.harness/harness.entry.js';
 
 const width = 21;
 const height = 15;
@@ -25,6 +25,7 @@ const catalog = {
   classes: [{
     id: 'mason', name: 'Mason', fantasy: '', unlocked: true,
     signatureName: 'Hardlight',
+    visionRange: 6, visionProximityRange: 2, attackRange: 4,
     signatureAuthoring: { allowsExactAnchor: true, allowsRouteForward: false },
   }],
 } as unknown as TacticalSheetCatalog;
@@ -78,6 +79,25 @@ test('stable projections are deterministic, distinct and legal phase-wide', () =
     assert.equal(catalog.map.tileRows[bot.at[1]][bot.at[0]], '.');
     assert.equal(bot.exact, false);
   }
+});
+
+test('selected exact bots render directional catalog vision separately from catalog attack reach', () => {
+  const { document, tactic } = fixture();
+  tactic.phases[0].jobs.area = {
+    kind: 'posts', posture: 'hold', recovery: 'fight-on',
+    posts: [{ slot: 0, at: [4, 4], facing: 'e' }],
+  };
+  const markup = renderToStaticMarkup(createElement(SelectedBotRanges, {
+    catalog, document, tactic, phaseIndex: 0, selectedSlots: [0],
+    showVision: true, showAttackRange: true,
+  }));
+  assert.match(markup, /data-testid="selected-bot-range-0"/);
+  assert.match(markup, /<path[^>]+A 6 6/,
+    'vision is a directional sector using the catalog vision range');
+  assert.match(markup, /<circle[^>]+r="2"/,
+    'omnidirectional proximity vision stays distinct');
+  assert.match(markup, /<circle[^>]+r="4"/,
+    'attack reach uses the class attack range, not the vision distance');
 });
 
 test('relevant geometry and membership change the projection, unrelated behavior does not', () => {
@@ -144,6 +164,24 @@ test('patrol projection samples the real connected walkable route through its op
     .filter((bot) => bot.groupId === 'route');
   assert.equal(projected.length, 4);
   assert.ok(projected.every((bot) => routeTiles.has(bot.at.join(','))));
+});
+
+test('a disconnected authored patrol never renders a straight line through the wall', () => {
+  const { document, tactic } = fixture();
+  const disconnected = structuredClone(catalog) as TacticalSheetCatalog;
+  disconnected.map.tileRows = disconnected.map.tileRows.map((row) => {
+    const tiles = [...row];
+    tiles[10] = '#';
+    return tiles.join('');
+  });
+  const group = tactic.groups[1];
+  const markup = renderToStaticMarkup(createElement(JobOverlay, {
+    catalog: disconnected, tactic, group, phaseIndex: 1,
+    bots: document.squad, dim: false, editable: true,
+    startDrag: () => undefined, pathfinder: makePathfinder(disconnected),
+  }));
+  assert.doesNotMatch(markup, /<polyline/,
+    'unresolved movement is omitted rather than replaced by a wall-crossing segment');
 });
 
 test('projected bots render the production class sprite and explicit preview mark', () => {
