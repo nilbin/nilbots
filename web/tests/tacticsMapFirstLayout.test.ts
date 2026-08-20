@@ -6,15 +6,11 @@ const page = readFileSync(new URL('../src/site/tactics/TacticsEditorPage.tsx', i
 const chrome = readFileSync(new URL('../src/site/tactics/MapFirstChrome.tsx', import.meta.url), 'utf8');
 const steps = readFileSync(new URL('../src/site/tactics/WizardSteps.tsx', import.meta.url), 'utf8');
 
-test('Map-first and Classic are views over the same draft and wizard', () => {
-  assert.match(page, /useState<'map-first' \| 'classic'>\('map-first'\)/);
-  assert.match(page, /data-layout=\{layoutMode\}/);
+test('the map-first workspace is the sole editor over the real draft and wizard', () => {
+  assert.match(page, /data-layout="map-first"/);
   assert.match(page, /<TacticsMapCanvas[\s\S]*document=\{document\}/);
-  assert.match(page, /<PhasesStep \{\.\.\.stepProps\} \/>/,
-    'Classic keeps the existing full phases editor over the shared wizard');
-  assert.match(page, /layoutMode === 'classic' && <section[\s\S]*data-testid="drawer"/,
-    'the permanent wizard drawer only belongs to Classic');
   assert.match(page, /data-testid="map-first-context-drawer"/);
+  assert.doesNotMatch(page, /layoutMode|layout-switch|>Classic</);
   assert.doesNotMatch(chrome, /onChange=\{\(cases\)/,
     'timeline chrome must not own a reduced/forked condition mutation path');
 });
@@ -67,7 +63,7 @@ test('Map-first contextual editors reuse full tactic controls and keep bot focus
 
 test('map-first placement and behavior are driven beside and directly on the map', () => {
   assert.match(chrome, /application\/x-nilbots-group/);
-  assert.match(page, /onGroupDropped=\{layoutMode === 'map-first' \? dropWizardGroup/);
+  assert.match(page, /onGroupDropped=\{dropWizardGroup\}/);
   assert.match(page, /translatePostSelection/);
   assert.match(page, /suggestFormationPosts/);
   assert.match(page, /<MapFirstBehaviorPanel/);

@@ -9,7 +9,6 @@ import {
 import { IssueSummary } from './IssueSummary';
 import { Modal } from './Modal';
 import { PhaseStrip } from './PhaseStrip';
-import { BotChip } from './BotChip';
 import {
   MapFirstBehaviorPanel, MapFirstBotPanel, MapFirstGroupToolbar,
   MapFirstGroupTrays, MapFirstTimeline, type MapFirstFocus,
@@ -20,7 +19,7 @@ import {
 } from './mapFirstSpatial';
 import { classSprite, slotAccent } from './classArt';
 import { RECIPES, instantiateRecipe, recipeById, type RecipeHints } from './recipes';
-import { groupClause, possessive, summarize } from './summary';
+import { possessive, summarize } from './summary';
 import {
   TacticsMapCanvas, watchConds, type GeometryEdit, type MapSelectRef,
 } from './TacticsMapCanvas';
@@ -35,12 +34,12 @@ import {
 import { loadLocalDraft, useSheetDraft } from './useSheetDraft';
 import { useMapTask, type MapTask } from './useMapTask';
 import {
-  CoresStep, GroupsStep, PhaseCustodyEditor, PhasesStep,
-  ReviewStep, StartStep, TransitionEditor, type StepProps,
+  CoresStep, GroupsStep, PhaseCustodyEditor,
+  StartStep, TransitionEditor, type StepProps,
 } from './WizardSteps';
 import { BUILDS } from './tacticsDocument';
 import {
-  WIZARD_STEPS, createGate, stepDone, type WizardState,
+  createGate, type WizardState,
 } from './wizardState';
 
 const BOT_NAMES = [
@@ -99,7 +98,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [selectedTacticId, setSelectedTacticId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [showAllPhases, setShowAllPhases] = useState(false);
-  const [layoutMode, setLayoutMode] = useState<'map-first' | 'classic'>('map-first');
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [selectedSlots, setSelectedSlots] = useState<number[]>([]);
   const [mapFirstPanel, setMapFirstPanel] = useState<MapFirstFocus | null>(null);
@@ -113,9 +111,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [notice, setNotice] = useState<string | null>(null);
   const [toasts, setToasts] = useState<{ id: number; text: string; tone: 'ok' | 'hot' }[]>([]);
   const [dragTactic, setDragTactic] = useState<{ id: string; over: number | null; below: boolean }| null>(null);
-  // Clicking a posted bot on the map flashes its way-in row in the drawer.
-  const [postFlash, setPostFlash] = useState<{ groupId: string; postIndex: number; seq: number } | null>(null);
-  const flashSeq = useRef(0);
   const toastSeq = useRef(0);
   const bootstrapped = useRef(false);
 
@@ -309,7 +304,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setWizard({
       tactic: structuredClone(tactic),
       hints,
-      step: layoutMode === 'map-first' ? 'phases' : editing ? 'review' : 'start',
+      step: 'phases',
       phaseIndex: 0,
       editing,
       originalId: editing ? tactic.id : null,
@@ -319,7 +314,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setServerIssues([]);
     setSelectedGroupId(tactic.groups[0]?.id ?? null);
     setSelectedSlots([]);
-    setMapFirstPanel(layoutMode === 'map-first' && !editing ? { kind: 'groups' } : null);
+    setMapFirstPanel(!editing ? { kind: 'groups' } : null);
   };
 
   const stepProps: StepProps = {
@@ -382,7 +377,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     },
     endTask,
     addDeliverCore,
-    highlightPost: postFlash,
+    highlightPost: null,
   };
 
   const onTilePicked = (x: number, y: number) => {
@@ -528,22 +523,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         const slot = effective?.posts?.[ref.postIndex]?.slot ?? group?.slots[ref.postIndex];
         setSelectedGroupId(ref.groupId);
         if (slot != null) selectMapFirstBot(ref.groupId, slot, additive, ref.phaseIndex);
-        if (layoutMode === 'map-first') {
-          setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
-          return;
-        }
-        // A posted bot lights up its own way-in row: jump to its phase,
-        // scroll the row into view, and flash it briefly.
         setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
-        const seq = ++flashSeq.current;
-        setPostFlash({ groupId: ref.groupId, postIndex: ref.postIndex, seq });
-        window.setTimeout(() => setPostFlash((current) =>
-          current?.seq === seq ? null : current), 1800);
-        window.setTimeout(() => {
-          window.document
-            .getElementById(`way-in-${ref.groupId}-${ref.postIndex}`)
-            ?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        }, 40);
         return;
       }
       if (ref.part === 'group' || ref.part === 'bot' || ref.part === 'phase') {
@@ -552,8 +532,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         setWizard({ ...wizard, step: 'phases', phaseIndex: ref.phaseIndex });
         if (ref.part === 'group' || ref.part === 'bot') {
           setSelectedGroupId(ref.groupId);
-          if (ref.part === 'group' && layoutMode === 'map-first') selectMapFirstGroup(ref.groupId);
-          if (ref.part === 'bot' && layoutMode === 'map-first') {
+          if (ref.part === 'group') selectMapFirstGroup(ref.groupId);
+          if (ref.part === 'bot') {
             selectMapFirstBot(ref.groupId, ref.slot, additive, ref.phaseIndex);
           }
           window.setTimeout(() => {
@@ -627,9 +607,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   };
 
   const gate = wizard ? createGate(wizard, document) : null;
-  const selected = selectedTacticId
-    ? draft.document.tactics.find((value) => value.id === selectedTacticId) ?? null
-    : null;
   const botName = (slot: number) => document.squad[slot]?.name ?? null;
   const activeMapGroupId = wizard
     ? selectedGroupId && wizard.tactic.groups.some((group) => group.id === selectedGroupId)
@@ -834,12 +811,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   };
 
   return (
-    // Map-first grows in normal page flow: its legend and behavior rail can
-    // never overflow through the footer. Classic keeps its three-pane shape.
-    <div className={`grid gap-3 lg:min-h-[calc(100dvh-150px)] ${layoutMode === 'map-first'
-      ? 'lg:grid-cols-[260px_minmax(0,1fr)]'
-      : 'lg:grid-cols-[316px_minmax(0,1fr)_396px]'}`}
-      data-layout={layoutMode}>
+    // The map-first workspace grows in normal page flow, so its legend and
+    // behavior rail can never paint through the footer.
+    <div className="grid gap-3 lg:min-h-[calc(100dvh-150px)] lg:grid-cols-[260px_minmax(0,1fr)]"
+      data-layout="map-first">
       {/* ------------------------------------------------------- the rail --- */}
       <section className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5">
         <div className="panel pad">
@@ -854,17 +829,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
           </div>
           <input className="field mb-2 w-full" value={draft.name} aria-label="Sheet name"
             onChange={(event) => mutate((next) => { next.name = event.target.value; })} />
-          <div className="mb-2 flex rounded-sm border border-arena-edge p-0.5"
-            aria-label="Editor layout" data-testid="layout-switch">
-            <button type="button"
-              className={`btn grow !min-h-7 !border-0 ${layoutMode === 'map-first' ? 'btn-on' : ''}`}
-              aria-pressed={layoutMode === 'map-first'}
-              onClick={() => setLayoutMode('map-first')}>Map-first</button>
-            <button type="button"
-              className={`btn grow !min-h-7 !border-0 ${layoutMode === 'classic' ? 'btn-on' : ''}`}
-              aria-pressed={layoutMode === 'classic'}
-              onClick={() => setLayoutMode('classic')}>Classic</button>
-          </div>
           <label className="t-micro mb-2 flex items-center gap-2 text-arena-dim">
             <input type="checkbox" checked={draft.enterLadder}
               onChange={(event) => mutate((next) => { next.enterLadder = event.target.checked; })} />
@@ -884,7 +848,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         <div className="flex flex-col gap-2" data-testid="tactic-list">
           {document.tactics.length === 0 && !wizard && (
             <div className="panel pad border-dashed t-meta">
-              No Tactics yet. The Sheet runs top to bottom — every Tactic moves all eight bots.
+              No Tactics yet. An ordered list of whole-team <b>Tactics</b> runs top to bottom;
+              every Tactic moves all eight bots.
             </div>
           )}
           {draft.document.tactics.map((tactic, index) => (
@@ -958,15 +923,15 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
       {/* -------------------------------------------------------- the map --- */}
       <section className="flex min-w-0 flex-col gap-2 lg:min-h-0">
-        {layoutMode === 'map-first' && wizard && (
+        {wizard && (
           <MapFirstTimeline tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
             focus={mapFirstPanel} gate={gate} onFocus={focusMapFirst}
             onAddPhase={addMapFirstPhase} onCommit={commitWizard} onCancel={cancelWizard} />
         )}
-        <div className={layoutMode === 'map-first' && wizard
+        <div className={wizard
           ? 'grid min-w-0 items-start gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)] min-[1240px]:grid-cols-[168px_minmax(0,1fr)_232px]'
           : 'min-w-0'}>
-          {layoutMode === 'map-first' && wizard && (
+          {wizard && (
             <MapFirstGroupTrays catalog={catalog} document={document}
               tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
               selectedGroupId={activeMapGroupId} selectedSlots={selectedSlots}
@@ -974,7 +939,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               onSelectGroup={selectMapFirstGroup} onSelectBot={selectMapFirstBot} />
           )}
           <div className="min-w-0">
-            {layoutMode === 'map-first' && wizard && activeMapGroupId && (
+            {wizard && activeMapGroupId && (
               <MapFirstGroupToolbar key={`${wizard.tactic.id}:${wizard.phaseIndex}:${activeMapGroupId}`}
                 catalog={catalog} document={document}
                 tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
@@ -983,33 +948,20 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 onDrawPatrol={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'route')} />
             )}
             <div className="my-1.5 flex min-w-0 items-center justify-end gap-1.5">
-              {layoutMode === 'map-first' ? <>
-                <TacticsIconButton icon="layers" label="Show every Tactic"
-                  pressed={showAll} onClick={() => setShowAll((value) => !value)} />
-                <TacticsIconButton icon="transition" label="Show every phase"
-                  pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
-                <TacticsIconButton icon="vision" label="Selected bot vision"
-                  pressed={showVision} disabled={selectedSlots.length === 0}
-                  onClick={() => setShowVision((value) => !value)} />
-                <TacticsIconButton icon="attack-range" label="Selected bot attack reach"
-                  pressed={showAttackRange} disabled={selectedSlots.length === 0}
-                  onClick={() => setShowAttackRange((value) => !value)} />
-                <TacticsIconButton icon="clear" label="Clear bot selection"
-                  disabled={selectedSlots.length === 0} onClick={() => {
-                    setSelectedSlots([]); setMapFirstPanel(null);
-                  }} />
-              </> : <>
-                <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
-                  <input type="checkbox" checked={showAll}
-                    onChange={(event) => setShowAll(event.target.checked)} />
-                  Show every Tactic
-                </label>
-                <label className="t-micro flex cursor-pointer items-center gap-1.5 text-arena-dim">
-                  <input type="checkbox" checked={showAllPhases}
-                    onChange={(event) => setShowAllPhases(event.target.checked)} />
-                  Show every phase
-                </label>
-              </>}
+              <TacticsIconButton icon="layers" label="Show every Tactic"
+                pressed={showAll} onClick={() => setShowAll((value) => !value)} />
+              <TacticsIconButton icon="transition" label="Show every phase"
+                pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
+              <TacticsIconButton icon="vision" label="Selected bot vision"
+                pressed={showVision} disabled={selectedSlots.length === 0}
+                onClick={() => setShowVision((value) => !value)} />
+              <TacticsIconButton icon="attack-range" label="Selected bot attack reach"
+                pressed={showAttackRange} disabled={selectedSlots.length === 0}
+                onClick={() => setShowAttackRange((value) => !value)} />
+              <TacticsIconButton icon="clear" label="Clear bot selection"
+                disabled={selectedSlots.length === 0} onClick={() => {
+                  setSelectedSlots([]); setMapFirstPanel(null);
+                }} />
               <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
                 {([1, 1.5, 2] as const).map((level) => (
                   <button key={level} type="button"
@@ -1032,24 +984,24 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                       activePhaseIndex={wizard?.phaseIndex ?? null}
                       selectedTacticId={selectedTacticId}
                       showAll={showAll} showAllPhases={showAllPhases}
-                      showProjectedBots={layoutMode === 'map-first'}
-                      showAdjacentPhases={layoutMode === 'classic'}
-                      allowInheritedSpatialEditing={layoutMode === 'map-first'}
-                      selectedSlots={layoutMode === 'map-first' ? selectedSlots : []}
-                      showVision={layoutMode === 'map-first' && showVision}
-                      showAttackRange={layoutMode === 'map-first' && showAttackRange}
+                      showProjectedBots
+                      showAdjacentPhases={false}
+                      allowInheritedSpatialEditing
+                      selectedSlots={selectedSlots}
+                      showVision={showVision}
+                      showAttackRange={showAttackRange}
                       task={task} hints={wizard?.hints.groups ?? null}
                       onTilePicked={onTilePicked} onRectDrawn={onRectDrawn}
                       onGeometryLive={onGeometryLive} onGestureStart={beginGesture}
                       onGestureEnd={() => undefined} onSelect={onSelect}
-                      onClearSelection={layoutMode === 'map-first' ? () => {
+                      onClearSelection={() => {
                         setSelectedSlots([]); setMapFirstPanel(null);
-                      } : undefined}
+                      }}
                       onTaskDone={endTask}
                       onTileRejected={(reason) => toast(reason, 'hot')}
                       onPostsSwapped={() => toast('Swapped posts.')}
-                      onPostBotDropped={layoutMode === 'map-first' ? dropPostBot : undefined}
-                      onGroupDropped={layoutMode === 'map-first' ? dropWizardGroup : undefined}
+                      onPostBotDropped={dropPostBot}
+                      onGroupDropped={dropWizardGroup}
                     />
                   </div>
                 </div>
@@ -1085,7 +1037,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               <span><span style={{ color: '#22d3ee' }}>◆</span> reactors</span>
             </div>
           </div>
-          {layoutMode === 'map-first' && wizard && activeMapGroupId && (
+          {wizard && activeMapGroupId && (
             <div className="min-[820px]:col-start-2 min-[1240px]:col-start-3 min-[1240px]:row-start-1">
               <MapFirstBehaviorPanel tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
                 groupId={activeMapGroupId} change={changeWizard} />
@@ -1095,76 +1047,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       </section>
 
       {/* ----------------------------------------------------- the drawer --- */}
-      {layoutMode === 'classic' && <section className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto lg:pr-0.5" data-testid="drawer">
-        {wizard ? (
-          <>
-            {/* The wizard's masthead stays put while the drawer scrolls:
-                the steps, the tactic's name, and — always — Cancel and
-                Save. Saving from any step runs the same review gate; the
-                blocker prints right under the bar rather than hiding on
-                the Review tab. */}
-            <div className="sticky top-0 z-10 -mb-0.5 flex flex-col gap-2 border-b border-arena-edge bg-arena-bg pb-2">
-            <div className="flex flex-wrap gap-1" data-testid="wizard-steps">
-              {WIZARD_STEPS.map((step) => (
-                <button key={step.id} type="button"
-                  className={`btn !min-h-7 !px-2 !text-[10.5px] uppercase tracking-[0.1em] ${wizard.step === step.id ? 'btn-on' : ''}`}
-                  data-done={stepDone(wizard, step.id)}
-                  onClick={() => { setWizard({ ...wizard, step: step.id }); endTask(); }}>
-                  <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${stepDone(wizard, step.id) ? 'bg-arena-ok' : 'bg-arena-edge2'}`} />
-                  {step.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex items-center gap-2">
-              <h2 className="type-display min-w-0 truncate text-[15px]">{wizard.tactic.name}</h2>
-              <span className="pill">{recipeById(wizard.tactic.recipe).label}</span>
-              <span className="grow" />
-              <button type="button" className="btn" onClick={() => {
-                setWizard(null);
-                endTask();
-                if (wizard.editing) setSelectedTacticId(wizard.originalId);
-                else toast('Draft discarded.');
-              }}>Cancel</button>
-              <button type="button" className="btn btn-primary" disabled={gate !== null}
-                title={gate ?? undefined}
-                onClick={commitWizard} data-testid="commit-tactic-header">
-                {wizard.editing ? 'Save' : 'Create'}
-              </button>
-            </div>
-            {gate && <p className="t-micro text-arena-hot">{gate}</p>}
-            </div>
-            <div className="flex flex-col gap-2.5">
-              {wizard.step === 'start' && <StartStep {...stepProps} />}
-              {wizard.step === 'groups' && <GroupsStep {...stepProps} />}
-              {wizard.step === 'phases' && <PhasesStep {...stepProps} />}
-              {wizard.step === 'cores' && <CoresStep {...stepProps} />}
-              {wizard.step === 'review' && <ReviewStep {...stepProps} />}
-            </div>
-            <div className="flex items-center gap-2 border-t border-arena-edge pt-2">
-              <button type="button" className="btn"
-                disabled={wizard.step === WIZARD_STEPS[0].id}
-                onClick={() => stepBy(-1)}>‹ Back</button>
-              <span className="grow" />
-              {wizard.step === 'review'
-                ? <button type="button" className="btn btn-primary" disabled={gate !== null}
-                  onClick={commitWizard} data-testid="commit-tactic">
-                  {wizard.editing ? 'Save changes' : 'Create Tactic'}
-                </button>
-                : <button type="button" className="btn btn-secondary" onClick={() => stepBy(1)}
-                  data-testid="wizard-next">Next ›</button>}
-            </div>
-          </>
-        ) : selected ? (
-          <TacticInspector tactic={selected} botName={botName}
-            catalog={catalog} document={document}
-            onClose={() => setSelectedTacticId(null)}
-            onEdit={() => openWizard(selected, hintsFor(selected), true)} />
-        ) : (
-          <DrawerIntro />
-        )}
-      </section>}
-
-      {layoutMode === 'map-first' && wizard && mapFirstPanel && (
+      {wizard && mapFirstPanel && (
         <>
         <button type="button" aria-label="Close context editor"
           className="fixed inset-0 z-30 cursor-default bg-black/5"
@@ -1309,13 +1192,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     </div>
   );
 
-  function stepBy(delta: number) {
-    if (!wizard) return;
-    const index = WIZARD_STEPS.findIndex((step) => step.id === wizard.step);
-    const next = WIZARD_STEPS[Math.min(WIZARD_STEPS.length - 1, Math.max(0, index + delta))];
-    setWizard({ ...wizard, step: next.id });
-    endTask();
-  }
 }
 
 /** The wizard's working tactic spliced into the document, so the map and the
@@ -1464,70 +1340,6 @@ function TacticCard({
       </div>
     </article>
   );
-}
-
-function TacticInspector({ tactic, botName, catalog, document, onClose, onEdit }: {
-  tactic: Tactic;
-  botName: (slot: number) => string | null;
-  catalog: TacticalSheetCatalog;
-  document: ReturnType<typeof viewDocument>;
-  onClose: () => void;
-  onEdit: () => void;
-}) {
-  return <>
-    <div className="flex items-center gap-2">
-      <h2 className="type-display text-[15px]">{tactic.name}</h2>
-      <span className="pill">{recipeById(tactic.recipe).label}</span>
-      <span className="grow" />
-      <button type="button" className="btn" onClick={onClose}>✕</button>
-    </div>
-    <div className="panel-feature pad">
-      <div className="lab mb-1.5">The whole operation</div>
-      <p className="t-body leading-relaxed">{summarize(tactic, botName)}</p>
-      <PhaseStrip tactic={tactic} big />
-    </div>
-    {tactic.groups.map((group) => (
-      <div key={group.id} className="panel pad"
-        style={{ borderLeft: `3px solid ${groupColor(tactic, group.id)}` }}>
-        <div className="mb-1 flex items-center gap-2">
-          <b className="t-body">{group.name.trim() || 'Unnamed Group'}</b>
-          <span className="val">{group.slots.length} bots</span>
-        </div>
-        <p className="t-meta">{groupClause(tactic, group, true)}.</p>
-        <div className="mt-1.5 flex flex-wrap gap-1">
-          {group.slots.map((slot) => document.squad[slot] && (
-            <BotChip key={slot} bot={document.squad[slot]} catalog={catalog} />
-          ))}
-        </div>
-      </div>
-    ))}
-    <button type="button" className="btn btn-secondary" onClick={onEdit} data-testid="edit-tactic">
-      Edit this Tactic
-    </button>
-    <p className="t-micro text-arena-dim">Editing reopens the same answers you gave — the map overlays stay live.</p>
-  </>;
-}
-
-function DrawerIntro() {
-  return <>
-    <div className="panel-feature pad">
-      <div className="lab mb-1.5">A Sheet is a plan</div>
-      <p className="t-body leading-relaxed">
-        An ordered list of whole-team <b>Tactics</b>. Each one splits your eight bots into
-        temporary <b>Groups</b>, stages them on the map, releases them together, and finishes
-        on outcomes you choose.
-      </p>
-    </div>
-    <div className="panel pad">
-      <div className="lab mb-1.5">Start here</div>
-      <ol className="t-meta list-decimal space-y-1 pl-5">
-        <li>Fill the eight squad slots on the left.</li>
-        <li>Hit <b>Create Tactic</b> and pick a recipe.</li>
-        <li>Draw where each Group stands, straight on the map.</li>
-      </ol>
-    </div>
-    <p className="t-micro text-arena-dim">The map is the editor — the drawer only asks the questions.</p>
-  </>;
 }
 
 function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {

@@ -54,10 +54,10 @@ test('the home screen reads the authoritative season projection', () => {
 
 test('a sheet is an ordered list of whole-team Tactics, and the copy says so', () => {
   assert.match(editor, /An ordered list of whole-team <b>Tactics<\/b>/);
-  assert.match(editor, /No Tactics yet\. The Sheet runs top to bottom/);
+  assert.match(editor, /No Tactics yet\. An ordered list of whole-team/);
   assert.match(editor, /＋ Create Tactic/);
-  assert.match(editor, /The map is the editor — the drawer only asks the questions\./);
-  assert.match(editor, /Editing reopens the same answers you gave/);
+  assert.match(editor, /data-layout="map-first"/);
+  assert.doesNotMatch(editor, />Classic</);
 });
 
 test('the wizard runs Start → Groups → Phases → Cores → Review', () => {
@@ -164,9 +164,9 @@ test('clearance and local fighting use truthful map-first language', () => {
   assert.match(summary, /fully checked within 20 ticks and no enemy is known to remain/);
 });
 
-test('the phase map keeps Classic context and lets Map-first isolate the active phase', () => {
+test('the sole phase map isolates the active phase unless every phase is requested', () => {
   assert.match(editor, /Show every phase/);
-  assert.match(editor, /showAdjacentPhases=\{layoutMode === 'classic'\}/);
+  assert.match(editor, /showAdjacentPhases=\{false\}/);
   assert.match(canvas, /distance > \(showAdjacentPhases \? 1 : 0\)/);
   assert.match(canvas, /phaseIndex === focus\s*\? 1 : distance === 1 \? \.24 : \.12/);
   assert.match(canvas, /editable\(tactic\) && phaseIndex === focus/);
