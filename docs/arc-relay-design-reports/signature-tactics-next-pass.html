@@ -134,6 +134,7 @@
     <div class="shell">
       <a href="#verdict">Verdict</a>
       <a href="#posts">Posts vs fights</a>
+      <a href="#patrol">Patrol routes</a>
       <a href="#truth">Current truth</a>
       <a href="#round">Next round</a>
       <a href="#skills">16 skills</a>
@@ -177,6 +178,28 @@ This uses the existing Instruction lifecycle and fight anchor. It is not a new s
       <p class="muted" style="margin-top:12px">Patrol remains different: its route is the moving ground. “On the way” behavior still governs ingress. The change is specifically that an arrived post does not pull an active Aggressive fighter home every second tick.</p>
     </section>
 
+    <section id="patrol">
+      <h2>Patrol is moving ground—not a moving Post</h2>
+      <div class="callout">
+        <h3>Do not apply the station-gate repair to patrols.</h3>
+        <p>A patrol has no arrival tile. Contact may start a fight anywhere on the route; that contact tile becomes the fight episode's fixed leash origin. When the interruption ends, the bot resumes its existing patrol cursor rather than restarting, reversing or pathing back to the first waypoint.</p>
+      </div>
+      <div class="grid" style="margin-top:12px">
+        <article class="card"><div class="status next">Combat</div><h3>Interrupt, then resume</h3><p>Hold or Aggressive temporarily owns movement inside its bounded fight leash. Observe continues the patrol without voluntarily engaging. Ending contact hands control back to the same route progress.</p></article>
+        <article class="card"><div class="status next">Skill marks</div><h3>Use them in passing</h3><p>Points and route segments become eligible only when naturally reached or within the skill's legal range. A bot must never reverse or abandon its loop merely to cast at a mark.</p></article>
+        <article class="card"><div class="status next">Failure</div><h3>Never wait for a cast</h3><p>If a marked use is unavailable, unsafe or illegal, the patrol continues that same tick and the opportunity may be reconsidered on a later lap.</p></article>
+        <article class="card"><div class="status next">Commitment</div><h3>Pause honestly</h3><p>An authoritative rooted tell or channel may hold the bot briefly. Completion or cancellation resumes the same patrol cursor; it does not manufacture a second route lifecycle.</p></article>
+        <article class="card"><div class="status next">Deployments</div><h3>Revisiting is not replacing</h3><p>A returning Minesmith, Mason or Nest does not replace a healthy useful deployment just because its patrol reaches that mark again.</p></article>
+        <article class="card"><div class="status next">Pre-emption</div><h3>Normal priorities remain</h3><p>Core custody, urgent recovery, phase change and abort still win. On return, the patrol resumes only if that phase and route are still active.</p></article>
+      </div>
+      <div class="rule">Patrol contact → latch ordinary fight at contact tile → pursue inside chaseLimit
+Fight ends     → resume the same route cursor and direction
+Skill mark     → use only while passing naturally; never divert or backtrack
+Skill declines → continue route in the same tick; retry only on a future legal pass
+Tell/channel   → preserve authoritative commitment; then resume cursor
+Phase exits    → discard the old patrol episode and cursor normally</div>
+    </section>
+
     <section id="truth">
       <h2>What the current code actually supports</h2>
       <div class="grid">
@@ -196,7 +219,7 @@ This uses the existing Instruction lifecycle and fight anchor. It is not a new s
       <h2>One implementation goal, four checkpoints</h2>
       <p class="muted">Keep the Tactic phase coordinator and ordinary ordered Instructions. Each checkpoint should remain usable and testable; do not create a Program scheduler, reservations or atomic multi-bot activation.</p>
       <div class="card full">
-        <div class="stage"><div class="stage-no">1</div><div><h3>Repair combat-ground lifecycle</h3><p>Give arrived Aggressive fights the same honest episode lifecycle pattern already used by Hold. The post is the activation anchor and return floor, not a per-tick veto. Preserve existing target selection, chase limits, Core handoff and phase pre-emption.</p><div class="tokens"><span class="token">Aggressive chase 6</span><span class="token">fixed activation anchor</span><span class="token">return after contact</span><span class="token">no new state machine</span></div></div></div>
+        <div class="stage"><div class="stage-no">1</div><div><h3>Repair combat-ground lifecycle</h3><p>Give arrived Aggressive fights the same honest episode lifecycle pattern already used by Hold. The post is the activation anchor and return floor, not a per-tick veto. Preserve existing target selection, chase limits, Core handoff and phase pre-emption. Keep patrol as its separate moving-ground case and pin cursor resumption with regression scenes.</p><div class="tokens"><span class="token">Aggressive chase 6</span><span class="token">fixed activation anchor</span><span class="token">return after contact</span><span class="token">patrol cursor preserved</span><span class="token">no new state machine</span></div></div></div>
         <div class="stage"><div class="stage-no">2</div><div><h3>Make skill ownership and lifecycle dependable</h3><p>Migrate class-keyed <code>sigs</code> to stable squad-slot plans. Add the four underlying policies, emit authoritative commitment continuation, and move useful signature opportunities before ordinary Fight. Relay remains in Core custody; Kestrel remains route/transit and empty-handed.</p><div class="tokens"><span class="token">slot keyed</span><span class="token">same-tick fallthrough</span><span class="token">commitment first</span><span class="token">ordinary Instructions</span></div></div></div>
         <div class="stage"><div class="stage-no">3</div><div><h3>Put simple guidance in the bot drawer</h3><p>Default to <b>Smart</b>. “Add map guidance” creates Prefer marks. A visible “Only use here” switch tightens it. “Disable in this phase” lives in advanced options. The player draws only shapes valid for that bot's skill; catalog data, not React skill-id branches, supplies controls and previews.</p><div class="tokens"><span class="token">Smart by default</span><span class="token">progressive disclosure</span><span class="token">points / zones / lanes</span><span class="token">rules-derived previews</span></div></div></div>
         <div class="stage"><div class="stage-no">4</div><div><h3>Finish all sixteen honestly</h3><p>Add conservative opportunity predicates and plain rejection reasons for every signature. Resolve the four semantic decisions below. Prove each skill in a deterministic micro-scene, then build one six-cell authored exhibit for the combined behavior. This is usability evidence—not a balance verdict.</p><div class="tokens"><span class="token">16 micro-scenes</span><span class="token">Practice reasons</span><span class="token">combined exhibit</span><span class="token">no number tuning</span></div></div></div>
@@ -243,9 +266,10 @@ If a skill opportunity is illegal or unavailable, evaluation falls through to Fi
       <h2>Acceptance boundary</h2>
       <div class="grid">
         <article class="card wide"><div class="status next">Combat proof</div><h3>Posts no longer cancel the game</h3><ul><li>A posted Aggressive bot chases at least three tiles when useful, attacks, and returns after contact.</li><li>Hold still ignores bait but closes on a carrier/counter-range threat within five.</li><li>Observe never voluntarily fights.</li><li>Core pickup, urgent recovery, phase change and abort pre-empt without orphaning an episode.</li><li>No orbit, repeated reversal, wall pin or chase beyond the fixed leash.</li></ul></article>
+        <article class="card wide"><div class="status next">Patrol proof</div><h3>Interruptions preserve route progress</h3><ul><li>A patrolling Aggressive bot fights from a mid-route contact and resumes the same next waypoint afterward.</li><li>Observe patrol does not voluntarily leave its route to fight.</li><li>A point/segment skill fires only while naturally passing; illegal use continues the patrol that tick.</li><li>A rooted signature resumes the same cursor after completion or cancellation.</li><li>Revisiting a deployment mark does not replace a healthy useful deployment.</li></ul></article>
         <article class="card wide"><div class="status next">Authoring proof</div><h3>Duplicate bots are genuinely distinct</h3><ul><li>Two Masons/Relays/etc. keep separate policy, marks, targets and migration state.</li><li>Selecting one bot exposes only its own signature plan.</li><li>Adding guidance is map-first and does not expose generated JSON.</li><li>Rules-derived range, footprint, timing and collateral previews agree with the engine.</li><li>Practice explains both use and decline.</li></ul></article>
         <article class="card wide"><div class="status next">Executor proof</div><h3>One visible priority remains</h3><ul><li>Every Preserve-by-default skill continues until authoritative completion/cancel.</li><li>A rejected skill falls through in the same tick.</li><li>Longshot cannot Rail off station; Kestrel cannot Dash carrying.</li><li>Relay Toss remains custody, not generic combat automation.</li><li>Every emitted action keeps a non-empty reason.</li></ul></article>
-        <article class="card wide"><div class="status later">Play review</div><h3>Evidence, not a balance claim</h3><ul><li>One fixed micro-scene per signature proves mechanics and UX intent.</li><li>One standard six-cell exhibit uses a real authored sheet with the combined pass.</li><li>Review the motivating post-chase and signature-starvation scenes first.</li><li>Do not alter damage/range/cooldowns or run a balance battery in this goal.</li><li>Mobile flank stays deferred until ordinary chase is satisfying.</li></ul></article>
+        <article class="card wide"><div class="status later">Play review</div><h3>Evidence, not a balance claim</h3><ul><li>One fixed micro-scene per signature proves mechanics and UX intent.</li><li>One standard six-cell exhibit uses a real authored sheet with the combined pass.</li><li>Review the motivating post-chase, patrol-resumption and signature-starvation scenes first.</li><li>Do not alter damage/range/cooldowns or run a balance battery in this goal.</li><li>Mobile flank stays deferred until ordinary chase is satisfying.</li></ul></article>
       </div>
     </section>
 
