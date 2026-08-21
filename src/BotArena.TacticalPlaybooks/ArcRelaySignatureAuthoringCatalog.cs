@@ -263,10 +263,10 @@ public static class ArcRelaySignatureAuthoringCatalog
                 commitment: ArcRelaySignatureCommitmentBehavior
                     .PreserveByDefault,
                 opportunity: ArcRelaySignatureOpportunityBehavior.RailVisibleEnemy,
-                preset: Preset("rail-carrier-lane", "Rail the carrier lane",
-                    "Fire contextually from this phase's Post or Patrol ground against the enemy carrier.",
+                preset: Preset("rail-best-lane", "Rail the best lane",
+                    "Fire a full wall-bounded ray through the most valuable visible enemy line from this phase's Post or Patrol ground.",
                     ArcRelaySignaturePresetTargetKind.NamedSelector,
-                    ArcRelaySignatureNamedTarget.EnemyCarrier)),
+                    ArcRelaySignatureNamedTarget.NearestEnemy)),
             Entry("mason", "hardlight-block", BroadTargets,
                 ArcRelaySignatureTargetCapability.ExactAnchor,
                 opportunity: ArcRelaySignatureOpportunityBehavior.BlockUnoccupiedChoke,
@@ -312,7 +312,7 @@ public static class ArcRelaySignatureAuthoringCatalog
                 guidanceGeometry: ArcRelaySignatureGuidanceGeometry.Points,
                 guidanceMarkLimit: 2,
                 preset: Preset("seed-guard-post", "Seed an exact guard post",
-                    "Deploy Sentinel Seed at a plotted post before holding the lane.",
+                    "Establish and maintain Sentinel Seed at a plotted post, even before contact.",
                     ArcRelaySignaturePresetTargetKind.ExactAnchor),
                 durableDeployment: true),
         ];

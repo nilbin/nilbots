@@ -82,6 +82,65 @@ public sealed class OrdersSignatureOpportunitySceneTests
     }
 
     [Fact]
+    public void SmartRailDeclaresAnUnlockedFullLane()
+    {
+        TacticalPlaybookCompilation sheet = OpportunitySheet("longshot");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            sheet.Composition,
+            sheet.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline7);
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, sheet), Participant(1, sheet)],
+            matchSeed: 9012,
+            recordChronology: false);
+
+        GenericMindCommand? rail = null;
+        while (!session.IsCompleted && session.Tick < 160 && rail is null)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            rail = Assert.Single(step.MindTurns, turn => turn.TeamId == 0)
+                .Commands
+                .Select(value => value.Command)
+                .FirstOrDefault(command => command.UnitId == 7
+                    && command.ActionId == "rail-line");
+        }
+
+        Assert.NotNull(rail);
+        Assert.Single(rail.Arguments.OfType<
+            GenericActorRuntimeActionArgument.ProjectileHeadingArgument>());
+        Assert.Empty(rail.Arguments.OfType<
+            GenericActorRuntimeActionArgument.UnitTargetArgument>());
+    }
+
+    [Theory]
+    [InlineData("mason")]
+    [InlineData("minesmith")]
+    [InlineData("nest")]
+    public void ExactDurableMarkDeploysBeforeEnemyContact(string classId)
+    {
+        TacticalPlaybookCompilation sheet = UncontestedDeploymentSheet(classId);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            sheet.Composition,
+            sheet.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline7);
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, sheet), Participant(1, sheet)],
+            matchSeed: 9020,
+            recordChronology: false);
+
+        GenericActorMatchStepResult first = session.Step();
+        GenericMindCommand command = Assert.Single(
+                first.MindTurns, turn => turn.TeamId == 0).Commands
+            .Single(value => value.Command.UnitId == 7).Command;
+
+        Assert.Equal(
+            ArcRelaySignatureAuthoringCatalog.ForClass(classId).SkillId,
+            command.ActionId);
+    }
+
+    [Fact]
     public void KestrelDashesForwardThenResumesTheSameTerminalRoute()
     {
         TacticalPlaybookCompilation sheet = RouteDashSheet();
@@ -491,6 +550,13 @@ public sealed class OrdersSignatureOpportunitySceneTests
                 use["at"] = "opportunity-mark";
             }
         }
+        JsonObject continuationMove = classId == "longshot"
+            ? new JsonObject
+            {
+                ["to"] = new JsonObject { ["well"] = "centre" },
+                ["posture"] = "front",
+            }
+            : new JsonObject { ["to"] = "current-position" };
         far["orders"] = new JsonArray
         {
             new JsonObject
@@ -501,13 +567,46 @@ public sealed class OrdersSignatureOpportunitySceneTests
             new JsonObject
             {
                 ["id"] = $"continue-after-{descriptor.SkillId}",
-                ["move"] = new JsonObject
-                {
-                    ["to"] = "current-position",
-                },
+                ["move"] = continuationMove,
             },
         };
         return Compile(source, map, $"{classId}-opportunity-scene");
+    }
+
+    private static TacticalPlaybookCompilation UncontestedDeploymentSheet(
+        string classId)
+    {
+        (JsonObject source, JsonObject map) = Starter();
+        ArcRelaySignatureAuthoringDescriptor descriptor =
+            ArcRelaySignatureAuthoringCatalog.ForClass(classId);
+        JsonObject far = source["roles"]!.AsArray().Single(value =>
+            value!["id"]!.GetValue<string>() == "far-team")!.AsObject();
+        far["classes"] = new JsonArray("towline", "lantern", classId);
+        far["orders"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["id"] = "maintain-authored-deployment",
+                ["use"] = new JsonObject
+                {
+                    ["skill"] = descriptor.SkillId,
+                    ["target"] = "self",
+                    ["at"] = "deployment-mark",
+                    ["opportunity"] = ArcRelaySignatureAuthoringCatalog
+                        .StableId(descriptor.Opportunity),
+                },
+            },
+            new JsonObject
+            {
+                ["id"] = "hold-after-deployment",
+                ["move"] = new JsonObject { ["to"] = "current-position" },
+            },
+        };
+        // Team zero's final stable slot starts at (1,6) on Tapline 7. This
+        // unoccupied diagonal neighbour is legal authored deployment ground
+        // while every enemy remains outside team vision.
+        map["anchors"]!["deployment-mark"] = new JsonArray(2, 7);
+        return Compile(source, map, $"{classId}-uncontested-deployment");
     }
 
     private static (JsonObject Source, JsonObject Map) Starter()

@@ -241,7 +241,6 @@
                   "when": {
                     "all": [
                       "empty-handed",
-                      "enemy-nearby",
                       "signature-ready",
                       "c-t1-g1-at-post-2-self"
                     ]
@@ -249,7 +248,7 @@
                   "use": {
                     "skill": "rail-line",
                     "opportunity": "rail-visible-enemy",
-                    "target": "enemy-carrier"
+                    "target": "nearest-enemy"
                   }
                 },
                 {

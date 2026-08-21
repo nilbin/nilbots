@@ -87,6 +87,39 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.DoesNotContain("t1-p2-g2-s3-mark-1", orders);
     }
 
+    [Theory]
+    [InlineData("mason", "hardlight-block")]
+    [InlineData("minesmith", "trip-node")]
+    [InlineData("nest", "sentinel-seed")]
+    public void ExactDurableMarksCarryTheirOwnDeploymentIntent(
+        string classId,
+        string skillId)
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["squad"]![3]!["class"] = classId;
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement role = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(value =>
+                value.GetProperty("classes").EnumerateArray()
+                    .Any(item => item.GetString() == classId));
+        JsonElement use = Descendants(role)
+            .Where(node => node.ValueKind == JsonValueKind.Object
+                && node.TryGetProperty("use", out _))
+            .Select(node => node.GetProperty("use"))
+            .Single(value => value.GetProperty("skill").GetString()
+                == skillId);
+
+        Assert.Equal("self", use.GetProperty("target").GetString());
+        Assert.True(use.TryGetProperty("at", out _));
+    }
+
     [Fact]
     public void SmartLongshotPatrolFiresWithoutAHiddenRailStation()
     {
@@ -106,6 +139,29 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.DoesNotContain("smart-dash", orders);
         Assert.DoesNotContain("rail-move", orders);
         Assert.DoesNotContain("rail-station", orders);
+    }
+
+    [Fact]
+    public void SmartLongshotUsesSignatureReachInsteadOfGenericCombatRange()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement[] rails = Descendants(orders.RootElement)
+            .Where(node => node.ValueKind == JsonValueKind.Object
+                && node.TryGetProperty("use", out JsonElement use)
+                && use.GetProperty("skill").GetString() == "rail-line")
+            .ToArray();
+
+        Assert.NotEmpty(rails);
+        Assert.All(rails, rail =>
+        {
+            string[] conditions = rail.GetProperty("when").GetProperty("all")
+                .EnumerateArray().Select(value => value.GetString()!).ToArray();
+            Assert.Contains("signature-ready", conditions);
+            Assert.DoesNotContain("enemy-nearby", conditions);
+        });
     }
 
     [Fact]

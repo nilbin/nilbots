@@ -1515,6 +1515,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             decline = $"signature-{use.Skill}-not-owned-by-{body.ClassId}";
             return [];
         }
+        // Smart Rail is suppressive lane fire, not a hidden single-target
+        // order. Score every currently legal eight-way ray and submit the
+        // best heading without a UnitTarget so the authoritative Rail keeps
+        // its full wall-bounded range and pierces every enemy on that line.
+        // Explicit/manual named-target uses retain their lock semantics.
+        if (use.Opportunity == "rail-visible-enemy")
+        {
+            return ResolveSmartRailTargets(
+                contract, mind, arc, body, signature, out decline);
+        }
         if (use.TargetKind == "route")
         {
             ResolvedTarget? forward = ResolveForwardRouteUse(
@@ -1522,18 +1532,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 out decline);
             return forward is null ? [] : [forward];
         }
+        Position? exactPlacement = use.AtAnchor is string anchor
+            ? package.AnchorPosition(anchor)
+            : null;
         if (use.TargetKind == "named" && use.Target == "self")
         {
             var self = new ResolvedTarget(
                 $"body:{body.ActorId}", body.Position, [body.Position],
                 body.ActorId, null);
-            if (!CanExecuteUse(contract, body, self, use))
+            if (!CanExecuteUse(
+                    contract, body, self, use, exactPlacement))
             {
                 decline = $"signature-{use.Skill}-illegal-at-self";
                 return [];
             }
             if (!SignatureOpportunityAllows(
-                    contract, mind, arc, body, use, self, null, out decline))
+                    contract, mind, arc, body, use, self,
+                    exactPlacement, out decline))
                 return [];
             return [self];
         }
@@ -1547,19 +1562,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             var reactor = new ResolvedTarget(
                 "reactor:own", _ownReactor, [_ownReactor], null, null);
-            if (!CanExecuteUse(contract, body, reactor, use))
+            if (!CanExecuteUse(
+                    contract, body, reactor, use, exactPlacement))
             {
                 decline = $"signature-{use.Skill}-illegal-at-own-reactor";
                 return [];
             }
             if (!SignatureOpportunityAllows(
-                    contract, mind, arc, body, use, reactor, null, out decline))
+                    contract, mind, arc, body, use, reactor,
+                    exactPlacement, out decline))
                 return [];
             return [reactor];
         }
-        Position? exactPlacement = use.AtAnchor is string anchor
-            ? package.AnchorPosition(anchor)
-            : null;
         IEnumerable<(ActorIdentity Actor, Position Position, int Health,
             int Level, string? Trace)> values =
             use.TargetKind switch
@@ -1899,7 +1913,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return !durablePresent || RejectSignatureOpportunity(
                     use, "useful-deployment-still-active", out decline);
             case "seed-after-team-contact":
-                if (mind.Enemies.Length == 0)
+                // A plotted Nest mark means maintain this emplacement. The
+                // exact authored ground is itself sufficient intent; contact
+                // remains the usefulness gate only for an unmarked/raw use.
+                if (use.AtAnchor is null && mind.Enemies.Length == 0)
                     return RejectSignatureOpportunity(
                         use, "no-team-contact", out decline);
                 return !durablePresent || RejectSignatureOpportunity(
@@ -1954,6 +1971,143 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         decline = $"signature-{use.Skill}-opportunity-{reason}";
         return false;
+    }
+
+    private ResolvedTarget[] ResolveSmartRailTargets(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        GenericActorRulesContract.ArcRelaySignature signature,
+        out string? decline)
+    {
+        decline = null;
+        GenericActorActionLegality? action = body.Action(signature.ActionId);
+        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
+            headings = action?.Constraints.OfType<GenericActorActionLegality
+                .ArgumentConstraint.ProjectileHeadingConstraint>()
+                .SingleOrDefault();
+        if (action is not { Available: true }
+            || headings is null
+            || signature.Range is not int range)
+        {
+            decline = "signature-rail-line-unavailable";
+            return [];
+        }
+
+        var carrierValues = arc.VisibleCores
+            .Where(core => core.Disposition
+                    == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && core.CarrierActorId?.TeamId != _teamId)
+            .GroupBy(core => core.CarrierActorId!)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Sum(core => CoreBankValue(
+                    contract, arc, core.CoreId.SourceWellId)));
+        Dictionary<Position, GenericActorContext.ArcRelaySignatureState>
+            deployments = arc.VisibleSignatures
+                .Where(value => value.OwnerTeamId != _teamId
+                    && value.Phase == GenericActorContext
+                        .ArcRelaySignaturePhase.Active
+                    && !value.Suppressed
+                    && value.RemainingCapacity > 0
+                    && IsDeploymentKind(value.Kind))
+                .SelectMany(value => value.Positions.Select(position =>
+                    (Position: position, Deployment: value)))
+                .GroupBy(value => value.Position)
+                .ToDictionary(
+                    group => group.Key,
+                    group => group.OrderBy(value =>
+                            value.Deployment.OperationId,
+                            StringComparer.Ordinal)
+                        .First().Deployment);
+        int damage = signature.Damage ?? 0;
+        var lanes = new List<(ResolvedTarget Target, int Value, int Hits,
+            int CarrierValue, int Kills, ProjectileHeading Heading)>();
+        foreach (ProjectileHeading heading in headings.AllowedValues)
+        {
+            Position[] ray = FullRailRay(
+                contract.Map, body.Position, heading, range);
+            if (ray.Length == 0)
+                continue;
+            int deploymentIndex = Array.FindIndex(
+                ray, position => deployments.ContainsKey(position));
+            Position[] damaging = deploymentIndex < 0
+                ? ray
+                : ray[..(deploymentIndex + 1)];
+            HashSet<Position> tiles = damaging.ToHashSet();
+            GenericActorContext.ObservedEnemyState[] struck = mind.Enemies
+                .Where(enemy => tiles.Contains(enemy.Position))
+                .ToArray();
+            int carrierValue = struck.Sum(enemy =>
+                carrierValues.GetValueOrDefault(enemy.ActorId));
+            int kills = damage <= 0
+                ? 0
+                : struck.Count(enemy => enemy.Health <= damage);
+            int veterans = struck.Sum(enemy =>
+                Math.Max(0, enemy.VeterancyLevel - 1));
+            int constructValue = deploymentIndex < 0
+                ? 0
+                : 50 + (deployments[ray[deploymentIndex]].RemainingCapacity
+                        <= damage
+                    ? 30
+                    : 0);
+            int value = struck.Length * 100
+                + carrierValue * 150
+                + kills * 60
+                + veterans * 10
+                + constructValue;
+            if (value == 0)
+                continue;
+            (int dx, int dy) = heading.Vector();
+            Position aim = body.Position.Offset(dx, dy);
+            lanes.Add((
+                new ResolvedTarget(
+                    $"rail-lane:{heading}",
+                    aim,
+                    [aim],
+                    null,
+                    null,
+                    $"full-ray-value-{value}-hits-{struck.Length}"
+                        + $"-carrier-{carrierValue}-kills-{kills}"),
+                value,
+                struck.Length,
+                carrierValue,
+                kills,
+                heading));
+        }
+        if (lanes.Count == 0)
+        {
+            decline = "signature-rail-line-no-valuable-visible-lane";
+            return [];
+        }
+        return lanes
+            .OrderByDescending(value => value.Value)
+            .ThenByDescending(value => value.Hits)
+            .ThenByDescending(value => value.CarrierValue)
+            .ThenByDescending(value => value.Kills)
+            .ThenBy(value => ArenaBasics.FrameHeading(
+                value.Heading, _mirrored))
+            .Select(value => value.Target)
+            .ToArray();
+    }
+
+    private static Position[] FullRailRay(
+        GenericActorMapContract map,
+        Position source,
+        ProjectileHeading heading,
+        int range)
+    {
+        var result = new List<Position>(range);
+        (int dx, int dy) = heading.Vector();
+        for (int step = 1; step <= range; step++)
+        {
+            Position tile = source.Offset(dx * step, dy * step);
+            if (!ArenaBasics.CanEnter(map, tile))
+                break;
+            result.Add(tile);
+        }
+        return result.ToArray();
     }
 
     private ResolvedTarget? ResolveForwardRouteUse(

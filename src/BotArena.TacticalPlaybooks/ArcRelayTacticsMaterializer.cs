@@ -1469,7 +1469,9 @@ internal static class ArcRelayTacticsMaterializer
                         Action = UseSkill(descriptor.SkillId, writer =>
                         {
                             writer.WriteString(
-                                "target", DefaultNamedTarget(descriptor));
+                                "target", descriptor.DurableDeployment
+                                    ? "self"
+                                    : DefaultNamedTarget(descriptor));
                             writer.WriteString("at", anchor);
                         }),
                     });
@@ -1554,7 +1556,7 @@ internal static class ArcRelayTacticsMaterializer
                     scope.Prefix, scope.GroupTag, job, group, bot);
                 var conditions = new List<string>
                 {
-                    EmptyHanded(), EnemyNearby(), SignatureReady(),
+                    EmptyHanded(), SignatureReady(),
                 };
                 if (station is not null)
                     conditions.Add(station);
