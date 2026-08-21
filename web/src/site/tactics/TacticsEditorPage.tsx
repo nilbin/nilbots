@@ -368,7 +368,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       const target = event.target;
       if (!(target instanceof Node) || contextDrawerRef.current?.contains(target)) return;
       if (target instanceof Element
-        && target.closest('[data-map-first-context-trigger], [data-select]')) return;
+        && target.closest(
+          '[data-map-first-context-trigger], [data-select], [data-testid="task-banner"]',
+        )) return;
       setMapFirstPanel(null);
       endTask();
     };
@@ -1639,7 +1641,7 @@ function TaskBanner({ task, wizard, botName, onDone, onCancel, onUndoPoint }: {
   return (
     // pointer-events pass through everywhere but the buttons, so the banner
     // never blocks drawing on the map rows underneath it.
-    <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/80 px-2 py-1.5 backdrop-blur"
+    <div className="pointer-events-none absolute inset-x-2 top-2 z-30 flex items-center gap-2 rounded-sm border border-arena-edge bg-arena-deep/80 px-2 py-1.5 backdrop-blur"
       style={{ borderLeft: `3px solid ${accent}` }}
       data-testid="task-banner" role="status">
       <span className="t-micro">{what}</span>

@@ -106,6 +106,10 @@ test('the map and Behavior form one workbench with explicit phase actions', () =
 test('context changes take one click and tactic editing owns local undo', () => {
   assert.match(page, /closeOnOutsidePointer/);
   assert.match(page, /data-map-first-context-trigger/);
+  assert.match(page, /data-testid=\"task-banner\"/,
+    'drawing controls must not be swallowed by the outside-click drawer handler');
+  assert.match(page, /top-2 z-30 flex items-center/,
+    'drawing controls must render above the z-20 map toolbar');
   assert.match(chrome, /contextTrigger/);
   assert.match(page, /top-\[14rem\]/,
     'the context drawer must start below the tactic controls it switches between');
