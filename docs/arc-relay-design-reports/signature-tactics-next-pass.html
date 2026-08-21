@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a1014">
+  <title>Arc Relay — signature tactics next pass</title>
+  <style>
+    :root {
+      --ink: #e9f1ef;
+      --muted: #9aaba9;
+      --paper: #0a1014;
+      --panel: #111a20;
+      --raised: #17242b;
+      --edge: #2c3d43;
+      --cyan: #72d2d4;
+      --copper: #d37c43;
+      --green: #83c49a;
+      --yellow: #e6c46e;
+      --red: #df7d72;
+      --violet: #b8a4e8;
+      color-scheme: dark;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 15% 0%, rgba(114, 210, 212, .08), transparent 34rem),
+        radial-gradient(circle at 90% 12%, rgba(211, 124, 67, .08), transparent 28rem),
+        var(--paper);
+      color: var(--ink);
+      font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    a { color: var(--cyan); }
+    button { font: inherit; }
+    .shell { width: min(1160px, calc(100% - 28px)); margin: 0 auto; }
+    header { padding: 56px 0 30px; border-bottom: 1px solid var(--edge); }
+    .eyebrow { color: var(--copper); font-size: 11px; font-weight: 800; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { max-width: 850px; margin: 8px 0 14px; font-size: clamp(31px, 5vw, 58px); line-height: .98; letter-spacing: -.045em; }
+    h2 { margin: 0 0 14px; font-size: clamp(23px, 3vw, 34px); letter-spacing: -.025em; }
+    h3 { margin: 0 0 7px; font-size: 17px; }
+    p { margin: 0 0 12px; }
+    .lead { max-width: 800px; color: #bfd0cd; font-size: 18px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+    .pill { border: 1px solid var(--edge); border-radius: 999px; background: rgba(17,26,32,.78); padding: 5px 10px; color: var(--muted); font-size: 12px; }
+    nav { position: sticky; top: 0; z-index: 20; border-bottom: 1px solid var(--edge); background: rgba(10,16,20,.92); backdrop-filter: blur(14px); }
+    nav .shell { display: flex; gap: 6px; overflow-x: auto; padding-block: 8px; scrollbar-width: none; }
+    nav a { flex: 0 0 auto; border-radius: 6px; padding: 7px 10px; color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 700; }
+    nav a:hover { background: var(--raised); color: var(--ink); }
+    main { padding: 30px 0 72px; }
+    section { scroll-margin-top: 70px; margin-bottom: 38px; }
+    .verdict { border: 1px solid rgba(114,210,212,.45); border-left: 5px solid var(--cyan); background: linear-gradient(135deg, rgba(114,210,212,.1), rgba(17,26,32,.8)); border-radius: 10px; padding: 20px; }
+    .verdict strong { color: white; }
+    .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 12px; }
+    .card { grid-column: span 4; border: 1px solid var(--edge); border-radius: 9px; background: rgba(17,26,32,.78); padding: 16px; }
+    .card.wide { grid-column: span 6; }
+    .card.full { grid-column: 1 / -1; }
+    .card p:last-child, .callout p:last-child { margin-bottom: 0; }
+    .status { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 9px; font-size: 11px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
+    .status::before { width: 8px; height: 8px; border-radius: 50%; background: currentColor; content: ""; box-shadow: 0 0 12px currentColor; }
+    .done { color: var(--green); }
+    .broken { color: var(--red); }
+    .next { color: var(--yellow); }
+    .later { color: var(--violet); }
+    .muted { color: var(--muted); }
+    .callout { border: 1px solid var(--edge); border-left: 4px solid var(--copper); border-radius: 8px; background: rgba(211,124,67,.06); padding: 16px; }
+    .flow { display: grid; grid-template-columns: repeat(5, 1fr); align-items: stretch; gap: 8px; margin-top: 18px; counter-reset: beat; }
+    .beat { position: relative; min-height: 112px; border: 1px solid var(--edge); border-radius: 8px; background: var(--panel); padding: 13px; }
+    .beat::before { counter-increment: beat; content: counter(beat); display: grid; place-items: center; width: 23px; height: 23px; margin-bottom: 8px; border-radius: 50%; background: var(--cyan); color: #061013; font-weight: 900; }
+    .beat:not(:last-child)::after { position: absolute; z-index: 2; top: 48px; right: -11px; content: "→"; color: var(--copper); font-size: 18px; }
+    .beat b { display: block; margin-bottom: 3px; }
+    .beat span { color: var(--muted); font-size: 12px; line-height: 1.35; }
+    .rule { margin-top: 14px; border-radius: 8px; background: #060b0e; padding: 15px; color: #cde1df; font: 13px/1.65 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre-wrap; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { padding: 11px 10px; border-bottom: 1px solid var(--edge); text-align: left; vertical-align: top; }
+    th { color: var(--muted); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; }
+    td:first-child { font-weight: 750; color: white; }
+    .table-wrap { overflow-x: auto; border: 1px solid var(--edge); border-radius: 9px; background: rgba(17,26,32,.72); }
+    ol, ul { margin: 8px 0 0; padding-left: 20px; }
+    li { margin: 5px 0; }
+    .stage { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 14px; padding: 17px 0; border-bottom: 1px solid var(--edge); }
+    .stage:last-child { border-bottom: 0; }
+    .stage-no { display: grid; place-items: center; width: 48px; height: 48px; border: 1px solid var(--edge); border-radius: 9px; background: var(--raised); color: var(--cyan); font-size: 21px; font-weight: 900; }
+    .stage p { color: var(--muted); }
+    .stage b { color: var(--ink); }
+    .tokens { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+    .token { border: 1px solid var(--edge); border-radius: 5px; padding: 3px 7px; background: #0b1216; color: #b8c9c6; font-size: 11px; }
+    .class-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+    details { border: 1px solid var(--edge); border-radius: 8px; background: rgba(17,26,32,.72); }
+    summary { cursor: pointer; padding: 13px 14px; font-weight: 800; }
+    details > div { padding: 0 14px 14px; color: #bdccca; }
+    .decision { display: grid; grid-template-columns: 145px 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--edge); }
+    .decision:last-child { border: 0; }
+    .decision b { color: var(--yellow); }
+    .accept { columns: 2; column-gap: 32px; }
+    .accept li { break-inside: avoid; }
+    footer { border-top: 1px solid var(--edge); padding: 25px 0 44px; color: var(--muted); font-size: 12px; }
+    @media (max-width: 820px) {
+      header { padding-top: 36px; }
+      .card, .card.wide { grid-column: 1 / -1; }
+      .flow { grid-template-columns: 1fr; }
+      .beat { min-height: auto; }
+      .beat:not(:last-child)::after { top: auto; right: 16px; bottom: -15px; transform: rotate(90deg); }
+      .class-grid { grid-template-columns: 1fr; }
+      .accept { columns: 1; }
+    }
+    @media (max-width: 520px) {
+      .shell { width: min(100% - 20px, 1160px); }
+      body { font-size: 14px; }
+      .decision { grid-template-columns: 1fr; gap: 3px; }
+      th, td { min-width: 150px; }
+      th:first-child, td:first-child { min-width: 105px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="shell">
+      <div class="eyebrow">Nilbots · Arc Relay · implementation direction</div>
+      <h1>Make posts launch fights.<br>Make signatures shape them.</h1>
+      <p class="lead">A corrected, code-checked next pass for map-first Tactics. The inventory was right that signatures are being starved and under-authored. It was too absolute about posts: a post should be a fight's <em>home and leash origin</em>, not a command to abandon every chase.</p>
+      <div class="meta">
+        <span class="pill">Baseline: Tapline-12</span>
+        <span class="pill">16 signatures</span>
+        <span class="pill">One Instruction executor</span>
+        <span class="pill">No second scheduler</span>
+        <span class="pill">Code checked 2026-08-21</span>
+      </div>
+    </div>
+  </header>
+
+  <nav>
+    <div class="shell">
+      <a href="#verdict">Verdict</a>
+      <a href="#posts">Posts vs fights</a>
+      <a href="#truth">Current truth</a>
+      <a href="#round">Next round</a>
+      <a href="#skills">16 skills</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#acceptance">Acceptance</a>
+    </div>
+  </nav>
+
+  <main class="shell">
+    <section id="verdict">
+      <div class="verdict">
+        <div class="status next">Recommendation</div>
+        <h2>Yes: run one more refinement round before adding more Tactics.</h2>
+        <p><strong>Its first task is combat lifecycle, not signature UI.</strong> The current map-first editor makes Posts the normal spatial assignment. Hold now correctly starts at its post, pursues within a bounded defence episode, then returns. Aggressive does not retain that episode after it takes the first step away from a post. That contradicts the editor promise “Chase, commit, finish kills.”</p>
+        <p>After that repair, implement the inventory's slot-local signature plans, commitment, priority and safe opportunity predicates as one staged goal. Do not tune damage, ranges or cooldowns in this round. First make the existing mechanics dependable and understandable.</p>
+      </div>
+    </section>
+
+    <section id="posts">
+      <h2>The corrected posts rule</h2>
+      <div class="callout">
+        <h3>Replace “authored posts always win” with this:</h3>
+        <p><b>A post owns staging, resting facing, the fight's origin and the return destination. An active fight episode temporarily owns combat movement inside the posture's leash. Phase changes, Core custody, urgent recovery and signature commitment can pre-empt it normally.</b></p>
+      </div>
+      <div class="flow" aria-label="Post combat lifecycle">
+        <div class="beat"><b>Reach post</b><span>The exact tile and facing establish the bot's authored ground.</span></div>
+        <div class="beat"><b>Contact qualifies</b><span>The selected posture decides whether and how a fight may start.</span></div>
+        <div class="beat"><b>Latch episode</b><span>The activation tile becomes a fixed chase-leash origin. Leaving ±1 of the post does not cancel it.</span></div>
+        <div class="beat"><b>Fight or pre-empt</b><span>Use skills, shoot and pursue within the leash. Custody, recovery and phase lifecycle remain higher.</span></div>
+        <div class="beat"><b>Return home</b><span>When contact ends, the ordinary post Move resumes and restores its facing.</span></div>
+      </div>
+      <div class="rule">Observe   → never starts a voluntary fight; post/facing remain authoritative.
+Hold      → starts on station; latches; pursues only a carrier or a gun it cannot answer; leash 5.
+Aggressive→ starts on station; latches; pursues useful targets; leash 6; finishes or loses contact, then returns.
+
+Entry gate  = empty-handed AND enemy-nearby AND on-station
+Exit gate   = carrying-core OR enemy-no-longer-nearby
+Movement    = existing Fight action + fixed activation anchor + chaseLimit
+
+This uses the existing Instruction lifecycle and fight anchor. It is not a new state machine.</div>
+      <p class="muted" style="margin-top:12px">Patrol remains different: its route is the moving ground. “On the way” behavior still governs ingress. The change is specifically that an arrived post does not pull an active Aggressive fighter home every second tick.</p>
+    </section>
+
+    <section id="truth">
+      <h2>What the current code actually supports</h2>
+      <div class="grid">
+        <article class="card"><div class="status done">Done</div><h3>Movement identity</h3><p>Swift/standard/deliberate cadence and shared Combat Strafe are live in Tapline-11/12.</p></article>
+        <article class="card"><div class="status done">Done</div><h3>Prism Screen</h3><p>Palisade's moving frontal screen, presentation and focused mechanics are live in Tapline-12.</p></article>
+        <article class="card"><div class="status done">Done</div><h3>Hold excursion</h3><p>Hold enters on authored ground, latches, may stop carriers/counter-range threats within five tiles, and returns.</p></article>
+        <article class="card"><div class="status broken">Incorrect today</div><h3>Aggressive from Posts</h3><p>Its on-station <code>when</code> can end after its first chase step. Posts therefore undermine the promised sustained chase.</p></article>
+        <article class="card"><div class="status broken">Missing</div><h3>Slot-local skill plans</h3><p>Signature marks are still keyed by class. Duplicate wildcard bots cannot be directed independently.</p></article>
+        <article class="card"><div class="status broken">Missing</div><h3>Commitment emission</h3><p>The catalog says which tells/channels should be preserved, but Tactics still does not materialize the continuation.</p></article>
+        <article class="card"><div class="status broken">Wrong priority</div><h3>Fight starves skills</h3><p>Current materialization orders normal Fight before signatures. Broad signature triggers often never win.</p></article>
+        <article class="card"><div class="status broken">Unsafe marks</div><h3>Marks lack opportunity rules</h3><p>Most marks mean “target here if ready,” not “use here when occupied, useful, safe and on station.”</p></article>
+        <article class="card"><div class="status broken">Specific defect</div><h3>Longshot station gate</h3><p>Rail can be selected before its move-to-post leaf and does not require Longshot to occupy the authored firing post.</p></article>
+      </div>
+    </section>
+
+    <section id="round">
+      <h2>One implementation goal, four checkpoints</h2>
+      <p class="muted">Keep the Tactic phase coordinator and ordinary ordered Instructions. Each checkpoint should remain usable and testable; do not create a Program scheduler, reservations or atomic multi-bot activation.</p>
+      <div class="card full">
+        <div class="stage"><div class="stage-no">1</div><div><h3>Repair combat-ground lifecycle</h3><p>Give arrived Aggressive fights the same honest episode lifecycle pattern already used by Hold. The post is the activation anchor and return floor, not a per-tick veto. Preserve existing target selection, chase limits, Core handoff and phase pre-emption.</p><div class="tokens"><span class="token">Aggressive chase 6</span><span class="token">fixed activation anchor</span><span class="token">return after contact</span><span class="token">no new state machine</span></div></div></div>
+        <div class="stage"><div class="stage-no">2</div><div><h3>Make skill ownership and lifecycle dependable</h3><p>Migrate class-keyed <code>sigs</code> to stable squad-slot plans. Add the four underlying policies, emit authoritative commitment continuation, and move useful signature opportunities before ordinary Fight. Relay remains in Core custody; Kestrel remains route/transit and empty-handed.</p><div class="tokens"><span class="token">slot keyed</span><span class="token">same-tick fallthrough</span><span class="token">commitment first</span><span class="token">ordinary Instructions</span></div></div></div>
+        <div class="stage"><div class="stage-no">3</div><div><h3>Put simple guidance in the bot drawer</h3><p>Default to <b>Smart</b>. “Add map guidance” creates Prefer marks. A visible “Only use here” switch tightens it. “Disable in this phase” lives in advanced options. The player draws only shapes valid for that bot's skill; catalog data, not React skill-id branches, supplies controls and previews.</p><div class="tokens"><span class="token">Smart by default</span><span class="token">progressive disclosure</span><span class="token">points / zones / lanes</span><span class="token">rules-derived previews</span></div></div></div>
+        <div class="stage"><div class="stage-no">4</div><div><h3>Finish all sixteen honestly</h3><p>Add conservative opportunity predicates and plain rejection reasons for every signature. Resolve the four semantic decisions below. Prove each skill in a deterministic micro-scene, then build one six-cell authored exhibit for the combined behavior. This is usability evidence—not a balance verdict.</p><div class="tokens"><span class="token">16 micro-scenes</span><span class="token">Practice reasons</span><span class="token">combined exhibit</span><span class="token">no number tuning</span></div></div></div>
+      </div>
+      <h3 style="margin-top:18px">Generated body-level priority</h3>
+      <div class="rule">1  active Tactic phase / abort decision          existing coordinator
+2  preserve an active signature commitment       only descriptor-marked skills
+3  Core custody                                   includes Relay Toss
+4  urgent recovery                                same current behavior
+5  useful Smart/marked signature opportunity      conservative, can decline
+6  ordinary Fight episode                         Hold / Aggressive
+7  scan                                           existing clearance behavior
+8  authored post / patrol / ingress floor         returns after interruptions
+
+If a skill opportunity is illegal or unavailable, evaluation falls through to Fight or movement in the same tick.</div>
+    </section>
+
+    <section id="skills">
+      <h2>How the sixteen signatures enter the pass</h2>
+      <div class="class-grid">
+        <details open><summary>Transit &amp; custody · Kestrel, Relay</summary><div><b>Kestrel:</b> Dash only empty-handed along the active route/marked segment with ≥2 safe forward tiles. Never auto-Dash from a fixed post.<br><br><b>Relay:</b> keep Toss inside custody; require useful forward progress and a legal receiver; failed Toss never prevents movement/banking.</div></details>
+        <details open><summary>Protect &amp; sustain · Palisade, Patchbay</summary><div><b>Palisade:</b> screen a real hostile lane protecting self, carrier or ally; respect authored facing; do not replace a useful active screen.<br><br><b>Patchbay:</b> prefer carrier/veteran/lowest health, require a plausible safe channel, then preserve the authoritative channel.</div></details>
+        <details><summary>Control · Towline, Hush, Repulsor, Sunder</summary><div><b>Towline:</b> beneficial clear pull, carrier first; preview destination and interceptors.<br><br><b>Hush:</b> suppress actual hostile signature value, not generic proximity.<br><br><b>Repulsor:</b> preview every push and protect allied posts/Core direction.<br><br><b>Sunder:</b> paint only when allies can plausibly spend the enhanced hits.</div></details>
+        <details><summary>Ranged setup · Longshot, Mortar</summary><div><b>Longshot:</b> require the firing post/area, team contact and a clear line; preserve the rooted lock.<br><br><b>Mortar:</b> require occupied/recently confirmed value and zero allies in the cross; render friendly fire and tell.</div></details>
+        <details><summary>Information &amp; concealment · Lantern, Veil</summary><div><b>Lantern:</b> for alpha, make Flare honestly anti-smoke; Smart fires only where smoke blocks a relevant allied sightline.<br><br><b>Veil:</b> cover a carrier/crossing or break an enemy lane without cutting a critical friendly one.</div></details>
+        <details><summary>Persistent deployments · Mason, Minesmith, Nest</summary><div><b>Mason:</b> conservative or marks-only; preview friendly/enemy detours and never sever the authored friendly route.<br><br><b>Minesmith:</b> use choke/patrol marks and do not replace a useful live mine.<br><br><b>Nest:</b> show eight rays/range and do not replace a useful seed; require team contact in the alpha rule.</div></details>
+        <details><summary>Rescue geometry · Switchback</summary><div>Use only when an endangered carrier/veteran/low-health ally becomes safer and both destinations remain acceptable. Preview the swap and the Core consequence before the player saves it.</div></details>
+        <details><summary>Later combat mobility · Mobile flank</summary><div>Do <b>not</b> bundle this into the signature pass. First make ordinary Aggressive chase honest. Mobile flank can later be an explicit opt-in that uses reload windows and a stable two-step side goal inside the fight leash—never hidden class AI.</div></details>
+      </div>
+    </section>
+
+    <section id="decisions">
+      <h2>Resolve these in the same round</h2>
+      <div class="card full">
+        <div class="decision"><b>Survey Flare</b><span><strong>Recommend:</strong> keep anti-smoke behavior for alpha and rewrite its name/copy/predicate honestly. A real independent sensor is a later rules/balance experiment.</span></div>
+        <div class="decision"><b>Sentinel vision</b><span><strong>Recommend:</strong> require team contact. Giving a deployment its own hidden sensor is a larger perception mechanic and should be explicit if tested later.</span></div>
+        <div class="decision"><b>Falling Star</b><span><strong>Recommend:</strong> retain friendly fire as skill expression, but make the cross and ally risk impossible to miss. Reconcile its cooldown anchor metadata with runtime.</span></div>
+        <div class="decision"><b>Exchange + Core</b><span><strong>Recommend:</strong> preserve the current asymmetric rule—caster transports its own Core, targeted ally drops theirs—because it creates a distinctive rescue/courier play. Preview and explain it explicitly.</span></div>
+        <div class="decision"><b>Prism tuning</b><span>Leave 30 hull / 6 active / 18 cooldown unchanged in this reliability pass. Authored route use and ordinary population play come before number changes.</span></div>
+      </div>
+    </section>
+
+    <section id="acceptance">
+      <h2>Acceptance boundary</h2>
+      <div class="grid">
+        <article class="card wide"><div class="status next">Combat proof</div><h3>Posts no longer cancel the game</h3><ul><li>A posted Aggressive bot chases at least three tiles when useful, attacks, and returns after contact.</li><li>Hold still ignores bait but closes on a carrier/counter-range threat within five.</li><li>Observe never voluntarily fights.</li><li>Core pickup, urgent recovery, phase change and abort pre-empt without orphaning an episode.</li><li>No orbit, repeated reversal, wall pin or chase beyond the fixed leash.</li></ul></article>
+        <article class="card wide"><div class="status next">Authoring proof</div><h3>Duplicate bots are genuinely distinct</h3><ul><li>Two Masons/Relays/etc. keep separate policy, marks, targets and migration state.</li><li>Selecting one bot exposes only its own signature plan.</li><li>Adding guidance is map-first and does not expose generated JSON.</li><li>Rules-derived range, footprint, timing and collateral previews agree with the engine.</li><li>Practice explains both use and decline.</li></ul></article>
+        <article class="card wide"><div class="status next">Executor proof</div><h3>One visible priority remains</h3><ul><li>Every Preserve-by-default skill continues until authoritative completion/cancel.</li><li>A rejected skill falls through in the same tick.</li><li>Longshot cannot Rail off station; Kestrel cannot Dash carrying.</li><li>Relay Toss remains custody, not generic combat automation.</li><li>Every emitted action keeps a non-empty reason.</li></ul></article>
+        <article class="card wide"><div class="status later">Play review</div><h3>Evidence, not a balance claim</h3><ul><li>One fixed micro-scene per signature proves mechanics and UX intent.</li><li>One standard six-cell exhibit uses a real authored sheet with the combined pass.</li><li>Review the motivating post-chase and signature-starvation scenes first.</li><li>Do not alter damage/range/cooldowns or run a balance battery in this goal.</li><li>Mobile flank stays deferred until ordinary chase is satisfying.</li></ul></article>
+      </div>
+    </section>
+
+    <section>
+      <div class="callout">
+        <h2 style="font-size:23px">Bottom line</h2>
+        <p>The game now asks players to position bots with Posts, so Posts must be compatible with combat—not a reason combat quietly stops. Fix that lifecycle first. Then the signature inventory is the right next investment: it turns sixteen existing mechanics from unreliable automation into readable tactical tools without adding a second priority system or more classes.</p>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="shell">Prepared from the current Tapline-12 rules, Tactics DSL/materializer, map-first bot drawer, order lifecycle and combat executor. The older inventory remains useful as the complete mechanical reference; this page is the corrected implementation sequence.</div></footer>
+</body>
+</html>
