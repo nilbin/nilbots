@@ -3,7 +3,8 @@ export type TacticsIconName =
   | 'march' | 'respond' | 'brawl'
   | 'fight-on' | 'heal-tile' | 'heal-up'
   | 'core' | 'vision' | 'attack-range' | 'transition' | 'add-phase'
-  | 'signature' | 'route' | 'edit' | 'members' | 'close' | 'clear'
+  | 'finish' | 'signature' | 'route' | 'edit' | 'members' | 'close' | 'clear' | 'deselect'
+  | 'undo' | 'redo'
   | 'rotate' | 'move' | 'formation' | 'layers' | 'save' | 'start' | 'abort';
 
 const paths: Record<TacticsIconName, React.ReactNode> = {
@@ -23,12 +24,16 @@ const paths: Record<TacticsIconName, React.ReactNode> = {
   'attack-range': <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="3" /><path d="M12 1v6M12 17v6M1 12h6M17 12h6" /></>,
   transition: <><path d="M3 12h15" /><path d="m14 7 5 5-5 5" /></>,
   'add-phase': <><path d="M4 6h10v12H4zM18 7v10M13 12h10" /></>,
+  finish: <><path d="M5 4v16" /><path d="M6 5h12l-2.5 4L18 13H6" /></>,
   signature: <><path d="m12 2 2.2 6.2L21 10l-5 4.2.5 6.8-4.5-3.5L7.5 21l.5-6.8L3 10l6.8-1.8Z" /></>,
   route: <><circle cx="5" cy="18" r="2" /><circle cx="19" cy="6" r="2" /><path d="M7 18c7 0 3-10 10-11" /></>,
   edit: <><path d="m5 19 3.5-.8L19 7.7 16.3 5 5.8 15.5Z" /><path d="m14.8 6.5 2.7 2.7" /></>,
   members: <><circle cx="8" cy="8" r="3" /><circle cx="17" cy="9" r="2.5" /><path d="M3 20c.5-4 2-6 5-6s4.5 2 5 6M13 20c.3-3 1.5-4.8 4-4.8 2.2 0 3.4 1.6 4 4.8" /></>,
   close: <path d="m5 5 14 14M19 5 5 19" />,
   clear: <><path d="M4 7h16M9 4h6M7 7l1 13h8l1-13" /><path d="M10 10v7M14 10v7" /></>,
+  deselect: <><path d="M8 4H4v4M16 4h4v4M4 16v4h4M20 16v4h-4" /><path d="m9 9 6 6M15 9l-6 6" /></>,
+  undo: <><path d="M9 7 4 12l5 5" /><path d="M5 12h8a6 6 0 0 1 6 6" /></>,
+  redo: <><path d="m15 7 5 5-5 5" /><path d="M19 12h-8a6 6 0 0 0-6 6" /></>,
   rotate: <><path d="M19 8a8 8 0 1 0 1 7" /><path d="m19 3v5h-5" /></>,
   move: <><path d="M12 2v20M2 12h20" /><path d="m8 6 4-4 4 4M8 18l4 4 4-4M6 8l-4 4 4 4M18 8l4 4-4 4" /></>,
   formation: <><circle cx="6" cy="7" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="18" cy="7" r="2" /><path d="M6 9v8M18 9v8M12 14v6" /></>,
@@ -77,9 +82,9 @@ export function TacticsIconButton({
 
 const audition: TacticsIconName[] = [
   'posts', 'patrol', 'observe', 'hold', 'aggressive', 'march', 'respond', 'brawl',
-  'fight-on', 'heal-tile', 'heal-up', 'core', 'vision', 'attack-range', 'transition',
+  'fight-on', 'heal-tile', 'heal-up', 'core', 'vision', 'attack-range', 'transition', 'finish',
   'add-phase', 'signature', 'route', 'edit', 'members', 'rotate', 'move', 'formation', 'layers',
-  'save', 'start', 'abort', 'close', 'clear',
+  'save', 'start', 'abort', 'close', 'clear', 'deselect', 'undo', 'redo',
 ];
 
 /** Development-only review fixture: the whole visual vocabulary in all

@@ -19,7 +19,7 @@ export function GeoStatusRow({ complete, label, drawing, onDraw, onStop, onClear
         ? <button type="button" className="btn btn-on" onClick={onStop}>Stop drawing</button>
         : onDraw && (
           <button type="button" className="btn btn-secondary" onClick={onDraw}>
-            {complete ? 'Redraw' : drawLabel ?? 'Draw on map'}
+            {complete ? 'Edit on map' : drawLabel ?? 'Draw on map'}
           </button>
         )}
       {complete && onClear && (

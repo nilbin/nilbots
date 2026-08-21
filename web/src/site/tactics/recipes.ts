@@ -1,8 +1,10 @@
+import type { TacticalSheetCatalog } from '../api';
+import { suggestFormationPosts } from './mapFirstSpatial';
 import { ZONE_OPTIONS } from './places';
 import {
   freshLocalId, freshJob, identifierFromName,
   type CoreRule, type DeliveryPlan, type JobKind, type MaxDuration,
-  type Posture, type Rect, type RecipeId, type Tactic, type TacticCase,
+  type Point, type Posture, type Rect, type RecipeId, type Tactic, type TacticCase,
   type TacticConds, type TacticGroup, type TacticJob, type TacticPhaseDef,
   type TacticTransition, type TacticsDocument,
 } from './tacticsDocument';
@@ -24,7 +26,7 @@ export interface RecipeGroupPrefill {
 export interface RecipePhasePrefill {
   name: string;
   /** One job per group, aligned with the groups array; null = carry on. */
-  jobs: ({ kind: JobKind; posture: Posture } | null)[];
+  jobs: ({ kind: JobKind; posture: Posture; objective?: Point } | null)[];
   /** Absent on the final phase = the operation holds there forever. */
   continue?: { required?: TacticConds; triggers?: TacticConds }[];
 }
@@ -74,12 +76,12 @@ export const RECIPES: Recipe[] = [
     phases: [
       {
         name: 'Assemble',
-        jobs: [{ kind: 'area', posture: 'observe' }],
+        jobs: [{ kind: 'posts', posture: 'observe', objective: [11, 13] }],
         continue: [{ required: { groupsSet: { allowedLate: 0 } } }],
       },
       {
         name: 'Push',
-        jobs: [{ kind: 'converge', posture: 'aggressive' }],
+        jobs: [{ kind: 'posts', posture: 'aggressive', objective: [16, 13] }],
         continue: [{
           triggers: { enemiesDown: { count: 3 }, coreAcquired: true },
         }],
@@ -106,8 +108,8 @@ export const RECIPES: Recipe[] = [
       {
         name: 'Set the trap',
         jobs: [
-          { kind: 'posts', posture: 'hold' },
-          { kind: 'area', posture: 'observe' },
+          { kind: 'posts', posture: 'hold', objective: [15, 13] },
+          { kind: 'posts', posture: 'observe', objective: [24, 5] },
         ],
         continue: [{
           required: { groupsSet: { allowedLate: 0 } },
@@ -116,14 +118,14 @@ export const RECIPES: Recipe[] = [
       },
       {
         name: 'Close the trap',
-        jobs: [null, { kind: 'converge', posture: 'aggressive' }],
+        jobs: [null, { kind: 'posts', posture: 'aggressive', objective: [16, 13] }],
         continue: [{
           triggers: { enemiesDown: { count: 2 }, cleared: { zones: [{ ...MID_ZONE }] } },
         }],
       },
       {
         name: 'Exploit the opening',
-        jobs: [null, { kind: 'area', posture: 'hold' }],
+        jobs: [null, { kind: 'posts', posture: 'hold', objective: [19, 13] }],
         continue: [{ triggers: { coreAcquired: true } }],
       },
       {
@@ -153,8 +155,8 @@ export const RECIPES: Recipe[] = [
       {
         name: 'Approach',
         jobs: [
-          { kind: 'posts', posture: 'observe' },
-          { kind: 'area', posture: 'hold' },
+          { kind: 'posts', posture: 'observe', objective: [19, 20] },
+          { kind: 'posts', posture: 'hold', objective: [16, 17] },
         ],
         continue: [{
           required: { groupsSet: { allowedLate: 0 } },
@@ -163,12 +165,12 @@ export const RECIPES: Recipe[] = [
       },
       {
         name: 'Steal',
-        jobs: [{ kind: 'converge', posture: 'aggressive' }, null],
+        jobs: [{ kind: 'posts', posture: 'aggressive', objective: [21, 21] }, null],
         continue: [{ triggers: { coreAcquired: true } }],
       },
       {
         name: 'Hold the escape',
-        jobs: [null, { kind: 'area', posture: 'hold' }],
+        jobs: [null, { kind: 'posts', posture: 'hold', objective: [18, 18] }],
       },
     ],
     delivery: 'solo',
@@ -241,6 +243,7 @@ export interface RecipeHints {
 export function instantiateRecipe(
   recipe: Recipe,
   document: TacticsDocument,
+  catalog?: TacticalSheetCatalog,
 ): { tactic: Tactic; hints: RecipeHints } {
   const twins = document.tactics.filter((tactic) => tactic.recipe === recipe.id).length;
   const name = twins ? `${recipe.label} ${twins + 1}` : recipe.label;
@@ -261,11 +264,26 @@ export function instantiateRecipe(
     while (usedPhaseIds.has(phaseId)) phaseId = `${phaseId}-x`.slice(0, 24);
     usedPhaseIds.add(phaseId);
     const jobs: Record<string, TacticJob> = {};
+    const reserved: Point[] = [];
     groups.forEach((group, groupIndex) => {
       const job = prefill.jobs[groupIndex];
-      jobs[group.id] = job
+      const created = job
         ? freshJob(job.kind, job.posture)
         : freshJob('none', 'hold');
+      if (catalog && job?.kind === 'posts') {
+        const hint = recipe.groups[groupIndex]?.hint?.rect;
+        const objective: Point | null = job.objective ?? (hint
+          ? [Math.round((hint[0] + hint[2]) / 2), Math.round((hint[1] + hint[3]) / 2)]
+          : null);
+        if (objective) {
+          created.posts = suggestFormationPosts(
+            catalog, group.slots, objective, reserved,
+            `${tacticId}:${phaseId}:${group.id}`,
+          );
+          reserved.push(...created.posts.map((post) => post.at));
+        }
+      }
+      jobs[group.id] = created;
     });
     const phase: TacticPhaseDef = { id: phaseId, name: prefill.name, jobs };
     if (prefill.continue) {

@@ -531,7 +531,7 @@ export function PhaseCustodyEditor(props: StepProps & { phaseIndex: number }) {
               });
               props.startCarryTask(index);
             }}>
-            {phase.custody.via?.length ? 'Redraw the carrier’s way home' : 'Draw the carrier’s way home'}
+            {phase.custody.via?.length ? 'Edit the carrier’s way home' : 'Draw the carrier’s way home'}
           </button>
           {phase.custody.via?.length
             ? <span className="t-micro text-arena-dim">{phase.custody.via.length} waypoints to the reactor</span>

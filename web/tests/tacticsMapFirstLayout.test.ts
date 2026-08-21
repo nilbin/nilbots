@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 const page = readFileSync(new URL('../src/site/tactics/TacticsEditorPage.tsx', import.meta.url), 'utf8');
 const chrome = readFileSync(new URL('../src/site/tactics/MapFirstChrome.tsx', import.meta.url), 'utf8');
 const steps = readFileSync(new URL('../src/site/tactics/WizardSteps.tsx', import.meta.url), 'utf8');
+const conditions = readFileSync(new URL('../src/site/tactics/ConditionRows.tsx', import.meta.url), 'utf8');
 
 test('the map-first workspace is the sole editor over the real draft and wizard', () => {
   assert.match(page, /data-layout="map-first"/);
@@ -86,4 +87,30 @@ test('map-first placement and behavior are driven beside and directly on the map
   assert.match(chrome, /data-testid="map-first-behavior-panel"/);
   assert.doesNotMatch(chrome, /Suggest explicit posts/);
   assert.doesNotMatch(page, /Tapline — your side is west/);
+});
+
+test('the map and Behavior form one workbench with explicit phase actions', () => {
+  assert.match(page, /The map and Behavior are one visual workbench/);
+  assert.match(page, /min-\[1240px\]:w-\[232px\]/);
+  assert.match(chrome, /onSelectPhase\(index\)/);
+  assert.match(chrome, /label=\{`Edit \$\{phase\.name\}`\}/);
+  assert.match(chrome, /<TacticsIcon name="finish"[^>]*\/> Finish/);
+  assert.match(chrome, /Earlier phases/);
+  assert.match(chrome, /Later phases/);
+});
+
+test('context changes take one click and tactic editing owns local undo', () => {
+  assert.match(page, /closeOnOutsidePointer/);
+  assert.doesNotMatch(page, /aria-label="Close context editor"[\s\S]*fixed inset-0/);
+  assert.match(page, /wizardUndoStack/);
+  assert.match(page, /beginWizardGesture/);
+  assert.match(page, /finishWizardGesture/);
+  assert.match(page, /onCancel=\{cancelTask\}/);
+});
+
+test('condition authoring shows configured rows before its categorized picker', () => {
+  assert.match(conditions, /No conditions configured on this side\./);
+  assert.match(conditions, /＋ Add condition/);
+  assert.match(conditions, /This fires when/);
+  assert.match(conditions, /every requirement/);
 });

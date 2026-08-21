@@ -58,6 +58,7 @@ export function ConditionRows({
    * else and reads this row the other way (moved to Unless). */
   onBranch?: (kind: ConditionRowKind) => void;
 }) {
+  const [pickerOpen, setPickerOpen] = useState(false);
   const set = (change: (next: TacticConds) => void) => {
     const next = structuredClone(conds);
     change(next);
@@ -106,6 +107,7 @@ export function ConditionRows({
           else if (kind === 'reached') next.reached = true;
           else if (kind === 'observed') next.observed = true;
         });
+        if (!on) setPickerOpen(false);
       }} />
     );
   };
@@ -326,12 +328,14 @@ export function ConditionRows({
       rows.push(row(kind, flagLabel, null, Boolean(conds[kind])));
     }
   };
-  const groups = ROW_GROUPS
-    .map((group) => group.kinds.filter((kind) => kinds.includes(kind)))
-    .filter((sel) => sel.length > 0);
-  const showHeadings = groups.length > 1;
+  const configuredGroups = ROW_GROUPS
+    .map((group) => ({ ...group, kinds: group.kinds.filter((kind) =>
+      kinds.includes(kind) && conds[kind] !== undefined) }))
+    .filter((group) => group.kinds.length > 0);
+  const showHeadings = configuredGroups.length > 1;
   ROW_GROUPS.forEach((group) => {
-    const sel = group.kinds.filter((kind) => kinds.includes(kind));
+    const sel = group.kinds.filter((kind) =>
+      kinds.includes(kind) && conds[kind] !== undefined);
     if (sel.length === 0) return;
     if (showHeadings) {
       rows.push(<div key={`h-${group.label}`}
@@ -351,7 +355,35 @@ export function ConditionRows({
     </div>);
     for (const kind of activeAdvanced) renderKind(kind);
   }
-  return <div className="flex flex-col gap-1.5">{rows}</div>;
+  const configuredRows = [...rows];
+  rows.length = 0;
+  ROW_GROUPS.forEach((group) => {
+    const sel = group.kinds.filter((kind) =>
+      kinds.includes(kind) && conds[kind] === undefined);
+    if (sel.length === 0) return;
+    rows.push(<div key={`add-h-${group.label}`}
+      className="mt-1 text-[9px] font-semibold uppercase tracking-[.12em] text-arena-dim/70 first:mt-0">
+      {group.label}
+    </div>);
+    for (const kind of sel) renderKind(kind);
+  });
+  const availableRows = [...rows];
+  return <div className="flex flex-col gap-1.5">
+    {configuredRows.length > 0
+      ? configuredRows
+      : <p className="rounded-sm border border-dashed border-arena-edge px-2 py-1.5 text-[10.5px] text-arena-dim">
+        No conditions configured on this side.
+      </p>}
+    {availableRows.length > 0 && <>
+      <button type="button" className="btn self-start !min-h-7"
+        aria-expanded={pickerOpen} onClick={() => setPickerOpen((open) => !open)}>
+        {pickerOpen ? 'Close condition picker' : '＋ Add condition'}
+      </button>
+      {pickerOpen && <div className="flex flex-col gap-1.5 rounded-sm border border-arena-edge bg-arena-deep/25 p-2">
+        {availableRows}
+      </div>}
+    </>}
+  </div>;
 }
 
 /**
@@ -425,6 +457,11 @@ export function CaseListEditor<T extends TacticCase>({
   };
   return (
     <div className="flex flex-col gap-2">
+      <p className="sticky top-0 z-[1] rounded-sm border border-arena-edge bg-arena-panel px-2 py-1.5 text-[10.5px] leading-snug text-arena-dim">
+        This fires when <b className="text-arena-text">every requirement</b> is true.
+        If triggers are added, <b className="text-arena-text">any trigger</b> may fire it.
+        An Unless condition blocks the alternative.
+      </p>
       {cases.map((value, index) => {
         const canBranch = cases.length < maximum && activeMainRows(value) >= 2;
         const open = isOpen(index);

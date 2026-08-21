@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TacticalSheetCatalog } from '../src/site/api';
-import { instantiateRecipe, recipeById } from '../src/site/tactics/recipes';
+import { instantiateRecipe, recipeById, RECIPES } from '../src/site/tactics/recipes';
 import {
   blankDocument, effectiveJobResolution, followMembership, freshJob, migrateDocument,
   JOB_KINDS, POSTURES, RECOVERIES, TRAVEL_BEHAVIORS,
@@ -90,12 +90,17 @@ function drawnPincer(document: TacticsDocument): Tactic {
   guard.slots = [5, 2];
   flankers.slots = [0, 1, 3, 4, 6, 7];
   tactic.phases[0].jobs[guard.id].posts = [
-    { at: [14, 12], facing: 'e' },
-    { at: [16, 14], facing: 'n' },
+    { at: [14, 12], facing: 'e', slot: guard.slots[0] },
+    { at: [16, 14], facing: 'n', slot: guard.slots[1] },
   ];
-  tactic.phases[0].jobs[flankers.id].rect = [22, 3, 26, 7];
-  tactic.phases[1].jobs[flankers.id].point = [15, 12];
-  tactic.phases[2].jobs[flankers.id].rect = [13, 11, 17, 15];
+  const formation = (origin: [number, number], facing: 'e' | 'w') =>
+    flankers.slots.map((slot, index) => ({
+      at: [origin[0] + index % 3, origin[1] + Math.floor(index / 3)] as [number, number],
+      facing, slot,
+    }));
+  tactic.phases[0].jobs[flankers.id].posts = formation([22, 3], 'w');
+  tactic.phases[1].jobs[flankers.id].posts = formation([14, 11], 'e');
+  tactic.phases[2].jobs[flankers.id].posts = formation([17, 11], 'e');
   return tactic;
 }
 
@@ -323,6 +328,25 @@ test('recipes assign the available squad deterministically without duplicate or 
   const flexible = instantiateRecipe(flexibleRecipe, incomplete).tactic;
   assert.deepEqual(flexible.groups.map((group) => group.slots), [[5, 2], [7]]);
   assert.deepEqual(flexible.groups.flatMap((group) => group.slots), [5, 2, 7]);
+});
+
+test('visible recipes create only native map-first ground and suggested posts stay ordinary data', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  for (const recipe of RECIPES.filter((value) => value.id !== 'deliver-core')) {
+    const tactic = instantiateRecipe(recipe, document, catalog).tactic;
+    for (const phase of tactic.phases) {
+      for (const group of tactic.groups) {
+        const job = phase.jobs[group.id];
+        assert.ok(['posts', 'patrol', 'none'].includes(job.kind),
+          `${recipe.id}/${phase.name}/${group.name} created ${job.kind}`);
+        if (job.kind === 'posts' && recipe.id !== 'blank') {
+          assert.equal(job.posts?.length, group.slots.length);
+          assert.deepEqual(job.posts?.map((post) => post.slot), group.slots);
+        }
+      }
+    }
+  }
 });
 
 test('strictly sequential transitions and phase-one geometry are enforced', () => {
@@ -633,9 +657,9 @@ test('the readback walks a pincer through its named phases', () => {
   const tactic = drawnPincer(document);
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence, /^Two bots hold posts at Mid/);
-  assert.match(sentence, /while six keep watch/);
+  assert.match(sentence, /while six watch from posts/);
   assert.match(sentence, /the full formation is ready/);
-  assert.match(sentence, /Close the trap: the six converge on Mid aggressively\./);
+  assert.match(sentence, /Close the trap: the six wait at posts near Mid\./);
   assert.match(sentence, /Secure the opening/);
   assert.match(sentence, /Finish when the time limit expires\./);
 });
@@ -861,8 +885,12 @@ test('a post is cleaned away — never misassigned — when its bot joins area w
   document.tactics.push(tactic);
   const guard = tactic.groups[0];
   const flankers = tactic.groups[1];
+  // Compatibility still permits a loaded area job even though new visible
+  // recipes only create Posts and Patrol.
+  tactic.phases[0].jobs[flankers.id] = freshJob('area', 'hold');
+  tactic.phases[0].jobs[flankers.id].rect = [20, 3, 26, 8];
   const before = membershipSnapshot(tactic);
-  // The posted longshot joins the flankers, whose jobs are area/point work.
+  // The posted longshot joins the flankers' loaded area work.
   guard.slots = [5];
   flankers.slots = [...flankers.slots, 2];
   const summary = followMembership(tactic, document.squad, before);
@@ -888,14 +916,14 @@ test('swapping bots across Groups leaves no post behind on the wrong bot', () =>
   flankers.slots = [1, 3, 4, 6, 7, 5];
   followMembership(tactic, document.squad, before);
   const posts = tactic.phases[0].jobs[guard.id].posts!;
-  // Slot 2 keeps ITS post — the pairing must not shift onto the newcomer.
+  // Each bot keeps ITS post when both Groups use explicit Posts.
   assert.deepEqual(
     posts.map((post) => [post.slot, post.at[0], post.at[1]]),
-    [[2, 16, 14]]);
-  // The newcomer has no post yet, and validation names exactly who.
-  const messages = validateDocument(document, catalog).map((issue) => issue.message);
-  assert.ok(messages.some((message) =>
-    /still needs posts for Bot0 \(1\/2 placed\)/.test(message)));
+    [[2, 16, 14], [0, 22, 3]]);
+  const errors = validateDocument(document, catalog)
+    .filter((issue) => issue.severity === 'error');
+  assert.equal(errors.length, 2);
+  assert.ok(errors.every((issue) => /Flankers still needs posts for Bot5/.test(issue.message)));
 });
 
 test('normalize stamps positional posts with slots and cleans reshuffle leftovers', () => {

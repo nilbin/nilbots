@@ -61,40 +61,16 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const sheetQuery = useTacticalSheet(initialSheetId);
   const save = useSaveTacticalSheet();
   const trial = useTrialTacticalSheet();
-  const { draft, mutate, beginGesture, undo, redo, replaceDraft } =
+  const { draft, mutate, undo, redo, replaceDraft } =
     useSheetDraft(null);
   const [wizard, setWizard] = useState<WizardState | null>(null);
+  const wizardRef = useRef<WizardState | null>(null);
+  wizardRef.current = wizard;
+  const wizardUndoStack = useRef<Tactic[]>([]);
+  const wizardRedoStack = useRef<Tactic[]>([]);
+  const wizardGesture = useRef<Tactic | null>(null);
+  const [wizardHistoryRevision, setWizardHistoryRevision] = useState(0);
   const { task, start: startTask, end: endMapTask } = useMapTask();
-  // Finishing a post way-in drawn from the post OUTWARD flips it into
-  // travel order instead of leaving a route the bot would march backwards.
-  const endTask = useCallback(() => {
-    const active = task;
-    if (active?.kind === 'job' && active.field === 'via'
-      && active.postIndex != null) {
-      changeWizard((tactic) => {
-        const post = tactic.phases[active.phaseIndex]
-          ?.jobs[active.groupId]?.posts?.[active.postIndex!];
-        if (!post) return;
-        const flipped = reversedWayIn(post.via, post.at);
-        if (flipped) {
-          post.via = flipped;
-          toast('Way in flipped to travel order — it ends at the post.');
-        }
-      });
-    }
-    if (active?.kind === 'carry') {
-      changeWizard((tactic) => {
-        const custody = tactic.phases[active.phaseIndex]?.custody;
-        if (!custody?.via) return;
-        const flipped = reversedWayIn(custody.via, [2, 5]);
-        if (flipped) {
-          custody.via = flipped;
-          toast('Way home flipped to travel order — it ends at your reactor.');
-        }
-      });
-    }
-    endMapTask();
-  }, [task, endMapTask]);
   const [selectedTacticId, setSelectedTacticId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
   const [showAllPhases, setShowAllPhases] = useState(false);
@@ -114,6 +90,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const toastSeq = useRef(0);
   const bootstrapped = useRef(false);
   const tacticWorkspaceRef = useRef<HTMLElement>(null);
+  const contextDrawerRef = useRef<HTMLElement>(null);
 
   // The mock's toast rack: transient action feedback, self-clearing.
   const toast = useCallback((text: string, tone: 'ok' | 'hot' = 'ok') => {
@@ -206,14 +183,155 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const blocking = clientIssues.some((issue) => issue.severity === 'error')
     || wizard !== null;
 
+  const pushWizardUndo = useCallback((snapshot: Tactic) => {
+    wizardUndoStack.current.push(structuredClone(snapshot));
+    if (wizardUndoStack.current.length > 80) wizardUndoStack.current.shift();
+    wizardRedoStack.current = [];
+  }, []);
+
+  /** Ordinary wizard mutation. During a map gesture the gesture owns the
+   * single undo snapshot; outside one, every deliberate control change gets
+   * its own local history entry. */
   const changeWizard = useCallback((apply: (tactic: Tactic) => void) => {
     setWizard((current) => {
       if (!current) return current;
       const tactic = structuredClone(current.tactic);
       apply(tactic);
-      return { ...current, tactic };
+      if (JSON.stringify(tactic) === JSON.stringify(current.tactic)) return current;
+      if (!wizardGesture.current) pushWizardUndo(current.tactic);
+      const next = { ...current, tactic };
+      wizardRef.current = next;
+      return next;
+    });
+  }, [pushWizardUndo]);
+
+  const replaceWizardTactic = useCallback((tactic: Tactic) => {
+    setWizard((current) => {
+      if (!current || JSON.stringify(tactic) === JSON.stringify(current.tactic)) return current;
+      pushWizardUndo(current.tactic);
+      const next = { ...current, tactic };
+      wizardRef.current = next;
+      return next;
+    });
+  }, [pushWizardUndo]);
+
+  /** Live map frames and draw points mutate the working tactic without
+   * flooding history. begin/finishWizardGesture wrap them as one undo step. */
+  const changeWizardLive = useCallback((apply: (tactic: Tactic) => void) => {
+    setWizard((current) => {
+      if (!current) return current;
+      const tactic = structuredClone(current.tactic);
+      apply(tactic);
+      if (JSON.stringify(tactic) === JSON.stringify(current.tactic)) return current;
+      const next = { ...current, tactic };
+      wizardRef.current = next;
+      return next;
     });
   }, []);
+
+  const beginWizardGesture = useCallback(() => {
+    if (!wizardGesture.current && wizardRef.current) {
+      wizardGesture.current = structuredClone(wizardRef.current.tactic);
+    }
+  }, []);
+
+  const finishWizardGesture = useCallback(() => {
+    const before = wizardGesture.current;
+    const current = wizardRef.current;
+    wizardGesture.current = null;
+    if (!before || !current
+      || JSON.stringify(before) === JSON.stringify(current.tactic)) return;
+    pushWizardUndo(before);
+    setWizardHistoryRevision((value) => value + 1);
+  }, [pushWizardUndo]);
+
+  const cancelWizardGesture = useCallback(() => {
+    const before = wizardGesture.current;
+    wizardGesture.current = null;
+    if (!before) return;
+    setWizard((current) => {
+      if (!current) return current;
+      const next = { ...current, tactic: before };
+      wizardRef.current = next;
+      return next;
+    });
+    setWizardHistoryRevision((value) => value + 1);
+  }, []);
+
+  const resetWizardHistory = useCallback(() => {
+    wizardUndoStack.current = [];
+    wizardRedoStack.current = [];
+    wizardGesture.current = null;
+    setWizardHistoryRevision((value) => value + 1);
+  }, []);
+
+  const undoWizard = useCallback(() => {
+    if (wizardGesture.current) {
+      cancelWizardGesture();
+      return;
+    }
+    setWizard((current) => {
+      const previous = wizardUndoStack.current.pop();
+      if (!current || !previous) return current;
+      wizardRedoStack.current.push(structuredClone(current.tactic));
+      const next = { ...current, tactic: previous };
+      wizardRef.current = next;
+      return next;
+    });
+    setWizardHistoryRevision((value) => value + 1);
+  }, [cancelWizardGesture]);
+
+  const redoWizard = useCallback(() => {
+    if (wizardGesture.current) return;
+    setWizard((current) => {
+      const next = wizardRedoStack.current.pop();
+      if (!current || !next) return current;
+      wizardUndoStack.current.push(structuredClone(current.tactic));
+      const restored = { ...current, tactic: next };
+      wizardRef.current = restored;
+      return restored;
+    });
+    setWizardHistoryRevision((value) => value + 1);
+  }, []);
+
+  // Finishing a post way-in drawn from the post OUTWARD flips it into travel
+  // order, then commits the entire draw/drag as one local undo step.
+  const endTask = useCallback(() => {
+    const active = task;
+    if (active?.kind === 'job' && active.field === 'via'
+      && active.postIndex != null) {
+      changeWizardLive((tactic) => {
+        const post = tactic.phases[active.phaseIndex]
+          ?.jobs[active.groupId]?.posts?.[active.postIndex!];
+        if (!post) return;
+        const flipped = reversedWayIn(post.via, post.at);
+        if (flipped) {
+          post.via = flipped;
+          toast('Way in flipped to travel order — it ends at the post.');
+        }
+      });
+    }
+    if (active?.kind === 'carry') {
+      changeWizardLive((tactic) => {
+        const custody = tactic.phases[active.phaseIndex]?.custody;
+        if (!custody?.via) return;
+        const flipped = reversedWayIn(custody.via, [2, 5]);
+        if (flipped) {
+          custody.via = flipped;
+          toast('Way home flipped to travel order — it ends at your reactor.');
+        }
+      });
+    }
+    endMapTask();
+    // State updates above are queued; defer snapshot comparison until React
+    // has committed the final route normalization.
+    window.queueMicrotask(finishWizardGesture);
+  }, [changeWizardLive, endMapTask, finishWizardGesture, task, toast]);
+
+  const cancelTask = useCallback(() => {
+    cancelWizardGesture();
+    endMapTask();
+  }, [cancelWizardGesture, endMapTask]);
 
   // Undo/redo and task escape hatches, with a real dependency array.
   useEffect(() => {
@@ -222,10 +340,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       if (target.tagName === 'INPUT' || target.tagName === 'SELECT' || target.tagName === 'TEXTAREA') return;
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'z') {
         event.preventDefault();
-        if (event.shiftKey) redo();
+        if (wizardRef.current) {
+          if (event.shiftKey) redoWizard();
+          else undoWizard();
+        } else if (event.shiftKey) redo();
         else undo();
       } else if (event.key === 'Escape' && task) {
-        endTask();
+        cancelTask();
       } else if (event.key === 'Escape' && mapFirstPanel) {
         setMapFirstPanel(null);
       } else if (event.key === 'Enter' && task && task.kind !== 'watch'
@@ -235,7 +356,22 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [endTask, mapFirstPanel, redo, task, undo]);
+  }, [cancelTask, endTask, mapFirstPanel, redo, redoWizard, task, undo, undoWizard]);
+
+  // A modal backdrop used to swallow the first click on another map/timeline
+  // target. Listening at the document level closes this drawer before that
+  // target's own click runs, so context changes are genuinely one click.
+  useEffect(() => {
+    if (!mapFirstPanel) return;
+    const closeOnOutsidePointer = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node) || contextDrawerRef.current?.contains(target)) return;
+      setMapFirstPanel(null);
+      endTask();
+    };
+    window.document.addEventListener('pointerdown', closeOnOutsidePointer);
+    return () => window.document.removeEventListener('pointerdown', closeOnOutsidePointer);
+  }, [endTask, mapFirstPanel]);
 
   if (initialSheetId && sheetQuery.isError) {
     return <ErrorState error={sheetQuery.error} onRetry={() => void sheetQuery.refetch()} />;
@@ -264,7 +400,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setWizard(null);
     setMapFirstPanel(null);
     setSelectedSlots([]);
-    endTask();
+    endMapTask();
+    resetWizardHistory();
     setSelectedTacticId(finished.id);
     toast(wizard.editing ? 'Tactic updated.' : `“${finished.name}” added to the Sheet.`);
   };
@@ -288,7 +425,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
    * escorts and screen auto-assigned, the screen's lane pre-drawn. */
   const addDeliverCore = () => {
     mutate((next) => {
-      const { tactic } = instantiateRecipe(recipeById('deliver-core'), next.document);
+      const { tactic } = instantiateRecipe(recipeById('deliver-core'), next.document, catalog);
       const squad = next.document.squad;
       const runners = ['relay', 'towline'];
       const carrierSlot = squad.find((bot) => runners.includes(bot.class))?.slot
@@ -310,6 +447,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     const uniqueAssigned = new Set(assigned);
     const membershipComplete = document.squad.length === 8
       && assigned.length === 8 && uniqueAssigned.size === 8;
+    resetWizardHistory();
     setWizard({
       tactic: structuredClone(tactic),
       hints,
@@ -349,6 +487,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       if (!job) return;
       const draw = field === 'via' ? 'route' : drawOverride ?? drawKindFor(job.kind);
       if (!draw) return;
+      beginWizardGesture();
       startTask({
         kind: 'job', tacticId: wizard.tactic.id, groupId, phaseIndex, draw, field,
         // Recipe hints point at first-phase ground; showing one while drawing
@@ -361,6 +500,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     },
     startPostViaTask: (groupId, phaseIndex, postIndex) => {
       if (!wizard) return;
+      beginWizardGesture();
       startTask({
         kind: 'job', tacticId: wizard.tactic.id, groupId, phaseIndex,
         draw: 'route', field: 'via', postIndex, hint: null,
@@ -371,6 +511,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       if (!wizard) return;
       const geometry = signatureMarkGeometry(catalog, classId);
       if (!geometry) return;
+      beginWizardGesture();
       startTask({
         kind: 'sig', tacticId: wizard.tactic.id, groupId, phaseIndex, classId,
         draw: geometry.kind === 'points' ? 'posts' : 'route',
@@ -380,11 +521,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     },
     startWatchTask: (target) => {
       if (!wizard) return;
+      beginWizardGesture();
       startTask({ kind: 'watch', tacticId: wizard.tactic.id, target });
       revealMap();
     },
     startCarryTask: (phaseIndex) => {
       if (!wizard) return;
+      beginWizardGesture();
       startTask({
         kind: 'carry', tacticId: wizard.tactic.id, phaseIndex, draw: 'route',
       });
@@ -403,7 +546,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         toast('That’s the longest way home — 16 points.', 'hot');
         return;
       }
-      changeWizard((tactic) => {
+      changeWizardLive((tactic) => {
         const custody = tactic.phases[task.phaseIndex]?.custody;
         if (!custody || custody.plan === 'keep') return;
         custody.via = [...(custody.via ?? []), [x, y]];
@@ -423,7 +566,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         toast('Every bot has a post — drag one to move it.', 'hot');
         return;
       }
-      changeWizard((tactic) => {
+      changeWizardLive((tactic) => {
         const owner = tactic.groups.find((value) => value.id === task.groupId);
         const target = materializeSpatialJob(tactic, task.phaseIndex, task.groupId);
         if (!owner || !target) return;
@@ -459,7 +602,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         toast(`That’s every mark — drag one to move it.`, 'hot');
         return;
       }
-      changeWizard((tactic) => {
+      changeWizardLive((tactic) => {
         const target = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
         if (!target) return;
         target.sigs = target.sigs ?? {};
@@ -478,7 +621,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       }
       return;
     }
-    changeWizard((tactic) => {
+    changeWizardLive((tactic) => {
       if (task.kind !== 'job') return;
       const job = task.draw === 'route'
         ? materializeSpatialJob(tactic, task.phaseIndex, task.groupId)
@@ -504,7 +647,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const onRectDrawn = (rect: [number, number, number, number]) => {
     if (!task) return;
-    changeWizard((tactic) => {
+    changeWizardLive((tactic) => {
       if (task.kind === 'watch') {
         const conds = watchConds(tactic, task.target);
         if (!conds) return;
@@ -525,7 +668,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
   const onGeometryLive = (edit: GeometryEdit) => {
     if (wizard && wizard.tactic.id === edit.tacticId) {
-      changeWizard(edit.apply);
+      changeWizardLive(edit.apply);
     }
   };
 
@@ -627,11 +770,20 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     ? selectedGroupId && wizard.tactic.groups.some((group) => group.id === selectedGroupId)
       ? selectedGroupId : wizard.tactic.groups[0]?.id ?? null
     : null;
+  const focusedBot = mapFirstPanel?.kind === 'bot'
+    ? document.squad[mapFirstPanel.slot] : null;
+  const focusedBotClass = focusedBot
+    ? catalog.classes.find((entry) => entry.id === focusedBot.class) : null;
+  const activeMapGroup = wizard?.tactic.groups.find((group) => group.id === activeMapGroupId);
+  const activeMapJob = wizard && activeMapGroupId
+    ? effectiveJobResolution(wizard.tactic, wizard.phaseIndex, activeMapGroupId)?.job
+    : null;
+  const needsFirstPlacement = activeMapJob?.kind === 'posts' && activeMapGroup
+    ? (activeMapJob.posts?.length ?? 0) < activeMapGroup.slots.length
+    : false;
 
   const focusMapFirst = (focus: MapFirstFocus) => {
     if (!wizard) return;
-    const reopeningActivePhase = focus.kind === 'phase'
-      && focus.phaseIndex === wizard.phaseIndex;
     let step = wizard.step;
     let phaseIndex = wizard.phaseIndex;
     if (focus.kind === 'start') {
@@ -653,9 +805,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       }
     }
     setWizard({ ...wizard, step, phaseIndex });
-    // Moving between phases is ordinary navigation, not a reason to cover the
-    // map. Clicking the already-active phase again opens rename/delete.
-    setMapFirstPanel(focus.kind === 'phase' && !reopeningActivePhase ? null : focus);
+    setMapFirstPanel(focus);
     endTask();
     if (focus.kind === 'start' || focus.kind === 'abort') {
       const id = focus.kind === 'start' ? 'start-controls' : 'abort-controls';
@@ -664,12 +814,20 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     }
   };
 
+  const selectMapFirstPhase = (phaseIndex: number) => {
+    if (!wizard) return;
+    setWizard({ ...wizard, step: 'phases', phaseIndex });
+    setMapFirstPanel(null);
+    endTask();
+  };
+
   const cancelWizard = () => {
     if (!wizard) return;
     setWizard(null);
     setMapFirstPanel(null);
     setSelectedSlots([]);
-    endTask();
+    endMapTask();
+    resetWizardHistory();
     if (wizard.editing) setSelectedTacticId(wizard.originalId);
     else toast('Draft discarded.');
   };
@@ -727,7 +885,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     for (const group of tactic.groups) group.slots = group.slots.filter((value) => value !== slot);
     tactic.groups.find((group) => group.id === targetGroupId)?.slots.push(slot);
     const summary = followMembership(tactic, document.squad, before, new Map());
-    setWizard({ ...wizard, tactic });
+    replaceWizardTactic(tactic);
     if (summary) toast(summary);
     setSelectedGroupId(targetGroupId);
   };
@@ -782,7 +940,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         }
       }
     }
-    if (snapped) setWizard({ ...wizard, tactic });
+    if (snapped) replaceWizardTactic(tactic);
     setSelectedGroupId(groupId);
     setSelectedSlots(currentGroup.slots);
     setMapFirstPanel(null);
@@ -946,12 +1104,16 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         {wizard && (
           <MapFirstTimeline tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
             focus={mapFirstPanel} gate={gate} dirty={tacticDirty}
+            canUndo={wizardHistoryRevision >= 0 && wizardUndoStack.current.length > 0}
+            canRedo={wizardHistoryRevision >= 0 && wizardRedoStack.current.length > 0}
             squadSize={document.squad.length} onFocus={focusMapFirst}
+            onSelectPhase={selectMapFirstPhase}
+            onUndo={undoWizard} onRedo={redoWizard}
             onAddPhase={addMapFirstPhase} onEditSquad={() => setSquadOpen(true)}
             onCommit={commitWizard} onCancel={cancelWizard} />
         )}
         <div className={wizard
-          ? 'grid min-w-0 items-start gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)] min-[1240px]:grid-cols-[168px_minmax(0,1fr)_232px]'
+          ? 'grid min-w-0 items-start gap-2 min-[820px]:grid-cols-[168px_minmax(0,1fr)]'
           : 'min-w-0'}>
           {wizard && (
             <MapFirstGroupTrays catalog={catalog} document={document}
@@ -970,20 +1132,26 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 onDrawPatrol={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'route')} />
             )}
             <div className="my-1.5 flex min-w-0 items-center justify-end gap-1.5">
-              <TacticsIconButton icon="layers" label="Show every Tactic"
-                pressed={showAll} onClick={() => setShowAll((value) => !value)} />
-              <TacticsIconButton icon="transition" label="Show every phase"
-                pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
-              <TacticsIconButton icon="vision" label="Selected bot vision"
-                pressed={showVision} disabled={selectedSlots.length === 0}
-                onClick={() => setShowVision((value) => !value)} />
-              <TacticsIconButton icon="attack-range" label="Selected bot attack reach"
-                pressed={showAttackRange} disabled={selectedSlots.length === 0}
-                onClick={() => setShowAttackRange((value) => !value)} />
-              <TacticsIconButton icon="clear" label="Clear bot selection"
-                disabled={selectedSlots.length === 0} onClick={() => {
-                  setSelectedSlots([]); setMapFirstPanel(null);
-                }} />
+              <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
+                <TacticsIconButton icon="layers" label="Show every Tactic"
+                  pressed={showAll} onClick={() => setShowAll((value) => !value)} />
+                <TacticsIconButton icon="transition" label="Show every phase"
+                  pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
+              </span>
+              <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
+                <TacticsIconButton icon="vision"
+                  label={selectedSlots.length ? 'Selected bot vision' : 'Select a bot first'}
+                  pressed={showVision} disabled={selectedSlots.length === 0}
+                  onClick={() => setShowVision((value) => !value)} />
+                <TacticsIconButton icon="attack-range"
+                  label={selectedSlots.length ? 'Selected bot attack reach' : 'Select a bot first'}
+                  pressed={showAttackRange} disabled={selectedSlots.length === 0}
+                  onClick={() => setShowAttackRange((value) => !value)} />
+                <TacticsIconButton icon="deselect" label="Clear bot selection"
+                  disabled={selectedSlots.length === 0} onClick={() => {
+                    setSelectedSlots([]); setMapFirstPanel(null);
+                  }} />
+              </span>
               <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
                 {([1, 1.5, 2] as const).map((level) => (
                   <button key={level} type="button"
@@ -994,87 +1162,92 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 ))}
               </span>
             </div>
-            {/* Left aligned and viewport-capped; the legend remains in normal
-                flow so the map can never paint through the page footer. */}
-            <div className="lg:w-[min(100%,calc((100dvh-340px)*1.148))]">
-              <div className="relative">
-                <div className={`overflow-auto rounded-sm border border-arena-edge bg-arena-deep ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
-                  <div style={{ width: `${zoom * 100}%` }}>
-                    <TacticsMapCanvas
-                      catalog={catalog} document={document}
-                      editingTacticId={editingTacticId}
-                      activePhaseIndex={wizard?.phaseIndex ?? null}
-                      selectedTacticId={selectedTacticId}
-                      showAll={showAll} showAllPhases={showAllPhases}
-                      showProjectedBots
-                      showAdjacentPhases={false}
-                      allowInheritedSpatialEditing
-                      selectedSlots={selectedSlots}
-                      showVision={showVision}
-                      showAttackRange={showAttackRange}
-                      task={task} hints={wizard?.hints.groups ?? null}
-                      onTilePicked={onTilePicked} onRectDrawn={onRectDrawn}
-                      onGeometryLive={onGeometryLive} onGestureStart={beginGesture}
-                      onGestureEnd={() => undefined} onSelect={onSelect}
-                      onClearSelection={() => {
-                        setSelectedSlots([]); setMapFirstPanel(null);
-                      }}
-                      onTaskDone={endTask}
-                      onTileRejected={(reason) => toast(reason, 'hot')}
-                      onPostsSwapped={() => toast('Swapped posts.')}
-                      onPostBotDropped={dropPostBot}
-                      onGroupDropped={dropWizardGroup}
-                    />
+            {/* The map and Behavior are one visual workbench. The map remains
+                left aligned and viewport-capped; Behavior hugs its right edge
+                instead of drifting to the far side of a flexible grid. */}
+            <div className="min-[1240px]:flex min-[1240px]:items-start min-[1240px]:gap-2">
+              <div className="min-w-0 lg:w-[min(100%,calc((100dvh-340px)*1.148))] min-[1240px]:shrink-0">
+                <div className="relative">
+                  {!task && needsFirstPlacement && <div
+                    className="pointer-events-none absolute left-2 top-2 z-10 max-w-64 rounded-sm border border-arena-material/60 bg-arena-deep/90 px-2 py-1.5 text-[10.5px] text-arena-text"
+                    data-testid="group-placement-callout">
+                    Drag <b>{activeMapGroup?.name}</b> from the left onto the map to place its formation.
+                  </div>}
+                  <div className={`overflow-auto rounded-sm border border-arena-edge bg-arena-deep ${zoom !== 1 ? 'max-h-[80vh]' : ''}`}>
+                    <div style={{ width: `${zoom * 100}%` }}>
+                      <TacticsMapCanvas
+                        catalog={catalog} document={document}
+                        editingTacticId={editingTacticId}
+                        activePhaseIndex={wizard?.phaseIndex ?? null}
+                        selectedTacticId={selectedTacticId}
+                        showAll={showAll} showAllPhases={showAllPhases}
+                        showProjectedBots
+                        showAdjacentPhases={false}
+                        allowInheritedSpatialEditing
+                        selectedSlots={selectedSlots}
+                        showVision={showVision}
+                        showAttackRange={showAttackRange}
+                        task={task} hints={wizard?.hints.groups ?? null}
+                        onTilePicked={onTilePicked} onRectDrawn={onRectDrawn}
+                        onGeometryLive={onGeometryLive} onGestureStart={beginWizardGesture}
+                        onGestureEnd={finishWizardGesture} onSelect={onSelect}
+                        onClearSelection={() => {
+                          setSelectedSlots([]); setMapFirstPanel(null);
+                        }}
+                        onTaskDone={endTask}
+                        onTileRejected={(reason) => toast(reason, 'hot')}
+                        onPostsSwapped={() => toast('Swapped posts.')}
+                        onPostBotDropped={dropPostBot}
+                        onGroupDropped={dropWizardGroup}
+                      />
+                    </div>
                   </div>
-                </div>
-                {task && <TaskBanner task={task} wizard={wizard} botName={botName} onDone={endTask}
-                  onUndoPoint={() => changeWizard((tactic) => {
-                    if (task.kind === 'carry') {
-                      tactic.phases[task.phaseIndex]?.custody?.via?.pop();
-                    } else if (task.kind === 'job') {
-                      const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
-                      if (!job) return;
-                      if (task.draw === 'posts') job.posts?.pop();
-                      if (task.draw === 'route') {
-                        if (task.field === 'via') {
-                          if (task.postIndex != null) job.posts?.[task.postIndex]?.via?.pop();
-                          else job.via?.pop();
-                        } else {
-                          job.path?.pop();
+                  {task && <TaskBanner task={task} wizard={wizard} botName={botName}
+                    onDone={endTask} onCancel={cancelTask}
+                    onUndoPoint={() => changeWizardLive((tactic) => {
+                      if (task.kind === 'carry') {
+                        tactic.phases[task.phaseIndex]?.custody?.via?.pop();
+                      } else if (task.kind === 'job') {
+                        const job = tactic.phases[task.phaseIndex]?.jobs[task.groupId];
+                        if (!job) return;
+                        if (task.draw === 'posts') job.posts?.pop();
+                        if (task.draw === 'route') {
+                          if (task.field === 'via') {
+                            if (task.postIndex != null) job.posts?.[task.postIndex]?.via?.pop();
+                            else job.via?.pop();
+                          } else {
+                            job.path?.pop();
+                          }
                         }
+                      } else if (task.kind === 'sig') {
+                        const mark = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
+                          ?.sigs?.[task.classId];
+                        if (mark) ('points' in mark ? mark.points : mark.line).pop();
                       }
-                    } else if (task.kind === 'sig') {
-                      const mark = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
-                        ?.sigs?.[task.classId];
-                      if (mark) ('points' in mark ? mark.points : mark.line).pop();
-                    }
-                  })} />}
+                    })} />}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 t-micro text-arena-dim">
+                  <span><span style={{ color: '#22d3ee' }}>●</span> Group post</span>
+                  <span><span style={{ color: '#22d3ee' }}>→</span> route</span>
+                  <span><span style={{ color: '#c8763c' }}>⚡▭</span> watched area</span>
+                  <span><span style={{ color: '#b49cff' }}>◐</span> Wells</span>
+                  <span><span style={{ color: '#22d3ee' }}>◆</span> reactors</span>
+                </div>
               </div>
-            </div>
-            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 t-micro text-arena-dim">
-              <span><span style={{ color: '#22d3ee' }}>●</span> Group post</span>
-              <span><span style={{ color: '#22d3ee' }}>→</span> route</span>
-              <span><span style={{ color: '#c8763c' }}>⚡▭</span> watched area</span>
-              <span><span style={{ color: '#b49cff' }}>◐</span> Wells</span>
-              <span><span style={{ color: '#22d3ee' }}>◆</span> reactors</span>
+              {wizard && activeMapGroupId && (
+                <div className="mt-2 min-[1240px]:mt-0 min-[1240px]:w-[232px] min-[1240px]:shrink-0">
+                  <MapFirstBehaviorPanel tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+                    groupId={activeMapGroupId} change={changeWizard} />
+                </div>
+              )}
             </div>
           </div>
-          {wizard && activeMapGroupId && (
-            <div className="min-[820px]:col-start-2 min-[1240px]:col-start-3 min-[1240px]:row-start-1">
-              <MapFirstBehaviorPanel tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
-                groupId={activeMapGroupId} change={changeWizard} />
-            </div>
-          )}
         </div>
       </section>
 
       {/* ----------------------------------------------------- the drawer --- */}
       {wizard && mapFirstPanel && (
-        <>
-        <button type="button" aria-label="Close context editor"
-          className="fixed inset-0 z-30 cursor-default bg-black/5"
-          onClick={() => { setMapFirstPanel(null); endTask(); }} />
-        <aside className={`fixed right-4 top-20 z-40 flex max-h-[calc(100dvh-6rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
+        <aside ref={contextDrawerRef} className={`fixed right-4 top-20 z-40 flex max-h-[calc(100dvh-6rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
           data-testid="map-first-context-drawer" aria-label="Context editor">
           <div className="flex items-center gap-2 border-b border-arena-edge bg-arena-panel px-2 py-1.5">
             <TacticsIcon name={mapFirstPanel.kind === 'transition' ? 'transition'
@@ -1091,7 +1264,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                     : mapFirstPanel.kind === 'groups' ? 'Group membership'
                       : mapFirstPanel.kind === 'phase' ? 'Phase details'
                       : mapFirstPanel.kind === 'bot'
-                        ? document.squad[mapFirstPanel.slot]?.name ?? 'Bot'
+                        ? focusedBot
+                          ? `${focusedBot.name} · ${focusedBotClass?.name ?? focusedBot.class}`
+                          : 'Bot'
                         : 'Group'}</b>
             <TacticsIconButton icon="close" label="Close context editor"
               onClick={() => { setMapFirstPanel(null); endTask(); }} />
@@ -1158,7 +1333,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               onStop={endTask} />}
           </div>
         </aside>
-        </>
       )}
 
       <div className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-64 flex-col gap-1.5"
@@ -1192,7 +1366,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 className="choice-card flex min-h-[108px] flex-col text-left"
                 data-testid={`recipe-${recipe.id}`}
                 onClick={() => {
-                  const { tactic, hints } = instantiateRecipe(recipe, draft.document);
+                  const { tactic, hints } = instantiateRecipe(recipe, draft.document, catalog);
                   setRecipeOpen(false);
                   openWizard(tactic, hints, false);
                 }}>
@@ -1364,11 +1538,12 @@ function TacticCard({
   );
 }
 
-function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
+function TaskBanner({ task, wizard, botName, onDone, onCancel, onUndoPoint }: {
   task: MapTask;
   wizard: WizardState | null;
   botName: (slot: number) => string | null;
   onDone: () => void;
+  onCancel: () => void;
   onUndoPoint: () => void;
 }) {
   const group = (task.kind === 'job' || task.kind === 'sig') && wizard
@@ -1435,6 +1610,7 @@ function TaskBanner({ task, wizard, botName, onDone, onUndoPoint }: {
       {task.kind === 'job' && task.hint && <span className="t-micro text-arena-dim">· {task.hint.text}</span>}
       <span className="grow" />
       {undoable && <button type="button" className="btn pointer-events-auto" onClick={onUndoPoint}>Undo</button>}
+      <button type="button" className="btn pointer-events-auto" onClick={onCancel}>Cancel</button>
       <button type="button" className="btn btn-secondary pointer-events-auto" onClick={onDone}>Done</button>
     </div>
   );
