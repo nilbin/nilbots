@@ -725,7 +725,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             case OrdersPackage.UseAction use:
             {
                 ResolvedTarget[] targets = ResolveUseTargets(
-                    contract, mind, package, body, use, carried,
+                    contract, mind, arc, package, body, use, carried,
                     out string? useDecline);
                 if (targets.Length == 0 && useDecline is not null)
                     decline = $"after-{node.Id}-{useDecline}";
@@ -1457,6 +1457,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private ResolvedTarget[] ResolveUseTargets(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
         OrdersPackage package,
         MindBody body,
         OrdersPackage.UseAction use,
@@ -1496,13 +1497,29 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             var self = new ResolvedTarget(
                 $"body:{body.ActorId}", body.Position, [body.Position],
                 body.ActorId, null);
-            return CanExecuteUse(contract, body, self, use) ? [self] : [];
+            if (!CanExecuteUse(contract, body, self, use))
+            {
+                decline = $"signature-{use.Skill}-illegal-at-self";
+                return [];
+            }
+            if (!SignatureOpportunityAllows(
+                    contract, mind, arc, body, use, self, null, out decline))
+                return [];
+            return [self];
         }
         if (use.TargetKind == "named" && use.Target == "own-reactor")
         {
             var reactor = new ResolvedTarget(
                 "reactor:own", _ownReactor, [_ownReactor], null, null);
-            return CanExecuteUse(contract, body, reactor, use) ? [reactor] : [];
+            if (!CanExecuteUse(contract, body, reactor, use))
+            {
+                decline = $"signature-{use.Skill}-illegal-at-own-reactor";
+                return [];
+            }
+            if (!SignatureOpportunityAllows(
+                    contract, mind, arc, body, use, reactor, null, out decline))
+                return [];
+            return [reactor];
         }
         Position? exactPlacement = use.AtAnchor is string anchor
             ? package.AnchorPosition(anchor)
@@ -1637,12 +1654,172 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     (string?)($"{candidate.Value.Trace}:ahead-via-{aheadVia}"
                         + $"-gain-{candidate.Gain}")));
         }
-        return values.Select(value => new ResolvedTarget(
+        ResolvedTarget[] candidates = values.Select(value => new ResolvedTarget(
             $"body:{value.Actor}", value.Position, [value.Position],
-            value.Actor, null, value.Trace))
+            value.Actor, null, value.Trace)).ToArray();
+        ResolvedTarget[] legal = candidates
             .Where(target => CanExecuteUse(
                 contract, body, target, use, exactPlacement))
             .ToArray();
+        if (legal.Length == 0 && use.TargetKind == "named")
+        {
+            decline = candidates.Length == 0
+                ? $"signature-{use.Skill}-no-target-{use.Target}"
+                : $"signature-{use.Skill}-no-legal-target-{use.Target}";
+            return [];
+        }
+        var useful = new List<ResolvedTarget>();
+        string? opportunityDecline = null;
+        foreach (ResolvedTarget target in legal)
+        {
+            if (SignatureOpportunityAllows(
+                    contract, mind, arc, body, use, target,
+                    exactPlacement, out string? candidateDecline))
+            {
+                useful.Add(target);
+            }
+            else
+            {
+                opportunityDecline ??= candidateDecline;
+            }
+        }
+        if (useful.Count == 0 && opportunityDecline is not null)
+            decline = opportunityDecline;
+        return useful.ToArray();
+    }
+
+    /// <summary>
+    /// Generated Tactics uses carry one catalog-derived opportunity token.
+    /// The runtime interprets that small stable vocabulary instead of
+    /// branching on skill ids. Manual Orders omit it and retain their exact
+    /// authored semantics.
+    /// </summary>
+    private bool SignatureOpportunityAllows(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        OrdersPackage.UseAction use,
+        ResolvedTarget target,
+        Position? exactPlacement,
+        out string? decline)
+    {
+        decline = null;
+        if (use.Opportunity is null)
+            return true;
+        Position place = exactPlacement ?? target.Position;
+        int Nearby(Position first, Position second) =>
+            Math.Max(Math.Abs(first.X - second.X), Math.Abs(first.Y - second.Y));
+        int CrossDistance(Position first, Position second) =>
+            Math.Abs(first.X - second.X) + Math.Abs(first.Y - second.Y);
+        bool durablePresent = OwnedDeployment(arc, body) is { } deployment
+            && deployment.RemainingCapacity > 0;
+        switch (use.Opportunity)
+        {
+            case "route-forward":
+            case "transfer-forward":
+            case "rail-visible-enemy":
+            case "pull-enemy-carrier":
+                return true;
+            case "screen-threatened-lane":
+            {
+                if (durablePresent)
+                    return RejectSignatureOpportunity(
+                        use, "useful-screen-still-active", out decline);
+                MindBody[] protectedBodies = mind.Bodies.Where(ally =>
+                        ally.UnitId == body.UnitId
+                        || ArenaBasics.CarriedCore(mind, ally.ActorId) is not null
+                        || Nearby(ally.Position, body.Position) <= 1)
+                    .ToArray();
+                return mind.Enemies.Any(enemy => protectedBodies.Any(ally =>
+                        ArenaBasics.CanAimFrom(
+                            contract, enemy.FormId, enemy.Position, ally.Position)))
+                    || RejectSignatureOpportunity(
+                        use, "no-threatening-lane", out decline);
+            }
+            case "repair-damaged-ally":
+            {
+                MindBody? ally = target.Actor is ActorIdentity actor
+                    ? mind.Bodies.FirstOrDefault(candidate =>
+                        candidate.ActorId == actor)
+                    : null;
+                return ally is not null && ally.Health < MaxHealth(contract, ally)
+                    || RejectSignatureOpportunity(
+                        use, "target-not-damaged", out decline);
+            }
+            case "reveal-smoke":
+                return arc.VisibleSignatures.Any(value =>
+                        value.Kind.Contains("smoke", StringComparison.Ordinal)
+                        && value.Positions.Any(position => Nearby(position, place) <= 2))
+                    || RejectSignatureOpportunity(
+                        use, "no-hostile-smoke-at-mark", out decline);
+            case "strike-occupied-anchor":
+                if (mind.Bodies.Any(ally => CrossDistance(ally.Position, place) <= 1))
+                    return RejectSignatureOpportunity(
+                        use, "ally-in-cross", out decline);
+                return mind.Enemies.Any(enemy => CrossDistance(enemy.Position, place) <= 1)
+                    || RejectSignatureOpportunity(
+                        use, "no-enemy-in-cross", out decline);
+            case "deploy-unoccupied-anchor":
+            case "block-unoccupied-choke":
+                return !durablePresent || RejectSignatureOpportunity(
+                    use, "useful-deployment-still-active", out decline);
+            case "seed-after-team-contact":
+                if (mind.Enemies.Length == 0)
+                    return RejectSignatureOpportunity(
+                        use, "no-team-contact", out decline);
+                return !durablePresent || RejectSignatureOpportunity(
+                    use, "useful-deployment-still-active", out decline);
+            case "suppress-hostile-signature":
+                return arc.VisibleSignatures.Any(value =>
+                        value.OwnerTeamId != _teamId && !value.Suppressed
+                        && value.Positions.Any(position =>
+                            Nearby(position, body.Position) <= 4))
+                    || RejectSignatureOpportunity(
+                        use, "no-hostile-signature-value", out decline);
+            case "rescue-endangered-ally":
+            {
+                MindBody? ally = target.Actor is ActorIdentity actor
+                    ? mind.Bodies.FirstOrDefault(candidate =>
+                        candidate.ActorId == actor)
+                    : null;
+                return ally is not null
+                    && (ally.Health * 2 <= MaxHealth(contract, ally)
+                        || ArenaBasics.CarriedCore(mind, ally.ActorId) is not null)
+                    || RejectSignatureOpportunity(
+                        use, "ally-not-endangered", out decline);
+            }
+            case "paint-supported-enemy":
+                return target.Actor is not null
+                    && mind.Bodies.Any(ally => ally.UnitId != body.UnitId
+                        && ArenaBasics.CanAimFrom(
+                            contract, ally.FormId, ally.Position, target.Position))
+                    || RejectSignatureOpportunity(
+                        use, "no-allied-follow-up", out decline);
+            case "burst-crowd":
+                return mind.Enemies.Count(enemy =>
+                        Nearby(enemy.Position, body.Position) <= 3) >= 2
+                    || RejectSignatureOpportunity(
+                        use, "not-crowded", out decline);
+            case "smoke-threatened-crossing":
+                return mind.Enemies.Any(enemy =>
+                        ArenaBasics.CanAimFrom(
+                            contract, enemy.FormId, enemy.Position, place))
+                    || RejectSignatureOpportunity(
+                        use, "crossing-not-threatened", out decline);
+            default:
+                return RejectSignatureOpportunity(
+                    use, "unknown-policy", out decline);
+        }
+    }
+
+    private static bool RejectSignatureOpportunity(
+        OrdersPackage.UseAction use,
+        string reason,
+        out string? decline)
+    {
+        decline = $"signature-{use.Skill}-opportunity-{reason}";
+        return false;
     }
 
     private ResolvedTarget? ResolveForwardRouteUse(

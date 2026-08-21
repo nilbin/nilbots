@@ -580,7 +580,8 @@ public sealed class ArcRelayTacticsMaterializerTests
             .Where(value => value.ValueKind == JsonValueKind.Object
                 && value.TryGetProperty("fight", out JsonElement fight)
                 && fight.TryGetProperty("style", out JsonElement style)
-                && style.GetString() == "hold")
+                && style.GetString() == "hold"
+                && fight.GetProperty("chaseLimit").GetInt32() == 5)
             .ToArray();
 
         Assert.NotEmpty(holdNodes);
@@ -598,6 +599,12 @@ public sealed class ArcRelayTacticsMaterializerTests
                     .EnumerateArray()
                     .Select(value => value.GetString()!).ToArray());
         });
+        Assert.Contains(Descendants(orders.RootElement), node =>
+            node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty("fight", out JsonElement fight)
+            && fight.GetProperty("chaseLimit").GetInt32() == 0
+            && node.TryGetProperty("when", out JsonElement when)
+            && when.ToString().Contains("carrying-core", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1029,9 +1036,10 @@ public sealed class ArcRelayTacticsMaterializerTests
         int recovery = Array.FindIndex(leaves, node =>
             node.TryGetProperty("shared", out JsonElement shared)
             && shared.GetString() == "t1-p2-g2-recovery");
-        int signature = Array.FindIndex(leaves, node =>
+        int commitment = Array.FindIndex(leaves, node =>
             node.TryGetProperty("id", out JsonElement id)
-            && id.GetString()!.EndsWith("-sig", StringComparison.Ordinal));
+            && id.GetString()!.EndsWith(
+                "-signature-commitment", StringComparison.Ordinal));
         int scan = Array.FindIndex(leaves, node =>
             node.TryGetProperty("scan", out _));
         int floor = Array.FindIndex(leaves, node =>
@@ -1041,7 +1049,7 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.True(fight >= 0 && scan > fight && floor > scan);
         if (recovery >= 0)
             Assert.True(recovery < scan);
-        Assert.True(signature >= 0 && signature < scan);
+        Assert.True(commitment >= 0 && commitment < scan);
         JsonElement scanAction = leaves[scan].GetProperty("scan");
         Assert.Equal(20,
             scanAction.GetProperty("freshWithinTicks").GetInt32());
@@ -1349,6 +1357,58 @@ public sealed class ArcRelayTacticsMaterializerTests
             ArcRelayTacticalPlaybookCompiler.CompileTactics(
                 Encoding.UTF8.GetBytes(document.ToJsonString())));
         Assert.Contains("no bot of class 'mortar'", error.Message);
+    }
+
+    [Fact]
+    public void LegacyClassMarksMigrateToEveryMatchingStableSlot()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["squad"]![1]!["class"] = "mason";
+
+        byte[] normalized = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+            Encoding.UTF8.GetBytes(document.ToJsonString()));
+        JsonObject migrated = JsonNode.Parse(normalized)!.AsObject();
+        JsonObject sigs = migrated["tactics"]![0]!["phases"]![1]!["jobs"]!
+            ["flankers"]!["sigs"]!.AsObject();
+
+        Assert.Equal(["1", "3"], sigs.Select(value => value.Key).ToArray());
+        Assert.All(sigs, value => Assert.Equal(
+            "only", value.Value!["policy"]!.GetValue<string>()));
+    }
+
+    [Fact]
+    public void DuplicateBotsMaterializeIndependentSignaturePolicies()
+    {
+        JsonObject source = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        source["squad"]![1]!["class"] = "mason";
+        JsonObject migrated = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Encoding.UTF8.GetBytes(source.ToJsonString())))!.AsObject();
+        JsonObject sigs = migrated["tactics"]![0]!["phases"]![1]!["jobs"]!
+            ["flankers"]!["sigs"]!.AsObject();
+        sigs["1"] = JsonNode.Parse(
+            """{"policy":"off"}""");
+        sigs["3"] = JsonNode.Parse(
+            """{"policy":"only","points":[[15,11]]}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(migrated.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement solder = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "solder");
+        JsonElement flux = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "flux");
+        Assert.DoesNotContain(Descendants(solder), node =>
+            node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty("use", out _));
+        Assert.Contains(Descendants(flux), node =>
+            node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty("use", out JsonElement use)
+            && use.GetProperty("skill").GetString() == "hardlight-block");
     }
 
     [Fact]

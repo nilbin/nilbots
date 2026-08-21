@@ -72,7 +72,7 @@ test('Map-first contextual editors reuse full tactic controls and keep bot focus
   assert.match(page, /<MapFirstBotPanel/);
   assert.match(chrome, /data-testid="map-first-bot-panel"/);
   assert.match(chrome, /Draw approach route/);
-  assert.match(chrome, /Place signature marks/);
+  assert.match(chrome, /Add map guidance/);
   assert.doesNotMatch(page, /Bot and Group details/);
   const mapFirstDrawer = page.slice(page.indexOf('data-testid="map-first-context-drawer"'));
   assert.doesNotMatch(mapFirstDrawer, /<ReviewStep/);

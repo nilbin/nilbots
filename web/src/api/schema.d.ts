@@ -3315,6 +3315,9 @@ export interface components {
             allowsExactAnchor: boolean;
             allowsRouteAheadRole: boolean;
             allowsRouteForward: boolean;
+            guidanceGeometry: string;
+            /** Format: int32 */
+            guidanceMarkLimit: number;
             durableDeployment: boolean;
             defaultCommitmentBehavior: string;
             preset: components["schemas"]["TacticalSheetSignatureOpportunityPresetResponse"];

@@ -26,7 +26,11 @@ const catalog = {
     id: 'mason', name: 'Mason', fantasy: '', unlocked: true,
     signatureName: 'Hardlight',
     visionRange: 6, visionProximityRange: 2, attackRange: 4,
-    signatureAuthoring: { allowsExactAnchor: true, allowsRouteForward: false },
+    signatureAuthoring: {
+      allowsExactAnchor: true, allowsRouteForward: false,
+      engagementRange: 7, argumentKind: 'position',
+      guidanceGeometry: 'points', guidanceMarkLimit: 2,
+    },
   }],
 } as unknown as TacticalSheetCatalog;
 
@@ -103,7 +107,7 @@ test('selected exact bots render directional catalog vision separately from cata
   };
   const markup = renderToStaticMarkup(createElement(SelectedBotRanges, {
     catalog, document, tactic, phaseIndex: 0, selectedSlots: [0],
-    showVision: true, showAttackRange: true,
+    showVision: true, showAttackRange: true, showSignatureRange: true,
   }));
   assert.match(markup, /data-testid="selected-bot-range-0"/);
   assert.match(markup, /<path[^>]+A 6 6/,
@@ -112,6 +116,8 @@ test('selected exact bots render directional catalog vision separately from cata
     'omnidirectional proximity vision stays distinct');
   assert.match(markup, /<circle[^>]+r="4"/,
     'attack reach uses the class attack range, not the vision distance');
+  assert.match(markup, /<circle[^>]+r="7"[^>]+stroke="#c084fc"/,
+    'signature reach uses the rules-derived signature engagement range');
 });
 
 test('relevant geometry and membership change the projection, unrelated behavior does not', () => {

@@ -525,10 +525,18 @@ export function MapFirstBotPanel({
     && task.phaseIndex === phaseIndex && task.field === 'via'
     && (postIndex < 0 || task.postIndex === postIndex);
   const geometry = signatureMarkGeometry(catalog, bot.class);
-  const mark = raw.sigs?.[bot.class];
-  const marks = mark ? ('points' in mark ? mark.points : mark.line) : [];
+  const signatureKey = String(slot);
+  const plan = raw.sigs?.[signatureKey];
+  const marks = plan?.points ?? plan?.line ?? [];
+  const policy = plan?.policy ?? 'smart';
+  const authoring = entry.signatureAuthoring;
+  const smartCopy = authoring.preset.targetKind === 'route-ahead-role'
+    ? 'Smart: offers a forward handoff only while carrying a Core.'
+    : authoring.durableDeployment && authoring.allowsExactAnchor
+      ? 'Smart waits for map guidance so it cannot deploy on the wrong route.'
+      : `Smart: ${authoring.preset.description}`;
   const signatureDrawing = task?.kind === 'sig' && task.groupId === groupId
-    && task.phaseIndex === phaseIndex && task.classId === bot.class;
+    && task.phaseIndex === phaseIndex && task.slot === slot;
   const clearRoute = route?.length ? () => change((next) => {
     const target = materializeSpatialJob(next, phaseIndex, groupId);
     if (!target) return;
@@ -585,20 +593,67 @@ export function MapFirstBotPanel({
     </div>
     <div>
       <div className="lab mb-1">Signature</div>
-      {geometry ? <GeoStatusRow complete={marks.length > 0}
-        label={marks.length
-          ? `${geometry.label} · ${marks.length}/${geometry.max} mark${marks.length === 1 ? '' : 's'}`
-          : `${geometry.label} · no map marks yet`}
-        drawing={signatureDrawing} drawLabel="Place signature marks"
-        onDraw={() => onDrawSignature(bot.class)} onStop={onStop}
-        onClear={marks.length ? () => change((next) => {
-          const target = next.phases[phaseIndex]?.jobs[groupId];
-          if (target?.sigs) delete target.sigs[bot.class];
-        }) : undefined} />
-        : <div className="rounded-sm border border-arena-edge bg-arena-deep/30 p-2">
-          <p className="t-micro font-semibold">{entry.signatureName}</p>
-          <p className="mt-1 t-micro text-arena-dim">Used automatically when this bot’s behavior calls for it; no map mark is needed.</p>
+      <div className="rounded-sm border border-arena-edge bg-arena-deep/30 p-2">
+        <div className="flex items-center justify-between gap-2">
+          <div>
+            <p className="t-micro font-semibold">{entry.signatureName}</p>
+            <p className="mt-0.5 text-[9.5px] text-arena-dim">
+              {policy === 'off' ? 'Disabled in this phase.'
+                : policy === 'only' ? 'Only uses the marked opportunities.'
+                  : policy === 'prefer' ? 'Prefers marks, then uses safe smart opportunities.'
+                    : smartCopy}
+            </p>
+          </div>
+          {policy !== 'off' && geometry && marks.length === 0 &&
+            <button type="button" className="btn btn-secondary shrink-0"
+              onClick={() => onDrawSignature(bot.class)}>Add map guidance</button>}
+        </div>
+        {geometry && marks.length > 0 && <div className="mt-2">
+          <GeoStatusRow complete
+            label={`${geometry.label} · ${marks.length}/${geometry.max} mark${marks.length === 1 ? '' : 's'}`}
+            drawing={signatureDrawing} drawLabel="Edit marks"
+            onDraw={() => onDrawSignature(bot.class)} onStop={onStop}
+            onClear={() => change((next) => {
+              const target = next.phases[phaseIndex]?.jobs[groupId];
+              if (target?.sigs) delete target.sigs[signatureKey];
+            })} />
+          <label className="mt-1.5 flex cursor-pointer items-center gap-2 t-micro">
+            <input type="checkbox" checked={policy === 'only'}
+              onChange={(event) => change((next) => {
+                const target = next.phases[phaseIndex]?.jobs[groupId];
+                const existing = target?.sigs?.[signatureKey];
+                if (existing) existing.policy = event.target.checked ? 'only' : 'prefer';
+              })} />
+            Only use at these marks
+          </label>
         </div>}
+        <details className="mt-2 border-t border-arena-edge/70 pt-1.5 text-[9.5px] text-arena-dim">
+          <summary className="cursor-pointer select-none text-arena-material">
+            Rules · {authoring.engagementRange} tile reach · {authoring.cooldownTicks} tick cooldown
+          </summary>
+          <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5">
+            <span>Activation</span><b className="text-arena-text">{authoring.activationTiming}</b>
+            <span>Starts</span><b className="text-arena-text">{authoring.initialPhase}</b>
+            <span>Resolves</span><b className="text-arena-text">{authoring.maturityPhase}</b>
+            <span>Cooldown from</span><b className="text-arena-text">{authoring.cooldownAnchor}</b>
+            {Object.entries(authoring.parameters).map(([name, value]) => <span key={name} className="contents">
+              <span>{name.replace(/[A-Z]/g, (letter) => ` ${letter.toLowerCase()}`)}</span>
+              <b className="text-arena-text">{value}</b>
+            </span>)}
+            <p className="col-span-2 mt-1 leading-snug">{authoring.preset.description}</p>
+          </div>
+        </details>
+        <button type="button" className="mt-2 text-[9.5px] text-arena-dim underline"
+          onClick={() => change((next) => {
+            const target = next.phases[phaseIndex]?.jobs[groupId];
+            if (!target) return;
+            target.sigs = target.sigs ?? {};
+            if (policy === 'off') delete target.sigs[signatureKey];
+            else target.sigs[signatureKey] = { policy: 'off' };
+          })}>
+          {policy === 'off' ? 'Enable Smart use' : 'Disable in this phase'}
+        </button>
+      </div>
     </div>
   </div>;
 }

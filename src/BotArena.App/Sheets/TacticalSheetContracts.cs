@@ -69,6 +69,8 @@ public sealed record TacticalSheetSignatureAuthoringResponse(
     bool AllowsExactAnchor,
     bool AllowsRouteAheadRole,
     bool AllowsRouteForward,
+    string GuidanceGeometry,
+    int GuidanceMarkLimit,
     bool DurableDeployment,
     string DefaultCommitmentBehavior,
     TacticalSheetSignatureOpportunityPresetResponse Preset);

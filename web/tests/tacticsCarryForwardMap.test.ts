@@ -20,7 +20,10 @@ const catalog = {
   },
   classes: [{
     id: 'mason', name: 'Mason', signatureName: 'Hardlight',
-    signatureAuthoring: { allowsExactAnchor: true, allowsRouteForward: false },
+    signatureAuthoring: {
+      allowsExactAnchor: true, allowsRouteForward: false,
+      guidanceGeometry: 'points', guidanceMarkLimit: 2,
+    },
   }],
 } as unknown as TacticalSheetCatalog;
 
@@ -86,10 +89,10 @@ test('carry-forward visibly renders every authored ground family and via', () =>
 test('carry-forward renders only current-phase signature marks and keeps them editable', () => {
   const html = render({
     kind: 'area', posture: 'hold', recovery: 'fight-on', rect: [5, 5, 8, 8],
-    sigs: { mason: { points: [[3, 3]] } },
+    sigs: { '0': { policy: 'only', points: [[3, 3]] } },
   }, {
     kind: 'none', posture: 'aggressive', recovery: 'heal-up',
-    sigs: { mason: { points: [[12, 12]] } },
+    sigs: { '0': { policy: 'only', points: [[12, 12]] } },
   });
   assert.match(html, /cx="12\.5"/);
   assert.doesNotMatch(html, /cx="3\.5"/,

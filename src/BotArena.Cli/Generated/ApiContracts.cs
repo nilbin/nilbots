@@ -3597,6 +3597,13 @@ namespace BotArena.Cli.Generated
         [System.Text.Json.Serialization.JsonPropertyName("allowsRouteForward")]
         public bool AllowsRouteForward { get; set; } = default!;
 
+        [System.Text.Json.Serialization.JsonPropertyName("guidanceGeometry")]
+        [System.ComponentModel.DataAnnotations.Required(AllowEmptyStrings = true)]
+        public string GuidanceGeometry { get; set; } = default!;
+
+        [System.Text.Json.Serialization.JsonPropertyName("guidanceMarkLimit")]
+        public int GuidanceMarkLimit { get; set; } = default!;
+
         [System.Text.Json.Serialization.JsonPropertyName("durableDeployment")]
         public bool DurableDeployment { get; set; } = default!;
 

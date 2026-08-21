@@ -194,13 +194,13 @@ public sealed class TacticsEncodingLifecycleTests
         Assert.Equal("t1-p1-g2-patch", harness.EligibleLeaf(4));
         // Recovered: back on the floor within the same phase.
         Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(8));
-        // Acting with a loose Core in reach: the tactic's own grab leaf wins
-        // (a tactic-scoped Core habit above the phases), not the baseline
-        // collector.
+        // Acting with a loose Core in reach: the active phase's own grab
+        // leaf wins, not the baseline collector. Phase-local emission keeps
+        // it composable with pinned Core custody.
         harness.World.CoreInReach = tick => tick >= 12;
         (string root, string leaf) = harness.FirstEligible(12);
         Assert.Equal("t1", root);
-        Assert.Equal("t1-g2-grab", leaf);
+        Assert.Equal("t1-p2-g2-grab", leaf);
         // Carrying under a 'none' delivery plan: the tactic HOLDS the
         // carrier — the job continues and banking waits for the baseline
         // banker once the tactic ends. (Holding a Core no longer finishes
@@ -245,6 +245,22 @@ public sealed class TacticsEncodingLifecycleTests
         aggressive.World.EnemyNearby = tick => tick == 4;
         Assert.Equal("t1-p1-g2-fight", aggressive.EligibleLeaf(4));
         Assert.Equal("t1-p1-g2-move", aggressive.EligibleLeaf(5));
+    }
+
+    [Fact]
+    public void AggressiveFightLeavesItsPostWithoutDisarmingItsEpisode()
+    {
+        Harness harness = Harness.ForRole("vex", tactics => MutateFlankerStage(
+            tactics, posture: "aggressive", travel: "observe",
+            recovery: "fight-on"));
+        harness.World.AtStation = tick => tick == 4;
+        harness.World.EnemyNearby = tick => tick <= 5;
+
+        Assert.Equal("t1-p1-g2-fight", harness.EligibleLeaf(4));
+        // The first pursuit step leaves the station. The authored station is
+        // the episode's origin/return floor, not a per-tick eligibility veto.
+        Assert.Equal("t1-p1-g2-fight", harness.EligibleLeaf(5));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(6));
     }
 
     [Theory]

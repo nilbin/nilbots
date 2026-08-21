@@ -722,9 +722,8 @@ internal static class ArcRelayTacticsMaterializer
         /// <summary>
         /// One tactic's subtree for one bot: a tactic wrapper (tagged with
         /// the tactic id, so everything inside goes dark between runs)
-        /// holding the tactic-scoped Core habits first — they outrank floors
-        /// in every phase — then one wrapper per phase (tagged tactic/phase)
-        /// with that phase's recovery, fight, marks, and floor. Leaves are
+        /// then one wrapper per phase (tagged tactic/phase) with that phase's
+        /// custody overlay, recovery, skills, fight, scan, and floor. Leaves are
         /// untagged; the wrappers are the whole gate. There is no release
         /// branch, per-body latch, or rejoin anywhere.
         /// </summary>
@@ -745,17 +744,6 @@ internal static class ArcRelayTacticsMaterializer
             string groupTag = $"g{groupIndex + 1}";
 
             var children = new List<Node>();
-            var invariantScope = new LeafScope(
-                prefix, groupTag, group.Slots.Count, PhaseTag: null);
-            // Any phase-level custody moves the WHOLE delivery emission
-            // into the phase wrappers (a tactic-scoped leaf would outrank
-            // and shadow every override); without one, the tactic-scoped
-            // emission is byte-identical to before custody existed.
-            bool phaseCustody = tactic.Phases.Any(
-                candidate => candidate.Custody is not null);
-            if (!phaseCustody)
-                AddDelivery(children, invariantScope, tactic, group, bot);
-            AddCoreRule(children, invariantScope, group.CoreRule);
             for (int phaseIndex = 0; phaseIndex < tactic.Phases.Count; phaseIndex++)
             {
                 ArcRelayTacticPhaseDef phase = tactic.Phases[phaseIndex];
@@ -777,13 +765,16 @@ internal static class ArcRelayTacticsMaterializer
                         ? null
                         : Zone(footprint, $"g-{prefix}-{groupTag}-set");
                 };
-                if (phaseCustody)
-                {
-                    AddPhaseCustody(
-                        leaves, scope, tactic, phase, group, bot,
-                        prefix, phaseIndex, groundZone);
-                }
-                AddRecovery(leaves, scope, raw.Recovery, groundZone);
+                string custodyPlan = phase.Custody?.Plan ?? tactic.Delivery.Plan;
+                AddSignatureCommitment(leaves, scope, bot);
+                AddCustodyTransfer(
+                    leaves, scope, custodyPlan, tactic, bot);
+                AddCoreRule(
+                    leaves, scope, group.CoreRule, group,
+                    excludeAttachedEscort: custodyPlan == "escort");
+                AddRecovery(
+                    leaves, scope, raw.Recovery, groundZone,
+                    custodyPlan == "escort" ? group : null);
                 // travel == posture is "same as here": nothing to
                 // distinguish. A kind with no arrival (patrol/return, or a
                 // carry-forward that resolves to one) drops travel rather
@@ -798,6 +789,11 @@ internal static class ArcRelayTacticsMaterializer
                 // Standing kinds always gate their fight on the station; a
                 // mover's fight is gated on its destination only when a
                 // travel posture makes the march and the ground different.
+                AddSignatureLeaves(
+                    leaves, scope, group, bot, raw.Posture, raw.Sigs,
+                    effective);
+                AddCustodyFight(
+                    leaves, scope, custodyPlan, group, raw.Posture);
                 AddPostureFight(leaves, scope, raw.Posture,
                     standing || (mover && travel is not null)
                         ? () => OnStationCondition(
@@ -810,10 +806,13 @@ internal static class ArcRelayTacticsMaterializer
                             prefix, groupTag, effective!, group, bot,
                             arrived: false));
                 }
-                AddSignatureLeaves(
-                    leaves, scope, group, bot, raw.Posture, raw.Sigs);
+                AddCustodyMovement(
+                    leaves, scope, tactic, phase, group, bot,
+                    prefix, phaseIndex, groundZone);
                 AddScanLeaves(
                     leaves, scope, tactic, phase, group, effective);
+                AddSignaturePositioningFloor(
+                    leaves, scope, bot, raw.Sigs);
                 if (effective is not null)
                     AddFloor(leaves, scope, effective, group, bot);
                 if (leaves.Count > 0)
@@ -959,13 +958,22 @@ internal static class ArcRelayTacticsMaterializer
             List<Node> leaves,
             LeafScope scope,
             string recovery,
-            Func<string?> groundZone)
+            Func<string?> groundZone,
+            ArcRelayTacticGroup? escortGroup)
         {
+            Expr RecoveryWhen(params string[] conditions)
+            {
+                var all = new List<string> { EmptyHanded() };
+                all.AddRange(conditions);
+                if (escortGroup is not null)
+                    all.Add(NoFriendlyCarrier(escortGroup, scope));
+                return Expr.All(all.ToArray());
+            }
             if (recovery == "heal-tile")
             {
                 leaves.Add(GroupLeaf(scope, "heal", () => new Node
                 {
-                    When = Expr.All(EmptyHanded(), Hurt()),
+                    When = RecoveryWhen(Hurt()),
                     Until = Expr.One(Healthy()),
                     Timeout = 16,
                     Cooldown = 18,
@@ -983,7 +991,7 @@ internal static class ArcRelayTacticsMaterializer
                 // (90/98) let a bot at 92% block a 95% gate forever.
                 leaves.Add(GroupLeaf(scope, "heal-up", () => new Node
                 {
-                    When = Expr.All(EmptyHanded(), Condition(
+                    When = RecoveryWhen(Condition(
                         new ConditionShape(
                             "self-health-percent", "at-most", 99),
                         "below-topped-up")),
@@ -1003,7 +1011,7 @@ internal static class ArcRelayTacticsMaterializer
             {
                 leaves.Add(GroupLeaf(scope, "patch", () => new Node
                 {
-                    When = Expr.All(EmptyHanded(), Hurt()),
+                    When = RecoveryWhen(Hurt()),
                     Until = Expr.One(Condition(
                         new ConditionShape("self-health-percent", "at-least", 60),
                         "patched-up")),
@@ -1018,7 +1026,7 @@ internal static class ArcRelayTacticsMaterializer
         /// tactic's delivery plan where none is authored. "keep" is the
         /// deliberate hold — the carrier stays on the job and a later phase
         /// banks. The drawn via guides the carrier's run home.</summary>
-        private void AddPhaseCustody(
+        private void AddCustodyMovement(
             List<Node> leaves,
             LeafScope scope,
             ArcRelayTactic tactic,
@@ -1065,37 +1073,93 @@ internal static class ArcRelayTacticsMaterializer
                     $"c-{prefix}-p{phaseIndex + 1}-home-from-ground")
                 : null;
             AddDeliveryLeaves(
-                leaves, scope, plan, via, tactic, group, bot, onGround);
+                leaves, scope, plan, via, group, onGround);
         }
 
-        private void AddDelivery(
+        private void AddSignatureCommitment(
             List<Node> leaves,
             LeafScope scope,
-            ArcRelayTactic tactic,
-            ArcRelayTacticGroup group,
             ArcRelayTacticsSquadBot bot)
         {
-            if (tactic.Delivery.Plan == "none")
-            {
-                // "None" means the job continues and banking waits for the
-                // baseline banker once the tactic ends — but a tactic whose
-                // final phase holds forever never ends, so an accidental
-                // carrier (a Core landing on a bot with no grab rule) would
-                // hold it forever. That branch carries the same urgent bank
-                // escape the organized plans get.
-                if (tactic.Phases[^1].Continue.Count == 0)
-                {
-                    leaves.Add(GroupLeaf(scope, "bank", () => new Node
-                    {
-                        When = Expr.One(CarryingCore()),
-                        Urgency = "urgent",
-                        Action = MoveToDynamic("own-reactor"),
-                    }));
-                }
+            ArcRelaySignatureAuthoringDescriptor descriptor =
+                ArcRelaySignatureAuthoringCatalog.ForClass(bot.ClassId);
+            if (descriptor.DefaultCommitment !=
+                ArcRelaySignatureCommitmentBehavior.PreserveByDefault)
                 return;
+            leaves.Add(new Node
+            {
+                Id = scope.Id("signature-commitment"),
+                When = Expr.One(Condition(
+                    new ConditionShape(
+                        "signature-commitment-active", "equals", 1),
+                    $"c-{scope.Prefix}-{scope.GroupTag}-signature-commitment")),
+                Action = MoveToDynamic(
+                    "current-position", posture: "line"),
+            });
+        }
+
+        private void AddCustodyTransfer(
+            List<Node> leaves,
+            LeafScope scope,
+            string plan,
+            ArcRelayTactic tactic,
+            ArcRelayTacticsSquadBot bot)
+        {
+            if (plan is "none" or "keep" || bot.ClassId != "relay")
+                return;
+            int preferred = tactic.Delivery.PreferredSlots
+                .Where(slot => slot != bot.Slot)
+                .DefaultIfEmpty(-1)
+                .First();
+            leaves.Add(new Node
+            {
+                Id = scope.Id("pass"),
+                When = Expr.All(CarryingCore(), SignatureReady()),
+                Action = UseSkill(
+                    "arc-toss",
+                    writer =>
+                    {
+                        if (preferred >= 0)
+                        {
+                            writer.WriteStartObject("target");
+                            writer.WriteString("role", RoleId(preferred));
+                            writer.WriteEndObject();
+                        }
+                        else
+                        {
+                            writer.WriteString(
+                                "target", "nearest-ally-toward-own-reactor");
+                        }
+                    }),
+            });
+        }
+
+        private void AddCustodyFight(
+            List<Node> leaves,
+            LeafScope scope,
+            string plan,
+            ArcRelayTacticGroup group,
+            string posture)
+        {
+            if (posture is "hold" or "aggressive" or "steal" or "escort")
+            {
+                leaves.Add(GroupLeaf(scope, "carrier-defence", () => new Node
+                {
+                    When = Expr.All(CarryingCore(), EnemyNearby()),
+                    Until = Expr.One(EnemyNoLongerNearby()),
+                    Action = Fight(["nearest", "carrier"], "hold", 0),
+                }));
             }
-            AddDeliveryLeaves(
-                leaves, scope, tactic.Delivery.Plan, null, tactic, group, bot);
+            if (plan != "escort")
+                return;
+            string carrierPresent = FriendlyCarrier(group, scope);
+            leaves.Add(GroupLeaf(scope, "escort-defence", () => new Node
+            {
+                When = Expr.All(EmptyHanded(), carrierPresent, EnemyNearby()),
+                Until = Expr.Any([
+                    EnemyNoLongerNearby(), NoFriendlyCarrier(group, scope)]),
+                Action = Fight(["nearest", "carrier"], "hold", 2),
+            }));
         }
 
         private void AddDeliveryLeaves(
@@ -1103,39 +1167,9 @@ internal static class ArcRelayTacticsMaterializer
             LeafScope scope,
             string plan,
             string? via,
-            ArcRelayTactic tactic,
             ArcRelayTacticGroup group,
-            ArcRelayTacticsSquadBot bot,
             string? viaOnlyFrom = null)
         {
-            if (bot.ClassId == "relay")
-            {
-                int preferred = tactic.Delivery.PreferredSlots
-                    .Where(slot => slot != bot.Slot)
-                    .DefaultIfEmpty(-1)
-                    .First();
-                leaves.Add(new Node
-                {
-                    Id = scope.Id("pass"),
-                    When = Expr.All(CarryingCore(), SignatureReady()),
-                    Action = UseSkill(
-                        "arc-toss",
-                        writer =>
-                        {
-                            if (preferred >= 0)
-                            {
-                                writer.WriteStartObject("target");
-                                writer.WriteString("role", RoleId(preferred));
-                                writer.WriteEndObject();
-                            }
-                            else
-                            {
-                                writer.WriteString(
-                                    "target", "nearest-ally-toward-own-reactor");
-                            }
-                        }),
-                });
-            }
             if (via is not null && viaOnlyFrom is string fromGround)
             {
                 leaves.Add(GroupLeaf(scope, "bank", () => new Node
@@ -1176,17 +1210,42 @@ internal static class ArcRelayTacticsMaterializer
             }
         }
 
-        private void AddCoreRule(List<Node> leaves, LeafScope scope, string coreRule)
+        private string FriendlyCarrier(
+            ArcRelayTacticGroup group,
+            LeafScope scope) => Condition(
+                new ConditionShape(
+                    "friendly-carriers-in-roles", "at-least", 1,
+                    Roles: group.Slots.Select(RoleId).ToArray()),
+                $"c-{scope.Prefix}-{scope.GroupTag}-has-carrier");
+
+        private string NoFriendlyCarrier(
+            ArcRelayTacticGroup group,
+            LeafScope scope) => Condition(
+                new ConditionShape(
+                    "friendly-carriers-in-roles", "at-most", 0,
+                    Roles: group.Slots.Select(RoleId).ToArray()),
+                $"c-{scope.Prefix}-{scope.GroupTag}-no-carrier");
+
+        private void AddCoreRule(
+            List<Node> leaves,
+            LeafScope scope,
+            string coreRule,
+            ArcRelayTacticGroup group,
+            bool excludeAttachedEscort)
         {
+            string[] FreeToCollect(params string[] rest) =>
+                excludeAttachedEscort
+                    ? [EmptyHanded(), NoFriendlyCarrier(group, scope), .. rest]
+                    : [EmptyHanded(), .. rest];
             if (coreRule == "grab")
             {
                 leaves.Add(GroupLeaf(scope, "grab", () => new Node
                 {
-                    When = Expr.All(EmptyHanded(), Condition(
+                    When = Expr.All(FreeToCollect(Condition(
                         new ConditionShape(
                             "self-nearest-visible-loose-core-distance",
                             "at-most", GrabWalkingSteps),
-                        "core-in-reach")),
+                        "core-in-reach"))),
                     CapacityName = "pair-per-core",
                     Action = writer =>
                     {
@@ -1201,17 +1260,17 @@ internal static class ArcRelayTacticsMaterializer
             {
                 leaves.Add(GroupLeaf(scope, "hunt-carrier", () => new Node
                 {
-                    When = Expr.All(EmptyHanded(), Condition(
+                    When = Expr.All(FreeToCollect(Condition(
                         new ConditionShape(
                             "visible-enemy-carriers", "at-least", 1),
-                        "enemy-carrier-visible")),
+                        "enemy-carrier-visible"))),
                     Action = Fight(["carrier", "nearest"], "advance", 8),
                 }));
                 leaves.Add(GroupLeaf(scope, "hunt-core", () => new Node
                 {
-                    When = Expr.All(EmptyHanded(), Condition(
+                    When = Expr.All(FreeToCollect(Condition(
                         new ConditionShape("known-loose-cores", "at-least", 1),
-                        "loose-core-known")),
+                        "loose-core-known"))),
                     CapacityName = "pair-per-core",
                     Action = MoveToDynamic("nearest-known-loose-core"),
                 }));
@@ -1250,15 +1309,12 @@ internal static class ArcRelayTacticsMaterializer
                 When = onStation is null
                     ? Expr.All(EmptyHanded(), EnemyNearby())
                     : Expr.All(EmptyHanded(), EnemyNearby(), onStation),
-                // Hold is admitted only from its authored ground, but that
-                // station gate must not terminate the episode after the first
-                // bounded defensive step. Once active, it owns the same fixed
-                // executor anchor until contact is no longer actionable or
-                // this body acquires a Core. Ordinary floor movement then
-                // returns it to its post/area and resting facing.
-                Until = posture == "hold"
-                    ? Expr.Any([CarryingCore(), EnemyNoLongerNearby()])
-                    : null,
+                // The station is an admission gate, never a per-tick combat
+                // veto. Once any authored fight starts (including from a
+                // patrol contact), it owns the executor's fixed fight anchor
+                // until contact ends or custody begins. The floor then
+                // returns to the post or resumes the existing patrol cursor.
+                Until = Expr.Any([CarryingCore(), EnemyNoLongerNearby()]),
                 Action = Fight(fight.Value.Targets, fight.Value.Style,
                     fight.Value.Chase),
             };
@@ -1373,25 +1429,28 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticGroup group,
             ArcRelayTacticsSquadBot bot,
             string posture,
-            IReadOnlyList<ArcRelayTacticSignatureMark> marks)
+            IReadOnlyList<ArcRelayTacticSignaturePlan> plans,
+            ArcRelayTacticJob? job)
         {
             string geometryPrefix = $"{scope.Prefix}-{scope.GroupTag}-{scope.PhaseTag}";
-            ArcRelayTacticSignatureMark? mark = marks.FirstOrDefault(
-                candidate => string.Equals(
-                    candidate.ClassId, bot.ClassId, StringComparison.Ordinal));
+            ArcRelayTacticSignaturePlan? plan = plans.FirstOrDefault(
+                candidate => candidate.Slot == bot.Slot);
             ArcRelaySignatureAuthoringDescriptor descriptor =
                 ArcRelaySignatureAuthoringCatalog.ForClass(bot.ClassId);
-            if (mark is not null && mark.Points is not null)
+            string policy = plan?.Policy ?? "smart";
+            if (policy == "off" || bot.ClassId == "relay")
+                return;
+            if (plan?.Points is not null)
             {
-                for (int index = 0; index < mark.Points.Count; index++)
+                for (int index = 0; index < plan.Points.Count; index++)
                 {
                     string anchor = Anchor(
-                        mark.Points[index],
-                        $"g-{geometryPrefix}-{bot.ClassId}-{index}");
+                        plan.Points[index],
+                        $"g-{geometryPrefix}-s{bot.Slot}-{index}");
                     leaves.Add(new Node
                     {
-                        Id = scope.Id($"{bot.ClassId}-mark-{index}"),
-                        When = Expr.One(SignatureReady()),
+                        Id = scope.Id($"s{bot.Slot}-mark-{index}"),
+                        When = SignatureWhen(descriptor),
                         Action = UseSkill(descriptor.SkillId, writer =>
                         {
                             writer.WriteString(
@@ -1400,48 +1459,39 @@ internal static class ArcRelayTacticsMaterializer
                         }),
                     });
                 }
-                return;
+                if (policy == "only")
+                    return;
             }
-            if (mark is not null && mark.Line is not null)
+            if (plan?.Line is not null)
             {
                 if (bot.ClassId == "longshot")
                 {
+                    string station = Zone(
+                        [plan.Line[0][0], plan.Line[0][1],
+                            plan.Line[0][0], plan.Line[0][1]],
+                        $"g-{geometryPrefix}-s{bot.Slot}-rail-station");
                     leaves.Add(new Node
                     {
                         Id = scope.Id("rail"),
                         When = Expr.All(
-                            EmptyHanded(), EnemyNearby(), SignatureReady()),
+                            EmptyHanded(), EnemyNearby(), SignatureReady(),
+                            Condition(
+                                new ConditionShape(
+                                    "self-in-zone", "equals", 1,
+                                    ZoneId: station),
+                                $"c-{geometryPrefix}-s{bot.Slot}-rail-station")),
                         Action = UseSkill("rail-line", writer =>
                             writer.WriteString("target", "weakest-enemy")),
-                    });
-                    string stand = Anchor(
-                        mark.Line[0], $"g-{geometryPrefix}-rail-post");
-                    string aim = Anchor(
-                        mark.Line[1], $"g-{geometryPrefix}-rail-aim");
-                    leaves.Add(new Node
-                    {
-                        Id = scope.Id("rail-move"),
-                        Action = writer =>
-                        {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("anchor", stand);
-                            writer.WriteEndObject();
-                            writer.WriteStartObject("face");
-                            writer.WriteString("anchor", aim);
-                            writer.WriteEndObject();
-                            writer.WriteEndObject();
-                        },
                     });
                 }
                 else
                 {
                     string route = Route(
-                        mark.Line, $"g-{geometryPrefix}-dash");
+                        plan.Line, $"g-{geometryPrefix}-s{bot.Slot}-dash");
                     leaves.Add(new Node
                     {
                         Id = scope.Id("dash"),
-                        When = Expr.One(SignatureReady()),
+                        When = Expr.All(EmptyHanded(), SignatureReady()),
                         Action = UseSkill(descriptor.SkillId, writer =>
                         {
                             writer.WriteStartObject("target");
@@ -1452,18 +1502,68 @@ internal static class ArcRelayTacticsMaterializer
                         }),
                     });
                 }
-                return;
+                if (policy == "only")
+                    return;
             }
+            // Persistent exact deployments need authored ground. Guessing a
+            // choke from nearest-enemy targeting can sever the player's own
+            // route; Smart therefore waits until map guidance exists.
+            if (descriptor.DurableDeployment
+                && descriptor.Allows(
+                    ArcRelaySignatureTargetCapability.ExactAnchor))
+                return;
             // No authored spatial mark for this class this phase: the posture
             // bundles an ordinary signature use when the phase engages at all.
             if (posture is not ("hold" or "aggressive" or "steal" or "escort"))
                 return;
-            Expr when = bot.ClassId switch
+            if (bot.ClassId == "kestrel")
             {
-                "patchbay" => Expr.One(SignatureReady()),
-                "relay" => Expr.All(CarryingCore(), SignatureReady()),
-                _ => Expr.All(EmptyHanded(), EnemyNearby(), SignatureReady()),
-            };
+                IReadOnlyList<int[]>? path = job switch
+                {
+                    { Kind: "patrol" or "advance", Path: not null }
+                        => job.Path,
+                    { Via: not null } => job.Via,
+                    _ => null,
+                };
+                if (path is null)
+                    return;
+                string route = Route(
+                    path, $"g-{geometryPrefix}-s{bot.Slot}-smart-dash");
+                leaves.Add(new Node
+                {
+                    Id = scope.Id("sig"),
+                    When = Expr.All(EmptyHanded(), SignatureReady()),
+                    Action = UseSkill(descriptor.SkillId, writer =>
+                    {
+                        writer.WriteStartObject("target");
+                        writer.WriteString("route", route);
+                        writer.WriteString("progress", "forward");
+                        writer.WriteNumber("minimumForwardTiles", 2);
+                        writer.WriteEndObject();
+                    }),
+                });
+                return;
+            }
+            if (bot.ClassId == "longshot")
+            {
+                if (job is null)
+                    return;
+                string? station = OnStationCondition(
+                    scope.Prefix, scope.GroupTag, job, group, bot);
+                if (station is null)
+                    return;
+                leaves.Add(new Node
+                {
+                    Id = scope.Id("sig"),
+                    When = Expr.All(
+                        EmptyHanded(), EnemyNearby(), SignatureReady(), station),
+                    Action = UseSkill(descriptor.SkillId, writer =>
+                        writer.WriteString(
+                            "target", DefaultNamedTarget(descriptor))),
+                });
+                return;
+            }
+            Expr when = SignatureWhen(descriptor);
             leaves.Add(new Node
             {
                 Id = scope.Id("sig"),
@@ -1472,6 +1572,51 @@ internal static class ArcRelayTacticsMaterializer
                     writer.WriteString("target", DefaultNamedTarget(descriptor))),
             });
         }
+
+        /// <summary>A Longshot line owns a firing post and facing, but it is
+        /// still only a floor. It must sit below skills, fights, custody and
+        /// scanning or the unconditional move would starve all of them.</summary>
+        private void AddSignaturePositioningFloor(
+            List<Node> leaves,
+            LeafScope scope,
+            ArcRelayTacticsSquadBot bot,
+            IReadOnlyList<ArcRelayTacticSignaturePlan> plans)
+        {
+            ArcRelayTacticSignaturePlan? plan = plans.FirstOrDefault(
+                candidate => candidate.Slot == bot.Slot);
+            if (bot.ClassId != "longshot"
+                || plan is null
+                || plan.Policy == "off"
+                || plan.Line is null)
+                return;
+            string geometryPrefix =
+                $"{scope.Prefix}-{scope.GroupTag}-{scope.PhaseTag}";
+            string stand = Anchor(
+                plan.Line[0], $"g-{geometryPrefix}-s{bot.Slot}-rail-post");
+            string aim = Anchor(
+                plan.Line[1], $"g-{geometryPrefix}-s{bot.Slot}-rail-aim");
+            leaves.Add(new Node
+            {
+                Id = scope.Id("rail-move"),
+                Action = writer =>
+                {
+                    writer.WriteStartObject("move");
+                    writer.WriteStartObject("to");
+                    writer.WriteString("anchor", stand);
+                    writer.WriteEndObject();
+                    writer.WriteStartObject("face");
+                    writer.WriteString("anchor", aim);
+                    writer.WriteEndObject();
+                    writer.WriteEndObject();
+                },
+            });
+        }
+
+        private Expr SignatureWhen(
+            ArcRelaySignatureAuthoringDescriptor descriptor) =>
+            descriptor.Custody == ArcRelaySignatureCustodyBehavior.CarrierSafe
+                ? Expr.One(SignatureReady())
+                : Expr.All(EmptyHanded(), SignatureReady());
 
         private void AddFloor(
             List<Node> leaves,
@@ -1847,6 +1992,10 @@ internal static class ArcRelayTacticsMaterializer
         {
             writer.WriteStartObject("use");
             writer.WriteString("skill", skill);
+            writer.WriteString(
+                "opportunity",
+                ArcRelaySignatureAuthoringCatalog.StableId(
+                    ArcRelaySignatureAuthoringCatalog.ForSkill(skill).Opportunity));
             writeTarget(writer);
             writer.WriteEndObject();
         };

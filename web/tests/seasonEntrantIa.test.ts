@@ -188,7 +188,7 @@ test('engine vocabulary never reaches the player surface', () => {
 
 test('the document model mirrors the server grammar and stays the only saved content', () => {
   assert.match(documentModel, /arc-relay-tactics-v1/);
-  assert.match(documentModel, /descriptor capabilities — never from a class-id switch/);
+  assert.match(documentModel, /Spatial signature controls come directly from the shared authoring/);
   assert.match(editor, /tacticsJson: stringifyDocument/);
   assert.doesNotMatch(editor, /ordersJson:|mapPlanJson:/,
     'the client never generates or submits Orders');

@@ -1435,7 +1435,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         IReadOnlyDictionary<string, RoleInfo> roles,
         ConsumerLedger consumers)
     {
-        Object(value, $"{path}.use", ["skill", "target"], ["at"]);
+        Object(value, $"{path}.use", ["skill", "target"], ["at", "opportunity"]);
         string skill = RequiredString(value, "skill", $"{path}.use");
         bool roleOwnsSkill = role.Classes.Any(classId => string.Equals(
             ArcRelaySignatureAuthoringCatalog.ForClass(classId).SkillId,
@@ -1447,6 +1447,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             throw Error($"{path}.use.skill",
                 $"no body in role '{role.Id}' owns '{skill}'.");
+        }
+        if (value.TryGetProperty("opportunity", out JsonElement opportunity))
+        {
+            string authored = StringValue(
+                opportunity, $"{path}.use.opportunity");
+            string expected = ArcRelaySignatureAuthoringCatalog.StableId(
+                descriptor.Opportunity);
+            if (!string.Equals(authored, expected, StringComparison.Ordinal))
+            {
+                throw Error(
+                    $"{path}.use.opportunity",
+                    $"'{skill}' uses opportunity '{expected}'.");
+            }
         }
         JsonElement targetValue = value.GetProperty("target");
         string targetKind;

@@ -61,6 +61,8 @@ internal static class TacticalSheetSignatureAuthoringProjection
                 ArcRelaySignatureTargetCapability.RouteAheadRole),
             vocabulary.Allows(
                 ArcRelaySignatureTargetCapability.RouteForward),
+            Kebab(vocabulary.GuidanceGeometry.ToString()),
+            vocabulary.GuidanceMarkLimit,
             vocabulary.DurableDeployment,
             vocabulary.DefaultCommitment ==
                 ArcRelaySignatureCommitmentBehavior.PreserveByDefault

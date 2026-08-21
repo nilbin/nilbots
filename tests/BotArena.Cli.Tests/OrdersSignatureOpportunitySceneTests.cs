@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using BotArena.Engine;
 using BotArena.Runtime;
+using BotArena.TacticalPlaybooks;
 
 namespace BotArena.Cli.Tests;
 
@@ -15,6 +16,71 @@ namespace BotArena.Cli.Tests;
 /// </summary>
 public sealed class OrdersSignatureOpportunitySceneTests
 {
+    [Theory]
+    [InlineData("kestrel")]
+    [InlineData("palisade")]
+    [InlineData("towline")]
+    [InlineData("patchbay")]
+    [InlineData("lantern")]
+    [InlineData("mortar")]
+    [InlineData("minesmith")]
+    [InlineData("hush")]
+    [InlineData("relay")]
+    [InlineData("switchback")]
+    [InlineData("longshot")]
+    [InlineData("mason")]
+    [InlineData("sunder")]
+    [InlineData("repulsor")]
+    [InlineData("veil")]
+    [InlineData("nest")]
+    public void EveryGeneratedOpportunityEitherActsOrExplainsItsFallthrough(
+        string classId)
+    {
+        TacticalPlaybookCompilation sheet = OpportunitySheet(classId);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            sheet.Composition,
+            sheet.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline7);
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, sheet), Participant(1, sheet)],
+            matchSeed: 9012,
+            recordChronology: false);
+        ArcRelaySignatureAuthoringDescriptor descriptor =
+            ArcRelaySignatureAuthoringCatalog.ForClass(classId);
+
+        string? evidence = null;
+        while (!session.IsCompleted && session.Tick < 80 && evidence is null)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindCommandResolution? command = Assert.Single(
+                    step.MindTurns, turn => turn.TeamId == 0).Commands
+                .FirstOrDefault(value => value.Command.UnitId == 7);
+            if (command is null)
+                continue;
+            Assert.False(string.IsNullOrWhiteSpace(
+                command.Command.DebugMessage));
+            string reason = command.Command.DebugMessage!;
+            if (string.Equals(
+                    command.Command.ActionId,
+                    descriptor.SkillId,
+                    StringComparison.Ordinal)
+                || reason.Contains(
+                    $"signature-{descriptor.SkillId}",
+                    StringComparison.Ordinal)
+                || reason.Contains(
+                    descriptor.SkillId,
+                    StringComparison.Ordinal))
+            {
+                evidence = $"t{step.Tick}:{command.Command.ActionId}:{reason}";
+            }
+        }
+
+        Assert.True(evidence is not null,
+            $"{classId}/{descriptor.SkillId} neither acted nor left a "
+                + "signature-specific fallthrough reason in 80 ticks.");
+    }
+
     [Fact]
     public void KestrelDashesForwardThenResumesTheSameTerminalRoute()
     {
@@ -376,6 +442,72 @@ public sealed class OrdersSignatureOpportunitySceneTests
             ["value"] = 1,
         };
         return Compile(source, map, "repair-channel-scene");
+    }
+
+    private static TacticalPlaybookCompilation OpportunitySheet(
+        string classId)
+    {
+        (JsonObject source, JsonObject map) = Starter();
+        ArcRelaySignatureAuthoringDescriptor descriptor =
+            ArcRelaySignatureAuthoringCatalog.ForClass(classId);
+        JsonObject far = source["roles"]!.AsArray().Single(value =>
+            value!["id"]!.GetValue<string>() == "far-team")!.AsObject();
+        far["classes"] = new JsonArray("towline", "lantern", classId);
+
+        var use = new JsonObject
+        {
+            ["skill"] = descriptor.SkillId,
+            ["opportunity"] = ArcRelaySignatureAuthoringCatalog.StableId(
+                descriptor.Opportunity),
+        };
+        if (descriptor.Allows(
+                ArcRelaySignatureTargetCapability.RouteForward))
+        {
+            use["target"] = new JsonObject
+            {
+                ["route"] = "opportunity-route",
+                ["progress"] = "forward",
+                ["minimumForwardTiles"] = 2,
+            };
+            map["routes"]!["opportunity-route"] = new JsonObject
+            {
+                ["waypoints"] = new JsonArray
+                {
+                    new JsonArray(1, 6),
+                    new JsonArray(8, 6),
+                },
+            };
+        }
+        else
+        {
+            ArcRelaySignatureNamedTarget target =
+                descriptor.Preset.NamedTarget
+                ?? descriptor.AllowedNamedTargets[0];
+            use["target"] = ArcRelaySignatureAuthoringCatalog.StableId(target);
+            if (descriptor.Allows(
+                    ArcRelaySignatureTargetCapability.ExactAnchor))
+            {
+                map["anchors"]!["opportunity-mark"] = new JsonArray(3, 6);
+                use["at"] = "opportunity-mark";
+            }
+        }
+        far["orders"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["id"] = $"try-{descriptor.SkillId}",
+                ["use"] = use,
+            },
+            new JsonObject
+            {
+                ["id"] = $"continue-after-{descriptor.SkillId}",
+                ["move"] = new JsonObject
+                {
+                    ["to"] = "current-position",
+                },
+            },
+        };
+        return Compile(source, map, $"{classId}-opportunity-scene");
     }
 
     private static (JsonObject Source, JsonObject Map) Starter()

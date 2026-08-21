@@ -18,7 +18,7 @@ public sealed class CustodyLatchTests
         IReadOnlySet<string>? tags = latch.Augment(3, squad);
         Assert.NotNull(tags);
         Assert.Contains("t1/p2", tags!);
-        Assert.Contains("t1/p3", tags!);
+        Assert.DoesNotContain("t1/p3", tags!);
         Assert.Contains("t1", tags!);
         // Everyone else sees exactly the squad set, same instance.
         Assert.Same(squad, latch.Augment(4, squad));
@@ -80,6 +80,8 @@ public sealed class CustodyLatchTests
         Assert.Equal("t1/p2", latch.For(6)!.PhaseTag);
         // The pickup phase's authored escort stays attached after transfer.
         Assert.Equal("t1/p2", latch.For(4)!.PhaseTag);
+        // The original carrier rejoins its pickup-phase escort group.
+        Assert.Equal("t1/p2", latch.For(3)!.PhaseTag);
     }
 
     [Fact]
@@ -92,12 +94,14 @@ public sealed class CustodyLatchTests
     }
 
     [Fact]
-    public void ALatchWithinTheActivePhaseAddsNothing()
+    public void ALatchWithinTheActivePhaseStillReturnsAnIsolatedCustodyView()
     {
         var latch = new CustodyLatch(teamId: 0);
         Observe(latch, CoreA, Carrier, "t1", "p2");
         var squad = new HashSet<string> { "t1", "t1/p2" };
-        Assert.Same(squad, latch.Augment(3, squad));
+        IReadOnlySet<string> tags = latch.Augment(3, squad)!;
+        Assert.NotSame(squad, tags);
+        Assert.Equal(squad, tags);
     }
 
     [Fact]

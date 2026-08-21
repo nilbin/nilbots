@@ -40,7 +40,7 @@ type DragTarget =
   | { kind: 'point'; groupId: string; phaseIndex: number }
   | { kind: 'rectmove'; groupId: string; phaseIndex: number }
   | { kind: 'rectsize'; groupId: string; phaseIndex: number }
-  | { kind: 'sigpoint'; groupId: string; phaseIndex: number; classId: string; index: number }
+  | { kind: 'sigpoint'; groupId: string; phaseIndex: number; slot: number; index: number }
   | { kind: 'watchmove'; target: WatchTarget }
   | { kind: 'watchsize'; target: WatchTarget };
 
@@ -68,7 +68,7 @@ export function TacticsMapCanvas({
   showAll, showAllPhases, showProjectedBots = false,
   showAdjacentPhases = true, allowInheritedSpatialEditing = false,
   selectedSlots = [], showVision = false,
-  showAttackRange = false, task, hints,
+  showAttackRange = false, showSignatureRange = false, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
   onSelect, onClearSelection, onTaskDone, onTileRejected, onPostsSwapped,
   onPostBotDropped, onGroupDropped, onSlotsSelected,
@@ -91,6 +91,7 @@ export function TacticsMapCanvas({
   selectedSlots?: readonly number[];
   showVision?: boolean;
   showAttackRange?: boolean;
+  showSignatureRange?: boolean;
   task: MapTask | null;
   hints: Map<string, { rect: Rect; text: string }> | null;
   onTilePicked: (x: number, y: number) => void;
@@ -376,9 +377,9 @@ export function TacticsMapCanvas({
         return;
       }
       if (drag.kind === 'sigpoint') {
-        const mark = job.sigs?.[drag.classId];
-        if (!mark) return;
-        const points = 'points' in mark ? mark.points : mark.line;
+        const plan = job.sigs?.[String(drag.slot)];
+        const points = plan?.points ?? plan?.line;
+        if (!points) return;
         points[drag.index] = [x, y];
         return;
       }
@@ -559,10 +560,11 @@ export function TacticsMapCanvas({
                   tactic={tactic} phaseIndex={activePhaseIndex ?? 0}
                   pathfinder={path} selectedSlots={selectedSlots} />
               )}
-              {!dim && (showVision || showAttackRange) && (
+              {!dim && (showVision || showAttackRange || showSignatureRange) && (
                 <SelectedBotRanges catalog={catalog} document={document} tactic={tactic}
                   phaseIndex={activePhaseIndex ?? 0} selectedSlots={selectedSlots}
-                  showVision={showVision} showAttackRange={showAttackRange} />
+                  showVision={showVision} showAttackRange={showAttackRange}
+                  showSignatureRange={showSignatureRange} />
               )}
             </g>
             {tagAnchor && tag && <ChipLabel x={tagAnchor[0] + .5} y={tagAnchor[1] - .35}
@@ -662,6 +664,7 @@ export function BotProjectionLayer({
  * Post supplies a real facing. */
 export function SelectedBotRanges({
   catalog, document, tactic, phaseIndex, selectedSlots, showVision, showAttackRange,
+  showSignatureRange = false,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
@@ -670,6 +673,7 @@ export function SelectedBotRanges({
   selectedSlots: readonly number[];
   showVision: boolean;
   showAttackRange: boolean;
+  showSignatureRange?: boolean;
 }) {
   const projection = projectPhaseBots(catalog, document, tactic, phaseIndex);
   return <g data-testid="selected-bot-ranges" pointerEvents="none">
@@ -697,6 +701,9 @@ export function SelectedBotRanges({
       const vision = classEntry.visionRange ?? 0;
       const proximity = classEntry.visionProximityRange ?? 0;
       const attack = classEntry.attackRange ?? 0;
+      const signature = classEntry.signatureAuthoring.engagementRange ?? 0;
+      const signatureDirectional = ['direction', 'heading']
+        .includes(classEntry.signatureAuthoring.argumentKind);
       const half = Math.PI / 4;
       const sector = angle == null || vision <= 0 ? null : (() => {
         const x1 = cx + Math.cos(angle - half) * vision;
@@ -705,6 +712,14 @@ export function SelectedBotRanges({
         const y2 = cy + Math.sin(angle + half) * vision;
         return `M ${cx} ${cy} L ${x1} ${y1} A ${vision} ${vision} 0 0 1 ${x2} ${y2} Z`;
       })();
+      const signatureSector = angle == null || signature <= 0 || !signatureDirectional
+        ? null : (() => {
+          const x1 = cx + Math.cos(angle - half) * signature;
+          const y1 = cy + Math.sin(angle - half) * signature;
+          const x2 = cx + Math.cos(angle + half) * signature;
+          const y2 = cy + Math.sin(angle + half) * signature;
+          return `M ${cx} ${cy} L ${x1} ${y1} A ${signature} ${signature} 0 0 1 ${x2} ${y2} Z`;
+        })();
       return <g key={`range-${projected.slot}`} data-testid={`selected-bot-range-${projected.slot}`}>
         {showVision && sector && <path d={sector} fill={`${color}16`} stroke={color}
           strokeWidth={.07} strokeDasharray=".16 .12" />}
@@ -712,7 +727,13 @@ export function SelectedBotRanges({
           fill="none" stroke={color} strokeWidth={.055} strokeDasharray=".08 .14" opacity={.65} />}
         {showAttackRange && attack > 0 && <circle cx={cx} cy={cy} r={attack}
           fill="none" stroke="#f0b35a" strokeWidth={.075} strokeDasharray=".22 .13" opacity={.8} />}
-        <title>{`${bot.name}${showVision && angle == null ? ': vision unavailable without an exact facing' : ''}`}</title>
+        {showSignatureRange && signatureDirectional && signatureSector &&
+          <path d={signatureSector} fill="#c084fc14" stroke="#c084fc"
+            strokeWidth={.075} strokeDasharray=".12 .12" />}
+        {showSignatureRange && !signatureDirectional && signature > 0 &&
+          <circle cx={cx} cy={cy} r={signature} fill="none" stroke="#c084fc"
+            strokeWidth={.075} strokeDasharray=".12 .12" opacity={.9} />}
+        <title>{`${bot.name}${showVision && angle == null ? ': vision unavailable without an exact facing' : ''}${showSignatureRange && signatureDirectional && angle == null ? ': signature direction unavailable without an exact facing' : ''}`}</title>
       </g>;
     })}
   </g>;
@@ -1121,14 +1142,17 @@ export function JobOverlay({
     }
   }
 
-  for (const [classId, mark] of Object.entries(job.sigs ?? {})) {
+  for (const [slotKey, plan] of Object.entries(job.sigs ?? {})) {
+    const slot = Number(slotKey);
+    const classId = bots.find((bot) => bot.slot === slot)?.class;
+    if (!classId) continue;
     const geometry = signatureMarkGeometry(catalog, classId);
     if (!geometry) continue;
     const dashProps = first ? {} : { strokeDasharray: '.16 .12' };
-    const points = 'points' in mark ? mark.points : mark.line;
-    parts.push(<g key={`sig-${classId}`}>
-      {'line' in mark && mark.line.length >= 2 && (
-        <polyline points={mark.line.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
+    const points = plan.points ?? plan.line ?? [];
+    parts.push(<g key={`sig-${slot}`}>
+      {plan.line && plan.line.length >= 2 && (
+        <polyline points={plan.line.map(([x, y]) => `${x + .5},${y + .5}`).join(' ')}
           fill="none" stroke={color} strokeWidth={.09} strokeDasharray=".5 .22" opacity=".8"
           data-select={select} cursor="pointer" />
       )}
@@ -1141,7 +1165,9 @@ export function JobOverlay({
           <title>{`${group.name} — ${geometry.label} (${phaseName})`}</title>
         </g>
         {editable && <Handle cx={x + .5} cy={y + .5} r={.42}
-          onDown={(event) => startDrag(event, { kind: 'sigpoint', groupId: group.id, phaseIndex, classId, index })} />}
+          onDown={(event) => startDrag(event, {
+            kind: 'sigpoint', groupId: group.id, phaseIndex, slot, index,
+          })} />}
       </g>)}
     </g>);
   }

@@ -56,6 +56,46 @@ public sealed class ArcRelayClassCatalogTests
             value.ClassId, value.SkillId, value.Capabilities)));
         Assert.All(values, value =>
             Assert.NotEmpty(value.AllowedNamedTargets));
+
+        Assert.Equal(
+            new[]
+            {
+                ArcRelaySignatureOpportunityBehavior.RouteForward,
+                ArcRelaySignatureOpportunityBehavior.ScreenThreatenedLane,
+                ArcRelaySignatureOpportunityBehavior.PullEnemyCarrier,
+                ArcRelaySignatureOpportunityBehavior.RepairDamagedAlly,
+                ArcRelaySignatureOpportunityBehavior.RevealSmoke,
+                ArcRelaySignatureOpportunityBehavior.StrikeOccupiedAnchor,
+                ArcRelaySignatureOpportunityBehavior.DeployUnoccupiedAnchor,
+                ArcRelaySignatureOpportunityBehavior.SuppressHostileSignature,
+                ArcRelaySignatureOpportunityBehavior.TransferForward,
+                ArcRelaySignatureOpportunityBehavior.RescueEndangeredAlly,
+                ArcRelaySignatureOpportunityBehavior.RailVisibleEnemy,
+                ArcRelaySignatureOpportunityBehavior.BlockUnoccupiedChoke,
+                ArcRelaySignatureOpportunityBehavior.PaintSupportedEnemy,
+                ArcRelaySignatureOpportunityBehavior.BurstCrowd,
+                ArcRelaySignatureOpportunityBehavior.SmokeThreatenedCrossing,
+                ArcRelaySignatureOpportunityBehavior.SeedAfterTeamContact,
+            },
+            values.Select(value => value.Opportunity));
+        Assert.Equal(
+            ArcRelaySignatureCustodyBehavior.CarrierSafe,
+            ArcRelaySignatureAuthoringCatalog.ForClass("palisade").Custody);
+        Assert.Equal(
+            ArcRelaySignatureCustodyBehavior.TransferOnly,
+            ArcRelaySignatureAuthoringCatalog.ForClass("relay").Custody);
+        Assert.Equal(
+            (ArcRelaySignatureGuidanceGeometry.Line, 2),
+            (ArcRelaySignatureAuthoringCatalog.ForClass("longshot")
+                .GuidanceGeometry,
+             ArcRelaySignatureAuthoringCatalog.ForClass("longshot")
+                .GuidanceMarkLimit));
+        Assert.Equal(
+            (ArcRelaySignatureGuidanceGeometry.Points, 3),
+            (ArcRelaySignatureAuthoringCatalog.ForClass("minesmith")
+                .GuidanceGeometry,
+             ArcRelaySignatureAuthoringCatalog.ForClass("minesmith")
+                .GuidanceMarkLimit));
     }
 
     [Fact]

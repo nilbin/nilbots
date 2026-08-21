@@ -5416,6 +5416,8 @@
           "allowsExactAnchor",
           "allowsRouteAheadRole",
           "allowsRouteForward",
+          "guidanceGeometry",
+          "guidanceMarkLimit",
           "durableDeployment",
           "defaultCommitmentBehavior",
           "preset"
@@ -5475,6 +5477,13 @@
           },
           "allowsRouteForward": {
             "type": "boolean"
+          },
+          "guidanceGeometry": {
+            "type": "string"
+          },
+          "guidanceMarkLimit": {
+            "type": "integer",
+            "format": "int32"
           },
           "durableDeployment": {
             "type": "boolean"

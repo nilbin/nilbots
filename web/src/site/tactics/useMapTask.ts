@@ -53,6 +53,7 @@ export type MapTask =
     tacticId: string;
     groupId: string;
     phaseIndex: number;
+    slot: number;
     classId: string;
     draw: 'posts' | 'rect' | 'route';
     max: number;

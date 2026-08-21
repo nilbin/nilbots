@@ -53,7 +53,7 @@ export interface StepProps {
   startJobTask: (groupId: string, phaseIndex: number, field?: 'via', draw?: DrawKind) => void;
   /** Draw one post's own way in (overrides the group route for that bot). */
   startPostViaTask: (groupId: string, phaseIndex: number, postIndex: number) => void;
-  startSigTask: (groupId: string, phaseIndex: number, classId: string) => void;
+  startSigTask: (groupId: string, phaseIndex: number, slot: number, classId: string) => void;
   startWatchTask: (target: WatchTarget) => void;
   /** Draw the carrier's way home for one phase's custody override. */
   startCarryTask: (phaseIndex: number) => void;
@@ -691,13 +691,13 @@ export function JobSection(props: StepProps & {
     }
     applyKindChange(plan);
   };
-  const groupClasses = [...new Set(group.slots
-    .map((slot) => document.squad[slot]?.class)
-    .filter((classId): classId is string => Boolean(classId)))];
-  const spatialClasses = groupClasses
-    .filter((classId) => signatureMarkGeometry(catalog, classId));
-  const passiveClasses = groupClasses
-    .filter((classId) => !signatureMarkGeometry(catalog, classId));
+  const groupBots = group.slots
+    .map((slot) => document.squad.find((bot) => bot.slot === slot))
+    .filter((bot): bot is NonNullable<typeof bot> => Boolean(bot));
+  const spatialBots = groupBots
+    .filter((bot) => signatureMarkGeometry(catalog, bot.class));
+  const passiveBots = groupBots
+    .filter((bot) => !signatureMarkGeometry(catalog, bot.class));
   const className = (classId: string) =>
     catalog.classes.find((value) => value.id === classId)?.name ?? classId;
   return <>
@@ -889,38 +889,39 @@ export function JobSection(props: StepProps & {
           target.recovery = recovery as Recovery;
         })} />
       <p className="t-micro text-arena-dim">{RECOVERIES.find((value) => value.id === job.recovery)?.blurb}</p>
-      {(spatialClasses.length > 0 || passiveClasses.length > 0) && (
+      {(spatialBots.length > 0 || passiveBots.length > 0) && (
         <div className="lab mt-2">Signatures — used during this phase</div>
       )}
-      {spatialClasses.map((classId) => {
+      {spatialBots.map((bot) => {
+        const classId = bot.class;
         const geometry = signatureMarkGeometry(catalog, classId)!;
-        const mark = job.sigs?.[classId];
-        const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
+        const plan = job.sigs?.[String(bot.slot)];
+        const points = plan?.points ?? plan?.line ?? [];
         const has = points.length > 0;
         const mine = task?.kind === 'sig' && task.groupId === group.id
-          && task.phaseIndex === phaseIndex && task.classId === classId;
+          && task.phaseIndex === phaseIndex && task.slot === bot.slot;
         const placed = has
           ? geometry.kind === 'points'
             ? ` · ${points.length}/${geometry.max} marks at ${describePlace(...points[0])}`
             : ` · lane through ${describePlace(...points[0])}`
           : ' · no marks yet — optional';
-        return <GeoStatusRow key={classId} complete={has}
-          label={`${geometry.icon} ${className(classId)} — ${geometry.label}${placed}`}
+        return <GeoStatusRow key={bot.slot} complete={has}
+          label={`${geometry.icon} ${bot.name} · ${className(classId)} — ${geometry.label}${placed}`}
           drawLabel="Place marks"
           drawing={mine}
-          onDraw={() => startSigTask(group.id, phaseIndex, classId)}
+          onDraw={() => startSigTask(group.id, phaseIndex, bot.slot, classId)}
           onStop={endTask}
           onClear={has ? () => mutateJob((target) => {
-            if (target.sigs) delete target.sigs[classId];
+            if (target.sigs) delete target.sigs[String(bot.slot)];
           }) : undefined} />;
       })}
-      {spatialClasses.length === 0 && passiveClasses.length > 0 && (
+      {spatialBots.length === 0 && passiveBots.length > 0 && (
         <p className="t-micro text-arena-dim">No spatial signatures in this Group — their skills
           are bundled by posture.</p>
       )}
-      {spatialClasses.length > 0 && passiveClasses.length > 0 && (
+      {spatialBots.length > 0 && passiveBots.length > 0 && (
         <p className="t-micro mt-1 text-arena-dim">
-          {passiveClasses.map(className).join(', ')}: signatures run themselves, bundled by posture.
+          {passiveBots.map((bot) => bot.name).join(', ')}: signatures run themselves, bundled by posture.
         </p>
       )}
     </div>

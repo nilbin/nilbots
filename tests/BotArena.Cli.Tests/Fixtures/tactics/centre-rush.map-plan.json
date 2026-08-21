@@ -26,10 +26,18 @@
         24,
         20
       ]
+    },
+    "g-t1-g1-set-2": {
+      "rect": [
+        21,
+        17,
+        25,
+        21
+      ]
     }
   },
   "routes": {
-    "g-t1-g1-way": {
+    "g-t1-g1-p2-s0-smart-dash": {
       "waypoints": [
         [
           15,

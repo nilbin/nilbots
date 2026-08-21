@@ -20,14 +20,22 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -55,18 +63,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "empty-handed",
-                      "enemy-nearby",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "vector-dash",
-                    "target": "nearest-enemy"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -117,14 +114,36 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "id": "t1-p1-g1-sig",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "exchange",
+                    "opportunity": "rescue-endangered-ally",
+                    "target": "healthiest-ally"
+                  }
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -152,18 +171,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "empty-handed",
-                      "enemy-nearby",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "exchange",
-                    "target": "healthiest-ally"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -214,14 +222,38 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "id": "t1-p1-g1-sig",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "enemy-nearby",
+                      "signature-ready",
+                      "c-t1-g1-at-post-2-self"
+                    ]
+                  },
+                  "use": {
+                    "skill": "rail-line",
+                    "opportunity": "rail-visible-enemy",
+                    "target": "enemy-carrier"
+                  }
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -249,18 +281,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "empty-handed",
-                      "enemy-nearby",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "rail-line",
-                    "target": "enemy-carrier"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -311,14 +332,14 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -346,18 +367,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "empty-handed",
-                      "enemy-nearby",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "hardlight-block",
-                    "target": "nearest-enemy"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -408,14 +418,28 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "id": "t1-p1-g1-sig",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "survey-flare",
+                    "opportunity": "reveal-smoke",
+                    "target": "nearest-enemy"
+                  }
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -443,18 +467,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "empty-handed",
-                      "enemy-nearby",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "survey-flare",
-                    "target": "nearest-enemy"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -505,14 +518,23 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "id": "t1-p1-g1-sig",
+                  "when": "signature-ready",
+                  "use": {
+                    "skill": "prism-wall",
+                    "opportunity": "screen-threatened-lane",
+                    "target": "nearest-enemy"
+                  }
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -540,18 +562,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "empty-handed",
-                      "enemy-nearby",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "prism-wall",
-                    "target": "nearest-enemy"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -602,14 +613,14 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -637,17 +648,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": {
-                    "all": [
-                      "carrying-core",
-                      "signature-ready"
-                    ]
-                  },
-                  "use": {
-                    "skill": "arc-toss",
-                    "target": "nearest-ally-toward-own-reactor"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -698,14 +699,36 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-heal"
+                },
+                {
+                  "id": "t1-p1-g1-sig",
+                  "when": {
+                    "all": [
+                      "empty-handed",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "repair-beam",
+                    "opportunity": "repair-damaged-ally",
+                    "target": "weakest-ally"
+                  }
+                },
+                {
+                  "shared": "t1-p1-g1-carrier-defence"
                 },
                 {
                   "id": "t1-p1-g1-fight",
@@ -733,12 +756,7 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-sig",
-                  "when": "signature-ready",
-                  "use": {
-                    "skill": "repair-beam",
-                    "target": "weakest-ally"
-                  }
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "id": "t1-p1-g1-move",
@@ -840,13 +858,6 @@
         "posture": "line"
       }
     },
-    "t1-g1-bank": {
-      "when": "carrying-core",
-      "urgency": "urgent",
-      "move": {
-        "to": "own-reactor"
-      }
-    },
     "t1-p1-g1-heal": {
       "when": {
         "all": [
@@ -862,6 +873,30 @@
         "to": "nearest-heal-zone",
         "posture": "rear",
         "near": "g-t1-g1-set"
+      }
+    },
+    "t1-p1-g1-carrier-defence": {
+      "when": {
+        "all": [
+          "carrying-core",
+          "enemy-nearby"
+        ]
+      },
+      "until": "enemy-no-longer-nearby",
+      "fight": {
+        "targets": [
+          "nearest",
+          "carrier"
+        ],
+        "style": "hold",
+        "chaseLimit": 0
+      }
+    },
+    "t1-p1-g1-bank": {
+      "when": "carrying-core",
+      "urgency": "urgent",
+      "move": {
+        "to": "own-reactor"
       }
     }
   },
@@ -899,16 +934,21 @@
       "operator": "at-most",
       "value": 7
     },
-    "c-t1-g1-at-post-0-self": {
-      "fact": "self-in-zone",
+    "c-t1-g1-signature-commitment": {
+      "fact": "signature-commitment-active",
       "operator": "equals",
-      "value": 1,
-      "zone": "g-t1-g1-post-0"
+      "value": 1
     },
     "enemy-no-longer-nearby": {
       "fact": "self-nearest-visible-enemy-distance",
       "operator": "greater-than",
       "value": 7
+    },
+    "c-t1-g1-at-post-0-self": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g1-post-0"
     },
     "signature-ready": {
       "fact": "signature-ready",

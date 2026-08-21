@@ -79,6 +79,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const [mapFirstPanel, setMapFirstPanel] = useState<MapFirstFocus | null>(null);
   const [showVision, setShowVision] = useState(false);
   const [showAttackRange, setShowAttackRange] = useState(false);
+  const [showSignatureRange, setShowSignatureRange] = useState(false);
   const [zoom, setZoom] = useState<1 | 1.5 | 2>(1);
   const [squadOpen, setSquadOpen] = useState(false);
   const [recipeOpen, setRecipeOpen] = useState(false);
@@ -509,13 +510,13 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       });
       revealMap();
     },
-    startSigTask: (groupId, phaseIndex, classId) => {
+    startSigTask: (groupId, phaseIndex, slot, classId) => {
       if (!wizard) return;
       const geometry = signatureMarkGeometry(catalog, classId);
       if (!geometry) return;
       beginWizardGesture();
       startTask({
-        kind: 'sig', tacticId: wizard.tactic.id, groupId, phaseIndex, classId,
+        kind: 'sig', tacticId: wizard.tactic.id, groupId, phaseIndex, slot, classId,
         draw: geometry.kind === 'points' ? 'posts' : 'route',
         max: geometry.max,
       });
@@ -597,8 +598,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     }
     if (task.kind === 'sig') {
       const job = wizard.tactic.phases[task.phaseIndex]?.jobs[task.groupId];
-      const mark = job?.sigs?.[task.classId];
-      const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
+      const plan = job?.sigs?.[String(task.slot)];
+      const points = plan?.points ?? plan?.line ?? [];
       const removing = points.some((point) => point[0] === x && point[1] === y);
       if (!removing && points.length >= task.max) {
         toast(`That’s every mark — drag one to move it.`, 'hot');
@@ -609,13 +610,14 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         if (!target) return;
         target.sigs = target.sigs ?? {};
         const geometry = signatureMarkGeometry(catalog, task.classId)!;
-        const stored = target.sigs[task.classId];
-        const marks = stored ? ('points' in stored ? stored.points : stored.line) : [];
+        const stored = target.sigs[String(task.slot)];
+        const marks = stored?.points ?? stored?.line ?? [];
         const existing = marks.findIndex((point) => point[0] === x && point[1] === y);
         if (existing >= 0) marks.splice(existing, 1);
         else marks.push([x, y]);
-        target.sigs[task.classId] = geometry.kind === 'points'
-          ? { points: marks } : { line: marks };
+        target.sigs[String(task.slot)] = geometry.kind === 'points'
+          ? { policy: 'prefer', points: marks }
+          : { policy: 'prefer', line: marks };
       });
       if (!removing && points.length + 1 >= task.max) {
         endTask();
@@ -1177,6 +1179,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                         label={selectedSlots.length ? 'Selected bot attack reach' : 'Select a bot first'}
                         pressed={showAttackRange} disabled={selectedSlots.length === 0}
                         onClick={() => setShowAttackRange((value) => !value)} />
+                      <TacticsIconButton icon="signature"
+                        label={selectedSlots.length ? 'Selected bot signature reach' : 'Select a bot first'}
+                        pressed={showSignatureRange} disabled={selectedSlots.length === 0}
+                        onClick={() => setShowSignatureRange((value) => !value)} />
                       <TacticsIconButton icon="deselect" label="Clear bot selection"
                         disabled={selectedSlots.length === 0} onClick={() => {
                           setSelectedSlots([]); setMapFirstPanel(null);
@@ -1211,6 +1217,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                         selectedSlots={selectedSlots}
                         showVision={showVision}
                         showAttackRange={showAttackRange}
+                        showSignatureRange={showSignatureRange}
                         task={task} hints={wizard?.hints.groups ?? null}
                         onTilePicked={onTilePicked} onRectDrawn={onRectDrawn}
                         onGeometryLive={onGeometryLive} onGestureStart={beginWizardGesture}
@@ -1246,8 +1253,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                         }
                       } else if (task.kind === 'sig') {
                         const mark = tactic.phases[task.phaseIndex]?.jobs[task.groupId]
-                          ?.sigs?.[task.classId];
-                        if (mark) ('points' in mark ? mark.points : mark.line).pop();
+                          ?.sigs?.[String(task.slot)];
+                        if (mark) (mark.points ?? mark.line)?.pop();
                       }
                     })} />}
                 </div>
@@ -1352,7 +1359,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 setMapFirstPanel(null);
               }}
               onDrawSignature={(classId) => {
-                stepProps.startSigTask(mapFirstPanel.groupId, mapFirstPanel.phaseIndex, classId);
+                stepProps.startSigTask(
+                  mapFirstPanel.groupId, mapFirstPanel.phaseIndex,
+                  mapFirstPanel.slot, classId);
                 setMapFirstPanel(null);
               }}
               onStop={endTask} />}
@@ -1578,10 +1587,13 @@ function TaskBanner({ task, wizard, botName, onDone, onCancel, onUndoPoint }: {
     ? wizard.tactic.phases[task.phaseIndex]?.jobs[task.groupId]
     : null;
   const whose = possessive(group?.name?.trim() || 'the group');
+  const signatureOwner = task.kind === 'sig'
+    ? possessive(botName(task.slot) ?? group?.name?.trim() ?? 'the bot')
+    : whose;
   const what = task.kind === 'carry'
     ? 'Click the carrier’s waypoints home, in travel order — the run ends at your reactor'
     : task.kind === 'sig'
-    ? `Placing ${whose} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
+    ? `Placing ${signatureOwner} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
     : task.kind === 'watch'
       ? task.target.row === 'cleared'
         ? 'Drag the area your team must freshly check and clear'
@@ -1620,8 +1632,8 @@ function TaskBanner({ task, wizard, botName, onDone, onCancel, onUndoPoint }: {
   if (task.kind === 'job' && task.draw === 'posts' && group) {
     progress = `${job?.posts?.length ?? 0}/${Math.max(1, group.slots.length)}`;
   } else if (task.kind === 'sig' && group) {
-    const mark = job?.sigs?.[task.classId];
-    const points = mark ? ('points' in mark ? mark.points : mark.line) : [];
+    const plan = job?.sigs?.[String(task.slot)];
+    const points = plan?.points ?? plan?.line ?? [];
     progress = `${points.length}/${task.max}`;
   }
   return (

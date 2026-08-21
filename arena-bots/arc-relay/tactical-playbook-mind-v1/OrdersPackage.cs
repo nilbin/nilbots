@@ -552,6 +552,9 @@ internal sealed class OrdersPackage
             minimumForwardTiles,
             value.TryGetProperty("at", out JsonElement useAt)
                 ? useAt.GetString()
+                : null,
+            value.TryGetProperty("opportunity", out JsonElement opportunity)
+                ? opportunity.GetString()
                 : null);
     }
 
@@ -819,7 +822,8 @@ internal sealed class OrdersPackage
         string Target,
         string? AheadVia,
         int MinimumForwardTiles,
-        string? AtAnchor) : OrderAction;
+        string? AtAnchor,
+        string? Opportunity) : OrderAction;
     internal sealed record HandoffAction(
         string TargetKind,
         string Target,

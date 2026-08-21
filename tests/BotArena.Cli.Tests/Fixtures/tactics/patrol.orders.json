@@ -20,14 +20,22 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -70,14 +78,22 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -120,14 +136,22 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -170,14 +194,14 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -220,14 +244,14 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -270,14 +294,14 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -320,14 +344,14 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -370,14 +394,22 @@
           "phase": "t1",
           "orders": [
             {
-              "shared": "t1-g1-bank"
-            },
-            {
               "id": "t1-p1",
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-signature-commitment",
+                  "when": "c-t1-g1-signature-commitment",
+                  "move": {
+                    "to": "current-position",
+                    "posture": "line"
+                  }
+                },
+                {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-bank"
                 },
                 {
                   "shared": "t1-p1-g1-move"
@@ -471,13 +503,6 @@
         "posture": "line"
       }
     },
-    "t1-g1-bank": {
-      "when": "carrying-core",
-      "urgency": "urgent",
-      "move": {
-        "to": "own-reactor"
-      }
-    },
     "t1-p1-g1-patch": {
       "when": {
         "all": [
@@ -491,6 +516,13 @@
       "move": {
         "to": "current-position",
         "posture": "rear"
+      }
+    },
+    "t1-p1-g1-bank": {
+      "when": "carrying-core",
+      "urgency": "urgent",
+      "move": {
+        "to": "own-reactor"
       }
     },
     "t1-p1-g1-move": {
@@ -533,6 +565,11 @@
       "fact": "self-nearest-visible-enemy-distance",
       "operator": "at-most",
       "value": 7
+    },
+    "c-t1-g1-signature-commitment": {
+      "fact": "signature-commitment-active",
+      "operator": "equals",
+      "value": 1
     },
     "patched-up": {
       "fact": "self-health-percent",

@@ -73,8 +73,7 @@ internal sealed class CustodyLatch(int teamId)
 
             int[] escorts = (pickupCustodyGroups ?? [])
                 .FirstOrDefault(group => group.Contains(ownCarrier.UnitId))
-                ?.Where(unit => unit != ownCarrier.UnitId)
-                .ToArray()
+                ?.ToArray()
                 ?? [];
             _byCore[observed.CoreId] = new Latch(
                 observed.CoreId,
@@ -94,17 +93,19 @@ internal sealed class CustodyLatch(int teamId)
     public Latch? For(int unitId) =>
         Active().FirstOrDefault(latch => latch.Carrier!.UnitId == unitId)
         ?? Active().FirstOrDefault(latch =>
-            latch.EscortUnits.Contains(unitId));
+            latch.Carrier!.UnitId != unitId
+            && latch.EscortUnits.Contains(unitId));
 
     private IEnumerable<Latch> Active() => _byCore.Values
         .Where(latch => latch.Carrier is not null)
         .OrderBy(latch => latch.CoreId.SourceWellId, StringComparer.Ordinal)
         .ThenBy(latch => latch.CoreId.SourceOrdinal);
 
-    /// <summary>This body's enabled set: the squad's tags plus its active
-    /// Core's pinned pickup-phase tags. Null (a legacy sheet with no program)
-    /// stays null, and the untouched squad set is returned whenever custody
-    /// adds nothing.</summary>
+    /// <summary>This body's enabled set. A body actively consuming custody
+    /// runs the Core's pinned pickup phase alone: unioning in the squad's
+    /// current phase could let an earlier Tactic or phase floor shadow the
+    /// pinned return. This remains ordinary tag eligibility, not a second
+    /// scheduler. Null keeps legacy sheets on their unchanged path.</summary>
     public IReadOnlySet<string>? Augment(
         int unitId,
         IReadOnlySet<string>? squadTags)
@@ -112,13 +113,9 @@ internal sealed class CustodyLatch(int teamId)
         if (squadTags is null)
             return null;
         Latch? latch = For(unitId);
-        if (latch is null
-            || (squadTags.Contains(latch.TacticTag)
-                && squadTags.Contains(latch.PhaseTag)))
-        {
+        if (latch is null)
             return squadTags;
-        }
-        return new HashSet<string>(squadTags)
+        return new HashSet<string>(StringComparer.Ordinal)
         {
             latch.TacticTag,
             latch.PhaseTag,

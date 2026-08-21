@@ -25,6 +25,7 @@ function makeCatalog(): TacticalSheetCatalog {
       x === 0 || y === 0 || x === width - 1 || y === height - 1 ? '#' : '.').join(''));
   const authoring = (flags: Partial<{
     exactAnchor: boolean; routeForward: boolean; friendlyRole: boolean;
+    geometry: 'none' | 'points' | 'line'; markLimit: number;
   }> = {}) => ({
     category: 'strike', argumentKind: 'target', engagementRange: 6,
     cooldownTicks: 40, activationTiming: 'immediate', initialPhase: 'ready',
@@ -35,6 +36,10 @@ function makeCatalog(): TacticalSheetCatalog {
     allowsExactAnchor: flags.exactAnchor ?? false,
     allowsRouteAheadRole: false,
     allowsRouteForward: flags.routeForward ?? false,
+    guidanceGeometry: flags.geometry
+      ?? (flags.routeForward ? 'line' : flags.exactAnchor ? 'points' : 'none'),
+    guidanceMarkLimit: flags.markLimit
+      ?? (flags.routeForward ? 8 : flags.exactAnchor ? 2 : 0),
     durableDeployment: false,
     defaultCommitmentBehavior: 'continueNormally',
     preset: {
@@ -59,7 +64,7 @@ function makeCatalog(): TacticalSheetCatalog {
     classes: [
       classRow('kestrel', 'Kestrel', { routeForward: true }),
       classRow('switchback', 'Switchback', { friendlyRole: true }),
-      classRow('longshot', 'Longshot'),
+      classRow('longshot', 'Longshot', { geometry: 'line', markLimit: 2 }),
       classRow('mason', 'Mason', { exactAnchor: true }),
       classRow('lantern', 'Lantern', { exactAnchor: true }),
       classRow('palisade', 'Palisade'),
@@ -809,7 +814,7 @@ function splitReady(document: TacticsDocument): Tactic {
   const guard = tactic.groups[0];
   const job = tactic.phases[0].jobs[guard.id];
   job.posts![1].via = [[20, 20], [16, 14]];
-  job.sigs = { longshot: { line: [[15, 13], [15, 12]] } };
+  job.sigs = { '2': { policy: 'only', line: [[15, 13], [15, 12]] } };
   return tactic;
 }
 
@@ -839,7 +844,7 @@ test('splitting bots out of a Group takes their posts, ways in and marks along',
     seeded.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
     [[2, 16, 14]]);
   assert.deepEqual(seeded.posts![0].via, [[20, 20], [16, 14]]);
-  assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['longshot']);
+  assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['2']);
   // The old Group was cleaned: no post, no mark of the departed bot.
   const kept = tactic.phases[0].jobs[guard.id];
   assert.deepEqual(
@@ -880,7 +885,7 @@ test('a two-step move through the tray keeps a bot’s belongings in the pocket'
   assert.deepEqual(
     seeded.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
     [[2, 16, 14]]);
-  assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['longshot']);
+  assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['2']);
   assert.equal(pocket.has(2), false);
 });
 
@@ -905,7 +910,7 @@ test('a post is cleaned away — never misassigned — when its bot joins area w
   assert.equal(tactic.phases[0].jobs[flankers.id].posts, undefined);
   // The mark still followed — the flankers own the class now.
   assert.deepEqual(
-    Object.keys(tactic.phases[0].jobs[flankers.id].sigs ?? {}), ['longshot']);
+    Object.keys(tactic.phases[0].jobs[flankers.id].sigs ?? {}), ['2']);
   assert.equal(tactic.phases[0].jobs[guard.id].sigs, undefined);
 });
 
@@ -952,4 +957,26 @@ test('normalize stamps positional posts with slots and cleans reshuffle leftover
     [[5, 14, 12], [2, 16, 14]]);
   assert.equal(healedJob.sigs, undefined);
   assert.equal(healedTactic.phases[0].jobs['ghost-group'], undefined);
+});
+
+test('legacy class signature marks become independent slot plans', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  document.squad[2].class = 'mason';
+  document.squad[5].class = 'mason';
+  const guard = tactic.groups[0];
+  const job = tactic.phases[0].jobs[guard.id];
+  job.sigs = {
+    mason: { points: [[15, 12]] },
+  } as unknown as typeof job.sigs;
+  document.tactics.push(tactic);
+
+  const normalized = normalizeDocument(JSON.parse(JSON.stringify(document)));
+  const plans = normalized.tactics[0].phases[0].jobs[guard.id].sigs!;
+  assert.deepEqual(Object.keys(plans), ['2', '5']);
+  assert.equal(plans['2'].policy, 'only');
+  assert.equal(plans['5'].policy, 'only');
+  plans['2'].policy = 'prefer';
+  assert.equal(plans['5'].policy, 'only');
 });

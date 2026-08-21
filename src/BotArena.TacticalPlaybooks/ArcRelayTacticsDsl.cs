@@ -80,17 +80,6 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         "killsWithin", "healed",
     ];
 
-    /// <summary>Spatial signature mark budgets for classes whose descriptor
-    /// admits an exact anchor. All other geometry kinds derive from the
-    /// descriptor capabilities (RouteForward → line lane, longshot's rail is
-    /// the one named-target line special-case).</summary>
-    private static readonly Dictionary<string, int> TacticAnchorMarkBudgets =
-        new(StringComparer.Ordinal)
-        {
-            ["lantern"] = 2, ["mortar"] = 2, ["minesmith"] = 3,
-            ["mason"] = 2, ["veil"] = 2, ["nest"] = 2,
-        };
-
     /// <summary>
     /// Compile a Tactics document end to end: migrate a v1 document to v2,
     /// validate the player source, deterministically materialize the Orders
@@ -178,10 +167,110 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
         }
         bool removedTargets = RemoveLegacyTransitionTargets(document);
-        if (!migrateV1 && !removedTargets)
+        bool normalizedSignatures = NormalizeSignaturePlans(document);
+        if (!migrateV1 && !removedTargets && !normalizedSignatures)
             return tacticsSource;
         return Encoding.UTF8.GetBytes(document.ToJsonString(
             new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>
+    /// Signature guidance used to be keyed by class. That made duplicate
+    /// wildcard bots inseparable. Canonical v2 keys every explicit plan by
+    /// stable squad slot. A legacy mark meant "use at these marks only", so
+    /// migration copies it to every matching member of that group with the
+    /// explicit <c>only</c> policy. Already slot-keyed plans are preserved;
+    /// the short-lived pre-policy shape is normalized the same way.
+    /// </summary>
+    private static bool NormalizeSignaturePlans(JsonObject document)
+    {
+        if (document["squad"] is not JsonArray squad
+            || document["tactics"] is not JsonArray tactics)
+            return false;
+        var classBySlot = new Dictionary<int, string>();
+        foreach (JsonNode? botNode in squad)
+        {
+            if (botNode is not JsonObject bot
+                || bot["slot"]?.GetValue<int>() is not int slot
+                || bot["class"]?.GetValue<string>() is not string classId)
+                continue;
+            classBySlot[slot] = classId;
+        }
+        bool changed = false;
+        foreach (JsonNode? tacticNode in tactics)
+        {
+            if (tacticNode is not JsonObject tactic
+                || tactic["groups"] is not JsonArray groups
+                || tactic["phases"] is not JsonArray phases)
+                continue;
+            var slotsByGroup = new Dictionary<string, int[]>(StringComparer.Ordinal);
+            foreach (JsonNode? groupNode in groups)
+            {
+                if (groupNode is not JsonObject group
+                    || group["id"]?.GetValue<string>() is not string groupId
+                    || group["slots"] is not JsonArray slots)
+                    continue;
+                slotsByGroup[groupId] = slots
+                    .Select(value => value?.GetValue<int>() ?? -1)
+                    .Where(value => value >= 0)
+                    .ToArray();
+            }
+            foreach (JsonNode? phaseNode in phases)
+            {
+                if (phaseNode?["jobs"] is not JsonObject jobs)
+                    continue;
+                foreach ((string groupId, JsonNode? jobNode) in jobs.ToArray())
+                {
+                    if (jobNode is not JsonObject job
+                        || job["sigs"] is not JsonObject sigs
+                        || !slotsByGroup.TryGetValue(groupId, out int[]? slots))
+                        continue;
+                    var normalized = new JsonObject();
+                    bool localChange = false;
+                    foreach ((string key, JsonNode? planNode) in sigs.ToArray())
+                    {
+                        if (planNode is not JsonObject plan)
+                            continue;
+                        if (int.TryParse(key, out int slot))
+                        {
+                            JsonObject copy = plan.DeepClone().AsObject();
+                            if (!copy.ContainsKey("policy"))
+                            {
+                                copy["policy"] = "only";
+                                localChange = true;
+                            }
+                            normalized[slot.ToString()] = copy;
+                            continue;
+                        }
+                        int[] matchingSlots = slots.Where(candidate =>
+                                     classBySlot.TryGetValue(candidate, out string? value)
+                                     && string.Equals(value, key, StringComparison.Ordinal))
+                            .ToArray();
+                        foreach (int matching in matchingSlots)
+                        {
+                            JsonObject copy = plan.DeepClone().AsObject();
+                            copy["policy"] = "only";
+                            normalized[matching.ToString()] = copy;
+                        }
+                        // Keep an invalid legacy key visible so normal
+                        // validation reports it instead of migration
+                        // silently erasing the author's mistake.
+                        if (matchingSlots.Length == 0)
+                        {
+                            JsonObject copy = plan.DeepClone().AsObject();
+                            copy["policy"] = "only";
+                            normalized[key] = copy;
+                        }
+                        localChange = true;
+                    }
+                    if (!localChange)
+                        continue;
+                    job["sigs"] = normalized;
+                    changed = true;
+                }
+            }
+        }
+        return changed;
     }
 
     private static bool RemoveLegacyTransitionTargets(JsonObject document)
@@ -940,7 +1029,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
         }
 
-        var sigs = new List<ArcRelayTacticSignatureMark>();
+        var sigs = new List<ArcRelayTacticSignaturePlan>();
         if (value.TryGetProperty("sigs", out JsonElement sigValues))
         {
             ValidateSignatureMarks(
@@ -959,53 +1048,71 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         IReadOnlyList<int> groupSlots,
         int width,
         int height,
-        List<ArcRelayTacticSignatureMark> marks)
+        List<ArcRelayTacticSignaturePlan> plans)
     {
         if (value.ValueKind != JsonValueKind.Object)
             throw Error(path, "expected object.");
         foreach (JsonProperty property in value.EnumerateObject())
         {
-            string classId = property.Name;
-            string at = $"{path}.{classId}";
-            if (!groupSlots.Any(slot => string.Equals(
-                    squad[slot].ClassId, classId, StringComparison.Ordinal)))
-            {
+            string at = $"{path}.{property.Name}";
+            if (!int.TryParse(property.Name, out int slot))
                 throw Error(at,
-                    $"no bot of class '{classId}' is in this group.");
-            }
-            if (marks.Any(mark => string.Equals(
-                    mark.ClassId, classId, StringComparison.Ordinal)))
-                throw Error(at, $"duplicate marks for class '{classId}'.");
+                    $"no bot of class '{property.Name}' is in this group.");
+            if (slot < 0 || slot >= squad.Count)
+                throw Error(at, "expected a stable squad slot key.");
+            if (!groupSlots.Contains(slot))
+                throw Error(at, $"squad slot {slot} is not in this group.");
+            if (plans.Any(plan => plan.Slot == slot))
+                throw Error(at, $"duplicate signature plan for slot {slot}.");
+            string classId = squad[slot].ClassId;
             ArcRelaySignatureAuthoringDescriptor descriptor =
                 ArcRelaySignatureAuthoringCatalog.ForClass(classId);
-            bool anchorMarks = descriptor.Allows(
-                ArcRelaySignatureTargetCapability.ExactAnchor);
-            bool laneMarks = descriptor.Allows(
-                ArcRelaySignatureTargetCapability.RouteForward);
-            bool railLine = string.Equals(
-                classId, "longshot", StringComparison.Ordinal);
-            if (anchorMarks)
+            Object(property.Value, at, ["policy"], ["points", "line"]);
+            string policy = OneOf(
+                property.Value, "policy", at,
+                "smart", "prefer", "only", "off");
+            bool hasPoints = property.Value.TryGetProperty(
+                "points", out JsonElement pointsValue);
+            bool hasLine = property.Value.TryGetProperty(
+                "line", out JsonElement lineValue);
+            if (hasPoints && hasLine)
+                throw Error(at, "choose points or a line, not both.");
+            if (policy is "smart" or "off")
             {
-                Object(property.Value, at, ["points"]);
-                int budget = TacticAnchorMarkBudgets[classId];
+                if (hasPoints || hasLine)
+                    throw Error(at,
+                        $"policy '{policy}' does not carry map guidance.");
+                plans.Add(new ArcRelayTacticSignaturePlan(
+                    slot, policy, Points: null, Line: null));
+                continue;
+            }
+            if (descriptor.GuidanceGeometry ==
+                ArcRelaySignatureGuidanceGeometry.Points)
+            {
+                if (!hasPoints)
+                    throw Error(at,
+                        $"'{classId}' guidance requires points.");
                 JsonElement[] pointValues = BoundedArray(
-                    property.Value.GetProperty("points"),
-                    $"{at}.points", 1, budget);
+                    pointsValue,
+                    $"{at}.points", 1, descriptor.GuidanceMarkLimit);
                 var points = new List<int[]>();
                 foreach (JsonElement pointValue in pointValues)
                 {
                     points.Add(BoundedPoint(
                         pointValue, $"{at}.points", width, height));
                 }
-                marks.Add(new ArcRelayTacticSignatureMark(
-                    classId, Points: points, Line: null));
+                plans.Add(new ArcRelayTacticSignaturePlan(
+                    slot, policy, Points: points, Line: null));
             }
-            else if (laneMarks || railLine)
+            else if (descriptor.GuidanceGeometry ==
+                ArcRelaySignatureGuidanceGeometry.Line)
             {
-                Object(property.Value, at, ["line"]);
+                if (!hasLine)
+                    throw Error(at,
+                        $"'{classId}' guidance requires a line.");
                 JsonElement[] lineValues = BoundedArray(
-                    property.Value.GetProperty("line"), $"{at}.line",
-                    2, railLine ? 2 : 8);
+                    lineValue, $"{at}.line",
+                    2, descriptor.GuidanceMarkLimit);
                 var line = new List<int[]>();
                 foreach (JsonElement pointValue in lineValues)
                 {
@@ -1015,8 +1122,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 if (line[0][0] == line[^1][0] && line[0][1] == line[^1][1])
                     throw Error($"{at}.line",
                         "a signature lane must not loop back to its start.");
-                marks.Add(new ArcRelayTacticSignatureMark(
-                    classId, Points: null, Line: line));
+                plans.Add(new ArcRelayTacticSignaturePlan(
+                    slot, policy, Points: null, Line: line));
             }
             else
             {
@@ -1490,7 +1597,7 @@ internal sealed record ArcRelayTacticJob(
     IReadOnlyList<int[]>? Path,
     int[]? Point,
     IReadOnlyList<int[]>? Via,
-    IReadOnlyList<ArcRelayTacticSignatureMark> Sigs)
+    IReadOnlyList<ArcRelayTacticSignaturePlan> Sigs)
 {
     public bool HasGeometry =>
         Posts is not null || Rect is not null || Path is not null
@@ -1500,8 +1607,9 @@ internal sealed record ArcRelayTacticJob(
 internal sealed record ArcRelayTacticPost(
     int[] At, string Facing, IReadOnlyList<int[]>? Via = null);
 
-internal sealed record ArcRelayTacticSignatureMark(
-    string ClassId,
+internal sealed record ArcRelayTacticSignaturePlan(
+    int Slot,
+    string Policy,
     IReadOnlyList<int[]>? Points,
     IReadOnlyList<int[]>? Line);
 

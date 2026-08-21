@@ -124,7 +124,17 @@ export interface TacticPost {
   via?: Point[];
 }
 
+export type SignaturePolicy = 'smart' | 'prefer' | 'only' | 'off';
 export type SignatureMark = { points: Point[] } | { line: Point[] };
+export type SignaturePlan = {
+  policy: SignaturePolicy;
+  points?: Point[];
+  line?: Point[];
+};
+
+export function signaturePlanPoints(plan: SignaturePlan | undefined): Point[] {
+  return plan?.points ?? plan?.line ?? [];
+}
 
 /** One group's assignment for one phase. Kind 'none' carries the group's
  * nearest earlier geometric job forward under this phase's posture. */
@@ -141,7 +151,8 @@ export interface TacticJob {
   point?: Point;
   /** Optional drawn approach route; the group walks it in, then takes the floor. */
   via?: Point[];
-  sigs?: Record<string, SignatureMark>;
+  /** Explicit per-bot plans keyed by stable squad slot. Missing = Smart. */
+  sigs?: Record<string, SignaturePlan>;
 }
 
 export type CustodyPlan = 'solo' | 'escort' | 'keep';
@@ -399,21 +410,14 @@ export function phaseShade(
   return `#${part(1)}${part(3)}${part(5)}`;
 }
 
-/** Anchor-mark budgets, mirroring the server compile's
- * `TacticAnchorMarkBudgets` (ArcRelayTacticsDsl.cs) byte for byte — the
- * editor must not let a player place a mark the compile then rejects. */
-const ANCHOR_MARK_BUDGETS: Record<string, number> = {
-  lantern: 2, mortar: 2, minesmith: 3, mason: 2, veil: 2, nest: 2,
-};
-
 /** Each spatial signature's map glyph, from the design mock's vocabulary. */
 const SIGNATURE_ICONS: Record<string, string> = {
   mason: '▬', nest: '◎', minesmith: '▴', lantern: '✳', mortar: '✛',
   veil: '☁', kestrel: '》', longshot: '━',
 };
 
-/** Which spatial signature geometry a class draws, derived from the
- * catalog's descriptor capabilities — never from a class-id switch. */
+/** Spatial signature controls come directly from the shared authoring
+ * catalog. Class-specific glyphs remain presentation only. */
 export function signatureMarkGeometry(
   catalog: TacticalSheetCatalog,
   classId: string,
@@ -422,16 +426,10 @@ export function signatureMarkGeometry(
   if (!entry) return null;
   const authoring = entry.signatureAuthoring;
   const icon = SIGNATURE_ICONS[classId] ?? '✦';
-  if (authoring.allowsExactAnchor) {
-    const max = ANCHOR_MARK_BUDGETS[classId] ?? 2;
-    return { kind: 'points', max, label: entry.signatureName, icon };
-  }
-  if (authoring.allowsRouteForward) {
-    return { kind: 'line', max: 8, label: entry.signatureName, icon };
-  }
-  if (classId === 'longshot') {
-    return { kind: 'line', max: 2, label: entry.signatureName, icon };
-  }
+  if (authoring.guidanceGeometry === 'points')
+    return { kind: 'points', max: authoring.guidanceMarkLimit, label: entry.signatureName, icon };
+  if (authoring.guidanceGeometry === 'line')
+    return { kind: 'line', max: authoring.guidanceMarkLimit, label: entry.signatureName, icon };
   return null;
 }
 
@@ -650,7 +648,11 @@ function withSigs(
   const base: TacticJob = job
     ? (structuredClone(job) as TacticJob)
     : { kind: 'none', posture: 'wait', recovery: 'fight-on' };
-  if (sigs && Object.keys(sigs).length > 0) base.sigs = structuredClone(sigs);
+  if (sigs && Object.keys(sigs).length > 0) {
+    // v1 class-keyed marks are normalized to slots at the common load
+    // boundary immediately after this migration.
+    base.sigs = structuredClone(sigs) as unknown as Record<string, SignaturePlan>;
+  }
   return base;
 }
 
@@ -719,12 +721,30 @@ export function normalizeDocument(document: unknown): TacticsDocument {
           const flipped = reversedWayIn(post.via, post.at);
           if (flipped) post.via = flipped;
         }
-        for (const classId of Object.keys(job.sigs ?? {})) {
-          const owned = group.slots.some((slot) =>
-            loaded.squad?.find((bot) => bot.slot === slot)?.class === classId);
-          if (!owned) delete job.sigs![classId];
+        const normalizedSigs: Record<string, SignaturePlan> = {};
+        for (const [key, rawPlan] of Object.entries(job.sigs ?? {}) as
+          [string, SignaturePlan | SignatureMark][]) {
+          const parsed = Number(key);
+          if (Number.isInteger(parsed) && group.slots.includes(parsed)) {
+            normalizedSigs[String(parsed)] = {
+              ...structuredClone(rawPlan),
+              policy: 'policy' in rawPlan ? rawPlan.policy : 'only',
+            };
+            continue;
+          }
+          // Class-keyed guidance was shared by every duplicate. Preserve
+          // that behavior by cloning its marks to each matching slot and
+          // making the old marks-only meaning explicit.
+          for (const slot of group.slots) {
+            const bot = loaded.squad?.find((entry) => entry.slot === slot);
+            if (bot?.class !== key) continue;
+            normalizedSigs[String(slot)] = {
+              ...structuredClone(rawPlan), policy: 'only',
+            };
+          }
         }
-        if (job.sigs && Object.keys(job.sigs).length === 0) delete job.sigs;
+        if (Object.keys(normalizedSigs).length > 0) job.sigs = normalizedSigs;
+        else delete job.sigs;
       }
       if (phase.custody?.via) {
         const flipped = reversedWayIn(phase.custody.via, [2, 5]);
@@ -890,21 +910,36 @@ export function validateDocument(
               `${possessive(group.name)} job is all march — there is no arrival for its “on the way” posture to hand over at.`);
           }
         }
-        for (const [classId, mark] of Object.entries(job.sigs ?? {})) {
+        for (const [slotKey, plan] of Object.entries(job.sigs ?? {})) {
+          const slot = Number(slotKey);
+          const bot = document.squad.find((entry) => entry.slot === slot);
+          const classId = bot?.class ?? '';
           const geometry = signatureMarkGeometry(catalog, classId);
-          const owned = group.slots.some((slot) =>
-            document.squad[slot]?.class === classId);
-          if (!owned) {
+          if (!Number.isInteger(slot) || !group.slots.includes(slot) || !bot) {
             error(`${phaseAt}.jobs.${group.id}.sigs`,
-              `No ${classId} in ${group.name} for its signature marks.`);
+              `Signature plan ${slotKey} does not name a bot in ${group.name}.`);
             continue;
           }
-          if (!geometry) {
+          if (!['smart', 'prefer', 'only', 'off'].includes(plan.policy)) {
             error(`${phaseAt}.jobs.${group.id}.sigs`,
-              `${classId}'s signature is bundled by posture — nothing to draw.`);
+              `${possessive(bot.name)} signature policy is not recognized.`);
             continue;
           }
-          const points = 'points' in mark ? mark.points : mark.line;
+          const points = signaturePlanPoints(plan);
+          if ((plan.policy === 'smart' || plan.policy === 'off') && points.length > 0) {
+            error(`${phaseAt}.jobs.${group.id}.sigs`,
+              `${possessive(bot.name)} ${plan.policy} policy cannot carry map guidance.`);
+            continue;
+          }
+          if ((plan.policy === 'prefer' || plan.policy === 'only') && !geometry) {
+            error(`${phaseAt}.jobs.${group.id}.sigs`,
+              `${possessive(bot.name)} signature has no map guidance to draw.`);
+            continue;
+          }
+          if ((plan.policy === 'prefer' || plan.policy === 'only') && points.length === 0) {
+            error(`${phaseAt}.jobs.${group.id}.sigs`,
+              `${possessive(bot.name)} guided signature needs map marks.`);
+          }
           for (const point of points) {
             const bad = tilePlacementIssue(catalog, point, 'anchor');
             if (bad) {
@@ -912,10 +947,10 @@ export function validateDocument(
                 `${possessive(classId)} mark at (${point[0]},${point[1]}) is ${bad}.`);
             }
           }
-          if ('line' in mark) {
-            const [first] = mark.line;
-            const last = mark.line[mark.line.length - 1];
-            if (mark.line.length >= 2 && first[0] === last[0] && first[1] === last[1]) {
+          if (plan.line) {
+            const [first] = plan.line;
+            const last = plan.line[plan.line.length - 1];
+            if (plan.line.length >= 2 && first[0] === last[0] && first[1] === last[1]) {
               error(`${phaseAt}.jobs.${group.id}.sigs`,
                 `${classId}'s lane must not loop back on itself.`);
             }
@@ -1243,7 +1278,7 @@ export interface PocketedConfig {
   /** The Group the bot left — a new Group it lands in seeds from there. */
   from?: string;
   posts: Map<string, TacticPost>;
-  sigs: Map<string, Record<string, SignatureMark>>;
+  sigs: Map<string, SignaturePlan>;
 }
 export type MembershipPocket = Map<number, PocketedConfig>;
 
@@ -1266,6 +1301,9 @@ export function followMembership(
   before: { id: string; slots: number[] }[],
   pocket?: MembershipPocket,
 ): string | null {
+  // Retained in the public helper signature for callers that already pass
+  // the sheet roster; slot-owned plans no longer need class lookup here.
+  void squad;
   const prevGroupOf = new Map<number, string>();
   for (const entry of before) {
     for (const slot of entry.slots) prevGroupOf.set(slot, entry.id);
@@ -1296,8 +1334,6 @@ export function followMembership(
     if (source && source !== group.id) seedSource.set(group.id, source);
   }
 
-  const classOf = (slot: number) =>
-    squad.find((bot) => bot.slot === slot)?.class;
   const stash = (slot: number): PocketedConfig => {
     let entry = pocket!.get(slot);
     if (!entry) {
@@ -1391,36 +1427,29 @@ export function followMembership(
       }
     }
 
-    // Signature marks: one whose class no longer has an owner in its old
-    // Group follows the leaver of that class; unowned leftovers are cleaned.
+    // Signature plans are already bot-owned by stable slot, so each mover
+    // simply takes its own plan. Duplicate classes never couple here.
     for (const entry of before) {
       const source = phase.jobs[entry.id];
       if (!source?.sigs) continue;
-      const remaining = tactic.groups.find((group) => group.id === entry.id);
-      for (const [classId, mark] of Object.entries(source.sigs)) {
-        const stillOwned = remaining?.slots.some(
-          (slot) => classOf(slot) === classId) ?? false;
-        if (stillOwned) continue;
-        delete source.sigs[classId];
-        const leaver = entry.slots.find(
-          (slot) => movers.has(slot) && classOf(slot) === classId);
-        if (leaver == null) continue;
-        const destination = nowGroupOf.get(leaver);
+      for (const [slotKey, plan] of Object.entries(source.sigs)) {
+        const slot = Number(slotKey);
+        if (!movers.has(slot)) continue;
+        delete source.sigs[slotKey];
+        const destination = nowGroupOf.get(slot);
         if (destination == null) {
           if (pocket) {
-            const pocketed = stash(leaver);
+            const pocketed = stash(slot);
             pocketed.from = pocketed.from ?? entry.id;
-            const kept = pocketed.sigs.get(phase.id) ?? {};
-            kept[classId] = structuredClone(mark);
-            pocketed.sigs.set(phase.id, kept);
+            pocketed.sigs.set(phase.id, structuredClone(plan));
           }
           continue;
         }
         const job = phase.jobs[destination];
         if (!job) continue;
         job.sigs = job.sigs ?? {};
-        if (!job.sigs[classId]) {
-          job.sigs[classId] = structuredClone(mark);
+        if (!job.sigs[slotKey]) {
+          job.sigs[slotKey] = structuredClone(plan);
           followedSigs++;
         }
       }
@@ -1433,13 +1462,10 @@ export function followMembership(
       if (!kept) continue;
       const job = phase.jobs[destination];
       if (!job) continue;
-      for (const [classId, mark] of Object.entries(kept)) {
-        if (classOf(slot) !== classId) continue;
-        job.sigs = job.sigs ?? {};
-        if (!job.sigs[classId]) {
-          job.sigs[classId] = mark;
-          followedSigs++;
-        }
+      job.sigs = job.sigs ?? {};
+      if (!job.sigs[String(slot)]) {
+        job.sigs[String(slot)] = kept;
+        followedSigs++;
       }
     }
 
