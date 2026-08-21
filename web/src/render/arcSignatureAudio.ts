@@ -7,6 +7,7 @@ import {
   ARC_SIGNATURE_LEGACY_PRESENTATION_ID,
   ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID,
   ARC_SIGNATURE_PRESENTATION_ID,
+  ARC_SIGNATURE_V2_PRESENTATION_ID,
 } from './arcSignaturePresentationId';
 import arcToss from './signatures/definitions/arcToss';
 import exchange from './signatures/definitions/exchange';
@@ -129,10 +130,11 @@ export function resolveArcSignatureAudioTriggerBinding(
   trigger: ArcSignatureAudioBinding['trigger'],
 ): ArcSignatureResolvedAudioBinding | null {
   const bindings =
-    replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID
+    replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID ||
+      replay.signaturePresentationId === ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID
       ? audioDefinitions.get(signatureId)?.audio
       : replay.signaturePresentationId ===
-          ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID
+          ARC_SIGNATURE_V2_PRESENTATION_ID
         ? signatureId === 'arc-toss'
           ? previousArcTossAudio
           : audioDefinitions.get(signatureId)?.audio
@@ -152,7 +154,8 @@ export function resolveArcSignatureProjectileAudioBinding(
   if (
     (replay.signaturePresentationId !== ARC_SIGNATURE_PRESENTATION_ID &&
       replay.signaturePresentationId !==
-        ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID) ||
+        ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID &&
+      replay.signaturePresentationId !== ARC_SIGNATURE_V2_PRESENTATION_ID) ||
     attackProfileId === undefined
   ) {
     return null;

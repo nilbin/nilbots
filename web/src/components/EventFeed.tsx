@@ -18,6 +18,14 @@ import {
   unitName,
 } from '../replayParticipants';
 import ToggleButton from './ToggleButton';
+import { ARC_SIGNATURE_PRESENTATION_ID } from '../render/arcSignaturePresentationId';
+
+function signatureName(replay: ReplayModel, signatureId: string): string {
+  return replay.signaturePresentationId === ARC_SIGNATURE_PRESENTATION_ID &&
+      signatureId === 'prism-wall'
+    ? 'Prism Screen'
+    : signatureId;
+}
 
 /**
  * Events that end a unit's participation. The only ones that earn a colour.
@@ -133,11 +141,11 @@ export default function EventFeed({
                   : 'is ready'
           }`;
         case 'signature-changed':
-          return `${actorName(replay, arc.ownerActor)} ${arc.reason} ${arc.signatureId}`;
+          return `${actorName(replay, arc.ownerActor)} ${arc.reason} ${signatureName(replay, arc.signatureId)}`;
         case 'body-relocated':
-          return `${actorName(replay, arc.ownerActor)} relocates ${actorName(replay, arc.targetActor)} · ${arc.signatureId}`;
+          return `${actorName(replay, arc.ownerActor)} relocates ${actorName(replay, arc.targetActor)} · ${signatureName(replay, arc.signatureId)}`;
         case 'signature-damage':
-          return `${actorName(replay, arc.ownerActor)} deals ${arc.amount} with ${arc.signatureId}`;
+          return `${actorName(replay, arc.ownerActor)} deals ${arc.amount} with ${signatureName(replay, arc.signatureId)}`;
         case 'signature-repair':
           return `${actorName(replay, arc.ownerActor)} repairs ${actorName(replay, arc.targetActor)} for ${arc.amount}`;
       }

@@ -2177,6 +2177,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 Tick,
                 relocated.ToImmutable(),
                 signatureEvents);
+            mode.Signatures.RefreshAttachedOperations(
+                ArcRelaySignatureLives());
             EmitModeEvents(signatureEvents, events);
         }
         return new ArcSignatureApplication(relocated.ToImmutable());
@@ -5416,7 +5418,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 value.Health,
                 EffectiveMaxHealth(
                     value.FormId,
-                    value.ActorId)))
+                    value.ActorId),
+                value.Facing))
             .ToImmutableArray();
 
     private ImmutableArray<GenericActorRuntimeActionArgument.UnitTarget>
@@ -5610,12 +5613,21 @@ public sealed class GenericActorMatchSession : IDisposable
     /// </summary>
     private ImmutableArray<Direction> AllowedDirections(
         LifeState life,
-        ActorActionDefinition action) =>
-        action.Kind == ActorActionKind.Movement
-        && MovementFor(life).FacingCoupling
-            == ActorMovementFacingCoupling.FacingLocked
-            ? [life.Facing]
-            : Enum.GetValues<Direction>().ToImmutableArray();
+        ActorActionDefinition action)
+    {
+        if (action.Kind == ActorActionKind.Signature
+            && _mode is ArcRelayActorMatchModeDriver mode
+            && mode.Signatures.DefinitionForAction(action.Id)
+                is ArcRelaySignatureDefinition.PrismScreen)
+        {
+            return [life.Facing];
+        }
+        return action.Kind == ActorActionKind.Movement
+            && MovementFor(life).FacingCoupling
+                == ActorMovementFacingCoupling.FacingLocked
+                ? [life.Facing]
+                : Enum.GetValues<Direction>().ToImmutableArray();
+    }
 
     private ImmutableArray<ProjectileHeading> AllowedProjectileHeadings(
         LifeState life,

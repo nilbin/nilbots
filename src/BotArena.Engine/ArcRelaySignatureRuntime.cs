@@ -349,6 +349,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         ReplaceOwnedConstruct(operation, events);
         _operations.Add(operationId, operation);
+        RefreshAttachedOperations(lives);
         if (behavior.CooldownStartsAtActivation)
             _readyAtTick[actor] = checked(tick + definition.CooldownTicks);
 
@@ -362,6 +363,7 @@ internal sealed partial class ArcRelaySignatureRuntime
     {
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         var effects = ImmutableArray.CreateBuilder<Effect>();
+        RefreshAttachedOperations(lives);
         Dictionary<ActorIdentity, Life> world = lives.ToDictionary(
             value => value.ActorId);
 
@@ -371,7 +373,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         {
             bool suppressed = SuppressedByHostileNullField(
                 operation.OwnerActorId.TeamId,
-                operation.Positions,
+                SuppressionFootprint(operation),
                 tick,
                 operation.OperationId);
             if (suppressed
@@ -423,6 +425,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         Func<int, Position, bool> teamCanSee)
     {
         ArgumentNullException.ThrowIfNull(teamCanSee);
+        RefreshAttachedOperations(lives);
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         var effects = ImmutableArray.CreateBuilder<Effect>();
         Operation[] operations = [.. _operations.Values
@@ -479,7 +482,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         {
             bool suppressed = SuppressedByHostileNullField(
                 operation.OwnerActorId.TeamId,
-                operation.Positions,
+                SuppressionFootprint(operation),
                 tick,
                 operation.OperationId);
             if (suppressed
@@ -775,9 +778,11 @@ internal sealed partial class ArcRelaySignatureRuntime
         foreach (Operation operation in _operations.Values
                      .Where(value =>
                          set.Contains(value.OwnerActorId)
-                         && value.Phase is ArcRelaySignatureState.SignaturePhase
-                             .Tell or ArcRelaySignatureState.SignaturePhase
-                             .Channel
+                         && (value.Phase is ArcRelaySignatureState.SignaturePhase
+                                 .Tell or ArcRelaySignatureState.SignaturePhase
+                                 .Channel
+                             || value.Definition is
+                                 ArcRelaySignatureDefinition.PrismScreen)
                          || value.Definition
                              is ArcRelaySignatureDefinition.RepairBeam
                          && value.TargetActorId is ActorIdentity target
@@ -791,6 +796,38 @@ internal sealed partial class ArcRelaySignatureRuntime
                     ? "owner-destroyed"
                     : "target-destroyed",
                 events);
+        }
+    }
+
+    /// <summary>
+    /// Rebuilds owner-attached signature geometry from the authoritative live
+    /// body position and facing. This runs after normal movement/rotation and
+    /// again after signature displacement, so replay projection and collision
+    /// never trail the Palisade by one tick.
+    /// </summary>
+    public void RefreshAttachedOperations(IReadOnlyCollection<Life> lives)
+    {
+        ArgumentNullException.ThrowIfNull(lives);
+        IReadOnlyDictionary<ActorIdentity, Life> world = lives.ToDictionary(
+            value => value.ActorId);
+        HashSet<Position> occupied = lives.Select(value => value.Position)
+            .ToHashSet();
+        foreach (Operation operation in _operations.Values.Where(value =>
+                     value.Definition is ArcRelaySignatureDefinition
+                         .PrismScreen))
+        {
+            if (!world.TryGetValue(operation.OwnerActorId, out Life? owner))
+                continue;
+            var screen = (ArcRelaySignatureDefinition.PrismScreen)
+                operation.Definition;
+            operation.SourcePosition = owner.Position;
+            operation.Positions = ScreenShape(
+                owner.Position,
+                owner.Facing,
+                screen.SegmentCount);
+            operation.ProjectileCollisionPositions = operation.Positions
+                .Where(position => !occupied.Contains(position))
+                .ToImmutableArray();
         }
     }
 
@@ -811,7 +848,7 @@ internal sealed partial class ArcRelaySignatureRuntime
                 value.RemainingCapacity,
                 SuppressedByHostileNullField(
                     value.OwnerActorId.TeamId,
-                    value.Positions,
+                    SuppressionFootprint(value),
                     tick))
             {
                 MaximumCapacity = _durableDeployments
@@ -890,8 +927,9 @@ internal sealed partial class ArcRelaySignatureRuntime
                 value.OwnerActorId.TeamId != projectileTeamId
                 && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
                 && !value.Suppressed
-                && value.Positions.Contains(position)
+                && value.ProjectileCollisionPositions.Contains(position)
                 && value.Definition is ArcRelaySignatureDefinition.PrismWall
+                    or ArcRelaySignatureDefinition.PrismScreen
                     or ArcRelaySignatureDefinition.TripNode
                     or ArcRelaySignatureDefinition.HardlightBlock
                     or ArcRelaySignatureDefinition.SentinelSeed
@@ -1114,6 +1152,7 @@ internal sealed partial class ArcRelaySignatureRuntime
     {
         if (replacement.Definition is not (
                 ArcRelaySignatureDefinition.PrismWall
+                or ArcRelaySignatureDefinition.PrismScreen
                 or ArcRelaySignatureDefinition.TripNode
                 or ArcRelaySignatureDefinition.HardlightBlock
                 or ArcRelaySignatureDefinition.SentinelSeed
@@ -1142,13 +1181,14 @@ internal sealed partial class ArcRelaySignatureRuntime
             value.OwnerActorId.TeamId != attackerTeamId
             && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
             && !value.Suppressed
-            && value.Positions.Contains(position)
+            && value.ProjectileCollisionPositions.Contains(position)
             && IsDeployment(value.Definition))
         .OrderBy(value => value.OperationId, StringComparer.Ordinal)
         .FirstOrDefault();
 
     private static bool IsDeployment(ArcRelaySignatureDefinition definition) =>
         definition is ArcRelaySignatureDefinition.PrismWall
+            or ArcRelaySignatureDefinition.PrismScreen
             or ArcRelaySignatureDefinition.TripNode
             or ArcRelaySignatureDefinition.HardlightBlock
             or ArcRelaySignatureDefinition.SentinelSeed
@@ -1156,15 +1196,18 @@ internal sealed partial class ArcRelaySignatureRuntime
 
     private static int ConstructDamageAmount(
         ArcRelaySignatureDefinition definition,
-        int declaredDamage) => definition is ArcRelaySignatureDefinition.PrismWall
-            ? 1
-            : Math.Max(1, declaredDamage);
+        int declaredDamage) => definition switch
+        {
+            ArcRelaySignatureDefinition.PrismWall => 1,
+            _ => Math.Max(1, declaredDamage),
+        };
 
     private static int ConstructMaximumCapacity(
         ArcRelaySignatureDefinition definition) => definition switch
         {
             ArcRelaySignatureDefinition.PrismWall value =>
                 value.ContactCapacity,
+            ArcRelaySignatureDefinition.PrismScreen value => value.Hull,
             ArcRelaySignatureDefinition.TripNode value => value.Hull,
             ArcRelaySignatureDefinition.HardlightBlock value => value.Hull,
             ArcRelaySignatureDefinition.SentinelSeed value => value.Hull,
@@ -1245,6 +1288,12 @@ internal sealed partial class ArcRelaySignatureRuntime
             position,
             tick,
             excludedOperationId));
+
+    private static IEnumerable<Position> SuppressionFootprint(
+        Operation operation) => operation.Definition
+            is ArcRelaySignatureDefinition.PrismScreen
+                ? operation.Positions.Append(operation.SourcePosition)
+                : operation.Positions;
 
     private bool HasUnoccludedLine(
         Position origin,
@@ -1373,6 +1422,11 @@ internal sealed partial class ArcRelaySignatureRuntime
         return shape.Length == 0 ? [source] : [.. shape];
     }
 
+    private ImmutableArray<Position> ScreenShape(
+        Position source,
+        Direction direction,
+        int segments) => WallShape(source, direction, segments);
+
     private static bool IsStraight(Position from, Position to)
     {
         int dx = Math.Abs(to.X - from.X);
@@ -1384,7 +1438,8 @@ internal sealed partial class ArcRelaySignatureRuntime
         ActorIdentity ActorId,
         Position Position,
         int Health,
-        int MaxHealth);
+        int MaxHealth,
+        Direction Facing = Direction.North);
 
     internal sealed record TickResult(
         ImmutableArray<GenericActorModeEvent> Events,
@@ -1509,12 +1564,13 @@ internal sealed partial class ArcRelaySignatureRuntime
             CompletesAtTick = completesAtTick;
             EndsAtTick = endsAtTick;
             Positions = positions;
+            ProjectileCollisionPositions = positions;
             RemainingCapacity = remainingCapacity;
         }
         public string OperationId { get; }
         public ArcRelaySignatureDefinition Definition { get; }
         public ActorIdentity OwnerActorId { get; }
-        public Position SourcePosition { get; }
+        public Position SourcePosition { get; set; }
         public ActorIdentity? TargetActorId { get; }
         public Position? TargetPosition { get; }
         public ProjectileHeading? Heading { get; }
@@ -1523,6 +1579,11 @@ internal sealed partial class ArcRelaySignatureRuntime
         public int? CompletesAtTick { get; set; }
         public int? EndsAtTick { get; set; }
         public ImmutableArray<Position> Positions { get; set; }
+        public ImmutableArray<Position> ProjectileCollisionPositions
+        {
+            get;
+            set;
+        }
         public int RemainingCapacity { get; set; }
         public int AppliedAmount { get; set; }
         public bool Suppressed { get; set; }

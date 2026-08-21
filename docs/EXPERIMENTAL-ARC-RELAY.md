@@ -53,7 +53,7 @@ facts and causal observations; they cannot fetch an opponent's sheet.
 ## Objective
 
 Three public Wells stand at north `(11,6)`, centre `(15,13)`, and south
-`(19,20)`. Tapline-11 keeps the current opening: all three are nominally tick
+`(19,20)`. Tapline-12 keeps the current opening: all three are nominally tick
 50 with public ±6-tick seed jitter (the rotational flank pair shares one
 draw). After that opening, supply is source-local. A Well has exactly one
 active Core until that Core is banked into either reactor; banking starts a
@@ -103,7 +103,7 @@ and by `/api/sheets/catalog`; the sheet editor plots that export directly.
 
 ## Shared body rules
 
-Every accepted movement is one adjacent tile. Tapline-11 makes chassis names
+Every accepted movement is one adjacent tile. Tapline-11 and Tapline-12 make chassis names
 public deterministic rates: `swift` gets 1/1 movement opportunities,
 `standard` 4/5, and `deliberate` 2/3. Closed ticks are staggered by stable unit
 id and never bank. Every chassis uses Combat Strafe: forward and lateral travel

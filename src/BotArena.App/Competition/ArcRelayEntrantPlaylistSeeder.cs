@@ -7,9 +7,9 @@ using Microsoft.EntityFrameworkCore;
 namespace BotArena.App.Competition;
 
 /// <summary>
-/// Seeds the current immutable entrant lane. Playlist v28 deliberately starts
-/// a fresh rating book because Tapline-11 changes chassis movement rates;
-/// immutable v8-v27 ladders remain readable.
+/// Seeds the current immutable entrant lane. Each promoted rules profile starts
+/// a fresh rating book when public gameplay changes; immutable v8-v28 ladders
+/// remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
     AppDbContext db,
@@ -279,6 +279,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV27()
                 .Validate(playlist, tapline10Version);
         }
+        PlaylistVersion? tapline11Version = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.Tapline11Version,
+                cancellationToken);
+        if (tapline11Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV28()
+                .Validate(playlist, tapline11Version);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
@@ -423,8 +433,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (open.Length != 1)
         {
             throw new InvalidOperationException(
-                "An open Arc Relay Season 1 can start the fresh v28 Tapline-11 " +
-                "rating book only from one open prior immutable ladder.");
+                "A fresh Arc Relay rating book can start only from one open " +
+                "prior immutable ladder.");
         }
         int latestRegisteredVersion = candidates.Max(value => value.Version);
         if (open[0].Version != latestRegisteredVersion)
@@ -440,7 +450,8 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                 cancellationToken))
         {
             throw new InvalidOperationException(
-                "The draft Arc Relay v28 ladder already contains ratings.");
+                $"The draft Arc Relay v{ArcRelayEntrantPlaylistDefinition.Version} " +
+                "ladder already contains ratings.");
         }
 
         Guid[] entrants = await db.ArcRelayEntrants

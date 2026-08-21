@@ -9487,3 +9487,35 @@ phase posture such as Mobile flank: stable side, authored geometry leash, at
 most two improving displacement steps, no orbit/reversal/backtracking, and
 immediate stop on shot readiness, Core custody, phase change, or target loss.
 It compiles to ordinary priority Instructions and adds no scheduler.
+
+## 356. Tapline-12 promotes Palisade's owner-attached Prism Screen
+
+Owner direction (2026-08-21): Palisade's static three-contact Prism Wall is
+replaced in the current product by **Prism Screen**, while the stable action and
+signature id remains `prism-wall`. The screen has 30 hull, lasts six ticks, and
+starts an 18-tick cooldown at activation. Its three front segments follow the
+owner's authoritative position and facing after movement, rotation, and
+signature displacement. It adds no movement penalty and does not block bodies.
+A segment overlapping any body is inactive for projectile collision that tick.
+
+Hostile projectiles crossing an active segment hit it; allied projectiles pass.
+Basic fire deals 10, Rail stops and deals 20, and Falling Star damages an
+overlapping segment without cancelling the rest of its area. Hostile Null Field
+suppresses the screen if the owner or screen footprint is covered. Owner death,
+expiry, destruction, or recast removes it. Mason's static, body-blocking
+Hardlight Block is unchanged, preserving a mobile-cover class and a distinct
+terrain-shaping class.
+
+The immutable product identity is profile `tapline-12`, ruleset
+`arc-relay-tapline-12`, on Tapline-11's unchanged map, movement, vision, guns,
+economy, roster, sheet and every other signature. Hosted playlist v29 starts a
+fresh rating book and reuses the pinned Tapline-11 tactical artifact because no
+sheet/runtime ABI changed. Playlist v28 and Tapline-11 remain byte-exact
+history. Replays mint `arc-relay-signatures-v4`; v3 retains the static Prism
+Wall and instant Arc Toss, while v2/v1 keep their historical treatment.
+
+The 30/6/18 values are a first population tuning point, not a balance verdict.
+Focused deterministic proof pins front, flank and allied fire; Rail breakpoints;
+body-overlap deactivation; movement/turn attachment; suppression; expiry;
+owner death; cooldown; canonical SDK projection; and historical compatibility.
+Authored route-segment defaults and broader population play remain follow-up.

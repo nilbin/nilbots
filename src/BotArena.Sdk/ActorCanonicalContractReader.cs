@@ -996,11 +996,17 @@ public static class ActorCanonicalContractReader
         bool hasWindup = element.TryGetProperty("windupTicks", out _);
         bool hasActivationTiming = element.TryGetProperty(
             "activationTiming", out _);
+        bool hasScreenHull = string.Equals(
+                kind,
+                "prism-wall",
+                StringComparison.Ordinal)
+            && element.TryGetProperty("hull", out _);
         string[] specific = kind switch
         {
             "vector-dash" => ["tellTicks", "maxTiles"],
-            "prism-wall" =>
-                ["segmentCount", "durationTicks", "contactCapacity"],
+            "prism-wall" => hasScreenHull
+                ? ["segmentCount", "hull", "durationTicks"]
+                : ["segmentCount", "durationTicks", "contactCapacity"],
             "tractor-hook" => hasBolt
                 ? hasWindup
                     ? ["windupTicks", "range", "maxPullTiles",

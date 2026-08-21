@@ -17,22 +17,22 @@ public sealed class ArcRelayTaplineBankRechargeTests
         "e536d04deff7e53296d10f2b93c38741a6a3e465a03e779a84336ba0ae1df519";
 
     [Fact]
-    public void Tapline11IsCurrentAndKeepsTapline8RechargeRules()
+    public void Tapline12IsCurrentAndKeepsTapline8RechargeRules()
     {
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline7);
         ActorResolvedMatchDefinition recharge = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline8);
         ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
-            loopProfile: ArcRelayLoopProfile.Tapline11);
+            loopProfile: ArcRelayLoopProfile.Tapline12);
         var historicalMode = Assert.IsType<ArcRelayGameModeDefinition>(
             historical.Rules.GameMode);
         var currentMode = Assert.IsType<ArcRelayGameModeDefinition>(
             current.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline11, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-11", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-11", current.Rules.RulesetId);
+        Assert.Same(ArcRelayLoopProfile.Tapline12, ArcRelayLoopProfile.Current);
+        Assert.Equal("tapline-12", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-12", current.Rules.RulesetId);
         Assert.Equal("arc-relay-tapline-03", current.Map.Id);
         Assert.Equal(600, current.Rules.Limits.MaxTicks);
         Assert.Equal(RechargeTicks,

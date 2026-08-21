@@ -474,6 +474,54 @@ test('Prism Wall and Hardlight Block deploy body-height matte silhouettes', () =
   }
 });
 
+test('Prism Screen renders three owner-attached framed panes', () => {
+  const replay = loadReplayJson(
+    gunzipSync(readFileSync(new URL(
+      '../../art/reviews/arc-relay-presentation-batch-v1/runtime-proof/replays/remaining-roster.broadcast.json.gz',
+      import.meta.url,
+    ))).toString('utf8'),
+  ).replay;
+  replay.signaturePresentationId = ARC_SIGNATURE_PRESENTATION_ID;
+  for (const tick of replay.ticks) {
+    const mode = tick.after.mode;
+    if (mode?.kind !== 'arc-relay' || !('visibleSignatures' in mode)) continue;
+    for (const signature of mode.visibleSignatures) {
+      if (signature.signatureId !== 'prism-wall') continue;
+      signature.maximumCapacity = 30;
+      signature.remainingCapacity = 30;
+    }
+  }
+  const disposables: { dispose: () => void }[] = [];
+  const effects = buildArcRelayEffects(replay, disposables);
+  try {
+    effects.update(14.68);
+    const group = effects.group.children.find(
+      (candidate) =>
+        candidate.visible && candidate.userData.signatureId === 'prism-wall',
+    );
+    assert.ok(group, 'Prism Screen has a visible owner-attached rig');
+    const frames: THREE.Mesh[] = [];
+    const posts: THREE.Mesh[] = [];
+    group!.traverse((node) => {
+      if (!node.visible || !(node as THREE.Mesh).isMesh) return;
+      const mesh = node as THREE.Mesh;
+      if (mesh.geometry.type === 'ExtrudeGeometry') frames.push(mesh);
+      if (mesh.geometry.type === 'CylinderGeometry') posts.push(mesh);
+    });
+    assert.equal(frames.length, 3, 'all three connected panes have gold frames');
+    assert.equal(posts.length, 6, 'each pane keeps two body-height frame posts');
+    group!.updateMatrixWorld(true);
+    const bounds = new THREE.Box3().setFromObject(group!);
+    assert.ok(bounds.max.y - bounds.min.y >= 1.1, 'screen is body height');
+    assert.ok(
+      Math.max(bounds.max.x - bounds.min.x, bounds.max.z - bounds.min.z) >= 2.2,
+      'screen spans three front segments',
+    );
+  } finally {
+    for (const disposable of disposables) disposable.dispose();
+  }
+});
+
 test('Hardlight Block is a grid-aligned framed energy block, not borrowed map masonry', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(

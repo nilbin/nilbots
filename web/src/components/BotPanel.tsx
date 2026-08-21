@@ -18,6 +18,7 @@ import { SCRAP_ACCENT } from '../presentation/scrapAccent';
 import { styleVariables } from '../presentation/styleVariables';
 import { roleTagColor } from '../presentation/roleTag';
 import { playRoleSummary } from '../presentation/playAwareness';
+import { ARC_SIGNATURE_PRESENTATION_ID } from '../render/arcSignaturePresentationId';
 
 interface BotPanelProps {
   replay: ReplayModel;
@@ -48,8 +49,11 @@ interface BotPanelProps {
 function describeAction(
   actionId: string,
   heading: string | null,
+  movingPrismScreen = false,
 ): string {
-  const words = actionId.replace(/[-_]/g, ' ');
+  const words = movingPrismScreen && actionId === 'prism-wall'
+    ? 'prism screen'
+    : actionId.replace(/[-_]/g, ' ');
   const phrase =
     words === 'wait'
       ? 'Holding position'
@@ -562,7 +566,12 @@ export default function BotPanel({
                   {orderTag ??
                     unit.order?.action ??
                     (unit.actionId
-                      ? describeAction(unit.actionId, unit.actionLaunchHeading)
+                      ? describeAction(
+                          unit.actionId,
+                          unit.actionLaunchHeading,
+                          replay.signaturePresentationId ===
+                            ARC_SIGNATURE_PRESENTATION_ID,
+                        )
                       : unit.status)}
                 </span>
               </div>
@@ -633,6 +642,8 @@ export default function BotPanel({
                     {describeAction(
                       unit.actionId,
                       unit.actionLaunchHeading,
+                      replay.signaturePresentationId ===
+                        ARC_SIGNATURE_PRESENTATION_ID,
                     )}
                   </dd>
                   {actionResult !== null && (

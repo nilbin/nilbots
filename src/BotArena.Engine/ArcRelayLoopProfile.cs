@@ -62,7 +62,8 @@ public sealed record ArcRelayLoopProfile
         int standardMoveOpportunitiesPerCycle = 1,
         int standardMoveCycleTicks = 1,
         int deliberateMoveOpportunitiesPerCycle = 1,
-        int deliberateMoveCycleTicks = 1)
+        int deliberateMoveCycleTicks = 1,
+        bool movingPrismScreen = false)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -119,6 +120,7 @@ public sealed record ArcRelayLoopProfile
         DeliberateMoveOpportunitiesPerCycle =
             deliberateMoveOpportunitiesPerCycle;
         DeliberateMoveCycleTicks = deliberateMoveCycleTicks;
+        MovingPrismScreen = movingPrismScreen;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -244,6 +246,7 @@ public sealed record ArcRelayLoopProfile
     internal int StandardMoveCycleTicks { get; }
     internal int DeliberateMoveOpportunitiesPerCycle { get; }
     internal int DeliberateMoveCycleTicks { get; }
+    internal bool MovingPrismScreen { get; }
 
     private static void ValidateMovementRate(
         int opportunities,
@@ -1482,11 +1485,62 @@ public sealed record ArcRelayLoopProfile
         deliberateMoveCycleTicks: 3);
 
     /// <summary>
+    /// Tapline-11 with Palisade's static contact-count Prism Wall versioned
+    /// into the owner-attached, facing-bound 30-hull Prism Screen. Every map,
+    /// objective, gun, movement and remaining signature rule is retained.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline12 { get; } = new(
+        "tapline-12",
+        "arc-relay-tapline-12",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        unifiedCombatStrafeMovement: true,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3,
+        movingPrismScreen: true);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline11;
+    public static ArcRelayLoopProfile Current => Tapline12;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1568,6 +1622,7 @@ public sealed record ArcRelayLoopProfile
         Tapline9,
         Tapline10,
         Tapline11,
+        Tapline12,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

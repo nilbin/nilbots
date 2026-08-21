@@ -30,6 +30,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         [
             new VectorDashBehavior(),
             new PrismWallBehavior(),
+            new PrismScreenBehavior(),
             new TractorHookBehavior(),
             new RepairBeamBehavior(),
             new SurveyFlareBehavior(),
@@ -244,6 +245,31 @@ internal sealed partial class ArcRelaySignatureRuntime
                     start.Direction!.Value,
                     value.SegmentCount),
                 value.ContactCapacity);
+        }
+    }
+
+    private sealed class PrismScreenBehavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.PrismScreen;
+        public override bool CooldownStartsAtActivation => true;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start)
+        {
+            var value = (ArcRelaySignatureDefinition.PrismScreen)
+                start.Definition;
+            return NewOperation(
+                start,
+                ArcRelaySignatureState.SignaturePhase.Active,
+                completesAtTick: null,
+                checked(start.Tick + value.DurationTicks),
+                runtime.ScreenShape(
+                    start.Source,
+                    start.Direction!.Value,
+                    value.SegmentCount),
+                value.Hull);
         }
     }
 

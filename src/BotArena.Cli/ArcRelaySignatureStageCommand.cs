@@ -119,7 +119,9 @@ public static class ArcRelaySignatureStageCommand
         ActorResolvedMatchDefinition source = ArcRelayH0Definition.Create(
             westSheet,
             eastSheet,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: spec.SignatureId == "prism-wall"
+                ? ArcRelayLoopProfile.Tapline12
+                : ArcRelayLoopProfile.Current);
 
         ActorRulesDefinition rules = source.Rules;
         ArcRelayGameModeDefinition mode = (ArcRelayGameModeDefinition)

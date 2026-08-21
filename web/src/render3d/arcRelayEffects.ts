@@ -900,6 +900,7 @@ export function buildArcRelayEffects(
           signature,
           points,
           owner,
+          ownerAngle: ownerPose?.angle,
           target,
           coreFlight,
           arenaTheme: theme,
@@ -924,7 +925,11 @@ export function buildArcRelayEffects(
           persistentPropReady,
         );
       else paintGenericSignature(rig, points, owner, target, phase);
-      if (capacityMaximum !== null && points[0]) {
+      const capacityAnchor = signature.signatureId === 'prism-wall' &&
+          (signature.maximumCapacity ?? 0) >= 10
+        ? owner
+        : points[0];
+      if (capacityMaximum !== null && capacityAnchor) {
         capacityBar.bib.visible = rig.group.visible;
         capacityBar.bib.userData.signatureId = signature.signatureId;
         capacityBar.bib.userData.forSignatureOperationId = signature.operationId;
@@ -940,8 +945,8 @@ export function buildArcRelayEffects(
           capacityBar.bar.group.userData.remainingFraction;
         placeStatusBib(
           capacityBar.bib,
-          points[0].x,
-          points[0].z,
+          capacityAnchor.x,
+          capacityAnchor.z,
           capacityBibHeight,
         );
       }
@@ -1014,6 +1019,7 @@ export function buildArcRelayEffects(
           : priorSignature?.positions[0]
             ? worldPoint(priorSignature.positions[0])
             : undefined,
+        ownerAngle: ownerPose?.angle,
         target: outcomeTargetPose
           ? new THREE.Vector3(
               outcomeTargetPose.x + 0.5,

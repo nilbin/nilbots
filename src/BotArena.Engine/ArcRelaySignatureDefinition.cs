@@ -82,6 +82,31 @@ public abstract record ArcRelaySignatureDefinition
         public int ContactCapacity { get; }
     }
 
+    /// <summary>
+    /// Palisade's owner-attached, facing-bound successor to the historical
+    /// static Prism Wall. It keeps the stable signature/action identity while
+    /// publishing hull instead of contact capacity, so old rules and replays
+    /// remain mechanically distinguishable.
+    /// </summary>
+    public sealed record PrismScreen : ArcRelaySignatureDefinition
+    {
+        public PrismScreen(string signatureId, string classId, string actionId,
+            int segmentCount, int hull, int durationTicks, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(segmentCount, nameof(segmentCount));
+            RequirePositive(hull, nameof(hull));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            SegmentCount = segmentCount;
+            Hull = hull;
+            DurationTicks = durationTicks;
+        }
+        public override SignatureKind Kind => SignatureKind.PrismScreen;
+        public int SegmentCount { get; }
+        public int Hull { get; }
+        public int DurationTicks { get; }
+    }
+
     public sealed record TractorHook : ArcRelaySignatureDefinition
     {
         public TractorHook(string signatureId, string classId, string actionId,
@@ -618,6 +643,7 @@ public abstract record ArcRelaySignatureDefinition
         TargetPaint2 = 20,
         KineticBurst2 = 21,
         SmokeCanister2 = 22,
+        PrismScreen = 23,
     }
 
     /// <summary>
@@ -629,7 +655,7 @@ public abstract record ArcRelaySignatureDefinition
     public static string StableIdFor(SignatureKind kind) => kind switch
     {
         SignatureKind.VectorDash => "vector-dash",
-        SignatureKind.PrismWall => "prism-wall",
+        SignatureKind.PrismWall or SignatureKind.PrismScreen => "prism-wall",
         SignatureKind.TractorHook or SignatureKind.TractorHook2 =>
             "tractor-hook",
         SignatureKind.RepairBeam => "repair-beam",
@@ -698,7 +724,7 @@ public abstract record ArcRelaySignatureDefinition
                 new SignatureMetadata("control", "position", 4),
             SignatureKind.HardlightBlock =>
                 new SignatureMetadata("control", "position", 12),
-            SignatureKind.PrismWall =>
+            SignatureKind.PrismWall or SignatureKind.PrismScreen =>
                 new SignatureMetadata("support", "direction", 6),
             SignatureKind.SmokeCanister or SignatureKind.SmokeCanister2 =>
                 new SignatureMetadata("support", "position", 6),
@@ -720,7 +746,7 @@ public abstract record ArcRelaySignatureDefinition
         {
             SignatureKind.VectorDash =>
                 new("tell", "tick-start", "completion"),
-            SignatureKind.PrismWall =>
+            SignatureKind.PrismWall or SignatureKind.PrismScreen =>
                 new("active", "immediate", "start"),
             SignatureKind.TractorHook =>
                 new("active", "immediate", "start"),

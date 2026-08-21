@@ -85,7 +85,7 @@ gameplay contract:
       "projectileLookId": "arc-shot-kestrel"
     }
   ],
-  "signaturePresentationId": "arc-relay-signatures-v3"
+  "signaturePresentationId": "arc-relay-signatures-v4"
 }
 ```
 
@@ -95,9 +95,9 @@ and regular-attack projectile identities. `signaturePresentationId` binds one
 immutable, roster-complete visual/audio treatment to the public signature
 operation grammar.
 
-Current Tapline-11 replays write `arc-relay-signatures-v3`. V3 removes Arc Toss's
-tell treatment and aligns its body release, Core flight and launch sound with
-the post-combat release inside the accepted tick. Recorded V2 replays retain
+Current Tapline-12 replays write `arc-relay-signatures-v4`. V4 adds Palisade's
+owner-attached moving Prism Screen while preserving the instant Arc Toss
+treatment. Recorded V3 replays retain their static Prism Wall. Recorded V2 replays retain
 their one-tick Toss timing and 0.2-tick launch cue; V1 retains its original audio
 map, and historical replays with no field retain their older legacy treatment.
 A viewer that does not recognize

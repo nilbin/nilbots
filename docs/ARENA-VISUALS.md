@@ -446,10 +446,11 @@ The frontend keeps the two routes deliberately separate:
 ### Arc Relay signature presentation package
 
 Tapline-2 originally snapshot `arc-relay-signatures-v1`, one grammar-complete
-package for all sixteen launch signatures. Tapline-7 replays snapshot
-`arc-relay-signatures-v3`: it keeps V2's roster-wide sound identity while
-removing Arc Toss's tell and aligning its body, Core and launch sound at the
-post-combat release. V2 remains the historical one-tick Toss package and V1
+package for all sixteen launch signatures. Tapline-12 replays snapshot
+`arc-relay-signatures-v4`: it adds Palisade's owner-attached Prism Screen.
+Tapline-7 through Tapline-11 use V3, which keeps V2's roster-wide sound identity
+while removing Arc Toss's tell and aligning its body, Core and launch sound at
+the post-combat release. V2 remains the historical one-tick Toss package and V1
 stays recognized with its original audio map. Grammar version, concrete
 mechanic version, and presentation version are deliberately different axes:
 every roster entry publishes grammar-3 lifecycle timing, while only Null Field,

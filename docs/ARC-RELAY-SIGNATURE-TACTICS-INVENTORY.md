@@ -1,8 +1,8 @@
 # Arc Relay signature skills in map-first Tactics
 
 **Date:** 2026-08-21  
-**Status:** design and code inventory; implementation-ready recommendation; no gameplay changes made  
-**Rules baseline:** promoted `tapline-11` (`vision 5`, short/medium/long guns `3/4/6`, swift/standard/deliberate movement `1/1`, `4/5`, `2/3`)
+**Status:** design inventory plus implemented Prism Screen outcome
+**Rules baseline:** promoted `tapline-12` (`vision 5`, short/medium/long guns `3/4/6`, swift/standard/deliberate movement `1/1`, `4/5`, `2/3`)
 
 ## Verdict
 
@@ -30,17 +30,16 @@ Promote one small, consistent player model:
   `signature-commitment-active -> current-position` continuation above normal
   actions.
 
-The proposed moving frontal shield is a strong fit for **Palisade**, whose
-current skill is Prism Wall. It should not replace **Mason**'s Hardlight Block:
+The moving frontal shield is a strong fit for **Palisade** and is now promoted
+as Prism Screen in Tapline-12. It does not replace **Mason**'s Hardlight Block:
 keeping a mobile screen and a static route-bending block creates two distinct
-strategic jobs. Prototype the Palisade change in a new rules profile with
-`30` shield hull, `6` active ticks and `18` cooldown ticks, then promote only
-after the corridor-counter proof below. The design is promising enough to
-prototype, not balanced enough to promote without that proof.
+strategic jobs. The first tuning point is `30` shield hull, `6` active ticks
+and `18` cooldown ticks. These values are acceptance-proven mechanics, not a
+claim that population balance is already settled.
 
 ## What is authoritative today
 
-The current product line is `ArcRelayLoopProfile.Tapline11` and is selected by
+The current product line is `ArcRelayLoopProfile.Tapline12` and is selected by
 `ArcRelayLoopProfile.Current` in
 `src/BotArena.Engine/ArcRelayLoopProfile.cs`. It keeps Tapline-10's map,
 economy, grammar-3 signatures, perception and guns while making chassis rates
@@ -79,7 +78,7 @@ from `ArcRelaySignatureBehaviors.cs` and `ArcRelaySignatureRuntime.cs`.
 | Class · hull · handling · gun | Authoritative signature now | Current Tactics behavior and problem | Recommended Smart default and map controls | Balance/usability verdict |
 | --- | --- | --- | --- | --- |
 | **Kestrel** · 30 · swift · short 3 | **Vector Dash:** 1-tick tell, up to 4 tiles along an eight-way ray, cooldown 12 at completion. It takes the furthest legal tile and drops a carried Core on departure. | A drawn line compiles to route-forward Dash with minimum gain 2. Without a line, combat posture may call it at the nearest enemy. The marked leaf does not require empty hands, so a `keep` custody phase can accidentally drop a Core. | Smart: empty-handed, following the phase's actual route, and at least 2 safe forward tiles exist. Do not Dash automatically from a fixed post. **Prefer/Only** lets the player paint route segments; show start/end and landing preview. An advanced `Mobile flank` fight preset may Dash only inside the active fight geometry and must return to its route/post. | Mechanic is good. Add the empty-handed guard, route-bound smart predicate, and commitment continuation. Never expose unrestricted “dash toward enemy” as the default. |
-| **Palisade** · 50 · deliberate · short 3 | **Prism Wall:** immediate static three-segment wall perpendicular to a cardinal facing, duration 8, three hostile projectile/signature contacts, cooldown 16 from start. It blocks hostile projectiles but not bodies; recast replaces the owner's previous wall. | No spatial mark is supported. It is bundled by combat posture and targets nearest enemy, but Fight is evaluated first, so it commonly never casts. Direction is resolved indirectly rather than drawn. | For the current wall: cast only if it interrupts a hostile firing lane to the Palisade, a carrier, or at least one ally; do not replace a still-useful wall. Add activation zone plus a draggable facing/aim handle. For the proposed **moving Prism Screen**, add route-segment marks with “face route forward” or explicit facing. | Current static wall overlaps Mason's terrain fantasy while being less map-authorable. **Promote the moving-screen prototype for Palisade**, not Mason; details below. |
+| **Palisade** · 50 · deliberate · short 3 | **Prism Screen:** immediate three-segment, 30-hull screen one tile ahead, duration 6, cooldown 18 from start. It follows Palisade's position/facing, passes allied fire, blocks hostile projectiles, does not block bodies, and ends on owner death. A body-occupied segment is inactive for collision that tick. | The existing broad nearest-enemy authoring can cast it, but the intended route/post facing controls remain future editor work. Exact authored facing is mechanically respected because use is limited to current facing. | Cast only if it interrupts a hostile firing lane to Palisade, a carrier, or at least one ally; do not replace a still-useful screen. Add route-segment marks with “face route forward” or explicit facing. | Promoted in Tapline-12. Rail deals 20 and stops, basic hits deal 10, Falling Star overlaps without losing its area, Null Field suppresses, flanks bypass. Keep the 30/6/18 values provisional until population play. |
 | **Towline** · 40 · standard · medium 4 | **Tractor Hook 2:** range 6, 1-tick rooted lock, bolt travels 2 tiles/tick, pulls the first hit up to 3 tiles toward the frozen origin, cooldown 12 from start. The lock needs team sight and a frozen facing wedge; movement or lock loss cancels. Walls, constructs and bodies can intercept the bolt. | No map mark. The posture bundle targets the enemy carrier, but normal Fight is higher priority and can starve the Hook. Current UI does not explain the lock, pull destination, or interceptors. | Smart: enemy carrier first, otherwise a high-value exposed veteran/Longshot, only when the predicted pull is tactically beneficial and the ray is clear. Before committing, draw the source-to-target ray and ghost pull destination. **Prefer/Only** supports an activation zone, watched lane and target priority. | Strong control tool and good counterplay. Keep numbers initially under 3/4/6 guns; range 6 now equals the longest gun and exceeds Towline's own gun by 2, so team spotting matters. |
 | **Patchbay** · 40 · standard · short 3 | **Repair Beam:** range 4; channels 10 hull every 2 ticks, maximum 20 per activation; cooldown 10 begins when the channel ends. It ends on movement, damage, death, full health, range/line loss, smoke, or hostile Null Field. | No map mark. `signature-ready` alone can select it, but Fight and recovery movement are above it. Catalog says preserve commitment; the Tactics materializer does not emit the continuation. | Smart: heal a missing-10+ ally when a two-tick safe channel is plausible; prioritize valuable Core carrier, protected veteran, then lowest health. Do not start while Patchbay or target is under immediate fire unless the selected posture is `Fight on`. **Prefer/Only** selects a protected bot/group and optional heal zone. Hold automatically while the authoritative channel is active. | Good sustain signature whose fun depends on visible target priority and reliable channel commitment. Current broad auto-use is not sufficient. |
 | **Lantern** · 30 · swift · short 3 | **Survey Flare:** cast range 8, flight 2 tiles/tick, radius 4, active 8, cooldown 16 from start. Despite its name, it only removes smoke occlusion for its own team inside the footprint. It does not create vision, see through walls, or reveal enemies beyond an allied sensor's normal range/facing. | Exact point marks exist and the preset says “Reveal an exact approach.” That copy overpromises the real mechanic. With no smoke, a Flare can have zero gameplay effect. | Until semantics change, Smart should cast only when hostile smoke occludes a relevant active route, post sightline or watched zone. **Prefer/Only** points identify anti-smoke coverage, with the footprint and actual allied sight rays shown. | **Design decision required.** Either rename/copy it as anti-smoke illumination, or make it a real temporary sensor. Do not ship the current “reveal approach” promise. A true sensor would need a fresh rules profile and balance proof under base vision 5. |
@@ -244,13 +243,13 @@ say exactly which higher leaf won. There is no cooldown scheduler, no “skill
 AI” ticking beside Instructions, and no hidden priority between a Tactic and a
 skill.
 
-## Palisade moving frontal shield proposal
+## Palisade moving frontal shield implementation
 
 ### Clarify the class ownership
 
-Palisade currently owns **Prism Wall**. Mason owns **Hardlight Block**. The
-moving shield should be a new Prism Wall envelope for Palisade—display name
-**Prism Screen** is clearer—not a Mason rewrite.
+Palisade historically owned **Prism Wall**. Mason owns **Hardlight Block**. The
+promoted moving shield is a new Prism Wall envelope for Palisade—display name
+**Prism Screen**—not a Mason rewrite.
 
 That leaves a useful class pair:
 
@@ -261,7 +260,7 @@ That leaves a useful class pair:
 Giving Mason the moving screen or deleting Hardlight would collapse two
 different map decisions into one.
 
-### Recommended prototype contract
+### Promoted Tapline-12 contract
 
 | Property | Prototype value / rule | Why |
 | --- | --- | --- |
@@ -425,12 +424,14 @@ contacts the flank produces.
 10. Make generated priority/rejection reasons visible in Practice: “Fight was
     used because Hook had no clear beneficial pull,” for example.
 
-### P2 — prototype the Palisade screen in a new profile
+### P2 — Palisade screen promoted in Tapline-12
 
-11. Add the versioned moving Prism definition and presentation using the
+11. **Done:** versioned moving Prism definition and v4 presentation using the
     30-hull / 6-duration / 18-cooldown candidate.
-12. Run the corridor proof and tune only one variable at a time. Do not modify
-    Mason in this pass.
+12. **Mechanics proof done:** front/side/allied fire, Rail, body-overlap,
+    movement, turning, suppression, death, expiry, cooldown, canonical
+    projection, and historical Tapline-11 compatibility. Keep population
+    tuning and authored route-segment proof as follow-up. Mason is unchanged.
 
 ### P3 — explicit combat mobility after the skill pass is stable
 
@@ -521,6 +522,8 @@ Relevant current tests include:
   `tests/BotArena.Cli.Tests/OrdersSignatureOpportunitySceneTests.cs`;
 - synthetic presentation coverage:
   `tests/BotArena.Cli.Tests/ArcRelaySignatureStageCommandTests.cs`.
+- promoted Prism Screen mechanics:
+  `tests/BotArena.Engine.Tests/ArcRelayPrismScreenTests.cs`.
 
 The older `docs/ARC-RELAY-SIGNATURE-AUDIT.md` was a counterplay grammar audit,
 not a current balance or Tactics usability pass. The older Program opportunity
@@ -544,17 +547,17 @@ These should be answered before calling Smart skills player-ready:
 4. **Exchange and Cores:** retain “caster transports, target drops,” or make
    both sides drop? The current asymmetry is strategically interesting but
    surprising.
-5. **Palisade footprint:** moving three derived tiles, or a new edge-collision
-   model? Use derived tiles for the first prototype.
-6. **Actual movement rates:** are they a promoted rule or only handling
-   language? Current code has no speed difference; evaluate skills first.
+5. **Palisade tuning:** Tapline-12 resolves the footprint as three derived
+   front tiles. Population play still needs to validate the initial 30/6/18
+   tuning and whether body-overlap deactivation is sufficiently legible.
 
 ## Final recommendation
 
 Do not add more signature mechanics yet. Make these sixteen understandable,
-slot-specific and dependable through one map-first policy model, then
-prototype Palisade's moving screen. That pass should produce substantially
-more playable depth than another class would: players will be able to draw a
+slot-specific and dependable through one map-first policy model, then validate
+the newly promoted Palisade screen in ordinary authored play. That pass should
+produce substantially more playable depth than another class would: players
+will be able to draw a
 route, post, lane or target relationship and trust the bot to use its unique
 tool for a visible reason, while the underlying game remains one ordered
 Instruction executor.

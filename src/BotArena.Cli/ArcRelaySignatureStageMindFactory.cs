@@ -44,6 +44,7 @@ internal sealed class ArcRelaySignatureStageMindFactory(
         private bool _repairScratchLaunched;
         private bool _tripMovingWest = true;
         private bool _exchangeIssued;
+        private int? _prismCastTick;
         private int _sentinelWaypoint;
         private int _sentinelDwellTicks;
 
@@ -80,6 +81,29 @@ internal sealed class ArcRelaySignatureStageMindFactory(
             GenericMindRuntimeObservation observation,
             GenericMindRuntimeObservation.ObservedBodyState body)
         {
+            if (spec.SignatureId == "prism-wall"
+                && _prismCastTick is int castTick)
+            {
+                int age = observation.Tick - castTick;
+                if (age is 1 or 2)
+                {
+                    return MoveToward(
+                        observation,
+                        body,
+                        new Position(15, 11),
+                        "signature-caster");
+                }
+                if (age == 3)
+                    return Face(body, Direction.South, "signature-caster");
+                if (age is 4 or 5)
+                {
+                    return MoveToward(
+                        observation,
+                        body,
+                        new Position(15, 13),
+                        "signature-caster");
+                }
+            }
             if (spec.SignatureId == "exchange")
             {
                 if (_exchangeIssued)
@@ -138,6 +162,8 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                     "signature-caster");
                 if (spec.SignatureId == "exchange")
                     _exchangeIssued = true;
+                if (spec.SignatureId == "prism-wall")
+                    _prismCastTick = observation.Tick;
                 return command;
             }
             return Wait(body, "signature-caster");
@@ -153,6 +179,24 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                     body,
                     ExchangeAllyReady,
                     "stage-exchange-ally");
+
+        private static GenericMindCommand Face(
+            GenericMindRuntimeObservation.ObservedBodyState body,
+            Direction direction,
+            string role)
+        {
+            GenericActorRuntimeActionLegality? rotate = Available(
+                body,
+                ArcRelayH0Definition.RotateActionId);
+            if (rotate is null || body.Facing == direction)
+                return Wait(body, role);
+            return Command(
+                body,
+                rotate,
+                [new GenericActorRuntimeActionArgument.DirectionArgument(
+                    direction)],
+                role);
+        }
 
         private GenericMindCommand Context(
             GenericMindRuntimeObservation observation,

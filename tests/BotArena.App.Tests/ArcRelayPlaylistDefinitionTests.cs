@@ -40,7 +40,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Entrant_v28_promotes_Tapline11_while_v2_through_v27_remain_resolvable_history()
+    public void Entrant_v29_promotes_Tapline12_while_v2_through_v28_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -96,11 +96,13 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV26();
         ArcRelayEntrantPlaylistDefinition tapline10V27 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV27();
+        ArcRelayEntrantPlaylistDefinition tapline11V28 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV28();
 
-        Assert.Equal(28, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline11.MapId, current.Match.Map.Id);
+        Assert.Equal(29, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline12.MapId, current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline11.RulesetId,
+            ArcRelayLoopProfile.Tapline12.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline11TacticalArtifactHash,
@@ -118,7 +120,11 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline11", current.Provenance);
+        Assert.Contains("ownerApprovedTapline12", current.Provenance);
+        Assert.Contains("\"movingPrismScreen\":true", current.Provenance);
+        Assert.Contains("\"prismScreenHull\":30", current.Provenance);
+        Assert.Contains("\"prismScreenDurationTicks\":6", current.Provenance);
+        Assert.Contains("\"prismScreenCooldownTicks\":18", current.Provenance);
         Assert.Contains("\"baseVisionRange\":5", current.Provenance);
         Assert.Contains("\"shortAttackRange\":3", current.Provenance);
         Assert.Contains("\"mediumAttackRange\":4", current.Provenance);
@@ -158,6 +164,12 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(28, tapline11V28.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline11.RulesetId,
+            tapline11V28.Match.Rules.RulesetId);
+        Assert.Contains("ownerApprovedTapline11", tapline11V28.Provenance);
+        Assert.DoesNotContain("movingPrismScreen", tapline11V28.Provenance);
         Assert.Equal(27, tapline10V27.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.Tapline10.RulesetId,
@@ -435,7 +447,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 trafficDetourV15, stableCarrierV16, looseCoreMemoryV17,
                 claimableCoreV18, taplineV19, ordersV20, tapline3V21,
                 tapline4V22, tapline5V23, tapline6V24, tapline8V25,
-                tapline9V26, tapline10V27, current]);
+                tapline9V26, tapline10V27, tapline11V28, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -514,6 +526,9 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(tapline10V27, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Tapline10Version));
+        Assert.Same(tapline11V28, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Tapline11Version));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -543,6 +558,21 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Equal(definition, Sha256Text(historical.CanonicalDefinition));
         Assert.Equal(
             "70afce1f2ed1430bd7b862647d842673f36e9062152c577a04e5617a9a139447",
+            Sha256Text(historical.Provenance));
+    }
+
+    [Fact]
+    public void Historical_v28_definition_and_provenance_remain_byte_exact()
+    {
+        ArcRelayEntrantPlaylistDefinition historical =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV28();
+
+        const string definition =
+            "d36f71ad174a48b478508a0f8fb87b519f211993fec0f81b82599b3d726ecd33";
+        Assert.Equal(definition, historical.DefinitionFingerprint);
+        Assert.Equal(definition, Sha256Text(historical.CanonicalDefinition));
+        Assert.Equal(
+            "9b4c8d1ad3153e82f838a3c441bc8cabf76cb3807146c69b0dad12c6730e981f",
             Sha256Text(historical.Provenance));
     }
 

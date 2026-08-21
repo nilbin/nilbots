@@ -268,10 +268,11 @@ the independently sharp shared impact is corrected locally.
 
 ### Tapline signature audio inventory
 
-`arc-relay-signatures-v3` is the current package. It preserves V2's distinct
-sixteen-skill vocabulary but places Arc Toss's launch cue at the no-tell,
-post-combat release. Recorded V2 replays retain their earlier one-tick timing
-and V1 retains its old bindings. A skill's primary cue is unique across the
+`arc-relay-signatures-v4` is the current package. It preserves V3's distinct
+sixteen-skill vocabulary and adds the moving Prism Screen presentation without
+changing its deployment cue. Recorded V3 replays retain the static Prism Wall,
+V2 retains its earlier one-tick Arc Toss timing, and V1 retains its old
+bindings. A skill's primary cue is unique across the
 sixteen-class roster.
 Secondary cues exist only when the replay publishes a second meaningful beat;
 ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
@@ -279,7 +280,7 @@ ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 | Class | Signature | Authoritative audible moment | Runtime cue and decision |
 |---|---|---|---|
 | Kestrel | Vector Dash | `completed` | `signature-motion`, the unique displacement resolve |
-| Palisade | Prism Wall | `started` | `signature-construct`, the energy-panel deployment |
+| Palisade | Prism Screen | `started` | `signature-construct`, the moving energy-panel deployment |
 | Towline | Tractor Hook | `started`, then `launched` | shared `attack-windup`, then unique `signature-tether`; the tether replaces generic release |
 | Patchbay | Repair Beam | `signature-repair` fact | `signature-repair`, distinct from the arena healing tile |
 | Lantern | Survey Flare | `landed` | `signature-survey`, the calibration-field arrival |

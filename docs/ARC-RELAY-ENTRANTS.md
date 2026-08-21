@@ -14,8 +14,8 @@ crest, eight-slot composition, and exact-compatible Elo rating. A sheet save or
 mind resubmission advances its revision without resetting rating. Save-as-copy
 or a new submission creates a new identity and starts at the default rating.
 
-The current hosted identity is immutable entrant playlist v28: rules
-`arc-relay-tapline-11` on the 31x27 `arc-relay-tapline-03` map, matching the default local
+The current hosted identity is immutable entrant playlist v29: rules
+`arc-relay-tapline-12` on the 31x27 `arc-relay-tapline-03` map, matching the default local
 `nilbots arc-relay` command and its coordinated planner. v7 began the Warren
 development rating era; v8 repaired its frozen WASM artifact. Public Season 1
 began at 1200 on a separate v8 ladder. v9 moves the stock participant to the
@@ -64,6 +64,11 @@ vision and basic guns to 5 and 3/4/6; v28 exposes swift/standard/deliberate
 movement cadences of 1/1, 4/5, and 2/3 under one Combat Strafe model and pins a
 new SDK-0.10.15 tactical artifact with windup-safe Hold interception. Each
 gameplay-changing line starts a fresh rating book and preserves its predecessor.
+v29 replaces only Palisade's static contact-count Prism Wall with a mobile,
+facing-bound Prism Screen: 30 hull, six active ticks, and an 18-tick cooldown.
+It follows its owner, does not block bodies, passes allied fire, and ends with
+its owner. The map, sheet artifact, movement, guns, economy, and all other
+signatures remain unchanged; v28 remains exact history.
 Completed historical broadcasts remain readable, but old Arc Relay playlist
 jobs are replay-only rather than executable by a current worker.
 ForwardCombat/Counterflow v6 ratings and matches remain readable history but
@@ -85,11 +90,11 @@ every save with the same compiler as the CLI, and snapshots the compiled package
 into a match. Saving enters the sheet into the ladder by default, with an
 explicit opt-out. A trial runs the current revision against a tracked stock
 sheet and opens the completed compact replay immediately, without the causal
-spectator clock used by ranked matches and scrimmages. v28's stock sheet is the
+spectator clock used by ranked matches and scrimmages. v29's stock sheet is the
 Tapline-native Tempered Standard Orders v2 sheet, and six additional named
 strategy sheets are available as practice opponents. New map plans are authored directly
 on the Tapline export; earlier-map sheets are shown as legacy and cannot enter
-v28 until replotted and brought up to the current roster rule.
+v29 until replotted and brought up to the current roster rule.
 The server never projects coordinates between maps.
 
 A custom mind must complete one hosted validation match without a runtime fault

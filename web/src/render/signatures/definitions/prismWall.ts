@@ -17,15 +17,16 @@ export default defineArcSignature({
     decorativeDrift: false,
   },
   budget: {
-    segments: 6,
+    segments: 8,
     panels: 3,
     particles: 0,
-    markers: 6,
+    markers: 8,
     transparentLayers: 2,
     persistentProps: 0,
   },
   fidelity: {
     reference: '03-motion-objective.png#prism-wall',
-    dominantSilhouette: 'contact posts and three low rough panes',
+    dominantSilhouette:
+      'three connected body-height panes carried across Palisade’s front',
   },
 });

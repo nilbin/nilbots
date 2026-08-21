@@ -52,14 +52,14 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v28 and the local <code>nilbots arc-relay</code>
-          default both run tapline-11 on the accepted equal-return Tapline with
+          Hosted playlist v29 and the local <code>nilbots arc-relay</code>
+          default both run tapline-12 on the accepted equal-return Tapline with
           the owner-approved sealed outer-Well entrances and staggered Mid cover,
           signature grammar 3 and atomic convoy
           movement: bodies may enter a tile a teammate leaves in the same tick,
           but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
           remain match history but are not accepted by the current editor;
-          coordinates are never projected between maps. Tapline-11 values a Core at 1, 2,
+          coordinates are never projected between maps. Tapline-12 values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
           requires at least seven distinct classes, and makes deployments durable targets.
@@ -71,9 +71,11 @@ export default function DocsPage() {
           guns reach 3, 4 and 6. Immediate team-shared sight lets Longshot use that
           sixth tile when an ally supplies contact. Swift, standard and deliberate
           chassis move on public deterministic 1/1, 4/5 and 2/3 opportunity cycles
-          under one Combat Strafe facing model. Playlist v28 opens a fresh rating
-          book at 1200; playlists v23–v27 remain readable history and their ratings
-          are not carried into v28.
+          under one Combat Strafe facing model. Palisade&apos;s mobile Prism Screen
+          follows its facing for six ticks, absorbs 30 hull of hostile fire, passes
+          allied shots, and never blocks bodies. Playlist v29 opens a fresh rating
+          book at 1200; playlists v23–v28 remain readable history and their ratings
+          are not carried into v29.
         </p>
         <p className="mt-2 text-arena-dim">
           Ranked, practice, the Tactics editor and the local CLI all run that same

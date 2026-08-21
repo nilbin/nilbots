@@ -798,15 +798,16 @@ broadcasts carry neither the clause nor private Program attribution.
 In-process and WASM must produce the same gameplay-state digest for identical
 ATL2, map, rules, and seed.
 
-Hosted entrant playlist v28 is the promoted Orders v2/Tapline-11 line. It pins
+Hosted entrant playlist v29 is the promoted Orders v2/Tapline-12 line. It pins
 the coordinated EPIBT executor, body-local signature orders, the new
 Tapline-11 controlled WASM artifact and unchanged Tempered Standard sheet, the combined depth rules,
 the delayed centre opening, the equal-return map fork, the owner-approved
 sealed outer-Well entrances with staggered Mid cover, bank-triggered
 source-local Well supply, five-tile team vision, 3/4/6 basic-gun ranges,
-public 1/1, 4/5, and 2/3 chassis movement rates under Combat Strafe, and a
-fresh rating book. Playlists v23 (Tapline-5), v24 (Tapline-6), v25
-(Tapline-8), v26 (Tapline-9), and v27 (Tapline-10) remain immutable history. Tapline-11 reuses
+public 1/1, 4/5, and 2/3 chassis movement rates under Combat Strafe, Palisade's
+mobile 30-hull Prism Screen, and a fresh rating book. Playlists v23
+(Tapline-5), v24 (Tapline-6), v25 (Tapline-8), v26 (Tapline-9), v27
+(Tapline-10), and v28 (Tapline-11) remain immutable history. Tapline-12 reuses
 Tapline-9's map-plan geometry, so the `map-plans/tapline-9/` source path is
 intentional.
 

@@ -602,8 +602,12 @@ function drawAuthoredSignatureMarker(
     if (points.length > 0) drawAreaEllipse(ctx, points, tile);
     if (marker === 'calibration-field') drawCalibrationTicks(ctx, points, tile);
     else if (marker === 'smoke-field') drawSmokeLobes(ctx, points, tile, time);
-  } else if (marker === 'panels' || marker === 'block') {
-    drawConstructTiles(ctx, points, tile, marker === 'block');
+  } else if (marker === 'panels') {
+    if ((signature.maximumCapacity ?? 0) >= 10)
+      drawMovingPrismScreen(input, signature, accent);
+    else drawConstructTiles(ctx, points, tile, false);
+  } else if (marker === 'block') {
+    drawConstructTiles(ctx, points, tile, true);
   } else if (marker === 'cardinal-target') {
     drawCardinalTarget(ctx, anchor, tile);
   } else if (marker === 'objective-arc') {
@@ -635,7 +639,11 @@ function drawAuthoredSignatureMarker(
   }
 
   if (signature.suppressed) drawSuppressionCross(ctx, anchor, tile);
-  drawConstructDurability(ctx, anchor, tile, signature, accent);
+  const durabilityAnchor = marker === 'panels' &&
+      (signature.maximumCapacity ?? 0) >= 10
+    ? owner ?? anchor
+    : anchor;
+  drawConstructDurability(ctx, durabilityAnchor, tile, signature, accent);
 }
 
 /** Unknown packages remain mechanically visible without borrowing current art. */
@@ -716,6 +724,60 @@ function drawConstructTiles(
     ctx.fillRect(point.x - half, point.y - half, half * 2, half * 2);
     ctx.strokeRect(point.x - half, point.y - half, half * 2, half * 2);
   }
+}
+
+function drawMovingPrismScreen(
+  input: ArcRelayVisualContext,
+  signature: CanvasSignature,
+  accent: string,
+): void {
+  const pose = input.poses.find(
+    (candidate) => candidate.actorKey === signature.ownerActor.actorKey,
+  );
+  if (!pose) return;
+  const owner = centre(input, { x: pose.x, y: pose.y });
+  const { ctx, tile } = input;
+  const health = Math.max(
+    0,
+    Math.min(
+      1,
+      signature.remainingCapacity / (signature.maximumCapacity ?? 1),
+    ),
+  );
+  ctx.save();
+  ctx.translate(owner.x, owner.y);
+  ctx.rotate(pose.angle);
+  ctx.lineCap = 'round';
+  ctx.setLineDash([]);
+  const front = tile * 0.92;
+  for (let index = -1; index <= 1; index += 1) {
+    const centreY = index * tile * 0.91;
+    const half = tile * 0.4;
+    ctx.strokeStyle = withAlpha('#c4a15e', signature.suppressed ? 0.38 : 0.92);
+    ctx.lineWidth = Math.max(3, tile * 0.13);
+    ctx.beginPath();
+    ctx.moveTo(front, centreY - half);
+    ctx.lineTo(front, centreY + half);
+    ctx.stroke();
+    ctx.strokeStyle = withAlpha(
+      signature.suppressed ? '#b4bdc4' : '#75d8ff',
+      (0.3 + health * 0.42) * (signature.suppressed ? 0.5 : 1),
+    );
+    ctx.lineWidth = Math.max(2, tile * 0.075);
+    ctx.beginPath();
+    ctx.moveTo(front, centreY - half * 0.92);
+    ctx.lineTo(front, centreY + half * 0.92);
+    ctx.stroke();
+  }
+  ctx.strokeStyle = withAlpha(accent, signature.suppressed ? 0.24 : 0.72);
+  ctx.lineWidth = Math.max(2, tile * 0.04);
+  ctx.beginPath();
+  ctx.moveTo(tile * 0.32, 0);
+  ctx.lineTo(tile * 0.68, -tile * 0.18);
+  ctx.moveTo(tile * 0.32, 0);
+  ctx.lineTo(tile * 0.68, tile * 0.18);
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawCardinalTarget(

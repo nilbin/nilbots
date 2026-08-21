@@ -15,7 +15,6 @@ public sealed class ArcRelayTaplineMovementRateTests
         ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline11);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline11, ArcRelayLoopProfile.Current);
         Assert.Equal("arc-relay-tapline-11", current.Rules.RulesetId);
         Assert.Equal(
             ActorContractFingerprint.ComputeMap(previous.Map),

@@ -262,12 +262,19 @@ public sealed class ArcRelayH0DefinitionTests
             "arc-relay-signatures-v2",
             presentation.SignaturePresentationId);
 
-        GenericActorReplayPresentation current =
+        GenericActorReplayPresentation instantToss =
             ArcRelayH0ReplayPresentation.Create(ArcRelayH0Definition.Create(
                 loopProfile: ArcRelayLoopProfile.Tapline7));
         Assert.Equal(
             "arc-relay-signatures-v3",
-            current.SignaturePresentationId);
+            instantToss.SignaturePresentationId);
+
+        GenericActorReplayPresentation movingScreen =
+            ArcRelayH0ReplayPresentation.Create(ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Tapline12));
+        Assert.Equal(
+            "arc-relay-signatures-v4",
+            movingScreen.SignaturePresentationId);
     }
 
     [Fact]

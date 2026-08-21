@@ -10,12 +10,112 @@ import {
 
 const PRISM_GLASS = '#79aeb2';
 const PRISM_FRAME = '#566468';
+const SCREEN_GLASS = '#73d8ff';
+const SCREEN_FRAME = '#b79352';
+const SCREEN_FRAME_EMISSIVE = '#4b3515';
+
+function isMovingScreen(signature: {
+  maximumCapacity?: number | null;
+}): boolean {
+  return (signature.maximumCapacity ?? 0) >= 10;
+}
 
 export default defineArcSignatureWebGLPainter({
   signatureId: 'prism-wall',
-  paint({ rig, signature, points, time, reducedMotion, phaseStartedTick }) {
+  paint({
+    rig,
+    signature,
+    points,
+    owner,
+    ownerAngle,
+    time,
+    reducedMotion,
+    phaseStartedTick,
+  }) {
     if (points.length === 0) return;
     const deploy = reducedMotion ? 1 : risingSettle(time, phaseStartedTick);
+    if (isMovingScreen(signature) && owner && ownerAngle !== undefined) {
+      const forward = new THREE.Vector3(
+        Math.cos(ownerAngle),
+        0,
+        Math.sin(ownerAngle),
+      );
+      const tangent = new THREE.Vector3(-forward.z, 0, forward.x);
+      const yaw = -Math.atan2(tangent.z, tangent.x);
+      const health = Math.max(
+        0,
+        Math.min(
+          1,
+          signature.remainingCapacity / (signature.maximumCapacity ?? 1),
+        ),
+      );
+      const centres: THREE.Vector3[] = [];
+      for (let index = 0; index < 3; index += 1) {
+        const lateral = index - 1;
+        const point = owner.clone()
+          .addScaledVector(forward, 0.92 - Math.abs(lateral) * 0.035)
+          .addScaledVector(tangent, lateral * 0.91)
+          .setY(0.05);
+        centres.push(point);
+        const delay = reducedMotion
+          ? 1
+          : clamp01(deploy * 1.4 - Math.abs(lateral) * 0.1);
+        const frame = rig.frames[index]!;
+        frame.visible = true;
+        frame.position.copy(point).setY(0.07 + delay * 0.43);
+        frame.rotation.set(0, yaw, lateral * 0.018);
+        frame.scale.set(1.06, Math.max(0.07, delay * 2.06), 0.76);
+
+        const panel = rig.panels[index]!;
+        panel.visible = true;
+        panel.position.copy(point).setY(0.08 + delay * 0.43);
+        panel.rotation.set(0, yaw, lateral * 0.018);
+        panel.scale.set(0.97, Math.max(0.08, delay * 1.9), 0.6);
+        setEnergyColour(panel, SCREEN_GLASS);
+        setEnergyOpacity(
+          panel,
+          (0.16 + delay * 0.16) * (signature.suppressed ? 0.38 : 1),
+        );
+
+        for (const [post, side] of [
+          [rig.posts[index * 2]!, -1],
+          [rig.posts[index * 2 + 1]!, 1],
+        ] as const) {
+          post.visible = true;
+          post.position.copy(point)
+            .addScaledVector(tangent, side * 0.43)
+            .setY(0.05 + delay * 0.46);
+          post.rotation.set(0, yaw, 0);
+          post.scale.set(0.72, Math.max(0.08, delay * 2.08), 0.72);
+        }
+
+        const capacity = rig.rings[index]!;
+        capacity.visible = index < Math.ceil(health * 3);
+        capacity.position.copy(point).setY(0.055);
+        capacity.scale.setScalar(
+          0.66 + 0.035 * Math.sin(time * Math.PI * 1.5 + index),
+        );
+        setEnergyColour(capacity, SCREEN_GLASS);
+        setEnergyOpacity(capacity, 0.2 + health * 0.16);
+      }
+      for (let index = 0; index < 2; index += 1) {
+        const connector = rig.bars[index]!;
+        connector.visible = true;
+        connector.position.lerpVectors(centres[index]!, centres[index + 1]!, 0.5)
+          .setY(0.82 * deploy);
+        connector.rotation.set(0, yaw, 0);
+        connector.scale.set(0.52, Math.max(0.035, deploy * 0.055), 0.07);
+      }
+      rig.solid.color.set(signature.suppressed ? '#6d7479' : SCREEN_FRAME);
+      rig.solid.emissive.set(
+        signature.suppressed ? '#22282b' : SCREEN_FRAME_EMISSIVE,
+      );
+      rig.solid.emissiveIntensity = signature.suppressed ? 0.02 : 0.13;
+      rig.solid.opacity = signature.suppressed ? 0.56 : 0.98;
+      rig.main.color.set(SCREEN_FRAME);
+      rig.main.opacity = signature.suppressed ? 0.3 : 0.8;
+      return;
+    }
     rig.fill.color.set(PRISM_GLASS);
     rig.fill.opacity = 0.14;
     const direction = points.length > 1
@@ -64,8 +164,78 @@ export default defineArcSignatureWebGLPainter({
     rig.solid.emissiveIntensity = 0.04;
     rig.solid.opacity = 0.96;
   },
-  paintOutcome({ rig, priorSignature, facts, fraction, reducedMotion }) {
+  paintOutcome({
+    rig,
+    priorSignature,
+    facts,
+    owner,
+    ownerAngle,
+    fraction,
+    reducedMotion,
+  }) {
     if (!hasConstructRemoval(facts) || !priorSignature) return;
+    if (isMovingScreen(priorSignature) && owner && ownerAngle !== undefined) {
+      const forward = new THREE.Vector3(
+        Math.cos(ownerAngle),
+        0,
+        Math.sin(ownerAngle),
+      );
+      const tangent = new THREE.Vector3(-forward.z, 0, forward.x);
+      const yaw = -Math.atan2(tangent.z, tangent.x);
+      const life = 1 - fraction;
+      const height = reducedMotion ? life : 1 - fraction ** 2;
+      const centres: THREE.Vector3[] = [];
+      for (let index = 0; index < 3; index += 1) {
+        const lateral = index - 1;
+        const point = owner.clone()
+          .addScaledVector(forward, 0.92 - Math.abs(lateral) * 0.035)
+          .addScaledVector(tangent, lateral * 0.91)
+          .setY(0.05);
+        centres.push(point);
+        const frame = rig.frames[index]!;
+        frame.visible = true;
+        frame.position.copy(point).setY(0.07 + height * 0.43);
+        frame.rotation.set(0, yaw, lateral * 0.018);
+        frame.scale.set(1.06 * life, Math.max(0.045, height * 2.06), 0.76);
+        const panel = rig.panels[index]!;
+        panel.visible = true;
+        panel.position.copy(point).setY(0.08 + height * 0.43);
+        panel.rotation.set(0, yaw, lateral * 0.018);
+        panel.scale.set(0.97 * life, Math.max(0.045, height * 1.9), 0.6);
+        setEnergyColour(panel, SCREEN_GLASS);
+        setEnergyOpacity(panel, life * 0.28);
+        for (const [post, side] of [
+          [rig.posts[index * 2]!, -1],
+          [rig.posts[index * 2 + 1]!, 1],
+        ] as const) {
+          post.visible = true;
+          post.position.copy(point)
+            .addScaledVector(tangent, side * 0.43)
+            .setY(0.05 + height * 0.46);
+          post.rotation.set(0, yaw, 0);
+          post.scale.set(0.72 * life, Math.max(0.045, height * 2.08), 0.72);
+        }
+        const mote = rig.particles[index]!;
+        mote.visible = !reducedMotion;
+        mote.position.copy(point).setY(0.22 + fraction * (0.5 + index * 0.08));
+        mote.scale.setScalar(0.4 * life);
+        setEnergyColour(mote, SCREEN_GLASS);
+        setEnergyOpacity(mote, life * 0.18);
+      }
+      for (let index = 0; index < 2; index += 1) {
+        const connector = rig.bars[index]!;
+        connector.visible = true;
+        connector.position.lerpVectors(centres[index]!, centres[index + 1]!, 0.5)
+          .setY(0.82 * height);
+        connector.rotation.set(0, yaw, 0);
+        connector.scale.set(0.52 * life, 0.055, 0.07);
+      }
+      rig.solid.color.set(SCREEN_FRAME);
+      rig.solid.emissive.set(SCREEN_FRAME_EMISSIVE);
+      rig.solid.emissiveIntensity = 0.08;
+      rig.solid.opacity = life * 0.9;
+      return;
+    }
     const points = priorSignature.positions.map(
       (point) => new THREE.Vector3(point.x + 0.5, 0.065, point.y + 0.5),
     );

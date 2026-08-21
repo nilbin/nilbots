@@ -429,6 +429,11 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("durationTicks", value.DurationTicks);
                 writer.WriteNumber("contactCapacity", value.ContactCapacity);
                 break;
+            case ArcRelaySignatureDefinition.PrismScreen value:
+                writer.WriteNumber("segmentCount", value.SegmentCount);
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                break;
             case ArcRelaySignatureDefinition.TractorHook value:
                 writer.WriteNumber("range", value.Range);
                 writer.WriteNumber("maxPullTiles", value.MaxPullTiles);

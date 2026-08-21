@@ -1144,10 +1144,30 @@ public static class ArcRelayH0Definition
                             },
                         _ => entry,
                     })];
+        ImmutableArray<LaunchClass> prism =
+            !loopProfile.MovingPrismScreen
+                ? deployments
+                : [.. deployments.Select(entry => entry.Signature switch
+                    {
+                        ArcRelaySignatureDefinition.PrismWall wall =>
+                            entry with
+                            {
+                                Signature = new ArcRelaySignatureDefinition
+                                    .PrismScreen(
+                                        wall.SignatureId,
+                                        wall.ClassId,
+                                        wall.ActionId,
+                                        wall.SegmentCount,
+                                        hull: 3,
+                                        durationTicks: 6,
+                                        cooldownTicks: 18),
+                            },
+                        _ => entry,
+                    })];
         int scale = loopProfile.CombatMagnitudeScale;
         if (scale == 1 && loopProfile.BodyHullBonus == 0)
-            return deployments;
-        return [.. deployments.Select(entry => entry with
+            return prism;
+        return [.. prism.Select(entry => entry with
         {
             Hull = checked(entry.Hull * scale + loopProfile.BodyHullBonus),
             Signature = ScaleCombatMagnitude(entry.Signature, scale),
@@ -1169,6 +1189,11 @@ public static class ArcRelayH0Definition
                 checked(repair.HullPerRepair * scale),
                 checked(repair.MaxHullPerActivation * scale),
                 repair.CooldownTicks),
+        ArcRelaySignatureDefinition.PrismScreen screen =>
+            new ArcRelaySignatureDefinition.PrismScreen(
+                screen.SignatureId, screen.ClassId, screen.ActionId,
+                screen.SegmentCount, checked(screen.Hull * scale),
+                screen.DurationTicks, screen.CooldownTicks),
         ArcRelaySignatureDefinition.FallingStar star =>
             new ArcRelaySignatureDefinition.FallingStar(
                 star.SignatureId, star.ClassId, star.ActionId,
@@ -1334,7 +1359,8 @@ public static class ArcRelayH0Definition
             ArcRelaySignatureDefinition.SentinelSeed or
             ArcRelaySignatureDefinition.SentinelSeed2 =>
                 [ActorActionParameterKind.PositionTarget],
-            ArcRelaySignatureDefinition.PrismWall =>
+            ArcRelaySignatureDefinition.PrismWall or
+            ArcRelaySignatureDefinition.PrismScreen =>
                 [ActorActionParameterKind.Direction],
             ArcRelaySignatureDefinition.NullField or
             ArcRelaySignatureDefinition.NullField2 or

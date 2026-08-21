@@ -1,8 +1,12 @@
 export const ARC_SIGNATURE_PRESENTATION_ID =
+  'arc-relay-signatures-v4' as const;
+
+/** The instant Arc Toss package retained by Tapline-8 through Tapline-11. */
+export const ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID =
   'arc-relay-signatures-v3' as const;
 
-/** The one-tick Arc Toss release package retained by historical replays. */
-export const ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID =
+/** The one-tick Arc Toss release package retained by older grammar-3 replays. */
+export const ARC_SIGNATURE_V2_PRESENTATION_ID =
   'arc-relay-signatures-v2' as const;
 
 /**
@@ -18,6 +22,7 @@ export function isKnownArcSignaturePresentationId(
   return (
     value === ARC_SIGNATURE_PRESENTATION_ID ||
     value === ARC_SIGNATURE_PREVIOUS_PRESENTATION_ID ||
+    value === ARC_SIGNATURE_V2_PRESENTATION_ID ||
     value === ARC_SIGNATURE_LEGACY_PRESENTATION_ID
   );
 }

@@ -38,8 +38,8 @@ public sealed class ArcRelayClassCatalog
         [
             Class(mechanics, ArcRelayLaunchClassIds.Kestrel, "Kestrel", "Vector Dash",
                 "Rapid interceptor built to abandon one lane and answer another.", true),
-            Class(mechanics, ArcRelayLaunchClassIds.Palisade, "Palisade", "Prism Wall",
-                "Convoy shield whose projector face blanks a firing lane.", true),
+            Class(mechanics, ArcRelayLaunchClassIds.Palisade, "Palisade", "Prism Screen",
+                "Convoy shield carrying directional cover through a firing lane.", true),
             Class(mechanics, ArcRelayLaunchClassIds.Towline, "Towline", "Tractor Hook",
                 "Formation disruptor with a visible winch, cable and hook.", true),
             Class(mechanics, ArcRelayLaunchClassIds.Patchbay, "Patchbay", "Repair Beam",

@@ -69,6 +69,8 @@ export interface ArcSignaturePaintInput {
   signature: ArcSignature;
   points: THREE.Vector3[];
   owner: THREE.Vector3 | undefined;
+  /** Interpolated authoritative chassis facing in arena X/Z radians. */
+  ownerAngle: number | undefined;
   target: THREE.Vector3 | undefined;
   /** Exact public Core flight sample for Arc Toss; absent for every other signature. */
   coreFlight: {
@@ -103,6 +105,8 @@ export interface ArcSignatureOutcomePaintInput {
   priorSignature: ArcSignature | null;
   facts: readonly ArcSignatureOutcomeFact[];
   owner: THREE.Vector3 | undefined;
+  /** Replay-derived chassis facing retained for attached outcome animation. */
+  ownerAngle: number | undefined;
   /** Current replay-derived pose of the affected body, when the outcome names one. */
   target: THREE.Vector3 | undefined;
   /** Prior operation target, retained across a one-shot launch/removal outcome. */

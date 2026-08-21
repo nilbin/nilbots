@@ -296,7 +296,8 @@
         <div class="stats"><span class="stat">16 signatures</span><span class="stat">4 skill policies</span><span class="stat">1 shared instruction priority</span></div>
       </header>
       <article class="document"><h1>Arc Relay signature skills in map-first Tactics</h1>
-<p><strong>Date:</strong> 2026-08-21<br><strong>Status:</strong> design and code inventory; implementation-ready recommendation; no gameplay changes made<br><strong>Rules baseline:</strong> promoted <code>tapline-11</code> (<code>vision 5</code>, short/medium/long guns <code>3/4/6</code>, swift/standard/deliberate movement <code>1/1</code>, <code>4/5</code>, <code>2/3</code>)</p>
+<p><strong>Date:</strong> 2026-08-21<br><strong>Status:</strong> design inventory plus implemented Prism Screen outcome
+<strong>Rules baseline:</strong> promoted <code>tapline-12</code> (<code>vision 5</code>, short/medium/long guns <code>3/4/6</code>, swift/standard/deliberate movement <code>1/1</code>, <code>4/5</code>, <code>2/3</code>)</p>
 <h2 id="verdict"><a class="heading-anchor" href="#verdict" aria-label="Link to Verdict">#</a>Verdict</h2>
 <p>The sixteen signatures are a good source of tactical depth, but the current
 Tactics surface does not yet let a player use that depth reliably. The main
@@ -321,15 +322,14 @@ there is no skill scheduler, reservation system, or second priority model;</li>
 <code>signature-commitment-active -&gt; current-position</code> continuation above normal
 actions.</li>
 </ul>
-<p>The proposed moving frontal shield is a strong fit for <strong>Palisade</strong>, whose
-current skill is Prism Wall. It should not replace <strong>Mason</strong>&#39;s Hardlight Block:
+<p>The moving frontal shield is a strong fit for <strong>Palisade</strong> and is now promoted
+as Prism Screen in Tapline-12. It does not replace <strong>Mason</strong>&#39;s Hardlight Block:
 keeping a mobile screen and a static route-bending block creates two distinct
-strategic jobs. Prototype the Palisade change in a new rules profile with
-<code>30</code> shield hull, <code>6</code> active ticks and <code>18</code> cooldown ticks, then promote only
-after the corridor-counter proof below. The design is promising enough to
-prototype, not balanced enough to promote without that proof.</p>
+strategic jobs. The first tuning point is <code>30</code> shield hull, <code>6</code> active ticks
+and <code>18</code> cooldown ticks. These values are acceptance-proven mechanics, not a
+claim that population balance is already settled.</p>
 <h2 id="what-is-authoritative-today"><a class="heading-anchor" href="#what-is-authoritative-today" aria-label="Link to What is authoritative today">#</a>What is authoritative today</h2>
-<p>The current product line is <code>ArcRelayLoopProfile.Tapline11</code> and is selected by
+<p>The current product line is <code>ArcRelayLoopProfile.Tapline12</code> and is selected by
 <code>ArcRelayLoopProfile.Current</code> in
 <code>src/BotArena.Engine/ArcRelayLoopProfile.cs</code>. It keeps Tapline-10&#39;s map,
 economy, grammar-3 signatures, perception and guns while making chassis rates
@@ -414,10 +414,10 @@ from <code>ArcRelaySignatureBehaviors.cs</code> and <code>ArcRelaySignatureRunti
 </tr>
 <tr>
 <td><strong>Palisade</strong> · 50 · deliberate · short 3</td>
-<td><strong>Prism Wall:</strong> immediate static three-segment wall perpendicular to a cardinal facing, duration 8, three hostile projectile/signature contacts, cooldown 16 from start. It blocks hostile projectiles but not bodies; recast replaces the owner&#39;s previous wall.</td>
-<td>No spatial mark is supported. It is bundled by combat posture and targets nearest enemy, but Fight is evaluated first, so it commonly never casts. Direction is resolved indirectly rather than drawn.</td>
-<td>For the current wall: cast only if it interrupts a hostile firing lane to the Palisade, a carrier, or at least one ally; do not replace a still-useful wall. Add activation zone plus a draggable facing/aim handle. For the proposed <strong>moving Prism Screen</strong>, add route-segment marks with “face route forward” or explicit facing.</td>
-<td>Current static wall overlaps Mason&#39;s terrain fantasy while being less map-authorable. <strong>Promote the moving-screen prototype for Palisade</strong>, not Mason; details below.</td>
+<td><strong>Prism Screen:</strong> immediate three-segment, 30-hull screen one tile ahead, duration 6, cooldown 18 from start. It follows Palisade&#39;s position/facing, passes allied fire, blocks hostile projectiles, does not block bodies, and ends on owner death. A body-occupied segment is inactive for collision that tick.</td>
+<td>The existing broad nearest-enemy authoring can cast it, but the intended route/post facing controls remain future editor work. Exact authored facing is mechanically respected because use is limited to current facing.</td>
+<td>Cast only if it interrupts a hostile firing lane to Palisade, a carrier, or at least one ally; do not replace a still-useful screen. Add route-segment marks with “face route forward” or explicit facing.</td>
+<td>Promoted in Tapline-12. Rail deals 20 and stops, basic hits deal 10, Falling Star overlaps without losing its area, Null Field suppresses, flanks bypass. Keep the 30/6/18 values provisional until population play.</td>
 </tr>
 <tr>
 <td><strong>Towline</strong> · 40 · standard · medium 4</td>
@@ -644,11 +644,11 @@ use cannot be admitted, it falls through to Fight or movement that tick.</p>
 say exactly which higher leaf won. There is no cooldown scheduler, no “skill
 AI” ticking beside Instructions, and no hidden priority between a Tactic and a
 skill.</p>
-<h2 id="palisade-moving-frontal-shield-proposal"><a class="heading-anchor" href="#palisade-moving-frontal-shield-proposal" aria-label="Link to Palisade moving frontal shield proposal">#</a>Palisade moving frontal shield proposal</h2>
+<h2 id="palisade-moving-frontal-shield-implementation"><a class="heading-anchor" href="#palisade-moving-frontal-shield-implementation" aria-label="Link to Palisade moving frontal shield implementation">#</a>Palisade moving frontal shield implementation</h2>
 <h3 id="clarify-the-class-ownership"><a class="heading-anchor" href="#clarify-the-class-ownership" aria-label="Link to Clarify the class ownership">#</a>Clarify the class ownership</h3>
-<p>Palisade currently owns <strong>Prism Wall</strong>. Mason owns <strong>Hardlight Block</strong>. The
-moving shield should be a new Prism Wall envelope for Palisade—display name
-<strong>Prism Screen</strong> is clearer—not a Mason rewrite.</p>
+<p>Palisade historically owned <strong>Prism Wall</strong>. Mason owns <strong>Hardlight Block</strong>. The
+promoted moving shield is a new Prism Wall envelope for Palisade—display name
+<strong>Prism Screen</strong>—not a Mason rewrite.</p>
 <p>That leaves a useful class pair:</p>
 <ul>
 <li><strong>Palisade:</strong> mobile, directional projectile protection for a convoy or
@@ -657,7 +657,7 @@ corridor advance;</li>
 </ul>
 <p>Giving Mason the moving screen or deleting Hardlight would collapse two
 different map decisions into one.</p>
-<h3 id="recommended-prototype-contract"><a class="heading-anchor" href="#recommended-prototype-contract" aria-label="Link to Recommended prototype contract">#</a>Recommended prototype contract</h3>
+<h3 id="promoted-tapline-12-contract"><a class="heading-anchor" href="#promoted-tapline-12-contract" aria-label="Link to Promoted Tapline-12 contract">#</a>Promoted Tapline-12 contract</h3>
 <div class="table-shell"><table>
 <thead>
 <tr>
@@ -860,12 +860,14 @@ guards for Prism/Trip/Hardlight/Sentinel.</li>
 <li>Make generated priority/rejection reasons visible in Practice: “Fight was
 used because Hook had no clear beneficial pull,” for example.</li>
 </ol>
-<h3 id="p2-prototype-the-palisade-screen-in-a-new-profile"><a class="heading-anchor" href="#p2-prototype-the-palisade-screen-in-a-new-profile" aria-label="Link to P2 — prototype the Palisade screen in a new profile">#</a>P2 — prototype the Palisade screen in a new profile</h3>
+<h3 id="p2-palisade-screen-promoted-in-tapline-12"><a class="heading-anchor" href="#p2-palisade-screen-promoted-in-tapline-12" aria-label="Link to P2 — Palisade screen promoted in Tapline-12">#</a>P2 — Palisade screen promoted in Tapline-12</h3>
 <ol start="11">
-<li>Add the versioned moving Prism definition and presentation using the
+<li><strong>Done:</strong> versioned moving Prism definition and v4 presentation using the
 30-hull / 6-duration / 18-cooldown candidate.</li>
-<li>Run the corridor proof and tune only one variable at a time. Do not modify
-Mason in this pass.</li>
+<li><strong>Mechanics proof done:</strong> front/side/allied fire, Rail, body-overlap,
+movement, turning, suppression, death, expiry, cooldown, canonical
+projection, and historical Tapline-11 compatibility. Keep population
+tuning and authored route-segment proof as follow-up. Mason is unchanged.</li>
 </ol>
 <h3 id="p3-explicit-combat-mobility-after-the-skill-pass-is-stable"><a class="heading-anchor" href="#p3-explicit-combat-mobility-after-the-skill-pass-is-stable" aria-label="Link to P3 — explicit combat mobility after the skill pass is stable">#</a>P3 — explicit combat mobility after the skill pass is stable</h3>
 <ol start="13">
@@ -951,6 +953,8 @@ and <code>ArcRelayTacticsMaterializerTests.cs</code>;</li>
 <code>tests/BotArena.Cli.Tests/OrdersSignatureOpportunitySceneTests.cs</code>;</li>
 <li>synthetic presentation coverage:
 <code>tests/BotArena.Cli.Tests/ArcRelaySignatureStageCommandTests.cs</code>.</li>
+<li>promoted Prism Screen mechanics:
+<code>tests/BotArena.Engine.Tests/ArcRelayPrismScreenTests.cs</code>.</li>
 </ul>
 <p>The older <code>docs/ARC-RELAY-SIGNATURE-AUDIT.md</code> was a counterplay grammar audit,
 not a current balance or Tactics usability pass. The older Program opportunity
@@ -972,16 +976,16 @@ preview, or spare allies for consistency? Do not leave it accidental.</li>
 <li><strong>Exchange and Cores:</strong> retain “caster transports, target drops,” or make
 both sides drop? The current asymmetry is strategically interesting but
 surprising.</li>
-<li><strong>Palisade footprint:</strong> moving three derived tiles, or a new edge-collision
-model? Use derived tiles for the first prototype.</li>
-<li><strong>Actual movement rates:</strong> are they a promoted rule or only handling
-language? Current code has no speed difference; evaluate skills first.</li>
+<li><strong>Palisade tuning:</strong> Tapline-12 resolves the footprint as three derived
+front tiles. Population play still needs to validate the initial 30/6/18
+tuning and whether body-overlap deactivation is sufficiently legible.</li>
 </ol>
 <h2 id="final-recommendation"><a class="heading-anchor" href="#final-recommendation" aria-label="Link to Final recommendation">#</a>Final recommendation</h2>
 <p>Do not add more signature mechanics yet. Make these sixteen understandable,
-slot-specific and dependable through one map-first policy model, then
-prototype Palisade&#39;s moving screen. That pass should produce substantially
-more playable depth than another class would: players will be able to draw a
+slot-specific and dependable through one map-first policy model, then validate
+the newly promoted Palisade screen in ordinary authored play. That pass should
+produce substantially more playable depth than another class would: players
+will be able to draw a
 route, post, lane or target relationship and trust the bot to use its unique
 tool for a visible reason, while the underlying game remains one ordered
 Instruction executor.</p>
@@ -991,7 +995,7 @@ Instruction executor.</p>
     <aside aria-label="On this page">
       <nav class="toc">
         <p class="toc-title">ON THIS PAGE</p>
-        <a href="#verdict" data-section="verdict">Verdict</a><a href="#what-is-authoritative-today" data-section="what-is-authoritative-today">What is authoritative today</a><a href="#complete-class-and-signature-inventory" data-section="complete-class-and-signature-inventory">Complete class and signature inventory</a><a href="#why-the-current-authoring-is-not-yet-reliable" data-section="why-the-current-authoring-is-not-yet-reliable">Why the current authoring is not yet reliable</a><a href="#one-map-first-skill-authoring-model" data-section="one-map-first-skill-authoring-model">One map-first skill authoring model</a><a href="#palisade-moving-frontal-shield-proposal" data-section="palisade-moving-frontal-shield-proposal">Palisade moving frontal shield proposal</a><a href="#combat-behavior-under-tapline-11-movement-rates" data-section="combat-behavior-under-tapline-11-movement-rates">Combat behavior under Tapline-11 movement rates</a><a href="#ranked-implementation-plan" data-section="ranked-implementation-plan">Ranked implementation plan</a><a href="#required-tests-and-proof-scenes" data-section="required-tests-and-proof-scenes">Required tests and proof scenes</a><a href="#existing-evidence-and-its-limits" data-section="existing-evidence-and-its-limits">Existing evidence and its limits</a><a href="#unresolved-owner-decisions" data-section="unresolved-owner-decisions">Unresolved owner decisions</a><a href="#final-recommendation" data-section="final-recommendation">Final recommendation</a>
+        <a href="#verdict" data-section="verdict">Verdict</a><a href="#what-is-authoritative-today" data-section="what-is-authoritative-today">What is authoritative today</a><a href="#complete-class-and-signature-inventory" data-section="complete-class-and-signature-inventory">Complete class and signature inventory</a><a href="#why-the-current-authoring-is-not-yet-reliable" data-section="why-the-current-authoring-is-not-yet-reliable">Why the current authoring is not yet reliable</a><a href="#one-map-first-skill-authoring-model" data-section="one-map-first-skill-authoring-model">One map-first skill authoring model</a><a href="#palisade-moving-frontal-shield-implementation" data-section="palisade-moving-frontal-shield-implementation">Palisade moving frontal shield implementation</a><a href="#combat-behavior-under-tapline-11-movement-rates" data-section="combat-behavior-under-tapline-11-movement-rates">Combat behavior under Tapline-11 movement rates</a><a href="#ranked-implementation-plan" data-section="ranked-implementation-plan">Ranked implementation plan</a><a href="#required-tests-and-proof-scenes" data-section="required-tests-and-proof-scenes">Required tests and proof scenes</a><a href="#existing-evidence-and-its-limits" data-section="existing-evidence-and-its-limits">Existing evidence and its limits</a><a href="#unresolved-owner-decisions" data-section="unresolved-owner-decisions">Unresolved owner decisions</a><a href="#final-recommendation" data-section="final-recommendation">Final recommendation</a>
       </nav>
     </aside>
   </div>

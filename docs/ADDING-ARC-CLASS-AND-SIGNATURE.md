@@ -109,11 +109,11 @@ but not rules, map, or match fingerprints. Absence selects the frozen legacy
 treatment; an unknown ID or signature renders a generic public phase/footprint
 marker instead of disappearing or borrowing today's treatment.
 
-Current Tapline-11 grammar-3 replays use `arc-relay-signatures-v3`. V3 removes
-Arc Toss's tell and aligns its body, Core and launch-audio release after
-same-tick combat. V2 remains the recognized one-tick Toss package, and V1 keeps
-its original audio bindings. A future visual change still mints a new package
-rather than mutating any historical read.
+Current Tapline-12 grammar-3 replays use `arc-relay-signatures-v4`. V4 adds the
+owner-attached Prism Screen presentation. V3 retains the instant Arc Toss plus
+historical static Prism Wall; V2 remains the recognized one-tick Toss package,
+and V1 keeps its original audio bindings. A future visual change still mints a
+new package rather than mutating any historical read.
 
 ## 4. Visual assets and painters
 
