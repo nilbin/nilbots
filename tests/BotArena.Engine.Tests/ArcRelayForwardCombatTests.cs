@@ -231,7 +231,23 @@ public sealed class ArcRelayForwardCombatTests
             ActorMovementFacingResolver.AfterSuccessfulMove(
                 Direction.East,
                 heading,
-                ActorMovementFacingCoupling.CombatStrafe));
+            ActorMovementFacingCoupling.CombatStrafe));
+    }
+
+    [Theory]
+    [InlineData(Direction.East, ProjectileHeading.East, Direction.West)]
+    [InlineData(Direction.East, ProjectileHeading.SouthEast, Direction.West)]
+    [InlineData(Direction.East, ProjectileHeading.West, Direction.East)]
+    [InlineData(Direction.East, ProjectileHeading.North, Direction.South)]
+    [InlineData(Direction.North, ProjectileHeading.SouthEast, Direction.North)]
+    public void IncomingImpactFacesItsSourceWithoutOverturningAdjacentDiagonals(
+        Direction before,
+        ProjectileHeading incoming,
+        Direction expected)
+    {
+        Assert.Equal(
+            expected,
+            ActorMovementFacingResolver.AfterIncomingImpact(before, incoming));
     }
 
     private static ProjectileHeading[] AttackHeadings(

@@ -208,7 +208,8 @@ public static class ArcRelayCoreStageCommand
             veterancyBonusAfterRearArc: mode.VeterancyBonusAfterRearArc,
             vitalityHealthPerPoint: mode.VitalityHealthPerPoint,
             healZoneHealthPerActivation:
-                mode.HealZoneHealthPerActivation);
+                mode.HealZoneHealthPerActivation,
+            reactiveImpactFacing: mode.ReactiveImpactFacing);
         var stagedRules = new ActorRulesDefinition(
             $"arc-relay-core-stage-t{maxTicks}-01",
             new ActorRulesLimits(maxTicks, rules.Limits.RuntimeFaults),

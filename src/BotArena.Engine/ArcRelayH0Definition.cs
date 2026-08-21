@@ -972,7 +972,8 @@ public static class ArcRelayH0Definition
             healZoneHealthPerActivation: loopProfile.CombatMagnitudeScale,
             bankTriggeredWellRechargeTicks:
                 loopProfile.BankTriggeredWellRechargeTicks,
-            sentryTeamVision: loopProfile.SentryTeamVision);
+            sentryTeamVision: loopProfile.SentryTeamVision,
+            reactiveImpactFacing: loopProfile.ReactiveImpactFacing);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;

@@ -695,13 +695,13 @@ public sealed class ArcRelayPlaylistSeeder(
             cancellationToken);
         return await SeedTaplineTacticalPlaybookMindVersionAsync(
             "tactical-playbook-mind-v1",
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
             "arc-relay-orders-v2",
             ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
-            ArcRelayEntrantPlaylistDefinition.Tapline13StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14StockPlaybookSourceHash,
             ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalBuildInputHash,
-            ArcRelayLoopProfile.Tapline13,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalBuildInputHash,
+            ArcRelayLoopProfile.Tapline14,
             active: true,
             cancellationToken);
     }

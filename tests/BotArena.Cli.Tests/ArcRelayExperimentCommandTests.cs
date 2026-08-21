@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_contextual_movement_Tapline13_product_line()
+    public void Default_is_the_reactive_impact_Tapline14_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,7 +69,7 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-13",
+            "arc-relay-tapline-14",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(

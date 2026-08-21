@@ -8,13 +8,14 @@ namespace BotArena.App.Competition;
 
 /// <summary>
 /// Immutable Arc Relay entrant lane. Each instance pins one historical product
-/// version so queued matches remain executable after the hosted map advances.
+/// version so queued matches remain executable after the hosted game advances.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefinition
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 30;
+    public const int Version = 31;
+    public const int Tapline13Version = 30;
     public const int Tapline12Version = 29;
     public const int Tapline11Version = 28;
     public const int Tapline10Version = 27;
@@ -70,6 +71,10 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         "13e37829d25e2e18344c10306f747a7c63df6c35babe6812b9ee65d95eacdf17";
     public const string Tapline13TacticalBuildInputHash =
         "f12bc596b31d3376372b42cae59b0ec1465728db0718eb0a0d32839ae21a393a";
+    public const string Tapline14TacticalArtifactHash =
+        "07b7f90442bdd5b84e551b1fbaffc146565d006b867757bc9628f132cbc3774f";
+    public const string Tapline14TacticalBuildInputHash =
+        "98daa9559ba38dcc49e6673baba28ca8e15d03283fc6e36cc659745d1f8bf610";
     public const string OrdersV2TacticalArtifactHash =
         "d9281f6abee1f5f5e3eeebbdc911dac091138199dea91feb7a8a0812d1549b88";
     public const string OrdersV2TacticalBuildInputHash =
@@ -139,6 +144,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         "74e55e520e110646407a057f493192b5c0dc4dc668c98f2452fdf96fcd269a7a";
     public const string Tapline13StockPlaybookSourceHash =
         "ae86af64e1710d75a1de63f817bed137c3879425a684519fa3184c9ed52eb054";
+    public const string Tapline14StockPlaybookSourceHash =
+        Tapline13StockPlaybookSourceHash;
     public const string Tapline4StockMapPlanSourceHash =
         "09f6ecf3bc0f5e3b358333ab0ec91d0801d9e68d200890bdb0bf8497b48168ab";
     public const string Tapline6StockMapPlanSourceHash =
@@ -182,9 +189,16 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
-        ArcRelayLoopProfile.Tapline13,
-        source: "arc-relay-tapline-13-contextual-strafe-sentry-vision",
+        ArcRelayLoopProfile.Tapline14,
+        source: "arc-relay-tapline-14-reactive-impact-facing",
         canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV30() =>
+        Create(
+            Tapline13Version,
+            ArcRelayLoopProfile.Tapline13,
+            source: "arc-relay-tapline-13-contextual-strafe-sentry-vision",
+            canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV29() =>
         Create(
@@ -409,7 +423,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 "stockArtifactHash",
                 version switch
                 {
-                    Version => Tapline13TacticalArtifactHash,
+                    Version => Tapline14TacticalArtifactHash,
+                    Tapline13Version => Tapline13TacticalArtifactHash,
                     Tapline12Version => Tapline12TacticalArtifactHash,
                     Tapline11Version => Tapline11TacticalArtifactHash,
                     Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version
@@ -444,12 +459,12 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                         .HistoricalForwardStockArtifactHash,
                     _ => ArcRelayPlaylistDefinition.StockArtifactHash,
                 });
-            writer.WriteString("sheetSchema", version is Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
+            writer.WriteString("sheetSchema", version is Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
                 ? "arc-relay-orders-v2"
                 : version >= TacticalVersion
                     ? "arc-relay-tactical-playbook-v1"
                     : ArcRelayLegacySnapshotCodec.SchemaId);
-            if (version is Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
+            if (version is Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
                 or LooseCoreMemoryVersion
                 or StableCarrierVersion
                 or TrafficDetourVersion
@@ -461,15 +476,15 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             {
                 writer.WriteString(
                     "stockSheetId",
-                    version is Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version
+                    version is Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version
                         ? Tapline4StockSheetId
                         : version is Tapline3Version or OrdersV2Version
                         ? OrdersStockSheetId
                         : StockSheetId);
                 writer.WriteString(
                     "stockPlaybookSourceHash",
-                    version == Version
-                        ? Tapline13StockPlaybookSourceHash
+                    version is Version or Tapline13Version
+                        ? Tapline14StockPlaybookSourceHash
                         : version is Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version
                         ? Tapline4StockPlaybookSourceHash
                         : version == Tapline3Version
@@ -489,10 +504,10 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                         ? StockPlaybookSourceHash
                         : HistoricalStockPlaybookSourceHash);
                 writer.WriteString(
-                    version is Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
+                    version is Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
                         ? "stockMapPlanSourceHash"
                         : "stockLayoutSourceHash",
-                    version is Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version
+                    version is Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version
                         ? Tapline9StockMapPlanSourceHash
                         : version is Tapline8Version or Tapline6Version
                         ? Tapline6StockMapPlanSourceHash
@@ -504,7 +519,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                             ? TaplineStockLayoutSourceHash
                         : StockLayoutSourceHash);
             }
-            if (version is Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
+            if (version is Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
                 or LooseCoreMemoryVersion
                 or StableCarrierVersion
                 or TrafficDetourVersion
@@ -518,7 +533,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                     "stockBuildInputHash",
                     version switch
                     {
-                        Version => Tapline13TacticalBuildInputHash,
+                        Version => Tapline14TacticalBuildInputHash,
+                        Tapline13Version => Tapline13TacticalBuildInputHash,
                         Tapline12Version => Tapline12TacticalBuildInputHash,
                         Tapline11Version => Tapline11TacticalBuildInputHash,
                         Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version
@@ -570,7 +586,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 canonicalGameplayUnchangedFromVersion1);
             if (version == Version)
             {
-                writer.WriteBoolean("ownerApprovedTapline13", true);
+                writer.WriteBoolean("ownerApprovedTapline14", true);
                 writer.WriteNumber("baseVisionRange", 5);
                 writer.WriteNumber("shortAttackRange", 3);
                 writer.WriteNumber("mediumAttackRange", 4);
@@ -597,6 +613,67 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 writer.WriteBoolean("equalReturnFork", true);
                 writer.WriteBoolean("delayedCentreOpening", true);
                 writer.WriteBoolean("sealedOuterWellEntrancesStaggeredMidCover", true);
+                writer.WriteBoolean("taplineNativeMapPlansOnly", true);
+                writer.WriteBoolean("frozenTemperedStandardStock", true);
+                writer.WriteBoolean("reactiveImpactFacing", true);
+                writer.WriteBoolean("tapline14TacticalArtifact", true);
+                writer.WriteBoolean("ordersV2DirectExecutor", true);
+                writer.WriteBoolean("exactRoleClasses", true);
+                writer.WriteBoolean("nestedPriorityOrders", true);
+                writer.WriteBoolean("sharedExactOrders", true);
+                writer.WriteBoolean("namedConditions", true);
+                writer.WriteBoolean("targetScopedCapacity", true);
+                writer.WriteBoolean("explicitCoreActions", true);
+                writer.WriteBoolean("deterministicDropReclaim", true);
+                writer.WriteBoolean("authoredMovementUrgency", true);
+                writer.WriteBoolean("bodyLocalFightContact", true);
+                writer.WriteBoolean("atomicCoordinatedMovement", true);
+                writer.WriteBoolean("vacatedTileFollowing", true);
+                writer.WriteBoolean("actionMaskAwarePlanning", true);
+                writer.WriteBoolean("teamRelativeCoreCharge", true);
+                writer.WriteBoolean("veteranCommand", true);
+                writer.WriteBoolean("publicRespawnWaves", true);
+                writer.WriteBoolean("minimumSevenDistinctClasses", true);
+                writer.WriteBoolean("durableDeployments", true);
+                writer.WriteBoolean("combatMagnitudeScaleTen", true);
+                writer.WriteBoolean("wasmFuelProfiled", true);
+                writer.WriteBoolean("inProcessWasmGameplayParity", true);
+                writer.WriteBoolean("priorBehaviorGuardsRetained", true);
+                writer.WriteBoolean("freshRatingEra", true);
+                writer.WriteBoolean("priorStockGameplayDigestChanged", true);
+                writer.WriteString("linkedDataFormat", "ATL2");
+            }
+            else if (version == Tapline13Version)
+            {
+                // Preserve v30's immutable provenance bytes exactly.
+                writer.WriteBoolean("ownerApprovedTapline13", true);
+                writer.WriteNumber("baseVisionRange", 5);
+                writer.WriteNumber("shortAttackRange", 3);
+                writer.WriteNumber("mediumAttackRange", 4);
+                writer.WriteNumber("longAttackRange", 6);
+                writer.WriteBoolean("routeFacingMovement", true);
+                writer.WriteBoolean("engagementOnlyCombatStrafe", true);
+                writer.WriteNumber("swiftMoveOpportunitiesPerCycle", 1);
+                writer.WriteNumber("swiftMoveCycleTicks", 1);
+                writer.WriteNumber("standardMoveOpportunitiesPerCycle", 4);
+                writer.WriteNumber("standardMoveCycleTicks", 5);
+                writer.WriteNumber("deliberateMoveOpportunitiesPerCycle", 2);
+                writer.WriteNumber("deliberateMoveCycleTicks", 3);
+                writer.WriteBoolean("stableUnitMovementPhase", true);
+                writer.WriteBoolean("movementOpportunitiesDoNotBank", true);
+                writer.WriteBoolean("sentryTeamVision", true);
+                writer.WriteNumber("sentryVisionRange", 4);
+                writer.WriteBoolean("movingPrismScreen", true);
+                writer.WriteNumber("prismScreenHull", 30);
+                writer.WriteNumber("prismScreenDurationTicks", 6);
+                writer.WriteNumber("prismScreenCooldownTicks", 18);
+                writer.WriteBoolean("sourceLocalWellSupply", true);
+                writer.WriteBoolean("bankTriggeredWellRecharge", true);
+                writer.WriteBoolean("noTellArcToss", true);
+                writer.WriteBoolean("equalReturnFork", true);
+                writer.WriteBoolean("delayedCentreOpening", true);
+                writer.WriteBoolean(
+                    "sealedOuterWellEntrancesStaggeredMidCover", true);
                 writer.WriteBoolean("taplineNativeMapPlansOnly", true);
                 writer.WriteBoolean("frozenTemperedStandardStock", true);
                 writer.WriteBoolean("tapline13TacticalArtifact", true);

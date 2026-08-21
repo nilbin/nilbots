@@ -32,15 +32,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         JsonElement document = receipt.RootElement;
 
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
             document.GetProperty("artifactSha256").GetString());
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalBuildInputHash,
             document.GetProperty("buildInputSha256").GetString());
     }
 
     [Fact]
-    public void Entrant_v30_promotes_Tapline13_while_v2_through_v29_remain_resolvable_history()
+    public void Entrant_v31_promotes_Tapline14_while_v2_through_v30_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -100,29 +100,34 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV28();
         ArcRelayEntrantPlaylistDefinition tapline12V29 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV29();
+        ArcRelayEntrantPlaylistDefinition tapline13V30 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV30();
 
-        Assert.Equal(30, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline13.MapId, current.Match.Map.Id);
+        Assert.Equal(31, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Tapline14.MapId, current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline13.RulesetId,
+            ArcRelayLoopProfile.Tapline14.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
             current.CanonicalDefinition);
         Assert.Contains("arc-relay-orders-v2", current.CanonicalDefinition);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalBuildInputHash,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Tapline13StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14StockPlaybookSourceHash,
             current.CanonicalDefinition);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline13", current.Provenance);
+        Assert.Contains("ownerApprovedTapline14", current.Provenance);
+        Assert.Contains(
+            "\"reactiveImpactFacing\":true",
+            current.Provenance);
         Assert.Contains("\"movingPrismScreen\":true", current.Provenance);
         Assert.Contains("\"prismScreenHull\":30", current.Provenance);
         Assert.Contains("\"prismScreenDurationTicks\":6", current.Provenance);
@@ -150,7 +155,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("equalReturnFork", current.Provenance);
         Assert.DoesNotContain("newImmutableMapIdentity", current.Provenance);
         Assert.Contains("delayedCentreOpening", current.Provenance);
-        Assert.Contains("tapline13TacticalArtifact", current.Provenance);
+        Assert.Contains("tapline14TacticalArtifact", current.Provenance);
         Assert.DoesNotContain(
             "stockArtifactReusedFromTapline4", current.Provenance);
         Assert.Contains("teamRelativeCoreCharge", current.Provenance);
@@ -169,6 +174,17 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(30, tapline13V30.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline13.RulesetId,
+            tapline13V30.Match.Rules.RulesetId);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+            tapline13V30.CanonicalDefinition);
+        Assert.Contains("ownerApprovedTapline13", tapline13V30.Provenance);
+        Assert.DoesNotContain(
+            "reactiveImpactFacing",
+            tapline13V30.Provenance);
         Assert.Equal(29, tapline12V29.PlaylistVersion);
         Assert.Equal(
             "898b2120e75d0ac3ab2a9d7ac91eff1213ebfd9ee8ed5fb02131cdda930441f4",
@@ -967,7 +983,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.OrdersStockMapPlanSourceHash,
             BotBuilder.Sha256File(ordersMapPlan));
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Tapline13StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14StockPlaybookSourceHash,
             BotBuilder.Sha256File(tapline4Playbook));
         Assert.Equal(
             ArcRelayEntrantPlaylistDefinition.Tapline4StockMapPlanSourceHash,

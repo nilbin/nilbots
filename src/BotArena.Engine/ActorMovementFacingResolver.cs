@@ -6,6 +6,21 @@ namespace BotArena.Engine;
 /// </summary>
 internal static class ActorMovementFacingResolver
 {
+    /// <summary>
+    /// A surviving Arc Relay body turns its hull toward the strongest impact
+    /// that just damaged it. Cardinal impacts face their source exactly;
+    /// diagonal impacts use the nearest useful cardinal while preserving an
+    /// already-adjacent facing. This makes a successful flank earn its rear
+    /// hit without letting an unseen shooter farm the same rear arc forever.
+    /// </summary>
+    internal static Direction AfterIncomingImpact(
+        Direction before,
+        ProjectileHeading impactHeading) =>
+        AfterSuccessfulMove(
+            before,
+            impactHeading.Reversed(),
+            ActorMovementFacingCoupling.FaceMovementHeadingProjected);
+
     internal static ActorMovementFacingCoupling EffectiveCoupling(
         ActorMovementProfileDefinition profile,
         ActorActionDefinition action) =>

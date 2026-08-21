@@ -70,6 +70,11 @@ public sealed class GenericActorMatchSession : IDisposable
     /// </summary>
     private readonly Dictionary<int, GenericMindTeamProjection>
         _teamProjectionCache = [];
+    // Frozen enemy identities from the actual decision boundary. Projection
+    // caches may be rebuilt after movement for tracked signatures, but a later
+    // hit must still know whether its source was blind when orders were chosen.
+    private readonly Dictionary<int, ImmutableHashSet<ActorIdentity>>
+        _visibleEnemyIdsAtDecisionByTeam = [];
     private readonly Dictionary<ActorIdentity, HashSet<Position>>
         _visibleTilesCache = [];
     private readonly Dictionary<int, HashSet<Position>>
@@ -517,6 +522,14 @@ public sealed class GenericActorMatchSession : IDisposable
                 .OrderBy(life => life.ActorId)
                 .Select(life => ProjectObservation(life, sourceEvents))
                 .ToImmutableArray();
+        _visibleEnemyIdsAtDecisionByTeam.Clear();
+        foreach ((int teamId, GenericMindTeamProjection projection) in
+                 _teamProjectionCache)
+        {
+            _visibleEnemyIdsAtDecisionByTeam[teamId] = projection.Enemies
+                .Select(value => value.ActorId)
+                .ToImmutableHashSet();
+        }
         if (_perfDiagnostics)
         {
             _lifeProjectionWallTicks +=
@@ -1689,6 +1702,7 @@ public sealed class GenericActorMatchSession : IDisposable
                             projectile,
                             life,
                             events),
+                        projectile.Heading,
                         contactOrdinal++));
                 }
                 else if (contact.Deflected)
@@ -3707,6 +3721,7 @@ public sealed class GenericActorMatchSession : IDisposable
                         projectile,
                         target,
                         events),
+                    projectile.Heading,
                     contactOrdinal++));
             }
             else if (contact.Deflected)
@@ -3842,6 +3857,38 @@ public sealed class GenericActorMatchSession : IDisposable
                         target.Health,
                         target.Position),
                     target.Position));
+            }
+            // Arc Relay's rear-arc bonus rewards the first blind flank. A
+            // survivor then gets the basic physical response players expect:
+            // turn toward the strongest attacker the team could not see at
+            // its frozen decision boundary. Known combat keeps ordinary mind
+            // facing; damage was already frozen, so simultaneous rear hits
+            // keep their earned multiplier. Historical rules retain their
+            // exact behavior through the explicit mode flag.
+            if (target.Health > 0
+                && _mode is ArcRelayActorMatchModeDriver arcRelay
+                && arcRelay.GameMode.ReactiveImpactFacing)
+            {
+                ImmutableHashSet<ActorIdentity> knownEnemies =
+                    _visibleEnemyIdsAtDecisionByTeam
+                        .TryGetValue(
+                            target.ActorId.TeamId,
+                            out ImmutableHashSet<ActorIdentity>? visible)
+                    ? visible
+                    : [];
+                PendingDamageContact? impact = targetGroup
+                    .Where(value => !knownEnemies.Contains(
+                        value.SourceActorId))
+                    .OrderByDescending(value => value.Damage)
+                    .ThenBy(value => value.ContactOrdinal)
+                    .FirstOrDefault();
+                if (impact is not null)
+                {
+                    target.Facing = ActorMovementFacingResolver
+                        .AfterIncomingImpact(
+                            target.Facing,
+                            impact.ImpactHeading);
+                }
             }
         }
         return scored.ToImmutable();
@@ -7847,6 +7894,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ActorIdentity SourceActorId,
         long ProjectileId,
         int Damage,
+        ProjectileHeading ImpactHeading,
         int ContactOrdinal);
 
     private readonly record struct ProjectileContact(

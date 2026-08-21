@@ -330,6 +330,123 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
+    public void CarrierDefenceTurnsButYieldsCadenceToBanking()
+    {
+        string root = FindRepoRoot();
+        TacticalPlaybookCompilation carrier =
+            CompileCarrierDefenceRunnerFixture(root);
+        TacticalPlaybookCompilation visitor = CompileCarrierThreatFixture(root);
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            carrier.Composition,
+            visitor.Composition,
+            loopProfile: ArcRelayLoopProfile.Current);
+        int runnerUnit = Array.IndexOf(carrier.Composition, "palisade");
+        Assert.True(runnerUnit >= 0);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, carrier), Participant(1, visitor)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        bool carried = false;
+        bool defended = false;
+        bool movedOnCadence = false;
+        bool banked = false;
+        int stationary = 0;
+        int longestStationary = 0;
+        Position? prior = null;
+        string lastReason = "";
+        string lastThreats = "";
+        string lastVisible = "";
+        string firstCarry = "";
+        var carryTrace = new List<string>();
+        while (!session.IsCompleted && !banked)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindRuntimeTurn westTurn = step.MindTurns
+                .Single(turn => turn.TeamId == 0);
+            if (westTurn.RuntimeFault is not null)
+                lastReason = westTurn.RuntimeFault.ToString();
+            GenericMindCommandResolution? command = westTurn.Commands
+                .FirstOrDefault(value => value.Command.UnitId == runnerUnit);
+            string reason = command?.Command.DebugMessage ?? "";
+            string actionId = command?.Command.ActionId ?? "";
+            if (command is not null)
+                lastReason = reason;
+            var arc = Assert.IsType<GenericActorRuntimeObservation
+                .ModeObservationState.ArcRelay>(step.PostState.Mode);
+            GenericActorWorldSnapshot.LifeSnapshot? body = step.PostState
+                .ActiveLives.FirstOrDefault(value =>
+                    value.ActorId.TeamId == 0
+                    && value.ActorId.UnitId == runnerUnit);
+            bool carrying = arc.VisibleCores.Any(core =>
+                core.CarrierActorId?.TeamId == 0
+                && core.CarrierActorId.UnitId == runnerUnit);
+            carried |= carrying;
+            if (carrying && body is not null)
+            {
+                if (carryTrace.Count < 20)
+                    carryTrace.Add($"{step.Tick}:{body.Position}:{actionId}:{reason}");
+                if (firstCarry.Length == 0)
+                {
+                    var core = arc.VisibleCores.Single(value =>
+                            value.CarrierActorId?.TeamId == 0
+                            && value.CarrierActorId.UnitId == runnerUnit);
+                    firstCarry = $"{core.CoreId.SourceWellId}@{body.Position}"
+                        + $" facing-{body.Facing} visible-"
+                        + string.Join(",", step.TickStart.MindObservations
+                            .Single(value => value.TeamId == 0).Enemies
+                            .Select(value =>
+                                $"{value.ActorId.UnitId}@{value.Position}"));
+                }
+                lastThreats = string.Join(",", step.PostState.ActiveLives
+                    .Where(value => value.ActorId.TeamId == 1)
+                    .Select(value => $"{value.ActorId.UnitId}@{value.Position}"));
+                lastVisible = string.Join(",", step.TickStart.MindObservations
+                    .Single(value => value.TeamId == 0).Enemies
+                    .Select(value => $"{value.ActorId.UnitId}@{value.Position}"));
+                bool moved = prior is Position position
+                    && position != body.Position;
+                stationary = moved ? 0 : stationary + 1;
+                longestStationary = Math.Max(longestStationary, stationary);
+                defended |= reason.Contains(
+                        "carrier-defence", StringComparison.Ordinal)
+                    && actionId is "rotate" or "shoot-direction";
+                movedOnCadence |= defended
+                    && string.Equals(
+                        actionId,
+                        "move-eight-way",
+                        StringComparison.Ordinal)
+                    && reason.Contains("return-core", StringComparison.Ordinal);
+                prior = body.Position;
+            }
+            else
+            {
+                stationary = 0;
+                prior = body?.Position;
+            }
+            banked |= step.AuthoritativeEvents.Any(value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .ArcRelay
+                    { Fact: ArcRelayEvent.CoreBanked bank }
+                && bank.CarrierActorId.TeamId == 0
+                && bank.CarrierActorId.UnitId == runnerUnit);
+        }
+
+        string diagnostic = $"carried={carried},defended={defended},"
+            + $"movedOnCadence={movedOnCadence},banked={banked},"
+            + $"stationary={longestStationary},threats={lastThreats},"
+            + $"visible={lastVisible},first={firstCarry},reason={lastReason}";
+        diagnostic += $",trace={string.Join("|", carryTrace)}";
+        Assert.True(carried, diagnostic);
+        Assert.True(defended, diagnostic);
+        Assert.True(movedOnCadence, diagnostic);
+        Assert.True(banked, diagnostic);
+        Assert.True(longestStationary < 8, diagnostic);
+    }
+
+    [Fact]
     public void PremiumCustodyHandoffRetargetsEscortAndBanksTheSameCore()
     {
         string root = FindRepoRoot();
@@ -2877,6 +2994,191 @@ public sealed class OrdersMovementSceneTests
             Encoding.UTF8.GetBytes(map.ToJsonString()),
             sourcePath + "#carrier-runner",
             mapPath + "#carrier-runner");
+    }
+
+    private static TacticalPlaybookCompilation CompileCarrierDefenceRunnerFixture(
+        string root)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string sourcePath = Path.Combine(
+            package, "playbooks", "idle-field-v1.json");
+        string mapPath = Path.Combine(
+            package, "map-plans", "tapline-9", "idle-field-v1.json");
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(sourcePath))!
+            .AsObject();
+        JsonObject map = JsonNode.Parse(File.ReadAllBytes(mapPath))!.AsObject();
+        source["sheetId"] = "carrier-defence-cadence-proof";
+        source["mapPlan"] = "map-plan.json";
+        map["mapPlanId"] = "carrier-defence-cadence-proof";
+        source["conditions"] = new JsonObject
+        {
+            ["carrying"] = new JsonObject
+            {
+                ["fact"] = "self-carrying",
+                ["operator"] = "equals",
+                ["value"] = 1,
+            },
+            ["enemy-close"] = new JsonObject
+            {
+                ["fact"] = "self-nearest-visible-enemy-distance",
+                ["operator"] = "at-most",
+                ["value"] = 7,
+            },
+            ["enemy-gone"] = new JsonObject
+            {
+                ["fact"] = "self-nearest-visible-enemy-distance",
+                ["operator"] = "greater-than",
+                ["value"] = 7,
+            },
+            ["impossible"] = new JsonObject
+            {
+                ["fact"] = "self-health-percent",
+                ["operator"] = "less-than",
+                ["value"] = 0,
+            },
+        };
+        source["roles"] = new JsonArray(
+            new JsonObject
+            {
+                ["id"] = "runner",
+                ["classes"] = new JsonArray("palisade"),
+                ["upgradePath"] = new JsonArray("vitality"),
+                ["orders"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "carrier-defence",
+                        ["when"] = new JsonObject
+                        {
+                            ["all"] = new JsonArray("carrying", "enemy-close"),
+                        },
+                        ["until"] = "enemy-gone",
+                        ["fight"] = new JsonObject
+                        {
+                            ["style"] = "hold",
+                            ["targets"] = new JsonArray("nearest", "carrier"),
+                            ["chaseLimit"] = 0,
+                        },
+                    },
+                    new JsonObject
+                    {
+                        ["id"] = "return-core",
+                        ["when"] = "carrying",
+                        ["urgency"] = "urgent",
+                        ["move"] = new JsonObject { ["to"] = "own-reactor" },
+                    },
+                    new JsonObject
+                    {
+                        ["id"] = "take-centre-core",
+                        ["move"] = new JsonObject
+                        {
+                            ["to"] = new JsonObject { ["well"] = "centre" },
+                        },
+                    }),
+            },
+            new JsonObject
+            {
+                ["id"] = "observers",
+                ["classes"] = new JsonArray(
+                    "longshot", "towline", "patchbay", "lantern",
+                    "mortar", "minesmith", "hush"),
+                ["upgradePath"] = new JsonArray("vitality"),
+                ["orders"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "remain-idle",
+                        ["when"] = "impossible",
+                        ["move"] = new JsonObject { ["to"] = "own-reactor" },
+                    }),
+            });
+        source["sharedOrders"] = new JsonObject();
+        source["capacities"] = new JsonObject();
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            Encoding.UTF8.GetBytes(source.ToJsonString()),
+            Encoding.UTF8.GetBytes(map.ToJsonString()),
+            sourcePath + "#carrier-defence",
+            mapPath + "#carrier-defence");
+    }
+
+    private static TacticalPlaybookCompilation CompileCarrierThreatFixture(
+        string root)
+    {
+        string package = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "tactical-playbook-v1-2026-08-03");
+        string sourcePath = Path.Combine(
+            package, "playbooks", "idle-field-v1.json");
+        string mapPath = Path.Combine(
+            package, "map-plans", "tapline-9", "idle-field-v1.json");
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(sourcePath))!
+            .AsObject();
+        JsonObject map = JsonNode.Parse(File.ReadAllBytes(mapPath))!.AsObject();
+        source["sheetId"] = "carrier-defence-threat-proof";
+        source["mapPlan"] = "map-plan.json";
+        map["mapPlanId"] = "carrier-defence-threat-proof";
+        map["anchors"] = new JsonObject
+        {
+            ["left-threat"] = new JsonArray(13, 13),
+            ["right-threat"] = new JsonArray(17, 13),
+            ["north-threat"] = new JsonArray(15, 11),
+            ["south-threat"] = new JsonArray(15, 15),
+        };
+        source["conditions"] = new JsonObject
+        {
+            ["impossible"] = new JsonObject
+            {
+                ["fact"] = "self-health-percent",
+                ["operator"] = "less-than",
+                ["value"] = 0,
+            },
+        };
+        JsonObject HoldAt(string id, string anchor, string classId) => new()
+        {
+            ["id"] = id,
+            ["classes"] = new JsonArray(classId),
+            ["upgradePath"] = new JsonArray(
+                "vitality", "vitality", "vitality"),
+            ["orders"] = new JsonArray(
+                new JsonObject
+                {
+                    ["id"] = $"hold-{id}",
+                    ["move"] = new JsonObject
+                    {
+                        ["to"] = new JsonObject { ["anchor"] = anchor },
+                    },
+                }),
+        };
+        source["roles"] = new JsonArray(
+            HoldAt("left", "left-threat", "palisade"),
+            HoldAt("right", "right-threat", "towline"),
+            HoldAt("north", "north-threat", "patchbay"),
+            HoldAt("south", "south-threat", "longshot"),
+            new JsonObject
+            {
+                ["id"] = "observers",
+                ["classes"] = new JsonArray(
+                    "lantern", "mortar", "minesmith", "hush"),
+                ["upgradePath"] = new JsonArray("vitality"),
+                ["orders"] = new JsonArray(
+                    new JsonObject
+                    {
+                        ["id"] = "remain-idle",
+                        ["when"] = "impossible",
+                        ["move"] = new JsonObject { ["to"] = "own-reactor" },
+                    }),
+            });
+        source["sharedOrders"] = new JsonObject();
+        source["capacities"] = new JsonObject();
+        return ArcRelayTacticalPlaybookCompiler.Compile(
+            Encoding.UTF8.GetBytes(source.ToJsonString()),
+            Encoding.UTF8.GetBytes(map.ToJsonString()),
+            sourcePath + "#carrier-threat",
+            mapPath + "#carrier-threat");
     }
 
     private static Position[] RoutePoints(

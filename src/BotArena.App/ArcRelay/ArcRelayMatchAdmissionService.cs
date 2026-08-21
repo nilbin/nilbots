@@ -204,7 +204,7 @@ public sealed class ArcRelayMatchAdmissionService(
                     entrant.Id, entrant.CrestVariant),
                 bot.Id,
                 version.Id,
-                ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+                ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
                 compiled.Compilation.Composition,
                 compiled.Composition.CanonicalJson,
                 compiled.Composition.ContentHash,
@@ -282,7 +282,7 @@ public sealed class ArcRelayMatchAdmissionService(
             ArcRelayCrestGenerator.Snapshot(fixtureId, 0),
             bot.Id,
             version.Id,
-            ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
             source.Composition,
             composition.CanonicalJson,
             composition.ContentHash,
@@ -304,7 +304,7 @@ public sealed class ArcRelayMatchAdmissionService(
             value.BotId == bot.Id
             && value.IsActive
             && value.ArtifactHash
-                == ArcRelayEntrantPlaylistDefinition.Tapline13TacticalArtifactHash,
+                == ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
             cancellationToken);
         return (bot, version);
     }

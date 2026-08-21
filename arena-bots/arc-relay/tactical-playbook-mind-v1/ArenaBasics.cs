@@ -1530,7 +1530,8 @@ internal static class ArenaBasics
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
-        Position target)
+        Position target,
+        bool allowCarrierRotation = false)
     {
         GenericActorActionLegality? action = AvailableAction(
             contract, body, GenericActorRulesContract.ActionKind.Attack,
@@ -1557,7 +1558,9 @@ internal static class ArenaBasics
             && aimedDistance <= attack.Projectile.MaxTravelTiles;
         if (action.Available && aimed)
             return true;
-        if (CarriedCore(mind, body.ActorId) is not null || aimed
+        if ((!allowCarrierRotation
+                && CarriedCore(mind, body.ActorId) is not null)
+            || aimed
             || !TryAimSolution(
                 contract.Map, attack, body.Position, target,
                 allowed: null,
@@ -1770,7 +1773,8 @@ internal static class ArenaBasics
         MindBody body,
         Position target,
         string reason,
-        ActorIdentity? declaredTarget = null)
+        ActorIdentity? declaredTarget = null,
+        bool allowCarrierRotation = false)
     {
         GenericActorActionLegality? action = AvailableAction(
             contract, body, GenericActorRulesContract.ActionKind.Attack,
@@ -1809,7 +1813,8 @@ internal static class ArenaBasics
         }
         // Already aimed and still not firing means the gun is on cadence, not
         // mis-pointed; turning would only throw the tick away.
-        if (CarriedCore(mind, body.ActorId) is not null
+        if ((!allowCarrierRotation
+                && CarriedCore(mind, body.ActorId) is not null)
             || aimed
             || !TryAimSolution(
                 contract.Map, attack, body.Position, target,

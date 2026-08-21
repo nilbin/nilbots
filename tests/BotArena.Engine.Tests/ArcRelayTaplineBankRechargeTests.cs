@@ -17,22 +17,24 @@ public sealed class ArcRelayTaplineBankRechargeTests
         "e536d04deff7e53296d10f2b93c38741a6a3e465a03e779a84336ba0ae1df519";
 
     [Fact]
-    public void Tapline13IsCurrentAndKeepsTapline8RechargeRules()
+    public void Tapline14IsCurrentAndKeepsTapline8RechargeRules()
     {
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline7);
         ActorResolvedMatchDefinition recharge = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline8);
-        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
+        ActorResolvedMatchDefinition prior = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline13);
+        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline14);
         var historicalMode = Assert.IsType<ArcRelayGameModeDefinition>(
             historical.Rules.GameMode);
         var currentMode = Assert.IsType<ArcRelayGameModeDefinition>(
             current.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline13, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-13", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-13", current.Rules.RulesetId);
+        Assert.Same(ArcRelayLoopProfile.Tapline14, ArcRelayLoopProfile.Current);
+        Assert.Equal("tapline-14", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-14", current.Rules.RulesetId);
         Assert.Equal("arc-relay-tapline-03", current.Map.Id);
         Assert.Equal(600, current.Rules.Limits.MaxTicks);
         Assert.Equal(RechargeTicks,
@@ -41,6 +43,9 @@ public sealed class ArcRelayTaplineBankRechargeTests
             currentMode.OwnWellCoreCharge,
             currentMode.CentreWellCoreCharge,
             currentMode.EnemyWellCoreCharge));
+        Assert.True(currentMode.ReactiveImpactFacing);
+        Assert.False(Assert.IsType<ArcRelayGameModeDefinition>(
+            prior.Rules.GameMode).ReactiveImpactFacing);
         Assert.All(currentMode.Wells, well => Assert.Equal(
             well.FirstBirthTick,
             well.FinalBirthTick));
@@ -75,11 +80,16 @@ public sealed class ArcRelayTaplineBankRechargeTests
             "\"bankTriggeredWellRechargeTicks\":46",
             canonical,
             StringComparison.Ordinal);
+        Assert.Contains(
+            "\"reactiveImpactFacing\":true",
+            canonical,
+            StringComparison.Ordinal);
         var parsedMode = Assert.IsType<
             GenericActorRulesContract.ArcRelayGameMode>(
                 ActorCanonicalContractReader.Parse(canonical).Rules.GameMode);
         Assert.Equal(RechargeTicks,
             parsedMode.BankTriggeredWellRechargeTicks);
+        Assert.True(parsedMode.ReactiveImpactFacing);
     }
 
     [Fact]

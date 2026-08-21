@@ -1410,6 +1410,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         bool needsWindupMargin = targetActor is not null
             && NeedsWindupClosingMargin(
                 contract, mind, body, targetActor, target, fight);
+        // Custody defence is opportunistic, not a second destination. A
+        // carrier may spend a tick firing or turning toward an immediate
+        // threat, but on attack cadence (or when the threat is out of range)
+        // this leaf yields to the banking move below it. Previously the broad
+        // geometric CanAim check kept the Fight leaf selected while the shot
+        // helper deliberately refused to rotate carriers, parking one Core in
+        // place indefinitely.
+        if (fight.Style == "hold"
+            && ArenaBasics.CarriedCore(mind, body.ActorId) is not null)
+        {
+            return !needsWindupMargin
+                && ArenaBasics.CommitsAttackPositionThisTick(
+                    contract,
+                    mind,
+                    body,
+                    target,
+                    allowCarrierRotation: true);
+        }
         if (!needsWindupMargin
             && ArenaBasics.CanAimAtPosition(contract, body, target))
             return true;
@@ -3201,7 +3219,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 body,
                 targetPosition,
                 $"{reason}:fight:{targetKey}",
-                target?.ActorId))
+                target?.ActorId,
+                allowCarrierRotation:
+                    ArenaBasics.CarriedCore(mind, body.ActorId) is not null))
             return;
         if (!needsWindupMargin
             && ArenaBasics.CanAimAtPosition(contract, body, targetPosition))

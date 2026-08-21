@@ -771,6 +771,8 @@ public static class ActorCanonicalContractReader
             "durableDeployments", out _);
         bool hasSentryTeamVision = element.TryGetProperty(
             "sentryTeamVision", out _);
+        bool hasReactiveImpactFacing = element.TryGetProperty(
+            "reactiveImpactFacing", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -851,6 +853,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasSentryTeamVision
                 ? new[] { "sentryTeamVision" }
+                : System.Array.Empty<string>(),
+            .. hasReactiveImpactFacing
+                ? new[] { "reactiveImpactFacing" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -962,6 +967,8 @@ public static class ActorCanonicalContractReader
                 && Bool(element, "durableDeployments"),
             SentryTeamVision = hasSentryTeamVision
                 && Bool(element, "sentryTeamVision"),
+            ReactiveImpactFacing = hasReactiveImpactFacing
+                && Bool(element, "reactiveImpactFacing"),
         };
     }
 

@@ -65,7 +65,8 @@ public sealed record ArcRelayLoopProfile
         int deliberateMoveCycleTicks = 1,
         bool movingPrismScreen = false,
         bool contextualCombatStrafeMovement = false,
-        bool sentryTeamVision = false)
+        bool sentryTeamVision = false,
+        bool reactiveImpactFacing = false)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -125,6 +126,7 @@ public sealed record ArcRelayLoopProfile
         MovingPrismScreen = movingPrismScreen;
         ContextualCombatStrafeMovement = contextualCombatStrafeMovement;
         SentryTeamVision = sentryTeamVision;
+        ReactiveImpactFacing = reactiveImpactFacing;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -264,6 +266,12 @@ public sealed record ArcRelayLoopProfile
     /// sight to the owning team's observable union.
     /// </summary>
     internal bool SentryTeamVision { get; }
+
+    /// <summary>
+    /// Surviving projectile damage from a team-unseen attacker turns a body
+    /// toward the strongest blind impact before its next decision.
+    /// </summary>
+    internal bool ReactiveImpactFacing { get; }
 
     private static void ValidateMovementRate(
         int opportunities,
@@ -1606,11 +1614,64 @@ public sealed record ArcRelayLoopProfile
         sentryTeamVision: true);
 
     /// <summary>
+    /// Tapline-13 with the expected survival response to blind-side damage. A
+    /// flank still earns its already-frozen rear bonus; the surviving hull
+    /// then faces the strongest incoming projectile before the next decision.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline14 { get; } = new(
+        "tapline-14",
+        "arc-relay-tapline-14",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3,
+        movingPrismScreen: true,
+        contextualCombatStrafeMovement: true,
+        sentryTeamVision: true,
+        reactiveImpactFacing: true);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline13;
+    public static ArcRelayLoopProfile Current => Tapline14;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1694,6 +1755,7 @@ public sealed record ArcRelayLoopProfile
         Tapline11,
         Tapline12,
         Tapline13,
+        Tapline14,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

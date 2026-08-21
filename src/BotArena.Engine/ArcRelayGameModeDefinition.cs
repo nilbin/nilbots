@@ -48,7 +48,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int vitalityHealthPerPoint = 1,
         int healZoneHealthPerActivation = 1,
         int bankTriggeredWellRechargeTicks = 0,
-        bool sentryTeamVision = false)
+        bool sentryTeamVision = false,
+        bool reactiveImpactFacing = false)
         : base(modeId, victory, scoreCatalog)
     {
         RequirePositive(
@@ -75,6 +76,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         }
         BankTriggeredWellRechargeTicks = bankTriggeredWellRechargeTicks;
         SentryTeamVision = sentryTeamVision;
+        ReactiveImpactFacing = reactiveImpactFacing;
         if (ownWellCoreCharge < 1
             || centreWellCoreCharge < 1
             || enemyWellCoreCharge < 1)
@@ -301,6 +303,13 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// their own attack range to the owning team's observable union.
     /// </summary>
     public bool SentryTeamVision { get; }
+
+    /// <summary>
+    /// Whether a body that survives projectile damage from an attacker its
+    /// team could not see faces the strongest blind impact before the next
+    /// mind decision.
+    /// </summary>
+    public bool ReactiveImpactFacing { get; }
 
     /// <summary>
     /// Resolved veterancy and recovery magnitudes. Historical contracts omit
