@@ -4554,6 +4554,7 @@ public sealed class GenericActorMatchSession : IDisposable
             sensors.ToDictionary(
                 sensor => sensor.ActorId,
                 VisibleTilesFor);
+        AddDeploymentTeamSensors(observingTeamId, visibleBySensor);
 
         var visiblePositions = new HashSet<Position>();
         foreach (HashSet<Position> sensorTiles in visibleBySensor.Values)
@@ -4747,6 +4748,34 @@ public sealed class GenericActorMatchSession : IDisposable
                 modeProjection.Mode,
                 observingTeamId,
                 visibleTiles.Select(value => value.Position).ToHashSet()));
+    }
+
+    /// <summary>
+    /// Adds deployed mode sensors to the same perception union used for
+    /// tiles, enemies, projectiles and spatial events. Adding these only to
+    /// <see cref="TeamVisibleTiles"/> would affect engine legality and target
+    /// locks while leaving bot observations and replay fog blind.
+    /// </summary>
+    private void AddDeploymentTeamSensors(
+        int teamId,
+        IDictionary<ActorIdentity, HashSet<Position>> visibleBySensor)
+    {
+        if (_mode is not ArcRelayActorMatchModeDriver arcRelay)
+            return;
+        foreach (ArcRelaySignatureRuntime.OmnidirectionalSensor sensor in
+                 arcRelay.Signatures.TeamSensors(teamId, Tick))
+        {
+            if (!visibleBySensor.TryGetValue(
+                    sensor.Owner, out HashSet<Position>? visible))
+            {
+                visible = [];
+                visibleBySensor.Add(sensor.Owner, visible);
+            }
+            visible.UnionWith(VisibleTilesForOmnidirectionalSensor(
+                sensor.Position,
+                sensor.Range,
+                teamId));
+        }
     }
 
     private GenericActorRuntimeObservation.ModeObservationState

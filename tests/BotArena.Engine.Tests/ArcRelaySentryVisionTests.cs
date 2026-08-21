@@ -39,6 +39,7 @@ public sealed class ArcRelaySentryVisionTests
         ArcRelaySignatureRuntime runtime = Deploy(definition);
         ArcRelaySignatureRuntime.OmnidirectionalSensor sensor = Assert.Single(
             runtime.TeamSensors(teamId: 0, tick: 1));
+        Assert.Equal(ActorIdentity.FromTeamUnitLife(0, 0, 0), sensor.Owner);
         Assert.Equal(4, sensor.Range);
 
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create(
@@ -80,6 +81,107 @@ public sealed class ArcRelaySentryVisionTests
                 ArcRelaySignatureRuntime.Effect.SentinelBolt>());
         Assert.Equal(4, bolt.Range);
         Assert.Equal(seed, bolt.Origin);
+    }
+
+    [Fact]
+    public void ActiveSentryExpandsTheActualSharedMindObservation()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            Classes,
+            Classes,
+            loopProfile: ArcRelayLoopProfile.Tapline13);
+        ActorActionDefinition wait = definition.Rules.Actions.Single(value =>
+            value.Kind == ActorActionKind.Wait);
+        Position? plantedAt = null;
+        Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
+            factories = GenericMindSessionTestFixture.Factories(
+                definition,
+                (_, observation) => new GenericMindRuntimeDecisions(
+                [
+                    .. observation.Bodies.Select(body =>
+                    {
+                        GenericActorRuntimeActionLegality? seed =
+                            observation.Tick == 0
+                            && body.ActorId.TeamId == 0
+                            && body.ActorId.UnitId == 0
+                                ? body.ActionLegalities.SingleOrDefault(value =>
+                                    value.ActionId == "sentinel-seed"
+                                    && value.Available)
+                                : null;
+                        if (seed is not null)
+                        {
+                            GenericActorRuntimeActionLegality
+                                .ArgumentConstraint.PositionTargetConstraint
+                                targets = seed.Constraints.OfType<
+                                    GenericActorRuntimeActionLegality
+                                        .ArgumentConstraint
+                                        .PositionTargetConstraint>().Single();
+                            HashSet<Position> alreadyVisible = observation
+                                .VisibleTiles.Select(value => value.Position)
+                                .ToHashSet();
+                            plantedAt = targets.AllowedValues
+                                .OrderByDescending(target =>
+                                    AllPositions(definition.Map)
+                                        .Count(position =>
+                                            target.ChebyshevDistance(position)
+                                                <= 4
+                                            && !definition.Map.IsWall(position)
+                                            && !alreadyVisible.Contains(position)))
+                                .ThenBy(target => target.Y)
+                                .ThenBy(target => target.X)
+                                .First();
+                            return new GenericMindCommand(
+                                body.ActorId.UnitId,
+                                body.ActorId.LifeId,
+                                seed.ActionId,
+                                seed.ActionCode,
+                                [new GenericActorRuntimeActionArgument
+                                    .PositionTargetArgument(plantedAt.Value)]);
+                        }
+                        return new GenericMindCommand(
+                            body.ActorId.UnitId,
+                            body.ActorId.LifeId,
+                            wait.Id,
+                            wait.Code,
+                            []);
+                    }),
+                ]));
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericMindSessionTestFixture.Configurations(
+                definition, factories),
+            matchSeed: 20_260_821UL);
+
+        for (int tick = 0; tick < 4; tick++)
+            session.Step();
+
+        GenericMindSessionTestFixture.RecordingMindFactory west =
+            factories[definition.Topology.Participants.Single(value =>
+                value.TeamId == 0).ParticipantId];
+        GenericMindRuntimeObservation before = west.Observations.Single(value =>
+            value.Tick == 0);
+        GenericMindRuntimeObservation active = west.Observations.Single(value =>
+            value.Tick == 3);
+        Assert.NotNull(plantedAt);
+        HashSet<Position> newlyVisible = active.VisibleTiles
+            .Select(value => value.Position)
+            .Except(before.VisibleTiles.Select(value => value.Position))
+            .ToHashSet();
+        Assert.NotEmpty(newlyVisible);
+        Assert.All(newlyVisible, position => Assert.True(
+            plantedAt.Value.ChebyshevDistance(position) <= 4));
+        Assert.Contains(
+            active.VisibleTiles,
+            tile => newlyVisible.Contains(tile.Position)
+                && tile.ObservedBy.Contains(
+                    ActorIdentity.FromTeamUnitLife(0, 0, 0)));
+    }
+
+    private static IEnumerable<Position> AllPositions(ActorMapDefinition map)
+    {
+        for (int y = 0; y < map.Height; y++)
+        for (int x = 0; x < map.Width; x++)
+            yield return new Position(x, y);
     }
 
     private static ArcRelaySignatureRuntime Deploy(

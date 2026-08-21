@@ -10,7 +10,15 @@ namespace BotArena.Engine;
 /// </summary>
 internal sealed partial class ArcRelaySignatureRuntime
 {
-    public sealed record OmnidirectionalSensor(Position Position, int Range);
+    /// <summary>
+    /// A deployment-backed team sensor. The owning actor remains the stable
+    /// observation provenance handle because deployments do not own unit
+    /// slots or actor identities of their own.
+    /// </summary>
+    public sealed record OmnidirectionalSensor(
+        ActorIdentity Owner,
+        Position Position,
+        int Range);
 
     private readonly ActorMapDefinition _map;
     private readonly ImmutableDictionary<string, ArcRelaySignatureDefinition>
@@ -159,6 +167,7 @@ internal sealed partial class ArcRelaySignatureRuntime
                         or ArcRelaySignatureDefinition.SentinelSeed2)
             .OrderBy(operation => operation.OperationId, StringComparer.Ordinal)
             .Select(operation => new OmnidirectionalSensor(
+                operation.OwnerActorId,
                 operation.Positions[0],
                 operation.Definition switch
                 {
