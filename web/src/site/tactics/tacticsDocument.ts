@@ -96,8 +96,9 @@ export const ABORT_ROWS: CondKind[] = [
   'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'killsWithin', 'healed',
 ];
 
-/** all(required) AND any(triggers) AND none(unless); an absent side is
- * vacuously true — unless is the inverted side, no row there may hold. */
+/** Player-authored cases use all(required) AND none(unless). `triggers` is a
+ * legacy read shape normalized into required by the editor; keeping it here
+ * allows old saved documents to open without a schema fork. */
 export interface TacticCase {
   required?: TacticConds;
   triggers?: TacticConds;
@@ -554,7 +555,7 @@ export function freshPhase(tactic: Tactic, name: string): TacticPhaseDef {
   }
   const jobs: Record<string, TacticJob> = {};
   for (const group of tactic.groups) jobs[group.id] = freshJob('none', 'hold');
-  return { id, name, jobs, continue: [{ triggers: {} }] };
+  return { id, name, jobs, continue: [{ required: {} }] };
 }
 
 /** v1 documents (Stage/Release/Act/Finish) migrate to the phase model
@@ -682,16 +683,24 @@ export function normalizeDocument(document: unknown): TacticsDocument {
   // reshuffle — a post whose bot has left, a signature mark no member's
   // class owns, a job for a dissolved Group — are simply cleaned away.
   for (const tactic of loaded.tactics ?? []) {
+    const normalizeCase = (entry: TacticCase) => {
+      if (entry.triggers) {
+        entry.required = { ...entry.triggers, ...(entry.required ?? {}) };
+        delete entry.triggers;
+      }
+      normalizeZoneRows(entry.required);
+      normalizeZoneRows(entry.unless);
+    };
+    for (const entry of tactic.start.cases ?? []) normalizeCase(entry);
+    for (const entry of tactic.abort?.cases ?? []) normalizeCase(entry);
     for (const phase of tactic.phases ?? []) {
       for (const rule of phase.continue ?? []) {
         // Explicit jumps were removed from the product. Array order is the
         // only phase order, so every legacy spelling (phase id, next,
         // finish, backward, or skip) canonicalizes to the implicit edge.
         delete rule.to;
+        normalizeCase(rule);
       }
-      for (const rows of [
-        ...(phase.continue ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
-      ]) normalizeZoneRows(rows);
       for (const [groupId, job] of Object.entries(phase.jobs ?? {})) {
         const group = tactic.groups?.find((entry) => entry.id === groupId);
         if (!group) {
@@ -722,10 +731,6 @@ export function normalizeDocument(document: unknown): TacticsDocument {
         if (flipped) phase.custody.via = flipped;
       }
     }
-    for (const rows of [
-      ...(tactic.start.cases ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
-      ...(tactic.abort?.cases ?? []).flatMap((rule) => [rule.required, rule.triggers, rule.unless]),
-    ]) normalizeZoneRows(rows);
   }
   return loaded;
 }

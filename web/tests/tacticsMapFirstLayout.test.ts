@@ -6,6 +6,7 @@ const page = readFileSync(new URL('../src/site/tactics/TacticsEditorPage.tsx', i
 const chrome = readFileSync(new URL('../src/site/tactics/MapFirstChrome.tsx', import.meta.url), 'utf8');
 const steps = readFileSync(new URL('../src/site/tactics/WizardSteps.tsx', import.meta.url), 'utf8');
 const conditions = readFileSync(new URL('../src/site/tactics/ConditionRows.tsx', import.meta.url), 'utf8');
+const map = readFileSync(new URL('../src/site/tactics/TacticsMapCanvas.tsx', import.meta.url), 'utf8');
 
 test('the map-first workspace is the sole editor over the real draft and wizard', () => {
   assert.match(page, /data-layout="map-first"/);
@@ -42,7 +43,6 @@ test('start, abort and every sequential transition route to full existing contro
   assert.match(steps, /id=\{`transition-controls-\$\{phase\.id\}`\}/);
   assert.match(steps, /<CaseListEditor<TacticTransition>/);
   assert.match(steps, /requiredKinds=\{\[\.\.\.TRANSITION_ROWS\]\}/);
-  assert.match(steps, /triggerKinds=\{noEveryoneRows\(TRANSITION_ROWS\)\}/);
   assert.match(steps, /unlessKinds=\{noReadinessRows\(TRANSITION_ROWS\)\}/);
 });
 
@@ -84,6 +84,10 @@ test('map-first placement and behavior are driven beside and directly on the map
   assert.match(page, /translatePostSelection/);
   assert.match(page, /suggestFormationPosts/);
   assert.match(page, /<MapFirstBehaviorPanel/);
+  assert.match(page, /onSlotsSelected=\{selectMapFirstSlots\}/);
+  assert.match(page, /data-testid="map-layer-controls"/);
+  assert.match(map, /data-testid="map-selection-marquee"/);
+  assert.match(map, /color=\{color\} select=\{select\} passThrough/);
   assert.match(chrome, /data-testid="map-first-behavior-panel"/);
   assert.doesNotMatch(chrome, /Suggest explicit posts/);
   assert.doesNotMatch(page, /Tapline — your side is west/);
@@ -101,6 +105,10 @@ test('the map and Behavior form one workbench with explicit phase actions', () =
 
 test('context changes take one click and tactic editing owns local undo', () => {
   assert.match(page, /closeOnOutsidePointer/);
+  assert.match(page, /data-map-first-context-trigger/);
+  assert.match(chrome, /contextTrigger/);
+  assert.match(page, /top-\[14rem\]/,
+    'the context drawer must start below the tactic controls it switches between');
   assert.doesNotMatch(page, /aria-label="Close context editor"[\s\S]*fixed inset-0/);
   assert.match(page, /wizardUndoStack/);
   assert.match(page, /beginWizardGesture/);
@@ -111,6 +119,15 @@ test('context changes take one click and tactic editing owns local undo', () => 
 test('condition authoring shows configured rows before its categorized picker', () => {
   assert.match(conditions, /No conditions configured on this side\./);
   assert.match(conditions, /＋ Add condition/);
-  assert.match(conditions, /This fires when/);
-  assert.match(conditions, /every requirement/);
+  assert.match(conditions, /When — all must hold/);
+  assert.match(conditions, /Add alternative<\/b> is OR/);
+  assert.doesNotMatch(conditions, /Triggered by — any may fire/);
+});
+
+test('Core behavior distinguishes tactic defaults from an explicit phase override', () => {
+  assert.match(steps, /Whole Tactic/);
+  assert.match(steps, /Tactic-wide delivery default/);
+  assert.match(steps, /This phase only/);
+  assert.match(steps, /Change for this phase/);
+  assert.match(page, /mapFirstPanel\.kind === 'cores' \? 'Core behavior'/);
 });

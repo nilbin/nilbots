@@ -68,9 +68,8 @@ export interface StepProps {
 }
 
 // One vocabulary per context (mirrors the server's row lists), grouped by
-// ConditionRows for overview. Required takes every row; Triggered by drops
-// the two everyone-rows (groupsSet, healed — "any one bot" reads wrong);
-// Unless drops only groupsSet (readiness reads one way).
+// ConditionRows for overview. Positive rows are all AND in the editor;
+// Unless drops readiness because that row reads only one way.
 const noEveryoneRows = (rows: readonly CondKind[]) =>
   rows.filter((kind) => kind !== 'groupsSet' && kind !== 'healed');
 const noReadinessRows = (rows: readonly CondKind[]) =>
@@ -100,13 +99,13 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
     <SegChips options={modes} value={tactic.start.mode}
       onChange={(mode) => change((next) => {
         next.start = mode === 'when'
-          ? { mode, cases: next.start.cases ?? [{ triggers: {} }] }
+          ? { mode, cases: next.start.cases ?? [{ required: {} }] }
           : { mode: 'always' };
       })} />
     <p className="t-micro text-arena-dim">{modes.find((mode) => mode.id === tactic.start.mode)?.blurb}</p>
     {tactic.start.mode === 'when' && (
       <CaseListEditor
-        cases={tactic.start.cases ?? [{ triggers: {} }]}
+        cases={tactic.start.cases ?? [{ required: {} }]}
         maximum={3}
         accent="#e6ddd4"
         watchSymbol="▶"
@@ -114,7 +113,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
         requiredKinds={[...START_ROWS]}
         triggerKinds={noEveryoneRows(START_ROWS)}
         unlessKinds={noReadinessRows(START_ROWS)}
-        makeCase={() => ({ triggers: {} })}
+        makeCase={() => ({ required: {} })}
         onChange={(cases) => change((next) => { next.start.cases = cases; })}
         watching={watchFor('start')}
         onDrawWatch={(caseIndex, side, row, zoneIndex) =>
@@ -140,7 +139,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
               setAbortOpen(false);
             } else {
               change((next) => {
-                next.abort = { cases: [{ triggers: { lossesWithin: { count: 4, ticks: 30 } } }] };
+                next.abort = { cases: [{ required: { lossesWithin: { count: 4, ticks: 30 } } }] };
               });
               setAbortOpen(true);
             }
@@ -159,7 +158,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
             requiredKinds={noEveryoneRows(ABORT_ROWS)}
             triggerKinds={noEveryoneRows(ABORT_ROWS)}
             unlessKinds={noReadinessRows(ABORT_ROWS)}
-            makeCase={() => ({ triggers: {} })}
+            makeCase={() => ({ required: {} })}
             onChange={(cases) => change((next) => { next.abort = { cases }; })}
             watching={watchFor('abort')}
             onDrawWatch={(caseIndex, side, row, zoneIndex) =>
@@ -429,7 +428,7 @@ export function PhasesStep(props: StepProps) {
             change((next) => {
               const previous = next.phases[next.phases.length - 1];
               if ((previous.continue ?? []).length === 0) {
-                previous.continue = [{ triggers: {} }];
+                previous.continue = [{ required: {} }];
               }
               next.phases.push(freshPhase(next, `Phase ${next.phases.length + 1}`));
               const added = next.phases[next.phases.length - 1];
@@ -482,33 +481,50 @@ export function PhaseCustodyEditor(props: StepProps & { phaseIndex: number }) {
   const { wizard, change, phaseIndex: index } = props;
   const tactic = wizard.tactic;
   const phase = tactic.phases[index];
+  const [editingOverridePhaseId, setEditingOverridePhaseId] = useState<string | null>(
+    phase?.custody ? phase.id : null,
+  );
   if (!phase) return null;
+  const showOverrideEditor = editingOverridePhaseId === phase.id || Boolean(phase.custody);
   return <div className="rounded-sm border border-arena-edge p-2"
       style={{ borderLeft: '3px solid #b49cff' }}>
-      <div className="mb-1 flex items-center gap-2">
-        <b className="t-body">Core custody</b>
-        <span className="t-micro text-arena-dim">what a carrier does with a Core during this phase</span>
+      <div className="mb-1 flex items-start gap-2">
+        <div className="grow">
+          <div className="lab mb-0.5">This phase only · {phase.name}</div>
+          <b className="t-body">Delivery override</b>
+        </div>
+        {!showOverrideEditor && <button type="button" className="btn !min-h-7"
+          onClick={() => setEditingOverridePhaseId(phase.id)}>Change for this phase</button>}
       </div>
-      <SegChips
+      {!showOverrideEditor
+        ? <p className="t-micro text-arena-dim">Uses the Tactic default: {{
+          none: 'keep working with the Core',
+          solo: 'bank alone',
+          escort: 'bank under escort',
+        }[tactic.delivery.plan]}.</p>
+        : <><SegChips
         options={[
-          { id: 'same', label: 'Same as the Tactic' },
+          { id: 'same', label: 'Use Tactic default' },
           { id: 'solo', label: 'Banks alone' },
           { id: 'escort', label: 'Under escort' },
           { id: 'keep', label: 'Keep carrying' },
         ]}
         value={phase.custody?.plan ?? 'same'}
         accent="#b49cff"
-        onChange={(plan) => change((next) => {
-          const target = next.phases[index];
-          if (plan === 'same') delete target.custody;
-          else if (plan === 'keep') target.custody = { plan };
-          else {
-            target.custody = {
-              plan: plan as CustodyPlan,
-              ...(target.custody?.via ? { via: target.custody.via } : {}),
-            };
-          }
-        })} />
+        onChange={(plan) => {
+          change((next) => {
+            const target = next.phases[index];
+            if (plan === 'same') delete target.custody;
+            else if (plan === 'keep') target.custody = { plan };
+            else {
+              target.custody = {
+                plan: plan as CustodyPlan,
+                ...(target.custody?.via ? { via: target.custody.via } : {}),
+              };
+            }
+          });
+          if (plan === 'same') setEditingOverridePhaseId(null);
+        }} />
       <p className="t-micro mb-1 text-arena-dim">
         {{
           same: {
@@ -537,7 +553,7 @@ export function PhaseCustodyEditor(props: StepProps & { phaseIndex: number }) {
             ? <span className="t-micro text-arena-dim">{phase.custody.via.length} waypoints to the reactor</span>
             : <span className="t-micro text-arena-dim">optional — without one the carrier picks its own way</span>}
         </div>
-      )}
+      )}</>}
     </div>;
 }
 
@@ -575,7 +591,7 @@ export function TransitionEditor(props: StepProps & { phaseIndex: number }) {
         requiredKinds={[...TRANSITION_ROWS]}
         triggerKinds={noEveryoneRows(TRANSITION_ROWS)}
         unlessKinds={noReadinessRows(TRANSITION_ROWS)}
-        makeCase={() => ({ triggers: {} })}
+        makeCase={() => ({ required: {} })}
         onChange={(rules) => change((next) => {
           if (rules.length === 0) delete next.phases[index].continue;
           else next.phases[index].continue = rules;
@@ -942,8 +958,13 @@ function posturesFor(tactic: Tactic, kind: JobKind) {
 export function CoresStep({ catalog, document, wizard, change }: StepProps) {
   const tactic = wizard.tactic;
   const preferred = tactic.delivery.preferredSlots ?? [];
-  return <>
-    <p className="t-meta"><b>Cores.</b> Pickup is each Group's own habit, and ⭑ marks preferred
+  return <div className="flex flex-col gap-2 rounded-sm border border-arena-edge p-2"
+    style={{ borderLeft: '3px solid #8fd8ff' }}>
+    <div>
+      <div className="lab mb-0.5">Whole Tactic</div>
+      <b className="t-body">Core defaults</b>
+    </div>
+    <p className="t-meta">Pickup is each Group's own habit, and ⭑ marks preferred
       carriers. Delivery is one shared plan — the real carrier is whoever ends up holding it.</p>
     {tactic.groups.map((group) => (
       <div key={group.id} className="rounded-sm border border-arena-edge p-2"
@@ -979,7 +1000,7 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
     <p className="t-micro text-arena-dim">Tap ☆ to prefer a bot as carrier — preferred bots position to
       receive a toss. Cores bank at your reactor.</p>
     <div>
-      <div className="lab mb-1">If a Core ends up in our hands</div>
+      <div className="lab mb-1">Tactic-wide delivery default</div>
       <ChoiceCards options={DELIVERY_PLANS} value={tactic.delivery.plan}
         onChange={(plan) => change((next) => { next.delivery.plan = plan; })} />
     </div>
@@ -989,7 +1010,7 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
       </Readback>
     )}
     <DeliverCoreSuggestion tactic={tactic} change={change} />
-  </>;
+  </div>;
 }
 
 export function ReviewStep({ catalog, document, wizard, change }: StepProps) {

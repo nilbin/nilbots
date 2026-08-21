@@ -54,8 +54,16 @@ function orderedSnapDeltas(desired: Point, limit: number, seed: string): Point[]
 
 export interface PostTranslation {
   positions: Map<number, Point>;
+  facings: Map<number, Facing>;
   snappedAnchor: Point;
 }
+
+const ROTATION_ORDER: Record<Facing, Facing[]> = {
+  n: ['n', 'e', 'w', 's'],
+  e: ['e', 's', 'n', 'w'],
+  s: ['s', 'w', 'e', 'n'],
+  w: ['w', 'n', 's', 'e'],
+};
 
 /**
  * Translate a bot selection as one rigid formation. The closest legal delta
@@ -82,21 +90,26 @@ export function translatePostSelection(
     desired, limit, `${catalog.map.id}:${[...selected].sort((a, b) => a - b).join(',')}`,
   )) {
     const positions = new Map<number, Point>();
+    const facings = new Map<number, Facing>();
     let legal = true;
     for (const post of moving) {
       const at: Point = [post.at[0] + dx, post.at[1] + dy];
+      const facing = ROTATION_ORDER[post.facing].find((candidate) =>
+        postFacingIssue(catalog, { ...post, at, facing: candidate }) === null);
       if (tilePlacementIssue(catalog, at, 'anchor') !== null
-        || postFacingIssue(catalog, { ...post, at }) !== null
+        || !facing
         || reserved.has(pointKey(at))
         || [...positions.values()].some((point) => pointKey(point) === pointKey(at))) {
         legal = false;
         break;
       }
       positions.set(post.slot!, at);
+      facings.set(post.slot!, facing);
     }
     if (legal) {
       return {
         positions,
+        facings,
         snappedAnchor: positions.get(anchorSlot)!,
       };
     }

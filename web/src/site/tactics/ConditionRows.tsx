@@ -8,9 +8,8 @@ import type {
 
 /**
  * THE condition editor: one tick row per available condition, parameters
- * inline on ticked rows. Inside "Required" every ticked row must hold;
- * inside "Triggered by" any ticked row fires — and CaseListEditor stacks
- * whole alternatives of the two. No boolean words anywhere. Normal authoring
+ * inline on ticked rows. Every ticked row in one alternative must hold;
+ * CaseListEditor stacks whole alternatives as the only visible OR. Normal authoring
  * gets the pruned rows; a loaded hidden row remains visible as Existing
  * advanced until the player removes it.
  */
@@ -387,9 +386,9 @@ export function ConditionRows({
 }
 
 /**
- * A stack of alternatives: each case is "Required — all must hold" plus
- * "Triggered by — any may fire"; any case being true is enough. The caller
- * may append a footer per case (the transition's destination picker).
+ * A stack of alternatives. Rows within one alternative are AND; alternatives
+ * are OR; Unless rows are vetoes. `triggers` remains readable solely so old
+ * drafts can open, but any edit canonicalizes the positive rows to `required`.
  */
 export function CaseListEditor<T extends TacticCase>({
   cases, maximum = 3, accent, watchSymbol, watchAdjective,
@@ -419,6 +418,7 @@ export function CaseListEditor<T extends TacticCase>({
     onChange(next);
   };
   const [unlessOpen, setUnlessOpen] = useState<Record<number, boolean>>({});
+  const positiveKinds = [...new Set([...requiredKinds, ...triggerKinds])];
   // Alternatives collapse to their plain-English line; a sheet opening on
   // several starts collapsed, and adding one folds the others away.
   const [collapsed, setCollapsed] = useState<Record<number, boolean>>(
@@ -440,27 +440,30 @@ export function CaseListEditor<T extends TacticCase>({
     setCollapsed(Object.fromEntries(cases.map((_, index) => [index, true])));
     onChange([...cases, next]);
   };
-  const activeMainRows = (value: T) =>
-    Object.keys(value.required ?? {}).length
-    + Object.keys(value.triggers ?? {}).length;
+  const positiveRows = (value: T): TacticConds => ({
+    ...(value.triggers ?? {}),
+    ...(value.required ?? {}),
+  });
+  const activeMainRows = (value: T) => Object.keys(positiveRows(value)).length;
   // "These two, then the inversion of this third one": the new alternative
   // keeps every other row and moves the forked one to Unless.
-  const branch = (index: number, side: 'required' | 'triggers', kind: ConditionRowKind) => {
+  const branch = (index: number, kind: ConditionRowKind) => {
     const copy = structuredClone(cases[index]);
-    const rows = copy[side];
-    const value = rows?.[kind];
-    if (rows === undefined || value === undefined) return;
+    const rows = positiveRows(copy);
+    const value = rows[kind];
+    if (value === undefined) return;
     delete rows[kind];
-    if (Object.keys(rows).length === 0) delete copy[side];
+    if (Object.keys(rows).length === 0) delete copy.required;
+    else copy.required = rows;
+    delete copy.triggers;
     copy.unless = { ...(copy.unless ?? {}), [kind]: value };
     appendCase(copy);
   };
   return (
     <div className="flex flex-col gap-2">
       <p className="sticky top-0 z-[1] rounded-sm border border-arena-edge bg-arena-panel px-2 py-1.5 text-[10.5px] leading-snug text-arena-dim">
-        This fires when <b className="text-arena-text">every requirement</b> is true.
-        If triggers are added, <b className="text-arena-text">any trigger</b> may fire it.
-        An Unless condition blocks the alternative.
+        Conditions in one alternative use <b className="text-arena-text">AND</b>.
+        <b className="text-arena-text"> Add alternative</b> is OR. An Unless condition blocks it.
       </p>
       {cases.map((value, index) => {
         const canBranch = cases.length < maximum && activeMainRows(value) >= 2;
@@ -502,48 +505,29 @@ export function CaseListEditor<T extends TacticCase>({
         <div key={index} className="rounded-sm border border-arena-edge p-2"
           style={accent ? { borderLeft: `3px solid ${accent}` } : undefined}>
           {header}
-          {requiredKinds.length > 0 && <>
-            <div className="lab mb-1">Required — all must hold</div>
+          {positiveKinds.length > 0 && <>
+            <div className="lab mb-1">When — all must hold</div>
             <ConditionRows
-              conds={value.required ?? {}}
-              kinds={requiredKinds}
+              conds={positiveRows(value)}
+              kinds={positiveKinds}
               accent={accent}
               watchSymbol={watchSymbol}
               watchAdjective={watchAdjective}
               watching={watching && watching.caseIndex === index
-                && watching.side === 'required'
+                && (watching.side === 'required' || watching.side === 'triggers')
                 ? { row: watching.row, zoneIndex: watching.zoneIndex } : null}
               onChange={(conds) => update(index, (next) => {
                 if (Object.keys(conds).length === 0) delete next.required;
                 else next.required = conds;
+                delete next.triggers;
               })}
               onDrawWatch={onDrawWatch
                 ? (row, zoneIndex) => onDrawWatch(index, 'required', row, zoneIndex) : undefined}
               onStopWatch={onStopWatch}
               onBranch={canBranch
-                ? (kind) => branch(index, 'required', kind) : undefined}
+                ? (kind) => branch(index, kind) : undefined}
             />
           </>}
-          <div className="lab mb-1 mt-2">Triggered by — any may fire</div>
-          <ConditionRows
-            conds={value.triggers ?? {}}
-            kinds={triggerKinds}
-            accent={accent}
-            watchSymbol={watchSymbol}
-            watchAdjective={watchAdjective}
-            watching={watching && watching.caseIndex === index
-              && watching.side === 'triggers'
-              ? { row: watching.row, zoneIndex: watching.zoneIndex } : null}
-            onChange={(conds) => update(index, (next) => {
-              if (Object.keys(conds).length === 0) delete next.triggers;
-              else next.triggers = conds;
-            })}
-            onDrawWatch={onDrawWatch
-              ? (row, zoneIndex) => onDrawWatch(index, 'triggers', row, zoneIndex) : undefined}
-            onStopWatch={onStopWatch}
-            onBranch={canBranch
-              ? (kind) => branch(index, 'triggers', kind) : undefined}
-          />
           {(unlessKinds?.length ?? 0) > 0 && (
             Object.keys(value.unless ?? {}).length > 0 || unlessOpen[index]
               ? <>

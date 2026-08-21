@@ -4,7 +4,7 @@ import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type { TacticalSheetCatalog } from '../src/site/api.ts';
 import {
-  groundFingerprint, projectPhaseBots,
+  groundFingerprint, projectPhaseBots, slotsInMapRect,
 } from '../src/site/tactics/botProjection.ts';
 import { makePathfinder } from '../src/site/tactics/pathing.ts';
 import { tilePlacementIssue, type Tactic, type TacticsDocument } from '../src/site/tactics/tacticsDocument.ts';
@@ -79,6 +79,20 @@ test('stable projections are deterministic, distinct and legal phase-wide', () =
     assert.equal(catalog.map.tileRows[bot.at[1]][bot.at[0]], '.');
     assert.equal(bot.exact, false);
   }
+});
+
+test('a map rectangle selects unique visible slots on inclusive tile edges', () => {
+  const { document, tactic } = fixture();
+  const projection = projectPhaseBots(catalog, document, tactic, 0);
+  const chosen = projection.bots.slice(0, 3);
+  const xs = chosen.map((bot) => bot.at[0]);
+  const ys = chosen.map((bot) => bot.at[1]);
+  const selected = slotsInMapRect(projection.bots, [
+    [Math.min(...xs), Math.min(...ys)],
+    [Math.max(...xs), Math.max(...ys)],
+  ]);
+  for (const bot of chosen) assert.ok(selected.includes(bot.slot));
+  assert.deepEqual(selected, [...new Set(selected)].sort((a, b) => a - b));
 });
 
 test('selected exact bots render directional catalog vision separately from catalog attack reach', () => {

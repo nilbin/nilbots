@@ -226,17 +226,13 @@ export function andJoin(list: string[]): string {
   return `${list.slice(0, -1).join(', ')} and ${list[list.length - 1]}`;
 }
 
-/** "every Group is in position and enemies gather at Mid" — one case;
- * the unless side reads "— unless A or B" (none of those may hold). */
+/** "every Group is in position and enemies gather at Mid" — one case.
+ * Legacy trigger rows read as ordinary AND rows in the current editor; OR is
+ * represented only by another case. Unless remains a veto if any row holds. */
 export function caseClause(value: TacticCase): string {
-  const required = condClauses(value.required);
-  const triggers = condClauses(value.triggers);
+  const positive = condClauses({ ...(value.triggers ?? {}), ...(value.required ?? {}) });
   const unless = condClauses(value.unless);
-  let clause: string;
-  if (required.length && triggers.length) {
-    clause = `${andJoin(required)} and ${orJoin(triggers)}`;
-  } else if (required.length) clause = andJoin(required);
-  else clause = orJoin(triggers);
+  let clause = andJoin(positive);
   if (unless.length && clause.length) {
     clause = `${clause} — unless ${orJoin(unless)}`;
   }

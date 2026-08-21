@@ -366,6 +366,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     const closeOnOutsidePointer = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Node) || contextDrawerRef.current?.contains(target)) return;
+      if (target instanceof Element
+        && target.closest('[data-map-first-context-trigger], [data-select]')) return;
       setMapFirstPanel(null);
       endTask();
     };
@@ -837,7 +839,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     const nextIndex = wizard.tactic.phases.length;
     changeWizard((next) => {
       const previous = next.phases[next.phases.length - 1];
-      if ((previous.continue ?? []).length === 0) previous.continue = [{ triggers: {} }];
+      if ((previous.continue ?? []).length === 0) previous.continue = [{ required: {} }];
       next.phases.push(freshPhase(next, `Phase ${next.phases.length + 1}`));
       delete next.phases[next.phases.length - 1].continue;
     });
@@ -872,6 +874,25 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     setMapFirstPanel(loneSlot != null && loneGroup
       ? { kind: 'bot', phaseIndex, groupId: loneGroup.id, slot: loneSlot }
       : null);
+  };
+
+  const selectMapFirstSlots = (slots: number[], additive: boolean) => {
+    if (!wizard) return;
+    const next = (additive
+      ? [...new Set([...selectedSlots, ...slots])]
+      : slots).sort((left, right) => left - right);
+    const groups = wizard.tactic.groups.filter((group) =>
+      group.slots.some((slot) => next.includes(slot)));
+    if (groups.length === 1) setSelectedGroupId(groups[0].id);
+    setSelectedSlots(next);
+    if (next.length === 1 && groups.length === 1) {
+      setMapFirstPanel({
+        kind: 'bot', phaseIndex: wizard.phaseIndex,
+        groupId: groups[0].id, slot: next[0],
+      });
+    } else {
+      setMapFirstPanel(null);
+    }
   };
 
   /** A tray-to-tray move uses the same slot-keyed belongings migration as
@@ -937,6 +958,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
         for (const post of job.posts) {
           const translatedAt = post.slot == null ? null : translated.positions.get(post.slot);
           if (translatedAt) post.at = translatedAt;
+          const translatedFacing = post.slot == null ? null : translated.facings.get(post.slot);
+          if (translatedFacing) post.facing = translatedFacing;
         }
       }
     }
@@ -1131,43 +1154,44 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                 onDrawPosts={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'posts')}
                 onDrawPatrol={() => stepProps.startJobTask(activeMapGroupId, wizard.phaseIndex, undefined, 'route')} />
             )}
-            <div className="my-1.5 flex min-w-0 items-center justify-end gap-1.5">
-              <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
-                <TacticsIconButton icon="layers" label="Show every Tactic"
-                  pressed={showAll} onClick={() => setShowAll((value) => !value)} />
-                <TacticsIconButton icon="transition" label="Show every phase"
-                  pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
-              </span>
-              <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
-                <TacticsIconButton icon="vision"
-                  label={selectedSlots.length ? 'Selected bot vision' : 'Select a bot first'}
-                  pressed={showVision} disabled={selectedSlots.length === 0}
-                  onClick={() => setShowVision((value) => !value)} />
-                <TacticsIconButton icon="attack-range"
-                  label={selectedSlots.length ? 'Selected bot attack reach' : 'Select a bot first'}
-                  pressed={showAttackRange} disabled={selectedSlots.length === 0}
-                  onClick={() => setShowAttackRange((value) => !value)} />
-                <TacticsIconButton icon="deselect" label="Clear bot selection"
-                  disabled={selectedSlots.length === 0} onClick={() => {
-                    setSelectedSlots([]); setMapFirstPanel(null);
-                  }} />
-              </span>
-              <span className="flex gap-0.5 rounded-sm border border-arena-edge p-0.5">
-                {([1, 1.5, 2] as const).map((level) => (
-                  <button key={level} type="button"
-                    className={`btn !min-h-7 !border-0 ${zoom === level ? 'btn-on' : ''}`}
-                    onClick={() => setZoom(level)}>
-                    {level === 1 ? 'Fit' : `${level}×`}
-                  </button>
-                ))}
-              </span>
-            </div>
             {/* The map and Behavior are one visual workbench. The map remains
                 left aligned and viewport-capped; Behavior hugs its right edge
                 instead of drifting to the far side of a flexible grid. */}
             <div className="min-[1240px]:flex min-[1240px]:items-start min-[1240px]:gap-2">
               <div className="min-w-0 lg:w-[min(100%,calc((100dvh-340px)*1.148))] min-[1240px]:shrink-0">
                 <div className="relative">
+                  <div className="absolute right-1.5 top-1.5 z-20 flex max-w-[calc(100%_-_0.75rem)] flex-wrap items-center justify-end gap-1 rounded-sm border border-arena-edge/80 bg-arena-deep/90 p-0.5 shadow-lg backdrop-blur-sm"
+                    data-testid="map-layer-controls">
+                    <span className="flex gap-0.5">
+                      <TacticsIconButton icon="layers" label="Show every Tactic"
+                        pressed={showAll} onClick={() => setShowAll((value) => !value)} />
+                      <TacticsIconButton icon="transition" label="Show every phase"
+                        pressed={showAllPhases} onClick={() => setShowAllPhases((value) => !value)} />
+                    </span>
+                    <span className="flex gap-0.5 border-l border-arena-edge pl-0.5">
+                      <TacticsIconButton icon="vision"
+                        label={selectedSlots.length ? 'Selected bot vision' : 'Select a bot first'}
+                        pressed={showVision} disabled={selectedSlots.length === 0}
+                        onClick={() => setShowVision((value) => !value)} />
+                      <TacticsIconButton icon="attack-range"
+                        label={selectedSlots.length ? 'Selected bot attack reach' : 'Select a bot first'}
+                        pressed={showAttackRange} disabled={selectedSlots.length === 0}
+                        onClick={() => setShowAttackRange((value) => !value)} />
+                      <TacticsIconButton icon="deselect" label="Clear bot selection"
+                        disabled={selectedSlots.length === 0} onClick={() => {
+                          setSelectedSlots([]); setMapFirstPanel(null);
+                        }} />
+                    </span>
+                    <span className="flex gap-0.5 border-l border-arena-edge pl-0.5">
+                      {([1, 1.5, 2] as const).map((level) => (
+                        <button key={level} type="button"
+                          className={`btn !min-h-7 !border-0 !px-1.5 ${zoom === level ? 'btn-on' : ''}`}
+                          onClick={() => setZoom(level)}>
+                          {level === 1 ? 'Fit' : `${level}×`}
+                        </button>
+                      ))}
+                    </span>
+                  </div>
                   {!task && needsFirstPlacement && <div
                     className="pointer-events-none absolute left-2 top-2 z-10 max-w-64 rounded-sm border border-arena-material/60 bg-arena-deep/90 px-2 py-1.5 text-[10.5px] text-arena-text"
                     data-testid="group-placement-callout">
@@ -1191,6 +1215,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                         onTilePicked={onTilePicked} onRectDrawn={onRectDrawn}
                         onGeometryLive={onGeometryLive} onGestureStart={beginWizardGesture}
                         onGestureEnd={finishWizardGesture} onSelect={onSelect}
+                        onSlotsSelected={selectMapFirstSlots}
                         onClearSelection={() => {
                           setSelectedSlots([]); setMapFirstPanel(null);
                         }}
@@ -1247,7 +1272,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
       {/* ----------------------------------------------------- the drawer --- */}
       {wizard && mapFirstPanel && (
-        <aside ref={contextDrawerRef} className={`fixed right-4 top-20 z-40 flex max-h-[calc(100dvh-6rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
+        <aside ref={contextDrawerRef} className={`fixed right-4 top-[14rem] z-40 flex max-h-[calc(100dvh-15rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
           data-testid="map-first-context-drawer" aria-label="Context editor">
           <div className="flex items-center gap-2 border-b border-arena-edge bg-arena-panel px-2 py-1.5">
             <TacticsIcon name={mapFirstPanel.kind === 'transition' ? 'transition'
@@ -1258,7 +1283,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                       : mapFirstPanel.kind === 'bot' ? 'signature' : 'edit'} size={16} />
             <b className="t-body grow">{mapFirstPanel.kind === 'transition'
               ? `${wizard.tactic.phases[mapFirstPanel.phaseIndex]?.name} transition`
-              : mapFirstPanel.kind === 'cores' ? 'Core plan and phase custody'
+              : mapFirstPanel.kind === 'cores' ? 'Core behavior'
                 : mapFirstPanel.kind === 'start' ? 'Tactic start'
                   : mapFirstPanel.kind === 'abort' ? 'Tactic-wide abort'
                     : mapFirstPanel.kind === 'groups' ? 'Group membership'

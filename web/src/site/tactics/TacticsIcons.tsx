@@ -57,6 +57,7 @@ export function TacticsIcon({ name, size = 18, className }: {
 
 export function TacticsIconButton({
   icon, label, pressed, configured, disabled, onClick, className = '', testId,
+  contextTrigger = false,
 }: {
   icon: TacticsIconName;
   label: string;
@@ -66,10 +67,12 @@ export function TacticsIconButton({
   onClick?: () => void;
   className?: string;
   testId?: string;
+  contextTrigger?: boolean;
 }) {
   return <button type="button" aria-label={label} title={label}
     aria-pressed={pressed} data-configured={configured || undefined}
-    data-testid={testId} disabled={disabled} onClick={onClick}
+    data-testid={testId} data-map-first-context-trigger={contextTrigger || undefined}
+    disabled={disabled} onClick={onClick}
     className={`group relative inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-sm border transition-colors ${pressed
       ? 'border-arena-material bg-arena-material/15 text-arena-material'
       : configured

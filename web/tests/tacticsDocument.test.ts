@@ -298,10 +298,11 @@ test('the pincer recipe is a four-phase operation with a sequential spine', () =
   assert.deepEqual(
     tactic.phases.map((phase) => phase.name),
     ['Set the trap', 'Close the trap', 'Exploit the opening', 'Secure the opening']);
-  // The release rule demands every Group in place AND a trigger.
+  // The release rule demands every Group in place AND the enemy observation.
   const release = tactic.phases[0].continue![0];
   assert.deepEqual(release.required?.groupsSet, { allowedLate: 0 });
-  assert.ok(release.triggers?.enemiesAt);
+  assert.ok(release.required?.enemiesAt);
+  assert.equal(release.triggers, undefined);
   assert.equal(release.to, undefined);
   // The final phase deliberately holds; custody handles a Core temporarily
   // without requiring a bank/loss phase transition.
@@ -717,6 +718,11 @@ test('a v1 document migrates to phases exactly like the server', () => {
   // parseDocument migrates transparently.
   const reparsed = parseDocument(JSON.stringify(v1));
   assert.equal(reparsed.schema, 'arc-relay-tactics-v2');
+  assert.deepEqual(reparsed.tactics[0].start.cases, [{
+    required: { enemiesDown: { count: 2 } },
+  }]);
+  assert.equal(reparsed.tactics[0].phases[0].continue![0].triggers, undefined);
+  assert.equal(reparsed.tactics[0].phases[0].continue![0].required?.contact, true);
   // A restored device draft is an in-memory OBJECT, not JSON — it takes the
   // same boundary. This is the exact shape that once opened as a blank page.
   const storedDraft = JSON.parse(JSON.stringify(v1)) as Record<string, unknown>;

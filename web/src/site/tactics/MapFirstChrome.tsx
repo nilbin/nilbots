@@ -106,14 +106,16 @@ export function MapFirstTimeline({
       <nav className="flex shrink-0 items-center gap-1" aria-label="Tactic controls">
         <TacticsIconButton icon="start"
           label={`Start: ${tactic.start.mode === 'always' ? 'always' : `${startRows} condition${startRows === 1 ? '' : 's'}`}`}
-          pressed={focus?.kind === 'start'} testId="map-first-start"
+          pressed={focus?.kind === 'start'} testId="map-first-start" contextTrigger
           onClick={() => onFocus({ kind: 'start' })} />
         <TacticsIconButton icon="core" label="Core plan"
-          pressed={focus?.kind === 'cores'} onClick={() => onFocus({ kind: 'cores' })} />
+          pressed={focus?.kind === 'cores'} contextTrigger
+          onClick={() => onFocus({ kind: 'cores' })} />
         <TacticsIconButton icon="abort"
           label={`Abort: ${tactic.abort ? `${abortRows} condition${abortRows === 1 ? '' : 's'}` : 'not set'}`}
           configured={Boolean(tactic.abort)} pressed={focus?.kind === 'abort'}
-          testId="map-first-abort" onClick={() => onFocus({ kind: 'abort' })} />
+          testId="map-first-abort" contextTrigger
+          onClick={() => onFocus({ kind: 'abort' })} />
       </nav>
       <button type="button" className={`btn shrink-0 ${squadSize < 8 ? 'text-arena-hot' : ''}`}
         onClick={onEditSquad} data-testid="tactic-edit-squad">
@@ -151,6 +153,7 @@ export function MapFirstTimeline({
           </button>
           <TacticsIconButton icon="edit" label={`Edit ${phase.name}`}
             pressed={focus?.kind === 'phase' && focus.phaseIndex === index}
+            contextTrigger
             onClick={() => onFocus({ kind: 'phase', phaseIndex: index })} />
           {index === tactic.phases.length - 1
             ? <button type="button"
@@ -161,6 +164,7 @@ export function MapFirstTimeline({
                   : 'border-[#c8763c55] bg-arena-deep/30 text-arena-dim hover:border-arena-edge2 hover:text-arena-text'}`}
               title={`Finish conditions: ${rows ? `${phase.continue?.length ?? 0} cases, ${rows} rows` : 'not configured'}`}
               data-testid={`map-first-transition-${index + 1}`}
+              data-map-first-context-trigger
               onClick={() => onFocus({ kind: 'transition', phaseIndex: index })}>
               <TacticsIcon name="finish" size={15} /> Finish
               {rows > 0 && !(focus?.kind === 'transition' && focus.phaseIndex === index)
@@ -172,6 +176,7 @@ export function MapFirstTimeline({
               pressed={focus?.kind === 'transition' && focus.phaseIndex === index}
               className="!border-[#c8763c55]"
               testId={`map-first-transition-${index + 1}`}
+              contextTrigger
               onClick={() => onFocus({ kind: 'transition', phaseIndex: index })} />}
         </div>;
       })}
@@ -213,6 +218,7 @@ export function MapFirstGroupTrays({
       <span className="lab">Groups</span>
       <span className="grow" />
       <button type="button" className="btn !min-h-6 !px-1.5 text-[9.5px]"
+        data-map-first-context-trigger
         onClick={() => onFocus({ kind: 'groups' })}>
         Edit membership
       </button>
@@ -264,6 +270,7 @@ export function MapFirstGroupTrays({
               : preview.has(slot) ? 'Projected'
                 : draggablePost ? 'Drag to map' : unresolved ? 'No preview' : 'Unplaced';
             return <button key={slot} type="button"
+              data-map-first-context-trigger
               draggable
               onDragStart={(event) => {
                 event.dataTransfer.effectAllowed = 'move';

@@ -89,12 +89,13 @@ test('phases are latched, forward-only, and carry-on keeps everyone busy', () =>
   assert.match(steps, /leave empty to hold here forever/);
 });
 
-test('cases hide boolean words behind Required, Triggered by, and Add alternative', () => {
+test('cases expose one AND group, Unless vetoes, and alternatives are the only OR', () => {
   assert.match(conditions, /At least N enemies were recently seen here/);
   assert.match(conditions, /A Core is up for grabs/);
   assert.match(conditions, /We hold a Core — a friendly carrier exists/);
-  assert.match(conditions, /Required — all must hold/);
-  assert.match(conditions, /Triggered by — any may fire/);
+  assert.match(conditions, /When — all must hold/);
+  assert.doesNotMatch(conditions, /Triggered by — any may fire/);
+  assert.match(conditions, /Add alternative<\/b> is OR/);
   assert.match(conditions, /＋ Add alternative/);
   assert.match(conditions, /Formation is ready/);
   // Rows are bucketed under small group headings instead of a fold, so a
@@ -109,8 +110,8 @@ test('cases hide boolean words behind Required, Triggered by, and Add alternativ
   assert.match(conditions, /Fold this alternative to its one-line reading/);
   assert.match(conditions, /Open this alternative to edit/);
   assert.match(conditions, /add an alternative where this reads the other way/);
-  assert.doesNotMatch(conditions, /\bAND\b|\bOR\b/,
-    'no bare boolean vocabulary on the player surface');
+  assert.match(conditions, /Conditions in one alternative use/,
+    'the two boolean words are explained once, where they remove ambiguity');
 });
 
 test('phase pruning keeps destructive changes safe and multi-area drawing explicit', () => {

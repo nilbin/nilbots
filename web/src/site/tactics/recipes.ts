@@ -83,7 +83,7 @@ export const RECIPES: Recipe[] = [
         name: 'Push',
         jobs: [{ kind: 'posts', posture: 'aggressive', objective: [16, 13] }],
         continue: [{
-          triggers: { enemiesDown: { count: 3 }, coreAcquired: true },
+          required: { enemiesDown: { count: 3 }, coreAcquired: true },
         }],
       },
     ],
@@ -112,21 +112,23 @@ export const RECIPES: Recipe[] = [
           { kind: 'posts', posture: 'observe', objective: [24, 5] },
         ],
         continue: [{
-          required: { groupsSet: { allowedLate: 0 } },
-          triggers: { enemiesAt: { count: 5, zones: [{ ...MID_ZONE }] } },
+          required: {
+            groupsSet: { allowedLate: 0 },
+            enemiesAt: { count: 5, zones: [{ ...MID_ZONE }] },
+          },
         }],
       },
       {
         name: 'Close the trap',
         jobs: [null, { kind: 'posts', posture: 'aggressive', objective: [16, 13] }],
         continue: [{
-          triggers: { enemiesDown: { count: 2 }, cleared: { zones: [{ ...MID_ZONE }] } },
+          required: { enemiesDown: { count: 2 }, cleared: { zones: [{ ...MID_ZONE }] } },
         }],
       },
       {
         name: 'Exploit the opening',
         jobs: [null, { kind: 'posts', posture: 'hold', objective: [19, 13] }],
-        continue: [{ triggers: { coreAcquired: true } }],
+        continue: [{ required: { coreAcquired: true } }],
       },
       {
         name: 'Secure the opening',
@@ -159,14 +161,16 @@ export const RECIPES: Recipe[] = [
           { kind: 'posts', posture: 'hold', objective: [16, 17] },
         ],
         continue: [{
-          required: { groupsSet: { allowedLate: 0 } },
-          triggers: { coreLoose: { well: 'enemy' } },
+          required: {
+            groupsSet: { allowedLate: 0 },
+            coreLoose: { well: 'enemy' },
+          },
         }],
       },
       {
         name: 'Steal',
         jobs: [{ kind: 'posts', posture: 'aggressive', objective: [21, 21] }, null],
-        continue: [{ triggers: { coreAcquired: true } }],
+        continue: [{ required: { coreAcquired: true } }],
       },
       {
         name: 'Hold the escape',

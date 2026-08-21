@@ -25,6 +25,21 @@ export interface PhaseBotProjection {
   unresolvedGroupIds: string[];
 }
 
+/** Stable slot selection for a map-drawn marquee. Exact and projected bots
+ * share this presentation shape, so the gesture does not care how a phase's
+ * positions were authored. Rect edges are inclusive in tile coordinates. */
+export function slotsInMapRect(bots: readonly BotProjection[], rect: readonly Point[]): number[] {
+  if (rect.length < 2) return [];
+  const [a, b] = rect;
+  const x0 = Math.min(a[0], b[0]);
+  const y0 = Math.min(a[1], b[1]);
+  const x1 = Math.max(a[0], b[0]);
+  const y1 = Math.max(a[1], b[1]);
+  return [...new Set(bots
+    .filter(({ at }) => at[0] >= x0 && at[0] <= x1 && at[1] >= y0 && at[1] <= y1)
+    .map(({ slot }) => slot))].sort((left, right) => left - right);
+}
+
 const key = ([x, y]: Point) => `${x},${y}`;
 
 /** Only authored ground participates. Posture, recovery and current-phase

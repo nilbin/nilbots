@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react';
 import type { TacticalSheetCatalog } from '../api';
 import { BaseMap } from './BaseMap';
-import { projectPhaseBots } from './botProjection';
+import { projectPhaseBots, slotsInMapRect } from './botProjection';
 import {
   facingFromPointer, materializeSpatialJob, rotatePostSelection,
   translatePostSelection,
@@ -71,7 +71,7 @@ export function TacticsMapCanvas({
   showAttackRange = false, task, hints,
   onTilePicked, onRectDrawn, onGeometryLive, onGestureStart, onGestureEnd,
   onSelect, onClearSelection, onTaskDone, onTileRejected, onPostsSwapped,
-  onPostBotDropped, onGroupDropped,
+  onPostBotDropped, onGroupDropped, onSlotsSelected,
 }: {
   catalog: TacticalSheetCatalog;
   document: TacticsDocument;
@@ -100,6 +100,8 @@ export function TacticsMapCanvas({
   onGestureEnd: () => void;
   onSelect: (ref: MapSelectRef, additive?: boolean) => void;
   onClearSelection?: () => void;
+  /** A freehand map marquee selected every visible bot tile in its bounds. */
+  onSlotsSelected?: (slots: number[], additive: boolean) => void;
   /** Finish an open route task (double-click, mirroring the Done button). */
   onTaskDone?: () => void;
   /** A draw-task click landed on an illegal tile; the reason is ready to show. */
@@ -114,6 +116,9 @@ export function TacticsMapCanvas({
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [hover, setHover] = useState<Point | null>(null);
   const [rectDraft, setRectDraft] = useState<{ start: Point; cur: Point } | null>(null);
+  const [selectionDraft, setSelectionDraft] = useState<{
+    start: Point; cur: Point; press: [number, number]; additive: boolean;
+  } | null>(null);
   const dragRef = useRef<DragTarget | null>(null);
   const pressRef = useRef<[number, number] | null>(null);
   const path = useMemo(() => makePathfinder(catalog), [catalog]);
@@ -171,6 +176,17 @@ export function TacticsMapCanvas({
       setRectDraft({ start: tile, cur: tile });
       svgRef.current?.setPointerCapture(event.pointerId);
       event.preventDefault();
+      return;
+    }
+    const selectable = (event.target as Element).closest('[data-select]');
+    if (!task && editingTacticId && onSlotsSelected && tile && !selectable
+      && event.button === 0) {
+      setSelectionDraft({
+        start: tile, cur: tile, press: [event.clientX, event.clientY],
+        additive: event.metaKey || event.ctrlKey || event.shiftKey,
+      });
+      svgRef.current?.setPointerCapture(event.pointerId);
+      event.preventDefault();
     }
   }
 
@@ -196,6 +212,10 @@ export function TacticsMapCanvas({
     }
     if (rectDraft && tile) {
       setRectDraft({ ...rectDraft, cur: tile });
+      return;
+    }
+    if (selectionDraft && tile) {
+      setSelectionDraft({ ...selectionDraft, cur: tile });
       return;
     }
     if (task) setHover(tile);
@@ -232,6 +252,25 @@ export function TacticsMapCanvas({
         Math.max(start[0], cur[0]), Math.max(start[1], cur[1]),
       ]);
       return;
+    }
+    if (selectionDraft) {
+      const draft = selectionDraft;
+      setSelectionDraft(null);
+      const moved = Math.hypot(
+        event.clientX - draft.press[0], event.clientY - draft.press[1]) > 7;
+      if (moved && editingTacticId) {
+        const tactic = document.tactics.find((value) => value.id === editingTacticId);
+        if (tactic) {
+          const projection = projectPhaseBots(
+            catalog, document, tactic, activePhaseIndex ?? 0);
+          onSlotsSelected?.(
+            slotsInMapRect(projection.bots, [draft.start, draft.cur]),
+            draft.additive,
+          );
+        }
+        pressRef.current = null;
+        return;
+      }
     }
     const moved = pressRef.current
       && Math.hypot(event.clientX - pressRef.current[0], event.clientY - pressRef.current[1]) > 7;
@@ -354,6 +393,8 @@ export function TacticsMapCanvas({
         for (const post of job.posts ?? []) {
           const at = post.slot == null ? undefined : translated.positions.get(post.slot);
           if (at) post.at = at;
+          const facing = post.slot == null ? undefined : translated.facings.get(post.slot);
+          if (facing) post.facing = facing;
         }
       } else if (drag.kind === 'waypoint') {
         if (job.path?.[drag.index]) job.path[drag.index] = [x, y];
@@ -405,7 +446,11 @@ export function TacticsMapCanvas({
       viewBox={`0 0 ${width} ${height}`}
       preserveAspectRatio="xMidYMid meet"
       className="block w-full select-none"
-      style={{ aspectRatio: `${width}/${height}`, touchAction: task || editingTacticId ? 'none' : undefined }}
+      style={{
+        aspectRatio: `${width}/${height}`,
+        touchAction: task || editingTacticId ? 'none' : undefined,
+        cursor: editingTacticId && !task ? 'crosshair' : undefined,
+      }}
       data-testid="tactics-map"
       role="img"
       aria-label="Tapline arena, west perspective"
@@ -525,6 +570,16 @@ export function TacticsMapCanvas({
           </g>
         );
       })}
+      {selectionDraft && (() => {
+        const x = Math.min(selectionDraft.start[0], selectionDraft.cur[0]);
+        const y = Math.min(selectionDraft.start[1], selectionDraft.cur[1]);
+        const w = Math.abs(selectionDraft.start[0] - selectionDraft.cur[0]) + 1;
+        const h = Math.abs(selectionDraft.start[1] - selectionDraft.cur[1]) + 1;
+        return <rect data-testid="map-selection-marquee"
+          x={x + .05} y={y + .05} width={w - .1} height={h - .1} rx={.16}
+          fill="#e9fbff" fillOpacity=".1" stroke="#e9fbff" strokeWidth=".09"
+          strokeDasharray=".2 .12" pointerEvents="none" />;
+      })()}
       <TaskLayer task={task} hover={hover} rectDraft={rectDraft}
         hints={hints} pathfinder={path} document={document} />
     </svg>
@@ -1099,7 +1154,7 @@ export function JobOverlay({
         y={first ? anchor[1] - .48 : anchor[1] + 2.15}
         text={`${group.name.toUpperCase()} · ${phaseName.toUpperCase()}${inherited
           ? ` · FROM ${sourcePhaseName.toUpperCase()}` : ''}`}
-        color={color} select={select} />);
+        color={color} select={select} passThrough />);
     }
   }
   return <>{parts}</>;
@@ -1248,12 +1303,16 @@ function Handle({ cx, cy, onDown, cursor = 'grab', r = .3 }: {
     cursor={cursor} onPointerDown={onDown} />;
 }
 
-function ChipLabel({ x, y, text, color, select, opacity = 1, mapWidth = 31, mapHeight = 27 }: {
+function ChipLabel({
+  x, y, text, color, select, passThrough = false,
+  opacity = 1, mapWidth = 31, mapHeight = 27,
+}: {
   x: number;
   y: number;
   text: string;
   color: string;
   select?: string;
+  passThrough?: boolean;
   opacity?: number;
   mapWidth?: number;
   mapHeight?: number;
@@ -1261,7 +1320,9 @@ function ChipLabel({ x, y, text, color, select, opacity = 1, mapWidth = 31, mapH
   const w = text.length * .27 + .5;
   const cx = Math.min(Math.max(x - w / 2, .2), mapWidth - w - .2);
   const cy = Math.min(Math.max(y - .62, .2), mapHeight - 1);
-  return <g opacity={opacity} data-select={select} cursor={select ? 'pointer' : undefined}>
+  return <g opacity={opacity} data-select={select}
+    pointerEvents={passThrough ? 'none' : undefined}
+    cursor={select && !passThrough ? 'pointer' : undefined}>
     <rect x={cx} y={cy} width={w} height={.78} rx={.16} fill="#06090c" fillOpacity=".82"
       stroke={color} strokeWidth={.05} />
     <text x={cx + w / 2} y={cy + .55} textAnchor="middle" fontSize=".42" letterSpacing=".03"

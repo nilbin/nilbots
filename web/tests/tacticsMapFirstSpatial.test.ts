@@ -6,7 +6,7 @@ import {
   suggestFormationPosts, translatePostSelection,
 } from '../src/site/tactics/mapFirstSpatial.ts';
 import {
-  tilePlacementIssue, type Tactic, type TacticPost,
+  postFacingIssue, tilePlacementIssue, type Tactic, type TacticPost,
 } from '../src/site/tactics/tacticsDocument.ts';
 
 const width = 15;
@@ -100,6 +100,24 @@ test('selection translation preserves offsets, snaps legally, and avoids reserva
   for (const at of moved.positions.values()) {
     assert.equal(tilePlacementIssue(catalog, at, 'anchor'), null);
   }
+  for (const post of posts.slice(0, 2)) {
+    assert.equal(postFacingIssue(catalog, {
+      ...post,
+      at: moved.positions.get(post.slot!)!,
+      facing: moved.facings.get(post.slot!)!,
+    }), null);
+  }
+});
+
+test('translation keeps the requested tile and turns a post away from a wall', () => {
+  const posts: TacticPost[] = [{ slot: 0, at: [7, 5], facing: 'e' }];
+  const moved = translatePostSelection(catalog, posts, [0], 0, [7, 4]);
+  assert.ok(moved);
+  assert.deepEqual(moved.positions.get(0), [7, 4]);
+  assert.notEqual(moved.facings.get(0), 'e');
+  assert.equal(postFacingIssue(catalog, {
+    ...posts[0], at: moved.positions.get(0)!, facing: moved.facings.get(0)!,
+  }), null);
 });
 
 test('selection rotation is all-or-nothing when a facing would hit a wall', () => {
