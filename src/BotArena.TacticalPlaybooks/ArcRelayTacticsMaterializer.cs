@@ -965,7 +965,7 @@ internal static class ArcRelayTacticsMaterializer
             {
                 leaves.Add(GroupLeaf(scope, "heal", () => new Node
                 {
-                    When = Expr.One(Hurt()),
+                    When = Expr.All(EmptyHanded(), Hurt()),
                     Until = Expr.One(Healthy()),
                     Timeout = 16,
                     Cooldown = 18,
@@ -983,7 +983,7 @@ internal static class ArcRelayTacticsMaterializer
                 // (90/98) let a bot at 92% block a 95% gate forever.
                 leaves.Add(GroupLeaf(scope, "heal-up", () => new Node
                 {
-                    When = Expr.One(Condition(
+                    When = Expr.All(EmptyHanded(), Condition(
                         new ConditionShape(
                             "self-health-percent", "at-most", 99),
                         "below-topped-up")),
@@ -1003,7 +1003,7 @@ internal static class ArcRelayTacticsMaterializer
             {
                 leaves.Add(GroupLeaf(scope, "patch", () => new Node
                 {
-                    When = Expr.One(Hurt()),
+                    When = Expr.All(EmptyHanded(), Hurt()),
                     Until = Expr.One(Condition(
                         new ConditionShape("self-health-percent", "at-least", 60),
                         "patched-up")),

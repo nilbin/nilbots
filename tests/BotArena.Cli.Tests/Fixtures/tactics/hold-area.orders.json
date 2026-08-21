@@ -848,7 +848,12 @@
       }
     },
     "t1-p1-g1-heal": {
-      "when": "hurt",
+      "when": {
+        "all": [
+          "empty-handed",
+          "hurt"
+        ]
+      },
       "until": "healthy",
       "timeout": 16,
       "cooldown": 18,

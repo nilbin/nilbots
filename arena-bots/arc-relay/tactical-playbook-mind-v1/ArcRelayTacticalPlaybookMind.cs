@@ -55,7 +55,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     // "t1/p2 " pair, plus a "!marker " on transition/abort/select ticks.
     // Empty on legacy (no-program) sheets so their reasons stay byte-stable.
     private string _programPrefix = "";
-    private readonly CustodyLatch _custodyLatch = new();
+    private CustodyLatch _custodyLatch = new(teamId: 0);
 
     /// <summary>The attribution prefix for one body: a latched carrier
     /// reports the phase that began its carry (that is whose leaves it is
@@ -82,6 +82,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         _contract = start.Contract;
         _teamId = start.TeamId;
+        _custodyLatch = new CustodyLatch(_teamId);
         _evidence.Reset();
         _activeFights = [];
         if (start.Contract.ModeMapBinding is not
@@ -183,13 +184,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     : $"{program.TacticId}/{program.PhaseId}")
                 + (program.Marker is string marker ? $"!{marker}" : "")
                 + " ";
-        // Custody latches at pickup: each own carrier keeps the phase that
-        // began its carry lit for itself until the Core leaves its hands.
+        // Custody provenance is team-local and Core-local. The coordinator's
+        // pickup snapshot names the phase that owned the preceding world
+        // step, even when the pickup event also advances the squad this tick.
+        // Drop, pass, death and temporary enemy possession change only the
+        // active carrier; the public Well lifecycle resolves the provenance.
         _custodyLatch.Observe(
-            carried.Keys.Where(id => id.TeamId == _teamId).ToArray(),
-            program?.TacticId,
-            program?.PhaseId,
-            program?.CustodyGroups ?? []);
+            arc.VisibleCores.Select(core =>
+                    new CustodyLatch.CoreObservation(
+                        core.CoreId, core.CarrierActorId))
+                .ToArray(),
+            arc.Wells
+                .Where(well => well.OutstandingCoreId is not null)
+                .Select(well => well.OutstandingCoreId!)
+                .ToArray(),
+            program?.PickupTacticId,
+            program?.PickupPhaseId,
+            program?.PickupCustodyGroups ?? []);
 
         var proposalsByBody = new Dictionary<int, IReadOnlyList<Proposal>>();
         var eligibilityByBody = new Dictionary<int, string?>();

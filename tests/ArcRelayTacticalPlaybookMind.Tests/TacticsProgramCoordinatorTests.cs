@@ -56,6 +56,26 @@ public sealed class TacticsProgramCoordinatorTests
     }
 
     [Fact]
+    public void PickupSnapshotNamesThePhaseBeforeThisTicksTransition()
+    {
+        var coordinator = new TacticsProgramCoordinator(Program(Tactic(
+            "t1",
+            null,
+            new OrdersPackage.ProgramPhase(
+                "p1", "p1", [Go("next", "picked")], [[3, 4]]),
+            new OrdersPackage.ProgramPhase(
+                "p2", "p2", [], [[5, 6]]))));
+        Step(coordinator, 0);
+        _facts.Add("picked");
+
+        TacticsProgramCoordinator.View view = Step(coordinator, 1);
+
+        Assert.Equal("p2", view.PhaseId);
+        Assert.Equal("p1", view.PickupPhaseId);
+        Assert.Equal([3, 4], Assert.Single(view.PickupCustodyGroups));
+    }
+
+    [Fact]
     public void MomentaryConditionLossNeverReversesAPhase()
     {
         var coordinator = new TacticsProgramCoordinator(Program(Tactic(

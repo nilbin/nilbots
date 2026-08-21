@@ -39,6 +39,8 @@ internal sealed class TacticsProgramCoordinator
             OrderTreeRuntime.ConditionEvaluation> evaluate)
     {
         var events = new List<string>();
+        OrdersPackage.ProgramTactic? pickupTactic = _active;
+        int pickupPhaseIndex = _phaseIndex;
 
         bool CaseTrue(OrdersPackage.ProgramCase value, int anchorTicks) =>
             (value.All is null || evaluate(value.All, anchorTicks).Value)
@@ -92,7 +94,16 @@ internal sealed class TacticsProgramCoordinator
         }
 
         if (_active is null)
+        {
             Select();
+            // A pickup that selects a previously idle Tactic belongs to its
+            // newly entered first phase. For a running Tactic, the snapshot
+            // above deliberately remains the phase active before this tick's
+            // transition/abort evaluation: the pickup event caused by the
+            // preceding world step happened under that phase.
+            pickupTactic = _active;
+            pickupPhaseIndex = _phaseIndex;
+        }
         // A tactic selected this very tick starts executing now, but its
         // clocks and transitions wait for the next tick — one transition
         // per tick, and never on the entry tick.
@@ -155,7 +166,14 @@ internal sealed class TacticsProgramCoordinator
             events.Count == 0 ? null : string.Join("+", events),
             _active is null
                 ? []
-                : _active.Phases[_phaseIndex].CustodyGroups);
+                : _active.Phases[_phaseIndex].CustodyGroups,
+            pickupTactic?.Id,
+            pickupTactic is null
+                ? null
+                : pickupTactic.Phases[pickupPhaseIndex].Id,
+            pickupTactic is null
+                ? []
+                : pickupTactic.Phases[pickupPhaseIndex].CustodyGroups);
     }
 
     /// <summary>What the mind needs each tick: which tags are lit, the
@@ -167,5 +185,8 @@ internal sealed class TacticsProgramCoordinator
         string? PhaseId,
         int PhaseTicks,
         string? Marker,
-        int[][] CustodyGroups);
+        int[][] CustodyGroups,
+        string? PickupTacticId,
+        string? PickupPhaseId,
+        int[][] PickupCustodyGroups);
 }

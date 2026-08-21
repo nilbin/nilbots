@@ -513,10 +513,12 @@ public sealed class ArcRelayTacticsMaterializerTests
         // heal-up: any damage at all sends the bot to heal (≤99) and it
         // stays until completely full (≥100), so EVERY selectable healed
         // gate 1..100 is eventually satisfiable — including the 91, 98 and
-        // 100 boundaries a 90/98 band would deadlock on.
+        // 100 boundaries a 90/98 band would deadlock on. Carrying is an
+        // explicit veto: custody bodies stay on their delivery/screen task.
         JsonElement healUp = shared.GetProperty("t1-p1-g1-heal-up");
-        Assert.Equal("below-topped-up",
-            healUp.GetProperty("when").GetString());
+        string[] healWhen = healUp.GetProperty("when").GetProperty("all")
+            .EnumerateArray().Select(entry => entry.GetString()!).ToArray();
+        Assert.Equal(["empty-handed", "below-topped-up"], healWhen);
         Assert.Equal("topped-up", healUp.GetProperty("until").GetString());
         // "Nearest" heal is nearest to the PHASE'S ground, not to the bot:
         // the move anchors on the guards' posts footprint (zone ids intern

@@ -1,65 +1,109 @@
 using BotArena.Sdk;
 
 /// <summary>
-/// Custody latches at pickup (owner ruling, DECISIONS #348): a body that
-/// takes a Core while a program phase is active finishes that carry under
-/// the phase that began it — the pickup phase's tags stay lit for the
-/// carrier and that phase Group's potential escorts after the squad
-/// advances, so its custody leaves (bank plan, drawn way home, escort
-/// arrangement) outrank the new phase's in tree order. The latch dissolves
-/// the moment the Core leaves its hands: bank,
-/// drop, death, or pass (the catcher latches fresh at ITS current phase).
-/// Squad-level phase progress is untouched — only the carrier's own view
-/// of which subtrees are lit widens.
+/// Team-local custody provenance for Tactics sheets. The first friendly
+/// pickup binds one stable Core identity to the Tactic phase that owned that
+/// pickup. Possession may then move, disappear, or become hostile without
+/// rewriting the binding. A banked/replaced Core is the only normal end of
+/// that provenance.
+///
+/// The squad coordinator still advances normally. This class only widens the
+/// enabled tag set for the Core's current friendly carrier and the pickup
+/// phase's authored escort group, so ordinary phase Instructions remain the
+/// sole executor priority system.
 /// </summary>
-internal sealed class CustodyLatch
+internal sealed class CustodyLatch(int teamId)
 {
+    internal sealed record CoreObservation(
+        GenericActorContext.ArcRelayCoreId CoreId,
+        ActorIdentity? Carrier);
+
     internal sealed record Latch(
-        ActorIdentity Carrier,
+        GenericActorContext.ArcRelayCoreId CoreId,
+        int TeamId,
+        ActorIdentity? Carrier,
         string TacticTag,
         string PhaseTag,
-        int[] ClaimedUnits);
+        int[] EscortUnits);
 
-    private readonly Dictionary<int, Latch> _byUnit = new();
+    private readonly Dictionary<GenericActorContext.ArcRelayCoreId, Latch>
+        _byCore = [];
 
-    /// <summary>Track this tick's own-team carriers against the active
-    /// program pair. A latch survives exactly as long as the same life
-    /// keeps carrying; no active phase latches nothing.</summary>
+    /// <summary>
+    /// Reconcile public Core lifecycle and currently visible possession.
+    /// Missing visibility never clears provenance. A new own carrier binds
+    /// only when this team has not previously seen that Core in custody.
+    /// </summary>
     public void Observe(
-        IReadOnlyCollection<ActorIdentity> carriers,
-        string? tacticId,
-        string? phaseId,
-        IReadOnlyList<int[]>? custodyGroups = null)
+        IReadOnlyCollection<CoreObservation> visibleCores,
+        IReadOnlyCollection<GenericActorContext.ArcRelayCoreId>
+            outstandingCores,
+        string? pickupTacticId,
+        string? pickupPhaseId,
+        IReadOnlyList<int[]>? pickupCustodyGroups = null)
     {
-        foreach (int unit in _byUnit.Keys.ToArray())
+        var outstanding = outstandingCores.ToHashSet();
+        foreach (GenericActorContext.ArcRelayCoreId coreId in
+                 _byCore.Keys.Where(core => !outstanding.Contains(core))
+                     .ToArray())
         {
-            if (!carriers.Contains(_byUnit[unit].Carrier))
-                _byUnit.Remove(unit);
+            _byCore.Remove(coreId);
         }
-        if (tacticId is null || phaseId is null)
-            return;
-        foreach (ActorIdentity carrier in carriers)
+
+        foreach (CoreObservation observed in visibleCores)
         {
-            if (!_byUnit.ContainsKey(carrier.UnitId))
+            ActorIdentity? ownCarrier = observed.Carrier is ActorIdentity carrier
+                && carrier.TeamId == teamId
+                    ? carrier
+                    : null;
+            if (_byCore.TryGetValue(observed.CoreId, out Latch? existing))
             {
-                int[] claimed = (custodyGroups ?? []).FirstOrDefault(group =>
-                        group.Contains(carrier.UnitId))
-                    ?? [carrier.UnitId];
-                _byUnit[carrier.UnitId] = new Latch(
-                    carrier, tacticId, $"{tacticId}/{phaseId}", claimed);
+                _byCore[observed.CoreId] = existing with
+                {
+                    Carrier = ownCarrier,
+                };
+                continue;
             }
+            if (ownCarrier is null
+                || pickupTacticId is null
+                || pickupPhaseId is null)
+            {
+                continue;
+            }
+
+            int[] escorts = (pickupCustodyGroups ?? [])
+                .FirstOrDefault(group => group.Contains(ownCarrier.UnitId))
+                ?.Where(unit => unit != ownCarrier.UnitId)
+                .ToArray()
+                ?? [];
+            _byCore[observed.CoreId] = new Latch(
+                observed.CoreId,
+                teamId,
+                ownCarrier,
+                pickupTacticId,
+                $"{pickupTacticId}/{pickupPhaseId}",
+                escorts);
         }
     }
 
+    /// <summary>
+    /// Own carried Core wins over an escort claim. With several escortable
+    /// Cores, stable Core identity orders the result instead of observation
+    /// or dictionary order.
+    /// </summary>
     public Latch? For(int unitId) =>
-        _byUnit.GetValueOrDefault(unitId)
-        ?? _byUnit.OrderBy(pair => pair.Key)
-            .Select(pair => pair.Value)
-            .FirstOrDefault(latch => latch.ClaimedUnits.Contains(unitId));
+        Active().FirstOrDefault(latch => latch.Carrier!.UnitId == unitId)
+        ?? Active().FirstOrDefault(latch =>
+            latch.EscortUnits.Contains(unitId));
 
-    /// <summary>This body's enabled set: the squad's tags plus its own
-    /// latched carry tags. Null (a legacy sheet with no program) stays
-    /// null, and the untouched squad set is returned whenever the latch
+    private IEnumerable<Latch> Active() => _byCore.Values
+        .Where(latch => latch.Carrier is not null)
+        .OrderBy(latch => latch.CoreId.SourceWellId, StringComparer.Ordinal)
+        .ThenBy(latch => latch.CoreId.SourceOrdinal);
+
+    /// <summary>This body's enabled set: the squad's tags plus its active
+    /// Core's pinned pickup-phase tags. Null (a legacy sheet with no program)
+    /// stays null, and the untouched squad set is returned whenever custody
     /// adds nothing.</summary>
     public IReadOnlySet<string>? Augment(
         int unitId,

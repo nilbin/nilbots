@@ -880,7 +880,12 @@
       }
     },
     "t1-p1-g1-patch": {
-      "when": "hurt",
+      "when": {
+        "all": [
+          "empty-handed",
+          "hurt"
+        ]
+      },
       "until": "patched-up",
       "timeout": 24,
       "cooldown": 24,
@@ -944,7 +949,12 @@
       }
     },
     "t1-p1-g2-patch": {
-      "when": "hurt",
+      "when": {
+        "all": [
+          "empty-handed",
+          "hurt"
+        ]
+      },
       "until": "patched-up",
       "timeout": 24,
       "cooldown": 24,
@@ -986,7 +996,12 @@
       }
     },
     "t1-p2-g2-patch": {
-      "when": "hurt",
+      "when": {
+        "all": [
+          "empty-handed",
+          "hurt"
+        ]
+      },
       "until": "patched-up",
       "timeout": 24,
       "cooldown": 24,

@@ -284,6 +284,18 @@ public sealed class TacticsEncodingLifecycleTests
         Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(5));
     }
 
+    [Fact]
+    public void ACarrierStaysOnItsCustodyTaskInsteadOfSeekingRecovery()
+    {
+        Harness harness = Harness.ForRole("vex", tactics => MutateFlankerStage(
+            tactics, posture: "observe", travel: "observe",
+            recovery: "heal-tile"));
+        harness.World.Hurt = _ => true;
+        harness.World.Carrying = _ => true;
+
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(4));
+    }
+
     private static string MutateFlankerStage(
         string tactics,
         string posture,
