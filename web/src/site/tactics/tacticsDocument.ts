@@ -163,9 +163,10 @@ export interface TacticPhaseDef {
   jobs: Record<string, TacticJob>;
   /** Absent/empty on the final phase = the operation holds there forever. */
   continue?: TacticTransition[];
-  /** This phase's Core custody override; absent = the Tactic's delivery
-   * plan. 'keep' holds the Core in hand — bank it in a later phase. Via
-   * is the drawn carrier route home. */
+  /** Policy bound to a Core first acquired in this phase; absent = the
+   * Tactic's delivery plan. The Core keeps this policy through later phase
+   * changes. 'keep' holds it on this phase's job. Via is the drawn carrier
+   * route home. */
   custody?: { plan: CustodyPlan; via?: Point[] };
 }
 

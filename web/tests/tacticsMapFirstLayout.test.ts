@@ -128,10 +128,11 @@ test('condition authoring shows configured rows before its categorized picker', 
   assert.doesNotMatch(conditions, /Triggered by — any may fire/);
 });
 
-test('Core behavior distinguishes tactic defaults from an explicit phase override', () => {
+test('Core behavior distinguishes tactic defaults from pickup-phase policy', () => {
   assert.match(steps, /Whole Tactic/);
   assert.match(steps, /Tactic-wide delivery default/);
-  assert.match(steps, /This phase only/);
-  assert.match(steps, /Change for this phase/);
+  assert.match(steps, /Cores acquired here/);
+  assert.match(steps, /Set pickup policy/);
+  assert.match(steps, /Later phase policies do not replace it/);
   assert.match(page, /mapFirstPanel\.kind === 'cores' \? 'Core behavior'/);
 });

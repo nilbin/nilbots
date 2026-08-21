@@ -2096,9 +2096,11 @@ public sealed class GenericActorMatchSession : IDisposable
                         (ArcRelaySignatureDefinition.FallingStar)
                             mode.Signatures.DefinitionFor(star.Owner);
                     foreach (LifeState target in _lives.Values
-                                 .Where(value => IsFallingStarTile(
-                                     value.Position,
-                                     star.Target))
+                                 .Where(value =>
+                                     value.ActorId.TeamId != star.Owner.TeamId
+                                     && IsFallingStarTile(
+                                         value.Position,
+                                         star.Target))
                                  .OrderBy(value => value.ActorId)
                                  .ToArray())
                     {

@@ -78,6 +78,92 @@ public sealed class ArcRelaySignatureActivationTimingTests
             core.Disposition == ArcRelayCoreState.CoreDisposition.Loose);
     }
 
+    [Fact]
+    public void FallingStarDamagesTheHostileCrossAndNeverItsOwnTeam()
+    {
+        ActorResolvedMatchDefinition definition = Definition(
+            fallingStarScene: true);
+        ActorActionDefinition wait = definition.Rules.Actions.Single(value =>
+            value.Kind == ActorActionKind.Wait);
+        Position target = new(2, 5);
+        bool declared = false;
+        Dictionary<int, GenericMindSessionTestFixture.RecordingMindFactory>
+            factories = GenericMindSessionTestFixture.Factories(
+                definition,
+                (start, observation) => new GenericMindRuntimeDecisions(
+                [
+                    .. observation.Bodies.Select(body =>
+                    {
+                        GenericActorRuntimeActionLegality? star =
+                            start.TeamId == 0
+                            && body.ActorId.UnitId == 6
+                            && !declared
+                                ? body.ActionLegalities.FirstOrDefault(value =>
+                                    value.ActionId == "falling-star"
+                                    && value.Available)
+                                : null;
+                        if (star is not null)
+                        {
+                            Assert.Contains(
+                                target,
+                                star.Constraints.OfType<
+                                        GenericActorRuntimeActionLegality
+                                            .ArgumentConstraint
+                                            .PositionTargetConstraint>()
+                                    .Single().AllowedValues);
+                            declared = true;
+                            return NewCommand(
+                                body,
+                                star.ActionId,
+                                star.ActionCode,
+                                [new GenericActorRuntimeActionArgument
+                                    .PositionTargetArgument(target)]);
+                        }
+                        return NewCommand(body, wait.Id, wait.Code, []);
+                    }),
+                ]));
+        using var session = new GenericActorMatchSession(
+            definition,
+            GenericMindSessionTestFixture.Configurations(definition, factories),
+            matchSeed: 20_260_821UL);
+
+        var damage = new List<ArcRelayEvent.SignatureDamage>();
+        bool completed = false;
+        for (int tick = 0; tick < 8 && !completed; tick++)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            IEnumerable<GenericActorAuthoritativeEvent> events =
+                (step.AuthoritativeTickStart?.Events ?? [])
+                    .Concat(step.AuthoritativeEvents);
+            foreach (GenericActorAuthoritativeEvent item in events)
+            {
+                if (item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.ArcRelay
+                    {
+                        Fact: ArcRelayEvent.SignatureDamage hit,
+                    })
+                {
+                    damage.Add(hit);
+                }
+                completed |= item.Payload is
+                    GenericActorRuntimeObservation.EventPayload.ArcRelay
+                    {
+                        Fact: ArcRelayEvent.SignatureChanged
+                        {
+                            SignatureId: "falling-star",
+                            Reason: "completed",
+                        },
+                    };
+            }
+        }
+
+        Assert.True(declared);
+        Assert.True(completed);
+        Assert.Contains(damage, hit =>
+            hit.TargetActorId.TeamId == 1 && hit.TargetActorId.UnitId == 0);
+        Assert.DoesNotContain(damage, hit => hit.TargetActorId.TeamId == 0);
+    }
+
     private static SceneResult Run(bool lethalVolley)
     {
         ActorResolvedMatchDefinition definition = Definition();
@@ -234,7 +320,8 @@ public sealed class ArcRelaySignatureActivationTimingTests
             _ => throw new InvalidOperationException("Bodies overlap."),
         };
 
-    private static ActorResolvedMatchDefinition Definition()
+    private static ActorResolvedMatchDefinition Definition(
+        bool fallingStarScene = false)
     {
         string[] teamZeroClasses =
         [
@@ -266,7 +353,8 @@ public sealed class ArcRelaySignatureActivationTimingTests
         ];
         Position[] teamOne =
         [
-            new(9, 3), new(10, 3), new(11, 3), new(9, 4),
+            fallingStarScene ? new(3, 5) : new(9, 3),
+            new(10, 3), new(11, 3), new(9, 4),
             new(11, 4), new(9, 5), new(10, 5), new(11, 5),
         ];
 

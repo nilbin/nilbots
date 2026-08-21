@@ -442,10 +442,10 @@ from <code>ArcRelaySignatureBehaviors.cs</code> and <code>ArcRelaySignatureRunti
 </tr>
 <tr>
 <td><strong>Mortar</strong> · 30 · deliberate · medium 4</td>
-<td><strong>Falling Star:</strong> visible target within range 8, 2-tick tell, cross/plus footprint of five tiles, 10 damage, cooldown 12 from start in runtime. It damages every body in the footprint, including allies, and hostile deployments.</td>
-<td>Exact point marks compile on <code>signature-ready</code> alone. They can fire at an empty authored point merely because a default target exists elsewhere, and Fight is higher priority. No friendly-fire preview exists.</td>
-<td>Smart: cast on at least two enemies, a high-value stationary carrier, or a valuable hostile deployment, with <strong>zero allies</strong> in the projected cross; target must be occupied/recently confirmed and inside active Tactic geometry. <strong>Prefer/Only</strong> uses points or small target zones and always renders the cross plus tell time.</td>
-<td>Good area-denial skill, but friendly fire and cooldown metadata must be made explicit. <code>TimingFor(FallingStar)</code> reports completion while runtime starts cooldown at activation—reconcile before relying on catalog timing.</td>
+<td><strong>Falling Star:</strong> visible target within range 8, 2-tick tell, cross/plus footprint of five tiles, 10 damage, cooldown 12 from start in runtime. It damages hostile bodies and hostile deployments in the footprint; allied bodies are immune.</td>
+<td>Exact point marks compile on <code>signature-ready</code> alone. They can fire at an empty authored point merely because a default target exists elsewhere, and Fight is higher priority.</td>
+<td>Smart: cast on enemy value in the projected cross; target must be occupied/recently confirmed and inside active Tactic geometry. <strong>Prefer/Only</strong> uses points or small target zones and always renders the cross plus tell time.</td>
+<td>Good area-denial skill. <code>TimingFor(FallingStar)</code> reports completion while runtime starts cooldown at activation—reconcile before relying on catalog timing.</td>
 </tr>
 <tr>
 <td><strong>Minesmith</strong> · 40 · standard · short 3</td>
@@ -558,7 +558,7 @@ conditioned on its drawn stand position (<code>ArcRelayTacticsMaterializer.cs: 1
 <li>Survey Flare is anti-smoke, not independent reveal.</li>
 <li>Kinetic Burst currently pushes and does no damage.</li>
 <li>Sentinel can select enemies without team-visible contact.</li>
-<li>Falling Star applies to allied bodies too.</li>
+<li>Falling Star ignores allied bodies, matching the rest of the signature band.</li>
 <li>Exchange drops the targeted ally&#39;s Core but lets the casting Switchback
 transport its own Core through the swap.</li>
 <li>Falling Star&#39;s catalog timing says completion-anchored cooldown while its
@@ -842,8 +842,8 @@ opportunities before ordinary Fight; keep Relay inside custody and Kestrel
 empty-handed/route-bound.</li>
 <li>Fix Longshot&#39;s on-station gate and show firing post/aim/range/team-vision
 requirements.</li>
-<li>Reconcile Falling Star cooldown metadata/runtime, decide/document its
-friendly fire, decide/document Exchange Core asymmetry, and decide Sentinel
+<li>Reconcile Falling Star cooldown metadata/runtime, preserve its documented
+allied immunity, decide/document Exchange Core asymmetry, and decide Sentinel
 vision ownership.</li>
 <li>Make Survey Flare copy and Smart predicate match anti-smoke reality, or
 version it into a real sensor before advertising reveal.</li>
@@ -971,8 +971,8 @@ variant separately.</li>
 <li><strong>Sentinel perception:</strong> require existing team contact, or give the seed an
 explicit projected sensor? The recommendation for alpha is team contact;
 an autonomous sensor is a larger vision/balance feature.</li>
-<li><strong>Falling Star friendly fire:</strong> retain as skill expression with strong
-preview, or spare allies for consistency? Do not leave it accidental.</li>
+<li><strong>Falling Star friendly fire:</strong> resolved by owner decision; allied bodies
+are immune, and the editor still previews the hostile cross and tell.</li>
 <li><strong>Exchange and Cores:</strong> retain “caster transports, target drops,” or make
 both sides drop? The current asymmetry is strategically interesting but
 surprising.</li>

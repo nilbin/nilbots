@@ -9519,3 +9519,18 @@ Focused deterministic proof pins front, flank and allied fire; Rail breakpoints;
 body-overlap deactivation; movement/turn attachment; suppression; expiry;
 owner death; cooldown; canonical SDK projection; and historical compatibility.
 Authored route-segment defaults and broader population play remain follow-up.
+
+## 357. Falling Star follows Arc Relay's allied-immunity rule
+
+Owner consistency ruling (2026-08-21): Falling Star no longer damages allied
+bodies. Rail, Sentinel fire, ordinary projectiles, and the rest of the current
+signature band already spare their own team; Mortar should not carry a lone
+hidden exception. The five-tile cross, 10 hostile damage, two-tick tell,
+cooldown, and damage to hostile deployments are unchanged.
+
+The Tactics opportunity gate now asks only whether the authored cross contains
+an enemy. It no longer refuses a useful cast merely because an ally also
+occupies the footprint. Catalog copy and the map-first design reports state the
+same rule. A deterministic engine scene places the Mortar and an ally in the
+same cross as an enemy and pins hostile damage with zero allied signature
+damage.

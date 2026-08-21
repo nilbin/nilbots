@@ -1754,9 +1754,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     || RejectSignatureOpportunity(
                         use, "no-hostile-smoke-at-mark", out decline);
             case "strike-occupied-anchor":
-                if (mind.Bodies.Any(ally => CrossDistance(ally.Position, place) <= 1))
-                    return RejectSignatureOpportunity(
-                        use, "ally-in-cross", out decline);
                 return mind.Enemies.Any(enemy => CrossDistance(enemy.Position, place) <= 1)
                     || RejectSignatureOpportunity(
                         use, "no-enemy-in-cross", out decline);

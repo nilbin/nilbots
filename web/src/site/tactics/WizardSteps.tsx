@@ -490,11 +490,11 @@ export function PhaseCustodyEditor(props: StepProps & { phaseIndex: number }) {
       style={{ borderLeft: '3px solid #b49cff' }}>
       <div className="mb-1 flex items-start gap-2">
         <div className="grow">
-          <div className="lab mb-0.5">This phase only · {phase.name}</div>
-          <b className="t-body">Delivery override</b>
+          <div className="lab mb-0.5">Cores acquired here · {phase.name}</div>
+          <b className="t-body">Custody policy</b>
         </div>
         {!showOverrideEditor && <button type="button" className="btn !min-h-7"
-          onClick={() => setEditingOverridePhaseId(phase.id)}>Change for this phase</button>}
+          onClick={() => setEditingOverridePhaseId(phase.id)}>Set pickup policy</button>}
       </div>
       {!showOverrideEditor
         ? <p className="t-micro text-arena-dim">Uses the Tactic default: {{
@@ -534,7 +534,7 @@ export function PhaseCustodyEditor(props: StepProps & { phaseIndex: number }) {
           }[tactic.delivery.plan] ?? '',
           solo: 'A carrier breaks off and runs the Core home alone.',
           escort: 'The carrier’s group screens the run home.',
-          keep: 'Hold the Core in hand and stay on the job — bank it in a later phase.',
+          keep: 'Hold the Core in hand and stay on this phase’s job. Later phase policies do not replace it.',
         }[phase.custody?.plan ?? 'same']}
       </p>
       {phase.custody && phase.custody.plan !== 'keep' && (
@@ -1058,7 +1058,7 @@ function DeliverCoreSuggestion({ tactic, change }: {
   return (
     <div className="panel-quiet pad">
       <div className="t-body mb-1 font-semibold">Your tactic may finish while carrying a Core.</div>
-      <p className="t-micro text-arena-dim">Core custody is temporary inside the active phase. Add a delivery plan here so the carrier banks, then survivors resume this same phase.</p>
+      <p className="t-micro text-arena-dim">A Core keeps the custody policy of the phase where it was picked up, even after the squad advances. Add a delivery plan here so that policy can bank it; otherwise the carrier keeps doing the pickup phase’s job.</p>
       <div className="mt-2 flex flex-wrap gap-1.5">
         <button type="button" className="btn btn-secondary"
           onClick={() => change((next) => { next.delivery.plan = 'escort'; })}>

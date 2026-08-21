@@ -41,6 +41,7 @@ public enum ArcRelaySignatureCommitmentBehavior
 /// needs a skill-id switch.</summary>
 public enum ArcRelaySignatureOpportunityBehavior
 {
+    Unspecified,
     RouteForward,
     ScreenThreatenedLane,
     PullEnemyCarrier,
@@ -216,7 +217,7 @@ public static class ArcRelaySignatureAuthoringCatalog
                 guidanceGeometry: ArcRelaySignatureGuidanceGeometry.Points,
                 guidanceMarkLimit: 2,
                 preset: Preset("punish-staging-area", "Punish a staged area",
-                    "Call Falling Star onto an occupied cross; allies in that cross would be hit too.",
+                    "Call Falling Star onto an enemy-occupied cross without harming allies.",
                     ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("minesmith", "trip-node", BroadTargets,
                 ArcRelaySignatureTargetCapability.ExactAnchor,
@@ -332,6 +333,13 @@ public static class ArcRelaySignatureAuthoringCatalog
             throw new InvalidOperationException(
                 "Signature guidance geometry and mark limits disagree.");
         }
+        if (All.Any(value =>
+                value.Opportunity
+                    == ArcRelaySignatureOpportunityBehavior.Unspecified))
+        {
+            throw new InvalidOperationException(
+                "Every signature must declare an opportunity behavior.");
+        }
     }
 
     public static IReadOnlyList<ArcRelaySignatureAuthoringDescriptor> All
@@ -400,7 +408,7 @@ public static class ArcRelaySignatureAuthoringCatalog
         ArcRelaySignatureCommitmentBehavior commitment =
             ArcRelaySignatureCommitmentBehavior.ContinueNormally,
         ArcRelaySignatureOpportunityBehavior opportunity =
-            ArcRelaySignatureOpportunityBehavior.RailVisibleEnemy,
+            ArcRelaySignatureOpportunityBehavior.Unspecified,
         ArcRelaySignatureCustodyBehavior custody =
             ArcRelaySignatureCustodyBehavior.BlockedWhileCarrying,
         ArcRelaySignatureGuidanceGeometry guidanceGeometry =
