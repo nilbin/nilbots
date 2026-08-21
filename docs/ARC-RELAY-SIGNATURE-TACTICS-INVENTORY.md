@@ -59,10 +59,12 @@ explicit under one movement control model:
 | Rear-arc multiplier | 2x, before veteran bonus |
 | Durable deployment mode | on |
 
-All bodies still receive one action per tick. The `swift`, `standard` and
-`deliberate` movement profiles currently change **facing coupling**, not tiles
-per tick (`ArcRelayH0Definition.cs:675-687`). Any future real speed system is a
-new rule, not a fact the current smart behavior may assume.
+All bodies still receive one decision opportunity per tick, but accepted
+one-tile movement is cadence-gated: swift moves every tick, standard moves on
+four of every five ticks, and deliberate moves on two of every three. Closed
+movement opportunities do not bank. Every chassis now uses Combat Strafe, so
+signature Smart behavior may rely on the public cadence while still treating
+each accepted move as exactly one adjacent tile.
 
 The current launch hulls are `30`, `40`, or `50`; repair, damage and deployment
 hull values are in the same 10x magnitude. Signature numbers come from

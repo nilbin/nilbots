@@ -1,0 +1,524 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Movement rates · Arc Relay design reports</title>
+  <style>
+  :root {
+    color-scheme: dark;
+    --paper: #0d1116;
+    --panel: #131a21;
+    --panel-raised: #19232c;
+    --ink: #e9eef2;
+    --muted: #9ba9b4;
+    --line: #2b3740;
+    --line-bright: #3b4b57;
+    --copper: #d37c43;
+    --copper-bright: #f09a5d;
+    --cyan: #72d2d4;
+    --green: #93d8a0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 82% -10%, rgba(211, 124, 67, .13), transparent 31rem),
+      linear-gradient(180deg, #10161c 0, var(--paper) 30rem);
+  }
+  a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: #a4f2f2; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 58px;
+    padding: 9px clamp(16px, 3vw, 38px);
+    border-bottom: 1px solid rgba(59, 75, 87, .75);
+    background: rgba(13, 17, 22, .88);
+    backdrop-filter: blur(18px);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--ink);
+    font-weight: 760;
+    letter-spacing: -.02em;
+    text-decoration: none;
+  }
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--copper);
+    color: #160e09;
+    font-weight: 950;
+  }
+  .report-nav { display: flex; align-items: center; gap: 5px; }
+  .report-link {
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--muted);
+    font-size: .84rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .report-link:hover, .report-link.active { background: var(--panel-raised); color: var(--ink); }
+  .page-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    gap: clamp(30px, 5vw, 68px);
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: clamp(32px, 6vw, 76px) clamp(18px, 4vw, 60px) 110px;
+  }
+  main { min-width: 0; max-width: 1080px; }
+  .hero { margin-bottom: 46px; }
+  .eyebrow {
+    margin: 0 0 13px;
+    color: var(--copper-bright);
+    font: 800 .75rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .16em;
+  }
+  h1 {
+    max-width: 900px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2.15rem, 5vw, 4.35rem);
+    line-height: .99;
+    letter-spacing: -.052em;
+  }
+  .lede {
+    max-width: 790px;
+    margin: 20px 0 0;
+    color: #bdc8d0;
+    font-size: clamp(1.02rem, 2vw, 1.23rem);
+    line-height: 1.56;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .stat {
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(25, 35, 44, .65);
+    color: #d1dbe1;
+    font: 700 .77rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .document > h1:first-child { display: none; }
+  .document h2, .document h3, .document h4 { position: relative; scroll-margin-top: 78px; }
+  .document h2 {
+    margin: 58px 0 17px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: #f8fafb;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -.025em;
+  }
+  .document h3 {
+    margin: 37px 0 13px;
+    color: #e7edf1;
+    font-size: 1.22rem;
+    line-height: 1.28;
+  }
+  .document h4 { margin: 29px 0 10px; color: #cad7df; font-size: 1.03rem; }
+  .heading-anchor {
+    position: absolute;
+    right: 100%;
+    margin-right: 9px;
+    color: var(--line-bright);
+    font-weight: 500;
+    opacity: 0;
+    text-decoration: none;
+  }
+  h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { opacity: 1; }
+  p, li { font-size: .98rem; line-height: 1.68; }
+  p { margin: 11px 0; }
+  li { margin: 7px 0; }
+  ul, ol { padding-left: 1.45rem; }
+  strong { color: #fff; }
+  code {
+    padding: .12em .36em;
+    border: 1px solid #35444f;
+    border-radius: 5px;
+    background: #17212a;
+    color: #bfecee;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font: .88em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    overflow-x: auto;
+    margin: 20px 0;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #0a0f13;
+  }
+  pre code { padding: 0; border: 0; background: none; color: #d3e8e9; }
+  blockquote {
+    margin: 20px 0;
+    padding: 7px 17px;
+    border-left: 3px solid var(--copper);
+    background: rgba(211, 124, 67, .07);
+    color: #cad3da;
+  }
+  .table-shell {
+    overflow: auto;
+    width: 100%;
+    margin: 20px 0 30px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(19, 26, 33, .7);
+    scrollbar-color: var(--line-bright) var(--panel);
+  }
+  table { width: 100%; min-width: 650px; border-collapse: collapse; }
+  th, td {
+    padding: 12px 14px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    font-size: .86rem;
+    line-height: 1.55;
+  }
+  th:last-child, td:last-child { border-right: 0; }
+  tr:last-child td { border-bottom: 0; }
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #202b34;
+    color: #fff;
+    font-size: .75rem;
+    letter-spacing: .025em;
+  }
+  tbody tr:nth-child(even) { background: rgba(255, 255, 255, .018); }
+  tbody tr:hover { background: rgba(114, 210, 212, .045); }
+  .document .table-shell:has(th:nth-child(5)) table { min-width: 1450px; }
+  aside { min-width: 0; }
+  .toc {
+    position: sticky;
+    top: 86px;
+    display: grid;
+    gap: 4px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-left: 17px;
+    border-left: 1px solid var(--line);
+  }
+  .toc-title {
+    margin: 0 0 8px;
+    color: var(--copper-bright);
+    font: 800 .69rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .14em;
+  }
+  .toc a {
+    padding: 5px 0;
+    color: #83929d;
+    font-size: .79rem;
+    line-height: 1.28;
+    text-decoration: none;
+  }
+  .toc a:hover, .toc a.current { color: #fff; }
+  .footer {
+    margin-top: 68px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: .79rem;
+  }
+  @media (max-width: 980px) {
+    .page-shell { display: block; max-width: 920px; }
+    aside { display: none; }
+  }
+  @media (max-width: 700px) {
+    .topbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+    .report-nav { width: 100%; overflow-x: auto; }
+    .report-link { white-space: nowrap; }
+    .page-shell { padding-top: 35px; }
+    .hero { margin-bottom: 34px; }
+    .heading-anchor { display: none; }
+    .table-shell { overflow: visible; border: 0; background: none; }
+    .document .table-shell table,
+    table, thead, tbody, tr, th, td { display: block; min-width: 0; width: 100%; }
+    .document .table-shell:has(th:nth-child(5)) table { min-width: 0; }
+    thead { display: none; }
+    tbody { display: grid; gap: 12px; }
+    tr {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    td {
+      display: grid;
+      grid-template-columns: minmax(105px, 34%) 1fr;
+      gap: 12px;
+      border-right: 0;
+      font-size: .84rem;
+    }
+    td::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font: 750 .68rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: .035em;
+    }
+    td:last-child { border-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">n</span><span>Arc Relay design reports</span></a>
+    <nav class="report-nav" aria-label="Reports"><a class="report-link" href="signature-skills.html">Signature skills</a><a class="report-link active" href="movement-rates.html">Movement rates</a></nav>
+  </header>
+  <div class="page-shell">
+    <main>
+      <header class="hero">
+        <p class="eyebrow">TAPLINE 11</p>
+        <h1>Movement rates</h1>
+        <p class="lede">The promoted chassis cadences, measured travel impact, carrier timing, and the bounded Mobile flank follow-up.</p>
+        <div class="stats"><span class="stat">Swift 1/1</span><span class="stat">Standard 4/5</span><span class="stat">Deliberate 2/3</span></div>
+      </header>
+      <article class="document"><h1>Arc Relay movement-rate design</h1>
+<p><strong>Status:</strong> Tapline-11 promoted mechanical baseline; combat mobility remains a
+reviewed follow-up.</p>
+<h2 id="verdict"><a class="heading-anchor" href="#verdict" aria-label="Link to Verdict">#</a>Verdict</h2>
+<p>Tapline-11 should make <code>swift</code>, <code>standard</code>, and <code>deliberate</code> honest movement
+rates instead of three unrelated handling exceptions:</p>
+<div class="table-shell"><table>
+<thead>
+<tr>
+<th>chassis</th>
+<th align="right">public move opportunities</th>
+<th align="right">rate</th>
+<th>facing while moving</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>swift</td>
+<td align="right">1 of every 1 tick</td>
+<td align="right">1.00</td>
+<td>Combat Strafe</td>
+</tr>
+<tr>
+<td>standard</td>
+<td align="right">4 of every 5 ticks</td>
+<td align="right">0.80</td>
+<td>Combat Strafe</td>
+</tr>
+<tr>
+<td>deliberate</td>
+<td align="right">2 of every 3 ticks</td>
+<td align="right">0.67</td>
+<td>Combat Strafe</td>
+</tr>
+</tbody></table></div>
+<p>Every accepted move is still one adjacent tile. Closed opportunities do not
+bank, so waiting cannot create a burst. Stable unit ID staggers closed ticks;
+an equal-rate squad does not visibly stop in lockstep. The rate is part of the
+canonical rules contract, SDK, replay wire, manifest, CLI output, and hosted
+playlist—not an unexplained executor heuristic.</p>
+<p>Combat Strafe is one control model for every chassis: forward and lateral
+travel can preserve aim, while rearward travel turns the body. Tapline-10 and
+older profiles retain their exact historic facing models and universal 1/1
+travel.</p>
+<p>The renderer still receives ordinary one-tile relocations. A missed movement
+opportunity is a stationary tick; it does not stretch one tile across several
+ticks, so per-tile animation remains brisk.</p>
+<h2 id="measured-travel-impact"><a class="heading-anchor" href="#measured-travel-impact" aria-label="Link to Measured travel impact">#</a>Measured travel impact</h2>
+<p>These are conservative terrain-only ticks for an arbitrary cadence phase.
+They exclude traffic, combat, signatures, and detours. <code>Carried</code> includes the
+existing Core-owned two-tick relocation gate in addition to chassis cadence.</p>
+<div class="table-shell"><table>
+<thead>
+<tr>
+<th align="right">route steps</th>
+<th align="right">swift empty / carried</th>
+<th align="right">standard empty / carried</th>
+<th align="right">deliberate empty / carried</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="right">12</td>
+<td align="right">12 / 24</td>
+<td align="right">15 / 30</td>
+<td align="right">18 / 36</td>
+</tr>
+<tr>
+<td align="right">19</td>
+<td align="right">19 / 38</td>
+<td align="right">24 / 48</td>
+<td align="right">29 / 57</td>
+</tr>
+<tr>
+<td align="right">22</td>
+<td align="right">22 / 44</td>
+<td align="right">28 / 55</td>
+<td align="right">33 / 66</td>
+</tr>
+<tr>
+<td align="right">29</td>
+<td align="right">29 / 58</td>
+<td align="right">37 / 73</td>
+<td align="right">44 / 87</td>
+</tr>
+<tr>
+<td align="right">31</td>
+<td align="right">31 / 62</td>
+<td align="right">39 / 78</td>
+<td align="right">47 / 93</td>
+</tr>
+<tr>
+<td align="right">41</td>
+<td align="right">41 / 82</td>
+<td align="right">52 / 103</td>
+<td align="right">62 / 123</td>
+</tr>
+<tr>
+<td align="right">58</td>
+<td align="right">58 / 116</td>
+<td align="right">73 / 145</td>
+<td align="right">87 / 174</td>
+</tr>
+</tbody></table></div>
+<p>The carrier gates compound rather than replace one another. This is simple and
+truthful, but it materially rewards swift logistics. It should be watched in
+playtests: Relay and other swift carriers may become the default for high-value
+returns, while deliberate carriers need escorts and shorter routes. Do not add
+a hidden carrier speed exception until that tradeoff has real match evidence.</p>
+<h3 id="600-tick-reachability"><a class="heading-anchor" href="#600-tick-reachability" aria-label="Link to 600-tick reachability">#</a>600-tick reachability</h3>
+<p>Tapline&#39;s enemy Well is 31 steps from the home reactor by the direct route and
+41 through Centre. Using the latest opening tick (56), the 46-tick source-local
+recharge, an empty outbound trip between banks, and three enemy-Well Cores (each
+worth 4 charge), conservative no-combat destruction times are:</p>
+<div class="table-shell"><table>
+<thead>
+<tr>
+<th>repeated enemy-Well route</th>
+<th align="right">swift</th>
+<th align="right">standard</th>
+<th align="right">deliberate</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>direct, 31 steps</td>
+<td align="right">334</td>
+<td align="right">382</td>
+<td align="right">429</td>
+</tr>
+<tr>
+<td>via Centre, 41 steps</td>
+<td align="right">394</td>
+<td align="right">469</td>
+<td align="right">549</td>
+</tr>
+<tr>
+<td>deliberate outer route, 58 steps</td>
+<td align="right">520</td>
+<td align="right">637</td>
+<td align="right">752</td>
+</tr>
+</tbody></table></div>
+<p>So every chassis can still end regulation inside 600 on both practical routes.
+The 58-step experiment is a viable three-bank plan only for swift travel; it is
+not a standard or deliberate solo win plan. Parallel Cores, Arc Toss, Dash,
+combat, denial, and traffic can change real outcomes. This is a reachability
+proof, not a balance verdict.</p>
+<h2 id="speed-aware-combat-movement"><a class="heading-anchor" href="#speed-aware-combat-movement" aria-label="Link to Speed-aware combat movement">#</a>Speed-aware combat movement</h2>
+<p>Do <strong>not</strong> make fast bots circle automatically. Rear hits deal 2x damage, while
+swift classes use the short gun&#39;s two-tick firing interval. A baseline rule of
+“shoot whenever ready, move only during reload” usually grants only one step
+before the next shot; arbitrary shot delay, on the other hand, risks making 2x
+rear damage the dominant autopilot. Both behaviors would hide a strategically
+important decision.</p>
+<p>A later explicit phase posture named <strong>Mobile flank</strong> is mechanically coherent:</p>
+<ul>
+<li>the player opts a Group into it for one Tactic phase;</li>
+<li>the phase&#39;s zone, route corridor, or posts are the hard movement leash;</li>
+<li>choose a stable left/right flank side when contact begins and keep it for the
+episode;</li>
+<li>allow at most two displacement steps from the episode anchor;</li>
+<li>every step must strictly improve a reachable rear-angle firing tile or return
+progress—never orbit, reverse, kite, or backtrack;</li>
+<li>authored posts/routes, Core custody, recovery, and higher-priority
+Instructions always win;</li>
+<li>stop repositioning when the gun is ready, the target is lost, the bot gains a
+Core, the phase changes, or the leash would be crossed;</li>
+<li>surface <code>repositioning</code>, <code>shot ready</code>, <code>no improving tile</code>, and <code>returning</code> in
+Practice diagnostics.</li>
+</ul>
+<p>An advanced preset could later permit sacrificing exactly one ready short-gun
+shot to seek the second flank step, but it must be explicit and visually
+disclosed. Slower bodies may eventually get a separate <strong>Screen advance</strong>
+preset that advances behind cover or holds between a protected ally and a
+threat; it should not be bundled into Mobile flank.</p>
+<p>The current executor can support this without a second scheduler: the Tactics
+compiler can emit ordinary bounded Fight/Move Instructions under the existing
+top-to-bottom priority and phase lifecycle. What is missing is a reviewed
+player-facing preset plus a small stable-side/episode fact in the existing
+fight continuation. That should be implemented only after the simple chassis
+rates have been played, because it is a tactical product choice rather than a
+movement legality requirement.</p>
+<h2 id="acceptance-boundary"><a class="heading-anchor" href="#acceptance-boundary" aria-label="Link to Acceptance boundary">#</a>Acceptance boundary</h2>
+<ul>
+<li>Implement now: canonical public cadence, unified Combat Strafe, immutable
+Tapline-11 and hosted playlist v28, historical compatibility, focused route
+and legality proofs.</li>
+<li>Defer: Mobile flank, Screen advance, class-specific combat AI, or any hidden
+kiting/circling policy.</li>
+<li>Balance follow-up: compare carrier class share, successful 4-charge returns,
+travel deaths, and decisive-tick distributions before tuning these rates.</li>
+</ul>
+</article>
+      <footer class="footer">Generated from <code>docs/ARC-RELAY-MOVEMENT-RATE-DESIGN.md</code>. The Markdown source remains canonical.</footer>
+    </main>
+    <aside aria-label="On this page">
+      <nav class="toc">
+        <p class="toc-title">ON THIS PAGE</p>
+        <a href="#verdict" data-section="verdict">Verdict</a><a href="#measured-travel-impact" data-section="measured-travel-impact">Measured travel impact</a><a href="#speed-aware-combat-movement" data-section="speed-aware-combat-movement">Speed-aware combat movement</a><a href="#acceptance-boundary" data-section="acceptance-boundary">Acceptance boundary</a>
+      </nav>
+    </aside>
+  </div>
+  <script>
+  document.querySelectorAll("table").forEach((table) => {
+    const labels = [...table.querySelectorAll("thead th")].map((cell) => cell.textContent.trim());
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      [...row.children].forEach((cell, index) => {
+        cell.dataset.label = labels[index] ?? "";
+      });
+    });
+  });
+
+  const links = [...document.querySelectorAll(".toc a[data-section]")];
+  const headings = links
+    .map((link) => document.getElementById(link.dataset.section))
+    .filter(Boolean);
+  if (links.length > 0 && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+      if (visible.length === 0) return;
+      links.forEach((link) => link.classList.toggle("current", link.dataset.section === visible[0].target.id));
+    }, { rootMargin: "-78px 0px -72% 0px" });
+    headings.forEach((heading) => observer.observe(heading));
+  }
+</script>
+</body>
+</html>

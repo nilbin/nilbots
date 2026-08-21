@@ -1,0 +1,515 @@
+#!/usr/bin/env node
+
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { marked } from "../web/node_modules/marked/lib/marked.esm.js";
+
+const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+const repositoryRoot = resolve(scriptDirectory, "..");
+const outputDirectory = resolve(
+  repositoryRoot,
+  "docs/arc-relay-design-reports",
+);
+
+const reports = [
+  {
+    source: "docs/ARC-RELAY-SIGNATURE-TACTICS-INVENTORY.md",
+    output: "signature-skills.html",
+    shortTitle: "Signature skills",
+    eyebrow: "TACTICAL AUTHORING",
+    description:
+      "All sixteen class signatures, their current behavior, recommended Smart defaults, map controls, and the moving Palisade shield candidate.",
+    stats: ["16 signatures", "4 skill policies", "1 shared instruction priority"],
+  },
+  {
+    source: "docs/ARC-RELAY-MOVEMENT-RATE-DESIGN.md",
+    output: "movement-rates.html",
+    shortTitle: "Movement rates",
+    eyebrow: "TAPLINE 11",
+    description:
+      "The promoted chassis cadences, measured travel impact, carrier timing, and the bounded Mobile flank follow-up.",
+    stats: ["Swift 1/1", "Standard 4/5", "Deliberate 2/3"],
+  },
+];
+
+marked.setOptions({
+  gfm: true,
+});
+
+function stripTags(value) {
+  return value
+    .replace(/<[^>]*>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function slugify(value, usedSlugs) {
+  const base = stripTags(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "section";
+  let slug = base;
+  let suffix = 2;
+  while (usedSlugs.has(slug)) {
+    slug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+  usedSlugs.add(slug);
+  return slug;
+}
+
+function decorateMarkdown(renderedMarkdown) {
+  const usedSlugs = new Set();
+  const sections = [];
+  let html = renderedMarkdown.replace(
+    /<h([2-4])>([\s\S]*?)<\/h\1>/g,
+    (_match, level, inner) => {
+      const slug = slugify(inner, usedSlugs);
+      if (level === "2") {
+        sections.push({ slug, title: stripTags(inner) });
+      }
+      return `<h${level} id="${slug}"><a class="heading-anchor" href="#${slug}" aria-label="Link to ${stripTags(inner)}">#</a>${inner}</h${level}>`;
+    },
+  );
+  html = html.replace(/<table>/g, '<div class="table-shell"><table>');
+  html = html.replace(/<\/table>/g, "</table></div>");
+  return { html, sections };
+}
+
+function siblingNavigation(activeOutput) {
+  return reports
+    .map(
+      (report) =>
+        `<a class="report-link${report.output === activeOutput ? " active" : ""}" href="${report.output}">${report.shortTitle}</a>`,
+    )
+    .join("");
+}
+
+function tableOfContents(sections) {
+  return sections
+    .map(
+      ({ slug, title }) =>
+        `<a href="#${slug}" data-section="${slug}">${title}</a>`,
+    )
+    .join("");
+}
+
+const commonStyles = String.raw`
+  :root {
+    color-scheme: dark;
+    --paper: #0d1116;
+    --panel: #131a21;
+    --panel-raised: #19232c;
+    --ink: #e9eef2;
+    --muted: #9ba9b4;
+    --line: #2b3740;
+    --line-bright: #3b4b57;
+    --copper: #d37c43;
+    --copper-bright: #f09a5d;
+    --cyan: #72d2d4;
+    --green: #93d8a0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 82% -10%, rgba(211, 124, 67, .13), transparent 31rem),
+      linear-gradient(180deg, #10161c 0, var(--paper) 30rem);
+  }
+  a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: #a4f2f2; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 58px;
+    padding: 9px clamp(16px, 3vw, 38px);
+    border-bottom: 1px solid rgba(59, 75, 87, .75);
+    background: rgba(13, 17, 22, .88);
+    backdrop-filter: blur(18px);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--ink);
+    font-weight: 760;
+    letter-spacing: -.02em;
+    text-decoration: none;
+  }
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--copper);
+    color: #160e09;
+    font-weight: 950;
+  }
+  .report-nav { display: flex; align-items: center; gap: 5px; }
+  .report-link {
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--muted);
+    font-size: .84rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .report-link:hover, .report-link.active { background: var(--panel-raised); color: var(--ink); }
+  .page-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    gap: clamp(30px, 5vw, 68px);
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: clamp(32px, 6vw, 76px) clamp(18px, 4vw, 60px) 110px;
+  }
+  main { min-width: 0; max-width: 1080px; }
+  .hero { margin-bottom: 46px; }
+  .eyebrow {
+    margin: 0 0 13px;
+    color: var(--copper-bright);
+    font: 800 .75rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .16em;
+  }
+  h1 {
+    max-width: 900px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2.15rem, 5vw, 4.35rem);
+    line-height: .99;
+    letter-spacing: -.052em;
+  }
+  .lede {
+    max-width: 790px;
+    margin: 20px 0 0;
+    color: #bdc8d0;
+    font-size: clamp(1.02rem, 2vw, 1.23rem);
+    line-height: 1.56;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .stat {
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(25, 35, 44, .65);
+    color: #d1dbe1;
+    font: 700 .77rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .document > h1:first-child { display: none; }
+  .document h2, .document h3, .document h4 { position: relative; scroll-margin-top: 78px; }
+  .document h2 {
+    margin: 58px 0 17px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: #f8fafb;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -.025em;
+  }
+  .document h3 {
+    margin: 37px 0 13px;
+    color: #e7edf1;
+    font-size: 1.22rem;
+    line-height: 1.28;
+  }
+  .document h4 { margin: 29px 0 10px; color: #cad7df; font-size: 1.03rem; }
+  .heading-anchor {
+    position: absolute;
+    right: 100%;
+    margin-right: 9px;
+    color: var(--line-bright);
+    font-weight: 500;
+    opacity: 0;
+    text-decoration: none;
+  }
+  h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { opacity: 1; }
+  p, li { font-size: .98rem; line-height: 1.68; }
+  p { margin: 11px 0; }
+  li { margin: 7px 0; }
+  ul, ol { padding-left: 1.45rem; }
+  strong { color: #fff; }
+  code {
+    padding: .12em .36em;
+    border: 1px solid #35444f;
+    border-radius: 5px;
+    background: #17212a;
+    color: #bfecee;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font: .88em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    overflow-x: auto;
+    margin: 20px 0;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #0a0f13;
+  }
+  pre code { padding: 0; border: 0; background: none; color: #d3e8e9; }
+  blockquote {
+    margin: 20px 0;
+    padding: 7px 17px;
+    border-left: 3px solid var(--copper);
+    background: rgba(211, 124, 67, .07);
+    color: #cad3da;
+  }
+  .table-shell {
+    overflow: auto;
+    width: 100%;
+    margin: 20px 0 30px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(19, 26, 33, .7);
+    scrollbar-color: var(--line-bright) var(--panel);
+  }
+  table { width: 100%; min-width: 650px; border-collapse: collapse; }
+  th, td {
+    padding: 12px 14px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    font-size: .86rem;
+    line-height: 1.55;
+  }
+  th:last-child, td:last-child { border-right: 0; }
+  tr:last-child td { border-bottom: 0; }
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #202b34;
+    color: #fff;
+    font-size: .75rem;
+    letter-spacing: .025em;
+  }
+  tbody tr:nth-child(even) { background: rgba(255, 255, 255, .018); }
+  tbody tr:hover { background: rgba(114, 210, 212, .045); }
+  .document .table-shell:has(th:nth-child(5)) table { min-width: 1450px; }
+  aside { min-width: 0; }
+  .toc {
+    position: sticky;
+    top: 86px;
+    display: grid;
+    gap: 4px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-left: 17px;
+    border-left: 1px solid var(--line);
+  }
+  .toc-title {
+    margin: 0 0 8px;
+    color: var(--copper-bright);
+    font: 800 .69rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .14em;
+  }
+  .toc a {
+    padding: 5px 0;
+    color: #83929d;
+    font-size: .79rem;
+    line-height: 1.28;
+    text-decoration: none;
+  }
+  .toc a:hover, .toc a.current { color: #fff; }
+  .footer {
+    margin-top: 68px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: .79rem;
+  }
+  @media (max-width: 980px) {
+    .page-shell { display: block; max-width: 920px; }
+    aside { display: none; }
+  }
+  @media (max-width: 700px) {
+    .topbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+    .report-nav { width: 100%; overflow-x: auto; }
+    .report-link { white-space: nowrap; }
+    .page-shell { padding-top: 35px; }
+    .hero { margin-bottom: 34px; }
+    .heading-anchor { display: none; }
+    .table-shell { overflow: visible; border: 0; background: none; }
+    .document .table-shell table,
+    table, thead, tbody, tr, th, td { display: block; min-width: 0; width: 100%; }
+    .document .table-shell:has(th:nth-child(5)) table { min-width: 0; }
+    thead { display: none; }
+    tbody { display: grid; gap: 12px; }
+    tr {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    td {
+      display: grid;
+      grid-template-columns: minmax(105px, 34%) 1fr;
+      gap: 12px;
+      border-right: 0;
+      font-size: .84rem;
+    }
+    td::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font: 750 .68rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: .035em;
+    }
+    td:last-child { border-bottom: 0; }
+  }
+`;
+
+const commonScript = String.raw`
+  document.querySelectorAll("table").forEach((table) => {
+    const labels = [...table.querySelectorAll("thead th")].map((cell) => cell.textContent.trim());
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      [...row.children].forEach((cell, index) => {
+        cell.dataset.label = labels[index] ?? "";
+      });
+    });
+  });
+
+  const links = [...document.querySelectorAll(".toc a[data-section]")];
+  const headings = links
+    .map((link) => document.getElementById(link.dataset.section))
+    .filter(Boolean);
+  if (links.length > 0 && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+      if (visible.length === 0) return;
+      links.forEach((link) => link.classList.toggle("current", link.dataset.section === visible[0].target.id));
+    }, { rootMargin: "-78px 0px -72% 0px" });
+    headings.forEach((heading) => observer.observe(heading));
+  }
+`;
+
+function reportPage(report, documentHtml, sections) {
+  const stats = report.stats.map((stat) => `<span class="stat">${stat}</span>`).join("");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>${report.shortTitle} · Arc Relay design reports</title>
+  <style>${commonStyles}</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">n</span><span>Arc Relay design reports</span></a>
+    <nav class="report-nav" aria-label="Reports">${siblingNavigation(report.output)}</nav>
+  </header>
+  <div class="page-shell">
+    <main>
+      <header class="hero">
+        <p class="eyebrow">${report.eyebrow}</p>
+        <h1>${report.shortTitle}</h1>
+        <p class="lede">${report.description}</p>
+        <div class="stats">${stats}</div>
+      </header>
+      <article class="document">${documentHtml}</article>
+      <footer class="footer">Generated from <code>${report.source}</code>. The Markdown source remains canonical.</footer>
+    </main>
+    <aside aria-label="On this page">
+      <nav class="toc">
+        <p class="toc-title">ON THIS PAGE</p>
+        ${tableOfContents(sections)}
+      </nav>
+    </aside>
+  </div>
+  <script>${commonScript}</script>
+</body>
+</html>
+`;
+}
+
+function indexPage() {
+  const cards = reports
+    .map(
+      (report) => `
+        <a class="index-card" href="${report.output}">
+          <span class="eyebrow">${report.eyebrow}</span>
+          <strong>${report.shortTitle}</strong>
+          <span>${report.description}</span>
+          <small>${report.stats.join(" · ")}</small>
+          <b aria-hidden="true">Open report →</b>
+        </a>`,
+    )
+    .join("");
+  return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Arc Relay design reports</title>
+  <style>
+    ${commonStyles}
+    .index-shell { width: min(1080px, 100%); margin: 0 auto; padding: clamp(48px, 9vw, 108px) 20px 100px; }
+    .index-shell h1 { max-width: 850px; }
+    .index-shell .lede { max-width: 700px; }
+    .index-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-top: 46px; }
+    .index-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 330px;
+      padding: clamp(24px, 4vw, 38px);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: linear-gradient(145deg, rgba(31, 42, 51, .94), rgba(16, 23, 29, .94));
+      color: var(--ink);
+      text-decoration: none;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+    .index-card:hover { transform: translateY(-3px); border-color: #6b7d89; color: var(--ink); }
+    .index-card strong { margin: 9px 0 15px; font-size: clamp(1.55rem, 3vw, 2.25rem); letter-spacing: -.035em; }
+    .index-card > span:not(.eyebrow) { color: #b7c3cb; line-height: 1.6; }
+    .index-card small { margin-top: 25px; color: var(--muted); font: .75rem/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; }
+    .index-card b { margin-top: auto; padding-top: 25px; color: var(--copper-bright); font-size: .86rem; }
+    .baseline { margin-top: 34px; padding: 17px 19px; border-left: 3px solid var(--copper); background: rgba(211, 124, 67, .065); color: #bec9d0; line-height: 1.55; }
+    @media (max-width: 700px) { .index-grid { grid-template-columns: 1fr; } .index-card { min-height: 280px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">n</span><span>Arc Relay design reports</span></a>
+  </header>
+  <main class="index-shell">
+    <p class="eyebrow">NILBOTS · TAPLINE 11</p>
+    <h1>Movement and signature tactics</h1>
+    <p class="lede">Two connected reports on how bot identity becomes readable strategic choice without adding hidden automation or a competing priority system.</p>
+    <div class="baseline"><strong>Current baseline:</strong> vision 5 · guns 3/4/6 · movement 1/1, 4/5, 2/3 · Combat Strafe on every chassis.</div>
+    <section class="index-grid" aria-label="Available reports">${cards}</section>
+  </main>
+</body>
+</html>
+`;
+}
+
+await mkdir(outputDirectory, { recursive: true });
+for (const report of reports) {
+  const markdown = await readFile(resolve(repositoryRoot, report.source), "utf8");
+  const { html, sections } = decorateMarkdown(marked.parse(markdown));
+  await writeFile(resolve(outputDirectory, report.output), reportPage(report, html, sections));
+}
+await writeFile(resolve(outputDirectory, "index.html"), indexPage());
+
+console.log(`Rendered ${reports.length} Arc Relay reports to ${outputDirectory}`);

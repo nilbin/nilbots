@@ -1,0 +1,1024 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Signature skills · Arc Relay design reports</title>
+  <style>
+  :root {
+    color-scheme: dark;
+    --paper: #0d1116;
+    --panel: #131a21;
+    --panel-raised: #19232c;
+    --ink: #e9eef2;
+    --muted: #9ba9b4;
+    --line: #2b3740;
+    --line-bright: #3b4b57;
+    --copper: #d37c43;
+    --copper-bright: #f09a5d;
+    --cyan: #72d2d4;
+    --green: #93d8a0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+      "Segoe UI", sans-serif;
+    background: var(--paper);
+    color: var(--ink);
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(circle at 82% -10%, rgba(211, 124, 67, .13), transparent 31rem),
+      linear-gradient(180deg, #10161c 0, var(--paper) 30rem);
+  }
+  a { color: var(--cyan); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: #a4f2f2; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    min-height: 58px;
+    padding: 9px clamp(16px, 3vw, 38px);
+    border-bottom: 1px solid rgba(59, 75, 87, .75);
+    background: rgba(13, 17, 22, .88);
+    backdrop-filter: blur(18px);
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    color: var(--ink);
+    font-weight: 760;
+    letter-spacing: -.02em;
+    text-decoration: none;
+  }
+  .brand-mark {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    background: var(--copper);
+    color: #160e09;
+    font-weight: 950;
+  }
+  .report-nav { display: flex; align-items: center; gap: 5px; }
+  .report-link {
+    padding: 7px 10px;
+    border-radius: 7px;
+    color: var(--muted);
+    font-size: .84rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .report-link:hover, .report-link.active { background: var(--panel-raised); color: var(--ink); }
+  .page-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    gap: clamp(30px, 5vw, 68px);
+    width: min(1440px, 100%);
+    margin: 0 auto;
+    padding: clamp(32px, 6vw, 76px) clamp(18px, 4vw, 60px) 110px;
+  }
+  main { min-width: 0; max-width: 1080px; }
+  .hero { margin-bottom: 46px; }
+  .eyebrow {
+    margin: 0 0 13px;
+    color: var(--copper-bright);
+    font: 800 .75rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .16em;
+  }
+  h1 {
+    max-width: 900px;
+    margin: 0;
+    color: #fff;
+    font-size: clamp(2.15rem, 5vw, 4.35rem);
+    line-height: .99;
+    letter-spacing: -.052em;
+  }
+  .lede {
+    max-width: 790px;
+    margin: 20px 0 0;
+    color: #bdc8d0;
+    font-size: clamp(1.02rem, 2vw, 1.23rem);
+    line-height: 1.56;
+  }
+  .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 24px; }
+  .stat {
+    padding: 7px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(25, 35, 44, .65);
+    color: #d1dbe1;
+    font: 700 .77rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  .document > h1:first-child { display: none; }
+  .document h2, .document h3, .document h4 { position: relative; scroll-margin-top: 78px; }
+  .document h2 {
+    margin: 58px 0 17px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: #f8fafb;
+    font-size: clamp(1.45rem, 3vw, 2rem);
+    line-height: 1.15;
+    letter-spacing: -.025em;
+  }
+  .document h3 {
+    margin: 37px 0 13px;
+    color: #e7edf1;
+    font-size: 1.22rem;
+    line-height: 1.28;
+  }
+  .document h4 { margin: 29px 0 10px; color: #cad7df; font-size: 1.03rem; }
+  .heading-anchor {
+    position: absolute;
+    right: 100%;
+    margin-right: 9px;
+    color: var(--line-bright);
+    font-weight: 500;
+    opacity: 0;
+    text-decoration: none;
+  }
+  h2:hover .heading-anchor, h3:hover .heading-anchor, h4:hover .heading-anchor { opacity: 1; }
+  p, li { font-size: .98rem; line-height: 1.68; }
+  p { margin: 11px 0; }
+  li { margin: 7px 0; }
+  ul, ol { padding-left: 1.45rem; }
+  strong { color: #fff; }
+  code {
+    padding: .12em .36em;
+    border: 1px solid #35444f;
+    border-radius: 5px;
+    background: #17212a;
+    color: #bfecee;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    font: .88em/1.4 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  pre {
+    overflow-x: auto;
+    margin: 20px 0;
+    padding: 18px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #0a0f13;
+  }
+  pre code { padding: 0; border: 0; background: none; color: #d3e8e9; }
+  blockquote {
+    margin: 20px 0;
+    padding: 7px 17px;
+    border-left: 3px solid var(--copper);
+    background: rgba(211, 124, 67, .07);
+    color: #cad3da;
+  }
+  .table-shell {
+    overflow: auto;
+    width: 100%;
+    margin: 20px 0 30px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: rgba(19, 26, 33, .7);
+    scrollbar-color: var(--line-bright) var(--panel);
+  }
+  table { width: 100%; min-width: 650px; border-collapse: collapse; }
+  th, td {
+    padding: 12px 14px;
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: top;
+    font-size: .86rem;
+    line-height: 1.55;
+  }
+  th:last-child, td:last-child { border-right: 0; }
+  tr:last-child td { border-bottom: 0; }
+  th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #202b34;
+    color: #fff;
+    font-size: .75rem;
+    letter-spacing: .025em;
+  }
+  tbody tr:nth-child(even) { background: rgba(255, 255, 255, .018); }
+  tbody tr:hover { background: rgba(114, 210, 212, .045); }
+  .document .table-shell:has(th:nth-child(5)) table { min-width: 1450px; }
+  aside { min-width: 0; }
+  .toc {
+    position: sticky;
+    top: 86px;
+    display: grid;
+    gap: 4px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    padding-left: 17px;
+    border-left: 1px solid var(--line);
+  }
+  .toc-title {
+    margin: 0 0 8px;
+    color: var(--copper-bright);
+    font: 800 .69rem/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: .14em;
+  }
+  .toc a {
+    padding: 5px 0;
+    color: #83929d;
+    font-size: .79rem;
+    line-height: 1.28;
+    text-decoration: none;
+  }
+  .toc a:hover, .toc a.current { color: #fff; }
+  .footer {
+    margin-top: 68px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    color: var(--muted);
+    font-size: .79rem;
+  }
+  @media (max-width: 980px) {
+    .page-shell { display: block; max-width: 920px; }
+    aside { display: none; }
+  }
+  @media (max-width: 700px) {
+    .topbar { align-items: flex-start; flex-direction: column; gap: 5px; }
+    .report-nav { width: 100%; overflow-x: auto; }
+    .report-link { white-space: nowrap; }
+    .page-shell { padding-top: 35px; }
+    .hero { margin-bottom: 34px; }
+    .heading-anchor { display: none; }
+    .table-shell { overflow: visible; border: 0; background: none; }
+    .document .table-shell table,
+    table, thead, tbody, tr, th, td { display: block; min-width: 0; width: 100%; }
+    .document .table-shell:has(th:nth-child(5)) table { min-width: 0; }
+    thead { display: none; }
+    tbody { display: grid; gap: 12px; }
+    tr {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: var(--panel);
+    }
+    td {
+      display: grid;
+      grid-template-columns: minmax(105px, 34%) 1fr;
+      gap: 12px;
+      border-right: 0;
+      font-size: .84rem;
+    }
+    td::before {
+      content: attr(data-label);
+      color: var(--muted);
+      font: 750 .68rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+      text-transform: uppercase;
+      letter-spacing: .035em;
+    }
+    td:last-child { border-bottom: 0; }
+  }
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="index.html"><span class="brand-mark">n</span><span>Arc Relay design reports</span></a>
+    <nav class="report-nav" aria-label="Reports"><a class="report-link active" href="signature-skills.html">Signature skills</a><a class="report-link" href="movement-rates.html">Movement rates</a></nav>
+  </header>
+  <div class="page-shell">
+    <main>
+      <header class="hero">
+        <p class="eyebrow">TACTICAL AUTHORING</p>
+        <h1>Signature skills</h1>
+        <p class="lede">All sixteen class signatures, their current behavior, recommended Smart defaults, map controls, and the moving Palisade shield candidate.</p>
+        <div class="stats"><span class="stat">16 signatures</span><span class="stat">4 skill policies</span><span class="stat">1 shared instruction priority</span></div>
+      </header>
+      <article class="document"><h1>Arc Relay signature skills in map-first Tactics</h1>
+<p><strong>Date:</strong> 2026-08-21<br><strong>Status:</strong> design and code inventory; implementation-ready recommendation; no gameplay changes made<br><strong>Rules baseline:</strong> promoted <code>tapline-11</code> (<code>vision 5</code>, short/medium/long guns <code>3/4/6</code>, swift/standard/deliberate movement <code>1/1</code>, <code>4/5</code>, <code>2/3</code>)</p>
+<h2 id="verdict"><a class="heading-anchor" href="#verdict" aria-label="Link to Verdict">#</a>Verdict</h2>
+<p>The sixteen signatures are a good source of tactical depth, but the current
+Tactics surface does not yet let a player use that depth reliably. The main
+problem is not a shortage of skills. It is that automatic uses are broad,
+authored uses are too weakly constrained, and ordinary Fight leaves are
+materialized before signature leaves. A skill can therefore be invisible in
+the editor, fire for the wrong reason, or be starved by the combat behavior it
+was meant to shape.</p>
+<p>Promote one small, consistent player model:</p>
+<ul>
+<li>every bot has one phase-local skill policy: <strong>Smart</strong>, <strong>Prefer marks</strong>,
+<strong>Only at marks</strong>, or <strong>Off</strong>;</li>
+<li>marks are drawn on the same map as posts and routes and are stored by <strong>bot
+slot</strong>, not by class;</li>
+<li>the authoring catalog declares each skill&#39;s mark shapes, target choices,
+safe smart predicate, commitment behavior, and place in the ordinary
+Instruction list;</li>
+<li>the Tactic compiler still emits only ordinary, top-to-bottom Instructions;
+there is no skill scheduler, reservation system, or second priority model;</li>
+<li>an illegal or unavailable use falls through in the same tick;</li>
+<li>active tells/channels that must be preserved get one ordinary
+<code>signature-commitment-active -&gt; current-position</code> continuation above normal
+actions.</li>
+</ul>
+<p>The proposed moving frontal shield is a strong fit for <strong>Palisade</strong>, whose
+current skill is Prism Wall. It should not replace <strong>Mason</strong>&#39;s Hardlight Block:
+keeping a mobile screen and a static route-bending block creates two distinct
+strategic jobs. Prototype the Palisade change in a new rules profile with
+<code>30</code> shield hull, <code>6</code> active ticks and <code>18</code> cooldown ticks, then promote only
+after the corridor-counter proof below. The design is promising enough to
+prototype, not balanced enough to promote without that proof.</p>
+<h2 id="what-is-authoritative-today"><a class="heading-anchor" href="#what-is-authoritative-today" aria-label="Link to What is authoritative today">#</a>What is authoritative today</h2>
+<p>The current product line is <code>ArcRelayLoopProfile.Tapline11</code> and is selected by
+<code>ArcRelayLoopProfile.Current</code> in
+<code>src/BotArena.Engine/ArcRelayLoopProfile.cs</code>. It keeps Tapline-10&#39;s map,
+economy, grammar-3 signatures, perception and guns while making chassis rates
+explicit under one movement control model:</p>
+<div class="table-shell"><table>
+<thead>
+<tr>
+<th>Shared rule</th>
+<th align="right">Current value</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Facing-quadrant body vision</td>
+<td align="right">5</td>
+</tr>
+<tr>
+<td>Omnidirectional proximity vision</td>
+<td align="right">0</td>
+</tr>
+<tr>
+<td>Swift / standard / deliberate movement</td>
+<td align="right">1/1 · 4/5 · 2/3</td>
+</tr>
+<tr>
+<td>Facing coupling</td>
+<td align="right">Combat Strafe for every chassis</td>
+</tr>
+<tr>
+<td>Short / medium / long basic gun range</td>
+<td align="right">3 / 4 / 6</td>
+</tr>
+<tr>
+<td>Basic hit damage</td>
+<td align="right">10</td>
+</tr>
+<tr>
+<td>Short / medium / long fire interval</td>
+<td align="right">2 / 3 / 5 ticks</td>
+</tr>
+<tr>
+<td>Basic gun windup</td>
+<td align="right">1 tick</td>
+</tr>
+<tr>
+<td>Rear-arc multiplier</td>
+<td align="right">2x, before veteran bonus</td>
+</tr>
+<tr>
+<td>Durable deployment mode</td>
+<td align="right">on</td>
+</tr>
+</tbody></table></div>
+<p>All bodies still receive one decision opportunity per tick, but accepted
+one-tile movement is cadence-gated: swift moves every tick, standard moves on
+four of every five ticks, and deliberate moves on two of every three. Closed
+movement opportunities do not bank. Every chassis now uses Combat Strafe, so
+signature Smart behavior may rely on the public cadence while still treating
+each accepted move as exactly one adjacent tile.</p>
+<p>The current launch hulls are <code>30</code>, <code>40</code>, or <code>50</code>; repair, damage and deployment
+hull values are in the same 10x magnitude. Signature numbers come from
+<code>ArcRelayH0Definition.cs:964-1207</code> and <code>:1210-1275</code>; lifecycle mechanics come
+from <code>ArcRelaySignatureBehaviors.cs</code> and <code>ArcRelaySignatureRuntime.cs</code>.</p>
+<h2 id="complete-class-and-signature-inventory"><a class="heading-anchor" href="#complete-class-and-signature-inventory" aria-label="Link to Complete class and signature inventory">#</a>Complete class and signature inventory</h2>
+<p>“Current Tactics” refers to <code>ArcRelayTacticsDsl</code> and
+<code>ArcRelayTacticsMaterializer</code>, not to the older Program editor reports.</p>
+<div class="table-shell"><table>
+<thead>
+<tr>
+<th>Class · hull · handling · gun</th>
+<th>Authoritative signature now</th>
+<th>Current Tactics behavior and problem</th>
+<th>Recommended Smart default and map controls</th>
+<th>Balance/usability verdict</th>
+</tr>
+</thead>
+<tbody><tr>
+<td><strong>Kestrel</strong> · 30 · swift · short 3</td>
+<td><strong>Vector Dash:</strong> 1-tick tell, up to 4 tiles along an eight-way ray, cooldown 12 at completion. It takes the furthest legal tile and drops a carried Core on departure.</td>
+<td>A drawn line compiles to route-forward Dash with minimum gain 2. Without a line, combat posture may call it at the nearest enemy. The marked leaf does not require empty hands, so a <code>keep</code> custody phase can accidentally drop a Core.</td>
+<td>Smart: empty-handed, following the phase&#39;s actual route, and at least 2 safe forward tiles exist. Do not Dash automatically from a fixed post. <strong>Prefer/Only</strong> lets the player paint route segments; show start/end and landing preview. An advanced <code>Mobile flank</code> fight preset may Dash only inside the active fight geometry and must return to its route/post.</td>
+<td>Mechanic is good. Add the empty-handed guard, route-bound smart predicate, and commitment continuation. Never expose unrestricted “dash toward enemy” as the default.</td>
+</tr>
+<tr>
+<td><strong>Palisade</strong> · 50 · deliberate · short 3</td>
+<td><strong>Prism Wall:</strong> immediate static three-segment wall perpendicular to a cardinal facing, duration 8, three hostile projectile/signature contacts, cooldown 16 from start. It blocks hostile projectiles but not bodies; recast replaces the owner&#39;s previous wall.</td>
+<td>No spatial mark is supported. It is bundled by combat posture and targets nearest enemy, but Fight is evaluated first, so it commonly never casts. Direction is resolved indirectly rather than drawn.</td>
+<td>For the current wall: cast only if it interrupts a hostile firing lane to the Palisade, a carrier, or at least one ally; do not replace a still-useful wall. Add activation zone plus a draggable facing/aim handle. For the proposed <strong>moving Prism Screen</strong>, add route-segment marks with “face route forward” or explicit facing.</td>
+<td>Current static wall overlaps Mason&#39;s terrain fantasy while being less map-authorable. <strong>Promote the moving-screen prototype for Palisade</strong>, not Mason; details below.</td>
+</tr>
+<tr>
+<td><strong>Towline</strong> · 40 · standard · medium 4</td>
+<td><strong>Tractor Hook 2:</strong> range 6, 1-tick rooted lock, bolt travels 2 tiles/tick, pulls the first hit up to 3 tiles toward the frozen origin, cooldown 12 from start. The lock needs team sight and a frozen facing wedge; movement or lock loss cancels. Walls, constructs and bodies can intercept the bolt.</td>
+<td>No map mark. The posture bundle targets the enemy carrier, but normal Fight is higher priority and can starve the Hook. Current UI does not explain the lock, pull destination, or interceptors.</td>
+<td>Smart: enemy carrier first, otherwise a high-value exposed veteran/Longshot, only when the predicted pull is tactically beneficial and the ray is clear. Before committing, draw the source-to-target ray and ghost pull destination. <strong>Prefer/Only</strong> supports an activation zone, watched lane and target priority.</td>
+<td>Strong control tool and good counterplay. Keep numbers initially under 3/4/6 guns; range 6 now equals the longest gun and exceeds Towline&#39;s own gun by 2, so team spotting matters.</td>
+</tr>
+<tr>
+<td><strong>Patchbay</strong> · 40 · standard · short 3</td>
+<td><strong>Repair Beam:</strong> range 4; channels 10 hull every 2 ticks, maximum 20 per activation; cooldown 10 begins when the channel ends. It ends on movement, damage, death, full health, range/line loss, smoke, or hostile Null Field.</td>
+<td>No map mark. <code>signature-ready</code> alone can select it, but Fight and recovery movement are above it. Catalog says preserve commitment; the Tactics materializer does not emit the continuation.</td>
+<td>Smart: heal a missing-10+ ally when a two-tick safe channel is plausible; prioritize valuable Core carrier, protected veteran, then lowest health. Do not start while Patchbay or target is under immediate fire unless the selected posture is <code>Fight on</code>. <strong>Prefer/Only</strong> selects a protected bot/group and optional heal zone. Hold automatically while the authoritative channel is active.</td>
+<td>Good sustain signature whose fun depends on visible target priority and reliable channel commitment. Current broad auto-use is not sufficient.</td>
+</tr>
+<tr>
+<td><strong>Lantern</strong> · 30 · swift · short 3</td>
+<td><strong>Survey Flare:</strong> cast range 8, flight 2 tiles/tick, radius 4, active 8, cooldown 16 from start. Despite its name, it only removes smoke occlusion for its own team inside the footprint. It does not create vision, see through walls, or reveal enemies beyond an allied sensor&#39;s normal range/facing.</td>
+<td>Exact point marks exist and the preset says “Reveal an exact approach.” That copy overpromises the real mechanic. With no smoke, a Flare can have zero gameplay effect.</td>
+<td>Until semantics change, Smart should cast only when hostile smoke occludes a relevant active route, post sightline or watched zone. <strong>Prefer/Only</strong> points identify anti-smoke coverage, with the footprint and actual allied sight rays shown.</td>
+<td><strong>Design decision required.</strong> Either rename/copy it as anti-smoke illumination, or make it a real temporary sensor. Do not ship the current “reveal approach” promise. A true sensor would need a fresh rules profile and balance proof under base vision 5.</td>
+</tr>
+<tr>
+<td><strong>Mortar</strong> · 30 · deliberate · medium 4</td>
+<td><strong>Falling Star:</strong> visible target within range 8, 2-tick tell, cross/plus footprint of five tiles, 10 damage, cooldown 12 from start in runtime. It damages every body in the footprint, including allies, and hostile deployments.</td>
+<td>Exact point marks compile on <code>signature-ready</code> alone. They can fire at an empty authored point merely because a default target exists elsewhere, and Fight is higher priority. No friendly-fire preview exists.</td>
+<td>Smart: cast on at least two enemies, a high-value stationary carrier, or a valuable hostile deployment, with <strong>zero allies</strong> in the projected cross; target must be occupied/recently confirmed and inside active Tactic geometry. <strong>Prefer/Only</strong> uses points or small target zones and always renders the cross plus tell time.</td>
+<td>Good area-denial skill, but friendly fire and cooldown metadata must be made explicit. <code>TimingFor(FallingStar)</code> reports completion while runtime starts cooldown at activation—reconcile before relying on catalog timing.</td>
+</tr>
+<tr>
+<td><strong>Minesmith</strong> · 40 · standard · short 3</td>
+<td><strong>Trip Node:</strong> adjacent empty legal tile, 10 hull, 20 trigger damage, revealed to an enemy body within 2, cooldown 12 from start. It persists until triggered, destroyed or replaced and does not physically block bodies. Recast replaces the owner&#39;s existing node.</td>
+<td>Exact points work opportunistically when the bot comes adjacent, which is useful on a patrol. There is no “keep existing mine” condition, so returning to a mark after cooldown may replace a useful node elsewhere.</td>
+<td>Smart: choose a choke/route tile just ahead of a held post or patrol, avoiding allied traffic; never replace a healthy useful node unless the policy says relocate. <strong>Prefer/Only</strong> points may live on a patrol or approach route; show detection radius 2 and “one active per bot.”</td>
+<td>Strong map-first fit. Keep current numbers for the first pass. The UI should call it a damaging mine, not a blocker.</td>
+</tr>
+<tr>
+<td><strong>Hush</strong> · 40 · standard · medium 4</td>
+<td><strong>Null Field 3:</strong> self-centered frozen radius 3, 1-tick public tell, then 5 active ticks, cooldown 18 from start. It suppresses hostile constructs/channels and prevents hostile signature starts in the field. Enemies can step out during the tell. It does not stop guns or movement.</td>
+<td>No spatial mark. The posture bundle sees “enemy nearby,” not “hostile signature value nearby,” and Fight is higher. Commitment metadata is not materialized.</td>
+<td>Smart: use when it will suppress a hostile active/telling signature or at least two signature-capable enemies are committed inside the frozen radius. <strong>Prefer/Only</strong> draws activation zones; the actual frozen radius is centered on Hush at use time. Render which hostile operations would be suppressed.</td>
+<td>Excellent anti-combo tool. Current generic enemy-nearby trigger wastes it and obscures why it fired. Keep numbers initially.</td>
+</tr>
+<tr>
+<td><strong>Relay</strong> · 40 · swift · short 3</td>
+<td><strong>Arc Toss:</strong> while carrying, straight/cardinal/diagonal target up to 5, no tell, starts after combat, Core travels 3 tiles/tick, cooldown 12 at launch. Walls clip the landing. The carrier must survive the committed combat tick.</td>
+<td>Custody compilation already supports a preferred receiver or nearest ally toward the reactor; ordinary marked skill geometry is not exposed. A failed/illegal Toss falls through to banking.</td>
+<td>Smart only inside active Core custody: toss to a legal empty-handed ally if it creates at least 2 walking tiles of forward progress along the authored return route and a useful catch, otherwise keep moving/banking that tick. <strong>Prefer/Only</strong> chooses receiver bot/group and eligible route segment. Do not present the two-Relay race as a starter.</td>
+<td>Good advanced logistics. Preserve the current no-special-race architecture and same-tick fallback. Avoid generic combat-phase Toss automation.</td>
+</tr>
+<tr>
+<td><strong>Switchback</strong> · 30 · standard · medium 4</td>
+<td><strong>Exchange:</strong> allied target within 6 and vision, 1-tick tell, cooldown 16 at completion. Both bodies must remain on their exact start tiles and destinations must remain legal. The targeted ally drops a carried Core; an owning Switchback that carries a Core keeps it through the swap.</td>
+<td>No map mark. The default targets the healthiest ally but has no definition of “rescue,” safety improvement or desired destination. Fight is higher and commitment is not preserved.</td>
+<td>Smart only for a clearly endangered carrier/veteran/low-health ally when the swap improves that ally&#39;s safety and the Switchback destination is acceptable. <strong>Prefer/Only</strong> selects a protected bot/group and an allowed source/destination zone pair. Preview both destinations and Core consequence.</td>
+<td>Mechanic is potentially brilliant but current default is unsafe. The asymmetric Core behavior must be deliberately accepted, explained and tested before Smart is enabled.</td>
+</tr>
+<tr>
+<td><strong>Longshot</strong> · 30 · deliberate · long 6</td>
+<td><strong>Rail Line:</strong> 1-tick rooted target lock, range 12, 20 damage, pierces all enemies on the line, allies are transparent, stops at and damages the first hostile deployment; cancel cooldown 8, success cooldown 18 at completion. It needs team sight and a clear frozen facing wedge and loses the lock on movement/damage/sight failure.</td>
+<td>A two-point line is supported, but the <code>use</code> leaf is emitted <strong>before</strong> its move-to-post leaf and has no on-station condition. Longshot can therefore fire away from the drawn post. Fight is higher priority too.</td>
+<td>Smart only while on its selected firing post/area, with team contact and a clear line; prioritize Core carrier, veteran, then a line with multiple enemies. <strong>Prefer/Only</strong> uses a firing post plus draggable aim handle or watched lane. Hold throughout the authoritative tell.</td>
+<td>Signature-superrange is now 12 versus body vision 5 and long gun 6. That is healthy spotter synergy if the UI explains team-shared contact. Fix the station gate before player testing.</td>
+</tr>
+<tr>
+<td><strong>Mason</strong> · 50 · deliberate · short 3</td>
+<td><strong>Hardlight Block:</strong> adjacent empty legal tile, 30 hull, duration 30, cooldown 14 from start. It blocks all bodies and hostile projectiles while active/not suppressed; three 10-damage basic hits destroy it. Recast replaces the owner&#39;s prior block.</td>
+<td>Exact point marks exist and fit map-first play. There is no route-safety analysis or guard against replacing a useful block.</td>
+<td>Smart should be conservative: protect a reactor/carrier route or close an obvious hostile choke only if the tile does not sever the authored friendly route. <strong>Prefer/Only</strong> exact points should show both teams&#39; path detours and current block health/lifetime. Default <code>Only at marks</code> is defensible for alpha because a wrong body-block is costly.</td>
+<td>Keep this static skill. It gives the map a player-authored, killable terrain layer and remains distinct if Palisade becomes mobile cover. Current 30 hull / 30 duration is a credible first test point.</td>
+</tr>
+<tr>
+<td><strong>Sunder</strong> · 40 · standard · medium 4</td>
+<td><strong>Target Paint 2:</strong> range 7, 1-tick rooted acquisition, then up to 8 active ticks or 3 allied hits; each hit gains 10 damage. Cancel cooldown 8, full cooldown 16 from start. Acquisition needs target alive, in range and in team vision.</td>
+<td>No map mark. It defaults to enemy carrier, but ordinary Fight is above it and there is no test that enough allies can capitalize. Commitment metadata is not emitted.</td>
+<td>Smart: carrier/veteran/focus target only when at least two allies are plausibly able to connect during the window. <strong>Prefer/Only</strong> selects target priority and activation fight zones. The UI should show “next 3 team hits +10,” not merely a mark icon.</td>
+<td>Powerful focus-fire enabler, especially with veterancy. Keep numbers until coordinated proof; prevent isolated Sunder from wasting it.</td>
+</tr>
+<tr>
+<td><strong>Repulsor</strong> · 50 · standard · short 3</td>
+<td><strong>Kinetic Burst 2:</strong> frozen self origin, 1-tick rooted tell, pushes every adjacent body—ally or enemy—1 tile after response movement if the destination is legal; no damage; cancel cooldown 6, full cooldown 12 after maturity.</td>
+<td>No map mark. “Enemy nearby” is too broad for an adjacency skill and does not account for allies or push destinations. Fight is higher.</td>
+<td>Smart: at least two adjacent enemies, an adjacent enemy carrier, or a genuinely surrounded body, and the resulting pushes are net beneficial. Avoid pushing an enemy carrier toward the friendly reactor or ejecting allies from required posts. <strong>Prefer/Only</strong> activation zones plus optional protected zone/edge. Render ghost destinations during authoring/Practice.</td>
+<td>Good anti-ball and anti-corridor answer. Older audit copy that calls it damaging is stale; current effect is displacement only.</td>
+</tr>
+<tr>
+<td><strong>Veil</strong> · 30 · swift · short 3</td>
+<td><strong>Smoke Canister 2:</strong> range 6, public flight at 3 tiles/tick, radius 2, duration 10 after landing, cooldown 18 from start. Smoke blocks sight rays for both teams; friendly Survey Flare cancels its occlusion within the overlap.</td>
+<td>Exact points exist but use only <code>signature-ready</code>; no check that the smoke protects something or harms friendly Longshot/Hook/Repair sightlines. Fight is higher.</td>
+<td>Smart: cover a carrier crossing or break a hostile long-range lane inside active route/fight geometry, while avoiding critical friendly sightlines. <strong>Prefer/Only</strong> points/zones show the radius, flight delay and friendly lines that will be cut.</td>
+<td>Strong corridor utility under shorter vision/ranges. Keep numbers initially, but require visible collateral preview.</td>
+</tr>
+<tr>
+<td><strong>Nest</strong> · 40 · deliberate · medium 4</td>
+<td><strong>Sentinel Seed 2:</strong> 1-tick rooted placement on an adjacent legal tile, 20 hull, range 4, 10-damage bolt every 2 ticks, bolt speed 2, duration 30, cooldown 18 from start. One active seed per bot. It selects ray-aligned enemies using unobstructed wall/smoke line, but does not require team-visible contact.</td>
+<td>Exact points work, but there is no coverage/ray preview or replace guard. Catalog says preserve the placement tell; Tactics does not. Current automatic targeting can shoot at a body the owning team does not otherwise see.</td>
+<td>Smart: deploy at an authored/obvious guard post with useful ray coverage, without replacing a healthy useful seed. <strong>Prefer/Only</strong> points show the eight firing rays and range 4. Decide whether the seed requires team contact or owns an explicit sensor before calling this Smart complete.</td>
+<td>Great hold/patrol skill. Under vision 5 and medium gun 4, its range is reasonable; its hidden-information semantics are not. Resolve them explicitly.</td>
+</tr>
+</tbody></table></div>
+<h2 id="why-the-current-authoring-is-not-yet-reliable"><a class="heading-anchor" href="#why-the-current-authoring-is-not-yet-reliable" aria-label="Link to Why the current authoring is not yet reliable">#</a>Why the current authoring is not yet reliable</h2>
+<h3 id="1-fight-currently-wins-before-the-skill-can-shape-the-fight"><a class="heading-anchor" href="#1-fight-currently-wins-before-the-skill-can-shape-the-fight" aria-label="Link to 1. Fight currently wins before the skill can shape the fight">#</a>1. Fight currently wins before the skill can shape the fight</h3>
+<p><code>ArcRelayTacticsMaterializer.cs:780-818</code> emits custody, recovery,
+destination Fight and travel Fight before signatures. Most unmarked signatures
+are gated on <code>enemy-nearby</code>, the same situation that makes Fight eligible. The
+earlier Fight leaf wins. Palisade, Towline, Hush, Sunder, Repulsor and other
+combat signatures can therefore be silently starved.</p>
+<p>This is not solved by putting every skill above every action with a broad
+condition. Smart predicates must first become conservative enough that a
+higher skill leaf means “this is a useful opportunity,” not merely “cooldown
+is ready.”</p>
+<h3 id="2-commitment-is-described-but-not-compiled"><a class="heading-anchor" href="#2-commitment-is-described-but-not-compiled" aria-label="Link to 2. Commitment is described but not compiled">#</a>2. Commitment is described but not compiled</h3>
+<p>The authoring catalog marks Kestrel, Towline, Patchbay, Mortar, Hush,
+Switchback, Longshot, Sunder, Repulsor and Nest as
+<code>PreserveByDefault</code>. The Tactics materializer never consumes that metadata.
+The lower Orders vocabulary already supports
+<code>signature-commitment-active</code>, and focused Orders scenes prove an intentional
+hold for Repair and Rail, but Tactics does not generate it.</p>
+<p>Result: a new phase action or floor move can cancel a rooted tell/channel. Add
+one body-local continuation derived from the authoritative operation state;
+do not copy tell/duration numbers into the Tactic.</p>
+<h3 id="3-marks-are-keyed-by-class-not-by-bot"><a class="heading-anchor" href="#3-marks-are-keyed-by-class-not-by-bot" aria-label="Link to 3. Marks are keyed by class, not by bot">#</a>3. Marks are keyed by class, not by bot</h3>
+<p><code>ArcRelayTacticsDsl.cs:955-1026</code> validates one mark set per class, and the web
+stores <code>job.sigs[bot.class]</code> (<code>MapFirstChrome.tsx:448-514</code>). The roster rules
+permit one duplicate wildcard. Two Masons, Relays, Palisades, or any duplicated
+class cannot receive independent skill policies or geometry.</p>
+<p>The source must be keyed by stable squad slot. A deterministic migration can
+copy a legacy class mark to every matching slot in that group and mark the
+result for review; new documents must never collapse it back by class.</p>
+<h3 id="4-a-spatial-mark-is-currently-only-a-target-not-an-opportunity"><a class="heading-anchor" href="#4-a-spatial-mark-is-currently-only-a-target-not-an-opportunity" aria-label="Link to 4. A spatial mark is currently only a target, not an opportunity">#</a>4. A spatial mark is currently only a target, not an opportunity</h3>
+<p>Exact points compile with <code>signature-ready</code> and a default named target. They do
+not express occupancy, friendly-fire safety, meaningful effect, current
+deployment state, or whether the caster is at the intended firing post.
+Longshot is the clearest correctness bug: its Rail use precedes and is not
+conditioned on its drawn stand position (<code>ArcRelayTacticsMaterializer.cs: 1405-1435</code>).</p>
+<h3 id="5-several-public-descriptions-do-not-match-runtime-truth"><a class="heading-anchor" href="#5-several-public-descriptions-do-not-match-runtime-truth" aria-label="Link to 5. Several public descriptions do not match runtime truth">#</a>5. Several public descriptions do not match runtime truth</h3>
+<ul>
+<li>Survey Flare is anti-smoke, not independent reveal.</li>
+<li>Kinetic Burst currently pushes and does no damage.</li>
+<li>Sentinel can select enemies without team-visible contact.</li>
+<li>Falling Star applies to allied bodies too.</li>
+<li>Exchange drops the targeted ally&#39;s Core but lets the casting Switchback
+transport its own Core through the swap.</li>
+<li>Falling Star&#39;s catalog timing says completion-anchored cooldown while its
+behavior sets cooldown at activation.</li>
+</ul>
+<p>These may be valid rules, but they must be deliberate, tested and explained
+before the editor automates them.</p>
+<h2 id="one-map-first-skill-authoring-model"><a class="heading-anchor" href="#one-map-first-skill-authoring-model" aria-label="Link to One map-first skill authoring model">#</a>One map-first skill authoring model</h2>
+<h3 id="player-surface"><a class="heading-anchor" href="#player-surface" aria-label="Link to Player surface">#</a>Player surface</h3>
+<p>Selecting one bot in one phase should open its existing bot drawer and show:</p>
+<ol>
+<li>signature name and a one-sentence rule summary;</li>
+<li>one segmented policy control:<ul>
+<li><strong>Smart</strong> — use the catalog&#39;s conservative default inside this phase;</li>
+<li><strong>Prefer marks</strong> — try authored opportunities first, then Smart;</li>
+<li><strong>Only at marks</strong> — never use outside authored opportunities;</li>
+<li><strong>Off</strong> — do not author a use leaf in this phase;</li>
+</ul>
+</li>
+<li>the relevant draw tool: point, zone, route segment, firing post + aim,
+facing handle, or protected/target bot;</li>
+<li>a plain-language preview such as “Wall while crossing this segment, facing
+forward” or “Mortar this area only when no ally is in the cross”;</li>
+<li>an optional advanced toggle: <strong>Must happen before this phase can finish</strong>.</li>
+</ol>
+<p><code>Must happen</code> is not a reservation or atomic cast. It adds phase-local evidence
+from an accepted/completed signature operation to the existing phase exit
+condition. The UI must require a maximum phase duration or warn about a
+possible deadlock. Normal “Only at marks” merely constrains opportunities and
+does not hold the phase open.</p>
+<h3 id="suggested-source-shape"><a class="heading-anchor" href="#suggested-source-shape" aria-label="Link to Suggested source shape">#</a>Suggested source shape</h3>
+<p>The exact names can follow repository conventions, but the semantic ownership
+should be explicit and slot-local:</p>
+<pre><code class="language-json">{
+  &quot;skillPlans&quot;: {
+    &quot;2&quot;: {
+      &quot;mode&quot;: &quot;prefer&quot;,
+      &quot;requiredBeforeExit&quot;: false,
+      &quot;opportunities&quot;: [
+        {
+          &quot;kind&quot;: &quot;route-segment&quot;,
+          &quot;line&quot;: [[8, 14], [18, 14]],
+          &quot;facing&quot;: &quot;route-forward&quot;
+        }
+      ]
+    }
+  }
+}
+</code></pre>
+<p>The catalog—not UI switches—declares which opportunity kinds and target
+options are legal for each signature. Extend the existing
+<code>ArcRelaySignatureAuthoringDescriptor</code> with data such as:</p>
+<ul>
+<li><code>OpportunityKinds</code>: point, zone, route segment, post-and-aim, friendly target;</li>
+<li><code>DefaultPolicy</code> and safe smart preset;</li>
+<li><code>InstructionBand</code>: custody, commitment, opportunity, or transit;</li>
+<li><code>PreserveCommitment</code>;</li>
+<li>deployment ownership/replacement warning;</li>
+<li>preview footprint/range semantics from the resolved Engine definition.</li>
+</ul>
+<p>Numeric timing, range, damage and duration continue to come from the resolved
+Engine rules projected by the App. Do not duplicate balance constants in web
+code or TacticalPlaybooks.</p>
+<h3 id="ordinary-instruction-order"><a class="heading-anchor" href="#ordinary-instruction-order" aria-label="Link to Ordinary Instruction order">#</a>Ordinary Instruction order</h3>
+<p>Keep the Tactic phase coordinator as the only state machine. For each body in
+the selected phase, materialize a visible ordinary order band:</p>
+<ol>
+<li>active Tactic-wide abort/phase decision (existing coordinator);</li>
+<li>preserve an already-active signature commitment where the descriptor says
+it must be preserved;</li>
+<li>Core custody branch, including Relay Toss where applicable;</li>
+<li>urgent recovery;</li>
+<li>useful marked/Smart signature opportunity;</li>
+<li>ordinary Fight;</li>
+<li>scan;</li>
+<li>authored route/post/patrol movement and fallback.</li>
+</ol>
+<p>Kestrel&#39;s route Dash lives in the transit portion of step 5 and remains
+empty-handed. Relay Toss lives inside custody, not as a parallel generic skill
+system. All other signatures use the same opportunity slot. If the selected
+use cannot be admitted, it falls through to Fight or movement that tick.</p>
+<p>This ordering is deterministic and inspectable. The generated explanation can
+say exactly which higher leaf won. There is no cooldown scheduler, no “skill
+AI” ticking beside Instructions, and no hidden priority between a Tactic and a
+skill.</p>
+<h2 id="palisade-moving-frontal-shield-proposal"><a class="heading-anchor" href="#palisade-moving-frontal-shield-proposal" aria-label="Link to Palisade moving frontal shield proposal">#</a>Palisade moving frontal shield proposal</h2>
+<h3 id="clarify-the-class-ownership"><a class="heading-anchor" href="#clarify-the-class-ownership" aria-label="Link to Clarify the class ownership">#</a>Clarify the class ownership</h3>
+<p>Palisade currently owns <strong>Prism Wall</strong>. Mason owns <strong>Hardlight Block</strong>. The
+moving shield should be a new Prism Wall envelope for Palisade—display name
+<strong>Prism Screen</strong> is clearer—not a Mason rewrite.</p>
+<p>That leaves a useful class pair:</p>
+<ul>
+<li><strong>Palisade:</strong> mobile, directional projectile protection for a convoy or
+corridor advance;</li>
+<li><strong>Mason:</strong> static, killable terrain that redirects bodies and shots.</li>
+</ul>
+<p>Giving Mason the moving screen or deleting Hardlight would collapse two
+different map decisions into one.</p>
+<h3 id="recommended-prototype-contract"><a class="heading-anchor" href="#recommended-prototype-contract" aria-label="Link to Recommended prototype contract">#</a>Recommended prototype contract</h3>
+<div class="table-shell"><table>
+<thead>
+<tr>
+<th>Property</th>
+<th>Prototype value / rule</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Shield hull</td>
+<td><strong>30</strong></td>
+<td>Three basic 10-damage hits; a 20-damage Rail is stopped but leaves it one hit from breaking.</td>
+</tr>
+<tr>
+<td>Active duration</td>
+<td><strong>6 ticks</strong></td>
+<td>Enough for a corridor push without covering most of an 18-tick cooldown.</td>
+</tr>
+<tr>
+<td>Cooldown</td>
+<td><strong>18 ticks from activation</strong></td>
+<td>Twelve-tick uncovered window after natural expiry; stronger mobility pays more than current Wall&#39;s 8/16.</td>
+</tr>
+<tr>
+<td>Facing</td>
+<td>Current Palisade facing; follows later rotations</td>
+<td>Makes facing/post/route authorship meaningful. Rotating spends the ordinary action opportunity and exposes flanks.</td>
+</tr>
+<tr>
+<td>Movement</td>
+<td>Follows owner after every accepted movement; no additional shield penalty beyond the deliberate chassis&#39;s 2/3 cadence</td>
+<td>Tests the fun without stacking a second speed tax. The shared Combat Strafe model and authored facing support a stable corridor heading.</td>
+</tr>
+<tr>
+<td>Body collision</td>
+<td>None</td>
+<td>It is a projectile screen, not a second Hardlight Block.</td>
+</tr>
+<tr>
+<td>Projectile collision</td>
+<td>Hostile projectiles crossing the front screen hit it first; allied fire passes from behind</td>
+<td>Preserves current team-relative Prism behavior and convoy fantasy.</td>
+</tr>
+<tr>
+<td>Rail</td>
+<td>Stops at the first screen segment and deals 20 to shield hull</td>
+<td>Gives a clear counter without nullifying Longshot forever.</td>
+</tr>
+<tr>
+<td>Area damage</td>
+<td>Falling Star damages overlapping screen hull but still resolves its area</td>
+<td>Mortar remains an answer to a packed convoy.</td>
+</tr>
+<tr>
+<td>Suppression</td>
+<td>Hostile Null Field suppresses the screen while Palisade/screen footprint is affected</td>
+<td>Preserves Hush counterplay.</td>
+</tr>
+<tr>
+<td>Owner death</td>
+<td>Screen ends immediately</td>
+<td>An attached defense should not become a free static deployment after death.</td>
+</tr>
+<tr>
+<td>Recast</td>
+<td>Restarts/replaces that bot&#39;s screen</td>
+<td>Preserves one-owned-operation semantics.</td>
+</tr>
+</tbody></table></div>
+<p>Use a three-segment frontal footprint only if collision remains legible in
+one-tile corridors. The cleanest first implementation can reuse the current
+three Wall tiles but recompute them from the owner&#39;s current position and
+facing after movement. They must <strong>not</strong> be returned by <code>BlocksBody</code>.</p>
+<p>An edge-based shield would be geometrically purer, but it introduces a new
+projectile-edge collision model. Prefer derived moving tiles for the first
+prototype. Define occupied-front-tile behavior explicitly: a segment
+overlapping a body is inactive for that tick, rather than displacing or
+sharing a construct with the body.</p>
+<h3 id="smart-and-authored-behavior"><a class="heading-anchor" href="#smart-and-authored-behavior" aria-label="Link to Smart and authored behavior">#</a>Smart and authored behavior</h3>
+<p>Smart use is conservative:</p>
+<ul>
+<li>Palisade is moving/holding inside the current Tactic&#39;s geometry;</li>
+<li>a hostile projectile lane, pending Rail line, or visible ranged threat is in
+the front half-plane;</li>
+<li>the screen protects Palisade, a carrier, or another ally behind it;</li>
+<li>no healthy active screen already covers that lane.</li>
+</ul>
+<p>Player controls:</p>
+<ul>
+<li>on a post: face a map anchor and screen when the lane is threatened;</li>
+<li>on a route/patrol: mark eligible segments and select <code>face route forward</code> or
+a fixed facing;</li>
+<li><code>Prefer marks</code> allows reactive Smart use elsewhere in the phase;</li>
+<li><code>Only at marks</code> supports a deliberately timed corridor crossing.</li>
+</ul>
+<p>Authored facing always wins. Smart must not rotate every tick toward the
+nearest enemy; that would create opaque shield dancing and erase flank
+counterplay.</p>
+<h3 id="counters-and-fun-case"><a class="heading-anchor" href="#counters-and-fun-case" aria-label="Link to Counters and fun case">#</a>Counters and fun case</h3>
+<p>The shield creates readable answers rather than a universal damage reduction:</p>
+<ul>
+<li>flank or rear fire bypasses it;</li>
+<li>focus fire breaks 30 hull;</li>
+<li>Rail consumes most of it but is stopped once;</li>
+<li>Mortar attacks the packed formation/footprint;</li>
+<li>Hush suppresses it;</li>
+<li>Towline or Repulsor can disturb the screen formation;</li>
+<li>Mason can alter the route in front of it;</li>
+<li>smoke can cut the convoy&#39;s own target knowledge.</li>
+</ul>
+<p>That interaction web is why the change is more promising than simply adding
+hull to Palisade.</p>
+<h3 id="engine-and-presentation-implications"><a class="heading-anchor" href="#engine-and-presentation-implications" aria-label="Link to Engine and presentation implications">#</a>Engine and presentation implications</h3>
+<p>Implement it as a new concrete signature definition variant under a new loop
+profile/rules fingerprint. Historical Prism Wall definitions and replay bytes
+must remain resolvable. Keeping stable action/signature id <code>prism-wall</code> is
+reasonable if the new definition is versioned like <code>SentinelSeed2</code>; use the
+display name <code>Prism Screen</code> in the new catalog.</p>
+<p>Required runtime work:</p>
+<ul>
+<li>derive operation positions from live owner position/facing after movement;</li>
+<li>remove it on owner death and suppress it under hostile Null Field;</li>
+<li>consume real damage rather than contact count in the new durable envelope;</li>
+<li>make projectile and Rail collision use the derived positions;</li>
+<li>keep it out of body collision and static pathfinding;</li>
+<li>project movement/facing changes into every replay snapshot.</li>
+</ul>
+<p>The current 2D/3D Prism presentation assumes static operation positions.
+Either parent the visual to the Palisade transform or update projected
+positions every frame/tick. Test turns, route corners, damage state, expiry,
+suppression, death and replay seek; avoid a one-tick visual lag. This is a
+presentation-mechanics change and should version the signature presentation
+package if the replay contract requires it.</p>
+<h2 id="combat-behavior-under-tapline-11-movement-rates"><a class="heading-anchor" href="#combat-behavior-under-tapline-11-movement-rates" aria-label="Link to Combat behavior under Tapline-11 movement rates">#</a>Combat behavior under Tapline-11 movement rates</h2>
+<p>Tapline-11 makes swift/standard/deliberate real 1/1, 4/5, and 2/3 movement
+cadences under one Combat Strafe control model. That difference can create
+useful combat identity, but it must be a visible posture preset rather than
+hidden class AI.</p>
+<p>Suggested fight presets:</p>
+<ul>
+<li><strong>Hold line:</strong> defend the authored post/zone; slower/deliberate bodies screen
+lanes and do not auto-strafe.</li>
+<li><strong>Pressure:</strong> current bounded approach/chase behavior.</li>
+<li><strong>Mobile flank:</strong> during the existing gun reload window, a quick body may
+take a bounded side/rear angle inside the active Tactic geometry, then fire
+or return. This is recommended for Kestrel, Lantern, Relay and Veil, not
+silently forced on them.</li>
+<li><strong>Screen carrier:</strong> Palisade/Mason/Repulsor occupy the authored lane between a
+carrier and known fire, without inventing a separate escort scheduler.</li>
+</ul>
+<p>Guardrails for Mobile flank:</p>
+<ul>
+<li>authored posts, facing and routes always win;</li>
+<li>maximum 2 displacement steps from the episode anchor before return;</li>
+<li>every step must improve a stable flank goal or return progress;</li>
+<li>target loss, phase change, Core pickup or route departure ends the episode;</li>
+<li>do not choose a new “best” side every tick;</li>
+<li>no back-and-forth kiting against a fixed target and no local orbit;</li>
+<li>log the ordinary Fight/move reason in Practice.</li>
+</ul>
+<p>The rear 2x multiplier makes a bounded reload-window flank potentially very
+strong. Swift classes also use the two-tick short-gun interval, normally
+leaving only one reposition tick before the next shot. Start with an explicit
+opt-in that stops when the shot is ready; any preset that deliberately gives up
+one ready shot for a second flank step must say so. Run orbit/reversal gates
+before considering it a default for swift bodies.</p>
+<p>Signature interactions with those roles are natural: Kestrel Dashes along the
+bounded flank route, Veil Smokes a crossing, Lantern counters smoke, Relay
+uses mobility for custody rather than free combat kiting, Palisade screens the
+lane, Longshot/Mortar/Nest hold authored ground, and Towline/Sunder exploit the
+contacts the flank produces.</p>
+<h2 id="ranked-implementation-plan"><a class="heading-anchor" href="#ranked-implementation-plan" aria-label="Link to Ranked implementation plan">#</a>Ranked implementation plan</h2>
+<h3 id="p0-make-existing-signatures-honest-and-executable"><a class="heading-anchor" href="#p0-make-existing-signatures-honest-and-executable" aria-label="Link to P0 — make existing signatures honest and executable">#</a>P0 — make existing signatures honest and executable</h3>
+<ol>
+<li>Change Tactics signature ownership from class-keyed to slot-keyed; migrate
+legacy marks deterministically and add duplicate-class tests.</li>
+<li>Add the four policy values and catalog-declared opportunity kinds. Keep
+Smart as the no-configuration default, but make risky terrain skills such
+as Mason eligible for <code>Only at marks</code> as their catalog default.</li>
+<li>Materialize catalog commitment continuation and useful signature
+opportunities before ordinary Fight; keep Relay inside custody and Kestrel
+empty-handed/route-bound.</li>
+<li>Fix Longshot&#39;s on-station gate and show firing post/aim/range/team-vision
+requirements.</li>
+<li>Reconcile Falling Star cooldown metadata/runtime, decide/document its
+friendly fire, decide/document Exchange Core asymmetry, and decide Sentinel
+vision ownership.</li>
+<li>Make Survey Flare copy and Smart predicate match anti-smoke reality, or
+version it into a real sensor before advertising reveal.</li>
+</ol>
+<h3 id="p1-finish-the-map-first-controls-and-defaults"><a class="heading-anchor" href="#p1-finish-the-map-first-controls-and-defaults" aria-label="Link to P1 — finish the map-first controls and defaults">#</a>P1 — finish the map-first controls and defaults</h3>
+<ol start="7">
+<li>Implement the row-by-row conservative predicates and previews above from
+catalog data plus resolved rules; no skill-id switches in React.</li>
+<li>Support activation zones, points, route segments, post-and-aim/facing and
+friendly target selection in the bot drawer. Show current attack range,
+vision 5, signature footprint and timing together.</li>
+<li>Add deployment replace warnings and “existing deployment still useful”
+guards for Prism/Trip/Hardlight/Sentinel.</li>
+<li>Make generated priority/rejection reasons visible in Practice: “Fight was
+used because Hook had no clear beneficial pull,” for example.</li>
+</ol>
+<h3 id="p2-prototype-the-palisade-screen-in-a-new-profile"><a class="heading-anchor" href="#p2-prototype-the-palisade-screen-in-a-new-profile" aria-label="Link to P2 — prototype the Palisade screen in a new profile">#</a>P2 — prototype the Palisade screen in a new profile</h3>
+<ol start="11">
+<li>Add the versioned moving Prism definition and presentation using the
+30-hull / 6-duration / 18-cooldown candidate.</li>
+<li>Run the corridor proof and tune only one variable at a time. Do not modify
+Mason in this pass.</li>
+</ol>
+<h3 id="p3-explicit-combat-mobility-after-the-skill-pass-is-stable"><a class="heading-anchor" href="#p3-explicit-combat-mobility-after-the-skill-pass-is-stable" aria-label="Link to P3 — explicit combat mobility after the skill pass is stable">#</a>P3 — explicit combat mobility after the skill pass is stable</h3>
+<ol start="13">
+<li>On the promoted movement rates, add an explicit bounded Mobile flank
+posture and prove no orbit/kiting regression. Do not make class speed a
+hidden second behavior system.</li>
+</ol>
+<h2 id="required-tests-and-proof-scenes"><a class="heading-anchor" href="#required-tests-and-proof-scenes" aria-label="Link to Required tests and proof scenes">#</a>Required tests and proof scenes</h2>
+<h3 id="static-compiler-acceptance"><a class="heading-anchor" href="#static-compiler-acceptance" aria-label="Link to Static/compiler acceptance">#</a>Static/compiler acceptance</h3>
+<ul>
+<li>all 16 catalog entries round-trip resolved numeric mechanics and lifecycle;</li>
+<li>descriptor cooldown anchor agrees with runtime behavior for every concrete
+current signature kind;</li>
+<li>two copies of the same class in one group retain independent policy, marks,
+target and migration state;</li>
+<li>Smart / Prefer / Only / Off generate the documented ordinary leaf order;</li>
+<li>every <code>PreserveByDefault</code> signature generates and exits an authoritative
+commitment continuation;</li>
+<li>unavailable/illegal use falls through to Fight/movement in the same tick;</li>
+<li>Kestrel never Dashes while carrying under its generic route policy;</li>
+<li>Longshot cannot Rail until on its authored station;</li>
+<li>risky point skills enforce occupancy/safety/replacement predicates.</li>
+</ul>
+<h3 id="deterministic-per-signature-micro-scenes"><a class="heading-anchor" href="#deterministic-per-signature-micro-scenes" aria-label="Link to Deterministic per-signature micro scenes">#</a>Deterministic per-signature micro scenes</h3>
+<p>Build one small fixed scene per signature against deterministic actors. Prove
+accepted use, decline reason, commitment, completion/cancellation, cooldown,
+targeting, suppression, deployment replacement and fallback. Existing engine
+grammar tests are valuable, but <code>ArcRelayTacticalPlaybookCompilerTests</code> mostly
+prove valid syntax and <code>OrdersSignatureOpportunitySceneTests</code> cover only
+Kestrel, Repair and Rail. They do not prove all-16 Tactics usability.</p>
+<h3 id="palisade-corridor-counter-scene"><a class="heading-anchor" href="#palisade-corridor-counter-scene" aria-label="Link to Palisade corridor-counter scene">#</a>Palisade corridor-counter scene</h3>
+<p>On the promoted Tapline map:</p>
+<ol>
+<li>Palisade and a Core carrier take the long corridor toward their reactor.</li>
+<li>A deterministic Longshot fires from the corridor axis; a short/medium bot
+supplies additional front fire.</li>
+<li>The authored route segment activates the screen facing forward.</li>
+<li>Assert the first Rail stops at the shield, applies 20 to its 30 hull, and
+does not hit bodies behind it.</li>
+<li>Assert one basic 10-damage hit then destroys it.</li>
+<li>In a paired run, a side attacker bypasses the shield.</li>
+<li>Assert route movement, turning, suppression, death and expiry update the
+projected screen without body collision or replay lag.</li>
+<li>Compare with the same convoy and seed without the screen. This is a
+mechanics/fun proof, not a population balance claim.</li>
+</ol>
+<h3 id="interaction-scenes"><a class="heading-anchor" href="#interaction-scenes" aria-label="Link to Interaction scenes">#</a>Interaction scenes</h3>
+<ul>
+<li>Smoke blocks a Longshot/Repair line; friendly Flare restores only the normal
+sight through the overlap and does not reveal beyond vision 5.</li>
+<li>Hush suppresses an active screen/deployment/channel and prevents a start in
+its radius after the response-movement tell.</li>
+<li>Mason block visibly changes both teams&#39; pathing and survives exactly three
+basic hits.</li>
+<li>Sentinel&#39;s chosen visibility rule is proved with an enemy outside all body
+facing cones but inside its range 4.</li>
+<li>Falling Star&#39;s chosen friendly-fire rule and cross preview agree.</li>
+<li>Exchange&#39;s chosen carrier rule agrees for both owner and target.</li>
+<li>Sunder plus two allies consumes three enhanced hits without creating an
+independent focus-fire scheduler.</li>
+</ul>
+<h3 id="movement-safety-scenes-if-speeds-postures-change"><a class="heading-anchor" href="#movement-safety-scenes-if-speeds-postures-change" aria-label="Link to Movement safety scenes, if speeds/postures change">#</a>Movement safety scenes, if speeds/postures change</h3>
+<ul>
+<li>swift flank gains a rear angle during reload and returns to its authored
+geometry;</li>
+<li>hold/post bodies never leave merely because a flank is possible;</li>
+<li>no 2-4 tile local orbit, repeated reversal, wall pinning, or target-loss
+chase across the phase boundary;</li>
+<li>an incidental Core pickup immediately hands control back to the same
+Tactic&#39;s custody behavior.</li>
+</ul>
+<h2 id="existing-evidence-and-its-limits"><a class="heading-anchor" href="#existing-evidence-and-its-limits" aria-label="Link to Existing evidence and its limits">#</a>Existing evidence and its limits</h2>
+<p>Relevant current tests include:</p>
+<ul>
+<li>Engine grammar/lifecycle: <code>tests/BotArena.Engine.Tests/ArcRelayGrammar2Tests.cs</code>,
+<code>ArcRelayGrammar3Tests.cs</code>, <code>ArcRelaySignatureLockTests.cs</code>,
+<code>ArcRelaySignatureWindupTests.cs</code>,
+<code>ArcRelaySignatureActivationTimingTests.cs</code> and
+<code>ArcRelayH0DefinitionTests.cs</code>;</li>
+<li>Tactics/Orders compiler: <code>tests/BotArena.Cli.Tests/ArcRelayTacticalPlaybookCompilerTests.cs</code>
+and <code>ArcRelayTacticsMaterializerTests.cs</code>;</li>
+<li>focused runtime scenes:
+<code>tests/BotArena.Cli.Tests/OrdersSignatureOpportunitySceneTests.cs</code>;</li>
+<li>synthetic presentation coverage:
+<code>tests/BotArena.Cli.Tests/ArcRelaySignatureStageCommandTests.cs</code>.</li>
+</ul>
+<p>The older <code>docs/ARC-RELAY-SIGNATURE-AUDIT.md</code> was a counterplay grammar audit,
+not a current balance or Tactics usability pass. The older Program opportunity
+reports document lower-level capabilities, but the current map-first Tactics
+materializer does not inherit every promise from those reports. A synthetic
+all-signature Stage replay proves rendering, not that a player can author
+sound use.</p>
+<h2 id="unresolved-owner-decisions"><a class="heading-anchor" href="#unresolved-owner-decisions" aria-label="Link to Unresolved owner decisions">#</a>Unresolved owner decisions</h2>
+<p>These should be answered before calling Smart skills player-ready:</p>
+<ol>
+<li><strong>Survey Flare:</strong> explicitly anti-smoke, or a real temporary sensor? The
+recommendation is to make its UI honest immediately, then test a sensor
+variant separately.</li>
+<li><strong>Sentinel perception:</strong> require existing team contact, or give the seed an
+explicit projected sensor? The recommendation for alpha is team contact;
+an autonomous sensor is a larger vision/balance feature.</li>
+<li><strong>Falling Star friendly fire:</strong> retain as skill expression with strong
+preview, or spare allies for consistency? Do not leave it accidental.</li>
+<li><strong>Exchange and Cores:</strong> retain “caster transports, target drops,” or make
+both sides drop? The current asymmetry is strategically interesting but
+surprising.</li>
+<li><strong>Palisade footprint:</strong> moving three derived tiles, or a new edge-collision
+model? Use derived tiles for the first prototype.</li>
+<li><strong>Actual movement rates:</strong> are they a promoted rule or only handling
+language? Current code has no speed difference; evaluate skills first.</li>
+</ol>
+<h2 id="final-recommendation"><a class="heading-anchor" href="#final-recommendation" aria-label="Link to Final recommendation">#</a>Final recommendation</h2>
+<p>Do not add more signature mechanics yet. Make these sixteen understandable,
+slot-specific and dependable through one map-first policy model, then
+prototype Palisade&#39;s moving screen. That pass should produce substantially
+more playable depth than another class would: players will be able to draw a
+route, post, lane or target relationship and trust the bot to use its unique
+tool for a visible reason, while the underlying game remains one ordered
+Instruction executor.</p>
+</article>
+      <footer class="footer">Generated from <code>docs/ARC-RELAY-SIGNATURE-TACTICS-INVENTORY.md</code>. The Markdown source remains canonical.</footer>
+    </main>
+    <aside aria-label="On this page">
+      <nav class="toc">
+        <p class="toc-title">ON THIS PAGE</p>
+        <a href="#verdict" data-section="verdict">Verdict</a><a href="#what-is-authoritative-today" data-section="what-is-authoritative-today">What is authoritative today</a><a href="#complete-class-and-signature-inventory" data-section="complete-class-and-signature-inventory">Complete class and signature inventory</a><a href="#why-the-current-authoring-is-not-yet-reliable" data-section="why-the-current-authoring-is-not-yet-reliable">Why the current authoring is not yet reliable</a><a href="#one-map-first-skill-authoring-model" data-section="one-map-first-skill-authoring-model">One map-first skill authoring model</a><a href="#palisade-moving-frontal-shield-proposal" data-section="palisade-moving-frontal-shield-proposal">Palisade moving frontal shield proposal</a><a href="#combat-behavior-under-tapline-11-movement-rates" data-section="combat-behavior-under-tapline-11-movement-rates">Combat behavior under Tapline-11 movement rates</a><a href="#ranked-implementation-plan" data-section="ranked-implementation-plan">Ranked implementation plan</a><a href="#required-tests-and-proof-scenes" data-section="required-tests-and-proof-scenes">Required tests and proof scenes</a><a href="#existing-evidence-and-its-limits" data-section="existing-evidence-and-its-limits">Existing evidence and its limits</a><a href="#unresolved-owner-decisions" data-section="unresolved-owner-decisions">Unresolved owner decisions</a><a href="#final-recommendation" data-section="final-recommendation">Final recommendation</a>
+      </nav>
+    </aside>
+  </div>
+  <script>
+  document.querySelectorAll("table").forEach((table) => {
+    const labels = [...table.querySelectorAll("thead th")].map((cell) => cell.textContent.trim());
+    table.querySelectorAll("tbody tr").forEach((row) => {
+      [...row.children].forEach((cell, index) => {
+        cell.dataset.label = labels[index] ?? "";
+      });
+    });
+  });
+
+  const links = [...document.querySelectorAll(".toc a[data-section]")];
+  const headings = links
+    .map((link) => document.getElementById(link.dataset.section))
+    .filter(Boolean);
+  if (links.length > 0 && "IntersectionObserver" in window) {
+    const observer = new IntersectionObserver((entries) => {
+      const visible = entries
+        .filter((entry) => entry.isIntersecting)
+        .sort((left, right) => left.boundingClientRect.top - right.boundingClientRect.top);
+      if (visible.length === 0) return;
+      links.forEach((link) => link.classList.toggle("current", link.dataset.section === visible[0].target.id));
+    }, { rootMargin: "-78px 0px -72% 0px" });
+    headings.forEach((heading) => observer.observe(heading));
+  }
+</script>
+</body>
+</html>
