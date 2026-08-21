@@ -148,7 +148,8 @@ test('carry-forward map geometry is truthful and Map-first edits materialize cop
   assert.match(canvas, /effectiveJobResolution\(tactic, phaseIndex, group\.id\)/);
   assert.match(canvas, /allowInheritedSpatialEditing && \(job\.kind === 'posts' \|\| job\.kind === 'patrol'\)/);
   assert.match(canvas, /materializeSpatialJob\(tactic, drag\.phaseIndex, drag\.groupId\)/);
-  assert.match(canvas, /FROM \$\{sourcePhaseName\.toUpperCase\(\)\}/);
+  assert.doesNotMatch(canvas, /group\.name\.toUpperCase\(\).*phaseName\.toUpperCase\(\)/s,
+    'group labels must not cover projected bots or their facing arrows');
   assert.match(canvas, /Object\.entries\(job\.sigs \?\? \{\}\)/);
   assert.match(steps, /Edit in \{tactic\.phases\[carrySource\.sourcePhaseIndex\]\.name\}/);
   assert.match(steps, /Current posture, recovery, travel, and signature marks still belong to this phase/);
@@ -165,9 +166,9 @@ test('clearance and local fighting use truthful map-first language', () => {
   assert.match(summary, /fully checked within 20 ticks and no enemy is known to remain/);
 });
 
-test('the sole phase map isolates the active phase unless every phase is requested', () => {
+test('the phase map keeps adjacent bot positions visible as quiet context', () => {
   assert.match(editor, /Show every phase/);
-  assert.match(editor, /showAdjacentPhases=\{false\}/);
+  assert.match(editor, /showAdjacentPhases\s*\n/);
   assert.match(canvas, /distance > \(showAdjacentPhases \? 1 : 0\)/);
   assert.match(canvas, /phaseIndex === focus\s*\? 1 : distance === 1 \? \.24 : \.12/);
   assert.match(canvas, /editable\(tactic\) && phaseIndex === focus/);

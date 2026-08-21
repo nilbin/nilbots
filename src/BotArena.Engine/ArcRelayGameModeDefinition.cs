@@ -47,7 +47,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         bool veterancyBonusAfterRearArc = false,
         int vitalityHealthPerPoint = 1,
         int healZoneHealthPerActivation = 1,
-        int bankTriggeredWellRechargeTicks = 0)
+        int bankTriggeredWellRechargeTicks = 0,
+        bool sentryTeamVision = false)
         : base(modeId, victory, scoreCatalog)
     {
         RequirePositive(
@@ -73,6 +74,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
                 nameof(bankTriggeredWellRechargeTicks));
         }
         BankTriggeredWellRechargeTicks = bankTriggeredWellRechargeTicks;
+        SentryTeamVision = sentryTeamVision;
         if (ownWellCoreCharge < 1
             || centreWellCoreCharge < 1
             || enemyWellCoreCharge < 1)
@@ -293,6 +295,12 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
 
     /// <summary>Persistent, damageable depth-pack deployment semantics.</summary>
     public bool DurableDeployments { get; }
+
+    /// <summary>
+    /// Active, unsuppressed Sentinel Seeds add omnidirectional sight out to
+    /// their own attack range to the owning team's observable union.
+    /// </summary>
+    public bool SentryTeamVision { get; }
 
     /// <summary>
     /// Resolved veterancy and recovery magnitudes. Historical contracts omit

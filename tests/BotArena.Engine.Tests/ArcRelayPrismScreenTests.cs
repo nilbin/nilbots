@@ -25,7 +25,7 @@ public sealed class ArcRelayPrismScreenTests
     [Fact]
     public void Tapline12VersionsOnlyThePalisadeEnvelope()
     {
-        Assert.Same(ArcRelayLoopProfile.Tapline12, ArcRelayLoopProfile.Current);
+        Assert.Same(ArcRelayLoopProfile.Tapline13, ArcRelayLoopProfile.Current);
 
         ActorResolvedMatchDefinition prior = ArcRelayH0Definition.Create(
             Composition,
@@ -113,7 +113,8 @@ public sealed class ArcRelayPrismScreenTests
             Assert.False(runtime.BlocksBody(position, 10)));
 
         Position moved = new(15, 13);
-        runtime.ResolvePostMovement(
+        ArcRelaySignatureRuntime.TickResult movedResult =
+            runtime.ResolvePostMovement(
             11,
             [Life(palisade, moved, Direction.South)],
             (_, _) => true);
@@ -124,6 +125,11 @@ public sealed class ArcRelayPrismScreenTests
             new Position(15, 14),
             new Position(16, 14),
         ]));
+        ArcRelayEvent.SignatureChanged transformed = Assert.Single(
+            movedResult.Events.Select(Changed).OfType<
+                ArcRelayEvent.SignatureChanged>());
+        Assert.Equal("owner-transformed", transformed.Reason);
+        Assert.Equal(followed.OperationId, transformed.OperationId);
     }
 
     [Fact]

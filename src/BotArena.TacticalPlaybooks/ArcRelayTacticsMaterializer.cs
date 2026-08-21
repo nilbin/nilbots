@@ -768,19 +768,22 @@ internal static class ArcRelayTacticsMaterializer
                 string custodyPlan = phase.Custody?.Plan ?? tactic.Delivery.Plan;
                 AddSignatureCommitment(leaves, scope, bot);
                 AddCustodyTransfer(
-                    leaves, scope, custodyPlan, tactic, bot);
+                    leaves, scope, custodyPlan, phase, bot);
                 AddCoreRule(
                     leaves, scope, group.CoreRule, group,
                     excludeAttachedEscort: custodyPlan == "escort");
                 AddRecovery(
                     leaves, scope, raw.Recovery, groundZone,
                     custodyPlan == "escort" ? group : null);
-                // travel == posture is "same as here": nothing to
-                // distinguish. A kind with no arrival (patrol/return, or a
-                // carry-forward that resolves to one) drops travel rather
-                // than promising a switch that could never happen; the
-                // editors refuse to author it.
-                string? travel = raw.Travel == raw.Posture ? null : raw.Travel;
+                // Travel is an independently authored policy even when it
+                // names the same posture as the destination. A standing job's
+                // destination fight is gated on arrival, so collapsing
+                // aggressive/aggressive (or hold/hold) would leave the march
+                // with no fight leaf at all. A kind with no arrival
+                // (patrol/return, or a carry-forward that resolves to one)
+                // still drops travel rather than promising a switch that
+                // could never happen; the editors refuse to author it.
+                string? travel = raw.Travel;
                 bool standing =
                     effective?.Kind is "posts" or "area" or "line" or "approach";
                 bool mover = effective?.Kind is "converge" or "advance";
@@ -804,15 +807,15 @@ internal static class ArcRelayTacticsMaterializer
                     AddTravelFight(leaves, scope, travel,
                         () => OnStationCondition(
                             prefix, groupTag, effective!, group, bot,
-                            arrived: false));
+                            arrived: false),
+                        () => OnStationCondition(
+                            prefix, groupTag, effective!, group, bot));
                 }
                 AddCustodyMovement(
                     leaves, scope, tactic, phase, group, bot,
                     prefix, phaseIndex, groundZone);
                 AddScanLeaves(
                     leaves, scope, tactic, phase, group, effective);
-                AddSignaturePositioningFloor(
-                    leaves, scope, bot, raw.Sigs);
                 if (effective is not null)
                     AddFloor(leaves, scope, effective, group, bot);
                 if (leaves.Count > 0)
@@ -1102,35 +1105,29 @@ internal static class ArcRelayTacticsMaterializer
             List<Node> leaves,
             LeafScope scope,
             string plan,
-            ArcRelayTactic tactic,
+            ArcRelayTacticPhaseDef phase,
             ArcRelayTacticsSquadBot bot)
         {
-            if (plan is "none" or "keep" || bot.ClassId != "relay")
+            // A player-drawn custody route is authoritative. Smart solo Toss
+            // currently follows shortest-path progress, so it yields rather
+            // than cutting away from an explicit corridor.
+            if (plan is "none" or "keep" || bot.ClassId != "relay"
+                || phase.Custody?.Via is not null)
                 return;
-            int preferred = tactic.Delivery.PreferredSlots
-                .Where(slot => slot != bot.Slot)
-                .DefaultIfEmpty(-1)
-                .First();
+            leaves.Add(new Node
+            {
+                Id = scope.Id("reclaim-toss"),
+                When = Expr.One(EmptyHanded()),
+                Urgency = "urgent",
+                Action = MoveToDynamic("own-tossed-core"),
+            });
             leaves.Add(new Node
             {
                 Id = scope.Id("pass"),
                 When = Expr.All(CarryingCore(), SignatureReady()),
                 Action = UseSkill(
                     "arc-toss",
-                    writer =>
-                    {
-                        if (preferred >= 0)
-                        {
-                            writer.WriteStartObject("target");
-                            writer.WriteString("role", RoleId(preferred));
-                            writer.WriteEndObject();
-                        }
-                        else
-                        {
-                            writer.WriteString(
-                                "target", "nearest-ally-toward-own-reactor");
-                        }
-                    }),
+                    writer => writer.WriteString("target", "own-reactor")),
             });
         }
 
@@ -1331,19 +1328,28 @@ internal static class ArcRelayTacticsMaterializer
         /// <summary>The on-the-way answer to being attacked: a fight leaf
         /// gated on being OFF the station, so it owns combat en route and
         /// goes silent the moment the bot arrives — the arrived posture
-        /// (which may be a fightless 'wait') owns the ground alone. 'hold'
-        /// travel responds without pursuit (chase 1); aggressive/steal
-        /// brawl their way in by authored choice; 'wait' emits nothing —
-        /// the quiet march IS the absence of a fight leaf.</summary>
+        /// (which may be a fightless 'wait') owns the ground alone. A travel
+        /// fight is a real episode, not a one-tick reaction: momentary route
+        /// facing or readiness changes cannot hand control straight back to
+        /// Move while contact remains. 'hold' travel answers any actionable
+        /// attack with a one-tile leash; aggressive/steal brawl their way in
+        /// by authored choice; 'wait' emits nothing — the quiet march IS the
+        /// absence of a fight leaf.</summary>
         private void AddTravelFight(
             List<Node> leaves,
             LeafScope scope,
             string travel,
-            Func<string?> offStationCondition)
+            Func<string?> offStationCondition,
+            Func<string?> onStationCondition)
         {
             (string[] Targets, string Style, int Chase)? fight = travel switch
             {
-                "hold" => (["nearest", "weakest"], "hold", 1),
+                // Standing Hold deliberately ignores ordinary enemies that
+                // cannot threaten its ground. "Answer attacks" is different:
+                // it must stop the march and answer contact, but not chase the
+                // opponent down a corridor. Advance with a one-tile episode
+                // leash expresses exactly that distinction.
+                "hold" => (["nearest", "weakest"], "advance", 1),
                 "aggressive" => (["carrier", "weakest", "nearest"], "advance", 6),
                 "steal" => (["carrier", "nearest"], "advance", 6),
                 "escort" => (["nearest"], "hold", 2),
@@ -1352,11 +1358,20 @@ internal static class ArcRelayTacticsMaterializer
             if (fight is null)
                 return;
             string? offStation = offStationCondition();
+            string? onStation = onStationCondition();
+            var endConditions = new List<string>
+            {
+                CarryingCore(),
+                EnemyNoLongerNearby(),
+            };
+            if (onStation is not null)
+                endConditions.Add(onStation);
             Node Define() => new()
             {
                 When = offStation is null
                     ? Expr.All(EmptyHanded(), EnemyNearby())
                     : Expr.All(EmptyHanded(), EnemyNearby(), offStation),
+                Until = Expr.Any(endConditions.ToArray()),
                 Action = Fight(fight.Value.Targets, fight.Value.Style,
                     fight.Value.Chase),
             };
@@ -1464,27 +1479,10 @@ internal static class ArcRelayTacticsMaterializer
             }
             if (plan?.Line is not null)
             {
-                if (bot.ClassId == "longshot")
-                {
-                    string station = Zone(
-                        [plan.Line[0][0], plan.Line[0][1],
-                            plan.Line[0][0], plan.Line[0][1]],
-                        $"g-{geometryPrefix}-s{bot.Slot}-rail-station");
-                    leaves.Add(new Node
-                    {
-                        Id = scope.Id("rail"),
-                        When = Expr.All(
-                            EmptyHanded(), EnemyNearby(), SignatureReady(),
-                            Condition(
-                                new ConditionShape(
-                                    "self-in-zone", "equals", 1,
-                                    ZoneId: station),
-                                $"c-{geometryPrefix}-s{bot.Slot}-rail-station")),
-                        Action = UseSkill("rail-line", writer =>
-                            writer.WriteString("target", "weakest-enemy")),
-                    });
-                }
-                else
+                // Longshot's retired two-point ray is accepted as legacy
+                // input but deliberately ignored: phase Posts/Patrol own its
+                // position and the contextual Rail leaf below owns targeting.
+                if (bot.ClassId != "longshot")
                 {
                     string route = Route(
                         plan.Line, $"g-{geometryPrefix}-s{bot.Slot}-dash");
@@ -1501,9 +1499,9 @@ internal static class ArcRelayTacticsMaterializer
                             writer.WriteEndObject();
                         }),
                     });
+                    if (policy == "only")
+                        return;
                 }
-                if (policy == "only")
-                    return;
             }
             // Persistent exact deployments need authored ground. Guessing a
             // choke from nearest-enemy targeting can sever the player's own
@@ -1518,9 +1516,13 @@ internal static class ArcRelayTacticsMaterializer
                 return;
             if (bot.ClassId == "kestrel")
             {
+                // A patrol is cyclic and has no unambiguous "ahead" at its
+                // seam. It only Dashes when the player draws a separate
+                // terminal signature lane (handled above); advance/via paths
+                // have one honest forward direction and are safe defaults.
                 IReadOnlyList<int[]>? path = job switch
                 {
-                    { Kind: "patrol" or "advance", Path: not null }
+                    { Kind: "advance", Path: not null }
                         => job.Path,
                     { Via: not null } => job.Via,
                     _ => null,
@@ -1550,13 +1552,16 @@ internal static class ArcRelayTacticsMaterializer
                     return;
                 string? station = OnStationCondition(
                     scope.Prefix, scope.GroupTag, job, group, bot);
-                if (station is null)
-                    return;
+                var conditions = new List<string>
+                {
+                    EmptyHanded(), EnemyNearby(), SignatureReady(),
+                };
+                if (station is not null)
+                    conditions.Add(station);
                 leaves.Add(new Node
                 {
                     Id = scope.Id("sig"),
-                    When = Expr.All(
-                        EmptyHanded(), EnemyNearby(), SignatureReady(), station),
+                    When = Expr.All(conditions.ToArray()),
                     Action = UseSkill(descriptor.SkillId, writer =>
                         writer.WriteString(
                             "target", DefaultNamedTarget(descriptor))),
@@ -1570,45 +1575,6 @@ internal static class ArcRelayTacticsMaterializer
                 When = when,
                 Action = UseSkill(descriptor.SkillId, writer =>
                     writer.WriteString("target", DefaultNamedTarget(descriptor))),
-            });
-        }
-
-        /// <summary>A Longshot line owns a firing post and facing, but it is
-        /// still only a floor. It must sit below skills, fights, custody and
-        /// scanning or the unconditional move would starve all of them.</summary>
-        private void AddSignaturePositioningFloor(
-            List<Node> leaves,
-            LeafScope scope,
-            ArcRelayTacticsSquadBot bot,
-            IReadOnlyList<ArcRelayTacticSignaturePlan> plans)
-        {
-            ArcRelayTacticSignaturePlan? plan = plans.FirstOrDefault(
-                candidate => candidate.Slot == bot.Slot);
-            if (bot.ClassId != "longshot"
-                || plan is null
-                || plan.Policy == "off"
-                || plan.Line is null)
-                return;
-            string geometryPrefix =
-                $"{scope.Prefix}-{scope.GroupTag}-{scope.PhaseTag}";
-            string stand = Anchor(
-                plan.Line[0], $"g-{geometryPrefix}-s{bot.Slot}-rail-post");
-            string aim = Anchor(
-                plan.Line[1], $"g-{geometryPrefix}-s{bot.Slot}-rail-aim");
-            leaves.Add(new Node
-            {
-                Id = scope.Id("rail-move"),
-                Action = writer =>
-                {
-                    writer.WriteStartObject("move");
-                    writer.WriteStartObject("to");
-                    writer.WriteString("anchor", stand);
-                    writer.WriteEndObject();
-                    writer.WriteStartObject("face");
-                    writer.WriteString("anchor", aim);
-                    writer.WriteEndObject();
-                    writer.WriteEndObject();
-                },
             });
         }
 

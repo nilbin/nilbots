@@ -27,6 +27,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private readonly Dictionary<int, int> _pendingInvest = [];
     private readonly Dictionary<int, (ActorIdentity Actor, int Spent)> _invested = [];
     private readonly Dictionary<int, PendingOneShot> _pendingOneShots = [];
+    private readonly Dictionary<int, PendingSoloToss> _pendingSoloTosses = [];
     private readonly Dictionary<ActorIdentity, int> _lastSignatureUseTick = [];
     private readonly Dictionary<(ActorIdentity Actor, string Path), FightAnchor>
         _fightAnchors = [];
@@ -83,6 +84,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _contract = start.Contract;
         _teamId = start.TeamId;
         _custodyLatch = new CustodyLatch(_teamId);
+        _pendingSoloTosses.Clear();
         _evidence.Reset();
         _activeFights = [];
         if (start.Contract.ModeMapBinding is not
@@ -155,6 +157,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         _firingGround.Clear();
 
         UpdateMemory(contract, mind, arc);
+        ReconcileSoloTosses(mind, arc);
         _evidence.Observe(_teamId, mind);
         ResolvePreviousOneShots(contract, mind);
         UpdateMotionMemory(mind);
@@ -311,7 +314,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             if (ArenaBasics.TryEvade(
                     contract, mind, body, claims,
-                    _stepper.Trace(body.UnitId)))
+                    _stepper.Trace(body.UnitId),
+                    preserveImmediateEngagement:
+                        proposal?.Leaf.Node.Action
+                            is OrdersPackage.FightAction))
                 continue;
             if (proposal is null)
             {
@@ -949,6 +955,30 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         if (move.TargetKind == "dynamic")
         {
+            if (move.Target == "own-tossed-core")
+            {
+                if (!_pendingSoloTosses.TryGetValue(
+                        body.UnitId, out PendingSoloToss? pending)
+                    || pending.Actor != body.ActorId
+                    || carried.ContainsKey(body.ActorId))
+                {
+                    return [];
+                }
+                int? distance = ArenaBasics.DistanceFromField(
+                    contract.Map,
+                    WalkingDistanceField(contract, mind, body),
+                    pending.Target);
+                if (distance is null)
+                    return [];
+                return [new ResolvedTarget(
+                    $"core:{CoreKey(pending.CoreId)}",
+                    pending.Target,
+                    [pending.Target],
+                    null,
+                    CoreKey(pending.CoreId),
+                    $"reclaim-own-toss-distance-{distance}",
+                    distance)];
+            }
             if (move.Target == "own-reactor")
             {
                 // Banking consumes a Core only while the carrier STANDS on
@@ -1509,6 +1539,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         if (use.TargetKind == "named" && use.Target == "own-reactor")
         {
+            if (use.Opportunity == "transfer-forward")
+            {
+                ResolvedTarget? forward = ResolveSoloForwardArcToss(
+                    contract, mind, arc, body, use, carried, out decline);
+                return forward is null ? [] : [forward];
+            }
             var reactor = new ResolvedTarget(
                 "reactor:own", _ownReactor, [_ownReactor], null, null);
             if (!CanExecuteUse(contract, body, reactor, use))
@@ -1686,6 +1722,107 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (useful.Count == 0 && opportunityDecline is not null)
             decline = opportunityDecline;
         return useful.ToArray();
+    }
+
+    /// <summary>
+    /// The Relay default is a solo carry primitive, not an implicit escort:
+    /// choose the farthest exact legal landing that materially shortens the
+    /// carrier's traversable route home. An ordinary reclaim move leaf owns
+    /// the continuation after the Core leaves the body.
+    /// </summary>
+    private ResolvedTarget? ResolveSoloForwardArcToss(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        OrdersPackage.UseAction use,
+        IReadOnlyDictionary<ActorIdentity,
+            GenericActorContext.ArcRelayCoreState> carried,
+        out string? decline)
+    {
+        decline = null;
+        if (!carried.TryGetValue(body.ActorId, out var core))
+        {
+            decline = "signature-arc-toss-no-carried-core";
+            return null;
+        }
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            ArenaBasics.Signature(contract, "arc-toss");
+        GenericActorActionLegality? action = signature is null
+            ? null
+            : body.Action(signature.ActionId);
+        GenericActorActionLegality.ArgumentConstraint.PositionTargetConstraint?
+            targets = action?.Constraints.OfType<GenericActorActionLegality
+                .ArgumentConstraint.PositionTargetConstraint>()
+                .SingleOrDefault();
+        if (action is not { Available: true } || targets is null)
+        {
+            decline = "signature-arc-toss-unavailable";
+            return null;
+        }
+        HashSet<Position> persistent = ArenaBasics.PersistentRouteObstacles(
+            contract, mind, body.ActorId.TeamId);
+        int[] home = ArenaBasics.StaticRouteDistanceField(
+            contract, body, _ownReactor, persistent);
+        int? current = ArenaBasics.DistanceFromField(
+            contract.Map, home, body.Position);
+        if (current is null)
+        {
+            decline = "signature-arc-toss-no-home-route";
+            return null;
+        }
+        HashSet<Position> occupied = mind.Bodies
+            .Where(candidate => candidate.ActorId != body.ActorId)
+            .Select(candidate => candidate.Position)
+            .Concat(mind.Enemies.Select(candidate => candidate.Position))
+            .ToHashSet();
+        HashSet<Position> coreTiles = arc.VisibleCores
+            .Where(candidate => candidate.CoreId != core.CoreId)
+            .Select(candidate => candidate.FlightTarget ?? candidate.Position)
+            .ToHashSet();
+        var option = targets.AllowedValues
+            .Where(candidate => candidate != _ownReactor
+                && !occupied.Contains(candidate)
+                && !coreTiles.Contains(candidate)
+                && ArcTossLandsExactly(
+                    contract.Map, body.Position, candidate)
+                && mind.Enemies.All(enemy =>
+                    enemy.Position.ChebyshevDistance(candidate) > 1))
+            .Select(candidate => new
+            {
+                Position = candidate,
+                Remaining = ArenaBasics.DistanceFromField(
+                    contract.Map, home, candidate),
+            })
+            .Where(candidate => candidate.Remaining is int remaining
+                && current.Value - remaining >= 2)
+            .OrderByDescending(candidate =>
+                current.Value - candidate.Remaining!.Value)
+            .ThenBy(candidate => candidate.Remaining)
+            .ThenBy(candidate => ArenaBasics.FrameY(
+                candidate.Position, _mirrored))
+            .ThenBy(candidate => ArenaBasics.FrameX(
+                candidate.Position, _mirrored))
+            .FirstOrDefault();
+        if (option is null)
+        {
+            decline = "signature-arc-toss-no-safe-forward-landing";
+            return null;
+        }
+        int gain = current.Value - option.Remaining!.Value;
+        var target = new ResolvedTarget(
+            $"solo-forward:{option.Position.X},{option.Position.Y}",
+            option.Position,
+            [option.Position],
+            null,
+            CoreKey(core.CoreId),
+            $"solo-forward-gain-{gain}");
+        if (!CanExecuteUse(contract, body, target, use))
+        {
+            decline = "signature-arc-toss-forward-landing-illegal";
+            return null;
+        }
+        return target;
     }
 
     /// <summary>
@@ -2068,11 +2205,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     .ArgumentConstraint.PositionTargetConstraint>()
                     .Single().AllowedValues.Contains(placement);
             }
-            // Arc Toss is a pass, not a blind throw in an ally's general
-            // direction. A named receiver must be an exact legal landing tile
-            // so the engine can complete the catch authoritatively.
+            // Both receiver passes and solo forward Tosses name an exact
+            // landing. Never let the generic nearest-position helper silently
+            // clip or substitute a different legal tile.
             if (signature.Kind == "arc-toss"
-                && target.Actor is not null
                 && (!action.Constraints.OfType<GenericActorActionLegality
                         .ArgumentConstraint.PositionTargetConstraint>()
                     .Single().AllowedValues.Contains(target.Position)
@@ -2628,7 +2764,20 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             case OrdersPackage.UseAction use:
                 if (ExecuteUse(
                         contract, package, body, proposal.Target, use, reason))
+                {
                     RememberOneShot(body, proposal, use.Skill);
+                    if (use.Skill == "arc-toss"
+                        && use.Opportunity == "transfer-forward"
+                        && proposal.Target.Actor is null
+                        && carried.TryGetValue(body.ActorId, out var core))
+                    {
+                        _pendingSoloTosses[body.UnitId] = new PendingSoloToss(
+                            body.ActorId,
+                            core.CoreId,
+                            proposal.Target.Position,
+                            mind.Tick + 40);
+                    }
+                }
                 else
                     body.Hold($"{reason}:use-unavailable");
                 return;
@@ -2935,7 +3084,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     holdClose
                         ? $"{reason}:hold-{holdMotive}-close:{targetKey}:"
                             + physical
-                        : $"{reason}:close:{targetKey}:{physical}"))
+                        : $"{reason}:close:{targetKey}:{physical}",
+                    preserveImmediateEngagement: true))
             {
                 return;
             }
@@ -3027,7 +3177,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : null;
             Func<Position, bool>? exactReceiver = anchored is Position placement
                 ? candidate => candidate == placement
-                : signature.Kind == "arc-toss" && target.Actor is not null
+                : signature.Kind == "arc-toss"
                     ? candidate => candidate == target.Position
                     : null;
             return ArenaBasics.TryPositionSignature(
@@ -3493,12 +3643,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     break;
                 case GenericActorContext.ArcRelayEvent.CorePickedUp picked:
                     _knownLooseCores.Remove(CoreKey(picked.CoreId));
+                    ForgetSoloToss(picked.CoreId);
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreHandedOff handed:
                     _knownLooseCores.Remove(CoreKey(handed.CoreId));
+                    ForgetSoloToss(handed.CoreId);
                     break;
                 case GenericActorContext.ArcRelayEvent.CoreBanked banked:
                     _knownLooseCores.Remove(CoreKey(banked.CoreId));
+                    ForgetSoloToss(banked.CoreId);
                     _lastObjectiveProgressTick = observed.SourceTick;
                     break;
                 case GenericActorContext.ArcRelayEvent.LeveledUp level
@@ -3526,6 +3679,50 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             _lastOwnCharge = charge;
             _lastObjectiveProgressTick = mind.Tick;
+        }
+    }
+
+    private void ReconcileSoloTosses(
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc)
+    {
+        Dictionary<int, MindBody> live = mind.Bodies.ToDictionary(
+            body => body.UnitId);
+        foreach ((int unitId, PendingSoloToss pending) in
+                 _pendingSoloTosses.ToArray())
+        {
+            if (!live.TryGetValue(unitId, out MindBody? body)
+                || body.ActorId != pending.Actor
+                || mind.Tick > pending.ExpiresAtTick)
+            {
+                _pendingSoloTosses.Remove(unitId);
+                continue;
+            }
+            GenericActorContext.ArcRelayCoreState? core = arc.VisibleCores
+                .FirstOrDefault(candidate => candidate.CoreId == pending.CoreId);
+            if (core is null)
+                continue;
+            if (core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Carried)
+            {
+                _pendingSoloTosses.Remove(unitId);
+                continue;
+            }
+            _pendingSoloTosses[unitId] = pending with
+            {
+                Target = core.FlightTarget ?? core.Position,
+            };
+        }
+    }
+
+    private void ForgetSoloToss(GenericActorContext.ArcRelayCoreId coreId)
+    {
+        foreach (int unitId in _pendingSoloTosses
+                     .Where(value => value.Value.CoreId == coreId)
+                     .Select(value => value.Key)
+                     .ToArray())
+        {
+            _pendingSoloTosses.Remove(unitId);
         }
     }
 
@@ -4030,6 +4227,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         ActorIdentity Actor,
         OrdersPackage.OrderNode Node,
         string ActionId);
+    private sealed record PendingSoloToss(
+        ActorIdentity Actor,
+        GenericActorContext.ArcRelayCoreId CoreId,
+        Position Target,
+        int ExpiresAtTick);
     private readonly record struct FiringGroundKey(
         ActorIdentity Actor,
         Position Target,

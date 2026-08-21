@@ -793,6 +793,22 @@ export function normalizeEditableDocumentForCatalog(
   loaded.mapId = catalog.map.id;
   loaded.mapWidth = catalog.map.width;
   loaded.mapHeight = catalog.map.height;
+  // Migrate the old Longshot line override to its contextual smart behavior.
+  // Existing direct compiler inputs remain backwards-compatible, while every
+  // document opened in the current editor stops moving the bot away from its
+  // authored phase ground.
+  for (const tactic of loaded.tactics) {
+    for (const phase of tactic.phases) {
+      for (const job of Object.values(phase.jobs)) {
+        for (const [slotKey, plan] of Object.entries(job.sigs ?? {})) {
+          const bot = loaded.squad[Number(slotKey)];
+          if (bot?.class === 'longshot' && plan.line) {
+            job.sigs![slotKey] = { policy: 'smart' };
+          }
+        }
+      }
+    }
+  }
   return loaded;
 }
 

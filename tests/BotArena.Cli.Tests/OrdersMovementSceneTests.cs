@@ -424,6 +424,153 @@ public sealed class OrdersMovementSceneTests
     }
 
     [Fact]
+    public void GeneratedRelayThrowsForwardReclaimsAndBanksWithoutAReceiver()
+    {
+        string root = FindRepoRoot();
+        string fixture = Path.Combine(
+            root, "tests", "BotArena.Cli.Tests", "Fixtures", "tactics",
+            "core-raid.tactics.json");
+        JsonObject source = JsonNode.Parse(File.ReadAllBytes(fixture))!.AsObject();
+        JsonObject tactic = source["tactics"]![0]!.AsObject();
+        JsonArray groups = tactic["groups"]!.AsArray();
+        groups[0]!["slots"] = new JsonArray(6);
+        groups[0]!["stage"] = new JsonObject
+        {
+            ["kind"] = "approach",
+            ["posture"] = "steal",
+            ["recovery"] = "fight-on",
+            ["point"] = new JsonArray(15, 13),
+            ["via"] = new JsonArray(
+                new JsonArray(6, 13),
+                new JsonArray(10, 13)),
+        };
+        groups[1]!["slots"] = new JsonArray(0, 1, 2, 3, 4, 5, 7);
+        tactic["release"] = new JsonObject
+        {
+            ["mode"] = "ready-when",
+            ["conds"] = new JsonObject
+            {
+                ["coreLoose"] = new JsonObject { ["well"] = "centre" },
+            },
+        };
+        tactic["finish"] = new JsonObject
+        {
+            ["outcomes"] = new JsonObject
+            {
+                ["coreBanked"] = true,
+                ["coreLost"] = true,
+            },
+            ["maxAttempt"] = "none",
+        };
+        TacticalPlaybookCompilation relay =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(source.ToJsonString()));
+        TacticalPlaybookCompilation idle = CompileHistoricalTapline6(
+            root, "idle-field-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            relay.Composition,
+            idle.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline8);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, relay), Participant(1, idle)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        ArcRelayEvent.CoreDropped? departure = null;
+        ArcRelayEvent.CorePickedUp? reclaim = null;
+        ArcRelayEvent.CoreBanked? bank = null;
+        int departureTick = -1;
+        bool reclaimInstruction = false;
+        var relayReasons = new Queue<string>();
+        var coreFacts = new Queue<string>();
+        Position? relayPosition = null;
+        while (!session.IsCompleted && bank is null)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            foreach (GenericMindCommandResolution command in step.MindTurns
+                         .Single(turn => turn.TeamId == 0).Commands)
+            {
+                string reason = command.Command.DebugMessage ?? "";
+                Assert.False(string.IsNullOrWhiteSpace(reason));
+                if (command.Command.UnitId == 6)
+                {
+                    relayReasons.Enqueue($"{step.Tick}:{reason}");
+                    if (relayReasons.Count > 8) relayReasons.Dequeue();
+                }
+                if (departure is not null
+                    && command.Command.UnitId == 6
+                    && reason.Contains("reclaim-toss", StringComparison.Ordinal)
+                    && reason.Contains("reclaim-own-toss", StringComparison.Ordinal))
+                {
+                    reclaimInstruction = true;
+                }
+            }
+            foreach (GenericActorAuthoritativeEvent fact in step.AuthoritativeEvents)
+            {
+                if (fact.Payload is not GenericActorRuntimeObservation
+                    .EventPayload.ArcRelay mode)
+                {
+                    continue;
+                }
+                if (mode.Fact is ArcRelayEvent.CoreDropped
+                    or ArcRelayEvent.CoreRelocated
+                    or ArcRelayEvent.CorePickedUp
+                    or ArcRelayEvent.CoreBanked)
+                {
+                    coreFacts.Enqueue($"{step.Tick}:{mode.Fact}");
+                    if (coreFacts.Count > 20) coreFacts.Dequeue();
+                }
+                if (mode.Fact is ArcRelayEvent.CoreDropped
+                    {
+                        Kind: ArcRelayEvent.CoreDropKind.SignatureDeparture,
+                        SourceActorId.TeamId: 0,
+                        SourceActorId.UnitId: 6,
+                    } dropped)
+                {
+                    departure = dropped;
+                    departureTick = step.Tick;
+                    reclaim = null;
+                    reclaimInstruction = false;
+                }
+                else if (departure is not null
+                    && mode.Fact is ArcRelayEvent.CorePickedUp picked
+                    && picked.CoreId == departure!.CoreId
+                    && picked.CarrierActorId.TeamId == 0
+                    && picked.CarrierActorId.UnitId == 6)
+                {
+                    reclaim = picked;
+                }
+                else if (reclaim is not null
+                    && mode.Fact is ArcRelayEvent.CoreBanked banked
+                    && banked.CoreId == departure!.CoreId)
+                {
+                    bank = banked;
+                }
+            }
+            GenericActorWorldSnapshot.LifeSnapshot? relayLife = step.PostState
+                .ActiveLives.FirstOrDefault(value =>
+                    value.ActorId.TeamId == 0 && value.ActorId.UnitId == 6);
+            relayPosition = relayLife?.Position;
+        }
+
+        string diagnostic = $"departureTick={departureTick},relayPosition={relayPosition},"
+            + $"reasons={string.Join(" | ", relayReasons)},"
+            + $"coreFacts={string.Join(" | ", coreFacts)}";
+        Assert.True(departure is not null, diagnostic);
+        Assert.True(reclaimInstruction, diagnostic);
+        Assert.True(reclaim is not null, diagnostic);
+        Assert.True(bank is not null, diagnostic);
+        Assert.Equal(new ActorIdentity(0, 6, 0), bank.CarrierActorId);
+        Assert.NotEqual(departure.Position, reclaim.Position);
+        Assert.True(
+            reclaim.Position.ChebyshevDistance(bank.Position)
+                < departure.Position.ChebyshevDistance(bank.Position),
+            diagnostic);
+    }
+
+    [Fact]
     public void RoleScopedPassForwardSkipsCloserWrongRoleAndReceiverBanksSameCore()
     {
         string root = FindRepoRoot();
@@ -620,6 +767,130 @@ public sealed class OrdersMovementSceneTests
         Assert.Equal(handoff.TargetActorId, bank.CarrierActorId);
         Assert.Equal(4, bank.ChargeAwarded);
         Assert.Equal(190, bankTick);
+    }
+
+    [Theory]
+    [InlineData("hold", "wait")]
+    [InlineData("aggressive", "wait")]
+    [InlineData("hold", "hold")]
+    [InlineData("aggressive", "aggressive")]
+    public void GeneratedTravelCombatStopsTheMarchAndFires(
+        string travel,
+        string destinationPosture)
+    {
+        string root = FindRepoRoot();
+        string fixture = Path.Combine(
+            root, "tests", "BotArena.Cli.Tests", "Fixtures", "tactics",
+            "pincer.tactics.json");
+        JsonObject source = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                File.ReadAllBytes(fixture)))!.AsObject();
+        source["mapId"] = "arc-relay-tapline-03";
+        JsonObject tactic = source["tactics"]![0]!.AsObject();
+        JsonObject phase = tactic["phases"]![0]!.AsObject();
+        // Keep this phase active and make the six-body group cross the whole
+        // centre lane. Demolition March approaches from the other side, so
+        // the route necessarily produces real travel contact before arrival.
+        phase.Remove("continue");
+        phase["jobs"]!["flankers"] = new JsonObject
+        {
+            ["kind"] = "area",
+            ["rect"] = new JsonArray(23, 11, 26, 15),
+            ["travel"] = travel,
+            ["posture"] = destinationPosture,
+            ["recovery"] = "fight-on",
+        };
+        tactic["phases"] = new JsonArray(phase.DeepClone());
+        TacticalPlaybookCompilation traveller =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(source.ToJsonString()));
+        TacticalPlaybookCompilation demolition = Compile(
+            root, "demolition-march-v1.json");
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            traveller.Composition,
+            demolition.Composition,
+            loopProfile: ArcRelayLoopProfile.Current);
+
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, traveller), Participant(1, demolition)],
+            matchSeed: 9001,
+            recordChronology: false);
+
+        bool selectedTravelFight = false;
+        bool firedFromTravelFight = false;
+        int longestCommittedRun = 0;
+        var committedTicks = new Dictionary<int, int>();
+        var recent = new Queue<string>();
+        int ticks = 0;
+        int commandsSeen = 0;
+        int ordinaryRouteMoves = 0;
+        string events = "";
+        while (!session.IsCompleted && ticks++ < 220
+            && (!firedFromTravelFight || longestCommittedRun < 2))
+        {
+            GenericActorMatchStepResult step = session.Step();
+            events = string.Join(" | ", step.AuthoritativeEvents.Select(
+                value => value.Payload.ToString()));
+            foreach (GenericMindCommandResolution command in step.MindTurns
+                         .Single(turn => turn.TeamId == 0).Commands)
+            {
+                commandsSeen++;
+                string reason = command.Command.DebugMessage ?? "";
+                recent.Enqueue($"{step.Tick}:{command.Command.UnitId}:"
+                    + $"{command.Command.ActionId}:{reason}");
+                if (recent.Count > 24) recent.Dequeue();
+                bool selected = reason.Contains(
+                    "t1-p1-g2-travel-fight", StringComparison.Ordinal);
+                int run = selected
+                    ? committedTicks.GetValueOrDefault(command.Command.UnitId) + 1
+                    : 0;
+                committedTicks[command.Command.UnitId] = run;
+                longestCommittedRun = Math.Max(longestCommittedRun, run);
+                selectedTravelFight |= selected;
+                firedFromTravelFight |= selected
+                    && command.Command.ActionId == "shoot-direction";
+
+                if (command.Command.ActionId == "move-eight-way"
+                    && reason.Contains(":march@", StringComparison.Ordinal)
+                    && !selected)
+                {
+                    GenericMindRuntimeObservation.ObservedBodyState before =
+                        step.TickStart.MindObservations
+                            .Single(value => value.TeamId == 0)
+                            .Bodies.Single(value => value.ActorId.UnitId
+                                == command.Command.UnitId);
+                    GenericActorWorldSnapshot.LifeSnapshot? after =
+                        step.PostState.ActiveLives.FirstOrDefault(value =>
+                            value.ActorId == before.ActorId);
+                    if (after is not null && after.Position != before.Position)
+                    {
+                        ordinaryRouteMoves++;
+                        int dx = after.Position.X - before.Position.X;
+                        int dy = after.Position.Y - before.Position.Y;
+                        Assert.True(
+                            Visibility.InQuadrant(dx, dy, after.Facing),
+                            $"ordinary route move strafed sideways: "
+                                + $"{before.Position}->{after.Position}, "
+                                + $"facing={after.Facing}, reason={reason}");
+                    }
+                }
+            }
+        }
+
+        Assert.True(selectedTravelFight,
+            $"{travel}/{destinationPosture} never displaced the travel "
+                + "Move with Fight. "
+                + $"ticks={ticks},commands={commandsSeen},completed="
+                + $"{session.IsCompleted}. events={events}. "
+                + string.Join(" | ", recent));
+        Assert.True(longestCommittedRun >= 2,
+            $"{travel} did not remain committed across consecutive ticks.");
+        Assert.True(firedFromTravelFight,
+            $"{travel} selected Fight but never attacked from it.");
+        Assert.True(ordinaryRouteMoves > 0,
+            $"{travel}/{destinationPosture} produced no ordinary route move "
+                + "to verify route-facing locomotion.");
     }
 
     [Fact]

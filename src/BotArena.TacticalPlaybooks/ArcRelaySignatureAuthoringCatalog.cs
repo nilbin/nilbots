@@ -240,12 +240,14 @@ public static class ArcRelaySignatureAuthoringCatalog
             Entry("relay", "arc-toss", ArcTossTargets,
                 ArcRelaySignatureTargetCapability.FriendlyRole
                     | ArcRelaySignatureTargetCapability.MostExperiencedAlly
-                    | ArcRelaySignatureTargetCapability.RouteAheadRole,
+                    | ArcRelaySignatureTargetCapability.RouteAheadRole
+                    | ArcRelaySignatureTargetCapability.RouteForward,
                 opportunity: ArcRelaySignatureOpportunityBehavior.TransferForward,
                 custody: ArcRelaySignatureCustodyBehavior.TransferOnly,
-                preset: Preset("toss-forward-receiver", "Toss to a forward receiver",
-                    "Pass to a named Relay only after it earns useful progress on a route.",
-                    ArcRelaySignaturePresetTargetKind.RouteAheadRole)),
+                preset: Preset("toss-core-ahead", "Throw the Core ahead",
+                    "Throw toward home, chase the landing, and keep carrying without needing an escort.",
+                    ArcRelaySignaturePresetTargetKind.NamedSelector,
+                    ArcRelaySignatureNamedTarget.OwnReactor)),
             Entry("switchback", "exchange",
                 [ArcRelaySignatureNamedTarget.HealthiestAlly,
                     ArcRelaySignatureNamedTarget.NearestAlly,
@@ -261,10 +263,8 @@ public static class ArcRelaySignatureAuthoringCatalog
                 commitment: ArcRelaySignatureCommitmentBehavior
                     .PreserveByDefault,
                 opportunity: ArcRelaySignatureOpportunityBehavior.RailVisibleEnemy,
-                guidanceGeometry: ArcRelaySignatureGuidanceGeometry.Line,
-                guidanceMarkLimit: 2,
                 preset: Preset("rail-carrier-lane", "Rail the carrier lane",
-                    "Hold a selected firing area against the enemy carrier.",
+                    "Fire contextually from this phase's Post or Patrol ground against the enemy carrier.",
                     ArcRelaySignaturePresetTargetKind.NamedSelector,
                     ArcRelaySignatureNamedTarget.EnemyCarrier)),
             Entry("mason", "hardlight-block", BroadTargets,

@@ -10,6 +10,8 @@ namespace BotArena.Engine;
 /// </summary>
 internal sealed partial class ArcRelaySignatureRuntime
 {
+    public sealed record OmnidirectionalSensor(Position Position, int Range);
+
     private readonly ActorMapDefinition _map;
     private readonly ImmutableDictionary<string, ArcRelaySignatureDefinition>
         _byAction;
@@ -42,6 +44,7 @@ internal sealed partial class ArcRelaySignatureRuntime
 
     private readonly bool _diagonalCornersMustBeClear;
     private readonly bool _durableDeployments;
+    private readonly bool _sentryTeamVision;
 
     /// <summary>
     /// Equal-distance target ties break toward the shooter's own reactor
@@ -65,6 +68,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         _map = definition.Map;
         _sideFairTargeting = mode.AlternatingResolutionOrder;
         _durableDeployments = mode.DurableDeployments;
+        _sentryTeamVision = mode.SentryTeamVision;
         if (definition.ModeMapBinding is
                 ArcRelayActorModeMapBindingDefinition reactorBinding)
         {
@@ -132,6 +136,40 @@ internal sealed partial class ArcRelaySignatureRuntime
 
     public ArcRelaySignatureDefinition DefinitionForAction(string actionId) =>
         _byAction[actionId];
+
+    /// <summary>
+    /// Active Sentinel Seeds are faceless range-matched sensors on rulesets
+    /// that declare the capability. The common observation projector owns
+    /// walls and smoke, so this seam publishes only sensor origins/ranges.
+    /// </summary>
+    public ImmutableArray<OmnidirectionalSensor> TeamSensors(
+        int teamId,
+        int tick)
+    {
+        if (!_sentryTeamVision)
+            return [];
+        return _operations.Values
+            .Where(operation => operation.OwnerActorId.TeamId == teamId
+                && operation.Phase
+                    == ArcRelaySignatureState.SignaturePhase.Active
+                && !operation.Suppressed
+                && operation.EndsAtTick > tick
+                && operation.Definition is
+                    ArcRelaySignatureDefinition.SentinelSeed
+                        or ArcRelaySignatureDefinition.SentinelSeed2)
+            .OrderBy(operation => operation.OperationId, StringComparer.Ordinal)
+            .Select(operation => new OmnidirectionalSensor(
+                operation.Positions[0],
+                operation.Definition switch
+                {
+                    ArcRelaySignatureDefinition.SentinelSeed value =>
+                        value.Range,
+                    ArcRelaySignatureDefinition.SentinelSeed2 value =>
+                        value.Range,
+                    _ => throw new InvalidOperationException(),
+                }))
+            .ToImmutableArray();
+    }
 
     public bool CanStart(
         ActorIdentity actor,
@@ -363,7 +401,7 @@ internal sealed partial class ArcRelaySignatureRuntime
     {
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
         var effects = ImmutableArray.CreateBuilder<Effect>();
-        RefreshAttachedOperations(lives);
+        RefreshAttachedOperations(lives, events);
         Dictionary<ActorIdentity, Life> world = lives.ToDictionary(
             value => value.ActorId);
 
@@ -425,8 +463,8 @@ internal sealed partial class ArcRelaySignatureRuntime
         Func<int, Position, bool> teamCanSee)
     {
         ArgumentNullException.ThrowIfNull(teamCanSee);
-        RefreshAttachedOperations(lives);
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
+        RefreshAttachedOperations(lives, events);
         var effects = ImmutableArray.CreateBuilder<Effect>();
         Operation[] operations = [.. _operations.Values
             .OrderBy(value => value.OperationId, StringComparer.Ordinal)];
@@ -805,7 +843,9 @@ internal sealed partial class ArcRelaySignatureRuntime
     /// again after signature displacement, so replay projection and collision
     /// never trail the Palisade by one tick.
     /// </summary>
-    public void RefreshAttachedOperations(IReadOnlyCollection<Life> lives)
+    public void RefreshAttachedOperations(
+        IReadOnlyCollection<Life> lives,
+        ImmutableArray<GenericActorModeEvent>.Builder? events = null)
     {
         ArgumentNullException.ThrowIfNull(lives);
         IReadOnlyDictionary<ActorIdentity, Life> world = lives.ToDictionary(
@@ -820,14 +860,19 @@ internal sealed partial class ArcRelaySignatureRuntime
                 continue;
             var screen = (ArcRelaySignatureDefinition.PrismScreen)
                 operation.Definition;
-            operation.SourcePosition = owner.Position;
-            operation.Positions = ScreenShape(
+            ImmutableArray<Position> positions = ScreenShape(
                 owner.Position,
                 owner.Facing,
                 screen.SegmentCount);
+            bool transformed = operation.SourcePosition != owner.Position
+                || !operation.Positions.SequenceEqual(positions);
+            operation.SourcePosition = owner.Position;
+            operation.Positions = positions;
             operation.ProjectileCollisionPositions = operation.Positions
                 .Where(position => !occupied.Contains(position))
                 .ToImmutableArray();
+            if (transformed && events is not null)
+                events.Add(SignatureEvent(operation, "owner-transformed"));
         }
     }
 

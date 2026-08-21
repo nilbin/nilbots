@@ -12,6 +12,9 @@
  * the build. This emits the variants; `arenaThemes` picks between them.
  *
  * Output is generated and gitignored. Run before `dev` or `build` — both npm scripts do.
+ * The product build emits Ember Forge only because that is Tapline's presentation. Theme
+ * work can opt into another package with `--theme=<id>`, or every discovered package with
+ * `--all`; unselected themes remain usable through their checked-in 4096px masters.
  */
 
 import { mkdir, readdir, rm, stat } from 'node:fs/promises';
@@ -35,14 +38,51 @@ const ATLAS = /^(wall-[a-z-]+)\.webp$/;
  * added weight it can never use — it cannot fetch a chosen one at runtime. That build
  * cleans instead of generating, and the loader falls back to the master.
  */
-const clean = process.argv.includes('--clean');
+const args = process.argv.slice(2);
+const clean = args.includes('--clean');
+const allThemes = args.includes('--all');
+const requestedThemes = args
+  .filter((argument) => argument.startsWith('--theme='))
+  .map((argument) => argument.slice('--theme='.length))
+  .filter(Boolean);
+const unknownArguments = args.filter(
+  (argument) =>
+    argument !== '--clean' && argument !== '--all' && !argument.startsWith('--theme='),
+);
+
+if (unknownArguments.length > 0)
+  throw new Error(`Unknown atlas option(s): ${unknownArguments.join(', ')}`);
+if (clean && (allThemes || requestedThemes.length > 0))
+  throw new Error('Atlas cleanup always covers every theme; do not combine --clean with a theme selector.');
+if (allThemes && requestedThemes.length > 0)
+  throw new Error('Choose either --all or one or more --theme=<id> options.');
+
+const DEFAULT_THEMES = ['ember-forge'];
 
 let written = 0;
 let skipped = 0;
 let removed = 0;
 
-const themes = await readdir(themesRoot, { withFileTypes: true });
-for (const theme of themes.filter((entry) => entry.isDirectory())) {
+const discoveredThemes = (await readdir(themesRoot, { withFileTypes: true })).filter((entry) =>
+  entry.isDirectory(),
+);
+const selectedThemeIds = new Set(
+  allThemes
+    ? discoveredThemes.map((entry) => entry.name)
+    : requestedThemes.length > 0
+      ? requestedThemes
+      : DEFAULT_THEMES,
+);
+const missingThemes = [...selectedThemeIds].filter(
+  (themeId) => !discoveredThemes.some((entry) => entry.name === themeId),
+);
+if (missingThemes.length > 0)
+  throw new Error(`Unknown atlas theme(s): ${missingThemes.join(', ')}`);
+
+const themes = clean
+  ? discoveredThemes
+  : discoveredThemes.filter((entry) => selectedThemeIds.has(entry.name));
+for (const theme of themes) {
   const directory = path.join(themesRoot, theme.name);
   const variantsDir = path.join(directory, 'variants');
 
@@ -81,6 +121,7 @@ for (const theme of themes.filter((entry) => entry.isDirectory())) {
 console.log(
   clean
     ? `Atlas variants: cleaned ${removed} theme director${removed === 1 ? 'y' : 'ies'}.`
-    : `Atlas variants: ${written} written, ${skipped} up to date ` +
+    : `Atlas variants (${themes.map((theme) => theme.name).join(', ')}): ` +
+      `${written} written, ${skipped} up to date ` +
       `(${VARIANT_WIDTHS.join('px, ')}px).`,
 );

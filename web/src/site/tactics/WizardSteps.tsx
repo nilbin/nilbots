@@ -902,7 +902,7 @@ export function JobSection(props: StepProps & {
           && task.phaseIndex === phaseIndex && task.slot === bot.slot;
         const placed = has
           ? geometry.kind === 'points'
-            ? ` · ${points.length}/${geometry.max} marks at ${describePlace(...points[0])}`
+            ? ` · ${points.length} mark${points.length === 1 ? '' : 's'} (up to ${geometry.max}) at ${describePlace(...points[0])}`
             : ` · lane through ${describePlace(...points[0])}`
           : ' · no marks yet — optional';
         return <GeoStatusRow key={bot.slot} complete={has}
@@ -956,17 +956,16 @@ function posturesFor(tactic: Tactic, kind: JobKind) {
   return POSTURES;
 }
 
-export function CoresStep({ catalog, document, wizard, change }: StepProps) {
+export function CoresStep({ wizard, change }: StepProps) {
   const tactic = wizard.tactic;
-  const preferred = tactic.delivery.preferredSlots ?? [];
   return <div className="flex flex-col gap-2 rounded-sm border border-arena-edge p-2"
     style={{ borderLeft: '3px solid #8fd8ff' }}>
     <div>
       <div className="lab mb-0.5">Whole Tactic</div>
       <b className="t-body">Core defaults</b>
     </div>
-    <p className="t-meta">Pickup is each Group's own habit, and ⭑ marks preferred
-      carriers. Delivery is one shared plan — the real carrier is whoever ends up holding it.</p>
+    <p className="t-meta">Pickup is each Group's own habit. Delivery is one shared plan —
+      the real carrier is whoever ends up holding the Core.</p>
     {tactic.groups.map((group) => (
       <div key={group.id} className="rounded-sm border border-arena-edge p-2"
         style={{ borderLeft: `3px solid ${groupColor(tactic, group.id)}` }}>
@@ -980,26 +979,10 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
             if (target) target.coreRule = rule;
           })} />
         <p className="t-micro mb-1 text-arena-dim">{CORE_RULES.find((value) => value.id === group.coreRule)?.blurb}</p>
-        <div className="flex flex-wrap gap-1">
-          {group.slots.map((slot) => {
-            const bot = document.squad[slot];
-            if (!bot) return null;
-            const on = preferred.includes(slot);
-            return <BotChip key={slot} bot={bot} catalog={catalog} armed={on}
-              note={on ? '⭑' : '☆'}
-              onClick={() => change((next) => {
-                const list = next.delivery.preferredSlots ?? [];
-                next.delivery.preferredSlots = on
-                  ? list.filter((value) => value !== slot)
-                  : [...list, slot];
-                if (next.delivery.preferredSlots.length === 0) delete next.delivery.preferredSlots;
-              })} />;
-          })}
-        </div>
       </div>
     ))}
-    <p className="t-micro text-arena-dim">Tap ☆ to prefer a bot as carrier — preferred bots position to
-      receive a toss. Cores bank at your reactor.</p>
+    <p className="t-micro text-arena-dim">Relays can throw a carried Core ahead and reclaim it themselves.
+      Cores bank at your reactor.</p>
     <div>
       <div className="lab mb-1">Tactic-wide delivery default</div>
       <ChoiceCards options={DELIVERY_PLANS} value={tactic.delivery.plan}
@@ -1007,7 +990,7 @@ export function CoresStep({ catalog, document, wizard, change }: StepProps) {
     </div>
     {tactic.delivery.plan !== 'none' && (
       <Readback label="Readback">
-        {deliveryClause(tactic, (slot) => document.squad[slot]?.name ?? null)}.
+        {deliveryClause(tactic)}.
       </Readback>
     )}
     <DeliverCoreSuggestion tactic={tactic} change={change} />

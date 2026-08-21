@@ -8,6 +8,36 @@ namespace BotArena.Engine.Tests;
 public sealed class ArcRelayTaplineMovementRateTests
 {
     [Fact]
+    public void Tapline13SeparatesReadableTravelFromContextualCombatStrafe()
+    {
+        ActorResolvedMatchDefinition previous = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline12);
+        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline13);
+
+        Assert.Equal(
+            ActorContractFingerprint.ComputeMap(previous.Map),
+            ActorContractFingerprint.ComputeMap(current.Map));
+        Assert.All(current.Rules.MovementProfiles, profile => Assert.Equal(
+            ActorMovementFacingCoupling.FaceMovementHeadingProjected,
+            profile.FacingCoupling));
+        ActorActionDefinition strafe = current.Rules.Actions.Single(action =>
+            action.Id == ArcRelayH0Definition.StrafeActionId);
+        Assert.Equal(
+            ActorMovementFacingCoupling.CombatStrafe,
+            strafe.MovementFacingOverride);
+        Assert.All(current.Rules.Forms, form => Assert.Contains(
+            ArcRelayH0Definition.StrafeActionId,
+            form.AllowedActionIds));
+
+        Assert.All(previous.Rules.MovementProfiles, profile => Assert.Equal(
+            ActorMovementFacingCoupling.CombatStrafe,
+            profile.FacingCoupling));
+        Assert.DoesNotContain(previous.Rules.Actions, action =>
+            action.Id == ArcRelayH0Definition.StrafeActionId);
+    }
+
+    [Fact]
     public void Tapline11UnifiesControlsAndMakesHandlingBandsActualRates()
     {
         ActorResolvedMatchDefinition previous = ArcRelayH0Definition.Create(

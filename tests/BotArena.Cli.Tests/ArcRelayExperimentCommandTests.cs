@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_moving_Prism_Screen_Tapline12_product_line()
+    public void Default_is_the_contextual_movement_Tapline13_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,7 +69,7 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-12",
+            "arc-relay-tapline-13",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
@@ -121,6 +121,14 @@ public sealed class ArcRelayExperimentCommandTests
         Assert.Equal(
             "after-combat",
             toss.GetProperty("activationTiming").GetString());
+        Assert.True(document.RootElement.GetProperty("rules")
+            .GetProperty("gameMode")
+            .GetProperty("sentryTeamVision").GetBoolean());
+        Assert.Contains(
+            document.RootElement.GetProperty("rules")
+                .GetProperty("actions").EnumerateArray(),
+            value => value.GetProperty("id").GetString()
+                == "strafe-eight-way");
     }
 
     [Theory]

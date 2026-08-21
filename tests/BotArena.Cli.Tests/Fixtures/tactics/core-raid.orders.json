@@ -667,6 +667,14 @@
               "phase": "t1/p1",
               "orders": [
                 {
+                  "id": "t1-p1-g1-reclaim-toss",
+                  "when": "empty-handed",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-tossed-core"
+                  }
+                },
+                {
                   "id": "t1-p1-g1-pass",
                   "when": {
                     "all": [
@@ -677,7 +685,7 @@
                   "use": {
                     "skill": "arc-toss",
                     "opportunity": "transfer-forward",
-                    "target": "nearest-ally-toward-own-reactor"
+                    "target": "own-reactor"
                   }
                 },
                 {
@@ -708,6 +716,14 @@
               "phase": "t1/p2",
               "orders": [
                 {
+                  "id": "t1-p2-g1-reclaim-toss",
+                  "when": "empty-handed",
+                  "urgency": "urgent",
+                  "move": {
+                    "to": "own-tossed-core"
+                  }
+                },
+                {
                   "id": "t1-p2-g1-pass",
                   "when": {
                     "all": [
@@ -718,7 +734,7 @@
                   "use": {
                     "skill": "arc-toss",
                     "opportunity": "transfer-forward",
-                    "target": "nearest-ally-toward-own-reactor"
+                    "target": "own-reactor"
                   }
                 },
                 {

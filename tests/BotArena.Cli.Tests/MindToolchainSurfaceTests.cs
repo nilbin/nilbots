@@ -159,7 +159,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void Tapline11ReleaseAndHistoricalTapline4ArtifactsRemainPinned()
+    public void Tapline13CurrentAndHistoricalReleaseArtifactsRemainPinned()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -212,15 +212,21 @@ public sealed class MindToolchainSurfaceTests
         Assert.Equal(
             historicalTapline4.ArtifactSha256,
             Sha256(Path.Combine(historicalTapline4Directory, "bot.wasm")));
-        Assert.Equal("0.10.15", currentRelease.SdkVersion);
+        Assert.Equal("0.10.15", current.SdkVersion);
+        Assert.Equal(
+            "13e37829d25e2e18344c10306f747a7c63df6c35babe6812b9ee65d95eacdf17",
+            current.ArtifactSha256);
+        Assert.Equal(
+            "f12bc596b31d3376372b42cae59b0ec1465728db0718eb0a0d32839ae21a393a",
+            current.BuildInputSha256);
         Assert.Equal(
             currentRelease.ArtifactSha256,
             Sha256(Path.Combine(currentReleaseDirectory, "bot.wasm")));
         Assert.Equal(
             current.ArtifactSha256,
             Sha256(Path.Combine(projectDirectory, "bot.wasm")));
-        Assert.Equal(currentRelease.ArtifactSha256, current.ArtifactSha256);
-        Assert.Equal(currentRelease.BuildInputSha256, current.BuildInputSha256);
+        Assert.NotEqual(currentRelease.ArtifactSha256, current.ArtifactSha256);
+        Assert.NotEqual(currentRelease.BuildInputSha256, current.BuildInputSha256);
         Assert.NotEqual(
             historicalTapline4.ArtifactSha256,
             currentRelease.ArtifactSha256);

@@ -2180,7 +2180,8 @@ public sealed class GenericActorMatchSession : IDisposable
                 relocated.ToImmutable(),
                 signatureEvents);
             mode.Signatures.RefreshAttachedOperations(
-                ArcRelaySignatureLives());
+                ArcRelaySignatureLives(),
+                signatureEvents);
             EmitModeEvents(signatureEvents, events);
         }
         return new ArcSignatureApplication(relocated.ToImmutable());
@@ -5703,8 +5704,56 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             union.UnionWith(VisibleTilesFor(sensor));
         }
+        if (_mode is ArcRelayActorMatchModeDriver arcRelay)
+        {
+            foreach (ArcRelaySignatureRuntime.OmnidirectionalSensor sensor in
+                     arcRelay.Signatures.TeamSensors(teamId, Tick))
+            {
+                union.UnionWith(VisibleTilesForOmnidirectionalSensor(
+                    sensor.Position,
+                    sensor.Range,
+                    teamId));
+            }
+        }
         _teamVisibleTilesCache.Add(teamId, union);
         return union;
+    }
+
+    private IEnumerable<Position> VisibleTilesForOmnidirectionalSensor(
+        Position origin,
+        int range,
+        int teamId)
+    {
+        var key = new StaticVisibilityKey(
+            origin,
+            range,
+            ActorVisionShape.Omnidirectional,
+            0,
+            null);
+        if (!_staticVisibilityCache.TryGetValue(
+                key,
+                out ImmutableArray<StaticVisibilityRay> candidates))
+        {
+            candidates = StaticVisibilityCandidates(
+                origin,
+                range,
+                ActorVisionShape.Omnidirectional,
+                omnidirectionalProximityRange: 0,
+                facing: null);
+            _staticVisibilityCache.Add(key, candidates);
+        }
+        HashSet<Position> smoke = _mode is ArcRelayActorMatchModeDriver smokeMode
+            ? OccludingSmokeForTeam(smokeMode, teamId)
+            : [];
+        foreach (StaticVisibilityRay candidate in candidates)
+        {
+            if (origin.ChebyshevDistance(candidate.Target) <= 1
+                || !candidate.Ray.Any(position =>
+                    position != origin && smoke.Contains(position)))
+            {
+                yield return candidate.Target;
+            }
+        }
     }
 
     /// <summary>

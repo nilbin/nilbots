@@ -466,7 +466,8 @@ internal static class ArenaBasics
         Claims claims,
         string reason,
         TacticalMovementAuthority authority =
-            TacticalMovementAuthority.Tactical) =>
+            TacticalMovementAuthority.Tactical,
+        bool preserveImmediateEngagement = false) =>
         Submit(
             contract,
             mind,
@@ -475,7 +476,8 @@ internal static class ArenaBasics
                 StepIntent.Toward, contract, mind, body, goals, claims)),
             claims,
             reason,
-            authority);
+            authority,
+            preserveImmediateEngagement);
 
     /// <summary>
     /// Submit the arbiter's answer. The ONE place a movement command is
@@ -493,7 +495,8 @@ internal static class ArenaBasics
         Claims claims,
         string reason,
         TacticalMovementAuthority authority =
-            TacticalMovementAuthority.Tactical)
+            TacticalMovementAuthority.Tactical,
+        bool preserveImmediateEngagement = false)
     {
         if (chosen is not Position destination)
             return false;
@@ -514,7 +517,8 @@ internal static class ArenaBasics
             body,
             heading,
             destination,
-            requireAvailable: false);
+            requireAvailable: false,
+            preserveImmediateEngagement: preserveImmediateEngagement);
         if (move is null)
         {
             // Facing-locked bodies expose only their current forward heading
@@ -1187,9 +1191,10 @@ internal static class ArenaBasics
 
     /// <summary>
     /// One kiting backstep: the legal step that most improves the body's
-    /// distance to the given threats, taken without turning - movement never
-    /// changes facing, so the front arc (and with it the rear-arc
-    /// protection) stays on the enemy while the body opens the range.
+    /// distance to the given threats. An immediately engaged body may choose
+    /// the contract's explicit combat-strafe action so its front arc stays on
+    /// the enemy while it opens the range; ordinary route movement still
+    /// faces where it travels.
     /// Returns false when no step strictly improves the distance, so callers
     /// fall through to their normal movement instead of jittering in place.
     /// </summary>
@@ -1211,7 +1216,8 @@ internal static class ArenaBasics
                 destination,
                 claims,
                 reason,
-                TacticalMovementAuthority.Safety);
+                TacticalMovementAuthority.Safety,
+                preserveImmediateEngagement: true);
     }
 
     public static bool TryMoveDirect(
@@ -1222,7 +1228,8 @@ internal static class ArenaBasics
         Claims claims,
         string reason,
         TacticalMovementAuthority authority =
-            TacticalMovementAuthority.Tactical) =>
+            TacticalMovementAuthority.Tactical,
+        bool preserveImmediateEngagement = false) =>
         Submit(
             contract,
             mind,
@@ -1231,7 +1238,8 @@ internal static class ArenaBasics
                 StepIntent.Direct, contract, mind, body, [destination], claims)),
             claims,
             reason,
-            authority);
+            authority,
+            preserveImmediateEngagement);
 
     public static bool IsThreatened(
         MindContext mind,
@@ -1290,7 +1298,8 @@ internal static class ArenaBasics
         MindContext mind,
         MindBody body,
         Claims claims,
-        string decisionTrace = "")
+        string decisionTrace = "",
+        bool preserveImmediateEngagement = false)
     {
         GenericActorContext.ObservedProjectile[] hostile =
             mind.VisibleProjectiles?
@@ -1322,7 +1331,8 @@ internal static class ArenaBasics
             claims,
             "evading carrier-lane fire"
                 + (decisionTrace.Length == 0 ? "" : $":{decisionTrace}"),
-            TacticalMovementAuthority.Safety);
+            TacticalMovementAuthority.Safety,
+            preserveImmediateEngagement);
     }
 
     /// <summary>
@@ -2310,7 +2320,8 @@ internal static class ArenaBasics
         MindBody body,
         ProjectileHeading heading,
         Position destination,
-        bool requireAvailable)
+        bool requireAvailable,
+        bool preserveImmediateEngagement)
     {
         Dictionary<string, GenericActorRulesContract.ActionDefinition> actions =
             contract.Rules.Actions
@@ -2339,19 +2350,24 @@ internal static class ArenaBasics
 
         GenericActorActionLegality? strafe = candidates.FirstOrDefault(
             legality => actions[legality.ActionId].MovementFacingOverride
-                == GenericActorRulesContract.MovementFacingCoupling
-                    .PreserveFacing);
+                is GenericActorRulesContract.MovementFacingCoupling
+                    .PreserveFacing
+                    or GenericActorRulesContract.MovementFacingCoupling
+                        .CombatStrafe);
         GenericActorActionLegality? turn = candidates.FirstOrDefault(
             legality => actions[legality.ActionId].MovementFacingOverride
                 is null);
         if (strafe is not null
             && turn is not null
+            && preserveImmediateEngagement
             && WouldTurn(body.Facing, heading)
             && PreservesImmediateEngagement(
                 contract,
                 mind,
                 body,
-                destination))
+                destination,
+                heading,
+                actions[strafe.ActionId].MovementFacingOverride!.Value))
         {
             return strafe;
         }
@@ -2362,31 +2378,32 @@ internal static class ArenaBasics
         GenericActorResolvedMatchContract contract,
         MindContext mind,
         MindBody body,
-        Position destination)
+        Position destination,
+        ProjectileHeading movementHeading,
+        GenericActorRulesContract.MovementFacingCoupling strafeCoupling)
     {
-        GenericActorActionLegality.ArgumentConstraint.ProjectileHeadingConstraint?
-            cone = AvailableAction(
-                    contract,
-                    body,
-                    GenericActorRulesContract.ActionKind.Attack,
-                    requireAvailable: false)
-                ?.Constraints.OfType<GenericActorActionLegality
-                    .ArgumentConstraint.ProjectileHeadingConstraint>()
-                .SingleOrDefault();
         string? attackId = contract.Rules.Forms.FirstOrDefault(form =>
             string.Equals(form.Id, body.FormId, StringComparison.Ordinal))
             ?.AttackProfileId;
         GenericActorRulesContract.AttackProfile? attack =
             contract.Rules.AttackProfiles.FirstOrDefault(profile =>
                 string.Equals(profile.Id, attackId, StringComparison.Ordinal));
-        if (cone is null || attack is null)
+        if (attack is null)
             return false;
+
+        Direction after = FacingAfterMove(
+            body.Facing,
+            movementHeading,
+            strafeCoupling);
 
         return mind.Enemies.Any(enemy =>
             TryRay(destination, enemy.Position, out ProjectileHeading heading,
                 out int distance)
             && distance <= attack.Projectile.MaxTravelTiles + 1
-            && cone.AllowedValues.Contains(heading)
+            && (attack.OmnidirectionalAim
+                || HeadingDistance(
+                    (ProjectileHeading)((int)after * 2),
+                    heading) <= attack.FacingAimHalfWidthSectors)
             && ClearRay(
                 contract.Map,
                 destination,

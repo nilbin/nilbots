@@ -245,10 +245,13 @@ three of them. That transform **throws if the pattern it rewrites has moved**, b
 failure mode it guards is silent — the build would keep succeeding and ship every theme
 again.
 
-Two more consequences. `dist` now carries the 1024/2048 atlas variants, so
-`preferredAtlasWidth()` can pick per device instead of everyone getting the 4096 master —
-`build:cli` runs `atlas:clean` first precisely so those variants are *not* inlined. And the
-CLI packs `web/dist-cli/<theme>/index.html`, so moving that path means updating
+Two more consequences. `dist` carries 1024/2048 atlas variants for Ember Forge, the
+current Tapline presentation, so `preferredAtlasWidth()` can pick per device instead of
+everyone getting its 4096 master. Other checked-in themes remain readable from their
+masters without making every ordinary Tapline build rebake unused variants; theme work
+can run `npm run atlas:variants -- --theme=<id>` or `npm run atlas:variants:all`.
+`build:cli` runs `atlas:clean` first precisely so variants are *not* inlined. The CLI packs
+`web/dist-cli/<theme>/index.html`, so moving that path means updating
 `BotArena.Cli.csproj`, `ReplayOutput.cs` and `assert-cli-release.sh` together.
 
 The App serves `dist` directly, so a viewer change is not live until `npm run build` has

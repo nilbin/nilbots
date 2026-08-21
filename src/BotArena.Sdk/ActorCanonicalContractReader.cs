@@ -769,6 +769,8 @@ public static class ActorCanonicalContractReader
             "minimumDistinctClasses", out _);
         bool hasDurableDeployments = element.TryGetProperty(
             "durableDeployments", out _);
+        bool hasSentryTeamVision = element.TryGetProperty(
+            "sentryTeamVision", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -846,6 +848,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasDurableDeployments
                 ? new[] { "durableDeployments" }
+                : System.Array.Empty<string>(),
+            .. hasSentryTeamVision
+                ? new[] { "sentryTeamVision" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -955,6 +960,8 @@ public static class ActorCanonicalContractReader
                 : 0,
             DurableDeployments = hasDurableDeployments
                 && Bool(element, "durableDeployments"),
+            SentryTeamVision = hasSentryTeamVision
+                && Bool(element, "sentryTeamVision"),
         };
     }
 

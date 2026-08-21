@@ -63,7 +63,9 @@ public sealed record ArcRelayLoopProfile
         int standardMoveCycleTicks = 1,
         int deliberateMoveOpportunitiesPerCycle = 1,
         int deliberateMoveCycleTicks = 1,
-        bool movingPrismScreen = false)
+        bool movingPrismScreen = false,
+        bool contextualCombatStrafeMovement = false,
+        bool sentryTeamVision = false)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -121,6 +123,8 @@ public sealed record ArcRelayLoopProfile
             deliberateMoveOpportunitiesPerCycle;
         DeliberateMoveCycleTicks = deliberateMoveCycleTicks;
         MovingPrismScreen = movingPrismScreen;
+        ContextualCombatStrafeMovement = contextualCombatStrafeMovement;
+        SentryTeamVision = sentryTeamVision;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -247,6 +251,19 @@ public sealed record ArcRelayLoopProfile
     internal int DeliberateMoveOpportunitiesPerCycle { get; }
     internal int DeliberateMoveCycleTicks { get; }
     internal bool MovingPrismScreen { get; }
+
+    /// <summary>
+    /// Ordinary movement faces its route heading while a separately declared
+    /// strafe action lets an actively engaged body preserve its firing arc.
+    /// This keeps navigation readable without removing combat footwork.
+    /// </summary>
+    internal bool ContextualCombatStrafeMovement { get; }
+
+    /// <summary>
+    /// Active Sentinel Seeds contribute their weapon-range omnidirectional
+    /// sight to the owning team's observable union.
+    /// </summary>
+    internal bool SentryTeamVision { get; }
 
     private static void ValidateMovementRate(
         int opportunities,
@@ -1536,11 +1553,64 @@ public sealed record ArcRelayLoopProfile
         movingPrismScreen: true);
 
     /// <summary>
+    /// Tapline-12 with readable route-facing locomotion, engagement-only
+    /// combat strafing, and Sentinel Seeds acting as honest range-matched
+    /// omnidirectional team sensors. The accepted map and every other rule
+    /// remain unchanged.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline13 { get; } = new(
+        "tapline-13",
+        "arc-relay-tapline-13",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3,
+        movingPrismScreen: true,
+        contextualCombatStrafeMovement: true,
+        sentryTeamVision: true);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline12;
+    public static ArcRelayLoopProfile Current => Tapline13;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1623,6 +1693,7 @@ public sealed record ArcRelayLoopProfile
         Tapline10,
         Tapline11,
         Tapline12,
+        Tapline13,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

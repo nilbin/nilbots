@@ -675,7 +675,9 @@ public static class ArcRelayH0Definition
         ActorMovementProfileDefinition[] movement =
         [
             new("swift", ActorMovementLayer.Ground,
-                loopProfile.UnifiedCombatStrafeMovement
+                loopProfile.ContextualCombatStrafeMovement
+                    ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
+                    : loopProfile.UnifiedCombatStrafeMovement
                     ? ActorMovementFacingCoupling.CombatStrafe
                     : loopProfile.DirectionalCombat
                     ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
@@ -683,7 +685,9 @@ public static class ArcRelayH0Definition
                 loopProfile.SwiftMoveOpportunitiesPerCycle,
                 loopProfile.SwiftMoveCycleTicks),
             new("standard", ActorMovementLayer.Ground,
-                loopProfile.UnifiedCombatStrafeMovement
+                loopProfile.ContextualCombatStrafeMovement
+                    ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
+                    : loopProfile.UnifiedCombatStrafeMovement
                     ? ActorMovementFacingCoupling.CombatStrafe
                     : loopProfile.DirectionalCombat
                     ? ActorMovementFacingCoupling.CombatStrafe
@@ -691,7 +695,9 @@ public static class ArcRelayH0Definition
                 loopProfile.StandardMoveOpportunitiesPerCycle,
                 loopProfile.StandardMoveCycleTicks),
             new("deliberate", ActorMovementLayer.Ground,
-                loopProfile.UnifiedCombatStrafeMovement
+                loopProfile.ContextualCombatStrafeMovement
+                    ? ActorMovementFacingCoupling.FaceMovementHeadingProjected
+                    : loopProfile.UnifiedCombatStrafeMovement
                     ? ActorMovementFacingCoupling.CombatStrafe
                     : ActorMovementFacingCoupling.FacingLocked,
                 loopProfile.DeliberateMoveOpportunitiesPerCycle,
@@ -783,7 +789,8 @@ public static class ArcRelayH0Definition
                 [ActorActionParameterKind.UpgradeTrack]));
         }
         if (loopProfile.DirectionalCombat
-            && !loopProfile.UnifiedCombatStrafeMovement)
+            && (!loopProfile.UnifiedCombatStrafeMovement
+                || loopProfile.ContextualCombatStrafeMovement))
         {
             actions.Add(new ActorActionDefinition(
                 StrafeActionId,
@@ -791,8 +798,10 @@ public static class ArcRelayH0Definition
                 ActorActionKind.Movement,
                 [ActorActionParameterKind.ProjectileHeading])
             {
-                MovementFacingOverride =
-                    ActorMovementFacingCoupling.PreserveFacing,
+                MovementFacingOverride = loopProfile
+                    .ContextualCombatStrafeMovement
+                        ? ActorMovementFacingCoupling.CombatStrafe
+                        : ActorMovementFacingCoupling.PreserveFacing,
             });
         }
         actions.AddRange(mode.Signatures.Select((signature, index) =>
@@ -962,7 +971,8 @@ public static class ArcRelayH0Definition
             vitalityHealthPerPoint: loopProfile.CombatMagnitudeScale,
             healZoneHealthPerActivation: loopProfile.CombatMagnitudeScale,
             bankTriggeredWellRechargeTicks:
-                loopProfile.BankTriggeredWellRechargeTicks);
+                loopProfile.BankTriggeredWellRechargeTicks,
+            sentryTeamVision: loopProfile.SentryTeamVision);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;
@@ -1416,9 +1426,11 @@ public static class ArcRelayH0Definition
     {
         yield return WaitActionId;
         yield return MoveActionId;
-        if (loopProfile.DirectionalCombat
-            && !loopProfile.UnifiedCombatStrafeMovement
-            && string.Equals(entry.Handling, "swift", StringComparison.Ordinal))
+        if (loopProfile.ContextualCombatStrafeMovement
+            || (loopProfile.DirectionalCombat
+                && !loopProfile.UnifiedCombatStrafeMovement
+                && string.Equals(
+                    entry.Handling, "swift", StringComparison.Ordinal)))
         {
             yield return StrafeActionId;
         }

@@ -64,7 +64,7 @@ function viaPhrase(job: TacticJob): string {
 
 /** ", answering attacks on the way" when a travel posture is authored. */
 function travelPhrase(job: TacticJob): string {
-  if (!job.travel || job.travel === job.posture) return '';
+  if (!job.travel) return '';
   if (job.travel === 'hold') return ', answering attacks on the way';
   if (job.travel === 'aggressive') return ', brawling their way in';
   if (job.travel === 'steal') return ', stealing on the way';
@@ -263,16 +263,11 @@ export function abortClause(tactic: Tactic): string | null {
 
 export function deliveryClause(
   tactic: Tactic,
-  botName: (slot: number) => string | null,
 ): string | null {
   if (tactic.delivery.plan === 'none') return null;
-  const names = (tactic.delivery.preferredSlots ?? [])
-    .map(botName)
-    .filter((name): name is string => Boolean(name));
-  const preference = names.length ? ` — ${names.join(' and ')} by preference` : '';
   return tactic.delivery.plan === 'solo'
-    ? `If a Core lands in their hands, the carrier breaks off and banks it while the rest keep at it${preference}`
-    : `If a Core lands in their hands, the carrier banks it under escort${preference}`;
+    ? 'If a Core lands in their hands, the carrier breaks off and banks it while the rest keep at it'
+    : 'If a Core lands in their hands, the carrier banks it under escort';
 }
 
 export function subjectFor(tactic: Tactic, group: TacticGroup): string {
@@ -288,6 +283,9 @@ export function summarize(
   tactic: Tactic,
   botName: (slot: number) => string | null,
 ): string {
+  // Kept in the public helper signature for older callers; preferred-carrier
+  // naming is no longer part of player-facing Core behavior.
+  void botName;
   const opening = startClause(tactic);
   const sentences: string[] = [];
 
@@ -344,7 +342,7 @@ export function summarize(
   }
   const abort = abortClause(tactic);
   if (abort) sentences.push(`${abort}.`);
-  const delivery = deliveryClause(tactic, botName);
+  const delivery = deliveryClause(tactic);
   return `${opening ? `${opening}. ` : ''}${sentences.join(' ')}${delivery ? ` ${delivery}.` : ''}`;
 }
 

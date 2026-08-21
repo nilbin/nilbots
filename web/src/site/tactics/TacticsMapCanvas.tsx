@@ -83,8 +83,8 @@ export function TacticsMapCanvas({
   showAllPhases: boolean;
   /** Presentation-only stable bot positions for non-Post assignments. */
   showProjectedBots?: boolean;
-  /** Classic keeps its historical dim neighbours. Map-first defaults to one
-   * clear active layer; its existing checkbox can still opt into all phases. */
+  /** Map-first keeps the immediately adjacent phases as quiet spatial context;
+   * its existing checkbox can still opt into every phase. */
   showAdjacentPhases?: boolean;
   /** Map-first copy-on-write permits handles on inherited Posts/Patrol. */
   allowInheritedSpatialEditing?: boolean;
@@ -523,7 +523,7 @@ export function TacticsMapCanvas({
                   {tactic.groups.map((group) => (
                     <JobOverlay key={group.id} tactic={tactic} group={group}
                       phaseIndex={phaseIndex} bots={bots}
-                      catalog={catalog} dim={dim}
+                      catalog={catalog}
                       editable={editable(tactic) && phaseIndex === focus}
                       allowInheritedSpatialEditing={allowInheritedSpatialEditing}
                       selectedSlots={selectedSlots}
@@ -897,7 +897,7 @@ function ConditionFootprints({
  * (ground you stand on); later phases render as the onward move — arrows
  * from the previous ground for movers, dashed ground for a new stand. */
 export function JobOverlay({
-  tactic, group, phaseIndex, bots, catalog, dim, editable,
+  tactic, group, phaseIndex, bots, catalog, editable,
   allowInheritedSpatialEditing = false, selectedSlots = [], startDrag, pathfinder,
 }: {
   tactic: Tactic;
@@ -905,7 +905,6 @@ export function JobOverlay({
   phaseIndex: number;
   bots: SquadBot[];
   catalog: TacticalSheetCatalog;
-  dim: boolean;
   editable: boolean;
   allowInheritedSpatialEditing?: boolean;
   selectedSlots?: readonly number[];
@@ -1172,17 +1171,6 @@ export function JobOverlay({
     </g>);
   }
 
-  if (!dim) {
-    const anchor = jobAnchor(job);
-    if (anchor) {
-      parts.push(<ChipLabel key="chip"
-        x={anchor[0] + .5}
-        y={first ? anchor[1] - .48 : anchor[1] + 2.15}
-        text={`${group.name.toUpperCase()} · ${phaseName.toUpperCase()}${inherited
-          ? ` · FROM ${sourcePhaseName.toUpperCase()}` : ''}`}
-        color={color} select={select} passThrough />);
-    }
-  }
   return <>{parts}</>;
 }
 

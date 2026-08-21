@@ -17,6 +17,7 @@
     "site-shots": "node ../scripts/site-shots.mjs",
     "site-shots:install": "playwright install chromium",
     "atlas:variants": "node ../scripts/generate-atlas-variants.mjs",
+    "atlas:variants:all": "node ../scripts/generate-atlas-variants.mjs --all",
     "atlas:clean": "node ../scripts/generate-atlas-variants.mjs --clean",
     "harness": "vite build --ssr tests/support/harness.entry.ts --outDir tests/.harness --logLevel error",
     "build:cli": "npm run atlas:clean && tsc -b && node ../scripts/build-cli-viewers.mjs",

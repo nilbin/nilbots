@@ -239,6 +239,13 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                                 copy["policy"] = "only";
                                 localChange = true;
                             }
+                            if (classBySlot.TryGetValue(
+                                    slot, out string? slotClass)
+                                && NormalizeRetiredLongshotRay(
+                                    copy, slotClass))
+                            {
+                                localChange = true;
+                            }
                             normalized[slot.ToString()] = copy;
                             continue;
                         }
@@ -250,6 +257,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                         {
                             JsonObject copy = plan.DeepClone().AsObject();
                             copy["policy"] = "only";
+                            NormalizeRetiredLongshotRay(
+                                copy, classBySlot[matching]);
                             normalized[matching.ToString()] = copy;
                         }
                         // Keep an invalid legacy key visible so normal
@@ -271,6 +280,24 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
         }
         return changed;
+    }
+
+    /// <summary>The retired Longshot ray encoded its first point as a hidden
+    /// movement destination. Preserve old saved sheets by converting that
+    /// misleading spatial plan to the contextual signature default before
+    /// current validation; Posts/Patrol remain the sole movement source.</summary>
+    private static bool NormalizeRetiredLongshotRay(
+        JsonObject plan,
+        string classId)
+    {
+        if (!string.Equals(classId, "longshot", StringComparison.Ordinal)
+            || plan["line"] is null)
+        {
+            return false;
+        }
+        plan.Clear();
+        plan["policy"] = "smart";
+        return true;
     }
 
     private static bool RemoveLegacyTransitionTargets(JsonObject document)

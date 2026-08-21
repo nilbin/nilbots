@@ -352,6 +352,7 @@ public sealed class GenericActorRulesContract
         public int RespawnMinimumDeadTicks { get; init; }
         public int MinimumDistinctClasses { get; init; }
         public bool DurableDeployments { get; init; }
+        public bool SentryTeamVision { get; init; }
 
         /// <summary>
         /// Resolved veterancy/recovery magnitudes. Historical contracts use

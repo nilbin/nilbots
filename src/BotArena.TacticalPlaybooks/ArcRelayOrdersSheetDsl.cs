@@ -1366,7 +1366,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                  "highest-bank-value-known-loose-core" or
                  "nearest-visible-loose-core" or
                  "highest-bank-value-visible-loose-core" or
-                 "current-position"))
+                 "current-position" or
+                 "own-tossed-core"))
             {
                 throw Error(path, "unknown dynamic move target.");
             }

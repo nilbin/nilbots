@@ -64,8 +64,14 @@ public static class ArcRelaySignatureStageCommand
             .Count(value => value.Reason == "started");
         if (attempts == 0)
         {
+            string finalPositions = string.Join(
+                ", ",
+                session.Chronology.Ticks[^1].PostState.ActiveLives
+                    .OrderBy(value => value.ActorId)
+                    .Select(value => $"{value.ActorId}={value.Position}/{value.Facing}"));
             throw new InvalidOperationException(
-                $"Focused stage did not cast {spec.SignatureId}; no review replay was written.");
+                $"Focused stage did not cast {spec.SignatureId}; no review "
+                + $"replay was written. Final bodies: {finalPositions}.");
         }
         ValidateStageEvidence(session, spec, signatureFacts);
 

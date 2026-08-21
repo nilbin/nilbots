@@ -376,6 +376,8 @@ internal static class ActorRulesCanonicalWriter
         }
         if (mode.DurableDeployments)
             writer.WriteBoolean("durableDeployments", true);
+        if (mode.SentryTeamVision)
+            writer.WriteBoolean("sentryTeamVision", true);
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

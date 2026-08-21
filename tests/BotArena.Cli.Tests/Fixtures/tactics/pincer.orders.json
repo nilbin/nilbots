@@ -233,19 +233,19 @@
                   "shared": "t1-p1-g1-patch"
                 },
                 {
-                  "id": "t1-p1-g1-rail",
+                  "id": "t1-p1-g1-sig",
                   "when": {
                     "all": [
                       "empty-handed",
                       "enemy-nearby",
                       "signature-ready",
-                      "c-t1-g1-p1-s2-rail-station"
+                      "c-t1-g1-at-post-1-self"
                     ]
                   },
                   "use": {
                     "skill": "rail-line",
                     "opportunity": "rail-visible-enemy",
-                    "target": "weakest-enemy"
+                    "target": "enemy-carrier"
                   }
                 },
                 {
@@ -277,21 +277,10 @@
                   }
                 },
                 {
-                  "id": "t1-p1-g1-rail-move",
-                  "move": {
-                    "to": {
-                      "anchor": "g-t1-g1-p1-s2-rail-post"
-                    },
-                    "face": {
-                      "anchor": "g-t1-g1-p1-s2-rail-aim"
-                    }
-                  }
-                },
-                {
                   "id": "t1-p1-g1-move",
                   "move": {
                     "to": {
-                      "anchor": "g-t1-g1-p1-s2-rail-post"
+                      "anchor": "g-t1-g1-post-1"
                     },
                     "face": {
                       "anchor": "g-t1-g1-face-1"
@@ -371,7 +360,7 @@
                   "id": "t1-p2-g1-move",
                   "move": {
                     "to": {
-                      "anchor": "g-t1-g1-p1-s2-rail-post"
+                      "anchor": "g-t1-g1-post-1"
                     },
                     "face": {
                       "anchor": "g-t1-g1-face-1"
@@ -1268,12 +1257,6 @@
       "fact": "signature-ready",
       "operator": "equals",
       "value": 1
-    },
-    "c-t1-g1-p1-s2-rail-station": {
-      "fact": "self-in-zone",
-      "operator": "equals",
-      "value": 1,
-      "zone": "g-t1-g1-p1-s2-rail-station"
     },
     "c-t1-g1-at-post-1-self": {
       "fact": "self-in-zone",

@@ -99,5 +99,6 @@ test('carry-forward renders only current-phase signature marks and keeps them ed
     'source-phase signature marks are not runtime carry-forward state');
   assert.match(html, /fill-opacity="\.001"/,
     'the current-phase signature mark retains its edit handle');
-  assert.match(html, /FROM SETUP/);
+  assert.doesNotMatch(html, /FROM SETUP/,
+    'map labels never sit over bots or their facing arrows');
 });

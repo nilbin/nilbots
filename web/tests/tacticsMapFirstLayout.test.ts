@@ -87,7 +87,7 @@ test('map-first placement and behavior are driven beside and directly on the map
   assert.match(page, /onSlotsSelected=\{selectMapFirstSlots\}/);
   assert.match(page, /data-testid="map-layer-controls"/);
   assert.match(map, /data-testid="map-selection-marquee"/);
-  assert.match(map, /color=\{color\} select=\{select\} passThrough/);
+  assert.doesNotMatch(map, /group\.name\.toUpperCase\(\).*phaseName\.toUpperCase\(\)/s);
   assert.match(chrome, /data-testid="map-first-behavior-panel"/);
   assert.doesNotMatch(chrome, /Suggest explicit posts/);
   assert.doesNotMatch(page, /Tapline — your side is west/);
@@ -96,18 +96,18 @@ test('map-first placement and behavior are driven beside and directly on the map
 test('the map and Behavior form one workbench with explicit phase actions', () => {
   assert.match(page, /The map and Behavior are one visual workbench/);
   assert.match(page, /min-\[1240px\]:w-\[232px\]/);
-  assert.match(chrome, /onSelectPhase\(index\)/);
-  assert.match(chrome, /label=\{`Edit \$\{phase\.name\}`\}/);
+  assert.match(chrome, /onSelectPhase\(index\);[\s\S]*onFocus\(\{ kind: 'phase', phaseIndex: index \}\)/);
+  assert.doesNotMatch(chrome, /label=\{`Edit \$\{phase\.name\}`\}/);
   assert.match(chrome, /<TacticsIcon name="finish"[^>]*\/> Finish/);
   assert.match(chrome, /Earlier phases/);
   assert.match(chrome, /Later phases/);
 });
 
-test('context changes take one click and tactic editing owns local undo', () => {
-  assert.match(page, /closeOnOutsidePointer/);
-  assert.match(page, /data-map-first-context-trigger/);
+test('context drawers stay open for map-assisted editing and tactic editing owns local undo', () => {
+  assert.doesNotMatch(page, /closeOnOutsidePointer/);
+  assert.match(chrome, /data-map-first-context-trigger/);
   assert.match(page, /data-testid=\"task-banner\"/,
-    'drawing controls must not be swallowed by the outside-click drawer handler');
+    'drawing controls remain available while a context drawer is open');
   assert.match(page, /top-2 z-30 flex items-center/,
     'drawing controls must render above the z-20 map toolbar');
   assert.match(chrome, /contextTrigger/);

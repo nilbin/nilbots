@@ -29,7 +29,7 @@ public sealed class ArcRelayMindRuntimeParityTests
             root,
             "arena-bots",
             "arc-relay",
-            "tapline-11-stock-v1",
+            "tactical-playbook-mind-v1",
             "bot.wasm");
         TacticalPlaybookCompilation firstSheetCompilation = Compile(
             root, firstSheet);

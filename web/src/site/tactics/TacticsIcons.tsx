@@ -39,7 +39,7 @@ const paths: Record<TacticsIconName, React.ReactNode> = {
   formation: <><circle cx="6" cy="7" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="18" cy="7" r="2" /><path d="M6 9v8M18 9v8M12 14v6" /></>,
   layers: <><path d="m12 3 9 5-9 5-9-5Z" /><path d="m4 12 8 4 8-4M4 16l8 4 8-4" /></>,
   save: <><path d="M5 3h12l2 2v16H5z" /><path d="M8 3v6h8V3M8 21v-7h8v7" /></>,
-  start: <path d="m7 4 12 8-12 8Z" />,
+  start: <><path d="M5 3h10v18H5z" /><path d="M9 12h11M16 8l4 4-4 4" /></>,
   abort: <><path d="M7 4h10l3 3v10l-3 3H7l-3-3V7Z" /><path d="m9 9 6 6M15 9l-6 6" /></>,
 };
 

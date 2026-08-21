@@ -64,7 +64,7 @@ function makeCatalog(): TacticalSheetCatalog {
     classes: [
       classRow('kestrel', 'Kestrel', { routeForward: true }),
       classRow('switchback', 'Switchback', { friendlyRole: true }),
-      classRow('longshot', 'Longshot', { geometry: 'line', markLimit: 2 }),
+      classRow('longshot', 'Longshot'),
       classRow('mason', 'Mason', { exactAnchor: true }),
       classRow('lantern', 'Lantern', { exactAnchor: true }),
       classRow('palisade', 'Palisade'),
@@ -459,7 +459,9 @@ test('signature mark geometry derives from descriptor capabilities', () => {
   const catalog = makeCatalog();
   assert.equal(signatureMarkGeometry(catalog, 'mason')?.kind, 'points');
   assert.equal(signatureMarkGeometry(catalog, 'kestrel')?.kind, 'line');
-  assert.equal(signatureMarkGeometry(catalog, 'longshot')?.kind, 'line');
+  // Longshot fires contextually from its phase Post/Patrol ground; its retired
+  // two-point ray was a hidden movement override, not target guidance.
+  assert.equal(signatureMarkGeometry(catalog, 'longshot'), null);
   assert.equal(signatureMarkGeometry(catalog, 'palisade'), null);
 });
 
@@ -522,6 +524,14 @@ test('healed gate, travel posture and heal-up recovery validate and read back', 
   assert.match(sentence, /everyone is healed to 80%/);
   assert.match(sentence, /answering attacks on the way/);
   assert.match(sentence, /topping up fully at the heal tile/);
+  // Equal labels still describe two spatial policies: this explicit travel
+  // choice governs the route, while posture takes over at the destination.
+  tactic.phases[0].jobs[flankers.id].posture = 'aggressive';
+  tactic.phases[0].jobs[flankers.id].travel = 'aggressive';
+  assert.match(
+    summarize(tactic, (slot) => document.squad[slot]?.name ?? null),
+    /brawling their way in/,
+  );
   // healed is a Required idea — "any one bot is topped up" makes no sense.
   tactic.phases[0].continue = [{ triggers: { healed: { percent: 80 } } }];
   const messages = validateDocument(document, catalog).map((issue) => issue.message);
@@ -743,6 +753,9 @@ test('an editable saved draft rebinds to the current map without projecting its 
   const tactic = drawnPincer(document);
   const originalPost: [number, number] = [12, 9];
   tactic.phases[0].jobs[tactic.groups[0].id].posts![0].at = originalPost;
+  tactic.phases[0].jobs[tactic.groups[0].id].sigs = {
+    '2': { policy: 'only', line: [[16, 14], [20, 14]] },
+  };
   document.tactics.push(tactic);
   document.mapId = 'arc-relay-tapline-02';
 
@@ -753,6 +766,10 @@ test('an editable saved draft rebinds to the current map without projecting its 
   assert.deepEqual(
     rebound.tactics[0].phases[0].jobs[tactic.groups[0].id].posts![0].at,
     originalPost,
+  );
+  assert.deepEqual(
+    rebound.tactics[0].phases[0].jobs[tactic.groups[0].id].sigs?.['2'],
+    { policy: 'smart' },
   );
   assert.throws(() => normalizeEditableDocumentForCatalog({
     ...document,
@@ -810,6 +827,9 @@ test('practice attribution maps program ids back to Tactic, Group and named phas
 /** The drawn pincer plus the per-bot extras a real sheet accumulates: a way
  * in on the second post and a signature mark owned by that bot's class. */
 function splitReady(document: TacticsDocument): Tactic {
+  // Use a route-guided Kestrel here: Longshot's retired line marker is
+  // deliberately migrated away by the current editor.
+  document.squad[2].class = 'kestrel';
   const tactic = drawnPincer(document);
   const guard = tactic.groups[0];
   const job = tactic.phases[0].jobs[guard.id];
@@ -901,7 +921,7 @@ test('a post is cleaned away — never misassigned — when its bot joins area w
   tactic.phases[0].jobs[flankers.id] = freshJob('area', 'hold');
   tactic.phases[0].jobs[flankers.id].rect = [20, 3, 26, 8];
   const before = membershipSnapshot(tactic);
-  // The posted longshot joins the flankers' loaded area work.
+  // The posted route-guided bot joins the flankers' loaded area work.
   guard.slots = [5];
   flankers.slots = [...flankers.slots, 2];
   const summary = followMembership(tactic, document.squad, before);

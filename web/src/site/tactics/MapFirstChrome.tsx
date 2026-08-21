@@ -104,10 +104,16 @@ export function MapFirstTimeline({
         </span>
       </span>
       <nav className="flex shrink-0 items-center gap-1" aria-label="Tactic controls">
-        <TacticsIconButton icon="start"
-          label={`Start: ${tactic.start.mode === 'always' ? 'always' : `${startRows} condition${startRows === 1 ? '' : 's'}`}`}
-          pressed={focus?.kind === 'start'} testId="map-first-start" contextTrigger
-          onClick={() => onFocus({ kind: 'start' })} />
+        <button type="button"
+          className={`relative inline-flex h-8 shrink-0 items-center gap-1 rounded-sm border px-2 text-[10.5px] font-semibold transition-colors ${focus?.kind === 'start'
+            ? 'border-arena-material bg-arena-material/15 text-arena-material'
+            : 'border-arena-edge bg-arena-deep/30 text-arena-dim hover:border-arena-edge2 hover:text-arena-text'}`}
+          aria-pressed={focus?.kind === 'start'} data-testid="map-first-start"
+          data-map-first-context-trigger
+          title={`Start conditions: ${tactic.start.mode === 'always' ? 'always ready' : `${startRows} condition${startRows === 1 ? '' : 's'}`}`}
+          onClick={() => onFocus({ kind: 'start' })}>
+          <TacticsIcon name="start" size={15} /> Start
+        </button>
         <TacticsIconButton icon="core" label="Core plan"
           pressed={focus?.kind === 'cores'} contextTrigger
           onClick={() => onFocus({ kind: 'cores' })} />
@@ -139,8 +145,12 @@ export function MapFirstTimeline({
               ? 'border-arena-material bg-arena-material/10'
               : 'border-arena-edge bg-arena-deep/35 hover:border-arena-edge2'}`}
             data-testid={`map-first-phase-${index + 1}`}
-            title={`Select ${phase.name}`}
-            onClick={() => onSelectPhase(index)}>
+            data-map-first-context-trigger
+            title={`Select and edit ${phase.name}`}
+            onClick={() => {
+              onSelectPhase(index);
+              onFocus({ kind: 'phase', phaseIndex: index });
+            }}>
             <span className="flex h-6 w-1.5 shrink-0 flex-col overflow-hidden rounded-[2px]">
               {tactic.groups.map((group) => <span key={group.id} className="grow"
                 style={{ background: phaseShade(groupColor(tactic, group.id), index, tactic.phases.length) }} />)}
@@ -151,10 +161,6 @@ export function MapFirstTimeline({
               </span>
             </span>
           </button>
-          <TacticsIconButton icon="edit" label={`Edit ${phase.name}`}
-            pressed={focus?.kind === 'phase' && focus.phaseIndex === index}
-            contextTrigger
-            onClick={() => onFocus({ kind: 'phase', phaseIndex: index })} />
           {index === tactic.phases.length - 1
             ? <button type="button"
               className={`relative inline-flex h-8 shrink-0 items-center gap-1 rounded-sm border px-2 text-[10.5px] font-semibold transition-colors ${focus?.kind === 'transition' && focus.phaseIndex === index
@@ -610,7 +616,7 @@ export function MapFirstBotPanel({
         </div>
         {geometry && marks.length > 0 && <div className="mt-2">
           <GeoStatusRow complete
-            label={`${geometry.label} · ${marks.length}/${geometry.max} mark${marks.length === 1 ? '' : 's'}`}
+            label={`${geometry.label} · ${marks.length} mark${marks.length === 1 ? '' : 's'} (up to ${geometry.max})`}
             drawing={signatureDrawing} drawLabel="Edit marks"
             onDraw={() => onDrawSignature(bot.class)} onStop={onStop}
             onClear={() => change((next) => {

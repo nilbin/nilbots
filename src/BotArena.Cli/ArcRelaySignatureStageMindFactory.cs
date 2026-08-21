@@ -121,6 +121,12 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                         value.UnitId == 1);
                 if (ally?.Position != ExchangeAllyReady)
                     return Wait(body, "signature-caster");
+                // Tapline-13 route travel faces the route. Explicitly acquire
+                // the partner after staging so this presentation proof does
+                // not accidentally depend on the historical strafe-facing
+                // movement profile.
+                if (body.Facing != Direction.East)
+                    return Face(body, Direction.East, "signature-caster");
             }
 
             if (spec.Context == ArcRelaySignatureStageContext.Core

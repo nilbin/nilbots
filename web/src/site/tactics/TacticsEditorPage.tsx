@@ -91,7 +91,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const toastSeq = useRef(0);
   const bootstrapped = useRef(false);
   const tacticWorkspaceRef = useRef<HTMLElement>(null);
-  const contextDrawerRef = useRef<HTMLElement>(null);
 
   // The mock's toast rack: transient action feedback, self-clearing.
   const toast = useCallback((text: string, tone: 'ok' | 'hot' = 'ok') => {
@@ -359,25 +358,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     return () => window.removeEventListener('keydown', onKey);
   }, [cancelTask, endTask, mapFirstPanel, redo, redoWizard, task, undo, undoWizard]);
 
-  // A modal backdrop used to swallow the first click on another map/timeline
-  // target. Listening at the document level closes this drawer before that
-  // target's own click runs, so context changes are genuinely one click.
-  useEffect(() => {
-    if (!mapFirstPanel) return;
-    const closeOnOutsidePointer = (event: PointerEvent) => {
-      const target = event.target;
-      if (!(target instanceof Node) || contextDrawerRef.current?.contains(target)) return;
-      if (target instanceof Element
-        && target.closest(
-          '[data-map-first-context-trigger], [data-select], [data-testid="task-banner"]',
-        )) return;
-      setMapFirstPanel(null);
-      endTask();
-    };
-    window.document.addEventListener('pointerdown', closeOnOutsidePointer);
-    return () => window.document.removeEventListener('pointerdown', closeOnOutsidePointer);
-  }, [endTask, mapFirstPanel]);
-
   if (initialSheetId && sheetQuery.isError) {
     return <ErrorState error={sheetQuery.error} onRetry={() => void sheetQuery.refetch()} />;
   }
@@ -441,7 +421,6 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       tactic.groups[2].slots = rest.slice(3);
       const screenJob = tactic.phases[0].jobs[tactic.groups[2].id];
       if (screenJob) screenJob.rect = [4, 10, 9, 16];
-      tactic.delivery.preferredSlots = [carrierSlot];
       next.document.tactics.push(tactic);
     });
     toast('Deliver Core added — it runs whenever a carrier exists.');
@@ -1214,7 +1193,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
                         selectedTacticId={selectedTacticId}
                         showAll={showAll} showAllPhases={showAllPhases}
                         showProjectedBots
-                        showAdjacentPhases={false}
+                        showAdjacentPhases
                         allowInheritedSpatialEditing
                         selectedSlots={selectedSlots}
                         showVision={showVision}
@@ -1281,7 +1260,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
 
       {/* ----------------------------------------------------- the drawer --- */}
       {wizard && mapFirstPanel && (
-        <aside ref={contextDrawerRef} className={`fixed right-4 top-[14rem] z-40 flex max-h-[calc(100dvh-15rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
+        <aside className={`fixed right-4 top-[14rem] z-40 flex max-h-[calc(100dvh-15rem)] w-[min(400px,calc(100vw-2rem))] flex-col overflow-hidden rounded-sm border border-arena-edge bg-arena-bg shadow-2xl ${mapFirstPanel.kind === 'bot' ? '' : 'bottom-4'}`}
           data-testid="map-first-context-drawer" aria-label="Context editor">
           <div className="flex items-center gap-2 border-b border-arena-edge bg-arena-panel px-2 py-1.5">
             <TacticsIcon name={mapFirstPanel.kind === 'transition' ? 'transition'
@@ -1595,7 +1574,7 @@ function TaskBanner({ task, wizard, botName, onDone, onCancel, onUndoPoint }: {
   const what = task.kind === 'carry'
     ? 'Click the carrier’s waypoints home, in travel order — the run ends at your reactor'
     : task.kind === 'sig'
-    ? `Placing ${signatureOwner} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click up to ${task.max} tiles`}`
+    ? `Placing ${signatureOwner} signature marks — ${task.draw === 'route' ? 'click the lane points in order' : `click 1 to ${task.max} tiles, then Done`}`
     : task.kind === 'watch'
       ? task.target.row === 'cleared'
         ? 'Drag the area your team must freshly check and clear'
@@ -1711,7 +1690,6 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
   onChange: (squad: SquadBot[]) => void;
   notify?: (text: string, tone?: 'ok' | 'hot') => void;
 }) {
-  const [selected, setSelected] = useState<number | null>(null);
   const filled = squad.length;
   const makeBot = (slot: number, classId: string): SquadBot => {
     const used = new Set(squad.map((bot) => bot.name));
@@ -1728,24 +1706,17 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
   const duplicateBudget = catalog.slotCount - catalog.minimumDistinctClasses;
   const className = (classId: string) =>
     catalog.classes.find((value) => value.id === classId)?.name ?? classId;
-  /** Why picking this class now is illegal — null when it's fine. Evaluates
-   * the composition that would result, so swaps account for the freed slot. */
+  /** Why adding another bot of this class is illegal — null when it's fine. */
   const blockReason = (classId: string): string | null => {
-    const next = new Map(counts);
-    if (selected !== null && squad[selected]) {
-      const from = squad[selected].class;
-      if (from === classId) return null;
-      next.set(from, (next.get(from) ?? 1) - 1);
-    }
-    const mine = next.get(classId) ?? 0;
+    const mine = counts.get(classId) ?? 0;
     if (mine >= catalog.maximumCopiesPerClass) {
       return `${className(classId)} already fields its pair — ${catalog.maximumCopiesPerClass} is the cap.`;
     }
     if (mine >= 1) {
-      const duplicatesAfter = [...next.entries()].reduce((sum, [id, count]) =>
-        sum + Math.max(0, (id === classId ? count + 1 : count) - 1), 0);
+      const duplicatesAfter = [...counts.entries()].reduce((sum, [, count]) =>
+        sum + Math.max(0, count - 1), 0) + 1;
       if (duplicatesAfter > duplicateBudget) {
-        const doubled = [...next.entries()]
+        const doubled = [...counts.entries()]
           .find(([id, count]) => id !== classId && count >= 2)?.[0];
         return doubled
           ? `Only one class may field a pair — ${className(doubled)} already does.`
@@ -1754,23 +1725,27 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
     }
     return null;
   };
-  const pickClass = (classId: string) => {
+  const addClass = (classId: string) => {
     const blocked = blockReason(classId);
     if (blocked) {
       notify?.(blocked, 'hot');
       return;
     }
-    if (selected !== null && squad[selected]) {
-      onChange(normalize(squad.map((bot, index) =>
-        index === selected ? { ...bot, class: classId } : bot)));
-      setSelected(null);
-      return;
-    }
     if (filled >= 8) {
-      notify?.('The squad is full — select a bot to swap its class.', 'hot');
+      notify?.('The squad is full — remove one before adding another.', 'hot');
       return;
     }
     onChange(normalize([...squad, makeBot(filled, classId)]));
+  };
+  const removeClass = (classId: string) => {
+    let removeAt = -1;
+    for (let index = squad.length - 1; index >= 0; index--) {
+      if (squad[index]?.class === classId) {
+        removeAt = index;
+        break;
+      }
+    }
+    if (removeAt >= 0) onChange(normalize(squad.filter((_, index) => index !== removeAt)));
   };
   const autoFill = () => {
     onChange(autoFillSquad(catalog, squad));
@@ -1793,98 +1768,61 @@ function SquadModal({ catalog, squad, onClose, onChange, notify }: {
         {catalog.classes.map((entry) => {
           const count = counts.get(entry.id) ?? 0;
           const blocked = entry.unlocked ? blockReason(entry.id) : null;
-          const swapping = selected !== null && squad[selected]?.class === entry.id;
+          const addBlocked = filled >= 8 ? 'The squad is full.' : blocked;
           const sprite = classSprite(entry.id);
+          const classBots = squad
+            .map((bot, index) => ({ bot, index }))
+            .filter(({ bot }) => bot.class === entry.id);
           return (
-            <button key={entry.id} type="button"
-              className={`choice-card flex items-center gap-2 text-left ${swapping ? '!border-arena-material' : ''} ${blocked ? 'opacity-45' : ''}`}
-              disabled={!entry.unlocked}
-              data-testid={`class-${entry.id}`}
-              title={blocked ?? entry.signatureName}
-              onClick={() => pickClass(entry.id)}>
-              {sprite && <img src={sprite} alt=""
-                className={`h-8 w-8 shrink-0 object-contain drop-shadow ${entry.unlocked ? '' : 'opacity-40 grayscale'}`} />}
-              <span className="min-w-0">
-                <span className="block text-[12px] font-semibold leading-tight">
-                  {entry.name}{!entry.unlocked && ' 🔒'}
+            <section key={entry.id}
+              className={`choice-card flex min-h-40 flex-col gap-1.5 text-left ${count ? '!border-arena-material/70' : ''} ${entry.unlocked ? '' : 'opacity-45'}`}
+              data-testid={`class-${entry.id}`}>
+              <div className="flex items-center gap-2">
+                {sprite && <img src={sprite} alt=""
+                  className={`h-10 w-10 shrink-0 object-contain drop-shadow ${entry.unlocked ? '' : 'grayscale'}`} />}
+                <span className="min-w-0 grow">
+                  <span className="block text-[12px] font-semibold leading-tight">
+                    {entry.name}{!entry.unlocked && ' 🔒'}
+                  </span>
+                  <span className="block truncate text-[10px] font-semibold text-arena-material">
+                    {entry.signatureName}
+                  </span>
                 </span>
-                <span className="block t-micro leading-tight text-arena-dim">{entry.fantasy}</span>
-              </span>
-              {count > 0 && (
-                <span className="pill ml-auto shrink-0 !text-[9px] text-arena-text">×{count}</span>
-              )}
-            </button>
+                <span className="flex shrink-0 items-center gap-1">
+                  <button type="button" className="btn !min-h-7 !px-2" disabled={count === 0}
+                    aria-label={`Remove one ${entry.name}`} onClick={() => removeClass(entry.id)}>−</button>
+                  <b className="w-4 text-center text-[12px]" aria-label={`${count} selected`}>{count}</b>
+                  <button type="button" className="btn !min-h-7 !px-2"
+                    disabled={!entry.unlocked || Boolean(addBlocked)}
+                    title={addBlocked ?? `Add ${entry.name}`}
+                    aria-label={`Add one ${entry.name}`} onClick={() => addClass(entry.id)}>＋</button>
+                </span>
+              </div>
+              <p className="line-clamp-2 min-h-7 t-micro leading-snug text-arena-dim">{entry.fantasy}</p>
+              <div className="flex gap-1 text-[9px] text-arena-dim">
+                <span className="pill">Attack {entry.attackRange}</span>
+                <span className="pill">Vision {entry.visionRange}</span>
+                {entry.visionProximityRange > 0 && <span className="pill">Near {entry.visionProximityRange}</span>}
+              </div>
+              {classBots.length > 0 && <div className="mt-auto flex flex-col gap-1 border-t border-arena-edge pt-1.5">
+                {classBots.map(({ bot, index }, copyIndex) => <label key={index}
+                  className="flex items-center gap-1 t-micro text-arena-dim">
+                  <span className="grow">{classBots.length > 1 ? `Build ${copyIndex + 1}` : 'Build'}</span>
+                  <select className="field !min-h-7 w-24 !py-0 t-micro"
+                    aria-label={`${entry.name} ${copyIndex + 1} build`} value={bot.build}
+                    onChange={(event) => onChange(normalize(squad.map((value, candidate) =>
+                      candidate === index ? { ...value, build: event.target.value as Build } : value)))}>
+                    {BUILDS.map((build) => <option key={build.id} value={build.id}>{build.label}</option>)}
+                  </select>
+                </label>)}
+              </div>}
+            </section>
           );
         })}
       </div>
-      <div className="mt-3">
-        <div className="lab mb-1">
-          Your eight — a class click fills the next free slot{selected !== null ? `, or swaps slot ${selected + 1}` : ''}
-        </div>
-        <div className="flex flex-col gap-1">
-          {squad.map((bot, index) => {
-            const entry = catalog.classes.find((value) => value.id === bot.class);
-            return (
-              <div key={index}
-                className={`flex min-h-9 items-center gap-2 rounded-sm border px-2 ${selected === index ? 'border-arena-material' : 'border-arena-edge'}`}>
-                <button type="button" className="flex grow items-center gap-2 text-left"
-                  data-testid={`squad-row-${index}`}
-                  onClick={() => setSelected(selected === index ? null : index)}>
-                  {classSprite(bot.class) && <img src={classSprite(bot.class)} alt=""
-                    className="h-7 w-7 shrink-0 object-contain drop-shadow" />}
-                  <span>
-                    <span className="t-micro font-semibold">{bot.name}</span>
-                    <span className="t-micro text-arena-dim"> · {entry?.name ?? bot.class}</span>
-                  </span>
-                </button>
-                <input className="field !min-h-7 w-24 !py-0 t-micro" value={bot.name}
-                  aria-label="Bot name" maxLength={24}
-                  onChange={(event) => onChange(normalize(squad.map((value, i) =>
-                    i === index ? { ...value, name: event.target.value } : value)))} />
-                <button type="button" className="pill"
-                  title="Tap to cycle the build preset"
-                  onClick={() => {
-                    const order: Build[] = ['balanced', 'durable', 'aggressive', 'scout'];
-                    const next = order[(order.indexOf(bot.build) + 1) % order.length];
-                    onChange(normalize(squad.map((value, i) =>
-                      i === index ? { ...value, build: next } : value)));
-                  }}>
-                  {BUILDS.find((value) => value.id === bot.build)?.label}
-                </button>
-                <button type="button" className="btn !min-h-7" title="Remove bot"
-                  onClick={() => {
-                    onChange(normalize(squad.filter((_, i) => i !== index)));
-                    setSelected(null);
-                  }}>✕</button>
-              </div>
-            );
-          })}
-          {filled === 0 && (
-            <p className="t-micro text-arena-dim">New bots arrive <b>Balanced</b>. Select one to swap its
-              class, tap the build tag to cycle it, or rename it in place.</p>
-          )}
-        </div>
-      </div>
-      {selected !== null && squad[selected] ? (
-        <div className="mt-3">
-          <div className="lab mb-1">Build for {squad[selected].name}</div>
-          <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-            {BUILDS.map((build) => (
-              <button key={build.id} type="button"
-                className={`choice-card text-left ${squad[selected]?.build === build.id ? '!border-arena-material' : ''}`}
-                onClick={() => onChange(normalize(squad.map((value, i) =>
-                  i === selected ? { ...value, build: build.id } : value)))}>
-                <span className="block text-[12px] font-semibold">{build.label}</span>
-                <span className="block t-micro text-arena-dim">{build.blurb}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      ) : filled > 0 && (
-        <p className="t-micro mt-3 text-arena-dim">New bots arrive <b>Balanced</b>. Select one to set its
-          build here, or tap the build tag on its row to cycle. The upgrade path itself is generated —
-          you never see it.</p>
-      )}
+      <p className="t-micro mt-2 text-arena-dim">
+        Builds are set on each selected class. Bot names are assigned automatically.
+      </p>
     </Modal>
   );
 }

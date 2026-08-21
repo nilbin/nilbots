@@ -55,6 +55,81 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void RelayDeliveryMaterializesSoloTossThenOrdinaryReclaim()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("deliver-core"));
+        string orders = Encoding.UTF8.GetString(compilation.MaterializedOrders!);
+
+        int reclaim = orders.IndexOf(
+            "\"id\": \"t1-p1-g1-reclaim-toss\"", StringComparison.Ordinal);
+        int toss = orders.IndexOf(
+            "\"id\": \"t1-p1-g1-pass\"", StringComparison.Ordinal);
+        Assert.True(reclaim >= 0 && toss > reclaim);
+        Assert.Contains("\"to\": \"own-tossed-core\"", orders);
+        Assert.Contains("\"skill\": \"arc-toss\"", orders);
+        Assert.Contains("\"target\": \"own-reactor\"", orders);
+        Assert.DoesNotContain(
+            "\"target\": \"nearest-ally-toward-own-reactor\"", orders);
+    }
+
+    [Fact]
+    public void ASingleMasonMarkIsACompleteHardlightPlan()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
+        string orders = Encoding.UTF8.GetString(compilation.MaterializedOrders!);
+
+        // Pincer's Mason authors exactly one placement. The catalog limit of
+        // two is a maximum of alternatives, never a required pair.
+        Assert.Contains("\"id\": \"t1-p2-g2-s3-mark-0\"", orders);
+        Assert.Contains("\"skill\": \"hardlight-block\"", orders);
+        Assert.DoesNotContain("t1-p2-g2-s3-mark-1", orders);
+    }
+
+    [Fact]
+    public void SmartLongshotPatrolFiresWithoutAHiddenRailStation()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("patrol"))!.AsObject();
+        document["tactics"]![0]!["groups"]![0]!["act"]!["posture"] =
+            "aggressive";
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        string orders = Encoding.UTF8.GetString(compilation.MaterializedOrders!);
+
+        Assert.Contains("\"skill\": \"rail-line\"", orders);
+        Assert.Contains("\"patrol\":", orders);
+        // A closed patrol has no single forward end. Smart Dash waits for the
+        // player to draw its own terminal signature lane instead of emitting
+        // an invalid loop target.
+        Assert.DoesNotContain("smart-dash", orders);
+        Assert.DoesNotContain("rail-move", orders);
+        Assert.DoesNotContain("rail-station", orders);
+    }
+
+    [Fact]
+    public void RetiredLongshotRayMigratesToContextualUse()
+    {
+        using JsonDocument migrated = JsonDocument.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(Fixture("pincer")));
+        JsonElement plan = migrated.RootElement.GetProperty("tactics")[0]
+            .GetProperty("phases")[0].GetProperty("jobs")
+            .GetProperty("mid-guard").GetProperty("sigs")
+            .GetProperty("2");
+
+        Assert.Equal("smart", plan.GetProperty("policy").GetString());
+        Assert.False(plan.TryGetProperty("line", out _));
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
+        string orders = Encoding.UTF8.GetString(compilation.MaterializedOrders!);
+        Assert.Contains("\"skill\": \"rail-line\"", orders);
+        Assert.DoesNotContain("rail-move", orders);
+        Assert.DoesNotContain("rail-station", orders);
+    }
+
+    [Fact]
     public void MaximalDocumentStaysInsideTheRuntimeEnvelope()
     {
         // Eight tactics, three groups each, every feature on every tactic:
@@ -490,16 +565,25 @@ public sealed class ArcRelayTacticsMaterializerTests
         // The travel response answers attacks ONLY off the station: once a
         // flanker stands in its staging rect the leaf goes dark, and wait —
         // which mints no fight of its own — truly means quiet there. The
-        // floor's march stance follows the travel posture (hold → line).
+        // Answer-attacks is a bounded advance fight rather than standing
+        // Hold: it answers any actionable contact but may move only one tile
+        // from the episode's entry point. The episode remains latched until
+        // contact ends, custody starts, or this group reaches its station.
+        // The floor's march stance still follows travel (hold → line).
         JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
         JsonElement travelFight = shared.GetProperty("t1-p1-g2-travel-fight");
-        Assert.Equal("hold",
+        Assert.Equal("advance",
             travelFight.GetProperty("fight").GetProperty("style").GetString());
         Assert.Equal(1,
             travelFight.GetProperty("fight").GetProperty("chaseLimit").GetInt32());
         string[] travelWhen = travelFight.GetProperty("when").GetProperty("all")
             .EnumerateArray().Select(entry => entry.GetString()!).ToArray();
         Assert.Contains("c-t1-g2-off-station", travelWhen);
+        Assert.Equal(
+            ["carrying-core", "enemy-no-longer-nearby",
+                "c-t1-g2-on-station"],
+            travelFight.GetProperty("until").GetProperty("any")
+                .EnumerateArray().Select(entry => entry.GetString()!).ToArray());
         JsonElement offStation = orders.RootElement.GetProperty("conditions")
             .GetProperty("c-t1-g2-off-station");
         Assert.Equal("self-in-zone", offStation.GetProperty("fact").GetString());
@@ -566,6 +650,46 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Equal("role-lowest-health-percent",
             condition.GetProperty("fact").GetString());
         Assert.Equal(80, condition.GetProperty("value").GetInt32());
+    }
+
+    [Theory]
+    [InlineData("hold")]
+    [InlineData("aggressive")]
+    public void MatchingTravelAndDestinationPosturesRemainDistinct(
+        string posture)
+    {
+        // A posts job has two spatial states even when both behavior choices
+        // have the same label: fight on the route while off-post, then fight
+        // for the destination once on-post. Collapsing equal strings removes
+        // the travel fight and makes an explicitly authored Brawl-through or
+        // Respond-to-contact group silently march past enemies.
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject flankers = document["tactics"]![0]!["phases"]![0]!
+            ["jobs"]!["flankers"]!.AsObject();
+        flankers["posture"] = posture;
+        flankers["travel"] = posture;
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
+
+        Assert.True(shared.TryGetProperty(
+            "t1-p1-g2-travel-fight", out JsonElement travelFight));
+        Assert.True(shared.TryGetProperty(
+            "t1-p1-g2-fight", out JsonElement destinationFight));
+        Assert.Contains(
+            "c-t1-g2-off-station",
+            travelFight.GetProperty("when").GetProperty("all")
+                .EnumerateArray().Select(value => value.GetString()!));
+        Assert.Contains(
+            "c-t1-g2-on-station",
+            destinationFight.GetProperty("when").GetProperty("all")
+                .EnumerateArray().Select(value => value.GetString()!));
     }
 
     [Fact]

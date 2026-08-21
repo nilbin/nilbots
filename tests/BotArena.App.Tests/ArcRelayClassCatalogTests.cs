@@ -37,7 +37,8 @@ public sealed class ArcRelayClassCatalogTests
             ("relay", "arc-toss",
                 ArcRelaySignatureTargetCapability.FriendlyRole
                 | ArcRelaySignatureTargetCapability.MostExperiencedAlly
-                | ArcRelaySignatureTargetCapability.RouteAheadRole),
+                | ArcRelaySignatureTargetCapability.RouteAheadRole
+                | ArcRelaySignatureTargetCapability.RouteForward),
             ("switchback", "exchange",
                 ArcRelaySignatureTargetCapability.FriendlyRole
                 | ArcRelaySignatureTargetCapability.MostExperiencedAlly),
@@ -85,7 +86,7 @@ public sealed class ArcRelayClassCatalogTests
             ArcRelaySignatureCustodyBehavior.TransferOnly,
             ArcRelaySignatureAuthoringCatalog.ForClass("relay").Custody);
         Assert.Equal(
-            (ArcRelaySignatureGuidanceGeometry.Line, 2),
+            (ArcRelaySignatureGuidanceGeometry.None, 0),
             (ArcRelaySignatureAuthoringCatalog.ForClass("longshot")
                 .GuidanceGeometry,
              ArcRelaySignatureAuthoringCatalog.ForClass("longshot")
