@@ -1,7 +1,7 @@
 {
   "schema": "arc-relay-orders-v2",
   "sheetId": "tempered-standard-v1",
-  "mapPlan": "../map-plans/tempered-standard-v1.json",
+  "mapPlan": "../map-plans/tapline-9/tempered-standard-v1.json",
   "roles": [
     {
       "id": "tempered-gun",

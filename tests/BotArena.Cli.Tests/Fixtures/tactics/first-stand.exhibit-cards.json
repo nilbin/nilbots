@@ -1,0 +1,59 @@
+{
+  "title": "Map-first signatures: First Stand field proof",
+  "cards": [
+    {
+      "id": "sample-01",
+      "title": "Posts establish the doctrine",
+      "trigger": "The always-on Hold Mid tactic assigns every bot an exact player-authored post and facing.",
+      "tactic": "The team occupies a readable formation while Hold combat may leave a post briefly to answer threats.",
+      "counterplay": "Attack a weak edge, split the formation's attention, or pressure it outside the useful range of its posts.",
+      "fallback": "When contact ends, ordinary positioning Instructions pull survivors back toward their authored ground.",
+      "watch": "Watch a holder rotate and engage instead of dying passively to an enemy approaching from the side."
+    },
+    {
+      "id": "sample-02",
+      "title": "Smart skills are opportunities",
+      "trigger": "A threatened lane, damaged ally, vulnerable enemy, or other class-specific opportunity appears around mid.",
+      "tactic": "Unmarked skills use conservative Smart presets; the Lantern's authored point remains explicit map guidance.",
+      "counterplay": "Spread out, preserve distance, or wait out deployments so the preset's usefulness test is not satisfied.",
+      "fallback": "A declined skill never consumes the bot's turn; the current movement or combat behavior continues.",
+      "watch": "Use selected-bot action reasons to distinguish fired signatures from named, nonempty opportunity declines."
+    },
+    {
+      "id": "sample-03",
+      "title": "Selected geometry stays literal",
+      "trigger": "Ratchet is near its marked Flare point and the contextual anti-smoke opportunity is legal.",
+      "tactic": "The mark says where Survey Flare may be used; the server catalog, editor, materializer, and runtime share that geometry contract.",
+      "counterplay": "Avoid committing smoke near the mark or force Ratchet away before the opportunity appears.",
+      "fallback": "Without hostile smoke, Ratchet keeps holding and fighting rather than wasting the cast.",
+      "watch": "The explicit point should remain visible and editable per bot, independently of every other Lantern."
+    },
+    {
+      "id": "sample-04",
+      "title": "One combat continuation",
+      "trigger": "An enemy enters a holder's combat neighborhood from any facing.",
+      "tactic": "Hold, signature use, and ordinary fighting are branches of the same generated Instruction priority.",
+      "counterplay": "Bait a holder away, then change angle before it settles back onto its post.",
+      "fallback": "Losing sight ends that combat episode; the bot resumes its post instead of inventing a parallel chase state.",
+      "watch": "Look for rotation, a bounded chase off-post, and a clean return when the target is no longer nearby."
+    },
+    {
+      "id": "sample-05",
+      "title": "Custody belongs to the Core",
+      "trigger": "Any bot takes a Core while its phase's pickup and delivery policy is active.",
+      "tactic": "That policy snapshots onto the Core for this team, surviving drops, handoffs, and later phase changes.",
+      "counterplay": "Separate the carrier from its original group, force a drop, or kill it before the team can bank.",
+      "fallback": "Carrier and attached escorts defend themselves but do not abandon custody for ordinary recovery behavior.",
+      "watch": "Follow the Core identity across possession changes; the policy is team-local and the former carrier can become an escort."
+    },
+    {
+      "id": "sample-06",
+      "title": "One priority system",
+      "trigger": "Positioning, combat, recovery, custody, and signature opportunities compete during the same live tactic.",
+      "tactic": "Tactics compile to one ordered Instruction tree; signatures add contextual actions rather than a parallel scheduler.",
+      "counterplay": "Create competing pressure that exposes the authored priority choices while a useful signature is nearly ready.",
+      "fallback": "Every generated signature branch has an ordinary move, hold, fight, or custody continuation beneath it.",
+      "watch": "Scrub action reasons: a bot should not wait merely because its preferred signature is unavailable."
+    }
+  ]
+}
