@@ -63,10 +63,7 @@
         "mode": "always"
       },
       "delivery": {
-        "plan": "escort",
-        "preferredSlots": [
-          1
-        ]
+        "plan": "solo"
       },
       "groups": [
         {
