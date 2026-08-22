@@ -1,0 +1,162 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "broadloom-ball-v1",
+  "mapPlan": "../map-plans/broadloom-01/broadloom-ball-v1.json",
+  "roles": [
+    {
+      "id": "ball-gun",
+      "classes": ["longshot", "mortar"],
+      "upgradePath": ["damage", "damage", "vitality", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "fire-ball-rail",
+          "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] },
+          "use": { "skill": "rail-line", "target": "weakest-enemy" }
+        },
+        {
+          "id": "drop-ball-star",
+          "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] },
+          "use": { "skill": "falling-star", "target": "nearest-enemy" }
+        },
+        { "shared": "fight-visible-enemy" },
+        {
+          "id": "mass-ball-guns",
+          "move": { "to": { "well": "centre" }, "posture": "rear" }
+        }
+      ]
+    },
+    {
+      "id": "ball-support",
+      "classes": ["patchbay", "sunder"],
+      "upgradePath": ["reach", "vitality", "damage", "vitality"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "restore-ball-hull",
+          "when": "signature-ready",
+          "use": { "skill": "repair-beam", "target": "weakest-ally" }
+        },
+        {
+          "id": "paint-ball-focus",
+          "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] },
+          "use": { "skill": "target-paint", "target": "weakest-enemy" }
+        },
+        { "shared": "fight-visible-enemy" },
+        {
+          "id": "mass-ball-support",
+          "move": { "to": { "well": "centre" }, "posture": "line" }
+        }
+      ]
+    },
+    {
+      "id": "ball-screen",
+      "classes": ["mason", "palisade"],
+      "upgradePath": ["vitality", "vitality", "damage", "vision"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "raise-ball-cover",
+          "when": "signature-ready",
+          "use": {
+            "skill": "hardlight-block",
+            "target": "nearest-ally",
+            "at": "centre-cover"
+          }
+        },
+        {
+          "id": "screen-ball-front",
+          "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] },
+          "use": { "skill": "prism-wall", "target": "nearest-enemy" }
+        },
+        { "shared": "fight-visible-enemy" },
+        {
+          "id": "mass-ball-front",
+          "move": { "to": { "well": "centre" }, "posture": "front" }
+        }
+      ]
+    },
+    {
+      "id": "ball-courier",
+      "classes": ["relay", "kestrel"],
+      "upgradePath": ["vitality", "reach", "vision", "damage"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "pass-ball-core",
+          "when": { "all": ["carrying-core", "signature-ready"] },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "dash-ball-gap",
+          "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] },
+          "use": { "skill": "vector-dash", "target": "nearest-enemy" }
+        },
+        { "shared": "fight-visible-enemy" },
+        {
+          "id": "mass-ball-courier",
+          "move": { "to": { "well": "centre" }, "posture": "rear" }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
+      ]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": { "to": "nearest-heal-zone", "posture": "rear" }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-nearby"] },
+      "fight": {
+        "targets": ["marked", "weakest", "carrier", "nearest"],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
+  }
+}

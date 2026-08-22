@@ -1,0 +1,14 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "broadloom-trade-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "zones": {},
+  "routes": {
+    "raid-ingress": {
+      "waypoints": [[4, 9], [12, 2], [17, 1], [23, 3], [23, 7]]
+    }
+  },
+  "anchors": {
+    "own-well-door": [13, 19]
+  }
+}

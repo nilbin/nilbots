@@ -27,8 +27,13 @@ public sealed class MapValidationException(IReadOnlyList<string> errors)
 /// <summary>Versioned tile-grid map (plan §25). '#' is a wall, '.' is floor.</summary>
 public sealed class ArenaMap
 {
-    public const int MaxWidth = 32;
-    public const int MaxHeight = 32;
+    // Bounded widening for the Broadloom-class candidates (see
+    // docs/reports/ARC-RELAY-BROADLOOM-37X27-CANDIDATE.md): one dimension may
+    // reach 37 while the historical 1,024-cell total budget stays the hard
+    // limit, so the worst-case tile count never exceeds the old 32x32.
+    public const int MaxWidth = 37;
+    public const int MaxHeight = 37;
+    public const int MaxCells = 1024;
 
     public string Id { get; }
     public int Version { get; }
@@ -144,6 +149,8 @@ public sealed class ArenaMap
                        $"{dto.Tiles[0].Length}x{dto.Tiles.Length}.");
         if (dto.Width > MaxWidth || dto.Height > MaxHeight)
             errors.Add($"Map must be at most {MaxWidth}x{MaxHeight}.");
+        if (dto.Width * dto.Height > MaxCells)
+            errors.Add($"Map must be at most {MaxCells} total cells.");
         var parsedSpawns = new List<ParsedSpawn>();
         foreach (var s in dto.Spawns!)
         {
@@ -234,6 +241,8 @@ public sealed class ArenaMap
             errors.Add("Map must be at least 3x3.");
         if (Width > MaxWidth || Height > MaxHeight)
             errors.Add($"Map must be at most {MaxWidth}x{MaxHeight}.");
+        if (Width * Height > MaxCells)
+            errors.Add($"Map must be at most {MaxCells} total cells.");
         for (int y = 0; y < Height; y++)
         {
             if (TileRows[y].Length != Width)

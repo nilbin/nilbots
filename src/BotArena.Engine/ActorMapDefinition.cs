@@ -105,6 +105,8 @@ public sealed class ActorMapDefinition
             errors.Add(
                 $"Map must be at most {ArenaMap.MaxWidth}x{ArenaMap.MaxHeight}.");
         }
+        if (width * height > ArenaMap.MaxCells)
+            errors.Add($"Map must be at most {ArenaMap.MaxCells} total cells.");
 
         for (int y = 0; y < tileRows.Length; y++)
         {

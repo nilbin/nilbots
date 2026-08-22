@@ -1,0 +1,10 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "broadloom-ball-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "zones": {},
+  "routes": {},
+  "anchors": {
+    "centre-cover": [16, 12]
+  }
+}
