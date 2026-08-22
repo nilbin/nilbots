@@ -1,0 +1,1637 @@
+[
+ {
+  "endTick": 363,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 4,
+   "0:own": 2,
+   "1:own": 5
+  },
+  "chargePips": {
+   "0": 16,
+   "1": 9
+  },
+  "pulses": {
+   "0": 3,
+   "1": 1
+  },
+  "destructions": {
+   "0": 14,
+   "1": 22
+  },
+  "carryDropsOnDeath": {
+   "0:centre": 1,
+   "0:own": 2,
+   "1:centre": 1,
+   "1:enemy": 5
+  },
+  "firstBankTick": {
+   "0:centre": 94,
+   "0:own": 99,
+   "1:own": 75
+  },
+  "sheet0": "ball",
+  "sheet1": "trade",
+  "seed": 9001
+ },
+ {
+  "endTick": 377,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 4,
+   "0:own": 2,
+   "1:own": 5
+  },
+  "chargePips": {
+   "0": 16,
+   "1": 9
+  },
+  "pulses": {
+   "0": 3,
+   "1": 1
+  },
+  "destructions": {
+   "0": 11,
+   "1": 24
+  },
+  "carryDropsOnDeath": {
+   "0:own": 3,
+   "1:enemy": 7
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:own": 141,
+   "1:own": 69
+  },
+  "sheet0": "ball",
+  "sheet1": "trade",
+  "seed": 9002
+ },
+ {
+  "endTick": 307,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 3,
+   "1:own": 4
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 7
+  },
+  "pulses": {
+   "0": 3,
+   "1": 1
+  },
+  "destructions": {
+   "0": 3,
+   "1": 21
+  },
+  "carryDropsOnDeath": {
+   "0:own": 1,
+   "1:enemy": 4
+  },
+  "firstBankTick": {
+   "0:centre": 91,
+   "0:own": 104,
+   "1:own": 78
+  },
+  "sheet0": "ball",
+  "sheet1": "trade",
+  "seed": 9003
+ },
+ {
+  "endTick": 353,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 4,
+   "0:own": 1,
+   "1:enemy": 1,
+   "1:own": 4
+  },
+  "chargePips": {
+   "0": 13,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {
+   "0": 5,
+   "1": 21
+  },
+  "carryDropsOnDeath": {
+   "0:own": 2,
+   "1:enemy": 4
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:own": 281,
+   "1:enemy": 139,
+   "1:own": 78
+  },
+  "sheet0": "ball",
+  "sheet1": "trade",
+  "seed": 9004
+ },
+ {
+  "endTick": 417,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 3,
+   "1:centre": 1,
+   "1:own": 5
+  },
+  "chargePips": {
+   "0": 14,
+   "1": 13
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {
+   "0": 14,
+   "1": 23
+  },
+  "carryDropsOnDeath": {
+   "0:own": 2,
+   "1:enemy": 5
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:own": 98,
+   "1:centre": 192,
+   "1:own": 75
+  },
+  "sheet0": "ball",
+  "sheet1": "trade",
+  "seed": 9005
+ },
+ {
+  "endTick": 344,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 1,
+   "1:enemy": 1,
+   "1:own": 5
+  },
+  "chargePips": {
+   "0": 10,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {
+   "0": 10,
+   "1": 20
+  },
+  "carryDropsOnDeath": {
+   "0:own": 2,
+   "1:enemy": 4
+  },
+  "firstBankTick": {
+   "0:centre": 103,
+   "0:own": 279,
+   "1:enemy": 180,
+   "1:own": 69
+  },
+  "sheet0": "ball",
+  "sheet1": "trade",
+  "seed": 9006
+ },
+ {
+  "endTick": 302,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 4,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 7,
+   "1": 15
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 18,
+   "1": 8
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 3,
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:own": 75,
+   "1:centre": 94,
+   "1:own": 102
+  },
+  "sheet0": "trade",
+  "sheet1": "ball",
+  "seed": 9001
+ },
+ {
+  "endTick": 304,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 4,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 7,
+   "1": 14
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 20,
+   "1": 8
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 4,
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:own": 69,
+   "1:centre": 97,
+   "1:own": 87
+  },
+  "sheet0": "trade",
+  "sheet1": "ball",
+  "seed": 9002
+ },
+ {
+  "endTick": 347,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:enemy": 1,
+   "0:own": 4,
+   "1:centre": 4,
+   "1:own": 1
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 14
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {
+   "0": 17,
+   "1": 13
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 4,
+   "1:own": 2
+  },
+  "firstBankTick": {
+   "0:enemy": 273,
+   "0:own": 78,
+   "1:centre": 91,
+   "1:own": 140
+  },
+  "sheet0": "trade",
+  "sheet1": "ball",
+  "seed": 9003
+ },
+ {
+  "endTick": 334,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 4,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 7,
+   "1": 15
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 22,
+   "1": 9
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 4,
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:own": 78,
+   "1:centre": 99,
+   "1:own": 113
+  },
+  "sheet0": "trade",
+  "sheet1": "ball",
+  "seed": 9004
+ },
+ {
+  "endTick": 352,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:enemy": 1,
+   "0:own": 4,
+   "1:centre": 4,
+   "1:own": 1
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 13
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {
+   "0": 20,
+   "1": 16
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 2,
+   "1:own": 2
+  },
+  "firstBankTick": {
+   "0:enemy": 141,
+   "0:own": 75,
+   "1:centre": 99,
+   "1:own": 317
+  },
+  "sheet0": "trade",
+  "sheet1": "ball",
+  "seed": 9005
+ },
+ {
+  "endTick": 337,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 4,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 7,
+   "1": 15
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 22,
+   "1": 8
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 4,
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:own": 69,
+   "1:centre": 95,
+   "1:own": 106
+  },
+  "sheet0": "trade",
+  "sheet1": "ball",
+  "seed": 9006
+ },
+ {
+  "endTick": 443,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 5,
+   "1:own": 6
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 92,
+   "1:own": 75
+  },
+  "sheet0": "ball",
+  "sheet1": "turtle",
+  "seed": 9001
+ },
+ {
+  "endTick": 438,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 5,
+   "1:own": 6
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 98,
+   "1:own": 69
+  },
+  "sheet0": "ball",
+  "sheet1": "turtle",
+  "seed": 9002
+ },
+ {
+  "endTick": 447,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 5,
+   "1:own": 6
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 92,
+   "1:own": 78
+  },
+  "sheet0": "ball",
+  "sheet1": "turtle",
+  "seed": 9003
+ },
+ {
+  "endTick": 438,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 5,
+   "1:own": 6
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 98,
+   "1:own": 78
+  },
+  "sheet0": "ball",
+  "sheet1": "turtle",
+  "seed": 9004
+ },
+ {
+  "endTick": 438,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 5,
+   "1:own": 6
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 98,
+   "1:own": 75
+  },
+  "sheet0": "ball",
+  "sheet1": "turtle",
+  "seed": 9005
+ },
+ {
+  "endTick": 444,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 5,
+   "1:own": 6
+  },
+  "chargePips": {
+   "0": 15,
+   "1": 12
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 104,
+   "1:own": 69
+  },
+  "sheet0": "ball",
+  "sheet1": "turtle",
+  "seed": 9006
+ },
+ {
+  "endTick": 458,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 6,
+   "1:centre": 5
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 75,
+   "1:centre": 92
+  },
+  "sheet0": "turtle",
+  "sheet1": "ball",
+  "seed": 9001
+ },
+ {
+  "endTick": 452,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 6,
+   "1:centre": 5
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 69,
+   "1:centre": 98
+  },
+  "sheet0": "turtle",
+  "sheet1": "ball",
+  "seed": 9002
+ },
+ {
+  "endTick": 440,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 6,
+   "1:centre": 5
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 78,
+   "1:centre": 92
+  },
+  "sheet0": "turtle",
+  "sheet1": "ball",
+  "seed": 9003
+ },
+ {
+  "endTick": 452,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 6,
+   "1:centre": 5
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 78,
+   "1:centre": 98
+  },
+  "sheet0": "turtle",
+  "sheet1": "ball",
+  "seed": 9004
+ },
+ {
+  "endTick": 452,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 6,
+   "1:centre": 5
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 75,
+   "1:centre": 98
+  },
+  "sheet0": "turtle",
+  "sheet1": "ball",
+  "seed": 9005
+ },
+ {
+  "endTick": 455,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 6,
+   "1:centre": 5
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 15
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {},
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 69,
+   "1:centre": 104
+  },
+  "sheet0": "turtle",
+  "sheet1": "ball",
+  "seed": 9006
+ },
+ {
+  "endTick": 270,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 6
+  },
+  "pulses": {
+   "0": 3,
+   "1": 1
+  },
+  "destructions": {
+   "0": 9,
+   "1": 8
+  },
+  "carryDropsOnDeath": {
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:centre": 94,
+   "0:own": 75,
+   "1:own": 77
+  },
+  "sheet0": "trade",
+  "sheet1": "turtle",
+  "seed": 9001
+ },
+ {
+  "endTick": 232,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:enemy": 1,
+   "0:own": 3,
+   "1:own": 2
+  },
+  "chargePips": {
+   "0": 14,
+   "1": 3
+  },
+  "pulses": {
+   "0": 3
+  },
+  "destructions": {
+   "0": 7,
+   "1": 3
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:enemy": 232,
+   "0:own": 69,
+   "1:own": 69
+  },
+  "sheet0": "trade",
+  "sheet1": "turtle",
+  "seed": 9002
+ },
+ {
+  "endTick": 270,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 6
+  },
+  "pulses": {
+   "0": 3,
+   "1": 1
+  },
+  "destructions": {
+   "0": 11,
+   "1": 4
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 91,
+   "0:own": 78,
+   "1:own": 78
+  },
+  "sheet0": "trade",
+  "sheet1": "turtle",
+  "seed": 9003
+ },
+ {
+  "endTick": 243,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:enemy": 1,
+   "0:own": 3,
+   "1:own": 2
+  },
+  "chargePips": {
+   "0": 14,
+   "1": 3
+  },
+  "pulses": {
+   "0": 3
+  },
+  "destructions": {
+   "0": 7,
+   "1": 6
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:enemy": 243,
+   "0:own": 78,
+   "1:own": 78
+  },
+  "sheet0": "trade",
+  "sheet1": "turtle",
+  "seed": 9004
+ },
+ {
+  "endTick": 275,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 6
+  },
+  "pulses": {
+   "0": 3,
+   "1": 1
+  },
+  "destructions": {
+   "0": 9,
+   "1": 8
+  },
+  "carryDropsOnDeath": {
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:own": 75,
+   "1:own": 77
+  },
+  "sheet0": "trade",
+  "sheet1": "turtle",
+  "seed": 9005
+ },
+ {
+  "endTick": 195,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:enemy": 1,
+   "0:own": 2,
+   "1:own": 1
+  },
+  "chargePips": {
+   "0": 14,
+   "1": 1
+  },
+  "pulses": {
+   "0": 3
+  },
+  "destructions": {
+   "0": 5,
+   "1": 4
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 103,
+   "0:enemy": 163,
+   "0:own": 69,
+   "1:own": 69
+  },
+  "sheet0": "trade",
+  "sheet1": "turtle",
+  "seed": 9006
+ },
+ {
+  "endTick": 236,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 2,
+   "1:centre": 2,
+   "1:enemy": 1,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 3,
+   "1": 14
+  },
+  "pulses": {
+   "1": 3
+  },
+  "destructions": {
+   "0": 4,
+   "1": 8
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 73,
+   "1:centre": 94,
+   "1:enemy": 236,
+   "1:own": 75
+  },
+  "sheet0": "turtle",
+  "sheet1": "trade",
+  "seed": 9001
+ },
+ {
+  "endTick": 283,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 3,
+   "1:centre": 3,
+   "1:own": 4
+  },
+  "chargePips": {
+   "0": 6,
+   "1": 15
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 5,
+   "1": 10
+  },
+  "carryDropsOnDeath": {
+   "1:enemy": 1
+  },
+  "firstBankTick": {
+   "0:own": 69,
+   "1:centre": 97,
+   "1:own": 69
+  },
+  "sheet0": "turtle",
+  "sheet1": "trade",
+  "seed": 9002
+ },
+ {
+  "endTick": 276,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 3,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 6,
+   "1": 12
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 4,
+   "1": 11
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 79,
+   "1:centre": 91,
+   "1:own": 78
+  },
+  "sheet0": "turtle",
+  "sheet1": "trade",
+  "seed": 9003
+ },
+ {
+  "endTick": 283,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 3,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 6,
+   "1": 12
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 4,
+   "1": 12
+  },
+  "carryDropsOnDeath": {
+   "1:enemy": 1
+  },
+  "firstBankTick": {
+   "0:own": 78,
+   "1:centre": 97,
+   "1:own": 78
+  },
+  "sheet0": "turtle",
+  "sheet1": "trade",
+  "seed": 9004
+ },
+ {
+  "endTick": 236,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 2,
+   "1:centre": 2,
+   "1:enemy": 1,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 3,
+   "1": 14
+  },
+  "pulses": {
+   "1": 3
+  },
+  "destructions": {
+   "0": 4,
+   "1": 8
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:own": 73,
+   "1:centre": 97,
+   "1:enemy": 236,
+   "1:own": 75
+  },
+  "sheet0": "turtle",
+  "sheet1": "trade",
+  "seed": 9005
+ },
+ {
+  "endTick": 273,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 3,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 6,
+   "1": 12
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 6,
+   "1": 10
+  },
+  "carryDropsOnDeath": {
+   "1:enemy": 1
+  },
+  "firstBankTick": {
+   "0:own": 69,
+   "1:centre": 103,
+   "1:own": 69
+  },
+  "sheet0": "turtle",
+  "sheet1": "trade",
+  "seed": 9006
+ },
+ {
+  "endTick": 544,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:centre": 2,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 6,
+   "1": 16
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 44,
+   "1": 46
+  },
+  "carryDropsOnDeath": {},
+  "firstBankTick": {
+   "0:centre": 172,
+   "1:centre": 94,
+   "1:own": 174
+  },
+  "sheet0": "ball",
+  "sheet1": "ball",
+  "seed": 9001
+ },
+ {
+  "endTick": 564,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 4,
+   "0:own": 1,
+   "1:centre": 2,
+   "1:own": 2
+  },
+  "chargePips": {
+   "0": 13,
+   "1": 9
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {
+   "0": 46,
+   "1": 50
+  },
+  "carryDropsOnDeath": {
+   "1:centre": 2
+  },
+  "firstBankTick": {
+   "0:centre": 196,
+   "0:own": 503,
+   "1:centre": 98,
+   "1:own": 94
+  },
+  "sheet0": "ball",
+  "sheet1": "ball",
+  "seed": 9002
+ },
+ {
+  "endTick": 452,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:centre": 1,
+   "0:own": 2,
+   "1:centre": 4,
+   "1:own": 1
+  },
+  "chargePips": {
+   "0": 5,
+   "1": 13
+  },
+  "pulses": {
+   "0": 1,
+   "1": 3
+  },
+  "destructions": {
+   "0": 39,
+   "1": 33
+  },
+  "carryDropsOnDeath": {
+   "0:centre": 2,
+   "1:centre": 2
+  },
+  "firstBankTick": {
+   "0:centre": 264,
+   "0:own": 106,
+   "1:centre": 92,
+   "1:own": 449
+  },
+  "sheet0": "ball",
+  "sheet1": "ball",
+  "seed": 9003
+ },
+ {
+  "endTick": 298,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 1,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 1,
+   "1": 13
+  },
+  "pulses": {
+   "1": 3
+  },
+  "destructions": {
+   "0": 33,
+   "1": 22
+  },
+  "carryDropsOnDeath": {
+   "0:centre": 2,
+   "1:centre": 1
+  },
+  "firstBankTick": {
+   "0:own": 100,
+   "1:centre": 99,
+   "1:own": 94
+  },
+  "sheet0": "ball",
+  "sheet1": "ball",
+  "seed": 9004
+ },
+ {
+  "endTick": 298,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:own": 1,
+   "1:centre": 3,
+   "1:own": 3
+  },
+  "chargePips": {
+   "0": 1,
+   "1": 13
+  },
+  "pulses": {
+   "1": 3
+  },
+  "destructions": {
+   "0": 33,
+   "1": 22
+  },
+  "carryDropsOnDeath": {
+   "0:centre": 2,
+   "1:centre": 1
+  },
+  "firstBankTick": {
+   "0:own": 100,
+   "1:centre": 99,
+   "1:own": 94
+  },
+  "sheet0": "ball",
+  "sheet1": "ball",
+  "seed": 9005
+ },
+ {
+  "endTick": 383,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:enemy": 2,
+   "0:own": 1,
+   "1:centre": 3,
+   "1:own": 1
+  },
+  "chargePips": {
+   "0": 12,
+   "1": 11
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {
+   "0": 26,
+   "1": 38
+  },
+  "carryDropsOnDeath": {
+   "0:centre": 2,
+   "1:centre": 3
+  },
+  "firstBankTick": {
+   "0:enemy": 235,
+   "0:own": 100,
+   "1:centre": 88,
+   "1:own": 94
+  },
+  "sheet0": "ball",
+  "sheet1": "ball",
+  "seed": 9006
+ },
+ {
+  "endTick": 285,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:enemy": 1,
+   "0:own": 2,
+   "1:centre": 1,
+   "1:enemy": 1,
+   "1:own": 2
+  },
+  "chargePips": {
+   "0": 14,
+   "1": 11
+  },
+  "pulses": {
+   "0": 3,
+   "1": 2
+  },
+  "destructions": {
+   "0": 20,
+   "1": 18
+  },
+  "carryDropsOnDeath": {
+   "0:centre": 1
+  },
+  "firstBankTick": {
+   "0:centre": 94,
+   "0:enemy": 238,
+   "0:own": 75,
+   "1:centre": 189,
+   "1:enemy": 169,
+   "1:own": 74
+  },
+  "sheet0": "trade",
+  "sheet1": "trade",
+  "seed": 9001
+ },
+ {
+  "endTick": 370,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:own": 4,
+   "1:centre": 2,
+   "1:own": 5
+  },
+  "chargePips": {
+   "0": 11,
+   "1": 14
+  },
+  "pulses": {
+   "0": 2,
+   "1": 3
+  },
+  "destructions": {
+   "0": 20,
+   "1": 25
+  },
+  "carryDropsOnDeath": {
+   "1:centre": 1
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:own": 69,
+   "1:centre": 285,
+   "1:own": 68
+  },
+  "sheet0": "trade",
+  "sheet1": "trade",
+  "seed": 9002
+ },
+ {
+  "endTick": 373,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:centre": 3,
+   "0:own": 2,
+   "1:enemy": 2,
+   "1:own": 4
+  },
+  "chargePips": {
+   "0": 11,
+   "1": 18
+  },
+  "pulses": {
+   "0": 2,
+   "1": 4
+  },
+  "destructions": {
+   "0": 24,
+   "1": 23
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 1
+  },
+  "firstBankTick": {
+   "0:centre": 91,
+   "0:own": 80,
+   "1:enemy": 196,
+   "1:own": 80
+  },
+  "sheet0": "trade",
+  "sheet1": "trade",
+  "seed": 9003
+ },
+ {
+  "endTick": 244,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:enemy": 1,
+   "0:own": 2,
+   "1:own": 2
+  },
+  "chargePips": {
+   "0": 13,
+   "1": 3
+  },
+  "pulses": {
+   "0": 3
+  },
+  "destructions": {
+   "0": 14,
+   "1": 18
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 1,
+   "1:enemy": 1
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:enemy": 244,
+   "0:own": 77,
+   "1:own": 77
+  },
+  "sheet0": "trade",
+  "sheet1": "trade",
+  "seed": 9004
+ },
+ {
+  "endTick": 261,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 0
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:enemy": 1,
+   "0:own": 3,
+   "1:own": 2
+  },
+  "chargePips": {
+   "0": 14,
+   "1": 3
+  },
+  "pulses": {
+   "0": 3
+  },
+  "destructions": {
+   "0": 13,
+   "1": 19
+  },
+  "carryDropsOnDeath": {
+   "1:own": 1
+  },
+  "firstBankTick": {
+   "0:centre": 97,
+   "0:enemy": 261,
+   "0:own": 75,
+   "1:own": 74
+  },
+  "sheet0": "trade",
+  "sheet1": "trade",
+  "seed": 9005
+ },
+ {
+  "endTick": 385,
+  "result": {
+   "completionReason": "reactor-destroyed",
+   "winnerTeamId": 1
+  },
+  "banks": {
+   "0:centre": 2,
+   "0:own": 4,
+   "1:centre": 2,
+   "1:enemy": 1,
+   "1:own": 4
+  },
+  "chargePips": {
+   "0": 13,
+   "1": 17
+  },
+  "pulses": {
+   "0": 2,
+   "1": 4
+  },
+  "destructions": {
+   "0": 23,
+   "1": 23
+  },
+  "carryDropsOnDeath": {
+   "0:enemy": 1,
+   "1:enemy": 1
+  },
+  "firstBankTick": {
+   "0:centre": 288,
+   "0:own": 69,
+   "1:centre": 103,
+   "1:enemy": 385,
+   "1:own": 71
+  },
+  "sheet0": "trade",
+  "sheet1": "trade",
+  "seed": 9006
+ }
+]

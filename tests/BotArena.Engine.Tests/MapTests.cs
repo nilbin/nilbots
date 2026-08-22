@@ -145,9 +145,12 @@ public class MapTests
     [Fact]
     public void MaximumSupportedMapSize_Loads()
     {
+        // The widest legal map at the tallest height the cell budget allows:
+        // the envelope is bounded by BOTH per-dimension caps and MaxCells.
+        int height = ArenaMap.MaxCells / ArenaMap.MaxWidth;
         string[] rows = Enumerable.Repeat(
             new string('.', ArenaMap.MaxWidth),
-            ArenaMap.MaxHeight).ToArray();
+            height).ToArray();
 
         var map = ArenaMap.Create(
             "maximum",
@@ -155,7 +158,23 @@ public class MapTests
             [new Spawn(0, 0, Direction.East), new Spawn(1, 1, Direction.West)]);
 
         Assert.Equal(ArenaMap.MaxWidth, map.Width);
-        Assert.Equal(ArenaMap.MaxHeight, map.Height);
+        Assert.Equal(height, map.Height);
+    }
+
+    [Fact]
+    public void MapOverTheCellBudget_ThrowsEvenInsideTheDimensionCaps()
+    {
+        string[] rows = Enumerable.Repeat(
+            new string('.', ArenaMap.MaxWidth),
+            ArenaMap.MaxHeight).ToArray();
+
+        var ex = Assert.Throws<MapValidationException>(() => ArenaMap.Create(
+            "over-budget",
+            rows,
+            [new Spawn(0, 0, Direction.East), new Spawn(1, 1, Direction.West)]));
+
+        Assert.Contains(ex.Errors, e => e.Contains(
+            $"at most {ArenaMap.MaxCells} total cells"));
     }
 
     [Fact]

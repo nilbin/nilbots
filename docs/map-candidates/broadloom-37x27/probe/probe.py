@@ -26,6 +26,10 @@ SHEETS = {
     'ball': PLAYBOOKS / 'broadloom-ball-v1.json',
     'trade': PLAYBOOKS / 'broadloom-trade-v1.json',
     'turtle': PLAYBOOKS / 'broadloom-turtle-v1.json',
+    'trade2': PLAYBOOKS / 'broadloom-trade-v2.json',
+    'tball': REPO / 'out/tactics-build/ball/materialized-orders.json',
+    'ttrade': REPO / 'out/tactics-build/trade/materialized-orders.json',
+    'tturtle': REPO / 'out/tactics-build/turtle/materialized-orders.json',
 }
 SEEDS = [9001, 9002, 9003, 9004, 9005, 9006]
 PAIRINGS = [
@@ -33,6 +37,10 @@ PAIRINGS = [
     ('ball', 'turtle'), ('turtle', 'ball'),
     ('trade', 'turtle'), ('turtle', 'trade'),
     ('ball', 'ball'), ('trade', 'trade'),
+    ('ball', 'trade2'), ('trade2', 'ball'),
+    ('tball', 'ttrade'), ('ttrade', 'tball'),
+    ('tball', 'tturtle'), ('tturtle', 'tball'),
+    ('ttrade', 'tturtle'), ('tturtle', 'ttrade'),
 ]
 
 # Well ownership on Broadloom by reactor distance: team 0 (west) owns
@@ -96,7 +104,12 @@ def extract(replay_path: Path) -> dict:
                 team = f['sourceActorId']['teamId']
                 cls = classify(team, f['coreId']['sourceWellId'])
                 carry_drops[(team, cls)] += 1
-    result = d['result']
+    raw = d['result']
+    standings = raw.get('standings', raw) if isinstance(raw, dict) else {}
+    result = {
+        'completionReason': raw.get('completionReason'),
+        'winnerTeamId': standings.get('winnerTeamId'),
+    }
     return {
         'endTick': end_tick,
         'result': result,
@@ -121,9 +134,9 @@ def cmd_run() -> None:
             rows.append(stats)
             r = stats['result']
             print(f"{sheet0:6} vs {sheet1:6} s{seed}: "
-                  f"end t{stats['endTick']} "
+                  f"end t{stats['endTick']} ({r['completionReason']}) "
                   f"pulses {stats['pulses']} charge {stats['chargePips']} "
-                  f"{r.get('winnerTeamId', r)}", flush=True)
+                  f"winner {r['winnerTeamId']}", flush=True)
     RESULTS.write_text(json.dumps(rows, indent=1) + '\n', encoding='utf-8')
     print(f'wrote {RESULTS} ({len(rows)} matches)')
 
@@ -134,7 +147,7 @@ def cmd_report() -> None:
     def wins(rowset, name):
         w = l = d = 0
         for row in rowset:
-            winner = row['result'].get('winnerTeamId')
+            winner = row['result']['winnerTeamId']
             mine = 0 if row['sheet0'] == name else 1
             if row['sheet0'] == row['sheet1']:
                 continue
@@ -146,7 +159,10 @@ def cmd_report() -> None:
                 l += 1
         return w, l, d
 
-    for a, b in [('ball', 'trade'), ('ball', 'turtle'), ('trade', 'turtle')]:
+    for a, b in [('ball', 'trade'), ('ball', 'turtle'),
+                 ('trade', 'turtle'), ('ball', 'trade2'),
+                 ('tball', 'ttrade'), ('tball', 'tturtle'),
+                 ('ttrade', 'tturtle')]:
         rel = [r for r in rows if {r['sheet0'], r['sheet1']} == {a, b}]
         wa, la, da = wins(rel, a)
         print(f'{a} vs {b}: {a} {wa}W {la}L {da}D over {len(rel)} matches')

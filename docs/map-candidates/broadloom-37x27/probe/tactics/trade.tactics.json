@@ -1,0 +1,217 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "bl-tactics-trade-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    {
+      "slot": 0,
+      "class": "kestrel",
+      "build": "scout",
+      "name": "Vex"
+    },
+    {
+      "slot": 1,
+      "class": "relay",
+      "build": "balanced",
+      "name": "Piston"
+    },
+    {
+      "slot": 2,
+      "class": "longshot",
+      "build": "balanced",
+      "name": "Gantry"
+    },
+    {
+      "slot": 3,
+      "class": "mortar",
+      "build": "balanced",
+      "name": "Maul"
+    },
+    {
+      "slot": 4,
+      "class": "sunder",
+      "build": "balanced",
+      "name": "Brand"
+    },
+    {
+      "slot": 5,
+      "class": "patchbay",
+      "build": "balanced",
+      "name": "Cinder"
+    },
+    {
+      "slot": 6,
+      "class": "mason",
+      "build": "durable",
+      "name": "Flux"
+    },
+    {
+      "slot": 7,
+      "class": "palisade",
+      "build": "durable",
+      "name": "Ember"
+    }
+  ],
+  "tactics": [
+    {
+      "id": "raid-and-trade",
+      "name": "Raid and trade",
+      "recipe": "core-raid",
+      "start": {
+        "mode": "always"
+      },
+      "delivery": {
+        "plan": "escort",
+        "preferredSlots": [
+          1
+        ]
+      },
+      "groups": [
+        {
+          "id": "custody",
+          "name": "Well custody",
+          "slots": [
+            6,
+            7
+          ],
+          "coreRule": "grab"
+        },
+        {
+          "id": "raiders",
+          "name": "Roof raiders",
+          "slots": [
+            0,
+            1
+          ],
+          "coreRule": "hunt"
+        },
+        {
+          "id": "mid-line",
+          "name": "Mid line",
+          "slots": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "coreRule": "grab"
+        }
+      ],
+      "phases": [
+        {
+          "id": "run-the-trade",
+          "name": "Run the trade",
+          "jobs": {
+            "custody": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    9,
+                    21
+                  ],
+                  "facing": "e",
+                  "slot": 6
+                },
+                {
+                  "at": [
+                    11,
+                    17
+                  ],
+                  "facing": "s",
+                  "slot": 7
+                }
+              ]
+            },
+            "raiders": {
+              "kind": "patrol",
+              "posture": "steal",
+              "recovery": "fight-on",
+              "path": [
+                [
+                  4,
+                  9
+                ],
+                [
+                  12,
+                  2
+                ],
+                [
+                  17,
+                  1
+                ],
+                [
+                  23,
+                  3
+                ],
+                [
+                  26,
+                  7
+                ],
+                [
+                  23,
+                  7
+                ],
+                [
+                  13,
+                  7
+                ],
+                [
+                  5,
+                  8
+                ],
+                [
+                  4,
+                  9
+                ]
+              ]
+            },
+            "mid-line": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    12,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 2
+                },
+                {
+                  "at": [
+                    12,
+                    15
+                  ],
+                  "facing": "e",
+                  "slot": 3
+                },
+                {
+                  "at": [
+                    13,
+                    13
+                  ],
+                  "facing": "e",
+                  "slot": 4
+                },
+                {
+                  "at": [
+                    11,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 5
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
