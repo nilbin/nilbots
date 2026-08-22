@@ -23,10 +23,12 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         "75c909ff904d8c985559f868968644380316929c16b56dfe0d582d6113cd5e6b";
 
     // A concurrent development session seeded an unpublished Tapline-15
-    // experiment as v33 into a shared local database while Broadloom was the
-    // owner-ordered v33 promotion. This exact fingerprint is that unpublished
-    // claim and is the only persisted v33 definition the seeder may repair in
-    // place; the Tapline-15 arm renumbers when it lands.
+    // rules experiment as v33 into a shared local database while Broadloom
+    // was the owner-ordered v33 promotion. This exact fingerprint is that
+    // unpublished claim and is the only persisted v33 definition the seeder
+    // may repair in place. The Tapline map line is superseded by Broadloom
+    // (owner ruling); any surviving rules ideas from that arm would be
+    // re-authored against Broadloom under a new identity, never as this row.
     public const string UnpublishedConcurrentTapline15DefinitionFingerprint =
         "8fd91114083d921570760fd22f743962639101eb4809bd1c5854de7c67c35348";
 
