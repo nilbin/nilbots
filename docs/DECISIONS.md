@@ -9534,3 +9534,65 @@ occupies the footprint. Catalog copy and the map-first design reports state the
 same rule. A deterministic engine scene places the Mortar and an ally in the
 same cross as an enemy and pins hostile damage with zero allied signature
 damage.
+
+## 358. Broadloom promotes as broadloom-1 with neutral veterancy Workshops
+
+Owner direction (2026-08-22): implement the analysed 37x27 "Broadloom"
+whole-map candidate and its two neutral veterancy Workshops as the next
+promoted product profile, on the existing candidate branch.
+
+The immutable product identity is profile `broadloom-1`, ruleset
+`arc-relay-broadloom-1`, map `arc-relay-broadloom-01` (37x27, 681 open tiles,
+the first profile past the historical 32-tile width; the engine cap is now
+width/height <= 37 under a 1,024-cell budget, and every historical map loads
+byte-identically). The complete Tapline-14 rules stack carries over unchanged.
+
+Two rules-owned Workshops sit at (18,4) and (18,22), rotationally symmetric,
+signature-placement-forbidden on the training tile, with an authored 36-tile
+contest region each (room interior, all three mouths, skylight). Unlock tick
+25; a session is 15 consecutive qualifying ticks by one living body of one
+team standing on the tile — not carrying, not moving or displaced, not
+attacking or casting, taking no damage, with no living enemy anywhere in the
+contest region; any violation resets progress to zero, and Wait/rotation are
+the only free actions. Completion grants exactly 1 veterancy XP through the
+existing capped system (affecting the next tick) and starts a 45-tick global
+dormancy for that Workshop alone; completion tick C makes the Workshop ready
+again at C+1+45. Workshop state is a public neutral objective signal: fog
+narrowing deliberately preserves it, and replay v3, the SDK observation, the
+wire codec, and both web renderers carry it. Channel identity is
+team+slot+life: death, respawn, or rejoining the tile never inherits progress.
+
+Mode state, evaluation chronology (inside ApplyJointTick after movement,
+combat, damage, destruction, and post-combat signatures), events
+(ready/started/interrupted/completed with kebab-case reasons), and the
+map/rules binding are all data-driven — no coordinates in any executor.
+Historical profiles omit every Workshop byte identically (init-prop default
+pattern; canonical writers gate on presence), proven by the unchanged golden
+suite.
+
+Tactics v2 gains the "train" job (single-slot group, posture wait, workshop
+north/south/either, no drawn geometry — the executor resolves the rules-owned
+tile from the contract binding) and rows workshopReady / workshopTraining
+(team self/enemy/any) / workshopContested / workshopDormant / workshopDone /
+veteranLevel; Orders v2 gains the matching facts, the `{workshop}` move
+target, and historical `friendly-workshop-completions`. The evidence ledger
+derives completions from the public Training-to-Dormant transition, so the
+condition never leaks fogged facts. Deterministic practice proofs pin the
+whole loop: exact channel and dormancy cadence, contested interruption and
+suppression from an authored disruption route, a Workshop feint that pulls a
+condition-driven guard rotation and opens the outer-Well raid, workshopDone
+driving a phase transition, and Workshop allocation under Demolition March
+pressure — mechanics evidence, never a balance verdict.
+
+Hosted playlist v33 pins broadloom-1 and starts a fresh rating book because
+map identity, Workshops, and the registered stock gameplay all change; v32
+remains immutable Tapline-14 history and its provenance bytes are preserved
+exactly. The stock sheet is `tempered-broadloom-v1`, authored as a Tactics
+document and pinned as its materialized Orders and map plan; the embedded
+product templates move to Broadloom-native `first-stand-v2` (now training at
+the north Workshop), `mid-pincer-v2`, `idle-field-v2`, and — per the owner's
+explicit instruction — Demolition March is rewritten as the Tactics document
+`demolition-march-v2` rather than direct Orders, preserving its
+double-longshot march-line identity as the deathball regression opponent.
+SDK 0.10.16 declares the additive Workshop contract; the tactical mirror was
+rebuilt through the controlled toolchain and playlist v33 pins its receipt.

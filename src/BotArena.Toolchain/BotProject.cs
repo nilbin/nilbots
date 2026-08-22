@@ -625,7 +625,12 @@ public static class ToolchainInfo
     // 0.10.15: movement profiles declare an optional non-inert movement
     // opportunities/cycle pair. Historical 1/1 profiles omit it
     // byte-identically; strict SDK and replay readers reject partial pairs.
-    public const string SdkVersion = "0.10.15";
+    // 0.10.16: the Arc Relay mode contract declares optional neutral
+    // veterancy Workshops (rules, per-workshop public state, and the four
+    // training lifecycle events) across the context, canonical reader, and
+    // tagged observation/event codecs. Historical contracts omit every
+    // Workshop byte identically.
+    public const string SdkVersion = "0.10.16";
     public const string IlcLlvmVersion = "10.0.0-rc.1.26306.1";
     // 0.10.11: the Guest gains the mind tick loop (GenericMindGuestSession),
     // the mind arm of the negotiation state machine, and WrappedPerLifeMind.

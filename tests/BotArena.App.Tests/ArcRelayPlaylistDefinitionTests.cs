@@ -42,7 +42,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
     }
 
     [Fact]
-    public void Entrant_v32_promotes_complete_tactics_while_v2_through_v31_remain_resolvable_history()
+    public void Entrant_v33_promotes_broadloom_workshops_while_v2_through_v32_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -106,84 +106,97 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV30();
         ArcRelayEntrantPlaylistDefinition tapline14V31 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV31();
+        ArcRelayEntrantPlaylistDefinition completeV32 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV32();
 
-        Assert.Equal(32, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Tapline14.MapId, current.Match.Map.Id);
+        Assert.Equal(33, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Broadloom1.MapId, current.Match.Map.Id);
+        Assert.Equal("arc-relay-broadloom-01", current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Tapline14.RulesetId,
+            ArcRelayLoopProfile.Broadloom1.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition
-                .CompleteObservationTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom1TacticalArtifactHash,
             current.CanonicalDefinition);
         Assert.Contains("arc-relay-orders-v2", current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
+            ArcRelayEntrantPlaylistDefinition.BroadloomStockSheetId,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition
-                .CompleteObservationTacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom1TacticalBuildInputHash,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Tapline14StockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.BroadloomStockPlaybookSourceHash,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.BroadloomStockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedTapline14", current.Provenance);
+        Assert.Contains("ownerApprovedBroadloom1", current.Provenance);
+        Assert.Contains("\"newImmutableMapIdentity\":true", current.Provenance);
+        Assert.Contains("\"mapWidth\":37", current.Provenance);
+        Assert.Contains("\"mapHeight\":27", current.Provenance);
         Assert.Contains(
-            "\"reactiveImpactFacing\":true",
-            current.Provenance);
+            "\"neutralVeterancyWorkshops\":true", current.Provenance);
+        Assert.Contains("\"workshopUnlockTick\":25", current.Provenance);
+        Assert.Contains("\"workshopChannelTicks\":15", current.Provenance);
+        Assert.Contains("\"workshopXpAward\":1", current.Provenance);
+        Assert.Contains("\"workshopDormancyTicks\":45", current.Provenance);
+        Assert.Contains(
+            "\"workshopPublicNeutralSignal\":true", current.Provenance);
+        Assert.Contains("\"trainAtWorkshopTactics\":true", current.Provenance);
+        Assert.Contains("\"reactiveImpactFacing\":true", current.Provenance);
         Assert.Contains("\"movingPrismScreen\":true", current.Provenance);
-        Assert.Contains("\"prismScreenHull\":30", current.Provenance);
-        Assert.Contains("\"prismScreenDurationTicks\":6", current.Provenance);
-        Assert.Contains("\"prismScreenCooldownTicks\":18", current.Provenance);
         Assert.Contains("\"baseVisionRange\":5", current.Provenance);
         Assert.Contains("\"shortAttackRange\":3", current.Provenance);
         Assert.Contains("\"mediumAttackRange\":4", current.Provenance);
         Assert.Contains("\"longAttackRange\":6", current.Provenance);
-        Assert.Contains("\"routeFacingMovement\":true", current.Provenance);
-        Assert.Contains("\"engagementOnlyCombatStrafe\":true", current.Provenance);
-        Assert.Contains("\"sentryTeamVision\":true", current.Provenance);
-        Assert.Contains("\"sentryVisionRange\":4", current.Provenance);
-        Assert.Contains("\"swiftMoveOpportunitiesPerCycle\":1", current.Provenance);
-        Assert.Contains("\"swiftMoveCycleTicks\":1", current.Provenance);
-        Assert.Contains("\"standardMoveOpportunitiesPerCycle\":4", current.Provenance);
-        Assert.Contains("\"standardMoveCycleTicks\":5", current.Provenance);
-        Assert.Contains("\"deliberateMoveOpportunitiesPerCycle\":2", current.Provenance);
-        Assert.Contains("\"deliberateMoveCycleTicks\":3", current.Provenance);
-        Assert.Contains("\"stableUnitMovementPhase\":true", current.Provenance);
-        Assert.Contains("\"movementOpportunitiesDoNotBank\":true", current.Provenance);
-        Assert.Contains("sealedOuterWellEntrancesStaggeredMidCover", current.Provenance);
         Assert.Contains("sourceLocalWellSupply", current.Provenance);
         Assert.Contains("bankTriggeredWellRecharge", current.Provenance);
-        Assert.Contains("noTellArcToss", current.Provenance);
         Assert.Contains("equalReturnFork", current.Provenance);
-        Assert.DoesNotContain("newImmutableMapIdentity", current.Provenance);
         Assert.Contains("delayedCentreOpening", current.Provenance);
-        Assert.Contains("tapline14TacticalArtifact", current.Provenance);
-        Assert.DoesNotContain(
-            "stockArtifactReusedFromTapline4", current.Provenance);
+        Assert.Contains("broadloomNativeMapPlansOnly", current.Provenance);
+        Assert.Contains("temperedBroadloomTacticsStock", current.Provenance);
+        Assert.Contains("broadloom1TacticalArtifact", current.Provenance);
+        Assert.Contains(
+            "completeTacticalObservationProjection", current.Provenance);
         Assert.Contains("teamRelativeCoreCharge", current.Provenance);
         Assert.Contains("publicRespawnWaves", current.Provenance);
         Assert.Contains("minimumSevenDistinctClasses", current.Provenance);
         Assert.Contains("durableDeployments", current.Provenance);
-        Assert.Contains("taplineNativeMapPlansOnly", current.Provenance);
         Assert.Contains("ordersV2DirectExecutor", current.Provenance);
-        Assert.Contains("nestedPriorityOrders", current.Provenance);
-        Assert.Contains("targetScopedCapacity", current.Provenance);
-        Assert.Contains("explicitCoreActions", current.Provenance);
-        Assert.Contains("authoredMovementUrgency", current.Provenance);
-        Assert.Contains("atomicCoordinatedMovement", current.Provenance);
-        Assert.Contains("vacatedTileFollowing", current.Provenance);
-        Assert.Contains("inProcessWasmGameplayParity", current.Provenance);
-        Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
-        Assert.Contains(
-            "completeTacticalObservationProjection", current.Provenance);
-        Assert.Contains(
-            "approachExactDurableDeployments", current.Provenance);
         Assert.Contains("freshRatingEra", current.Provenance);
+        Assert.Contains("priorStockGameplayDigestChanged", current.Provenance);
+        Assert.Contains("\"linkedDataFormat\":\"ATL2\"", current.Provenance);
+        Assert.DoesNotContain("ownerApprovedTapline14", current.Provenance);
+        Assert.DoesNotContain("frozenTemperedStandardStock", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(32, completeV32.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline14.MapId, completeV32.Match.Map.Id);
+        Assert.Equal(
+            ArcRelayLoopProfile.Tapline14.RulesetId,
+            completeV32.Match.Rules.RulesetId);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition
+                .CompleteObservationTacticalArtifactHash,
+            completeV32.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Tapline4StockSheetId,
+            completeV32.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Tapline14StockPlaybookSourceHash,
+            completeV32.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Tapline9StockMapPlanSourceHash,
+            completeV32.CanonicalDefinition);
+        Assert.Contains("ownerApprovedTapline14", completeV32.Provenance);
+        Assert.Contains(
+            "completeTacticalObservationProjection", completeV32.Provenance);
+        Assert.Contains(
+            "approachExactDurableDeployments", completeV32.Provenance);
+        Assert.Contains("freshRatingEra", completeV32.Provenance);
+        Assert.DoesNotContain(
+            "neutralVeterancyWorkshops", completeV32.Provenance);
         Assert.Equal(31, tapline14V31.PlaylistVersion);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,

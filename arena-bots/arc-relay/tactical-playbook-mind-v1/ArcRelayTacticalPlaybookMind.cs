@@ -2169,14 +2169,6 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 + constructValue;
             if (value == 0)
                 continue;
-            // This runtime contract requires the strike lock's named target,
-            // so a lane must strike at least one enemy and the nearest one on
-            // the ray becomes the lock. The beam still pierces the full line.
-            GenericActorContext.ObservedEnemyState? nearestStruck = struck
-                .OrderBy(enemy => Array.IndexOf(damaging, enemy.Position))
-                .FirstOrDefault();
-            if (nearestStruck is null)
-                continue;
             (int dx, int dy) = heading.Vector();
             Position aim = body.Position.Offset(dx, dy);
             lanes.Add((
@@ -2184,7 +2176,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     $"rail-lane:{heading}",
                     aim,
                     [aim],
-                    nearestStruck.ActorId,
+                    null,
                     null,
                     $"full-ray-value-{value}-hits-{struck.Length}"
                         + $"-carrier-{carrierValue}-kills-{kills}"),

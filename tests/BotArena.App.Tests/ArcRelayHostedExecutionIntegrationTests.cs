@@ -30,7 +30,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
     }
 
     [Fact]
-    public void TacticalHostedLaneRetainsTheCompleteObservationContract()
+    public void TacticalHostedLaneRetainsTheBroadloomWorkshopContract()
     {
         using InProcessGenericMindRuntimeFactory factory =
             GenericActorMatchExecutor.CreateTacticalMindRuntimeFactory();
@@ -261,7 +261,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(
                     ArcRelayEntrantPlaylistDefinition
-                        .CompleteObservationTacticalArtifactHash,
+                        .Broadloom1TacticalArtifactHash,
                     participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
@@ -328,7 +328,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
             ArcRelayEntrantPlaylistDefinition
-                .CompleteObservationTacticalArtifactHash,
+                .Broadloom1TacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 

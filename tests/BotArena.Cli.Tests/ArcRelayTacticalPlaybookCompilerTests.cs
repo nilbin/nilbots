@@ -9,8 +9,8 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
 {
     private static readonly string[] CurrentSheets =
     [
-        "demolition-march-v1",
-        "idle-field-v1",
+        "tempered-broadloom-v1",
+        "idle-field-v2",
     ];
 
     [Fact]
@@ -21,7 +21,7 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
             using JsonDocument source = JsonDocument.Parse(
                 File.ReadAllBytes(Playbook(name)));
             Assert.Equal(
-                $"../map-plans/tapline-9/{name}.json",
+                $"../map-plans/broadloom-1/{name}.json",
                 source.RootElement.GetProperty("mapPlan").GetString());
 
             TacticalPlaybookCompilation compilation =
@@ -40,14 +40,23 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
                 layout.RootElement.GetProperty("mapId").GetString());
             using JsonDocument normalized = JsonDocument.Parse(
                 compilation.NormalizedPlaybook);
+            string[] keys = [.. normalized.RootElement.EnumerateObject()
+                .Select(value => value.Name)
+                .Order(StringComparer.Ordinal)];
+            // Tactics-materialized sheets carry the phase program; plain
+            // Orders documents do not.
             Assert.Equal(
-                [
-                    "capacities", "conditions", "mapPlan", "roles", "schema",
-                    "sharedOrders", "sheetId",
-                ],
-                normalized.RootElement.EnumerateObject()
-                    .Select(value => value.Name)
-                    .Order(StringComparer.Ordinal));
+                keys.Contains("program")
+                    ? (string[])
+                        [
+                            "capacities", "conditions", "mapPlan", "program",
+                            "roles", "schema", "sharedOrders", "sheetId",
+                        ]
+                    : [
+                        "capacities", "conditions", "mapPlan", "roles",
+                        "schema", "sharedOrders", "sheetId",
+                    ],
+                keys);
         }
     }
 

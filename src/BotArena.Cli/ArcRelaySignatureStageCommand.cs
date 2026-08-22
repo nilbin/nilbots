@@ -125,9 +125,14 @@ public static class ArcRelaySignatureStageCommand
         ActorResolvedMatchDefinition source = ArcRelayH0Definition.Create(
             westSheet,
             eastSheet,
-            loopProfile: spec.SignatureId == "prism-wall"
-                ? ArcRelayLoopProfile.Tapline12
-                : ArcRelayLoopProfile.Current);
+            loopProfile: spec.SignatureId switch
+            {
+                "prism-wall" => ArcRelayLoopProfile.Tapline12,
+                // Core-adjacent staging is authored around the Tapline
+                // centre Well; Broadloom's centre sits elsewhere.
+                "arc-toss" or "exchange" => ArcRelayLoopProfile.Tapline14,
+                _ => ArcRelayLoopProfile.Current,
+            });
 
         ActorRulesDefinition rules = source.Rules;
         ArcRelayGameModeDefinition mode = (ArcRelayGameModeDefinition)
@@ -181,7 +186,8 @@ public static class ArcRelaySignatureStageCommand
             vitalityHealthPerPoint: mode.VitalityHealthPerPoint,
             healZoneHealthPerActivation:
                 mode.HealZoneHealthPerActivation,
-            reactiveImpactFacing: mode.ReactiveImpactFacing);
+            reactiveImpactFacing: mode.ReactiveImpactFacing,
+            veterancyWorkshops: mode.VeterancyWorkshops);
         var stagedRules = new ActorRulesDefinition(
             $"arc-relay-signature-stage-t{maxTicks}-01",
             new ActorRulesLimits(maxTicks, rules.Limits.RuntimeFaults),

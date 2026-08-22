@@ -9368,6 +9368,10 @@ internal static class ReplayV3Serializer
                             "nextRespawnWaveTick", out _);
                         bool respawnWaveTeams = root.TryGetProperty(
                             "respawnWaveTeams", out _);
+                        // Neutral veterancy Workshops exist only on rulesets
+                        // that declare them; absence is the historical shape.
+                        bool workshops = root.TryGetProperty(
+                            "workshops", out _);
                         RequireProperties(
                             root,
                             [
@@ -9387,6 +9391,9 @@ internal static class ReplayV3Serializer
                                     : System.Array.Empty<string>(),
                                 .. respawnWaveTeams
                                     ? new[] { "respawnWaveTeams" }
+                                    : System.Array.Empty<string>(),
+                                .. workshops
+                                    ? new[] { "workshops" }
                                     : System.Array.Empty<string>(),
                             ]);
                         return new ReplayV3.ModeState.ArcRelay(
@@ -9413,6 +9420,10 @@ internal static class ReplayV3Serializer
                             PendingStrikes = pendingStrikes
                                 ? RequiredArrayValue<ReplayV3.ArcPendingStrike>(
                                     root, "pendingStrikes", options)
+                                : [],
+                            Workshops = workshops
+                                ? RequiredArrayValue<ReplayV3.ArcWorkshop>(
+                                    root, "workshops", options)
                                 : [],
                         };
                     }

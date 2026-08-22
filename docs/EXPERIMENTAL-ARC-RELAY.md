@@ -255,3 +255,43 @@ closed cycle, terrain block, projectile contact, or stationary head blocks the
 dependent chain. This is the engine contract required by coordinated squad
 planning; it is not permission to overlap bodies or resolve moves in command
 order.
+
+## Broadloom and veterancy Workshops (`arc-relay-broadloom-1`, 2026-08-22)
+
+`broadloom-1` keeps the complete Tapline-14 rules stack — economy, combat,
+vision, movement rates, respawn waves, source-local Well supply, delayed
+centre — and moves it to `arc-relay-broadloom-01`, a 37x27 whole-map identity
+with three Wells (outer Wells in roomed theatres at (10,19) and (26,7), the
+centre Well under a covered crossing), heal alcoves, and two neutral
+**Workshops** at (18,4) and (18,22), rotationally symmetric.
+
+A Workshop is a public neutral objective, never terrain: both teams always
+see its exact state, and fog hides nothing about it (only about bodies).
+Both unlock at tick 25. To train, one body stands on the training tile and
+holds a channel for **15 consecutive qualifying ticks**: same living body of
+one team, on the tile, not carrying a Core, not moving or displaced, not
+attacking or casting a signature, taking no damage, with no living enemy
+anywhere inside the Workshop's authored contest region (the room, its
+mouths, and the skylight). Waiting and rotating in place are free. Any
+violation resets progress to zero — the channel identity is that exact life,
+so dying, respawning, or swapping bodies never inherits progress. The
+training tile refuses authored signature placement, heals nothing, and
+scores nothing.
+
+Completion grants exactly **1 veterancy XP** through the ordinary capped
+veterancy system (visible on the next tick) and puts that Workshop into a
+**45-tick dormancy**; it is publicly Ready again 46 ticks after completion.
+The two Workshops are independent: contesting or completing one never
+touches the other. A body already at maximum veterancy cannot train.
+
+Protecting a trainee never speeds the channel up — guards only keep the
+contest region empty. The intended tension is public: a Training signal
+invites a contest route or a raid elsewhere, and the contest region is wide
+enough that a disruptor never needs the exact training tile.
+
+Tactics authors the loop with the **Train at Workshop** job (`kind:
+"train"`, workshop `north`/`south`/`either` — global ids that do not mirror
+with the seat) and the public-state rows `workshopReady`,
+`workshopTraining`, `workshopContested`, `workshopDormant`, `workshopDone`,
+and `veteranLevel`. Orders v2 carries the matching facts, the `{workshop}`
+move target, and the historical `friendly-workshop-completions` condition.

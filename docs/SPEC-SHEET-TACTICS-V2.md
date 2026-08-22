@@ -112,6 +112,15 @@ what phases are.
 | `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence since phase entry |
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
 | `observed` | `true` | continue | the watchline stayed fully observed for 120 ticks |
+| `workshopReady` | `{ "workshop": "north"\|"south"\|"either" }` | start, continue | that Workshop (either = any) is publicly Ready |
+| `workshopTraining` | `{ "workshop": …, "team"?: "self"\|"enemy"\|"any" }` | start, continue | a body of that team is publicly channeling there (default any) |
+| `workshopContested` | `{ "workshop": … }` | start, continue, abort | living enemies stand in that Workshop's contest region |
+| `workshopDormant` | `{ "workshop": … }` | start, continue, abort | that Workshop is publicly recharging |
+| `workshopDone` | `{ "workshop": …, "count"?: 1..8 }` | continue | ≥N friendly completions at that Workshop since THIS phase began (derived from the public Training→Dormant transition — never a fogged fact) |
+| `veteranLevel` | `{ "slot": 0..7, "level": 2..9 }` | continue | that squad slot's body has reached the level |
+
+Workshop rows read the public neutral-objective signal every seat can see;
+they never reveal fogged positions, only Workshop state.
 
 New zone rows write `zones` with one to three rectangles. A singular `zone`
 remains a one-area load compatibility spelling and normalizes on intentional
@@ -157,7 +166,7 @@ What a group DOES lives in each phase's job for it.
 ### Job — one group's assignment for one phase
 
 ```jsonc
-{ "kind": "posts|area|converge|patrol|none",
+{ "kind": "posts|area|converge|patrol|train|none",
   "posture": "observe|hold|aggressive",
   "travel"?: "observe|hold|aggressive",
   "recovery": "fight-on|heal-tile|heal-up",
@@ -186,6 +195,18 @@ marks travel to their new Group (a brand-new Group also inherits a copy of
 the source Group's job per phase, so a split changes nothing on the ground
 until edited apart), and whatever cannot travel is cleaned out of the old
 Group's jobs rather than left behind.
+
+`kind: "train"` is **Train at Workshop**: the group must hold exactly one
+slot, `posture` must be `"wait"`, signature marks are refused, and the job
+carries `"workshop": "north"|"south"|"either"` instead of drawn geometry —
+the rules-owned training tile is resolved from the match contract's Workshop
+binding, never from authored coordinates, so the same document stays honest
+on any future map revision. Workshop ids are global map identities (they do
+not mirror with the seat), while every drawn post/area/path still does.
+`travel` chooses the on-the-way behavior as usual; on arrival the body waits
+on the tile and the rules run the channel. Core custody outranks training: a
+`coreRule` that hands the trainee a Core suspends the channel until the Core
+is gone, and the public Workshop state says why progress stopped.
 
 `kind: "none"` is the internal carry-forward encoding: when a phase does not
 replace a Group's ground, it keeps the nearest earlier geometric job under this

@@ -53,7 +53,7 @@ public sealed class ArcRelayExperimentCommandTests
     }
 
     [Fact]
-    public void Default_is_the_reactive_impact_Tapline14_product_line()
+    public void Default_is_the_broadloom_workshop_product_line()
     {
         TextWriter stdout = Console.Out;
         using var output = new StringWriter();
@@ -69,13 +69,21 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-tapline-14",
+            "arc-relay-broadloom-1",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
-            "arc-relay-tapline-03",
+            "arc-relay-broadloom-01",
             document.RootElement.GetProperty("map").GetProperty("mapId")
                 .GetString());
+        JsonElement workshops = document.RootElement.GetProperty("rules")
+            .GetProperty("gameMode")
+            .GetProperty("veterancyWorkshops");
+        Assert.Equal(25, workshops.GetProperty("unlockTick").GetInt32());
+        Assert.Equal(
+            15, workshops.GetProperty("requiredChannelTicks").GetInt32());
+        Assert.Equal(1, workshops.GetProperty("xpAward").GetInt32());
+        Assert.Equal(45, workshops.GetProperty("dormancyTicks").GetInt32());
         Assert.Equal(
             3,
             document.RootElement.GetProperty("rules")

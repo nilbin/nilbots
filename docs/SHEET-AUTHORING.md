@@ -260,9 +260,19 @@ The finite fact catalog is:
 | zone | `friendlies-in-zone`, `visible-enemies-in-zone`, `remembered-enemies-in-zone`, `zone-cleared`, `friendly-fights-in-zone`, `known-loose-cores-in-zone`, `observed-enemy-entries-in-zone`, `distinct-enemy-lives-observed-in-zone`, `confirmed-enemy-destructions-in-zone`, `zone-fully-observed-throughout-interval` |
 | history | `friendly-core-pickups`, `friendly-core-acquisitions`, `friendly-core-banks`, `friendly-core-drops`, `friendly-core-losses`, `friendly-core-resolutions` |
 | Well | `well-has-outstanding-core`, `well-ticks-until-birth`, `well-socket-filled` |
+| Workshop | `workshop-ready`, `workshop-training`, `workshop-training-self`, `workshop-training-enemy`, `workshop-contested`, `workshop-dormant` |
+| history | `friendly-workshop-completions` (with the core-history facts above) |
 
 Role facts require `role`; zone facts require `zone`; Well facts require
-`well` (`north`, `centre`, `south`, `own`, or `enemy`).
+`well` (`north`, `centre`, `south`, `own`, or `enemy`). Workshop facts
+require `workshop` (`north`, `south`, or `either`) and read the veterancy
+Workshop's public neutral state — the same state both teams always see, so
+none of them can leak a fogged position. `workshop-training` is true for any
+team's channel; the `-self`/`-enemy` forms narrow it.
+`friendly-workshop-completions` is a historical fact (interval rules below,
+`since: "node-entry"` legal in `until`) counting this team's completed
+training sessions, derived from the public Training-to-Dormant transition;
+it accepts the optional `workshop` filter.
 `well-ticks-until-birth` reads the one effective public Well clock: the
 initial opening or a recharge already started by banking that Well's Core.
 While the Core is still active—loose, carried, in flight, dropped, or
@@ -366,7 +376,12 @@ caster is free. This observes engine state; it is not an authored duration.
 - `{ "zone": "id" }`;
 - `{ "anchor": "id" }`; or
 - `{ "adjacentTo": "anchor-id" }`; or
-- `{ "well": "north|centre|south|own|enemy" }`.
+- `{ "well": "north|centre|south|own|enemy" }`; or
+- `{ "workshop": "north|south|either" }`, the veterancy Workshop's
+  rules-owned training tile. `either` deterministically keeps the Workshop
+  this team is already training at, else the nearest Ready one, else the
+  nearest — Workshop ids are global map identities and never mirror with the
+  seat.
 
 `adjacentTo` resolves the legal eight-way ring around one authored anchor. It
 is useful for placeable skills: the anchor states where the construct belongs

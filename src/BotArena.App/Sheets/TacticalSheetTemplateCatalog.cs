@@ -41,34 +41,34 @@ public sealed class TacticalSheetTemplateCatalog
         TacticalSheetSource[] starters =
         [
             ResolveTactics(
-                "first-stand-v1",
-                "Tapline First Stand",
-                "A clear first sheet: post up on Mid, hold the ground, and when a Core lands in your hands the runner brings it home under escort.",
-                Resource("BotArena.Sheets.first-stand-v1.tactics.json"),
+                "first-stand-v2",
+                "Broadloom First Stand",
+                "A clear first sheet: post up on Mid, send one body to train at the north Workshop, and when a Core lands in your hands the runner brings it home under escort.",
+                Resource("BotArena.Sheets.first-stand-v2.tactics.json"),
                 classification: "recommended",
                 recommended: true),
             ResolveTactics(
-                "mid-pincer-v1",
+                "mid-pincer-v2",
                 "Mid Pincer",
-                "A small guard baits at Mid while six stage behind their lines; once everyone is on station and enemies commit, the flankers converge.",
-                Resource("BotArena.Sheets.mid-pincer-v1.tactics.json"),
+                "A small guard baits at Mid while six stage on the north-east roof; once enemies commit to the centre, the flankers converge.",
+                Resource("BotArena.Sheets.mid-pincer-v2.tactics.json"),
                 classification: "advanced"),
         ];
         Starters = starters;
         TacticalSheetSource[] opponents =
         [
-            Resolve(
-                "demolition-march-v1",
+            ResolveTactics(
+                "demolition-march-v2",
                 "Demolition March",
-                "Longshots, Mortar, and Hush clear deployments before Relay and Kestrel turn the breach into a raid.",
-                Resource("BotArena.Sheets.demolition-march-v1.sheet.json"),
-                Resource("BotArena.Sheets.demolition-march-v1.map-plan.json")),
+                "Longshots, Mortar, and Hush march the centre in ranked lines before Relay and Kestrel turn the breach into a raid.",
+                Resource("BotArena.Sheets.demolition-march-v2.tactics.json"),
+                classification: "practice"),
             Resolve(
-                "idle-field-v1",
+                "idle-field-v2",
                 "Idle Field",
                 "Eight stationary bodies that never act: a clean control for routes, timing, skills, and traffic checks.",
-                Resource("BotArena.Sheets.idle-field-v1.sheet.json"),
-                Resource("BotArena.Sheets.idle-field-v1.map-plan.json")),
+                Resource("BotArena.Sheets.idle-field-v2.sheet.json"),
+                Resource("BotArena.Sheets.idle-field-v2.map-plan.json")),
         ];
         stock = opponents.ToDictionary(value => value.Id, StringComparer.Ordinal);
         Stock = opponents;

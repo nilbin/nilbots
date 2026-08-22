@@ -319,6 +319,16 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV31()
                 .Validate(playlist, tapline14Version);
         }
+        PlaylistVersion? completeObservationVersion = await db.PlaylistVersions
+            .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
+                value.Version ==
+                    ArcRelayEntrantPlaylistDefinition.CompleteObservationVersion,
+                cancellationToken);
+        if (completeObservationVersion is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV32()
+                .Validate(playlist, completeObservationVersion);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,

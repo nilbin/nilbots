@@ -1,0 +1,41 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "idle-field-v2",
+  "mapPlan": "../map-plans/broadloom-1/idle-field-v2.json",
+  "roles": [
+    {
+      "id": "stationary-observers",
+      "classes": [
+        "kestrel",
+        "palisade",
+        "towline",
+        "patchbay",
+        "lantern",
+        "mortar",
+        "minesmith",
+        "hush"
+      ],
+      "upgradePath": [
+        "vitality"
+      ],
+      "orders": [
+        {
+          "id": "remain-idle",
+          "when": "impossible-health",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {},
+  "capacities": {},
+  "conditions": {
+    "impossible-health": {
+      "fact": "self-health-percent",
+      "operator": "less-than",
+      "value": 0
+    }
+  }
+}

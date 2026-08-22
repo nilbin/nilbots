@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "buildInputSha256": "6e77998cab9c1820181cf58f4946fcdac42250c5a77a1ca3af22bace66f815a6",
-  "artifactSha256": "db2d421ba1da1ca78b8bc58347f36a9dffe2155e78724ae1d50a721f79a3c9fe",
-  "sdkVersion": "0.10.15",
+  "buildInputSha256": "e5a2f950fa81d05c769afd04b627e341bc0a7b0d3bb877867ed231bcf7899ffb",
+  "artifactSha256": "457e0e1e391557c18cbf0616d345c7749c7aaf7f7973c8e41bf0e56513184630",
+  "sdkVersion": "0.10.16",
   "guestAdapterVersion": "0.10.13",
   "compilerVersion": "10.0.0-rc.1.26306.1",
   "buildPipelineVersion": "5"
