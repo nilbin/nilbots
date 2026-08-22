@@ -266,6 +266,15 @@ class TaplineCandidateTests(unittest.TestCase):
             "Tapline15 (live)",
             "Own Well return",
             "drawSites(scene,cell);",
+            # the legend is data-derived and must decode every drawn symbol
+            "buildLegend();",
+            "'route steps'",
+            "'seal tile'",
+            "'named-play route'",
+            "'post (facing tick)'",
+            "'reference marker (drag · rotate)'",
+            "'Well (Core value)'",
+            ".line.alternate",
         ):
             self.assertIn(expected, document)
 

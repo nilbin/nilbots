@@ -6,7 +6,7 @@
 <title>Broadloom 37x27 — first whole-map Arc Relay candidate</title>
 <style>
 :root{color-scheme:light dark;--bg:light-dark(#fff,#181818);--fg:light-dark(#1a1c1f,#fff);--panel:color-mix(in srgb,var(--fg) 5%,var(--bg));--wall:color-mix(in srgb,var(--fg) 72%,transparent);--border:color-mix(in srgb,var(--fg) 14%,transparent);--north:light-dark(#339cff,#83c3ff);--south:light-dark(#e2852f,#f59a56);--direct:light-dark(#916fe1,#aa91ef);--alternate:light-dark(#2db9af,#5acbc2);--well:light-dark(#5dc977,#74d58b);--candidate:light-dark(#eb77b1,#f08fc0);--reactor:light-dark(#297fd1,#83c3ff);--heal:light-dark(#35b9b1,#5acbc2);--vision:light-dark(#00a9d6,#52d6f4);--short-fast:light-dark(#ee6b64,#ff8d87);--medium-steady:light-dark(#e4a22f,#f5bc55);--long-slow:light-dark(#9b6ee3,#b795f2);--mouth:light-dark(#2f9e44,#69cf7d);--seal:light-dark(#d6453d,#ff8d87);--post:light-dark(#c78116,#ecab3f);--lane:light-dark(#d6459e,#f08fc0);--zone:light-dark(#4263eb,#8aa2ff)}
-*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}main{max-width:960px;margin:0 auto}h1{font-size:20px;font-weight:600;margin:0 0 8px}h2{font-size:16px;margin:18px 0 4px}.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}button{border:1px solid var(--border);border-radius:8px;padding:5px 9px;background:transparent;color:var(--fg);font:inherit}button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}#summary,.note{margin:4px 0 8px;color:color-mix(in srgb,var(--fg) 62%,transparent)}svg{display:block;width:100%;height:auto;touch-action:none}.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0;font-size:12px}.key{display:inline-flex;align-items:center;gap:5px}.line{width:20px;border-top:3px solid var(--north)}.line.south{border-color:var(--south)}.line.direct{border-color:var(--direct)}.line.vision{border-color:var(--vision);border-top-style:dashed}.line.short-fast{border-color:var(--short-fast)}.line.medium-steady{border-color:var(--medium-steady)}.line.long-slow{border-color:var(--long-slow)}.box{width:12px;height:12px;background:var(--candidate)}.box.heal{background:var(--heal);text-align:center;line-height:12px}.table-wrap{max-width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}.errors{color:light-dark(#b33,#ff8b88)}#combat-reference[hidden],#reference-status[hidden]{display:none}[data-reference-handle]{cursor:grab}[data-reference-handle]:active{cursor:grabbing}@media(max-width:520px){body{padding:12px}th.ratio,td.ratio{display:none}}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}main{max-width:960px;margin:0 auto}h1{font-size:20px;font-weight:600;margin:0 0 8px}h2{font-size:16px;margin:18px 0 4px}.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}button{border:1px solid var(--border);border-radius:8px;padding:5px 9px;background:transparent;color:var(--fg);font:inherit}button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}#summary,.note{margin:4px 0 8px;color:color-mix(in srgb,var(--fg) 62%,transparent)}svg{display:block;width:100%;height:auto;touch-action:none}.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0;font-size:12px}.key{display:inline-flex;align-items:center;gap:5px}.line{width:20px;border-top:3px solid var(--north)}.line.south{border-color:var(--south)}.line.direct{border-color:var(--direct)}.line.vision{border-color:var(--vision);border-top-style:dashed}.line.alternate{border-color:var(--alternate)}.line.short-fast{border-color:var(--short-fast)}.line.medium-steady{border-color:var(--medium-steady)}.line.long-slow{border-color:var(--long-slow)}.pill{display:inline-block;min-width:20px;text-align:center;border:2px solid var(--direct);border-radius:8px;padding:0 3px;font-size:10px;font-weight:600;line-height:1.3}.box{width:12px;height:12px;background:var(--candidate)}.box.heal{background:var(--heal);text-align:center;line-height:12px}.table-wrap{max-width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}.errors{color:light-dark(#b33,#ff8b88)}#combat-reference[hidden],#reference-status[hidden]{display:none}[data-reference-handle]{cursor:grab}[data-reference-handle]:active{cursor:grabbing}@media(max-width:520px){body{padding:12px}th.ratio,td.ratio{display:none}}
 </style>
 </head>
 <body>
@@ -18,7 +18,7 @@
 <p id="summary"></p>
 <p id="reference-status" class="note" aria-live="polite" hidden></p>
 <svg id="map" role="img"></svg>
-<div class="legend"><span class="key"><span class="line"></span>north</span><span class="key"><span class="line south"></span>south</span><span class="key"><span class="line direct"></span>direct</span><span class="key"><span class="box"></span>candidate wall</span><span class="key"><span class="box heal">+</span>healing</span><span>R reactor</span><span>1 / 2 / 4 Well value</span></div>
+<div id="legend" class="legend"></div>
 <p id="landmark-summary" class="note"></p>
 <div class="table-wrap"><table><thead><tr><th>Origin</th><th>Route</th><th class="num">Steps</th><th class="num ratio">Versus shortest</th></tr></thead><tbody id="route-rows"></tbody></table></div>
 <section id="combat-reference" hidden>
@@ -212,15 +212,48 @@ if(data.combatReference){
   const combat=data.combatReference;
   const legend=document.getElementById('combat-legend');
   const vision=document.createElement('span');vision.className='key';vision.innerHTML=`<span class="line vision"></span>${combat.vision.label} cone ${combat.vision.range}`;legend.appendChild(vision);
+  legend.appendChild(legendKey('reference marker (drag · rotate)',svgGlyph(node=>{node.appendChild(make('circle',{cx:7,cy:8,r:4,fill:'var(--fg)',stroke:'var(--bg)','stroke-width':1.5}));node.appendChild(make('line',{x1:7,y1:8,x2:14,y2:8,stroke:'var(--vision)','stroke-width':2.4,'stroke-linecap':'round'}))})));
+  legend.appendChild(legendKey('wall-occluded visible tile',svgGlyph(node=>node.appendChild(make('rect',{x:2,y:2,width:12,height:12,fill:'var(--vision)','fill-opacity':.3})))));
   const rows=document.getElementById('combat-rows');
   combat.attacks.forEach(attack=>{const key=document.createElement('span');key.className='key';key.innerHTML=`<span class="line ${attack.style}"></span>${attack.label} ${attack.range}`;legend.appendChild(key);const tr=document.createElement('tr');for(const [value,className] of [[attack.label,''],[attack.range,'num'],[attack.classes.join(', '),'']]){const td=document.createElement('td');td.textContent=value;td.className=className;tr.appendChild(td)}rows.appendChild(tr)});
 }
 if(data.tacticalSites.length){
   const siteControls=document.getElementById('site-controls');siteControls.hidden=false;
   data.tacticalSites.forEach(site=>{const button=document.createElement('button');button.type='button';button.setAttribute('data-site-toggle',site.id);button.textContent=site.label;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{if(activeSites.has(site.id))activeSites.delete(site.id);else activeSites.add(site.id);button.setAttribute('aria-pressed',String(activeSites.has(site.id)));draw()});siteControls.appendChild(button)});
-  const legend=document.querySelector('.legend');
-  [['mouth','mouth'],['seal','seal tile'],['post','post'],['lane','firing lane'],['zone','zone']].forEach(([kind,label])=>{const key=document.createElement('span');key.className='key';const swatch=document.createElement('span');swatch.className='box';swatch.style.background=`var(--${kind})`;key.appendChild(swatch);key.appendChild(document.createTextNode(label));legend.appendChild(key)});
 }
+function legendKey(label,glyph){const key=document.createElement('span');key.className='key';key.appendChild(glyph);key.appendChild(document.createTextNode(label));return key}
+function svgGlyph(painter){const node=document.createElementNS(ns,'svg');node.setAttribute('width','16');node.setAttribute('height','16');node.setAttribute('viewBox','0 0 16 16');node.setAttribute('aria-hidden','true');painter(node);return node}
+function glyphText(node,value,fill){const text=make('text',{x:8,y:8.5,'text-anchor':'middle','dominant-baseline':'central',fill,'font-size':9,'font-weight':700});text.textContent=value;node.appendChild(text)}
+function lineGlyph(style){const span=document.createElement('span');span.className='line'+(style&&style!=='north'?` ${style}`:'');return span}
+function buildLegend(){
+  // Every glyph the atlas can draw is decoded here, derived from the data
+  // itself so an atlas never renders an unexplained symbol.
+  const legend=document.getElementById('legend');
+  legend.replaceChildren();
+  legend.appendChild(legendKey('wall',svgGlyph(node=>node.appendChild(make('rect',{x:2,y:2,width:12,height:12,fill:'var(--wall)'})))));
+  if(data.addedWalls.length)legend.appendChild(legendKey('candidate wall',svgGlyph(node=>node.appendChild(make('rect',{x:2,y:2,width:12,height:12,fill:'var(--candidate)'})))));
+  ['north','south','direct','alternate'].filter(style=>data.routes.some(route=>route.style===style)).forEach(style=>legend.appendChild(legendKey(`${style} route`,lineGlyph(style))));
+  if(data.routes.length){const pill=document.createElement('span');pill.className='pill';pill.textContent='12';legend.appendChild(legendKey('route steps',pill))}
+  const kinds=new Map();
+  data.landmarks.forEach(item=>{const entry=kinds.get(item.kind)||[];if(!entry.includes(item.label))entry.push(item.label);kinds.set(item.kind,entry)});
+  kinds.forEach((labels,kind)=>{
+    const glyphs=document.createElement('span');glyphs.style.display='inline-flex';glyphs.style.gap='2px';
+    labels.slice(0,4).forEach(label=>glyphs.appendChild(svgGlyph(node=>{
+      if(kind==='well'){node.appendChild(make('circle',{cx:8,cy:8,r:6.4,fill:'var(--well)'}));glyphText(node,label,'var(--fg)')}
+      else{const fill=kind==='reactor'?'var(--reactor)':kind==='healing'?'var(--heal)':'var(--alternate)';node.appendChild(make('rect',{x:2,y:2,width:12,height:12,fill}));glyphText(node,label,kind==='reactor'?'var(--bg)':'var(--fg)')}
+    })));
+    legend.appendChild(legendKey(kind==='well'?'Well (Core value)':kind.replace(/-/g,' '),glyphs));
+  });
+  if(data.tacticalSites.length){
+    legend.appendChild(legendKey('mouth',svgGlyph(node=>node.appendChild(make('rect',{x:2.5,y:2.5,width:11,height:11,fill:'none',stroke:'var(--mouth)','stroke-width':2.4})))));
+    legend.appendChild(legendKey('seal tile',svgGlyph(node=>{node.appendChild(make('line',{x1:3,y1:3,x2:13,y2:13,stroke:'var(--seal)','stroke-width':2.4,'stroke-linecap':'round'}));node.appendChild(make('line',{x1:13,y1:3,x2:3,y2:13,stroke:'var(--seal)','stroke-width':2.4,'stroke-linecap':'round'}))})));
+    legend.appendChild(legendKey('post (facing tick)',svgGlyph(node=>{node.appendChild(make('circle',{cx:8,cy:8,r:5,fill:'none',stroke:'var(--post)','stroke-width':2.2}));node.appendChild(make('line',{x1:8,y1:8,x2:14,y2:8,stroke:'var(--post)','stroke-width':2.2,'stroke-linecap':'round'}))})));
+    legend.appendChild(legendKey('firing lane',svgGlyph(node=>node.appendChild(make('line',{x1:1,y1:8,x2:15,y2:8,stroke:'var(--lane)','stroke-width':2.6,'stroke-dasharray':'4 3','stroke-linecap':'round'})))));
+    legend.appendChild(legendKey('named-play route',svgGlyph(node=>node.appendChild(make('line',{x1:1,y1:8,x2:15,y2:8,stroke:'var(--lane)','stroke-width':2.2,'stroke-dasharray':'2 2','stroke-linecap':'round'})))));
+    legend.appendChild(legendKey('zone',svgGlyph(node=>node.appendChild(make('rect',{x:2,y:2,width:12,height:12,fill:'var(--zone)','fill-opacity':.35})))));
+  }
+}
+buildLegend();
 if(data.comparison){
   const section=document.getElementById('comparison');section.hidden=false;
   const head=document.getElementById('comparison-head');
