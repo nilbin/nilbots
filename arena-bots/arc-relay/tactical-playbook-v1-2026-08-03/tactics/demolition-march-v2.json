@@ -1,0 +1,217 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "demolition-march-v2",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    {
+      "slot": 0,
+      "class": "longshot",
+      "build": "aggressive",
+      "name": "Anvil"
+    },
+    {
+      "slot": 1,
+      "class": "mortar",
+      "build": "aggressive",
+      "name": "Maul"
+    },
+    {
+      "slot": 2,
+      "class": "hush",
+      "build": "durable",
+      "name": "Damper"
+    },
+    {
+      "slot": 3,
+      "class": "longshot",
+      "build": "balanced",
+      "name": "Spike"
+    },
+    {
+      "slot": 4,
+      "class": "lantern",
+      "build": "scout",
+      "name": "Beacon"
+    },
+    {
+      "slot": 5,
+      "class": "sunder",
+      "build": "balanced",
+      "name": "Brand"
+    },
+    {
+      "slot": 6,
+      "class": "relay",
+      "build": "balanced",
+      "name": "Piston"
+    },
+    {
+      "slot": 7,
+      "class": "kestrel",
+      "build": "scout",
+      "name": "Vex"
+    }
+  ],
+  "tactics": [
+    {
+      "id": "demolition-march",
+      "name": "Demolition March",
+      "recipe": "hold-area",
+      "start": {
+        "mode": "always"
+      },
+      "delivery": {
+        "plan": "solo"
+      },
+      "groups": [
+        {
+          "id": "march-line",
+          "name": "March line",
+          "slots": [
+            0,
+            1,
+            2
+          ],
+          "coreRule": "grab"
+        },
+        {
+          "id": "overwatch",
+          "name": "Overwatch rank",
+          "slots": [
+            3,
+            4,
+            5
+          ],
+          "coreRule": "grab"
+        },
+        {
+          "id": "conversion",
+          "name": "Raid conversion",
+          "slots": [
+            6,
+            7
+          ],
+          "coreRule": "hunt"
+        }
+      ],
+      "phases": [
+        {
+          "id": "march-the-centre",
+          "name": "March the centre",
+          "jobs": {
+            "march-line": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    16,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 0
+                },
+                {
+                  "at": [
+                    16,
+                    13
+                  ],
+                  "facing": "e",
+                  "slot": 1
+                },
+                {
+                  "at": [
+                    16,
+                    14
+                  ],
+                  "facing": "e",
+                  "slot": 2
+                }
+              ],
+              "sigs": {
+                "0": {
+                  "policy": "smart"
+                },
+                "1": {
+                  "policy": "smart"
+                },
+                "2": {
+                  "policy": "smart"
+                }
+              }
+            },
+            "overwatch": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    14,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 3
+                },
+                {
+                  "at": [
+                    14,
+                    13
+                  ],
+                  "facing": "n",
+                  "slot": 4
+                },
+                {
+                  "at": [
+                    14,
+                    14
+                  ],
+                  "facing": "e",
+                  "slot": 5
+                }
+              ],
+              "sigs": {
+                "3": {
+                  "policy": "smart"
+                },
+                "4": {
+                  "policy": "smart"
+                },
+                "5": {
+                  "policy": "smart"
+                }
+              }
+            },
+            "conversion": {
+              "kind": "posts",
+              "posture": "steal",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    17,
+                    11
+                  ],
+                  "facing": "e",
+                  "slot": 6
+                },
+                {
+                  "at": [
+                    17,
+                    15
+                  ],
+                  "facing": "e",
+                  "slot": 7
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

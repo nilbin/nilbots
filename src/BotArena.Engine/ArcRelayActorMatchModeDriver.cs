@@ -17,6 +17,7 @@ internal sealed class ArcRelayActorMatchModeDriver
     private readonly ArcRelayGameModeDefinition _gameMode;
     private readonly Dictionary<(int TeamId, int UnitId), VeterancyState>
         _veterancy = [];
+    private readonly ImmutableArray<VeterancyWorkshopRuntime> _workshops;
 
     internal ArcRelayGameModeDefinition GameMode => _gameMode;
 
@@ -179,6 +180,30 @@ internal sealed class ArcRelayActorMatchModeDriver
             .ToImmutableDictionary(
                 value => participantTeam[value.ParticipantId],
                 value => regions[value.MapRegionId].Tiles.ToImmutableHashSet());
+        if (_gameMode.VeterancyWorkshops is { } workshopRules)
+        {
+            var workshops =
+                ImmutableArray.CreateBuilder<VeterancyWorkshopRuntime>();
+            foreach (string workshopId in workshopRules.WorkshopIds)
+            {
+                ArcRelayWorkshopRegionBindingDefinition bound =
+                    binding.Workshops.SingleOrDefault(value => string.Equals(
+                        value.WorkshopId, workshopId, StringComparison.Ordinal))
+                    ?? throw new ArgumentException(
+                        $"Workshop '{workshopId}' has no map region binding.",
+                        nameof(definition));
+                workshops.Add(new VeterancyWorkshopRuntime(
+                    workshopId,
+                    regions[bound.TrainRegionId].Tiles.Single(),
+                    regions[bound.ContestRegionId].Tiles.ToImmutableHashSet(),
+                    workshopRules.UnlockTick));
+            }
+            _workshops = workshops.ToImmutable();
+        }
+        else
+        {
+            _workshops = [];
+        }
     }
 
     public GenericActorModeState State =>
@@ -737,6 +762,13 @@ internal sealed class ArcRelayActorMatchModeDriver
             Bank(input.Tick, core, life.ActorId, reactor, events);
         }
 
+        // Workshop evaluation is the tick's documented mode-phase step: it
+        // runs after movement, attacks, damage, destructions and the
+        // after-combat signature window, so everything that should invalidate
+        // this tick already has, and a granted level affects combat starting
+        // next tick.
+        EvaluateVeterancyWorkshops(world, input, events);
+
         GenericActorRuntimeObservation.ModeObservationState.ArcRelay after =
             ProjectState();
         var changes = ImmutableArray.CreateBuilder<GenericActorModeScoreChange>();
@@ -1223,7 +1255,193 @@ internal sealed class ArcRelayActorMatchModeDriver
                 : checked(
                     (_currentTick / _gameMode.RespawnWavePeriodTicks + 1)
                     * _gameMode.RespawnWavePeriodTicks),
+            Workshops = ProjectWorkshopStates(),
         };
+
+    private ImmutableArray<ArcRelayVeterancyWorkshopState>
+        ProjectWorkshopStates() =>
+        [.. _workshops.Select(workshop => new ArcRelayVeterancyWorkshopState(
+            workshop.Id,
+            workshop.TrainingTile,
+            workshop.Phase,
+            workshop.Trainee?.TeamId,
+            workshop.Progress,
+            _gameMode.VeterancyWorkshops!.RequiredChannelTicks,
+            workshop.ReadyAtTick))];
+
+    /// <summary>
+    /// The Workshop channel, resolved once per tick in the mode phase. A tick
+    /// qualifies only when the same living life holds the exact training
+    /// tile, is empty-handed and below the veterancy cap, neither moved nor
+    /// fought nor took damage this tick, and no living enemy of that life
+    /// stands in the authored contest region. The first tick a body arrives
+    /// can never qualify (arrival is a move), so a channel's first qualifying
+    /// tick is its first full stationary tick. Completion grants the XP
+    /// through the ordinary veterancy ladder and starts the global dormancy:
+    /// ready again at completion + 1 + dormancy.
+    /// </summary>
+    private void EvaluateVeterancyWorkshops(
+        GenericActorModeWorldView world,
+        GenericActorModeTickInput input,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
+    {
+        if (_gameMode.VeterancyWorkshops is not { } rules
+            || _workshops.IsEmpty)
+        {
+            return;
+        }
+        Dictionary<Position, GenericActorModeActiveLife> byPosition = world
+            .ActiveLives
+            .Where(life => life.Health > 0)
+            .ToDictionary(life => life.Position);
+        HashSet<ActorIdentity> destroyed = input.Destructions
+            .Select(value => value.ActorId)
+            .ToHashSet();
+        foreach (VeterancyWorkshopRuntime workshop in _workshops)
+        {
+            if (workshop.ReadyAtTick is int readyAt)
+            {
+                if (input.Tick < readyAt)
+                {
+                    workshop.Phase = ArcRelayVeterancyWorkshopPhase.Dormant;
+                    continue;
+                }
+                workshop.ReadyAtTick = null;
+                workshop.Phase = ArcRelayVeterancyWorkshopPhase.Ready;
+                events.Add(Spatial(
+                    new ArcRelayEvent.WorkshopReady(
+                        workshop.Id,
+                        workshop.TrainingTile),
+                    workshop.TrainingTile));
+            }
+            GenericActorModeActiveLife? occupant =
+                byPosition.GetValueOrDefault(workshop.TrainingTile);
+            if (occupant is null)
+            {
+                ResetWorkshop(
+                    workshop,
+                    workshop.Trainee is { } gone && destroyed.Contains(gone)
+                        ? ArcRelayEvent.WorkshopInterruptionKind.Died
+                        : ArcRelayEvent.WorkshopInterruptionKind.LeftTile,
+                    events);
+                workshop.Phase = ArcRelayVeterancyWorkshopPhase.Ready;
+                continue;
+            }
+            bool contested = byPosition.Values.Any(life =>
+                life.ActorId.TeamId != occupant.ActorId.TeamId
+                && workshop.ContestTiles.Contains(life.Position));
+            ArcRelayEvent.WorkshopInterruptionKind? blocked =
+                contested
+                    ? ArcRelayEvent.WorkshopInterruptionKind.Contested
+                : CarriesCore(occupant.ActorId)
+                    ? ArcRelayEvent.WorkshopInterruptionKind.AcquiredCore
+                : input.DamagedActors.Contains(occupant.ActorId)
+                    ? ArcRelayEvent.WorkshopInterruptionKind.Damaged
+                : input.CombatActingActors.Contains(occupant.ActorId)
+                    ? ArcRelayEvent.WorkshopInterruptionKind.ActedInCombat
+                : input.MovedOrDisplacedActors.Contains(occupant.ActorId)
+                    ? ArcRelayEvent.WorkshopInterruptionKind.Moved
+                : VeterancyLevel(occupant.ActorId)
+                        >= _gameMode.VeterancyMaxLevel
+                    ? ArcRelayEvent.WorkshopInterruptionKind.LeftTile
+                    : null;
+            if (blocked is { } reason)
+            {
+                // A max-level occupant never opens a channel, and standing
+                // there is not an interruption of anything, so the LeftTile
+                // spelling only ever surfaces when a real channel resets.
+                ResetWorkshop(workshop, reason, events);
+                workshop.Phase = contested
+                    ? ArcRelayVeterancyWorkshopPhase.Contested
+                    : ArcRelayVeterancyWorkshopPhase.Ready;
+                continue;
+            }
+            if (workshop.Trainee != occupant.ActorId)
+            {
+                ResetWorkshop(
+                    workshop,
+                    ArcRelayEvent.WorkshopInterruptionKind.LeftTile,
+                    events);
+                workshop.Trainee = occupant.ActorId;
+                workshop.Progress = 0;
+                events.Add(Spatial(
+                    new ArcRelayEvent.WorkshopTrainingStarted(
+                        workshop.Id,
+                        occupant.ActorId.TeamId,
+                        workshop.TrainingTile),
+                    workshop.TrainingTile));
+            }
+            workshop.Progress++;
+            workshop.Phase = ArcRelayVeterancyWorkshopPhase.Training;
+            if (workshop.Progress < rules.RequiredChannelTicks)
+                continue;
+            GrantWorkshopXp(
+                occupant.ActorId,
+                rules.XpAward,
+                workshop.TrainingTile,
+                events);
+            int readyAgain = checked(input.Tick + 1 + rules.DormancyTicks);
+            events.Add(Spatial(
+                new ArcRelayEvent.WorkshopTrainingCompleted(
+                    workshop.Id,
+                    occupant.ActorId.TeamId,
+                    occupant.ActorId,
+                    rules.XpAward,
+                    readyAgain,
+                    workshop.TrainingTile),
+                workshop.TrainingTile));
+            workshop.Trainee = null;
+            workshop.Progress = 0;
+            workshop.ReadyAtTick = readyAgain;
+            workshop.Phase = ArcRelayVeterancyWorkshopPhase.Dormant;
+        }
+    }
+
+    private void ResetWorkshop(
+        VeterancyWorkshopRuntime workshop,
+        ArcRelayEvent.WorkshopInterruptionKind reason,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
+    {
+        if (workshop.Trainee is not { } trainee)
+            return;
+        if (workshop.Progress > 0)
+        {
+            events.Add(Spatial(
+                new ArcRelayEvent.WorkshopTrainingInterrupted(
+                    workshop.Id,
+                    trainee.TeamId,
+                    reason,
+                    workshop.Progress,
+                    workshop.TrainingTile),
+                workshop.TrainingTile));
+        }
+        workshop.Trainee = null;
+        workshop.Progress = 0;
+    }
+
+    private void GrantWorkshopXp(
+        ActorIdentity trainee,
+        int xpAward,
+        Position position,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
+    {
+        (int TeamId, int UnitId) key = VeterancyKey(trainee);
+        if (!_veterancy.TryGetValue(key, out VeterancyState? state))
+            _veterancy[key] = state = new VeterancyState();
+        state.Xp += xpAward;
+        while (state.Level < _gameMode.VeterancyMaxLevel
+               && state.Xp >= _gameMode.VeterancyXpPerLevel)
+        {
+            state.Xp -= _gameMode.VeterancyXpPerLevel;
+            state.Level++;
+            events.Add(Spatial(
+                new ArcRelayEvent.LeveledUp(
+                    trainee,
+                    state.Level,
+                    position),
+                position));
+        }
+    }
 
     private int? EffectiveNextBirth(WellRuntime well)
     {
@@ -1406,6 +1624,30 @@ internal sealed class ArcRelayActorMatchModeDriver
         new(
             new GenericActorRuntimeObservation.EventPayload.ArcRelay(fact),
             position);
+
+    private sealed class VeterancyWorkshopRuntime
+    {
+        public VeterancyWorkshopRuntime(
+            string id,
+            Position trainingTile,
+            ImmutableHashSet<Position> contestTiles,
+            int unlockTick)
+        {
+            Id = id;
+            TrainingTile = trainingTile;
+            ContestTiles = contestTiles;
+            ReadyAtTick = unlockTick;
+        }
+
+        public string Id { get; }
+        public Position TrainingTile { get; }
+        public ImmutableHashSet<Position> ContestTiles { get; }
+        public ActorIdentity? Trainee { get; set; }
+        public int Progress { get; set; }
+        public int? ReadyAtTick { get; set; }
+        public ArcRelayVeterancyWorkshopPhase Phase { get; set; }
+            = ArcRelayVeterancyWorkshopPhase.Dormant;
+    }
 
     private sealed class WellRuntime
     {

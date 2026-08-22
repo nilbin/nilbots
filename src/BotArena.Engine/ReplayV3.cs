@@ -867,6 +867,33 @@ internal sealed record ReplayV3(
             int Amount,
             int NewHealth,
             PositionValue Position) : ArcRelayFact("signature-repair");
+
+        internal sealed record WorkshopReady(
+            string WorkshopId,
+            PositionValue TrainingTile) : ArcRelayFact("workshop-ready");
+
+        internal sealed record WorkshopTrainingStarted(
+            string WorkshopId,
+            int TeamId,
+            PositionValue TrainingTile)
+            : ArcRelayFact("workshop-training-started");
+
+        internal sealed record WorkshopTrainingInterrupted(
+            string WorkshopId,
+            int TeamId,
+            string Reason,
+            int ProgressLost,
+            PositionValue TrainingTile)
+            : ArcRelayFact("workshop-training-interrupted");
+
+        internal sealed record WorkshopTrainingCompleted(
+            string WorkshopId,
+            int TeamId,
+            ActorId TraineeActorId,
+            int XpAward,
+            int ReadyAgainTick,
+            PositionValue TrainingTile)
+            : ArcRelayFact("workshop-training-completed");
     }
 
     internal sealed record AuthoritativeEvent(
@@ -1125,6 +1152,12 @@ internal sealed record ReplayV3(
             public ImmutableArray<ArcRespawnWaveTeam> RespawnWaveTeams
             { get; init; } = [];
 
+            /// <summary>
+            /// Public veterancy Workshop states; empty on every ruleset
+            /// without Workshops, keeping historical replays byte-exact.
+            /// </summary>
+            public ImmutableArray<ArcWorkshop> Workshops { get; init; } = [];
+
             public bool Equals(ArcRelay? other) =>
                 other is not null
                 && string.Equals(Id, other.Id, StringComparison.Ordinal)
@@ -1136,7 +1169,8 @@ internal sealed record ReplayV3(
                 && LatestPulseTick == other.LatestPulseTick
                 && NextRespawnWaveTick == other.NextRespawnWaveTick
                 && RespawnWaveTeams.SequenceEqual(other.RespawnWaveTeams)
-                && PendingStrikes.SequenceEqual(other.PendingStrikes);
+                && PendingStrikes.SequenceEqual(other.PendingStrikes)
+                && Workshops.SequenceEqual(other.Workshops);
 
             public override int GetHashCode()
             {
@@ -1153,6 +1187,8 @@ internal sealed record ReplayV3(
                 foreach (ArcRespawnWaveTeam value in RespawnWaveTeams)
                     hash.Add(value);
                 foreach (ArcPendingStrike value in PendingStrikes)
+                    hash.Add(value);
+                foreach (ArcWorkshop value in Workshops)
                     hash.Add(value);
                 return hash.ToHashCode();
             }
@@ -1209,6 +1245,15 @@ internal sealed record ReplayV3(
         int TeamId,
         int LiveBodies,
         int RespawnsNextWave);
+
+    internal sealed record ArcWorkshop(
+        string WorkshopId,
+        PositionValue TrainingTile,
+        string Phase,
+        int? TrainingTeamId,
+        int ProgressTicks,
+        int RequiredTicks,
+        int? ReadyAtTick);
 
     internal sealed record ArcWell(
         string WellId,

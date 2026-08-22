@@ -506,6 +506,15 @@ function validateContract(
               ...(own(mode, 'durableDeployments')
                 ? ['durableDeployments']
                 : []),
+              ...(own(mode, 'sentryTeamVision') ? ['sentryTeamVision'] : []),
+              ...(own(mode, 'reactiveImpactFacing')
+                ? ['reactiveImpactFacing']
+                : []),
+              // Neutral veterancy Workshops, written only by a ruleset that
+              // declares them; absence is the historical contract shape.
+              ...(own(mode, 'veterancyWorkshops')
+                ? ['veterancyWorkshops']
+                : []),
               'wells',
               'signatures',
             ]
@@ -1263,11 +1272,64 @@ function validateContract(
       'chiralWellBirths',
       'veteranCommand',
       'durableDeployments',
+      'sentryTeamVision',
+      'reactiveImpactFacing',
     ]) {
       if (!own(mode, key)) continue;
       boolean(mode[key], `${modePath}.${key}`, fail);
       if (mode[key] !== true)
         fail(`${modePath}.${key}`, 'must be omitted instead of emitted inert');
+    }
+    if (own(mode, 'veterancyWorkshops')) {
+      const workshops = exact(
+        mode.veterancyWorkshops,
+        `${modePath}.veterancyWorkshops`,
+        [
+          'workshopIds',
+          'unlockTick',
+          'requiredChannelTicks',
+          'xpAward',
+          'dormancyTicks',
+        ],
+        fail,
+      );
+      const workshopIds = array(
+        workshops.workshopIds,
+        `${modePath}.veterancyWorkshops.workshopIds`,
+        fail,
+      );
+      workshopIds.forEach((workshopId, index) =>
+        nonEmpty(
+          workshopId,
+          `${modePath}.veterancyWorkshops.workshopIds[${index}]`,
+          fail,
+        ),
+      );
+      if (
+        workshopIds.length === 0 ||
+        new Set(workshopIds.map(String)).size !== workshopIds.length
+      ) {
+        fail(
+          `${modePath}.veterancyWorkshops.workshopIds`,
+          'must name at least one distinct Workshop',
+        );
+      }
+      integer(
+        workshops.unlockTick,
+        `${modePath}.veterancyWorkshops.unlockTick`,
+        fail,
+      );
+      if ((workshops.unlockTick as number) < 0)
+        fail(`${modePath}.veterancyWorkshops.unlockTick`, 'cannot be negative');
+      for (const key of [
+        'requiredChannelTicks',
+        'xpAward',
+        'dormancyTicks',
+      ]) {
+        integer(workshops[key], `${modePath}.veterancyWorkshops.${key}`, fail);
+        if ((workshops[key] as number) <= 0)
+          fail(`${modePath}.veterancyWorkshops.${key}`, 'must be positive');
+      }
     }
     if (own(mode, 'veterancyDamagePerPoint')) {
       boolean(
@@ -1905,9 +1967,29 @@ function validateContract(
         'orderedWellRegionIds',
         'reactorRegionRoleId',
         'homePadRegionRoleId',
+        // Workshop region bindings, written only by a ruleset that declares
+        // Workshops; absence is the historical binding shape.
+        ...(own(binding, 'veterancyWorkshops') ? ['veterancyWorkshops'] : []),
       ],
       fail,
     );
+    if (own(arc, 'veterancyWorkshops')) {
+      array(
+        arc.veterancyWorkshops,
+        `${bindingPath}.veterancyWorkshops`,
+        fail,
+      ).forEach((entry, index) => {
+        const workshopPath = `${bindingPath}.veterancyWorkshops[${index}]`;
+        const workshop = exact(
+          entry,
+          workshopPath,
+          ['workshopId', 'trainRegionId', 'contestRegionId'],
+          fail,
+        );
+        for (const key of ['workshopId', 'trainRegionId', 'contestRegionId'])
+          nonEmpty(workshop[key], `${workshopPath}.${key}`, fail);
+      });
+    }
     const wellIds = array(
       arc.orderedWellRegionIds,
       `${bindingPath}.orderedWellRegionIds`,
@@ -2698,9 +2780,100 @@ function modeState(value: unknown, path: string, fail: ReplayV3Fail): void {
         ...(own(base, 'pendingStrikes') ? ['pendingStrikes'] : []),
         ...(own(base, 'nextRespawnWaveTick') ? ['nextRespawnWaveTick'] : []),
         ...(own(base, 'respawnWaveTeams') ? ['respawnWaveTeams'] : []),
+        // Neutral veterancy Workshops exist only on rulesets that declare
+        // them; absence is the historical document shape.
+        ...(own(base, 'workshops') ? ['workshops'] : []),
       ],
       fail,
     );
+    if (own(item, 'workshops')) {
+      const workshops = array(item.workshops, `${path}.workshops`, fail);
+      if (workshops.length === 0) {
+        fail(`${path}.workshops`, 'must be omitted when empty');
+      }
+      const seenWorkshopIds = new Set<string>();
+      workshops.forEach((entry, index) => {
+        const workshopPath = `${path}.workshops[${index}]`;
+        const workshop = exact(
+          entry,
+          workshopPath,
+          [
+            'workshopId',
+            'trainingTile',
+            'phase',
+            'trainingTeamId',
+            'progressTicks',
+            'requiredTicks',
+            'readyAtTick',
+          ],
+          fail,
+        );
+        nonEmpty(workshop.workshopId, `${workshopPath}.workshopId`, fail);
+        if (seenWorkshopIds.has(String(workshop.workshopId))) {
+          fail(`${workshopPath}.workshopId`, 'must be published once');
+        }
+        seenWorkshopIds.add(String(workshop.workshopId));
+        position(workshop.trainingTile, `${workshopPath}.trainingTile`, fail);
+        const phase = String(workshop.phase);
+        if (!['ready', 'training', 'contested', 'dormant'].includes(phase)) {
+          fail(`${workshopPath}.phase`, 'unknown Workshop phase');
+        }
+        nullable(
+          workshop.trainingTeamId,
+          `${workshopPath}.trainingTeamId`,
+          integer,
+          fail,
+        );
+        integer(workshop.progressTicks, `${workshopPath}.progressTicks`, fail);
+        integer(workshop.requiredTicks, `${workshopPath}.requiredTicks`, fail);
+        nullable(
+          workshop.readyAtTick,
+          `${workshopPath}.readyAtTick`,
+          integer,
+          fail,
+        );
+        if ((workshop.requiredTicks as number) <= 0) {
+          fail(`${workshopPath}.requiredTicks`, 'must be positive');
+        }
+        if (
+          (workshop.progressTicks as number) < 0 ||
+          (workshop.progressTicks as number) > (workshop.requiredTicks as number)
+        ) {
+          fail(
+            `${workshopPath}.progressTicks`,
+            'must sit inside the declared channel length',
+          );
+        }
+        // The published phase and its companions are one fact: a channel names
+        // its team and carries progress, and only a dormant Workshop is
+        // counting down. Accepting a disagreeing pair would let the viewer
+        // render a training arc nobody owns.
+        if ((phase === 'training') !== (workshop.trainingTeamId !== null)) {
+          fail(
+            `${workshopPath}.trainingTeamId`,
+            'is published exactly while a team is training',
+          );
+        }
+        if (phase !== 'training' && (workshop.progressTicks as number) !== 0) {
+          fail(
+            `${workshopPath}.progressTicks`,
+            'only a live channel carries progress',
+          );
+        }
+        if (phase === 'training' && (workshop.progressTicks as number) <= 0) {
+          fail(
+            `${workshopPath}.progressTicks`,
+            'a live channel has advanced at least one tick',
+          );
+        }
+        if ((phase === 'dormant') !== (workshop.readyAtTick !== null)) {
+          fail(
+            `${workshopPath}.readyAtTick`,
+            'is published exactly while the Workshop is dormant',
+          );
+        }
+      });
+    }
     if (own(item, 'pendingStrikes')) {
       array(item.pendingStrikes, `${path}.pendingStrikes`, fail).forEach(
         (entry, index) => {
@@ -3687,6 +3860,9 @@ function sharedObservationCollections(
     // exists only when a mind set one, so every per-life document is
     // byte-identical to what it was.
     const hasEnemyRoleTag = own(enemyValue, 'roleTag');
+    // Same discipline again: an enemy's veteran rank is published only by a
+    // ruleset that publishes it, so absence is "not published", not rank zero.
+    const hasEnemyVeterancyLevel = own(enemyValue, 'veterancyLevel');
     const enemy = exact(
       enemyValue,
       `${path}.enemies[${index}]`,
@@ -3701,6 +3877,7 @@ function sharedObservationCollections(
         'classId',
         ...(hasEnemyCarriedScrap ? ['carriedScrap'] : []),
         ...(hasEnemyRoleTag ? ['roleTag'] : []),
+        ...(hasEnemyVeterancyLevel ? ['veterancyLevel'] : []),
       ],
       fail,
     );
@@ -3743,6 +3920,19 @@ function sharedObservationCollections(
     }
     if (hasEnemyRoleTag) {
       roleTag(enemy.roleTag, `${path}.enemies[${index}].roleTag`, fail);
+    }
+    if (hasEnemyVeterancyLevel) {
+      integer(
+        enemy.veterancyLevel,
+        `${path}.enemies[${index}].veterancyLevel`,
+        fail,
+      );
+      if ((enemy.veterancyLevel as number) < 0) {
+        fail(
+          `${path}.enemies[${index}].veterancyLevel`,
+          'a published veteran rank is never negative',
+        );
+      }
     }
   });
   array(item.visibleTiles, `${path}.visibleTiles`, fail).forEach(
@@ -5077,6 +5267,10 @@ function observedModeMatchesWorld(
     observed.modeId !== world.modeId ||
     !jsonEqual(observed.wells, world.wells) ||
     !jsonEqual(observed.reactors, world.reactors) ||
+    // Workshop state is public to both teams, so an observation that
+    // disagrees with the authoritative landmark is a redaction bug, not a
+    // perception difference.
+    !jsonEqual(observed.workshops, world.workshops) ||
     observed.latestPulseTeamId !== world.latestPulseTeamId ||
     observed.latestPulseTick !== world.latestPulseTick
   ) {
@@ -7393,16 +7587,26 @@ function validateV3Relationships(
       finalWorld.mode.kind === 'arc-relay' &&
       contract.rules.gameMode.kind === 'arc-relay'
     ) {
-      // Declared strikes are session ephemera. The engine deliberately clears a
-      // windup still pending at the final horn from the terminal result while the
-      // last post-state retains the exact public tick fact.
-      const terminalArcState = own(finalWorld.mode, 'pendingStrikes')
-        ? Object.fromEntries(
-            Object.entries(finalWorld.mode).filter(
-              ([key]) => key !== 'pendingStrikes',
-            ),
-          )
-        : finalWorld.mode;
+      // Declared strikes and the pending respawn wave are session ephemera.
+      // The engine deliberately clears a windup or a wave still scheduled at
+      // the final horn from the terminal result while the last post-state
+      // retains the exact public tick fact. Only that direction is tolerated:
+      // a result that INVENTS one, or that disagrees on any other field, is
+      // still a rejected history. Workshops are not on this list — a Workshop's
+      // phase outlives the horn and the result must carry it exactly.
+      const terminalEphemera = ['pendingStrikes', 'respawnWaveTeams'];
+      const resultArcState = result.mode.state;
+      const clearedEphemera = terminalEphemera.filter(
+        (key) => own(finalWorld.mode, key) && !own(resultArcState, key),
+      );
+      const terminalArcState =
+        clearedEphemera.length > 0
+          ? Object.fromEntries(
+              Object.entries(finalWorld.mode).filter(
+                ([key]) => !clearedEphemera.includes(key),
+              ),
+            )
+          : finalWorld.mode;
       if (JSON.stringify(result.mode.state) !== JSON.stringify(terminalArcState)) {
         fail(
           'replay.result.mode.state',
@@ -8261,6 +8465,15 @@ function modeFromV3(mode: V3.ReplayV3ModeState): Model.ReplayModeState {
         null,
       target: strike.target ? identity(strike.target) : null,
       tiles: strike.tiles.map(copyPosition),
+    })),
+    workshops: (mode.workshops ?? []).map((workshop) => ({
+      workshopId: workshop.workshopId,
+      trainingTile: copyPosition(workshop.trainingTile),
+      phase: workshop.phase,
+      trainingTeamId: workshop.trainingTeamId,
+      progressTicks: workshop.progressTicks,
+      requiredTicks: workshop.requiredTicks,
+      readyAtTick: workshop.readyAtTick,
     })),
   };
 }
@@ -9146,6 +9359,38 @@ function arcRelayFactFromV3(
         amount: fact.amount,
         newHealth: fact.newHealth,
         position: copyPosition(fact.position),
+      };
+    case 'workshop-ready':
+      return {
+        kind: fact.kind,
+        workshopId: fact.workshopId,
+        trainingTile: copyPosition(fact.trainingTile),
+      };
+    case 'workshop-training-started':
+      return {
+        kind: fact.kind,
+        workshopId: fact.workshopId,
+        teamId: fact.teamId,
+        trainingTile: copyPosition(fact.trainingTile),
+      };
+    case 'workshop-training-interrupted':
+      return {
+        kind: fact.kind,
+        workshopId: fact.workshopId,
+        teamId: fact.teamId,
+        reason: fact.reason,
+        progressLost: fact.progressLost,
+        trainingTile: copyPosition(fact.trainingTile),
+      };
+    case 'workshop-training-completed':
+      return {
+        kind: fact.kind,
+        workshopId: fact.workshopId,
+        teamId: fact.teamId,
+        traineeActor: identity(fact.traineeActorId),
+        xpAward: fact.xpAward,
+        readyAgainTick: fact.readyAgainTick,
+        trainingTile: copyPosition(fact.trainingTile),
       };
   }
 }

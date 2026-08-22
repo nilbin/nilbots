@@ -2756,6 +2756,15 @@ public sealed record GenericActorContext
             /// </summary>
             public ImmutableArray<ArcRelayPendingStrike> PendingStrikes
             { get; init; } = [];
+
+            /// <summary>
+            /// Public neutral veterancy Workshop states, visible to BOTH
+            /// teams: the objective signal is team-and-progress only and
+            /// never names the training body. Empty on every ruleset
+            /// without Workshops.
+            /// </summary>
+            public ImmutableArray<ArcRelayVeterancyWorkshopState> Workshops
+            { get; init; } = [];
         }
     }
 
@@ -2763,6 +2772,31 @@ public sealed record GenericActorContext
         int TeamId,
         int LiveBodies,
         int RespawnsNextWave);
+
+    /// <summary>
+    /// One public veterancy Workshop: its exact training tile, phase
+    /// (ready, training, contested, dormant), the training team when a
+    /// channel is open, progress against the required consecutive ticks,
+    /// and the one effective countdown — unlock or dormancy — when it is
+    /// not available.
+    /// </summary>
+    public sealed record ArcRelayVeterancyWorkshopState(
+        string WorkshopId,
+        Position TrainingTile,
+        ArcRelayVeterancyWorkshopPhase Phase,
+        int? TrainingTeamId,
+        int ProgressTicks,
+        int RequiredTicks,
+        int? ReadyAtTick);
+
+    /// <summary>The Workshop's public phase.</summary>
+    public enum ArcRelayVeterancyWorkshopPhase
+    {
+        Ready = 0,
+        Training = 1,
+        Contested = 2,
+        Dormant = 3,
+    }
 
     /// <summary>
     /// One publicly declared strike in windup (DECISIONS #212). Tiles are
@@ -3032,6 +3066,34 @@ public sealed record GenericActorContext
             int Amount,
             int NewHealth,
             Position Position) : ArcRelayEvent;
+
+        /// <summary>The Workshop became available: unlock or dormancy end.</summary>
+        public sealed record WorkshopReady(
+            string WorkshopId,
+            Position TrainingTile) : ArcRelayEvent;
+
+        /// <summary>A training channel's first qualifying tick.</summary>
+        public sealed record WorkshopTrainingStarted(
+            string WorkshopId,
+            int TeamId,
+            Position TrainingTile) : ArcRelayEvent;
+
+        /// <summary>An active channel reset to zero.</summary>
+        public sealed record WorkshopTrainingInterrupted(
+            string WorkshopId,
+            int TeamId,
+            string Reason,
+            int ProgressLost,
+            Position TrainingTile) : ArcRelayEvent;
+
+        /// <summary>A session completed: XP landed, dormancy began.</summary>
+        public sealed record WorkshopTrainingCompleted(
+            string WorkshopId,
+            int TeamId,
+            ActorIdentity TraineeActorId,
+            int XpAward,
+            int ReadyAgainTick,
+            Position TrainingTile) : ArcRelayEvent;
     }
 
     /// <summary>One team's published economic position.</summary>

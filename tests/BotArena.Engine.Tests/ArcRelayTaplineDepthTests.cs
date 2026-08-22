@@ -441,7 +441,7 @@ public sealed class ArcRelayTaplineDepthTests
         var candidateMode = Assert.IsType<ArcRelayGameModeDefinition>(
             candidate.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline15, ArcRelayLoopProfile.Current);
+        Assert.Same(ArcRelayLoopProfile.Broadloom2, ArcRelayLoopProfile.Current);
         Assert.Equal("arc-relay-tapline-05", candidate.Rules.RulesetId);
         Assert.Equal(previous.Map.Id, candidate.Map.Id);
         Assert.True(previous.Map.TileRows.SequenceEqual(candidate.Map.TileRows));

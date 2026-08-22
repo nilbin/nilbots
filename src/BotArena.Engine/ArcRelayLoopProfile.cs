@@ -68,7 +68,8 @@ public sealed record ArcRelayLoopProfile
         bool sentryTeamVision = false,
         bool reactiveImpactFacing = false,
         int veterancyDeathRetentionPercent = 0,
-        bool alliedProjectilesBlock = false)
+        bool alliedProjectilesBlock = false,
+        bool veterancyWorkshops = false)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -136,6 +137,7 @@ public sealed record ArcRelayLoopProfile
         }
         VeterancyDeathRetentionPercent = veterancyDeathRetentionPercent;
         AlliedProjectilesBlock = alliedProjectilesBlock;
+        VeterancyWorkshops = veterancyWorkshops;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -283,6 +285,7 @@ public sealed record ArcRelayLoopProfile
     /// toward the strongest blind impact before its next decision.
     /// </summary>
     internal bool ReactiveImpactFacing { get; }
+    internal bool VeterancyWorkshops { get; }
 
     private static void ValidateMovementRate(
         int opportunities,
@@ -1734,11 +1737,142 @@ public sealed record ArcRelayLoopProfile
         alliedProjectilesBlock: true);
 
     /// <summary>
+    /// Probe-only profile: the complete Tapline-14 ruleset on the Broadloom
+    /// 37x27 whole-map candidate, so the candidate's strategic questions can
+    /// be settled with deterministic matches. Never a product line and never
+    /// hosted; the map requires the bounded width-cap change this branch
+    /// carries (ArenaMap.MaxWidth 37 within the 1,024-cell budget).
+    /// </summary>
+    public static ArcRelayLoopProfile BroadloomProbe { get; } = new(
+        "broadloom-probe",
+        "arc-relay-broadloom-probe",
+        "arc-relay-broadloom-01",
+        ArcRelayMapGeometry.BroadloomCross,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3,
+        movingPrismScreen: true,
+        contextualCombatStrafeMovement: true,
+        sentryTeamVision: true,
+        reactiveImpactFacing: true);
+
+    /// <summary>
+    /// The exact first Broadloom contract hosted in playlist v33, before
+    /// Tapline-15 retention and allied firing lanes were folded into the
+    /// product. It remains registered so its published identity is immutable.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom1 { get; } = CreateBroadloom(
+        "broadloom-1",
+        "arc-relay-broadloom-1",
+        tapline15CombatDepth: false);
+
+    /// <summary>
+    /// The current Broadloom product line: the complete Tapline-15 ruleset on
+    /// the accepted 37x27 whole-map candidate, plus the two neutral veterancy
+    /// Workshops (unlock 25, 15 consecutive qualifying ticks, 1 XP, 45-tick
+    /// global dormancy). New append-only identities; nothing historical
+    /// moves.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom2 { get; } = CreateBroadloom(
+        "broadloom-2",
+        "arc-relay-broadloom-2",
+        tapline15CombatDepth: true);
+
+    private static ArcRelayLoopProfile CreateBroadloom(
+        string id,
+        string rulesetId,
+        bool tapline15CombatDepth) => new(
+        id,
+        rulesetId,
+        "arc-relay-broadloom-01",
+        ArcRelayMapGeometry.BroadloomCross,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3,
+        movingPrismScreen: true,
+        contextualCombatStrafeMovement: true,
+        sentryTeamVision: true,
+        reactiveImpactFacing: true,
+        veterancyDeathRetentionPercent: tapline15CombatDepth ? 50 : 0,
+        alliedProjectilesBlock: tapline15CombatDepth,
+        veterancyWorkshops: true);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline15;
+    public static ArcRelayLoopProfile Current => Broadloom2;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1824,6 +1958,9 @@ public sealed record ArcRelayLoopProfile
         Tapline13,
         Tapline14,
         Tapline15,
+        BroadloomProbe,
+        Broadloom1,
+        Broadloom2,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,
@@ -1867,4 +2004,5 @@ internal enum ArcRelayMapGeometry
     TaplineWellLine,
     TaplineEqualReturn,
     TaplineSealedEntrancesStaggeredMidCover,
+    BroadloomCross,
 }

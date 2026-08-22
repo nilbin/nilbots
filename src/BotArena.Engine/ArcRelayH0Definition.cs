@@ -73,7 +73,20 @@ public static class ArcRelayH0Definition
             new ArcRelayActorModeMapBindingDefinition(
                 ["well-centre", "well-north", "well-south"],
                 ReactorRoleId,
-                HomePadRoleId),
+                HomePadRoleId,
+                loopProfile.VeterancyWorkshops
+                    ?
+                    [
+                        new ArcRelayWorkshopRegionBindingDefinition(
+                            "north",
+                            "veterancy-workshop-north-train",
+                            "veterancy-workshop-north-contest"),
+                        new ArcRelayWorkshopRegionBindingDefinition(
+                            "south",
+                            "veterancy-workshop-south-train",
+                            "veterancy-workshop-south-contest"),
+                    ]
+                    : null),
             capabilityVersions ?? ActorMatchCapabilityVersions.Mind);
     }
 
@@ -91,6 +104,8 @@ public static class ArcRelayH0Definition
             or ArcRelayMapGeometry.TaplineEqualReturn
             or ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover)
             return CreateTaplineMap(loopProfile);
+        if (loopProfile.Geometry == ArcRelayMapGeometry.BroadloomCross)
+            return CreateBroadloomMap(loopProfile);
         ImmutableArray<string> rows = loopProfile.Geometry
             == ArcRelayMapGeometry.DepthLarger
             ? CreateLargerRows()
@@ -663,6 +678,165 @@ public static class ArcRelayH0Definition
             ]);
     }
 
+    /// <summary>
+    /// Broadloom (probe-only): the 37x27 whole-map candidate from
+    /// docs/reports/ARC-RELAY-BROADLOOM-37X27-CANDIDATE.md. The scoring run
+    /// is the mid row and the development axis is the centre column; the two
+    /// owned Wells sit in opposite corners so each team's 4-value raid runs
+    /// through the far side theatre. Terrain is the byte-exact output of the
+    /// candidate's deterministic builder; only the upper half is authored
+    /// there and the lower half is the 180-degree rotation.
+    /// </summary>
+    private static ActorMapDefinition CreateBroadloomMap(
+        ArcRelayLoopProfile loopProfile)
+    {
+        ImmutableArray<string> rows =
+        [
+            "#####################################",
+            "#..........#.............#..........#",
+            "#......##.....####.####......##...#.#",
+            "#....#...........#....#.........#...#",
+            "#..#########........#....###....#...#",
+            "#..###.....#..#.#......#.....#..#...#",
+            "#....#.....##.#..........#...##.#...#",
+            "#.#...........##.....##......#......#",
+            "#.....##.##......###.......#........#",
+            "###..........##..###...##......######",
+            "#.....###.....#........#..###.......#",
+            "#.........#...#.#...#.......#.......#",
+            "#.........#............#..#.........#",
+            "#.........##...#.....#...##.........#",
+            "#.........#..#............#.........#",
+            "#.......#.......#...#.#...#.........#",
+            "#.......###..#........#.....###.....#",
+            "######......##...###..##..........###",
+            "#........#.......###......##.##.....#",
+            "#......#......##.....##...........#.#",
+            "#...#.##...#..........#.##.....#....#",
+            "#...#..#.....#......#.#..#.....###..#",
+            "#...#....###....#........#########..#",
+            "#...#.........#....#...........#....#",
+            "#.#...##......####.####.....##......#",
+            "#..........#.............#..........#",
+            "#####################################",
+        ];
+        int maximumX = rows[0].Length - 1;
+        int maximumY = rows.Length - 1;
+        Position Rotate(Position value) =>
+            new(maximumX - value.X, maximumY - value.Y);
+
+        // Reactors sit mid-row inside their pads; the mid row is the scoring
+        // spine. Each team's own Well is in the corner OPPOSITE its raid
+        // target, and the heals live in the remaining home quarters.
+        Position reactorWest = new(3, 13);
+        Position reactorEast = Rotate(reactorWest);
+        Position wellSouth = new(10, 19);       // west's own (charge 1 for west)
+        Position wellCentre = new(18, 13);
+        Position wellNorth = Rotate(wellSouth); // east's own -> (26, 7)
+        Position healNorth = new(8, 6);
+        Position healSouth = Rotate(healNorth);
+
+        ImmutableArray<Position> padWest = Rectangle(1, 4, 10, 16);
+        ImmutableArray<Position> padEast = [.. padWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+        ImmutableArray<Position> deliverWest = Rectangle(5, 7, 11, 15);
+        ImmutableArray<Position> deliverEast = [.. deliverWest.Select(Rotate)
+            .OrderBy(value => value.Y).ThenBy(value => value.X)];
+
+        // Two rows of four beside the delivery face, so every anchor has at
+        // least two exits no sibling already owns (the caged-corner lesson
+        // from Tapline). West faces east into its delivery; east is the
+        // rotation and faces west.
+        Position[] west =
+        [
+            new(1, 11), new(2, 11), new(3, 11), new(4, 11),
+            new(1, 15), new(2, 15), new(3, 15), new(4, 15),
+        ];
+        var anchors = ImmutableArray.CreateBuilder<ActorMapSpawnAnchorDefinition>();
+        for (int unitId = 0; unitId < west.Length; unitId++)
+        {
+            anchors.Add(Anchor(0, unitId, west[unitId], Direction.East));
+            anchors.Add(Anchor(1, unitId, Rotate(west[unitId]), Direction.West));
+        }
+
+        // The Workshop training tile plus its explicitly authored contest
+        // region: the room interior, all three mouths and the skylight, so a
+        // disruptor never needs the exact training tile to contest. Exact
+        // open tiles of the accepted candidate; the south set is the exact
+        // 180-degree rotation.
+        Position workshopNorthTrain = new(18, 4);
+        Position workshopSouthTrain = Rotate(workshopNorthTrain);
+        Position[] workshopNorthContest =
+        [
+            new(18, 2), new(14, 3), new(15, 3), new(16, 3),
+            new(18, 3), new(19, 3), new(20, 3), new(21, 3),
+            new(14, 4), new(15, 4), new(16, 4), new(17, 4),
+            new(18, 4), new(19, 4), new(21, 4), new(22, 4),
+            new(15, 5), new(17, 5), new(18, 5), new(19, 5),
+            new(20, 5), new(21, 5), new(22, 5), new(15, 6),
+            new(16, 6), new(17, 6), new(18, 6), new(19, 6),
+            new(20, 6), new(21, 6), new(22, 6), new(16, 7),
+            new(17, 7), new(18, 7), new(19, 7), new(20, 7),
+        ];
+        Position[] workshopSouthContest =
+            [.. workshopNorthContest.Select(Rotate)
+                .OrderBy(value => value.Y).ThenBy(value => value.X)];
+
+        Position[] forbidden =
+        [
+            wellNorth, wellCentre, wellSouth, reactorWest, reactorEast,
+            workshopNorthTrain, workshopSouthTrain,
+        ];
+        return new ActorMapDefinition(
+            loopProfile.MapId,
+            version: 1,
+            rows,
+            anchors.ToImmutable(),
+            [
+                .. loopProfile.HealZoneTicksPerHp > 0
+                    ? new[]
+                    {
+                        Region("heal-north", healNorth),
+                        Region("heal-south", healSouth),
+                    }
+                    : System.Array.Empty<ActorMapRegionDefinition>(),
+                Region("well-north", wellNorth),
+                Region("well-centre", wellCentre),
+                Region("well-south", wellSouth),
+                Region("reactor-west", reactorWest),
+                Region("reactor-east", reactorEast),
+                new ActorMapRegionDefinition(
+                    "home-west",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverWest),
+                new ActorMapRegionDefinition(
+                    "home-east",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    deliverEast),
+                Region("veterancy-workshop-north-train", workshopNorthTrain),
+                Region("veterancy-workshop-south-train", workshopSouthTrain),
+                new ActorMapRegionDefinition(
+                    "veterancy-workshop-north-contest",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    [.. workshopNorthContest]),
+                new ActorMapRegionDefinition(
+                    "veterancy-workshop-south-contest",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    [.. workshopSouthContest]),
+            ],
+            [
+                new ActorMapTileTagDefinition(
+                    "home-pads",
+                    ActorMapTileTagDefinition.TileTagKind.SpawnProtected,
+                    [.. padWest, .. padEast]),
+                new ActorMapTileTagDefinition(
+                    "arc-required-tiles",
+                    ActorMapTileTagDefinition.TileTagKind
+                        .SignaturePlacementForbidden,
+                    [.. forbidden]),
+            ]);
+    }
+
     public static ActorRulesDefinition CreateRules() =>
         CreateRules(ArcRelayLoopProfile.H0);
 
@@ -978,7 +1152,15 @@ public static class ArcRelayH0Definition
             sentryTeamVision: loopProfile.SentryTeamVision,
             reactiveImpactFacing: loopProfile.ReactiveImpactFacing,
             veterancyDeathRetentionPercent:
-                loopProfile.VeterancyDeathRetentionPercent);
+                loopProfile.VeterancyDeathRetentionPercent,
+            veterancyWorkshops: loopProfile.VeterancyWorkshops
+                ? new ArcRelayVeterancyWorkshopRules(
+                    ["north", "south"],
+                    unlockTick: 25,
+                    requiredChannelTicks: 15,
+                    xpAward: 1,
+                    dormancyTicks: 45)
+                : null);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;

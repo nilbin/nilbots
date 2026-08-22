@@ -121,11 +121,13 @@ internal static class GenericActorDynamicTestFixture
         bool includeAllEvents = true,
         bool frontline = true,
         GenericActorContext.ModeObservationState? mode = null,
-        int schemaVersion = GenericActorContext.CurrentSchemaVersion)
+        int schemaVersion = GenericActorContext.CurrentSchemaVersion,
+        GenericActorContext.ObservedEvent[]? visibleEvents = null)
     {
-        GenericActorContext.ObservedEvent[] events = includeAllEvents
-            ? Events().Reverse().ToArray()
-            : [];
+        GenericActorContext.ObservedEvent[] events = visibleEvents
+            ?? (includeAllEvents
+                ? Events().Reverse().ToArray()
+                : []);
         GenericActorContext.ObservedSound[]? sounds = nullCapabilities
             ? null
             : emptyCapabilities

@@ -4,7 +4,7 @@ import { classSprite } from './classArt';
 import { projectPhaseBots } from './botProjection';
 import { GeoStatusRow } from './GeoStatusRow';
 import { Modal } from './Modal';
-import { describePlace } from './places';
+import { describePlace, WORKSHOP_OPTIONS, workshopLabel } from './places';
 import { condClauses } from './summary';
 import {
   TacticsIcon, TacticsIconButton, type TacticsIconName,
@@ -17,7 +17,8 @@ import {
   POSTURES, RECOVERIES, TRAVEL_BEHAVIORS,
   effectiveJobResolution, groupColor, phaseShade, planJobKindChange,
   signatureMarkGeometry, viaLegal,
-  type JobKind, type Tactic, type TacticsDocument,
+  type JobKind, type Tactic, type TacticJob, type TacticsDocument,
+  type WorkshopChoice,
 } from './tacticsDocument';
 
 export type MapFirstFocus =
@@ -386,7 +387,15 @@ export function MapFirstGroupToolbar({
           onClick={() => applyKind('posts')} testId="map-first-posts-mode" />
         <TacticsIconButton icon="patrol" label="Patrol route" pressed={effective.kind === 'patrol'}
           onClick={() => applyKind('patrol')} testId="map-first-patrol-mode" />
-      </div> : <div className="flex items-center gap-1 rounded-sm border border-arena-warning/45 px-2 py-1">
+      </div> : effective.kind === 'train'
+        // Training is a real current assignment with no map work at all, not
+        // a loaded advanced job — offering "convert to posts" here would quietly
+        // throw the Workshop away.
+        ? <div className="flex items-center gap-1 rounded-sm border border-arena-edge px-2 py-1">
+          <span className="t-micro">Train at {workshopLabel(effective.workshop)}</span>
+          <span className="t-micro text-arena-dim">· nothing to draw</span>
+        </div>
+        : <div className="flex items-center gap-1 rounded-sm border border-arena-warning/45 px-2 py-1">
         <span className="t-micro text-arena-warning">Loaded {effective.kind}</span>
         <button type="button" className="btn !min-h-7" disabled={!convert}
           title={convert ? 'Create explicit editable Posts from the visible positions' : 'This job has no complete legal position preview'}
@@ -448,19 +457,57 @@ function BehaviorChoice({ icon, label, blurb, selected, onClick }: {
 
 /** Readable behavior lives beside the map instead of competing with spatial
  * tools above it. This remains the same three ordinary job fields. */
-export function MapFirstBehaviorPanel({ tactic, phaseIndex, groupId, change }: {
+export function MapFirstBehaviorPanel({ catalog, document, tactic, phaseIndex, groupId, change }: {
+  catalog: TacticalSheetCatalog;
+  document: TacticsDocument;
   tactic: Tactic;
   phaseIndex: number;
   groupId: string;
   change: (apply: (tactic: Tactic) => void) => void;
 }) {
+  const [pendingTraining, setPendingTraining] = useState<{
+    choice: WorkshopChoice;
+    next: TacticJob;
+    removed: string[];
+  } | null>(null);
   const group = tactic.groups.find((value) => value.id === groupId);
   const raw = tactic.phases[phaseIndex]?.jobs[groupId];
   const effective = effectiveJobResolution(tactic, phaseIndex, groupId)?.job ?? raw;
   if (!group || !raw || !effective) return null;
   const color = groupColor(tactic, groupId);
   const travel = raw.travel ?? 'observe';
-  return <aside className="flex min-w-0 flex-col gap-2 rounded-sm border border-arena-edge bg-arena-panel/55 p-2"
+  const training = effective.kind === 'train';
+  const trainingChoice = training ? effective.workshop ?? 'either' : 'none';
+  const chooseTraining = (choice: 'none' | WorkshopChoice) => {
+    if (choice === 'none') {
+      if (!training) return;
+      const posts = projectedPostsForLegacyJob(
+        catalog, document, tactic, phaseIndex, groupId);
+      const plan = planJobKindChange(effective, 'posts');
+      if (posts) plan.next.posts = structuredClone(posts);
+      change((next) => {
+        next.phases[phaseIndex].jobs[groupId] = structuredClone(plan.next);
+      });
+      return;
+    }
+    if (group.slots.length !== 1) return;
+    const plan = planJobKindChange(effective, 'train');
+    plan.next.workshop = choice;
+    if (plan.removed.length) {
+      setPendingTraining({ choice, ...plan });
+      return;
+    }
+    change((next) => {
+      next.phases[phaseIndex].jobs[groupId] = structuredClone(plan.next);
+    });
+  };
+  const duplicateWorkshop = training && effective.workshop !== 'either'
+    ? tactic.groups.some((other) => other.id !== groupId
+      && effectiveJobResolution(tactic, phaseIndex, other.id)?.job.kind === 'train'
+      && effectiveJobResolution(tactic, phaseIndex, other.id)?.job.workshop
+        === effective.workshop)
+    : false;
+  return <><aside className="flex min-w-0 flex-col gap-2 rounded-sm border border-arena-edge bg-arena-panel/55 p-2"
     data-testid="map-first-behavior-panel" style={{ borderTop: `3px solid ${color}` }}>
     <div className="flex items-center gap-2 border-b border-arena-edge pb-2">
       <span className="h-6 w-1.5 shrink-0 rounded-[2px]" style={{ background: color }} />
@@ -470,14 +517,38 @@ export function MapFirstBehaviorPanel({ tactic, phaseIndex, groupId, change }: {
       </span>
     </div>
     <fieldset className="flex flex-col gap-1">
+      <legend className="lab mb-1">Training</legend>
+      <select className="field !min-h-9 !py-1.5 text-[11.5px] font-semibold"
+        aria-label="Workshop training policy" value={trainingChoice}
+        onChange={(event) => chooseTraining(
+          event.target.value as 'none' | WorkshopChoice)}>
+        <option value="none">Don’t train</option>
+        {WORKSHOP_OPTIONS.map((option) => (
+          <option key={option.id} value={option.id}
+            disabled={group.slots.length !== 1}>{option.label}</option>
+        ))}
+      </select>
+      {group.slots.length !== 1 && <span className="t-micro text-arena-dim">
+        Training occupies one exact tile. Put one bot in its own Group first.
+      </span>}
+      {training && <span className="t-micro text-arena-dim">
+        Walk to {workshopLabel(effective.workshop)} and wait. Movement, combat,
+        damage or carrying a Core resets the channel.
+      </span>}
+      {duplicateWorkshop && <span className="t-micro text-arena-warning">
+        Another Group uses this Workshop. They will queue on the approach until
+        the training tile opens.
+      </span>}
+    </fieldset>
+    {!training && <fieldset className="flex flex-col gap-1">
       <legend className="lab mb-1">At the destination</legend>
       {POSTURES.map((option) => <BehaviorChoice key={option.id}
         icon={postureIcons[option.id]} label={option.label} blurb={option.blurb}
         selected={raw.posture === option.id} onClick={() => change((next) => {
           next.phases[phaseIndex].jobs[groupId].posture = option.id;
         })} />)}
-    </fieldset>
-    {effective.kind !== 'patrol' && <fieldset className="flex flex-col gap-1">
+    </fieldset>}
+    {!training && effective.kind !== 'patrol' && <fieldset className="flex flex-col gap-1">
       <legend className="lab mb-1">On the way</legend>
       {TRAVEL_BEHAVIORS.map((option) => <BehaviorChoice key={option.id}
         icon={travelIcons[option.id]} label={option.label} blurb={option.blurb}
@@ -485,15 +556,35 @@ export function MapFirstBehaviorPanel({ tactic, phaseIndex, groupId, change }: {
           next.phases[phaseIndex].jobs[groupId].travel = option.id;
         })} />)}
     </fieldset>}
-    <fieldset className="flex flex-col gap-1">
+    {!training && <fieldset className="flex flex-col gap-1">
       <legend className="lab mb-1">Recovery</legend>
       {RECOVERIES.map((option) => <BehaviorChoice key={option.id}
         icon={recoveryIcons[option.id]} label={option.label} blurb={option.blurb}
         selected={raw.recovery === option.id} onClick={() => change((next) => {
           next.phases[phaseIndex].jobs[groupId].recovery = option.id;
         })} />)}
-    </fieldset>
-  </aside>;
+    </fieldset>}
+  </aside>
+  {pendingTraining && <Modal onClose={() => setPendingTraining(null)}>
+    <div className="lab mb-1">Send this bot to train?</div>
+    <h3 className="mb-2 text-lg font-semibold">Training replaces its current phase assignment.</h3>
+    <p className="t-meta">
+      Walking to the {workshopLabel(pendingTraining.choice)} removes{' '}
+      {pendingTraining.removed.join(', ')}. The rest of the tactic is unchanged.
+    </p>
+    <div className="mt-3 flex gap-2">
+      <button type="button" className="btn btn-primary" autoFocus
+        onClick={() => setPendingTraining(null)}>Cancel · keep it</button>
+      <button type="button" className="btn btn-secondary" onClick={() => {
+        change((next) => {
+          next.phases[phaseIndex].jobs[groupId]
+            = structuredClone(pendingTraining.next);
+        });
+        setPendingTraining(null);
+      }}>Replace with training</button>
+    </div>
+  </Modal>}
+  </>;
 }
 
 /** Selecting one bot opens only the things that are truly bot-specific in

@@ -808,12 +808,39 @@ public sealed class GenericActorMatchSession : IDisposable
             // settle before the later mode update (including a kill-limit
             // completion on this same tick).
             UpdateCooldownsAndEnergy(resolutions);
+            // The mode phase reads this tick's per-life facts as sets rather
+            // than re-deriving them: stillness against the previous tick-end
+            // snapshot (so dash, hook, burst and exchange displacement all
+            // count as movement), accepted attack/signature verbs, and every
+            // damaged life from projectiles or signature effects.
+            HashSet<ActorIdentity> movedOrDisplaced = _lives.Values
+                .Where(life =>
+                    !_positionsAtPreviousTickEnd.TryGetValue(
+                        life.ActorId, out Position previous)
+                    || previous != life.Position)
+                .Select(life => life.ActorId)
+                .ToHashSet();
+            HashSet<ActorIdentity> combatActing = resolutions.Values
+                .Where(resolution => resolution.Outcome
+                        == GenericActorRuntimeActionResolution.ActionOutcome
+                            .Success
+                    && _actions[resolution.ValidatedAction.ActionId].Kind
+                        is ActorActionKind.Attack or ActorActionKind.Signature)
+                .Select(resolution => resolution.ActorId)
+                .ToHashSet();
+            HashSet<ActorIdentity> damaged = contacts
+                .Select(contact => contact.TargetActorId)
+                .Concat(_arcSignatureDamagedThisTick)
+                .ToHashSet();
             GenericActorModeTickResult modeTick = _mode.ApplyJointTick(
                 ModeWorldView(),
                 new GenericActorModeTickInput(
                     Tick,
                     scoredContacts,
-                    destructions));
+                    destructions,
+                    movedOrDisplaced,
+                    combatActing,
+                    damaged));
             EmitModeChanges(modeTick, events);
             modeObjectiveCompletion = modeTick.ModeObjectiveReached;
             CompleteDueSameLifeTransitions(
@@ -4893,6 +4920,9 @@ public sealed class GenericActorMatchSession : IDisposable
             // otherwise wave-aware sheet facts silently read as absent.
             NextRespawnWaveTick = arcRelay.NextRespawnWaveTick,
             RespawnWaveTeams = arcRelay.RespawnWaveTeams,
+            // The Workshop objective signal is public by design (team and
+            // progress only), so the one-team narrowing preserves it whole.
+            Workshops = arcRelay.Workshops,
         };
     }
 

@@ -12,9 +12,11 @@ Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI/editor default is `tapline-15`
-on the owner-approved equal-return map with sealed outer-Well entrances and
-staggered Mid cover, coordinated movement planner, and
+revisions, match history, and rating. The current CLI/editor default is `broadloom-2`
+on the owner-approved 37x27 Broadloom whole-map identity — three Wells in
+distinct theatres, two neutral veterancy Workshops (unlock tick 25, 15-tick
+protected channel, exactly 1 capped XP, 45-tick public dormancy), the
+coordinated movement planner, and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
 public respawn waves, a seven-distinct-class roster floor, durable deployments, and
 scaled combat durability. All three Wells keep their public opening around tick
@@ -30,8 +32,10 @@ bodies. Living allies harmlessly block allied shots, while friendly sentries,
 mines, Hardlight and Prism remain transparent. A destroyed bot retains 50% of
 its accumulated veteran XP, rounded down, on its team-local roster slot; phase
 transitions can target selected bots reaching a chosen veteran level. Hosted
-playlist v33 is the current Tapline-15 rating identity; v32 remains immutable
-complete-observation/Tapline-14 history.
+playlist v34 is the current Broadloom-2 rating identity; v33 remains immutable
+first-Broadloom history and v32 remains complete-observation/Tapline-14 history.
+Tactics documents author Train-at-Workshop and read the Workshop's
+public neutral state through dedicated condition rows.
 The primary loop is **change → run → watch → understand →
 change again**.
 

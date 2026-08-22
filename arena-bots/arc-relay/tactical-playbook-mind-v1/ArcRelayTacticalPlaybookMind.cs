@@ -163,6 +163,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         UpdateMemory(contract, mind, arc);
         ReconcileSoloTosses(mind, arc);
         _evidence.Observe(_teamId, mind);
+        if (ArenaBasics.ArcState(mind) is { } observedArc)
+            _evidence.ObserveWorkshops(_teamId, mind.Tick, observedArc.Workshops);
         ResolvePreviousOneShots(contract, mind);
         UpdateMotionMemory(mind);
         IReadOnlySet<ActorIdentity> live = mind.Bodies
@@ -633,7 +635,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     }
 
     /// <summary>
-    /// Wells and healers are one-tile services, not eight identical
+    /// Wells, healers, and Workshops are one-tile services, not eight identical
     /// destinations. When several bodies select one, the joint assignment
     /// gives one body the service tile and stages the rest on distinct nearby
     /// contribution tiles. This prevents patients from repeatedly evicting
@@ -646,7 +648,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         OrdersPackage.MoveAction move,
         string targetKey) => move.Kind == "to"
             && (targetKey.StartsWith("well:", StringComparison.Ordinal)
-                || targetKey.StartsWith("heal:", StringComparison.Ordinal));
+                || targetKey.StartsWith("heal:", StringComparison.Ordinal)
+                || targetKey.StartsWith("workshop:", StringComparison.Ordinal));
 
     private static Position[] AdjacentEnterableTiles(
         GenericActorMapContract map,
@@ -1181,8 +1184,53 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return [new ResolvedTarget(
                 $"well:{well.WellId}", well.Position, [well.Position], null, null)];
         }
+        if (move.TargetKind == "workshop")
+        {
+            GenericActorContext.ArcRelayVeterancyWorkshopState[] workshops =
+                ResolveWorkshops(arc, move.Target);
+            if (workshops.Length == 0)
+                return [];
+            // 'either' picks deterministically. A body already on a training
+            // tile never abandons its own channel. Everyone else takes a ready
+            // room first, then the dormant room that opens soonest, and only
+            // then queues behind an occupied/contested room. This distributes
+            // simultaneous trainees without reservations or a second scheduler.
+            GenericActorContext.ArcRelayVeterancyWorkshopState chosen =
+                workshops
+                    .OrderByDescending(value =>
+                        value.TrainingTile == body.Position)
+                    .ThenByDescending(value => value.Phase
+                        == GenericActorContext
+                            .ArcRelayVeterancyWorkshopPhase.Ready)
+                    .ThenBy(value => value.Phase == GenericActorContext
+                            .ArcRelayVeterancyWorkshopPhase.Dormant
+                        ? value.ReadyAtTick ?? int.MaxValue
+                        : int.MaxValue)
+                    .ThenBy(value => ArenaBasics.StaticDistance(
+                            contract.Map, body.Position, value.TrainingTile)
+                        ?? int.MaxValue)
+                    .ThenBy(value => value.WorkshopId, StringComparer.Ordinal)
+                    .First();
+            return [new ResolvedTarget(
+                $"workshop:{chosen.WorkshopId}",
+                chosen.TrainingTile,
+                [chosen.TrainingTile],
+                null,
+                null)];
+        }
         return [];
     }
+
+    /// <summary>North or south by name; 'either' reads both. Empty on a
+    /// ruleset without Workshops, so every workshop fact reads 0 there.</summary>
+    private static GenericActorContext.ArcRelayVeterancyWorkshopState[]
+        ResolveWorkshops(
+            GenericActorContext.ModeObservationState.ArcRelay arc,
+            string selector) =>
+        selector == "either"
+            ? [.. arc.Workshops]
+            : [.. arc.Workshops.Where(value => string.Equals(
+                value.WorkshopId, selector, StringComparison.Ordinal))];
 
     /// <summary>
     /// Arc Toss names an allied body but transmits a position target through
@@ -3875,6 +3923,35 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (fact == "known-loose-cores-in-zone")
             return _knownLooseCores.Values.Count(core =>
                 package.ContainsAny(condition.ZoneSet, core.Position));
+        if (fact.StartsWith("workshop-", StringComparison.Ordinal))
+        {
+            GenericActorContext.ArcRelayVeterancyWorkshopState[] workshops =
+                ResolveWorkshops(arc, condition.Workshop!);
+            return fact switch
+            {
+                "workshop-ready" => workshops.Any(value => value.Phase
+                    == GenericActorContext.ArcRelayVeterancyWorkshopPhase
+                        .Ready) ? 1 : 0,
+                "workshop-training" => workshops.Any(value => value.Phase
+                    == GenericActorContext.ArcRelayVeterancyWorkshopPhase
+                        .Training) ? 1 : 0,
+                "workshop-training-self" => workshops.Any(value =>
+                    value.Phase == GenericActorContext
+                        .ArcRelayVeterancyWorkshopPhase.Training
+                    && value.TrainingTeamId == _teamId) ? 1 : 0,
+                "workshop-training-enemy" => workshops.Any(value =>
+                    value.Phase == GenericActorContext
+                        .ArcRelayVeterancyWorkshopPhase.Training
+                    && value.TrainingTeamId != _teamId) ? 1 : 0,
+                "workshop-contested" => workshops.Any(value => value.Phase
+                    == GenericActorContext.ArcRelayVeterancyWorkshopPhase
+                        .Contested) ? 1 : 0,
+                "workshop-dormant" => workshops.Any(value => value.Phase
+                    == GenericActorContext.ArcRelayVeterancyWorkshopPhase
+                        .Dormant) ? 1 : 0,
+                _ => 0,
+            };
+        }
         GenericActorContext.ArcRelayWellState well = ResolveWell(
             contract, arc, condition.Well!);
         if (fact == "well-has-outstanding-core")

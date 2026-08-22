@@ -558,6 +558,50 @@ internal static class ArcRelayTacticsMaterializer
                         kills, ZoneId: AnywhereZone(), Since: "phase-entry"),
                     $"c-{prefix}-kills");
             }
+            if (rows.WorkshopReady is string workshopReady)
+            {
+                Add(new ConditionShape(
+                        "workshop-ready", "equals", 1,
+                        Workshop: workshopReady),
+                    $"workshop-{workshopReady}-ready");
+            }
+            if (rows.WorkshopTraining is
+                ArcRelayTacticWorkshopTrainingRow trainingRow)
+            {
+                string fact = trainingRow.Team switch
+                {
+                    "self" => "workshop-training-self",
+                    "enemy" => "workshop-training-enemy",
+                    _ => "workshop-training",
+                };
+                Add(new ConditionShape(
+                        fact, "equals", 1, Workshop: trainingRow.Workshop),
+                    $"workshop-{trainingRow.Workshop}-training-{trainingRow.Team}");
+            }
+            if (rows.WorkshopContested is string workshopContested)
+            {
+                Add(new ConditionShape(
+                        "workshop-contested", "equals", 1,
+                        Workshop: workshopContested),
+                    $"workshop-{workshopContested}-contested");
+            }
+            if (rows.WorkshopDormant is string workshopDormant)
+            {
+                Add(new ConditionShape(
+                        "workshop-dormant", "equals", 1,
+                        Workshop: workshopDormant),
+                    $"workshop-{workshopDormant}-dormant");
+            }
+            if (rows.WorkshopDone is ArcRelayTacticWorkshopDoneRow doneRow)
+            {
+                // The EVENT, phase-anchored like coreAcquired: "our team
+                // completed a session there since THIS phase began".
+                Add(new ConditionShape(
+                        "friendly-workshop-completions", "at-least",
+                        doneRow.Count, Since: "phase-entry",
+                        Workshop: doneRow.Workshop),
+                    $"c-{prefix}-trained-{doneRow.Workshop}");
+            }
             if (rows.Cleared is { Count: > 0 } cleared)
             {
                 string[] zones = cleared.Select((zone, index) => Zone(
@@ -1752,6 +1796,29 @@ internal static class ArcRelayTacticsMaterializer
                     }));
                     break;
                 }
+                case "train":
+                {
+                    // The trainee walks to the rules-owned training tile and
+                    // stands. The Workshop channel itself is mode-owned: the
+                    // executor authors no progress, and the authored 'wait'
+                    // posture emits no fight leaf, so a quiet stand is
+                    // exactly what materializes.
+                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        Action = writer =>
+                        {
+                            writer.WriteStartObject("move");
+                            writer.WriteStartObject("to");
+                            writer.WriteString("workshop", job.Workshop!);
+                            writer.WriteEndObject();
+                            if (via is not null)
+                                writer.WriteString("via", via);
+                            writer.WriteString("posture", "rear");
+                            writer.WriteEndObject();
+                        },
+                    }));
+                    break;
+                }
                 case "patrol":
                 {
                     string route = Route(job.Path!, $"g-{geometryPrefix}-beat");
@@ -2119,14 +2186,16 @@ internal static class ArcRelayTacticsMaterializer
         string? Since = null,
         string[]? Roles = null,
         string[]? ZoneIds = null,
-        int? Level = null)
+        int? Level = null,
+        string? Workshop = null)
     {
         public string Key => string.Join('|',
             Fact, Operator, Value, Role, ZoneId, Well, FreshnessTicks,
             WindowTicks, Since,
             Roles is null ? null : string.Join(',', Roles),
             ZoneIds is null ? null : string.Join(',', ZoneIds),
-            Level);
+            Level,
+            Workshop);
     }
 
     private sealed record ConditionDef(string Id, ConditionShape Shape)
@@ -2152,6 +2221,8 @@ internal static class ArcRelayTacticsMaterializer
             }
             if (Shape.Well is not null)
                 writer.WriteString("well", Shape.Well);
+            if (Shape.Workshop is not null)
+                writer.WriteString("workshop", Shape.Workshop);
             if (Shape.FreshnessTicks is int freshness)
                 writer.WriteNumber("freshnessTicks", freshness);
             if (Shape.WindowTicks is int window)

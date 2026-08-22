@@ -148,6 +148,16 @@ export default function EventFeed({
           return `${actorName(replay, arc.ownerActor)} deals ${arc.amount} with ${signatureName(replay, arc.signatureId)}`;
         case 'signature-repair':
           return `${actorName(replay, arc.ownerActor)} repairs ${actorName(replay, arc.targetActor)} for ${arc.amount}`;
+        case 'workshop-ready':
+          return `${arc.workshopId} Workshop opens at ${arc.trainingTile.x},${arc.trainingTile.y}`;
+        case 'workshop-training-started':
+          return `${teamName(replay, arc.teamId)} begins training at the ${arc.workshopId} Workshop`;
+        case 'workshop-training-interrupted':
+          return `${teamName(replay, arc.teamId)} loses ${arc.progressLost} training at the ${arc.workshopId} Workshop · ${arc.reason.replace(/-/g, ' ')}`;
+        // The trainee is named because the COMPLETION fact carries it; the
+        // landmark's own state never does, so nothing else in the viewer may.
+        case 'workshop-training-completed':
+          return `${actorName(replay, arc.traineeActor)} trains up at the ${arc.workshopId} Workshop · +${arc.xpAward} XP · reopens T${arc.readyAgainTick}`;
       }
     }
     // Attack/destruction/disqualification arrive in version-specific

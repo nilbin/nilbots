@@ -159,7 +159,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void Tapline15CurrentAndHistoricalReleaseArtifactsRemainPinned()
+    public void BroadloomCurrentAndHistoricalReleaseArtifactsRemainPinned()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -187,6 +187,11 @@ public sealed class MindToolchainSurfaceTests
             "arena-bots",
             "arc-relay",
             "tapline-11-stock-v1");
+        string broadloomInitialReleaseDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "broadloom-1-stock-v1");
         TrackedBuildReceipt current = ReadReceipt(Path.Combine(
             projectDirectory,
             "bot.build-receipt.json"));
@@ -202,6 +207,9 @@ public sealed class MindToolchainSurfaceTests
         TrackedBuildReceipt currentRelease = ReadReceipt(Path.Combine(
             currentReleaseDirectory,
             "bot.build-receipt.json"));
+        TrackedBuildReceipt broadloomInitialRelease = ReadReceipt(Path.Combine(
+            broadloomInitialReleaseDirectory,
+            "bot.build-receipt.json"));
 
         Assert.Equal(
             "4f2fbab6bce9565d936a22dd0d80a1533fda0d438835e0a5030496cf2445992d",
@@ -212,19 +220,31 @@ public sealed class MindToolchainSurfaceTests
         Assert.Equal(
             historicalTapline4.ArtifactSha256,
             Sha256(Path.Combine(historicalTapline4Directory, "bot.wasm")));
-        Assert.Equal("0.10.15", current.SdkVersion);
+        Assert.Equal("0.10.16", current.SdkVersion);
         Assert.Equal(
-            "c55d76c77725600545787c8b35e6e5933aba565cfa817e198e906294e0a3081f",
+            "2657d3505603635417006a4206671ab190a92e83b4921ec09a3b555ce076b1da",
             current.ArtifactSha256);
         Assert.Equal(
-            "bcba66e53cc7343c58178dc5525877c5ada7f42983a41741b80e16f6e91dde48",
+            "4a9a7351da0892bf18bc40c9db7e1e6ebf59522fa36090e0554beff0f6d96872",
             current.BuildInputSha256);
         Assert.Equal(
             currentRelease.ArtifactSha256,
             Sha256(Path.Combine(currentReleaseDirectory, "bot.wasm")));
         Assert.Equal(
+            "457e0e1e391557c18cbf0616d345c7749c7aaf7f7973c8e41bf0e56513184630",
+            broadloomInitialRelease.ArtifactSha256);
+        Assert.Equal(
+            "e5a2f950fa81d05c769afd04b627e341bc0a7b0d3bb877867ed231bcf7899ffb",
+            broadloomInitialRelease.BuildInputSha256);
+        Assert.Equal(
+            broadloomInitialRelease.ArtifactSha256,
+            Sha256(Path.Combine(broadloomInitialReleaseDirectory, "bot.wasm")));
+        Assert.Equal(
             current.ArtifactSha256,
             Sha256(Path.Combine(projectDirectory, "bot.wasm")));
+        Assert.NotEqual(
+            broadloomInitialRelease.ArtifactSha256,
+            current.ArtifactSha256);
         Assert.NotEqual(currentRelease.ArtifactSha256, current.ArtifactSha256);
         Assert.NotEqual(currentRelease.BuildInputSha256, current.BuildInputSha256);
         Assert.NotEqual(

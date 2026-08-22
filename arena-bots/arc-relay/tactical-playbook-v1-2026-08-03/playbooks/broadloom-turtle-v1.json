@@ -1,0 +1,95 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "broadloom-turtle-v1",
+  "mapPlan": "../map-plans/broadloom-01/broadloom-turtle-v1.json",
+  "roles": [
+    {
+      "id": "turtle-guard",
+      "classes": ["mason", "palisade", "longshot", "mortar"],
+      "upgradePath": ["vitality", "vitality", "damage", "vision"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "fire-keep-rail",
+          "when": { "all": ["empty-handed", "enemy-nearby", "signature-ready"] },
+          "use": { "skill": "rail-line", "target": "weakest-enemy" }
+        },
+        { "shared": "fight-visible-enemy" },
+        {
+          "id": "garrison-own-well",
+          "move": { "to": { "well": "own" }, "posture": "front" }
+        }
+      ]
+    },
+    {
+      "id": "turtle-keep",
+      "classes": ["patchbay", "sunder", "relay", "kestrel"],
+      "upgradePath": ["vitality", "reach", "vision", "damage"],
+      "orders": [
+        { "shared": "score-a-core" },
+        { "shared": "collect-loose-core" },
+        { "shared": "recover-health" },
+        {
+          "id": "restore-keep-hull",
+          "when": "signature-ready",
+          "use": { "skill": "repair-beam", "target": "weakest-ally" }
+        },
+        { "shared": "fight-visible-enemy" },
+        {
+          "id": "hold-home-keep",
+          "move": { "to": { "zone": "home-keep" }, "posture": "rear" }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        { "id": "return-to-reactor", "move": { "to": "own-reactor" } }
+      ]
+    },
+    "collect-loose-core": {
+      "when": { "all": ["empty-handed", "loose-core-known"] },
+      "capacity": "two-per-core",
+      "move": { "to": "nearest-known-loose-core" }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": { "to": "nearest-heal-zone", "posture": "rear" }
+        }
+      ]
+    },
+    "fight-visible-enemy": {
+      "when": { "all": ["empty-handed", "enemy-nearby"] },
+      "fight": {
+        "targets": ["marked", "weakest", "carrier", "nearest"],
+        "style": "advance",
+        "chaseLimit": 4
+      }
+    }
+  },
+  "capacities": { "two-per-core": 2 },
+  "conditions": {
+    "carrying-core": { "fact": "self-carrying", "operator": "equals", "value": 1 },
+    "empty-handed": { "fact": "self-carrying", "operator": "equals", "value": 0 },
+    "loose-core-known": { "fact": "known-loose-cores", "operator": "at-least", "value": 1 },
+    "hurt": { "fact": "self-health-percent", "operator": "at-most", "value": 35 },
+    "healthy": { "fact": "self-health-percent", "operator": "at-least", "value": 75 },
+    "enemy-nearby": { "fact": "self-nearest-visible-enemy-distance", "operator": "at-most", "value": 7 },
+    "signature-ready": { "fact": "signature-ready", "operator": "equals", "value": 1 }
+  }
+}

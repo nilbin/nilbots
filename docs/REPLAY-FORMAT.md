@@ -95,7 +95,15 @@ and regular-attack projectile identities. `signaturePresentationId` binds one
 immutable, roster-complete visual/audio treatment to the public signature
 operation grammar.
 
-Current Tapline-12 replays write `arc-relay-signatures-v4`. V4 adds Palisade's
+Current Broadloom replays write `arc-relay-signatures-v4` and additionally
+carry the neutral veterancy Workshops as public mode state (`workshops` on the
+Arc Relay mode object: id, training tile, phase, training team, progress,
+required ticks, and the one effective ready countdown) plus four public facts —
+`workshop-ready`, `workshop-training-started`, `workshop-training-interrupted`
+(kebab-case reason and lost progress), and `workshop-training-completed`
+(trainee, XP award, ready-again tick). Historical documents omit every
+Workshop byte identically, and the canonical reader accepts both shapes.
+Tapline-12 replays introduced `arc-relay-signatures-v4`. V4 adds Palisade's
 owner-attached moving Prism Screen while preserving the instant Arc Toss
 treatment. Recorded V3 replays retain their static Prism Wall. Recorded V2 replays retain
 their one-tick Toss timing and 0.2-tick launch cue; V1 retains its original audio

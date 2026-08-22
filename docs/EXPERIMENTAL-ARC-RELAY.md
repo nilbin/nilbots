@@ -8,24 +8,22 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile tapline-5` (rules
-`arc-relay-tapline-05`, map `arc-relay-tapline-01`): the accepted Tapline
-geometry, declared strikes, veterancy, rear-arc damage, and the complete
-signature grammar 3, the promoted combined depth rules, and a delayed centre
-opening on the second global beat. Its joint movement step also permits an acyclic convoy to
+The command defaults to `--loop-profile broadloom-2` (rules
+`arc-relay-broadloom-2`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
+geometry, complete signature grammar 3, promoted depth rules, neutral
+veterancy Workshops, 50% stable-slot XP retention, and harmless allied-body
+projectile blockers. Its joint movement step permits an acyclic convoy to
 advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
-still block. `h0`, `tapline-1`, `tapline-2`, and every historical profile
-remain explicit immutable compatibility selections.
+still block. Every historical profile remains an explicit immutable
+compatibility selection.
 
-**Hosted entrant playlist v23 pins Tapline-5.** It reuses the unchanged
-`arc-relay-orders-v2` sheet format, Tempered Standard stock participant, authored
-movement urgency, body-local fight contact, and atomic EPIBT squad planning on
-the direct ATL2 executor, together with team-relative Core value, veteran
-command, public respawn waves, roster variety, and durable deployments. The
-delayed centre chronology and resulting stock gameplay start a fresh rating book; v22's Tapline-4
-ratings and matches remain readable history.
-Earlier playlist definitions and artifacts remain immutable, and geometry is
-never projected between maps.
+**Hosted entrant playlist v34 pins Broadloom-2.** It uses the
+`arc-relay-orders-v2` sheet format, Tempered Broadloom stock participant,
+authored movement urgency, body-local fight contact, and atomic EPIBT squad
+planning on the direct ATL2 executor. Playlist v33 preserves first Broadloom
+without retention/projectile blockers, and every older definition, artifact,
+rating and match remains readable history. Geometry is never projected between
+maps.
 
 ## Match shape
 
@@ -255,3 +253,47 @@ closed cycle, terrain block, projectile contact, or stationary head blocks the
 dependent chain. This is the engine contract required by coordinated squad
 planning; it is not permission to overlap bodies or resolve moves in command
 order.
+
+## Broadloom and veterancy Workshops (`arc-relay-broadloom-2`, 2026-08-22)
+
+`broadloom-2` is the current contract. It keeps Broadloom-1's exact
+`arc-relay-broadloom-01` 37x27 whole-map identity and Workshop rules while
+adding Tapline-15's 50% stable-slot veterancy retention and harmless
+allied-body projectile blockers under the new ruleset id
+`arc-relay-broadloom-2`. Playlist v33 preserves first Broadloom
+(`broadloom-1` / `arc-relay-broadloom-1`) without those two additions;
+playlist v34 is Broadloom-2. Both use three Wells (outer Wells in roomed
+theatres at (10,19) and (26,7), the centre Well under a covered crossing),
+heal alcoves, and two rotationally symmetric neutral **Workshops** at (18,4)
+and (18,22).
+
+A Workshop is a public neutral objective, never terrain: both teams always
+see its exact state, and fog hides nothing about it (only about bodies).
+Both unlock at tick 25. To train, one body stands on the training tile and
+holds a channel for **15 consecutive qualifying ticks**: same living body of
+one team, on the tile, not carrying a Core, not moving or displaced, not
+attacking or casting a signature, taking no damage, with no living enemy
+anywhere inside the Workshop's authored contest region (the room, its
+mouths, and the skylight). Waiting and rotating in place are free. Any
+violation resets progress to zero — the channel identity is that exact life,
+so dying, respawning, or swapping bodies never inherits progress. The
+training tile refuses authored signature placement, heals nothing, and
+scores nothing.
+
+Completion grants exactly **1 veterancy XP** through the ordinary capped
+veterancy system (visible on the next tick) and puts that Workshop into a
+**45-tick dormancy**; it is publicly Ready again 46 ticks after completion.
+The two Workshops are independent: contesting or completing one never
+touches the other. A body already at maximum veterancy cannot train.
+
+Protecting a trainee never speeds the channel up — guards only keep the
+contest region empty. The intended tension is public: a Training signal
+invites a contest route or a raid elsewhere, and the contest region is wide
+enough that a disruptor never needs the exact training tile.
+
+Tactics authors the loop with the **Train at Workshop** job (`kind:
+"train"`, workshop `north`/`south`/`either` — global ids that do not mirror
+with the seat) and the public-state rows `workshopReady`,
+`workshopTraining`, `workshopContested`, `workshopDormant`, `workshopDone`,
+and the existing multi-bot `veterancy` row. Orders v2 carries the matching facts, the `{workshop}`
+move target, and the historical `friendly-workshop-completions` condition.

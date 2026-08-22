@@ -9560,10 +9560,99 @@ or more named roster bots, choose level 2–5, and require at least N selected
 living bots to have reached it. It compiles to the ordinary condition and
 Instruction executor; there is no new scheduler or tactic state machine.
 
-The immutable product identity is profile `tapline-15`, ruleset
+The immutable rules identity is profile `tapline-15`, ruleset
 `arc-relay-tapline-15`, on Tapline-14's unchanged map, economy, combat numbers,
-movement, roster and signatures. Hosted playlist v33 pins the rebuilt tactical
-artifact and starts a fresh rating book. Playlist v32 and profile Tapline-14
-remain resolvable immutable history. A proposed workshop/veterancy tile is
-explicitly deferred; this promotion tests durable careers and bodyguarding
-without adding another map objective at the same time.
+movement, roster and signatures. It was the intermediate promotion checkpoint,
+but the parallel Broadloom work claimed the still-zero-history hosted v33 row
+before this branch integrated. The persisted v33 identity is therefore first
+Broadloom, not Tapline-15; these two mechanics are folded into hosted
+Broadloom-2 v34 under their own ruleset identity. Playlist v32 and profile
+Tapline-14 remain resolvable immutable history.
+
+## 359. Broadloom promotes as broadloom-1 with neutral veterancy Workshops
+
+Owner direction (2026-08-22): implement the analysed 37x27 "Broadloom"
+whole-map candidate and its two neutral veterancy Workshops as the next
+promoted product profile, on the existing candidate branch.
+
+The immutable product identity is profile `broadloom-1`, ruleset
+`arc-relay-broadloom-1`, map `arc-relay-broadloom-01` (37x27, 681 open tiles,
+the first profile past the historical 32-tile width; the engine cap is now
+width/height <= 37 under a 1,024-cell budget, and every historical map loads
+byte-identically). The complete Tapline-14 rules stack carries over. This first
+Broadloom identity does not yet include Tapline-15's 50% stable-slot veterancy
+retention or allied-body projectile blockers; those arrive together in
+Broadloom-2 rather than mutating this published ruleset.
+
+Two rules-owned Workshops sit at (18,4) and (18,22), rotationally symmetric,
+signature-placement-forbidden on the training tile, with an authored 36-tile
+contest region each (room interior, all three mouths, skylight). Unlock tick
+25; a session is 15 consecutive qualifying ticks by one living body of one
+team standing on the tile — not carrying, not moving or displaced, not
+attacking or casting, taking no damage, with no living enemy anywhere in the
+contest region; any violation resets progress to zero, and Wait/rotation are
+the only free actions. Completion grants exactly 1 veterancy XP through the
+existing capped system (affecting the next tick) and starts a 45-tick global
+dormancy for that Workshop alone; completion tick C makes the Workshop ready
+again at C+1+45. Workshop state is a public neutral objective signal: fog
+narrowing deliberately preserves it, and replay v3, the SDK observation, the
+wire codec, and both web renderers carry it. Channel identity is
+team+slot+life for the channel itself: death, respawn, or rejoining the tile
+never inherits channel progress. Earned XP follows Tapline-15 retention.
+
+Mode state, evaluation chronology (inside ApplyJointTick after movement,
+combat, damage, destruction, and post-combat signatures), events
+(ready/started/interrupted/completed with kebab-case reasons), and the
+map/rules binding are all data-driven — no coordinates in any executor.
+Historical profiles omit every Workshop byte identically (init-prop default
+pattern; canonical writers gate on presence), proven by the unchanged golden
+suite.
+
+Tactics v2 gains the "train" job (single-slot group, posture wait, workshop
+north/south/either, no drawn geometry — the executor resolves the rules-owned
+tile from the contract binding) and rows workshopReady / workshopTraining
+(team self/enemy/any) / workshopContested / workshopDormant / workshopDone;
+the existing multi-bot veterancy row remains the single player-facing veteran
+condition. Orders v2 gains the matching facts, the `{workshop}` move
+target, and historical `friendly-workshop-completions`. The evidence ledger
+derives completions from the public Training-to-Dormant transition, so the
+condition never leaks fogged facts. Deterministic practice proofs pin the
+whole loop: exact channel and dormancy cadence, contested interruption and
+suppression from an authored disruption route, a Workshop feint that pulls a
+condition-driven guard rotation and opens the outer-Well raid, workshopDone
+driving a phase transition, and Workshop allocation under Demolition March
+pressure — mechanics evidence, never a balance verdict.
+
+Hosted playlist v33 pins broadloom-1 and starts a fresh rating book because
+map identity, Workshops, and the registered stock gameplay all change; v32
+remains immutable complete-observation/Tapline-14 history and its provenance
+bytes are preserved exactly. The stock sheet is `tempered-broadloom-v1`, authored as a Tactics
+document and pinned as its materialized Orders and map plan; the embedded
+product templates move to Broadloom-native `first-stand-v2` (now training at
+the north Workshop), `mid-pincer-v2`, `idle-field-v2`, and — per the owner's
+explicit instruction — Demolition March is rewritten as the Tactics document
+`demolition-march-v2` rather than direct Orders, preserving its
+double-longshot march-line identity as the deathball regression opponent.
+SDK 0.10.16 declares the additive Workshop contract; the tactical mirror was
+rebuilt through the controlled toolchain and playlist v33 pins its frozen
+receipt.
+
+## 360. Broadloom-2 folds in durable careers and queues Workshop traffic like healing
+
+Integration ruling (2026-08-23): first Broadloom is already persisted as
+playlist v33, profile `broadloom-1`, ruleset `arc-relay-broadloom-1`. Because
+Tapline-15's veterancy retention and allied projectile blockers alter canonical
+rules, they may not reuse that ruleset id. The current product is therefore
+profile `broadloom-2`, ruleset `arc-relay-broadloom-2`, on the unchanged
+`arc-relay-broadloom-01` map. Hosted playlist v34 pins Broadloom-2, its rebuilt
+tactical mirror, and a fresh rating book; v33 remains byte-exact first
+Broadloom history.
+
+Multiple authored one-body training groups may choose the same Workshop. The
+ordinary coordinated movement planner handles it exactly like healing: the
+current occupant retains the single service tile, the nearest eligible trainee
+advances next, and other trainees wait in stable nearby contribution positions.
+There is no Workshop scheduler, reservation system, or competing priority
+layer. `either` first prefers an already-ready Workshop, then the dormant one
+whose opening is soonest. A body already training never abandons its tile just
+because the other Workshop becomes preferable.

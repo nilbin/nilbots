@@ -74,6 +74,7 @@ public static class ActorResolvedMatchDefinitionValidator
             modeMapBinding,
             topologyValid ? topology : null,
             mapRegions,
+            map.TileTags,
             participantRegionAssignments,
             errors);
         ValidateSameLifeMapFeasibility(
@@ -488,6 +489,7 @@ public static class ActorResolvedMatchDefinitionValidator
         ActorModeMapBindingDefinition modeMapBinding,
         PublicMatchTopology? topology,
         IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        IReadOnlyList<ActorMapTileTagDefinition> mapTileTags,
         IReadOnlyList<ActorParticipantRegionAssignmentDefinition>
             participantRegionAssignments,
         List<string> errors)
@@ -512,6 +514,7 @@ public static class ActorResolvedMatchDefinitionValidator
                         arcBinding,
                         topology,
                         mapRegions,
+                        mapTileTags,
                         participantRegionAssignments,
                         errors);
                 }
@@ -552,6 +555,7 @@ public static class ActorResolvedMatchDefinitionValidator
         ArcRelayActorModeMapBindingDefinition binding,
         PublicMatchTopology? topology,
         IReadOnlyDictionary<string, ActorMapRegionDefinition> mapRegions,
+        IReadOnlyList<ActorMapTileTagDefinition> mapTileTags,
         IReadOnlyList<ActorParticipantRegionAssignmentDefinition> assignments,
         List<string> errors)
     {
@@ -582,6 +586,68 @@ public static class ActorResolvedMatchDefinitionValidator
                     errors.Add(
                         $"Arc Relay Well regions overlap at {tile}.");
                 }
+            }
+        }
+
+        HashSet<string> boundWorkshops = binding.Workshops
+            .Select(value => value.WorkshopId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> ruledWorkshops = (mode.VeterancyWorkshops?.WorkshopIds
+            ?? []).ToHashSet(StringComparer.Ordinal);
+        if (!boundWorkshops.SetEquals(ruledWorkshops))
+        {
+            errors.Add(
+                "Arc Relay Workshop bindings must cover exactly the mode's "
+                + "declared Workshop ids.");
+        }
+        var workshopTiles = new HashSet<Position>();
+        foreach (ArcRelayWorkshopRegionBindingDefinition workshop
+                 in binding.Workshops)
+        {
+            Position? trainingTile = null;
+            if (!mapRegions.TryGetValue(
+                    workshop.TrainRegionId, out var trainRegion)
+                || trainRegion.Tiles.Length != 1)
+            {
+                errors.Add(
+                    $"Workshop '{workshop.WorkshopId}' needs a one-tile "
+                    + "training region.");
+            }
+            else
+            {
+                trainingTile = trainRegion.Tiles[0];
+                if (!workshopTiles.Add(trainingTile.Value)
+                    || wellTiles.Contains(trainingTile.Value))
+                {
+                    errors.Add(
+                        $"Workshop '{workshop.WorkshopId}' training tile "
+                        + "overlaps another objective.");
+                }
+                bool forbidsSignatures = mapTileTags.Any(tag =>
+                    tag.Kind == ActorMapTileTagDefinition.TileTagKind
+                        .SignaturePlacementForbidden
+                    && tag.Tiles.Contains(trainingTile.Value));
+                if (!forbidsSignatures)
+                {
+                    errors.Add(
+                        $"Workshop '{workshop.WorkshopId}' training tile "
+                        + "must forbid signature placement.");
+                }
+            }
+            if (!mapRegions.TryGetValue(
+                    workshop.ContestRegionId, out var contestRegion)
+                || contestRegion.Tiles.Length == 0)
+            {
+                errors.Add(
+                    $"Workshop '{workshop.WorkshopId}' needs a non-empty "
+                    + "contest region.");
+            }
+            else if (trainingTile is { } tile
+                && !contestRegion.Tiles.Contains(tile))
+            {
+                errors.Add(
+                    $"Workshop '{workshop.WorkshopId}' contest region must "
+                    + "contain its training tile.");
             }
         }
 

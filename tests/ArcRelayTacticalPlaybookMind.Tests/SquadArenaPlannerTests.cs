@@ -136,6 +136,8 @@ public sealed class SquadArenaPlannerTests
                 new(4, "move:to:heal:21:7", CanStage: true, Distance: 6),
                 new(6, "fight:0:1:0", CanStage: true, Distance: 1),
                 new(7, "move:to:well:north", CanStage: false, Distance: 1),
+                new(8, "move:to:workshop:north", CanStage: true, Distance: 5),
+                new(9, "move:to:workshop:north", CanStage: true, Distance: 2),
             ]);
 
         Assert.Equal(2, predecessors[0]);
@@ -143,6 +145,8 @@ public sealed class SquadArenaPlannerTests
         Assert.DoesNotContain(2, predecessors.Keys);
         Assert.DoesNotContain(6, predecessors.Keys);
         Assert.DoesNotContain(7, predecessors.Keys);
+        Assert.Equal(9, predecessors[8]);
+        Assert.DoesNotContain(9, predecessors.Keys);
     }
 
     [Fact]

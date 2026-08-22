@@ -18,11 +18,11 @@ public sealed class TacticalSheetCompilerTests
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
         TacticalSheetSource stock = templates.Stock[0];
-        Assert.Equal("demolition-march-v1", stock.Id);
+        Assert.Equal("demolition-march-v2", stock.Id);
         Assert.Equal(
             [
-                "demolition-march-v1",
-                "idle-field-v1",
+                "demolition-march-v2",
+                "idle-field-v2",
             ],
             templates.Stock.Select(value => value.Id));
         foreach (TacticalSheetSource source in
@@ -56,7 +56,7 @@ public sealed class TacticalSheetCompilerTests
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
         Assert.Equal(
-            ["first-stand-v1", "mid-pincer-v1"],
+            ["first-stand-v2", "mid-pincer-v2"],
             templates.Starters.Select(value => value.Id));
         Assert.True(templates.Starters[0].Recommended);
         Assert.Equal("recommended", templates.Starters[0].Classification);
@@ -68,7 +68,7 @@ public sealed class TacticalSheetCompilerTests
         {
             string tacticsJson = Assert.IsType<string>(starter.TacticsJson);
             using JsonDocument tactics = JsonDocument.Parse(tacticsJson);
-            Assert.Equal("arc-relay-tactics-v1",
+            Assert.Equal("arc-relay-tactics-v2",
                 tactics.RootElement.GetProperty("schema").GetString());
             Assert.Equal(8,
                 tactics.RootElement.GetProperty("squad").GetArrayLength());
@@ -152,8 +152,8 @@ public sealed class TacticalSheetCompilerTests
             .First(map.IsWall);
         JsonObject tactics = JsonNode.Parse(
             templates.Starters[0].TacticsJson!)!.AsObject();
-        JsonArray posts = tactics["tactics"]![1]!["groups"]![0]!["stage"]!
-            ["posts"]!.AsArray();
+        JsonArray posts = tactics["tactics"]![1]!["phases"]![0]!["jobs"]!
+            ["holders"]!["posts"]!.AsArray();
         posts[0]!["at"] = new JsonArray(wall.X, wall.Y);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
@@ -193,8 +193,8 @@ public sealed class TacticalSheetCompilerTests
                 && map.IsWall(p.X + 1, p.Y));
         JsonObject tactics = JsonNode.Parse(
             templates.Starters[0].TacticsJson!)!.AsObject();
-        JsonObject post = tactics["tactics"]![1]!["groups"]![0]!["stage"]!
-            ["posts"]!.AsArray()[0]!.AsObject();
+        JsonObject post = tactics["tactics"]![1]!["phases"]![0]!["jobs"]!
+            ["holders"]!["posts"]!.AsArray()[0]!.AsObject();
         post["at"] = new JsonArray(at.X, at.Y);
         post["facing"] = "e";
 
@@ -215,25 +215,27 @@ public sealed class TacticalSheetCompilerTests
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
 
-        TacticalSheetSource tempered = templates.GetStock("demolition-march-v1");
-        JsonObject retired = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
+        (string temperedOrders, JsonObject _) = BroadloomOrdersFixture();
+        JsonObject retired = JsonNode.Parse(temperedOrders)!.AsObject();
         retired["layout"] = new JsonObject();
         InvalidDataException retiredError = Assert.Throws<InvalidDataException>(
             () => compiler.Compile(
-                retired.ToJsonString(), tempered.MapPlanJson,
+                retired.ToJsonString(),
+                BroadloomOrdersFixture().MapPlan.ToJsonString(),
                 unlocked, "retired-layout"));
         Assert.Contains("unknown field 'layout'", retiredError.Message);
 
-        JsonObject copies = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
+        JsonObject copies = JsonNode.Parse(temperedOrders)!.AsObject();
         copies["roles"]![0]!["classes"] = new JsonArray(
             "relay", "relay", "relay");
         InvalidDataException copyError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                copies.ToJsonString(), tempered.MapPlanJson,
+                copies.ToJsonString(),
+                BroadloomOrdersFixture().MapPlan.ToJsonString(),
                 unlocked, "copy-cap"));
         Assert.Contains("two-copy class cap", copyError.Message);
 
-        TacticalSheetSource idleField = templates.GetStock("idle-field-v1");
+        TacticalSheetSource idleField = templates.GetStock("idle-field-v2");
         JsonObject insufficientVariety = JsonNode.Parse(
             idleField.OrdersJson)!.AsObject();
         insufficientVariety["roles"]![0]!["classes"] = new JsonArray(
@@ -247,12 +249,12 @@ public sealed class TacticalSheetCompilerTests
                 "roster-variety"));
         Assert.Contains("at least 7 distinct classes", varietyError.Message);
 
-        JsonObject wrongMap = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
+        JsonObject wrongMap = BroadloomOrdersFixture().MapPlan;
         wrongMap["mapId"] = ArcRelayLoopProfile.ForwardCombat.MapId;
         string wrongMapJson = wrongMap.ToJsonString();
         InvalidDataException mapError = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                tempered.OrdersJson, wrongMapJson,
+                temperedOrders, wrongMapJson,
                 unlocked, "wrong-map"));
         Assert.Contains("never migrated", mapError.Message,
             StringComparison.OrdinalIgnoreCase);
@@ -267,9 +269,8 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource tempered = templates.GetStock("demolition-march-v1");
-        JsonObject orders = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
-        JsonObject mapPlan = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
+        (string fixtureOrders, JsonObject mapPlan) = BroadloomOrdersFixture();
+        JsonObject orders = JsonNode.Parse(fixtureOrders)!.AsObject();
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         Position wall = Enumerable.Range(0, map.Height)
@@ -302,9 +303,8 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource tempered = templates.GetStock("demolition-march-v1");
-        JsonObject orders = JsonNode.Parse(tempered.OrdersJson)!.AsObject();
-        JsonObject mapPlan = JsonNode.Parse(tempered.MapPlanJson)!.AsObject();
+        (string fixtureOrders, JsonObject mapPlan) = BroadloomOrdersFixture();
+        JsonObject orders = JsonNode.Parse(fixtureOrders)!.AsObject();
         ActorMapDefinition map = ArcRelayH0Definition.CreateMap(
             ArcRelayLoopProfile.Current);
         Position spawn = map.SpawnAnchors[0].Spawn.Position;
@@ -334,17 +334,16 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource demolition = templates.GetStock("demolition-march-v1");
-        JsonObject mapPlan = JsonNode.Parse(demolition.MapPlanJson)!.AsObject();
+        (string fixtureOrders, JsonObject mapPlan) = BroadloomOrdersFixture();
 
         // This was the caught Tapline-6 fault: four interceptors were sent to
         // a wall-split rectangle with only three legal staging tiles.
         mapPlan["zones"]!["centre-overwatch"]!["rect"] = new JsonArray(
-            18, 16, 22, 17);
+            8, 2, 11, 2);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                demolition.OrdersJson,
+                fixtureOrders,
                 mapPlan.ToJsonString(),
                 unlocked,
                 "undersized-movement-zone"));
@@ -360,18 +359,17 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource demolition = templates.GetStock("demolition-march-v1");
-        JsonObject mapPlan = JsonNode.Parse(demolition.MapPlanJson)!.AsObject();
+        (string fixtureOrders, JsonObject mapPlan) = BroadloomOrdersFixture();
 
         // A proposed four-body repair had enough floor, but included the
         // opponent's unenterable delivery tile. Floor count alone is not a
         // valid native-map audit.
         mapPlan["zones"]!["centre-overwatch"]!["rect"] = new JsonArray(
-            22, 18, 24, 20);
+            32, 12, 34, 14);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                demolition.OrdersJson,
+                fixtureOrders,
                 mapPlan.ToJsonString(),
                 unlocked,
                 "enemy-home-movement-zone"));
@@ -386,24 +384,74 @@ public sealed class TacticalSheetCompilerTests
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
         IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
             .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
-        TacticalSheetSource demolition = templates.GetStock("demolition-march-v1");
-        JsonObject mapPlan = JsonNode.Parse(demolition.MapPlanJson)!.AsObject();
+        (string fixtureOrders, JsonObject mapPlan) = BroadloomOrdersFixture();
 
         // Palisade and both Repulsors consume centre-screen-three through the
         // same shared order. The shared cap admits all three even though no
         // individual role contains three bodies.
         mapPlan["zones"]!["centre-overwatch"]!["rect"] = new JsonArray(
-            13, 13, 14, 13);
+            8, 2, 10, 2);
 
         InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
             compiler.Compile(
-                demolition.OrdersJson,
+                fixtureOrders,
                 mapPlan.ToJsonString(),
                 unlocked,
                 "cross-role-named-capacity"));
 
         Assert.Contains("Movement zone 'centre-overwatch'", error.Message);
         Assert.Contains("can send", error.Message);
+    }
+
+    [Fact]
+    public void Broadloom_orders_fixture_compiles_clean_before_mutation()
+    {
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+        (string orders, JsonObject mapPlan) = BroadloomOrdersFixture();
+
+        ValidatedTacticalSheet compiled = compiler.Compile(
+            orders, mapPlan.ToJsonString(), unlocked, "fixture-control");
+
+        Assert.NotNull(compiled.Compilation.LinkedData);
+    }
+
+    /// <summary>
+    /// The frozen Tapline demolition Orders doc rehosted on a Broadloom-native
+    /// plan: the rejection tests below need hand-authored zone/route/anchor
+    /// names to mutate, which tactics-materialized product templates no longer
+    /// carry.
+    /// </summary>
+    private static (string Orders, JsonObject MapPlan) BroadloomOrdersFixture()
+    {
+        string root = Path.GetDirectoryName(
+            BotArena.Toolchain.RepoPaths.FindUpward("BotArena.sln")!)!;
+        JsonObject orders = JsonNode.Parse(File.ReadAllText(Path.Combine(
+            root, "arena-bots", "arc-relay",
+            "tactical-playbook-v1-2026-08-03", "playbooks",
+            "demolition-march-v1.json")))!.AsObject();
+        orders["sheetId"] = "demolition-fixture-v1";
+        orders["mapPlan"] = "map-plan.json";
+        var mapPlan = new JsonObject
+        {
+            ["schema"] = "arc-relay-map-plan-v2",
+            ["mapPlanId"] = "demolition-fixture-v1",
+            ["mapId"] = "arc-relay-broadloom-01",
+            ["zones"] = new JsonObject
+            {
+                ["centre-overwatch"] = new JsonObject
+                {
+                    ["rect"] = new JsonArray(12, 12, 18, 14),
+                },
+            },
+            ["routes"] = new JsonObject(),
+            ["anchors"] = new JsonObject
+            {
+                ["enemy-centre-approach"] = new JsonArray(20, 13),
+            },
+        };
+        return (orders.ToJsonString(), mapPlan);
     }
 
     private static JsonObject FirstMoveWithoutVia(JsonNode node)

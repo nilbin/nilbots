@@ -14,6 +14,13 @@ import {
  * phases, transitions. Geometry is the player's; hints suggest where to draw.
  * The recipe id is provenance only: any later pruning or suggestion keys off
  * document content, never off which recipe created it.
+ *
+ * Every coordinate here is Broadloom (`arc-relay-broadloom-01`, 37x27) ground
+ * and was checked open from BOTH seats: the mid-west posting band around
+ * (11..14, 11..15), the north-east staging rectangle, the mid converge point
+ * (16,13). The two mid pillars at (15,13) and (21,13) are walls — nothing
+ * posts on them or faces into them. Named condition areas come from
+ * `places.ts`, which is anchored on the same map.
  */
 
 export interface RecipeGroupPrefill {
@@ -55,11 +62,11 @@ export const RECIPES: Recipe[] = [
     groups: [
       {
         name: 'Holders', size: 8, core: 'ignore',
-        hint: { rect: [12, 10, 18, 16], text: 'Post up on the ground you intend to keep.' },
+        hint: { rect: [11, 11, 15, 15], text: 'Post up on the ground you intend to keep.' },
       },
     ],
     phases: [
-      { name: 'Hold', jobs: [{ kind: 'posts', posture: 'hold' }] },
+      { name: 'Hold', jobs: [{ kind: 'posts', posture: 'hold', objective: [13, 13] }] },
     ],
   },
   {
@@ -70,13 +77,13 @@ export const RECIPES: Recipe[] = [
     groups: [
       {
         name: 'Rush Party', size: 8, core: 'grab',
-        hint: { rect: [8, 10, 13, 15], text: 'Assemble on your side of Mid, then draw the push.' },
+        hint: { rect: [10, 11, 14, 15], text: 'Assemble on your side of Mid, then draw the push.' },
       },
     ],
     phases: [
       {
         name: 'Assemble',
-        jobs: [{ kind: 'posts', posture: 'observe', objective: [11, 13] }],
+        jobs: [{ kind: 'posts', posture: 'observe', objective: [12, 13] }],
         continue: [{ required: { groupsSet: { allowedLate: 0 } } }],
       },
       {
@@ -97,19 +104,19 @@ export const RECIPES: Recipe[] = [
     groups: [
       {
         name: 'Mid Guard', size: 2, core: 'ignore',
-        hint: { rect: [13, 11, 17, 15], text: 'Two posts at Mid — visible enough to be worth attacking.' },
+        hint: { rect: [11, 11, 15, 15], text: 'Two posts at Mid — visible enough to be worth attacking.' },
       },
       {
         name: 'Flankers', size: 6, core: 'grab',
-        hint: { rect: [21, 3, 27, 8], text: 'Stage behind their lines, out of the fight.' },
+        hint: { rect: [23, 2, 26, 6], text: 'Stage behind their lines, out of the fight.' },
       },
     ],
     phases: [
       {
         name: 'Set the trap',
         jobs: [
-          { kind: 'posts', posture: 'hold', objective: [15, 13] },
-          { kind: 'posts', posture: 'observe', objective: [24, 5] },
+          { kind: 'posts', posture: 'hold', objective: [13, 13] },
+          { kind: 'posts', posture: 'observe', objective: [24, 4] },
         ],
         continue: [{
           required: {
@@ -146,19 +153,19 @@ export const RECIPES: Recipe[] = [
     groups: [
       {
         name: 'Raiders', size: 2, core: 'hunt',
-        hint: { rect: [17, 18, 21, 22], text: 'Approach short of their Well.' },
+        hint: { rect: [23, 5, 27, 9], text: 'Approach short of their Well.' },
       },
       {
         name: 'Screen', size: 6, core: 'ignore',
-        hint: { rect: [13, 14, 18, 19], text: 'Screen between the Well and their spawns.' },
+        hint: { rect: [27, 8, 31, 12], text: 'Screen between the Well and their spawns.' },
       },
     ],
     phases: [
       {
         name: 'Approach',
         jobs: [
-          { kind: 'posts', posture: 'observe', objective: [19, 20] },
-          { kind: 'posts', posture: 'hold', objective: [16, 17] },
+          { kind: 'posts', posture: 'observe', objective: [24, 8] },
+          { kind: 'posts', posture: 'hold', objective: [29, 10] },
         ],
         continue: [{
           required: {
@@ -169,12 +176,12 @@ export const RECIPES: Recipe[] = [
       },
       {
         name: 'Steal',
-        jobs: [{ kind: 'posts', posture: 'aggressive', objective: [21, 21] }, null],
+        jobs: [{ kind: 'posts', posture: 'aggressive', objective: [26, 7] }, null],
         continue: [{ required: { coreAcquired: true } }],
       },
       {
         name: 'Hold the escape',
-        jobs: [null, { kind: 'posts', posture: 'hold', objective: [18, 18] }],
+        jobs: [null, { kind: 'posts', posture: 'hold', objective: [24, 8] }],
       },
     ],
     delivery: 'solo',
@@ -188,7 +195,7 @@ export const RECIPES: Recipe[] = [
     groups: [
       {
         name: 'Patrollers', size: 8, core: 'ignore',
-        hint: { rect: [6, 8, 24, 18], text: 'Draw the loop you want walked.' },
+        hint: { rect: [7, 8, 29, 18], text: 'Draw the loop you want walked.' },
       },
     ],
     phases: [
@@ -205,7 +212,7 @@ export const RECIPES: Recipe[] = [
       { name: 'Escorts', size: 3, core: 'ignore', hint: null },
       {
         name: 'Screen', size: 4, core: 'ignore',
-        hint: { rect: [4, 10, 9, 16], text: 'Screen the lane the carrier will come down.' },
+        hint: { rect: [12, 11, 16, 16], text: 'Screen the lane the carrier will come down.' },
       },
     ],
     phases: [

@@ -21,10 +21,10 @@ public sealed class ArcRelayTaplineSealedEntrancesTests
     [Fact]
     public void Tapline9AddsOnlyTheSixApprovedWallsAndKeepsTapline8()
     {
-        Assert.Same(ArcRelayLoopProfile.Tapline15, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-15", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-15", ArcRelayLoopProfile.Current.RulesetId);
-        Assert.Equal("arc-relay-tapline-03", ArcRelayLoopProfile.Current.MapId);
+        Assert.Same(ArcRelayLoopProfile.Broadloom2, ArcRelayLoopProfile.Current);
+        Assert.Equal("broadloom-2", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-broadloom-2", ArcRelayLoopProfile.Current.RulesetId);
+        Assert.Equal("arc-relay-broadloom-01", ArcRelayLoopProfile.Current.MapId);
         Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Tapline8.MapId);
 
         ActorMapDefinition before = ArcRelayH0Definition.CreateMap(

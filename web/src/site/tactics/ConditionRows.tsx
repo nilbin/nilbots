@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { CountStepper, TickRow, ZoneSelect } from './conditionControls';
 import { caseClause } from './summary';
-import { WELL_OPTIONS, ZONE_OPTIONS } from './places';
+import { WELL_OPTIONS, WORKSHOP_OPTIONS, ZONE_OPTIONS } from './places';
 import type {
-  CondKind, TacticCase, TacticConds, WellChoice, ZoneRef,
+  CondKind, TacticCase, TacticConds, WellChoice, WorkshopChoice, WorkshopTeam,
+  ZoneRef,
 } from './tacticsDocument';
 
 /**
@@ -27,6 +28,11 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
   reached: 'The destination is reached',
   observed: 'The ground has been watched long enough',
   veterancy: 'Selected bots reach a veteran level',
+  workshopReady: 'Workshop is ready',
+  workshopTraining: 'Someone is training at the Workshop',
+  workshopContested: 'Enemies are standing in the Workshop',
+  workshopDormant: 'Workshop is recharging',
+  workshopDone: 'Our Workshop training completed',
 };
 
 /** Presentation grouping: every side shows its rows bucketed under these
@@ -36,6 +42,13 @@ const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
   { label: 'Our team', kinds: ['groupsSet', 'healed', 'veterancy'] },
   { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'notFighting'] },
   { label: 'Cores', kinds: ['coreLoose', 'coreSoon', 'coreAcquired'] },
+  {
+    label: 'Workshops',
+    kinds: [
+      'workshopReady', 'workshopTraining', 'workshopContested',
+      'workshopDormant', 'workshopDone',
+    ],
+  },
 ];
 
 export function ConditionRows({
@@ -113,6 +126,11 @@ export function ConditionRows({
           else if (kind === 'coreLost') next.coreLost = true;
           else if (kind === 'reached') next.reached = true;
           else if (kind === 'observed') next.observed = true;
+          else if (kind === 'workshopReady') next.workshopReady = { workshop: 'either' };
+          else if (kind === 'workshopTraining') next.workshopTraining = { workshop: 'either', team: 'enemy' };
+          else if (kind === 'workshopContested') next.workshopContested = { workshop: 'either' };
+          else if (kind === 'workshopDormant') next.workshopDormant = { workshop: 'either' };
+          else if (kind === 'workshopDone') next.workshopDone = { workshop: 'either', count: 1 };
         });
         if (!on) setPickerOpen(false);
       }} />
@@ -147,6 +165,21 @@ export function ConditionRows({
         rect: structuredClone(zones[zones.length - 1]?.rect ?? ZONE_OPTIONS[0].rect),
       }])}>＋ Add another area</button>}
   </div>;
+
+  /** The Workshop picker every Workshop row shares. Workshop ids are GLOBAL
+   * map identities — north stays north for both seats, unlike drawn ground. */
+  const workshopSelect = (
+    value: WorkshopChoice,
+    onPick: (workshop: WorkshopChoice) => void,
+  ) => (
+    <select className="field !min-h-7 !w-auto !py-0 t-micro"
+      value={value}
+      onClick={(event) => event.stopPropagation()}
+      onChange={(event) => onPick(event.target.value as WorkshopChoice)}>
+      {WORKSHOP_OPTIONS.map((option) =>
+        <option key={option.id} value={option.id}>{option.label}</option>)}
+    </select>
+  );
 
   const drawChrome = (key: string, text: string) => (
     <div key={key}
@@ -371,6 +404,61 @@ export function ConditionRows({
       rows.push(row('kills', 'Enemies destroyed this phase', on && conds.kills
         && <CountStepper value={conds.kills.count}
           onChange={(value) => set((next) => { next.kills!.count = value; })} />, on));
+      return;
+    }
+    if (kind === 'workshopReady' || kind === 'workshopContested'
+      || kind === 'workshopDormant') {
+      const value = conds[kind];
+      const on = Boolean(value);
+      rows.push(row(kind, flagLabel!, on && value
+        && workshopSelect(value.workshop, (workshop) => set((next) => {
+          if (kind === 'workshopReady') next.workshopReady = { workshop };
+          else if (kind === 'workshopContested') next.workshopContested = { workshop };
+          else next.workshopDormant = { workshop };
+        })), on));
+      if (on) {
+        rows.push(drawChrome(`${kind}-public`,
+          'Workshop state is public to both sides — this reads the room, never a hidden bot.'));
+      }
+      return;
+    }
+    if (kind === 'workshopTraining') {
+      const on = Boolean(conds.workshopTraining);
+      rows.push(row('workshopTraining', ROW_LABELS.workshopTraining!,
+        on && conds.workshopTraining && <>
+          {workshopSelect(conds.workshopTraining.workshop, (workshop) =>
+            set((next) => { next.workshopTraining!.workshop = workshop; }))}
+          <select className="field !min-h-7 !w-auto !py-0 t-micro"
+            value={conds.workshopTraining.team ?? 'any'}
+            onClick={(event) => event.stopPropagation()}
+            onChange={(event) => set((next) => {
+              next.workshopTraining!.team = event.target.value as WorkshopTeam;
+            })}>
+            <option value="any">anyone</option>
+            <option value="enemy">an enemy</option>
+            <option value="self">one of ours</option>
+          </select>
+        </>, on));
+      if (on) {
+        rows.push(drawChrome('workshopTraining-public',
+          'The Workshop publishes whose channel is running — answering it is the whole point.'));
+      }
+      return;
+    }
+    if (kind === 'workshopDone') {
+      const on = Boolean(conds.workshopDone);
+      rows.push(row('workshopDone', ROW_LABELS.workshopDone!,
+        on && conds.workshopDone && <>
+          <CountStepper value={conds.workshopDone.count ?? 1} min={1} max={8}
+            onChange={(value) => set((next) => { next.workshopDone!.count = value; })} />
+          <span className="t-micro text-arena-dim">finished at</span>
+          {workshopSelect(conds.workshopDone.workshop, (workshop) =>
+            set((next) => { next.workshopDone!.workshop = workshop; }))}
+        </>, on));
+      if (on) {
+        rows.push(drawChrome('workshopDone-scope',
+          'Counted since THIS phase began, from our own completed channels.'));
+      }
       return;
     }
     if (flagLabel) {

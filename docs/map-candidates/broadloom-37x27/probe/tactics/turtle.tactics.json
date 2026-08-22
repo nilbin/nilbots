@@ -1,0 +1,180 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "bl-tactics-turtle-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    {
+      "slot": 0,
+      "class": "kestrel",
+      "build": "scout",
+      "name": "Vex"
+    },
+    {
+      "slot": 1,
+      "class": "relay",
+      "build": "balanced",
+      "name": "Piston"
+    },
+    {
+      "slot": 2,
+      "class": "longshot",
+      "build": "balanced",
+      "name": "Gantry"
+    },
+    {
+      "slot": 3,
+      "class": "mortar",
+      "build": "balanced",
+      "name": "Maul"
+    },
+    {
+      "slot": 4,
+      "class": "sunder",
+      "build": "balanced",
+      "name": "Brand"
+    },
+    {
+      "slot": 5,
+      "class": "patchbay",
+      "build": "balanced",
+      "name": "Cinder"
+    },
+    {
+      "slot": 6,
+      "class": "mason",
+      "build": "durable",
+      "name": "Flux"
+    },
+    {
+      "slot": 7,
+      "class": "palisade",
+      "build": "durable",
+      "name": "Ember"
+    }
+  ],
+  "tactics": [
+    {
+      "id": "home-floor",
+      "name": "Home income floor",
+      "recipe": "hold-area",
+      "start": {
+        "mode": "always"
+      },
+      "delivery": {
+        "plan": "solo"
+      },
+      "groups": [
+        {
+          "id": "garrison",
+          "name": "Well garrison",
+          "slots": [
+            2,
+            3,
+            6,
+            7
+          ],
+          "coreRule": "grab"
+        },
+        {
+          "id": "keep",
+          "name": "Home keep",
+          "slots": [
+            0,
+            1,
+            4,
+            5
+          ],
+          "coreRule": "grab"
+        }
+      ],
+      "phases": [
+        {
+          "id": "hold-home",
+          "name": "Hold the home quarter",
+          "jobs": {
+            "garrison": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    9,
+                    21
+                  ],
+                  "facing": "e",
+                  "slot": 2
+                },
+                {
+                  "at": [
+                    11,
+                    17
+                  ],
+                  "facing": "s",
+                  "slot": 3
+                },
+                {
+                  "at": [
+                    10,
+                    18
+                  ],
+                  "facing": "e",
+                  "slot": 6
+                },
+                {
+                  "at": [
+                    12,
+                    20
+                  ],
+                  "facing": "e",
+                  "slot": 7
+                }
+              ]
+            },
+            "keep": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    6,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 0
+                },
+                {
+                  "at": [
+                    6,
+                    14
+                  ],
+                  "facing": "e",
+                  "slot": 1
+                },
+                {
+                  "at": [
+                    7,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 4
+                },
+                {
+                  "at": [
+                    7,
+                    14
+                  ],
+                  "facing": "e",
+                  "slot": 5
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -52,21 +52,19 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v33 and the local <code>nilbots arc-relay</code>
-          default both run tapline-15 on the accepted equal-return Tapline with
-          the owner-approved sealed outer-Well entrances and staggered Mid cover,
-          signature grammar 3 and atomic convoy
-          movement: bodies may enter a tile a teammate leaves in the same tick,
-          but swaps, closed cycles and contested destinations still block. Sheets authored for earlier maps
+          Hosted playlist v34 and the local <code>nilbots arc-relay</code>
+          default both run broadloom-2 on the 37x27 Broadloom map — three Wells in
+          distinct roomed theatres, two neutral Workshops, signature grammar 3 and
+          atomic convoy movement: bodies may enter a tile a teammate leaves in the
+          same tick, but swaps, closed cycles and contested destinations still
+          block. Sheets authored for earlier maps
           remain match history but are not accepted by the current editor;
-          coordinates are never projected between maps. Tapline-15 values a Core at 1, 2,
+          coordinates are never projected between maps. Broadloom values a Core at 1, 2,
           or 4 charge according to its Well&apos;s distance from your reactor, promotes
           veterans through combat, returns destroyed bodies in public 30-tick waves,
           requires at least seven distinct classes, and makes deployments durable targets.
           Its centre Well opens on the same second global beat as the outer Wells, leaving
           the first beat for scouting and counter-positioning before the two-charge Core.
-          A centre Core has a 19-step fast return or a 29-step healing-side return;
-          that visible distance tradeoff lets a Program choose speed or recovery.
           Facing-quadrant vision reaches 5 tiles, while short, medium and long basic
           guns reach 3, 4 and 6. Immediate team-shared sight lets Longshot use that
           sixth tile when an ally supplies contact. Swift, standard and deliberate
@@ -76,9 +74,9 @@ export default function DocsPage() {
           allied shots, and never blocks bodies. Living teammates harmlessly stop
           allied fire, while friendly sentries, mines and walls remain transparent.
           On death, a bot keeps half its accumulated veteran XP, rounded down, on
-          its team-local roster slot. Playlist v33 opens a fresh rating book at
-          1200; playlists v23–v32 remain readable history and their ratings are
-          not carried into v33.
+          its team-local roster slot. Playlist v34 opens a fresh rating book at
+          1200; playlists v23–v33 remain readable history and their ratings are
+          not carried into v34.
         </p>
         <p className="mt-2 text-arena-dim">
           Ranked, practice, the Tactics editor and the local CLI all run that same
@@ -86,6 +84,19 @@ export default function DocsPage() {
           active Core until it is banked into either reactor. That bank starts an exact
           public 46-tick recharge. Carrying, tossing, dropping and stealing do not start
           the clock, and an active Core has no birth countdown.
+        </p>
+        <p className="mt-2 text-arena-dim">
+          Both Workshops are neutral objectives with fully public state. They
+          unlock at tick 25. One body trains by holding the training tile for 15
+          consecutive qualifying ticks: it must stay alive, stay put, carry no
+          Core, take no damage, attack nothing, cast nothing, and no living enemy
+          may stand anywhere in the Workshop&apos;s contest room. Any violation
+          resets progress to zero, and dying or swapping bodies never inherits a
+          channel. Completion grants exactly one veterancy XP through the normal
+          capped ladder and puts that Workshop into a public 45-tick recharge.
+          Guards keep the room empty but never speed the channel up — a visible
+          Training signal is an open invitation to contest it or to raid
+          somewhere else while you answer.
         </p>
       </Doc>
 

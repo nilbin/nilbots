@@ -43,8 +43,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         new(StringComparer.Ordinal)
         {
             "posts", "area", "line", "approach", "converge", "advance",
-            "patrol", "return", "escort", "none",
+            "patrol", "return", "escort", "none", "train",
         };
+
+    private static readonly HashSet<string> TacticWorkshopIds =
+        new(StringComparer.Ordinal) { "north", "south", "either" };
 
     private static readonly HashSet<string> TacticWells =
         new(StringComparer.Ordinal)
@@ -62,7 +65,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     [
         "enemiesAt", "contact", "cleared", "notFighting", "coreLoose", "coreSoon",
         "enemiesDown", "carrier", "losses", "lossesWithin", "killsWithin",
-        "healed",
+        "healed", "workshopReady", "workshopTraining", "workshopContested",
+        "workshopDormant",
     ];
 
     private static readonly string[] TacticTransitionRows =
@@ -70,14 +74,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         "groupsSet", "held", "healed", "contact", "enemiesAt", "coreLoose",
         "coreSoon", "enemiesDown", "kills", "killsWithin", "losses",
         "lossesWithin", "cleared", "notFighting", "coreAcquired", "coreBanked", "coreLost",
-        "reached", "observed", "veterancy",
+        "reached", "observed", "workshopReady", "workshopTraining",
+        "workshopContested", "workshopDormant", "workshopDone",
+        "veterancy",
     ];
 
     private static readonly string[] TacticAbortRows =
     [
         "losses", "lossesWithin", "coreLost", "enemiesAt", "contact",
         "cleared", "notFighting", "carrier", "enemiesDown", "coreLoose", "coreSoon",
-        "killsWithin", "healed",
+        "killsWithin", "healed", "workshopContested", "workshopDormant",
     ];
 
     /// <summary>
@@ -886,10 +892,44 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         string[] geometryKeys = ["posts", "rect", "path", "point"];
         Object(value, path, ["kind", "posture", "recovery"],
-            [.. geometryKeys, "via", "sigs", "travel"]);
+            [.. geometryKeys, "via", "sigs", "travel", "workshop"]);
         string kind = RequiredString(value, "kind", path);
         if (!TacticJobKinds.Contains(kind))
             throw Error($"{path}.kind", $"unknown job kind '{kind}'.");
+        string? workshop = null;
+        if (value.TryGetProperty("workshop", out JsonElement workshopValue))
+        {
+            if (kind != "train")
+                throw Error($"{path}.workshop",
+                    "only a 'train' job selects a Workshop.");
+            workshop = StringValue(workshopValue, $"{path}.workshop");
+            if (!TacticWorkshopIds.Contains(workshop))
+                throw Error($"{path}.workshop",
+                    "workshop must be north/south/either.");
+        }
+        if (kind == "train")
+        {
+            if (workshop is null)
+                throw Error(path, "a 'train' job names its Workshop.");
+            if (group.Slots.Count != 1)
+            {
+                throw Error(path,
+                    "training is one bot's job — put the trainee in a group "
+                    + "of one and give the guards their own posted group.");
+            }
+            if (value.TryGetProperty("sigs", out _))
+            {
+                throw Error($"{path}.sigs",
+                    "a trainee casts nothing — a signature would reset the "
+                    + "channel, so marks belong to the guard group.");
+            }
+            if (RequiredString(value, "posture", path) != "wait")
+            {
+                throw Error($"{path}.posture",
+                    "training is passive — the trainee's posture is 'wait'; "
+                    + "any fight would reset the channel.");
+            }
+        }
         string posture = RequiredString(value, "posture", path);
         if (!TacticPostures.Contains(posture))
             throw Error($"{path}.posture", $"unknown posture '{posture}'.");
@@ -920,6 +960,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "approach" or "converge" => "point",
             _ => null,
         };
+        // 'train' and 'none' take no drawn geometry; train's ground is the
+        // rules-owned training tile selected by 'workshop'.
         foreach (string key in geometryKeys)
         {
             bool present = value.TryGetProperty(key, out _);
@@ -1065,7 +1107,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         return new ArcRelayTacticJob(
             kind, posture, travel, recovery, posts, rect, pathPoints, point,
-            via, sigs);
+            via, sigs)
+        {
+            Workshop = workshop,
+        };
     }
 
     private static void ValidateSignatureMarks(
@@ -1423,11 +1468,64 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         bool coreLost = FlagRow(value, "coreLost", path);
         bool reached = FlagRow(value, "reached", path);
         bool observed = FlagRow(value, "observed", path);
+        string? WorkshopRow(string name)
+        {
+            if (!value.TryGetProperty(name, out JsonElement row))
+                return null;
+            string at = $"{path}.{name}";
+            Object(row, at, ["workshop"]);
+            string workshop = RequiredString(row, "workshop", at);
+            if (!TacticWorkshopIds.Contains(workshop))
+                throw Error(at, "workshop must be north/south/either.");
+            return workshop;
+        }
+        string? workshopReady = WorkshopRow("workshopReady");
+        string? workshopContested = WorkshopRow("workshopContested");
+        string? workshopDormant = WorkshopRow("workshopDormant");
+        ArcRelayTacticWorkshopTrainingRow? workshopTraining = null;
+        if (value.TryGetProperty(
+                "workshopTraining", out JsonElement trainingRow))
+        {
+            string at = $"{path}.workshopTraining";
+            Object(trainingRow, at, ["workshop"], ["team"]);
+            string workshop = RequiredString(trainingRow, "workshop", at);
+            if (!TacticWorkshopIds.Contains(workshop))
+                throw Error(at, "workshop must be north/south/either.");
+            string team = "any";
+            if (trainingRow.TryGetProperty("team", out JsonElement teamValue))
+            {
+                team = StringValue(teamValue, $"{at}.team");
+                if (team is not ("self" or "enemy" or "any"))
+                    throw Error($"{at}.team", "team must be self/enemy/any.");
+            }
+            workshopTraining = new ArcRelayTacticWorkshopTrainingRow(
+                workshop, team);
+        }
+        ArcRelayTacticWorkshopDoneRow? workshopDone = null;
+        if (value.TryGetProperty("workshopDone", out JsonElement doneRow))
+        {
+            string at = $"{path}.workshopDone";
+            Object(doneRow, at, ["workshop"], ["count"]);
+            string workshop = RequiredString(doneRow, "workshop", at);
+            if (!TacticWorkshopIds.Contains(workshop))
+                throw Error(at, "workshop must be north/south/either.");
+            int count = doneRow.TryGetProperty("count", out _)
+                ? Range(doneRow, "count", at, 1, 8)
+                : 1;
+            workshopDone = new ArcRelayTacticWorkshopDoneRow(workshop, count);
+        }
         return new ArcRelayTacticConditionRows(
             enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
             carrier, losses, lossesWithin, groupsSet, heldTicks, healed,
             kills, cleared, notFighting, coreAcquired, coreBanked, coreLost, reached,
-            observed, coreAcquiredWell, killsWithin, veterancy);
+            observed, coreAcquiredWell, killsWithin, veterancy)
+        {
+            WorkshopReady = workshopReady,
+            WorkshopTraining = workshopTraining,
+            WorkshopContested = workshopContested,
+            WorkshopDormant = workshopDormant,
+            WorkshopDone = workshopDone,
+        };
     }
 
     private static bool FlagRow(
@@ -1611,13 +1709,35 @@ internal sealed record ArcRelayTacticConditionRows(
         + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
         + (Reached ? 1 : 0) + (Observed ? 1 : 0)
         + (KillsWithin is null ? 0 : 1)
-        + (Veterancy is null ? 0 : 1);
+        + (Veterancy is null ? 0 : 1)
+        + (WorkshopReady is null ? 0 : 1)
+        + (WorkshopTraining is null ? 0 : 1)
+        + (WorkshopContested is null ? 0 : 1)
+        + (WorkshopDormant is null ? 0 : 1)
+        + (WorkshopDone is null ? 0 : 1);
+
+    public string? WorkshopReady { get; init; }
+    public ArcRelayTacticWorkshopTrainingRow? WorkshopTraining { get; init; }
+    public string? WorkshopContested { get; init; }
+    public string? WorkshopDormant { get; init; }
+    public ArcRelayTacticWorkshopDoneRow? WorkshopDone { get; init; }
 }
 
 internal sealed record ArcRelayTacticVeterancyRow(
     int Level,
     IReadOnlyList<int> Slots,
     int Count);
+
+/// <summary>"The {workshop} Workshop is training", optionally filtered to
+/// whose channel it is.</summary>
+internal sealed record ArcRelayTacticWorkshopTrainingRow(
+    string Workshop,
+    string Team);
+
+/// <summary>"Our team completed {count} training sessions at {workshop}
+/// since this phase began" — a phase-anchored outcome row.</summary>
+internal sealed record ArcRelayTacticWorkshopDoneRow(string Workshop, int Count);
+
 
 /// <summary>"We lost {count} bots within the last {ticks} ticks" — the
 /// remembered-casualty row for aborts and emergency starts.</summary>
@@ -1665,7 +1785,12 @@ internal sealed record ArcRelayTacticJob(
 {
     public bool HasGeometry =>
         Posts is not null || Rect is not null || Path is not null
-        || Point is not null;
+        || Point is not null || Workshop is not null;
+
+    /// <summary>The 'train' job's Workshop selector: north, south, or
+    /// either. The exact training tile is rules-owned and resolved by the
+    /// executor from the match contract, never authored here.</summary>
+    public string? Workshop { get; init; }
 }
 
 internal sealed record ArcRelayTacticPost(

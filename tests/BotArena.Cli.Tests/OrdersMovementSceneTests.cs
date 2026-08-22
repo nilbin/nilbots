@@ -35,7 +35,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             defender.Composition,
             visitor.Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.Tapline14);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -148,7 +148,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             defender.Composition,
             visitor.Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.Tapline14);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -226,7 +226,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             defender.Composition,
             visitor.Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.Tapline14);
 
         using var session = new GenericActorMatchSession(
             definition,
@@ -339,7 +339,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             carrier.Composition,
             visitor.Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.Tapline14);
         int runnerUnit = Array.IndexOf(carrier.Composition, "palisade");
         Assert.True(runnerUnit >= 0);
 
@@ -926,7 +926,7 @@ public sealed class OrdersMovementSceneTests
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
             traveller.Composition,
             demolition.Composition,
-            loopProfile: ArcRelayLoopProfile.Current);
+            loopProfile: ArcRelayLoopProfile.Tapline14);
 
         using var session = new GenericActorMatchSession(
             definition,

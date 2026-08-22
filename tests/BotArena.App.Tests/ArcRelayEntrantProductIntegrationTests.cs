@@ -141,7 +141,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         // compiled identity.
         JsonObject rework = JsonNode.Parse(
             catalog.StarterSheets[0].TacticsJson)!.AsObject();
-        rework["tactics"]![1]!["finish"]!["maxAttempt"] = "long";
+        rework["tactics"]![1]!["phases"]![0]!["jobs"]!["holders"]!
+            ["posture"] = "aggressive";
         HttpResponseMessage reworkUpdate = await client.PutAsJsonAsync(
             $"/api/sheets/{sheets[0].Id}",
             new SaveTacticalSheetRequest(
@@ -802,8 +803,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline13Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline14Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.CompleteObservationVersion)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.BroadloomInitialVersion)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline15_v33_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Broadloom_v34_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -969,7 +971,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline15_v33_refuses_to_skip_a_registered_v30_ladder()
+    public async Task Broadloom_v34_refuses_to_skip_a_registered_v30_ladder()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =

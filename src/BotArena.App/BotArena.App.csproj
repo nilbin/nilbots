@@ -44,18 +44,16 @@
   <ItemGroup>
     <!-- Source-authored Orders v2 templates. Map-plan hashes are compiler
          output, never fields players have to pin. -->
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/tactics/first-stand-v1.json"
-                      LogicalName="BotArena.Sheets.first-stand-v1.tactics.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/tactics/mid-pincer-v1.json"
-                      LogicalName="BotArena.Sheets.mid-pincer-v1.tactics.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/demolition-march-v1.json"
-      LogicalName="BotArena.Sheets.demolition-march-v1.sheet.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-9/demolition-march-v1.json"
-      LogicalName="BotArena.Sheets.demolition-march-v1.map-plan.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/idle-field-v1.json"
-      LogicalName="BotArena.Sheets.idle-field-v1.sheet.json" />
-    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/tapline-9/idle-field-v1.json"
-      LogicalName="BotArena.Sheets.idle-field-v1.map-plan.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/tactics/first-stand-v2.json"
+                      LogicalName="BotArena.Sheets.first-stand-v2.tactics.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/tactics/mid-pincer-v2.json"
+                      LogicalName="BotArena.Sheets.mid-pincer-v2.tactics.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/tactics/demolition-march-v2.json"
+      LogicalName="BotArena.Sheets.demolition-march-v2.tactics.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/idle-field-v2.json"
+      LogicalName="BotArena.Sheets.idle-field-v2.sheet.json" />
+    <EmbeddedResource Include="../../arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/map-plans/broadloom-1/idle-field-v2.json"
+      LogicalName="BotArena.Sheets.idle-field-v2.map-plan.json" />
   </ItemGroup>
   <ItemGroup>
     <!-- One frozen first-party stock algorithm is compiled once into the

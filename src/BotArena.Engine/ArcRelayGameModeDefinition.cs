@@ -50,9 +50,17 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int bankTriggeredWellRechargeTicks = 0,
         bool sentryTeamVision = false,
         bool reactiveImpactFacing = false,
-        int veterancyDeathRetentionPercent = 0)
+        int veterancyDeathRetentionPercent = 0,
+        ArcRelayVeterancyWorkshopRules? veterancyWorkshops = null)
         : base(modeId, victory, scoreCatalog)
     {
+        if (veterancyWorkshops is not null && veterancyXpPerLevel <= 0)
+        {
+            throw new ArgumentException(
+                "Veterancy Workshops require the veterancy system.",
+                nameof(veterancyWorkshops));
+        }
+        VeterancyWorkshops = veterancyWorkshops;
         RequirePositive(
             veterancyDamagePerPoint,
             nameof(veterancyDamagePerPoint));
@@ -323,6 +331,10 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// mind decision.
     /// </summary>
     public bool ReactiveImpactFacing { get; }
+
+    /// <summary>Neutral veterancy Workshop rules; null when the profile has
+    /// no Workshops, which keeps historical rules bytes untouched.</summary>
+    public ArcRelayVeterancyWorkshopRules? VeterancyWorkshops { get; }
 
     /// <summary>
     /// Resolved veterancy and recovery magnitudes. Historical contracts omit

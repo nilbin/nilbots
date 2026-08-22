@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile tapline-12                            # the current local Arc Relay line
+  --loop-profile broadloom-2                           # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,7 +208,7 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `tapline-12`, whose atomic occupancy contract
+  `--loop-profile` defaults to `broadloom-2`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
@@ -233,11 +233,24 @@ Project boundaries that must not be violated:
   chassis Combat Strafe controls, and exposes deterministic swift/standard/
   deliberate movement opportunities of 1/1, 4/5, and 2/3. Tapline-12 replaces
   only Palisade's static wall with its 30-hull, six-tick moving Prism Screen.
-  Immutable hosted entrant playlist v29 pins `tapline-12`, Tapline-native
-  Orders v2 sheets, atomic EPIBT squad movement, the combined depth rules,
-  the delayed centre opening, the equal-return map fork, bank-triggered
-  source-local Well supply, and the parity-proven ATL2 WASM mirror. v25
-  remains immutable, replay-only Tapline-8 history, v24 Tapline-6, and v23
+  Tapline-13 adds contextual strafe sentry vision, and Tapline-14
+  reactive impact facing; the complete-observation pass kept Tapline-14's
+  rules while widening the tactical mind's projection. Tapline-15 adds 50%
+  stable-slot veterancy retention and harmless allied-body projectile blocks.
+  Broadloom-1 first carried the 37x27 `arc-relay-broadloom-01` whole-map
+  identity and its two neutral veterancy Workshops (unlock 25, 15-tick
+  channel, 1 capped XP, 45-tick dormancy, public state). Broadloom-2 carries
+  that exact map and Workshop contract while folding in Tapline-15's 50%
+  stable-slot veterancy retention and harmless allied-body projectile blocks
+  under a new ruleset identity (DECISIONS #358–#360).
+  Immutable hosted entrant playlist v34 pins `broadloom-2`, the
+  tactics-authored `tempered-broadloom-v1` stock, Broadloom-native product
+  templates (first-stand-v2, mid-pincer-v2, idle-field-v2, and the
+  tactics-authored demolition-march-v2), and the rebuilt tactical mirror.
+  v33 remains immutable first-Broadloom history, v32 remains immutable
+  complete-observation Tapline-14 history, v31/v30
+  Tapline-14/13, v29 `tapline-12`, v25
+  replay-only Tapline-8 history, v24 Tapline-6, and v23
   Tapline-5. v7
   began the fresh Warren
   development rating era and remains immutable; v8 carried those development
@@ -303,6 +316,15 @@ Project boundaries that must not be violated:
   v29 starts fresh because Tapline-12 changes Palisade's defensive geometry;
   v28 remains immutable Tapline-11 history. The sheet artifact, map, economy,
   movement, guns, and every other signature are unchanged.
+  v30 and v31 start fresh for Tapline-13's contextual strafe sentry vision
+  and Tapline-14's reactive impact facing; v32 starts fresh because the
+  complete tactical observation projection and approach-exact durable
+  deployments change the registered stock gameplay. v33 starts fresh because
+  Broadloom's new map identity and neutral veterancy Workshops change
+  strategic terrain, the objective vocabulary, and the registered stock
+  gameplay; v32 ratings are never copied into v33. The stock moves to the
+  tactics-authored `tempered-broadloom-v1`, and the tactical mirror is
+  rebuilt with the Workshop-aware mind (SDK 0.10.16).
   Authoritative
   generic-actor movement is corner-strict from this line: diagonal movement
   requires both orthogonal companion terrain

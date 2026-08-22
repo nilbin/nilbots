@@ -228,8 +228,17 @@ internal sealed record GenericActorModeTickInput
     public GenericActorModeTickInput(
         int tick,
         IReadOnlyCollection<GenericActorModeDamageContact> damageContacts,
-        IReadOnlyCollection<FrontlineScrapDestruction>? destructions = null)
+        IReadOnlyCollection<FrontlineScrapDestruction>? destructions = null,
+        IReadOnlySet<ActorIdentity>? movedOrDisplacedActors = null,
+        IReadOnlySet<ActorIdentity>? combatActingActors = null,
+        IReadOnlySet<ActorIdentity>? damagedActors = null)
     {
+        MovedOrDisplacedActors = movedOrDisplacedActors
+            ?? ImmutableHashSet<ActorIdentity>.Empty;
+        CombatActingActors = combatActingActors
+            ?? ImmutableHashSet<ActorIdentity>.Empty;
+        DamagedActors = damagedActors
+            ?? ImmutableHashSet<ActorIdentity>.Empty;
         if (tick < 0)
             throw new ArgumentOutOfRangeException(nameof(tick));
         ArgumentNullException.ThrowIfNull(damageContacts);
@@ -279,6 +288,25 @@ internal sealed record GenericActorModeTickInput
     /// was. Empty for every mode that places nothing.
     /// </summary>
     public ImmutableArray<FrontlineScrapDestruction> Destructions { get; }
+
+    /// <summary>
+    /// Lives that moved or were displaced this tick — accepted moves, dash,
+    /// hook pulls, bursts and exchanges alike. A mode channel that requires a
+    /// stationary body reads this instead of re-deriving movement.
+    /// </summary>
+    public IReadOnlySet<ActorIdentity> MovedOrDisplacedActors { get; }
+
+    /// <summary>
+    /// Lives whose accepted action this tick was an attack or a signature
+    /// cast. Waits, rotations and blocked submissions are not in this set.
+    /// </summary>
+    public IReadOnlySet<ActorIdentity> CombatActingActors { get; }
+
+    /// <summary>
+    /// Lives that took any damage this tick, from projectiles or signature
+    /// effects.
+    /// </summary>
+    public IReadOnlySet<ActorIdentity> DamagedActors { get; }
 }
 
 internal sealed record GenericActorModeScoreChange

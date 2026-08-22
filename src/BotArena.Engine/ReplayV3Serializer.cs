@@ -2136,6 +2136,35 @@ internal static class ReplayV3Serializer
                     fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
                     fact.Amount, fact.NewHealth, fact.Position);
                 break;
+            case ReplayV3.ArcRelayFact.WorkshopReady fact:
+                writer.WriteString("workshopId", fact.WorkshopId);
+                writer.WritePropertyName("trainingTile");
+                WritePosition(writer, fact.TrainingTile);
+                break;
+            case ReplayV3.ArcRelayFact.WorkshopTrainingStarted fact:
+                writer.WriteString("workshopId", fact.WorkshopId);
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WritePropertyName("trainingTile");
+                WritePosition(writer, fact.TrainingTile);
+                break;
+            case ReplayV3.ArcRelayFact.WorkshopTrainingInterrupted fact:
+                writer.WriteString("workshopId", fact.WorkshopId);
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WriteString("reason", fact.Reason);
+                writer.WriteNumber("progressLost", fact.ProgressLost);
+                writer.WritePropertyName("trainingTile");
+                WritePosition(writer, fact.TrainingTile);
+                break;
+            case ReplayV3.ArcRelayFact.WorkshopTrainingCompleted fact:
+                writer.WriteString("workshopId", fact.WorkshopId);
+                writer.WriteNumber("teamId", fact.TeamId);
+                writer.WritePropertyName("traineeActorId");
+                WriteActorId(writer, fact.TraineeActorId);
+                writer.WriteNumber("xpAward", fact.XpAward);
+                writer.WriteNumber("readyAgainTick", fact.ReadyAgainTick);
+                writer.WritePropertyName("trainingTile");
+                WritePosition(writer, fact.TrainingTile);
+                break;
             default:
                 throw new NotSupportedException(
                     $"Unsupported Arc Relay fact '{value.GetType().Name}'.");
@@ -2631,6 +2660,16 @@ internal static class ReplayV3Serializer
                         arcRelay.RespawnWaveTeams,
                         WriteArcRespawnWaveTeam);
                 }
+                // Workshop states serialize only where they exist: every
+                // replay from a ruleset without Workshops stays byte-exact.
+                if (!arcRelay.Workshops.IsEmpty)
+                {
+                    WriteArray(
+                        writer,
+                        "workshops",
+                        arcRelay.Workshops,
+                        WriteArcWorkshop);
+                }
                 break;
             default:
                 throw new NotSupportedException(
@@ -2660,6 +2699,22 @@ internal static class ReplayV3Serializer
             WriteActorId(writer, value.Target);
         }
         WriteArray(writer, "tiles", value.Tiles, WritePosition);
+        writer.WriteEndObject();
+    }
+
+    private static void WriteArcWorkshop(
+        Utf8JsonWriter writer,
+        ReplayV3.ArcWorkshop value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("workshopId", value.WorkshopId);
+        writer.WritePropertyName("trainingTile");
+        WritePosition(writer, value.TrainingTile);
+        writer.WriteString("phase", value.Phase);
+        WriteNullableNumber(writer, "trainingTeamId", value.TrainingTeamId);
+        writer.WriteNumber("progressTicks", value.ProgressTicks);
+        writer.WriteNumber("requiredTicks", value.RequiredTicks);
+        WriteNullableNumber(writer, "readyAtTick", value.ReadyAtTick);
         writer.WriteEndObject();
     }
 
@@ -3479,12 +3534,13 @@ internal static class ReplayV3Serializer
                 })
                 .ToImmutableArray();
             var optionalParameters = ImmutableArray.CreateBuilder<string>();
-            // Windup attacks admit a heading-only suppressive declaration:
-            // UnitTarget is a lock, not a required aiming argument. Runtime
-            // admission and chronology already enforce that rule; replay-v3
-            // must validate the same legal partial payload instead of
-            // requiring either every argument or none.
-            if (string.Equals(kind, "attack", StringComparison.Ordinal)
+            // Windup attacks and strike signatures admit a heading-only
+            // suppressive declaration: UnitTarget is a lock, not a required
+            // aiming argument. Runtime admission and chronology already
+            // enforce that rule; replay-v3 must validate the same legal
+            // partial payload instead of requiring either every argument or
+            // none.
+            if (kind is "attack" or "signature"
                 && parameters.Contains("unit-target", StringComparer.Ordinal)
                 && parameters.Contains(
                     "projectile-heading", StringComparer.Ordinal))
@@ -3866,10 +3922,16 @@ internal static class ReplayV3Serializer
             RequireExactObject(
                 modeMapBinding,
                 "embedded Arc Relay mode-map binding",
-                "kind",
-                "orderedWellRegionIds",
-                "reactorRegionRoleId",
-                "homePadRegionRoleId");
+                [
+                    "kind",
+                    "orderedWellRegionIds",
+                    "reactorRegionRoleId",
+                    "homePadRegionRoleId",
+                    .. modeMapBinding.TryGetProperty(
+                        "veterancyWorkshops", out _)
+                        ? new[] { "veterancyWorkshops" }
+                        : System.Array.Empty<string>(),
+                ]);
             if (!string.Equals(
                     RequiredString(modeMapBinding, "kind"),
                     "arc-relay",
@@ -8057,6 +8119,24 @@ internal static class ReplayV3Serializer
             ReplayV3.ArcRelayFact.SignatureRepair value =>
                 InvalidArcSignatureHealthFact(value.OperationId,
                     value.SignatureId, value.Amount, value.NewHealth),
+            ReplayV3.ArcRelayFact.WorkshopReady value =>
+                string.IsNullOrWhiteSpace(value.WorkshopId),
+            ReplayV3.ArcRelayFact.WorkshopTrainingStarted value =>
+                string.IsNullOrWhiteSpace(value.WorkshopId)
+                || value.TeamId < 0,
+            ReplayV3.ArcRelayFact.WorkshopTrainingInterrupted value =>
+                string.IsNullOrWhiteSpace(value.WorkshopId)
+                || value.TeamId < 0
+                || value.ProgressLost < 1
+                || value.Reason is not (
+                    "left-tile" or "moved" or "damaged" or "acted-in-combat"
+                    or "acquired-core" or "died" or "contested"),
+            ReplayV3.ArcRelayFact.WorkshopTrainingCompleted value =>
+                string.IsNullOrWhiteSpace(value.WorkshopId)
+                || value.TeamId < 0
+                || value.TraineeActorId.TeamId != value.TeamId
+                || value.XpAward < 1
+                || value.ReadyAgainTick < 0,
             _ => true,
         };
         if (invalid)
@@ -8837,6 +8917,16 @@ internal static class ReplayV3Serializer
                         typeof(ReplayV3.ArcRelayFact.SignatureDamage),
                     ["signature-repair"] =
                         typeof(ReplayV3.ArcRelayFact.SignatureRepair),
+                    ["workshop-ready"] =
+                        typeof(ReplayV3.ArcRelayFact.WorkshopReady),
+                    ["workshop-training-started"] =
+                        typeof(ReplayV3.ArcRelayFact.WorkshopTrainingStarted),
+                    ["workshop-training-interrupted"] =
+                        typeof(
+                            ReplayV3.ArcRelayFact.WorkshopTrainingInterrupted),
+                    ["workshop-training-completed"] =
+                        typeof(
+                            ReplayV3.ArcRelayFact.WorkshopTrainingCompleted),
                 }));
         options.Converters.Add(
             new TaggedUnionJsonConverter<ReplayV3.EventAudience>(
@@ -9299,6 +9389,10 @@ internal static class ReplayV3Serializer
                             "nextRespawnWaveTick", out _);
                         bool respawnWaveTeams = root.TryGetProperty(
                             "respawnWaveTeams", out _);
+                        // Neutral veterancy Workshops exist only on rulesets
+                        // that declare them; absence is the historical shape.
+                        bool workshops = root.TryGetProperty(
+                            "workshops", out _);
                         RequireProperties(
                             root,
                             [
@@ -9318,6 +9412,9 @@ internal static class ReplayV3Serializer
                                     : System.Array.Empty<string>(),
                                 .. respawnWaveTeams
                                     ? new[] { "respawnWaveTeams" }
+                                    : System.Array.Empty<string>(),
+                                .. workshops
+                                    ? new[] { "workshops" }
                                     : System.Array.Empty<string>(),
                             ]);
                         return new ReplayV3.ModeState.ArcRelay(
@@ -9344,6 +9441,10 @@ internal static class ReplayV3Serializer
                             PendingStrikes = pendingStrikes
                                 ? RequiredArrayValue<ReplayV3.ArcPendingStrike>(
                                     root, "pendingStrikes", options)
+                                : [],
+                            Workshops = workshops
+                                ? RequiredArrayValue<ReplayV3.ArcWorkshop>(
+                                    root, "workshops", options)
                                 : [],
                         };
                     }

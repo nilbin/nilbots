@@ -954,7 +954,8 @@ internal sealed class SquadArenaPlanner : IArenaStepper
 
     private static bool IsSingleServiceGroup(string groupKey) =>
         groupKey.StartsWith("move:to:heal:", StringComparison.Ordinal)
-        || groupKey.StartsWith("move:to:well:", StringComparison.Ordinal);
+        || groupKey.StartsWith("move:to:well:", StringComparison.Ordinal)
+        || groupKey.StartsWith("move:to:workshop:", StringComparison.Ordinal);
 
     private static PlannerState Apply(
         PlannerState state,
@@ -1509,7 +1510,9 @@ internal sealed class SquadArenaPlanner : IArenaStepper
             bool occupantRetainsService = grouping.Key.StartsWith(
                     "move:to:heal:", StringComparison.Ordinal)
                 || grouping.Key.StartsWith(
-                    "move:to:well:", StringComparison.Ordinal);
+                    "move:to:well:", StringComparison.Ordinal)
+                || grouping.Key.StartsWith(
+                    "move:to:workshop:", StringComparison.Ordinal);
             bool serviceTileOwnedOutsideGroup = authored.Length == 1
                 && members.All(member => member.CanStage)
                 && occupantRetainsService

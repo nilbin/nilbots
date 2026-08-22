@@ -322,6 +322,20 @@ export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
   respawnMinimumDeadTicks?: number;
   minimumDistinctClasses?: number;
   durableDeployments?: true;
+  sentryTeamVision?: true;
+  reactiveImpactFacing?: true;
+  /**
+   * Neutral veterancy Workshops (player-facing: Workshop). Present only on a
+   * ruleset that declares them; absence is the historical document shape and
+   * means the match has no Workshop landmark at all.
+   */
+  veterancyWorkshops?: ReplayV3JsonObject & {
+    workshopIds: string[];
+    unlockTick: number;
+    requiredChannelTicks: number;
+    xpAward: number;
+    dormancyTicks: number;
+  };
   wells: {
     wellId: string;
     firstBirthTick: number;
@@ -498,6 +512,15 @@ export interface ReplayV3ArcRelayModeMapBinding {
   orderedWellRegionIds: string[];
   reactorRegionRoleId: string;
   homePadRegionRoleId: string;
+  /**
+   * Region bindings for the neutral veterancy Workshops, present only on a
+   * ruleset that declares them. Absence is the historical binding shape.
+   */
+  veterancyWorkshops?: {
+    workshopId: string;
+    trainRegionId: string;
+    contestRegionId: string;
+  }[];
 }
 
 export type ReplayV3ModeMapBinding =
@@ -848,6 +871,35 @@ export interface ReplayV3ArcRelayModeState {
    * with strike windups; absence is the historical document shape.
    */
   pendingStrikes?: ReplayV3ArcPendingStrike[];
+  /**
+   * Every neutral veterancy Workshop's public phase. Present only on rulesets
+   * that declare Workshops; absence is the historical document shape.
+   */
+  workshops?: ReplayV3ArcWorkshop[];
+}
+
+/** Public phase of one neutral veterancy Workshop. */
+export type ReplayV3ArcWorkshopPhase =
+  | 'ready'
+  | 'training'
+  | 'contested'
+  | 'dormant';
+
+/**
+ * One neutral veterancy Workshop's public state. Every field is public to both
+ * teams: the landmark publishes the training TEAM, never the trainee's
+ * identity, so a viewer must not invent one.
+ */
+export interface ReplayV3ArcWorkshop extends ReplayV3JsonObject {
+  workshopId: string;
+  trainingTile: ReplayV3Position;
+  phase: ReplayV3ArcWorkshopPhase;
+  /** Team channelling the Workshop; null in every phase but `training`. */
+  trainingTeamId: number | null;
+  progressTicks: number;
+  requiredTicks: number;
+  /** First tick a dormant Workshop is ready again; null unless dormant. */
+  readyAtTick: number | null;
 }
 
 /** One publicly declared strike in windup (DECISIONS #212). */
@@ -972,6 +1024,12 @@ export interface ReplayV3ObservedEnemy {
    * replay.
    */
   roleTag?: string;
+  /**
+   * The veteran rank a sighted enemy is publishing. Present only on a ruleset
+   * that publishes enemy veterancy; absent is the historical shape and means
+   * "not published", never "rank zero".
+   */
+  veterancyLevel?: number;
 }
 
 export interface ReplayV3SpawnReservation {
@@ -1184,7 +1242,21 @@ export type ReplayV3ArcRelayFact =
   | (ReplayV3JsonObject & { kind: 'signature-changed'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; phase: string | null; reason: string })
   | (ReplayV3JsonObject & { kind: 'body-relocated'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; from: ReplayV3Position; to: ReplayV3Position })
   | (ReplayV3JsonObject & { kind: 'signature-damage'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
-  | (ReplayV3JsonObject & { kind: 'signature-repair'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position });
+  | (ReplayV3JsonObject & { kind: 'signature-repair'; signatureId: string; operationId: string; ownerActorId: ReplayV3ActorId; targetActorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'workshop-ready'; workshopId: string; trainingTile: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'workshop-training-started'; workshopId: string; teamId: number; trainingTile: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'workshop-training-interrupted'; workshopId: string; teamId: number; reason: ReplayV3ArcWorkshopInterruptionReason; progressLost: number; trainingTile: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'workshop-training-completed'; workshopId: string; teamId: number; traineeActorId: ReplayV3ActorId; xpAward: number; readyAgainTick: number; trainingTile: ReplayV3Position });
+
+/** Why a Workshop channel ended without awarding its XP. */
+export type ReplayV3ArcWorkshopInterruptionReason =
+  | 'left-tile'
+  | 'moved'
+  | 'damaged'
+  | 'acted-in-combat'
+  | 'acquired-core'
+  | 'died'
+  | 'contested';
 
 export type ReplayV3EventKind =
   | 'rotation'

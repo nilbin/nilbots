@@ -290,7 +290,7 @@ static int CommandHelp(string command)
 
             Sheets. --sheet0/--sheet1 take an Orders v2 sheet
             (`arc-relay-orders-v2`), which this command compiles in place — its
-            `mapPlan` names a Tapline-native map-plan document. Hashes are
+            `mapPlan` names a current-map-native map-plan document. Hashes are
             compiler output rather than authored configuration.
             Compilation is the only authority on whether a sheet is valid;
             `nilbots experiment arc-relay-playbook --playbook <json>` runs the
@@ -301,7 +301,7 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-15`: the accepted mid-Well-ribs Tapline and
+            The default is `broadloom-2`: the 37x27 Broadloom map and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
@@ -322,8 +322,10 @@ static int CommandHelp(string command)
             damage it, while allies fire through it. Bots retain half their
             accumulated veterancy XP on death (rounded down), and living
             allies harmlessly stop allied shots; friendly deployments remain
-            transparent. Hosted v33 pins `tapline-15`; v7 through v32 remain
-            exact history, and all
+            transparent. Two public neutral Workshops each offer one veteran
+            XP after a protected 15-tick channel and then sleep for 45 ticks.
+            Hosted v34 pins `broadloom-2`; v33 pins first-Broadloom history;
+            v7 through v32 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

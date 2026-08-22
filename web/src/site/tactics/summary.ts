@@ -1,4 +1,4 @@
-import { describePlace, WELL_OPTIONS } from './places';
+import { describePlace, WELL_OPTIONS, workshopLabel } from './places';
 import type {
   Tactic, TacticCase, TacticConds, TacticGroup, TacticJob, TacticPhaseDef,
   TacticTransition,
@@ -119,6 +119,9 @@ export function jobClause(job: TacticJob, plural = true): string {
       return `${v('run')} the Core home to your reactor${viaPhrase(job)}`;
     case 'escort':
       return `${v('screen')} the carrier the whole way`;
+    case 'train':
+      // No drawn ground to name: the Workshop resolves its own training tile.
+      return `${v('train')} at ${workshopLabel(job.workshop)}${travelPhrase(job)}${recoveryPhrase(job)}`;
     default:
       return `${v('keep')} at it`;
   }
@@ -159,7 +162,7 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   if (conds.healed) out.push(`everyone is healed to ${conds.healed.percent}%`);
   if (conds.veterancy) {
     const selected = conds.veterancy.slots.length;
-    out.push(`${conds.veterancy.count} of ${selected} selected ${selected === 1 ? 'bot' : 'bots'} reach level ${conds.veterancy.level}`);
+    out.push(`${conds.veterancy.count} of ${selected} selected ${selected === 1 ? 'bot' : 'bots'} ${conds.veterancy.count === 1 ? 'reaches' : 'reach'} level ${conds.veterancy.level}`);
   }
   if (conds.enemiesAt) {
     const count = zonesOf(conds.enemiesAt).length;
@@ -213,6 +216,29 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   if (conds.coreLost) out.push('the Core is lost');
   if (conds.reached) out.push('the destination is reached');
   if (conds.observed) out.push('the ground has been watched long enough');
+  // Workshop rows read the public landmark signal, never a fogged body.
+  if (conds.workshopReady) {
+    out.push(`${workshopLabel(conds.workshopReady.workshop)} is ready`);
+  }
+  if (conds.workshopTraining) {
+    const where = workshopLabel(conds.workshopTraining.workshop);
+    const team = conds.workshopTraining.team ?? 'any';
+    out.push(team === 'self'
+      ? `we are training at ${where}`
+      : team === 'enemy'
+        ? `an enemy is training at ${where}`
+        : `someone is training at ${where}`);
+  }
+  if (conds.workshopContested) {
+    out.push(`enemies are standing in ${workshopLabel(conds.workshopContested.workshop)}`);
+  }
+  if (conds.workshopDormant) {
+    out.push(`${workshopLabel(conds.workshopDormant.workshop)} is recharging`);
+  }
+  if (conds.workshopDone) {
+    const count = conds.workshopDone.count ?? 1;
+    out.push(`we have finished ${numberWord(count)} training${count === 1 ? '' : 's'} at ${workshopLabel(conds.workshopDone.workshop)} this phase`);
+  }
   return out;
 }
 
@@ -283,13 +309,23 @@ export function subjectFor(tactic: Tactic, group: TacticGroup): string {
     : group.name;
 }
 
+/** A Group of one doing a job that belongs to a BODY rather than to ground
+ * reads better under the bot's own name: "Gantry trains at the north
+ * Workshop" beats "One bot trains…". Everything else keeps the counted
+ * subject, because a Group is what the player actually assigned. */
+function namedLead(
+  group: TacticGroup,
+  job: TacticJob | undefined,
+  botName: (slot: number) => string | null,
+): string | null {
+  if (job?.kind !== 'train' || group.slots.length !== 1) return null;
+  return botName(group.slots[0]);
+}
+
 export function summarize(
   tactic: Tactic,
   botName: (slot: number) => string | null,
 ): string {
-  // Kept in the public helper signature for older callers; preferred-carrier
-  // naming is no longer part of player-facing Core behavior.
-  void botName;
   const opening = startClause(tactic);
   const sentences: string[] = [];
 
@@ -300,9 +336,10 @@ export function summarize(
       const count = group.slots.length;
       const job = first.jobs[group.id]
         ?? { kind: 'none' as const, posture: 'wait' as const, recovery: 'patch' as const };
-      const lead = index === 0
-        ? `${numberWord(count).replace(/^\w/, (letter) => letter.toUpperCase())} bot${count === 1 ? '' : 's'}`
-        : numberWord(count);
+      const lead = namedLead(group, job, botName)
+        ?? (index === 0
+          ? `${numberWord(count).replace(/^\w/, (letter) => letter.toUpperCase())} bot${count === 1 ? '' : 's'}`
+          : numberWord(count));
       return `${lead} ${jobClause(job, count !== 1)}`;
     });
     sentences.push(jobs.length === 1
@@ -321,7 +358,7 @@ export function summarize(
     const movers = tactic.groups
       .filter((group) => (phase.jobs[group.id]?.kind ?? 'none') !== 'none')
       .map((group) =>
-        `${subjectFor(tactic, group)} ${jobClause(phase.jobs[group.id], group.slots.length !== 1)}`);
+        `${namedLead(group, phase.jobs[group.id], botName) ?? subjectFor(tactic, group)} ${jobClause(phase.jobs[group.id], group.slots.length !== 1)}`);
     const change = movers.length > 0
       ? movers.join('; ')
       : 'everyone carries on';

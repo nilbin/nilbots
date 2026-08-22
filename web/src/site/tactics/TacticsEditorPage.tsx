@@ -1249,7 +1249,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
               </div>
               {wizard && activeMapGroupId && (
                 <div className="mt-2 min-[1240px]:mt-0 min-[1240px]:w-[232px] min-[1240px]:shrink-0">
-                  <MapFirstBehaviorPanel tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
+                  <MapFirstBehaviorPanel catalog={catalog} document={document}
+                    tactic={wizard.tactic} phaseIndex={wizard.phaseIndex}
                     groupId={activeMapGroupId} change={changeWizard} />
                 </div>
               )}

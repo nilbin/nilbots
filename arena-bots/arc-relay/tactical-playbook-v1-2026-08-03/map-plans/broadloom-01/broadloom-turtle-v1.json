@@ -1,0 +1,10 @@
+{
+  "schema": "arc-relay-map-plan-v2",
+  "mapPlanId": "broadloom-turtle-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "zones": {
+    "home-keep": { "rect": [5, 11, 9, 15] }
+  },
+  "routes": {},
+  "anchors": {}
+}

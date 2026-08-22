@@ -8,7 +8,7 @@ import {
 } from './mapFirstSpatial';
 import { classSprite } from './classArt';
 import { makePathfinder } from './pathing';
-import { describePlace } from './places';
+import { describePlace, workshopLabel } from './places';
 import type { MapTask, WatchTarget } from './useMapTask';
 import {
   FACING_DELTAS, effectiveJob, effectiveJobResolution, groupColor, jobOf, phaseShade,
@@ -1520,6 +1520,12 @@ export function describeGeometry(job: TacticJob, group: TacticGroup): string {
   if (kind === 'advance' || kind === 'patrol') {
     if (!job.path || job.path.length < 2) return 'No route yet — click waypoints in travel order.';
     return `${job.path.length}-point ${kind === 'patrol' ? 'loop' : 'route'} toward ${describePlace(...job.path[job.path.length - 1])}`;
+  }
+  if (kind === 'train') {
+    // Nothing is drawn: the room owns its training tile.
+    return job.workshop
+      ? `Training at ${workshopLabel(job.workshop)}`
+      : 'No Workshop chosen yet — pick north, south, or either.';
   }
   return '';
 }

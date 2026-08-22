@@ -473,6 +473,18 @@ internal static class GenericActorSdkModelMapper
                                 ? ToSdk(target)
                                 : null,
                             [.. strike.Tiles.Select(ToSdk)]))],
+                    Workshops = [.. mode.Workshops.Select(workshop =>
+                        new Sdk.GenericActorContext
+                            .ArcRelayVeterancyWorkshopState(
+                                workshop.WorkshopId,
+                                ToSdk(workshop.TrainingTile),
+                                (Sdk.GenericActorContext
+                                    .ArcRelayVeterancyWorkshopPhase)
+                                    (int)workshop.Phase,
+                                workshop.TrainingTeamId,
+                                workshop.ProgressTicks,
+                                workshop.RequiredTicks,
+                                workshop.ReadyAtTick))],
                 },
             _ => throw UnknownUnion(value),
         };
@@ -583,6 +595,14 @@ internal static class GenericActorSdkModelMapper
                 new Sdk.GenericActorContext.ArcRelayEvent.LeveledUp(
                     ToSdk(fact.ActorId),
                     fact.Level,
+                    ToSdk(fact.Position)),
+            ArcRelayEvent.VeterancyRetained fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.VeterancyRetained(
+                    ToSdk(fact.ActorId),
+                    fact.PreviousLevel,
+                    fact.RetainedLevel,
+                    fact.RetainedTotalXp,
+                    fact.RetainedSpentPoints,
                     ToSdk(fact.Position)),
             ArcRelayEvent.ZoneHealed fact =>
                 new Sdk.GenericActorContext.ArcRelayEvent.ZoneHealed(
@@ -709,6 +729,50 @@ internal static class GenericActorSdkModelMapper
                     fact.Amount,
                     fact.NewHealth,
                     ToSdk(fact.Position)),
+            ArcRelayEvent.WorkshopReady fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent.WorkshopReady(
+                    fact.WorkshopId,
+                    ToSdk(fact.TrainingTile)),
+            ArcRelayEvent.WorkshopTrainingStarted fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent
+                    .WorkshopTrainingStarted(
+                        fact.WorkshopId,
+                        fact.TeamId,
+                        ToSdk(fact.TrainingTile)),
+            ArcRelayEvent.WorkshopTrainingInterrupted fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent
+                    .WorkshopTrainingInterrupted(
+                        fact.WorkshopId,
+                        fact.TeamId,
+                        fact.Reason switch
+                        {
+                            ArcRelayEvent.WorkshopInterruptionKind.LeftTile =>
+                                "left-tile",
+                            ArcRelayEvent.WorkshopInterruptionKind.Moved =>
+                                "moved",
+                            ArcRelayEvent.WorkshopInterruptionKind.Damaged =>
+                                "damaged",
+                            ArcRelayEvent.WorkshopInterruptionKind
+                                .ActedInCombat => "acted-in-combat",
+                            ArcRelayEvent.WorkshopInterruptionKind
+                                .AcquiredCore => "acquired-core",
+                            ArcRelayEvent.WorkshopInterruptionKind.Died =>
+                                "died",
+                            ArcRelayEvent.WorkshopInterruptionKind.Contested =>
+                                "contested",
+                            _ => throw UnknownEnum(fact.Reason),
+                        },
+                        fact.ProgressLost,
+                        ToSdk(fact.TrainingTile)),
+            ArcRelayEvent.WorkshopTrainingCompleted fact =>
+                new Sdk.GenericActorContext.ArcRelayEvent
+                    .WorkshopTrainingCompleted(
+                        fact.WorkshopId,
+                        fact.TeamId,
+                        ToSdk(fact.TraineeActorId),
+                        fact.XpAward,
+                        fact.ReadyAgainTick,
+                        ToSdk(fact.TrainingTile)),
             _ => throw UnknownUnion(value),
         };
 

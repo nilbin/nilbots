@@ -1,0 +1,342 @@
+{
+  "schema": "arc-relay-orders-v2",
+  "sheetId": "broadloom-trade-v2",
+  "mapPlan": "../map-plans/broadloom-01/broadloom-trade-v2.json",
+  "roles": [
+    {
+      "id": "trade-custody",
+      "classes": [
+        "mason",
+        "palisade"
+      ],
+      "upgradePath": [
+        "vitality",
+        "vitality",
+        "damage",
+        "vision"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "seal-raid-door",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "hardlight-block",
+            "target": "nearest-enemy",
+            "at": "own-well-door"
+          }
+        },
+        {
+          "id": "screen-custody-front",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "prism-wall",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "trade-custody-fight",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby"
+            ]
+          },
+          "fight": {
+            "targets": [
+              "marked",
+              "weakest",
+              "carrier",
+              "nearest"
+            ],
+            "style": "advance",
+            "chaseLimit": 4
+          }
+        },
+        {
+          "id": "hold-own-well",
+          "move": {
+            "to": {
+              "well": "own"
+            },
+            "posture": "front"
+          }
+        }
+      ]
+    },
+    {
+      "id": "trade-raiders",
+      "classes": [
+        "kestrel",
+        "relay"
+      ],
+      "upgradePath": [
+        "vitality",
+        "reach",
+        "vision",
+        "damage"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "pass-raided-core",
+          "when": {
+            "all": [
+              "carrying-core",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "arc-toss",
+            "target": "nearest-ally-toward-own-reactor"
+          }
+        },
+        {
+          "id": "raid-skirmish",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby"
+            ]
+          },
+          "fight": {
+            "targets": [
+              "carrier",
+              "weakest",
+              "nearest"
+            ],
+            "style": "kite",
+            "chaseLimit": 2
+          }
+        },
+        {
+          "id": "raid-enemy-well",
+          "move": {
+            "to": {
+              "well": "enemy"
+            },
+            "via": "raid-ingress",
+            "posture": "rear"
+          }
+        }
+      ]
+    },
+    {
+      "id": "trade-mid",
+      "classes": [
+        "longshot",
+        "mortar",
+        "sunder",
+        "patchbay"
+      ],
+      "upgradePath": [
+        "damage",
+        "damage",
+        "vitality",
+        "vitality"
+      ],
+      "orders": [
+        {
+          "shared": "score-a-core"
+        },
+        {
+          "shared": "collect-loose-core"
+        },
+        {
+          "shared": "recover-health"
+        },
+        {
+          "id": "sustain-mid",
+          "when": "signature-ready",
+          "use": {
+            "skill": "repair-beam",
+            "target": "weakest-ally"
+          }
+        },
+        {
+          "id": "fire-mid-rail",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "rail-line",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "id": "drop-mid-star",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "falling-star",
+            "target": "nearest-enemy"
+          }
+        },
+        {
+          "id": "paint-mid-focus",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby",
+              "signature-ready"
+            ]
+          },
+          "use": {
+            "skill": "target-paint",
+            "target": "weakest-enemy"
+          }
+        },
+        {
+          "id": "mid-deny",
+          "when": {
+            "all": [
+              "empty-handed",
+              "enemy-nearby"
+            ]
+          },
+          "fight": {
+            "targets": [
+              "marked",
+              "weakest",
+              "carrier",
+              "nearest"
+            ],
+            "style": "hold",
+            "chaseLimit": 1
+          }
+        },
+        {
+          "id": "contest-centre-lightly",
+          "move": {
+            "to": {
+              "well": "centre"
+            },
+            "posture": "line"
+          }
+        }
+      ]
+    }
+  ],
+  "sharedOrders": {
+    "score-a-core": {
+      "when": "carrying-core",
+      "until": "empty-handed",
+      "timeout": 180,
+      "cooldown": 2,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "return-to-reactor",
+          "move": {
+            "to": "own-reactor"
+          }
+        }
+      ]
+    },
+    "collect-loose-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "two-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
+    "recover-health": {
+      "when": "hurt",
+      "until": "healthy",
+      "timeout": 16,
+      "cooldown": 18,
+      "urgency": "urgent",
+      "orders": [
+        {
+          "id": "reach-healing",
+          "move": {
+            "to": "nearest-heal-zone",
+            "posture": "rear"
+          }
+        }
+      ]
+    }
+  },
+  "capacities": {
+    "two-per-core": 2
+  },
+  "conditions": {
+    "carrying-core": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 1
+    },
+    "empty-handed": {
+      "fact": "self-carrying",
+      "operator": "equals",
+      "value": 0
+    },
+    "loose-core-known": {
+      "fact": "known-loose-cores",
+      "operator": "at-least",
+      "value": 1
+    },
+    "hurt": {
+      "fact": "self-health-percent",
+      "operator": "at-most",
+      "value": 35
+    },
+    "healthy": {
+      "fact": "self-health-percent",
+      "operator": "at-least",
+      "value": 75
+    },
+    "enemy-nearby": {
+      "fact": "self-nearest-visible-enemy-distance",
+      "operator": "at-most",
+      "value": 7
+    },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    }
+  }
+}

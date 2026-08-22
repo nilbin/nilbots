@@ -17,7 +17,7 @@ public sealed class ArcRelayTaplineBankRechargeTests
         "e536d04deff7e53296d10f2b93c38741a6a3e465a03e779a84336ba0ae1df519";
 
     [Fact]
-    public void Tapline15IsCurrentAndKeepsTapline8RechargeRules()
+    public void Tapline15KeepsTapline8RechargeRulesAndBroadloomIsCurrent()
     {
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline7);
@@ -32,8 +32,8 @@ public sealed class ArcRelayTaplineBankRechargeTests
         var currentMode = Assert.IsType<ArcRelayGameModeDefinition>(
             current.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline15, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-15", ArcRelayLoopProfile.Current.Id);
+        Assert.Same(ArcRelayLoopProfile.Broadloom2, ArcRelayLoopProfile.Current);
+        Assert.Equal("broadloom-2", ArcRelayLoopProfile.Current.Id);
         Assert.Equal("arc-relay-tapline-15", current.Rules.RulesetId);
         Assert.Equal("arc-relay-tapline-03", current.Map.Id);
         Assert.Equal(600, current.Rules.Limits.MaxTicks);

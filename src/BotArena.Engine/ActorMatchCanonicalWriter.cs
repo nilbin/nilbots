@@ -517,6 +517,25 @@ internal static class ActorMatchCanonicalWriter
                 writer.WriteString(
                     "homePadRegionRoleId",
                     arcRelay.HomePadRegionRoleId);
+                // Written only when Workshops are bound, keeping every
+                // historical binding's canonical bytes untouched.
+                if (!arcRelay.Workshops.IsEmpty)
+                {
+                    writer.WritePropertyName("veterancyWorkshops");
+                    writer.WriteStartArray();
+                    foreach (ArcRelayWorkshopRegionBindingDefinition workshop
+                             in arcRelay.Workshops)
+                    {
+                        writer.WriteStartObject();
+                        writer.WriteString("workshopId", workshop.WorkshopId);
+                        writer.WriteString(
+                            "trainRegionId", workshop.TrainRegionId);
+                        writer.WriteString(
+                            "contestRegionId", workshop.ContestRegionId);
+                        writer.WriteEndObject();
+                    }
+                    writer.WriteEndArray();
+                }
                 break;
             default:
                 throw new ArgumentOutOfRangeException(

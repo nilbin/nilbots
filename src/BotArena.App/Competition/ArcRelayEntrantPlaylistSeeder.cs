@@ -8,7 +8,7 @@ namespace BotArena.App.Competition;
 
 /// <summary>
 /// Seeds the current immutable entrant lane. Each promoted rules profile starts
-/// a fresh rating book when public gameplay changes; immutable v8-v32 ladders
+/// a fresh rating book when public gameplay changes; immutable v8-v33 ladders
 /// remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
@@ -330,6 +330,17 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV32()
                 .Validate(playlist, completeObservationVersion);
         }
+        PlaylistVersion? tapline15Version =
+            await db.PlaylistVersions.SingleOrDefaultAsync(value =>
+                value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition
+                    .BroadloomInitialVersion,
+                cancellationToken);
+        if (tapline15Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33()
+                .Validate(playlist, tapline15Version);
+        }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.RecoveryVersion,
@@ -520,6 +531,17 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         PlaylistVersion version,
         ArcRelayEntrantPlaylistDefinition expected,
         CancellationToken cancellationToken)
+        => await RepairUnpublishedCurrentAsync(
+            version,
+            expected,
+            UnpublishedMistakenTapline9DefinitionFingerprint,
+            cancellationToken);
+
+    private async Task RepairUnpublishedCurrentAsync(
+        PlaylistVersion version,
+        ArcRelayEntrantPlaylistDefinition expected,
+        string repairableFingerprint,
+        CancellationToken cancellationToken)
     {
         bool hasMatchHistory = await db.Matches.AnyAsync(
                 value => value.PlaylistVersionId == version.Id,
@@ -530,7 +552,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (hasMatchHistory)
         {
             throw new InvalidOperationException(
-                "The unpublished mistaken Arc Relay v26 definition has "
+                "The unpublished Arc Relay playlist definition has "
                 + "match history and cannot be corrected in place.");
         }
 
@@ -560,7 +582,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                     "Provenance" = CAST({expected.Provenance} AS jsonb),
                     "Visibility" = {ArcRelayEntrantPlaylistDefinition.Visibility}
                 WHERE "Id" = {version.Id}
-                  AND "DefinitionFingerprint" = {UnpublishedMistakenTapline9DefinitionFingerprint};
+                  AND "DefinitionFingerprint" = {repairableFingerprint};
                 """, cancellationToken);
         }
         finally

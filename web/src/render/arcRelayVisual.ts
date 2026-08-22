@@ -18,6 +18,10 @@ import {
   LEVEL_UP_BEAT_TICKS,
 } from '../replayArcVeterancy';
 import {
+  arcWorkshopsFor,
+  type ArcWorkshopVisual,
+} from './arcWorkshopPresentation';
+import {
   resolveArcSignaturePresentation,
   type ArcSignatureCanvasMarker,
 } from './arcSignaturePresentation';
@@ -52,6 +56,7 @@ export function drawArcRelayGround(input: ArcRelayVisualContext): void {
 
   drawPulse(input, state);
   drawHealZones(input);
+  drawWorkshopPlates(input, state);
   drawWells(input, state);
   drawReactors(input, state);
   drawSignatures(input, state);
@@ -71,6 +76,7 @@ export function drawArcRelayOverlay(input: ArcRelayVisualContext): void {
 
   drawCores(input, state, true);
   drawTransferEffects(input);
+  drawWorkshopReads(input, state);
   drawDiegeticEvents(input, state);
   drawLevelUpBeats(input);
   drawSignatureCombatEvents(input, state);
@@ -255,6 +261,299 @@ function drawHealZones(input: ArcRelayVisualContext): void {
     ctx.fillRect(point.x - thickness / 2, point.y - bar / 2, thickness, bar);
     ctx.restore();
   }
+}
+
+/**
+ * The Workshop's own colour. Deliberately outside every other landmark's
+ * family — Wells are monochrome and amber, heal pads green, reactors team
+ * accents — so a violet hexagon is never mistaken for one of them, and it
+ * stays neutral because the landmark is neutral.
+ */
+const WORKSHOP_NEUTRAL = '#a78bfa';
+const WORKSHOP_CONTESTED = '#fb7185';
+const WORKSHOP_PLATE = 'rgba(24, 16, 43, 0.78)';
+const WORKSHOP_DORMANT_PLATE = 'rgba(13, 10, 22, 0.6)';
+
+/**
+ * The Workshop landmark, in two halves on purpose.
+ *
+ * The PLATE is floor furniture and belongs on the ground, under the shroud and
+ * under the bodies standing on it, exactly like the Well beside it. The READ —
+ * phase, channel progress, dormancy countdown — is public to both teams
+ * (DECISIONS: Workshop state carries no fog), so it is drawn in the overlay
+ * pass where the shroud cannot swallow a fact both minds can see.
+ */
+function drawWorkshopPlates(
+  input: ArcRelayVisualContext,
+  state: ArcState,
+): void {
+  const { ctx, tile, time } = input;
+  // `?? []` guards a hand-built mode state from before the field existed; a
+  // normalized replay always carries the array, empty when there are none.
+  for (const workshop of state.workshops ?? []) {
+    const point = centre(input, workshop.trainingTile);
+    const radius = tile * 0.4;
+    const dormant = workshop.phase === 'dormant';
+    const contested = workshop.phase === 'contested';
+    // A contested Workshop names no team, so its alert is the landmark's own
+    // colour shifted to rose rather than anyone's accent.
+    const accent =
+      contested || workshop.trainingTeamId === null
+        ? contested
+          ? WORKSHOP_CONTESTED
+          : WORKSHOP_NEUTRAL
+        : teamAccent(input, workshop.trainingTeamId);
+    const breathe =
+      0.5 + 0.5 * Math.sin(time * Math.PI * (contested ? 3.6 : 0.9));
+    const dim = dormant ? 0.4 : 1;
+
+    ctx.save();
+    ctx.fillStyle = dormant ? WORKSHOP_DORMANT_PLATE : WORKSHOP_PLATE;
+    workshopHexPath(ctx, point.x, point.y, radius);
+    ctx.fill();
+    ctx.strokeStyle = withAlpha(
+      accent,
+      (contested ? 0.5 + 0.45 * breathe : 0.34 + 0.28 * breathe) * dim,
+    );
+    ctx.lineWidth = Math.max(1.5, tile * 0.04);
+    ctx.stroke();
+    drawAnvilGlyph(
+      ctx,
+      point.x,
+      point.y,
+      tile * 0.19,
+      withAlpha(dormant ? WORKSHOP_NEUTRAL : accent, dim * 0.95),
+    );
+    ctx.restore();
+  }
+}
+
+function drawWorkshopReads(
+  input: ArcRelayVisualContext,
+  state: ArcState,
+): void {
+  const { ctx, tile, time } = input;
+  const workshops = arcWorkshopsFor(input.replay).visualsAt(
+    state.workshops,
+    time,
+  );
+  for (const workshop of workshops) {
+    const point = centre(input, workshop.tile);
+    const radius = tile * 0.4;
+    const ring = radius + tile * 0.09;
+    const accent =
+      workshop.trainingTeamId === null
+        ? WORKSHOP_NEUTRAL
+        : teamAccent(input, workshop.trainingTeamId);
+    ctx.save();
+    ctx.lineCap = 'butt';
+    if (workshop.phase === 'training') {
+      ctx.strokeStyle = 'rgba(148, 163, 184, 0.3)';
+      ctx.lineWidth = Math.max(2, tile * 0.055);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, ring, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = withAlpha(accent, 0.94);
+      ctx.lineWidth = Math.max(2.5, tile * 0.07);
+      ctx.beginPath();
+      ctx.arc(
+        point.x,
+        point.y,
+        ring,
+        -Math.PI / 2,
+        -Math.PI / 2 + Math.PI * 2 * workshop.progressFraction,
+      );
+      ctx.stroke();
+      // The ratio is the honest read of a channel; it is dropped rather than
+      // shrunk to mush when the camera is far enough out that it cannot be
+      // read anyway.
+      if (tile >= 20) {
+        drawWorkshopLabel(
+          ctx,
+          point.x,
+          // Above the tile: the space below belongs to the role tag of the
+          // body that is standing on the Workshop while it trains.
+          point.y - radius - tile * 0.26,
+          tile,
+          `${workshop.progressTicks}/${workshop.requiredTicks}`,
+          accent,
+        );
+      }
+    } else if (workshop.phase === 'contested') {
+      const flash = 0.5 + 0.5 * Math.sin(time * Math.PI * 3.6);
+      ctx.strokeStyle = withAlpha(WORKSHOP_CONTESTED, 0.55 + 0.4 * flash);
+      ctx.lineWidth = Math.max(2.5, tile * 0.07);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, ring, 0, Math.PI * 2);
+      ctx.stroke();
+      drawSuppressionCross(ctx, point, tile * 0.8);
+    } else if (workshop.phase === 'dormant') {
+      // Only the countdown is certain; the ring needs a declared dormancy
+      // length, so a ruleset that never published one gets the number alone
+      // rather than an arc measured against a guess.
+      if (workshop.dormantFraction !== null) {
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = Math.max(2, tile * 0.05);
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, ring, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.strokeStyle = withAlpha(WORKSHOP_NEUTRAL, 0.6);
+        ctx.lineWidth = Math.max(2, tile * 0.055);
+        ctx.beginPath();
+        ctx.arc(
+          point.x,
+          point.y,
+          ring,
+          -Math.PI / 2,
+          -Math.PI / 2 + Math.PI * 2 * workshop.dormantFraction,
+        );
+        ctx.stroke();
+      }
+      if (workshop.dormantRemainingTicks !== null) {
+        drawWorkshopLabel(
+          ctx,
+          point.x,
+          point.y - radius - tile * 0.26,
+          tile,
+          String(workshop.dormantRemainingTicks),
+          'rgba(203, 213, 225, 0.92)',
+        );
+      }
+    } else {
+      const breathe = 0.5 + 0.5 * Math.sin(time * Math.PI * 1.1);
+      ctx.strokeStyle = withAlpha(WORKSHOP_NEUTRAL, 0.34 + 0.34 * breathe);
+      ctx.lineWidth = Math.max(1.5, tile * 0.045);
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, ring, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    drawWorkshopBeats(input, workshop, point, radius);
+    ctx.restore();
+  }
+}
+
+/**
+ * The two Workshop beats. A completion is the XP actually leaving the anvil,
+ * so it is a bright expanding hexagon in the AWARDED team's accent carrying
+ * the exact `xpAward` — never the trainee, whose identity the landmark does
+ * not publish. An interruption is the opposite motion: a rose ring collapsing
+ * inward over the work that was lost.
+ */
+function drawWorkshopBeats(
+  input: ArcRelayVisualContext,
+  workshop: ArcWorkshopVisual,
+  point: CanvasPoint,
+  radius: number,
+): void {
+  const { ctx, tile } = input;
+  const completion = workshop.completion;
+  if (completion) {
+    const accent = teamAccent(input, completion.teamId);
+    const spread = radius + tile * (0.12 + 0.6 * (1 - completion.strength));
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.shadowColor = accent;
+    ctx.shadowBlur = Math.max(8, tile * 0.3);
+    ctx.strokeStyle = withAlpha(accent, completion.strength * 0.95);
+    ctx.lineWidth = Math.max(2.5, tile * 0.07);
+    workshopHexPath(ctx, point.x, point.y, spread);
+    ctx.stroke();
+    ctx.restore();
+    if (tile >= 16) {
+      drawWorkshopLabel(
+        ctx,
+        point.x,
+        // Stacked above the phase read, and rising as it fades.
+        point.y - radius - tile * (0.66 + 0.34 * (1 - completion.strength)),
+        tile,
+        `+${completion.xpAward} XP`,
+        withAlpha(accent, Math.min(1, 0.35 + completion.strength)),
+      );
+    }
+  }
+  const interruption = workshop.interruption;
+  if (interruption) {
+    const collapse = radius + tile * 0.5 * interruption.strength;
+    ctx.save();
+    ctx.strokeStyle = withAlpha(
+      WORKSHOP_CONTESTED,
+      interruption.strength * 0.8,
+    );
+    ctx.setLineDash([Math.max(2, tile * 0.1), Math.max(2, tile * 0.1)]);
+    ctx.lineWidth = Math.max(2, tile * 0.055);
+    ctx.beginPath();
+    ctx.arc(point.x, point.y, collapse, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+function workshopHexPath(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+): void {
+  ctx.beginPath();
+  for (let corner = 0; corner < 6; corner += 1) {
+    const angle = -Math.PI / 2 + (corner * Math.PI) / 3;
+    const cx = x + Math.cos(angle) * radius;
+    const cy = y + Math.sin(angle) * radius;
+    if (corner === 0) ctx.moveTo(cx, cy);
+    else ctx.lineTo(cx, cy);
+  }
+  ctx.closePath();
+}
+
+/** A stubby anvil: horned top plate, waist, base. Reads at a phone's tile. */
+function drawAnvilGlyph(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  radius: number,
+  color: string,
+): void {
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(x - radius * 0.95, y - radius * 0.62);
+  ctx.lineTo(x + radius * 0.72, y - radius * 0.62);
+  ctx.lineTo(x + radius * 1.24, y - radius * 0.28);
+  ctx.lineTo(x + radius * 0.72, y - radius * 0.18);
+  ctx.lineTo(x + radius * 0.36, y - radius * 0.18);
+  ctx.lineTo(x + radius * 0.36, y + radius * 0.3);
+  ctx.lineTo(x + radius * 0.86, y + radius * 0.3);
+  ctx.lineTo(x + radius * 0.86, y + radius * 0.66);
+  ctx.lineTo(x - radius * 0.86, y + radius * 0.66);
+  ctx.lineTo(x - radius * 0.86, y + radius * 0.3);
+  ctx.lineTo(x - radius * 0.36, y + radius * 0.3);
+  ctx.lineTo(x - radius * 0.36, y - radius * 0.18);
+  ctx.lineTo(x - radius * 0.95, y - radius * 0.18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawWorkshopLabel(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  tile: number,
+  text: string,
+  color: string,
+): void {
+  const size = Math.min(13, Math.max(7, Math.round(tile * 0.24)));
+  ctx.save();
+  ctx.font = `700 ${size}px ui-monospace, SFMono-Regular, Menlo, monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = Math.max(2, size * 0.34);
+  ctx.strokeStyle = 'rgba(2, 6, 12, 0.85)';
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = color;
+  ctx.fillText(text, x, y);
+  ctx.restore();
 }
 
 function drawWells(input: ArcRelayVisualContext, state: ArcState): void {
