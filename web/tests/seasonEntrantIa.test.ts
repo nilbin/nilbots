@@ -181,7 +181,10 @@ test('engine vocabulary never reaches the player surface', () => {
       // the player-facing phase concept (DECISIONS #341).
       // "Projected" is now deliberate player language for the explicitly
       // non-authoritative bot-position preview; it is not an engine model.
-      /Instructions|sharedOrders|workshop|arc-relay-orders-v2|doctrine/i);
+      // "workshop" left it when the neutral veterancy Workshop became a real
+      // landmark players train at — the ban was aimed at the retired Programs
+      // workshop, and the map's own rooms are exactly the word to use.
+      /Instructions|sharedOrders|arc-relay-orders-v2|doctrine/i);
   }
   assert.doesNotMatch(`${editor}${steps}`, /\bRoles\b/,
     'Groups replaced roles on the player surface');

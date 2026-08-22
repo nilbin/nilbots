@@ -4,7 +4,7 @@ import { classSprite } from './classArt';
 import { projectPhaseBots } from './botProjection';
 import { GeoStatusRow } from './GeoStatusRow';
 import { Modal } from './Modal';
-import { describePlace } from './places';
+import { describePlace, workshopLabel } from './places';
 import { condClauses } from './summary';
 import {
   TacticsIcon, TacticsIconButton, type TacticsIconName,
@@ -386,7 +386,15 @@ export function MapFirstGroupToolbar({
           onClick={() => applyKind('posts')} testId="map-first-posts-mode" />
         <TacticsIconButton icon="patrol" label="Patrol route" pressed={effective.kind === 'patrol'}
           onClick={() => applyKind('patrol')} testId="map-first-patrol-mode" />
-      </div> : <div className="flex items-center gap-1 rounded-sm border border-arena-warning/45 px-2 py-1">
+      </div> : effective.kind === 'train'
+        // Training is a real current assignment with no map work at all, not
+        // a loaded advanced job — offering "convert to posts" here would quietly
+        // throw the Workshop away.
+        ? <div className="flex items-center gap-1 rounded-sm border border-arena-edge px-2 py-1">
+          <span className="t-micro">Train at {workshopLabel(effective.workshop)}</span>
+          <span className="t-micro text-arena-dim">· nothing to draw</span>
+        </div>
+        : <div className="flex items-center gap-1 rounded-sm border border-arena-warning/45 px-2 py-1">
         <span className="t-micro text-arena-warning">Loaded {effective.kind}</span>
         <button type="button" className="btn !min-h-7" disabled={!convert}
           title={convert ? 'Create explicit editable Posts from the visible positions' : 'This job has no complete legal position preview'}

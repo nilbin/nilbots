@@ -50,6 +50,11 @@ export function jobComplete(
   if (job.kind === 'none') {
     return effectiveJob(tactic, phaseIndex, groupId) !== null;
   }
+  // Train draws nothing, but it is only finished once a Workshop is named
+  // and the Group is the single bot the grammar allows.
+  if (job.kind === 'train') {
+    return Boolean(job.workshop) && group.slots.length === 1;
+  }
   const expected = expectedGeometry(job.kind);
   if (expected === null) return true;
   if (expected === 'posts') {

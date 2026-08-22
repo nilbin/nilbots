@@ -14,7 +14,8 @@ import { possessive } from './summary';
 export type Facing = 'n' | 'e' | 's' | 'w';
 export type JobKind =
   | 'posts' | 'area' | 'line' | 'approach'
-  | 'converge' | 'advance' | 'patrol' | 'return' | 'escort' | 'none';
+  | 'converge' | 'advance' | 'patrol' | 'return' | 'escort' | 'none'
+  | 'train';
 export type Posture = 'wait' | 'hold' | 'aggressive' | 'steal' | 'escort' | 'observe';
 export type Recovery = 'fight-on' | 'patch' | 'heal-tile' | 'heal-up';
 export type CoreRule = 'ignore' | 'grab' | 'hunt';
@@ -26,6 +27,12 @@ export type RecipeId =
   | 'hold-area' | 'centre-rush' | 'pincer' | 'core-raid' | 'patrol'
   | 'deliver-core' | 'blank';
 export type WellChoice = 'north' | 'centre' | 'south' | 'own' | 'enemy';
+/** Which neutral veterancy Workshop a train job or Workshop row means.
+ * Unlike drawn geometry, these are GLOBAL map identities: they never mirror
+ * with the seat, so "north" is the same room for both entrants. */
+export type WorkshopChoice = 'north' | 'south' | 'either';
+/** Whose channel a `workshopTraining` row reads. */
+export type WorkshopTeam = 'self' | 'enemy' | 'any';
 
 export type Point = [number, number];
 export type Rect = [number, number, number, number];
@@ -75,6 +82,17 @@ export interface TacticConds {
   coreLost?: true;
   reached?: true;
   observed?: true;
+  /** Workshop rows read the PUBLIC neutral-objective signal both seats can
+   * see. They never reveal a fogged position — only Workshop state. */
+  workshopReady?: { workshop: WorkshopChoice };
+  /** A body of that team is publicly channeling there; team defaults to any. */
+  workshopTraining?: { workshop: WorkshopChoice; team?: WorkshopTeam };
+  workshopContested?: { workshop: WorkshopChoice };
+  workshopDormant?: { workshop: WorkshopChoice };
+  /** ≥N friendly completions at that Workshop since THIS phase began. */
+  workshopDone?: { workshop: WorkshopChoice; count?: number };
+  /** That squad slot's body has reached the veterancy level. */
+  veteranLevel?: { slot: number; level: number };
 }
 
 export type CondKind = keyof TacticConds;
@@ -82,6 +100,7 @@ export type CondKind = keyof TacticConds;
 export const START_ROWS: CondKind[] = [
   'enemiesAt', 'contact', 'cleared', 'notFighting', 'coreLoose', 'coreSoon', 'enemiesDown',
   'carrier', 'losses', 'lossesWithin', 'killsWithin', 'healed',
+  'workshopReady', 'workshopTraining', 'workshopContested', 'workshopDormant',
 ];
 
 export const TRANSITION_ROWS: CondKind[] = [
@@ -89,12 +108,18 @@ export const TRANSITION_ROWS: CondKind[] = [
   'coreSoon', 'enemiesDown', 'kills', 'killsWithin', 'losses',
   'lossesWithin', 'cleared', 'notFighting', 'coreAcquired', 'coreBanked', 'coreLost',
   'reached', 'observed',
+  'workshopReady', 'workshopTraining', 'workshopContested', 'workshopDormant',
+  'workshopDone', 'veteranLevel',
 ];
 
 export const ABORT_ROWS: CondKind[] = [
   'losses', 'lossesWithin', 'coreLost', 'enemiesAt', 'contact', 'cleared', 'notFighting',
   'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'killsWithin', 'healed',
+  'workshopContested', 'workshopDormant',
 ];
+
+export const WORKSHOP_CHOICES: WorkshopChoice[] = ['north', 'south', 'either'];
+export const WORKSHOP_TEAMS: WorkshopTeam[] = ['self', 'enemy', 'any'];
 
 /** Player-authored cases use all(required) AND none(unless). `triggers` is a
  * legacy read shape normalized into required by the editor; keeping it here
@@ -153,6 +178,11 @@ export interface TacticJob {
   via?: Point[];
   /** Explicit per-bot plans keyed by stable squad slot. Missing = Smart. */
   sigs?: Record<string, SignaturePlan>;
+  /** A `train` job's Workshop, instead of drawn geometry. The training tile
+   * itself is rules-owned and resolved by the executor from the match
+   * contract, so the editor never draws it and the document stays honest on
+   * any later map revision. Refused on every other kind. */
+  workshop?: WorkshopChoice;
 }
 
 export type CustodyPlan = 'solo' | 'escort' | 'keep';
@@ -249,6 +279,12 @@ export const JOB_KINDS: { id: JobKind; label: string; blurb: string; draw: DrawK
   { id: 'area', label: 'Occupy an area', blurb: 'Use flexible positions inside a drawn area.', draw: 'rect' },
   { id: 'converge', label: 'Converge on a spot', blurb: 'Pick the destination — the route finds itself.', draw: 'point' },
   { id: 'patrol', label: 'Patrol a loop', blurb: 'Walk the beat until the phase moves on.', draw: 'route' },
+  {
+    id: 'train',
+    label: 'Train at Workshop',
+    blurb: 'One bot holds the channel at the neutral Workshop — nothing to draw, the room picks the tile.',
+    draw: null,
+  },
 ];
 
 export const CORE_RULES: { id: CoreRule; label: string; blurb: string }[] = [
@@ -536,6 +572,11 @@ export function reversedWayIn(via: Point[] | undefined, at: Point): Point[] | nu
 }
 
 export function freshJob(kind: JobKind, posture: Posture): TacticJob {
+  // Training is passive by grammar: any fight resets the channel, so the
+  // trainee's posture is always 'wait' and its Workshop is always named.
+  if (kind === 'train') {
+    return { kind, posture: 'wait', recovery: 'fight-on', workshop: 'either' };
+  }
   return {
     kind,
     posture,
@@ -748,7 +789,10 @@ export function normalizeDocument(document: unknown): TacticsDocument {
         else delete job.sigs;
       }
       if (phase.custody?.via) {
-        const flipped = reversedWayIn(phase.custody.via, [2, 5]);
+        // The carrier's way home ENDS at your own reactor, so that tile is
+        // what a backwards route is measured against. Broadloom's west
+        // reactor; the catalog is not in scope at this load boundary.
+        const flipped = reversedWayIn(phase.custody.via, [3, 13]);
         if (flipped) phase.custody.via = flipped;
       }
     }
@@ -1084,6 +1128,50 @@ function validateCaseRows(
         error(`${at}.${side}`, `'${key}' is not a condition this step takes.`);
       }
     }
+    validateWorkshopRows(rows, `${at}.${side}`, error);
+  }
+}
+
+/** Bounds and vocabulary for the six Workshop/veterancy rows — the server
+ * grammar, mirrored so a bad value surfaces while authoring. Which CONTEXT
+ * accepts each row is the ROWS_* lists above; this is the row's own shape. */
+function validateWorkshopRows(
+  rows: TacticConds,
+  at: string,
+  error: (path: string, message: string) => void,
+) {
+  const workshop = (kind: CondKind, value: WorkshopChoice | undefined) => {
+    if (value !== undefined && !WORKSHOP_CHOICES.includes(value)) {
+      error(`${at}.${kind}`, `'${kind}' names north, south, or either — not '${value}'.`);
+    } else if (value === undefined) {
+      error(`${at}.${kind}`, `'${kind}' needs a Workshop chosen.`);
+    }
+  };
+  if (rows.workshopReady) workshop('workshopReady', rows.workshopReady.workshop);
+  if (rows.workshopContested) workshop('workshopContested', rows.workshopContested.workshop);
+  if (rows.workshopDormant) workshop('workshopDormant', rows.workshopDormant.workshop);
+  if (rows.workshopTraining) {
+    workshop('workshopTraining', rows.workshopTraining.workshop);
+    const team = rows.workshopTraining.team;
+    if (team !== undefined && !WORKSHOP_TEAMS.includes(team)) {
+      error(`${at}.workshopTraining`, `'${team}' is not a side — choose ours, theirs, or either.`);
+    }
+  }
+  if (rows.workshopDone) {
+    workshop('workshopDone', rows.workshopDone.workshop);
+    const count = rows.workshopDone.count;
+    if (count !== undefined && (!Number.isInteger(count) || count < 1 || count > 8)) {
+      error(`${at}.workshopDone`, 'Completed trainings count from one to eight.');
+    }
+  }
+  if (rows.veteranLevel) {
+    const { slot, level } = rows.veteranLevel;
+    if (!Number.isInteger(slot) || slot < 0 || slot > 7) {
+      error(`${at}.veteranLevel`, 'Veteran level watches one squad slot, 1 to 8.');
+    }
+    if (!Number.isInteger(level) || level < 2 || level > 9) {
+      error(`${at}.veteranLevel`, 'Veteran levels run from 2 to 9.');
+    }
   }
 }
 
@@ -1114,6 +1202,7 @@ function validateJobGeometry(
   const expected = expectedGeometry(job.kind);
   const anchorIssue = (point: Point) => tilePlacementIssue(catalog, point, 'anchor');
   const routeIssue = (point: Point) => tilePlacementIssue(catalog, point, 'route');
+  validateTrainJob(job, group, at, error);
   if (expected === 'posts') {
     const posts = job.posts ?? [];
     const named = posts.filter((post) => post.slot != null);
@@ -1188,6 +1277,40 @@ function validateJobGeometry(
   }
 }
 
+/** Train at Workshop, exactly as the server DSL reads it: one bot, a passive
+ * posture, no signature marks, a named Workshop and no drawn geometry. Every
+ * other kind refuses the Workshop key outright. */
+function validateTrainJob(
+  job: TacticJob,
+  group: TacticGroup,
+  at: string,
+  error: (path: string, message: string) => void,
+) {
+  if (job.kind !== 'train') {
+    if (job.workshop) {
+      error(at, `Only a Train at Workshop job names a Workshop — ${possessive(group.name)} job is “${job.kind}”.`);
+    }
+    return;
+  }
+  if (!job.workshop) {
+    error(at, `${group.name} needs a Workshop chosen — north, south, or either.`);
+  } else if (!WORKSHOP_CHOICES.includes(job.workshop)) {
+    error(at, `“${job.workshop}” is not a Workshop — choose north, south, or either.`);
+  }
+  if (group.slots.length !== 1) {
+    error(at, `Training is one bot’s job — ${group.name} has ${group.slots.length} bots. Put the trainee in a Group of one and give the guards their own posted Group.`);
+  }
+  if (job.sigs && Object.keys(job.sigs).length > 0) {
+    error(at, `A trainee casts nothing — a signature would reset the channel, so ${possessive(group.name)} marks belong to the guard Group.`);
+  }
+  if (job.posture !== 'wait') {
+    error(at, `Training is passive — the trainee waits on the tile; any fight resets the channel. ${possessive(group.name)} posture is “${job.posture}”.`);
+  }
+  if (job.posts?.length || job.rect || job.path?.length || job.point) {
+    error(at, `A Train at Workshop job draws nothing — the Workshop’s own training tile is the ground. Clear ${possessive(group.name)} drawn geometry.`);
+  }
+}
+
 function validatePostTiles(
   posts: TacticPost[],
   group: TacticGroup,
@@ -1249,7 +1372,10 @@ export function expectedGeometry(
 
 export function jobHasGeometry(job: TacticJob | null): boolean {
   if (!job) return false;
-  return Boolean(job.posts?.length || job.rect || (job.path?.length ?? 0) > 1 || job.point);
+  // A named Workshop counts as ground, exactly as the server's HasGeometry
+  // does: the tile is rules-owned rather than drawn, but the group is set.
+  return Boolean(job.posts?.length || job.rect || (job.path?.length ?? 0) > 1
+    || job.point || (job.kind === 'train' && job.workshop));
 }
 
 /** Plans a job-kind switch without throwing away geometry the new kind can
@@ -1283,6 +1409,19 @@ export function planJobKindChange(job: TacticJob, kind: JobKind): {
   if (!viaLegal(kind) && next.via?.length) {
     removed.push('the drawn approach route');
     delete next.via;
+  }
+  // Train is the one kind whose behavior is fixed by the grammar: passive
+  // posture, no marks (a signature would reset the channel) and a Workshop
+  // in place of geometry. Leaving for any other kind drops the Workshop.
+  if (kind === 'train') {
+    if (next.sigs && Object.keys(next.sigs).length > 0) {
+      removed.push('the signature marks (a trainee casts nothing)');
+      delete next.sigs;
+    }
+    if (next.posture !== 'wait') next.posture = 'wait';
+    next.workshop ??= 'either';
+  } else if (next.workshop) {
+    delete next.workshop;
   }
   return { next, removed };
 }

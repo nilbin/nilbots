@@ -120,7 +120,7 @@ test('an instantiated pincer with drawn geometry validates cleanly', () => {
 
 test('normal phase authoring exposes exactly the pruned vocabulary', () => {
   assert.deepEqual(JOB_KINDS.map((value) => value.id),
-    ['posts', 'area', 'converge', 'patrol']);
+    ['posts', 'area', 'converge', 'patrol', 'train']);
   assert.deepEqual(POSTURES.map((value) => value.id),
     ['observe', 'hold', 'aggressive']);
   assert.deepEqual(TRAVEL_BEHAVIORS.map((value) => value.id),

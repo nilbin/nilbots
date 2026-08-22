@@ -3,7 +3,25 @@ import { makePathfinder } from './pathing';
 import {
   effectiveJobResolution, tilePlacementIssue,
   type Point, type Tactic, type TacticJob, type TacticsDocument,
+  type WorkshopChoice,
 } from './tacticsDocument';
+
+/** The rules-owned training tile for a Workshop, straight from the catalog's
+ * map export — the editor never invents it. `either` previews the north room
+ * because a preview must pick one; the executor's own choice is a match-time
+ * fact the editor cannot know. Null on a map with no Workshops. */
+export function workshopTrainingTile(
+  catalog: TacticalSheetCatalog,
+  workshop: WorkshopChoice,
+): Point | null {
+  const order = workshop === 'either' ? ['north', 'south'] : [workshop];
+  for (const id of order) {
+    const tile = catalog.map.regions
+      .find((region) => region.id === `veterancy-workshop-${id}-train`)?.tiles[0];
+    if (tile) return [tile.x, tile.y];
+  }
+  return null;
+}
 
 /** A presentation-only tile for one stable squad slot. Exact Posts are
  * authoritative; every other entry is an explicitly labelled projection and
@@ -51,6 +69,7 @@ export function groundFingerprint(job: TacticJob): string {
     rect: job.rect ?? null,
     path: job.path ?? null,
     point: job.point ?? null,
+    workshop: job.workshop ?? null,
   });
 }
 
@@ -269,7 +288,15 @@ export function projectPhaseBots(
         points = alongRoute(legal, pending, seed, occupied);
       }
     } else if (job.kind === 'return') {
-      points = around(catalog, [2, 5], occupied, pending, seed);
+      // Home is the map's own west reactor, not a remembered coordinate.
+      const reactor = catalog.map.regions
+        .find((region) => region.id === 'reactor-west')?.tiles[0];
+      points = around(
+        catalog, reactor ? [reactor.x, reactor.y] : [3, 13],
+        occupied, pending, seed);
+    } else if (job.kind === 'train' && job.workshop) {
+      const tile = workshopTrainingTile(catalog, job.workshop);
+      if (tile) points = around(catalog, tile, occupied, pending, seed);
     }
 
     if (!points) {

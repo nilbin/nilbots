@@ -23,12 +23,12 @@ import {
   type CondKind, type CustodyPlan, type DrawKind, type JobKind,
   type MembershipPocket, type Posture,
   type Recovery, type Tactic, type TacticGroup, type TacticTransition,
-  type TacticsDocument,
+  type TacticsDocument, type WorkshopChoice,
 } from './tacticsDocument';
 import {
   assignedCount, jobComplete, unassignedSlots, type WizardState,
 } from './wizardState';
-import { describePlace } from './places';
+import { describePlace, WORKSHOP_OPTIONS } from './places';
 import { materializeSpatialJob } from './mapFirstSpatial';
 
 /**
@@ -694,10 +694,14 @@ export function JobSection(props: StepProps & {
   const groupBots = group.slots
     .map((slot) => document.squad.find((bot) => bot.slot === slot))
     .filter((bot): bot is NonNullable<typeof bot> => Boolean(bot));
-  const spatialBots = groupBots
+  // A trainee casts nothing: any signature would reset the channel, so the
+  // marks belong to the guard Group and this section disappears entirely.
+  const training = job.kind === 'train';
+  const spatialBots = training ? [] : groupBots
     .filter((bot) => signatureMarkGeometry(catalog, bot.class));
-  const passiveBots = groupBots
+  const passiveBots = training ? [] : groupBots
     .filter((bot) => !signatureMarkGeometry(catalog, bot.class));
+  const workshop: WorkshopChoice = job.workshop ?? 'either';
   const className = (classId: string) =>
     catalog.classes.find((value) => value.id === classId)?.name ?? classId;
   return <>
@@ -739,7 +743,39 @@ export function JobSection(props: StepProps & {
           props.notify?.('Previous job geometry restored.');
         }}>Undo job change</button>}
       <p className="t-micro mb-1 text-arena-dim">{kindDef?.blurb}</p>
-      {kindDef?.draw
+      {training ? <>
+        {group.slots.length !== 1 && (
+          <p className="mb-1 rounded-sm border border-arena-warning/50 bg-arena-warning/5 p-2 t-micro text-arena-warning">
+            Training is one bot’s job, and {group.name} has {group.slots.length} bots.
+            Leave the trainee here alone and move the rest into their own Group —
+            the guards who screen the Workshop mouths. This Tactic cannot be
+            created until this Group is a single bot.
+          </p>
+        )}
+        <div className="lab">Workshop</div>
+        <SegChips options={WORKSHOP_OPTIONS} value={workshop} accent={color}
+          onChange={(next) => mutateJob((target) => {
+            target.workshop = next as WorkshopChoice;
+          })} />
+        <p className="t-micro mb-1 text-arena-dim">
+          {WORKSHOP_OPTIONS.find((value) => value.id === workshop)?.blurb}
+        </p>
+        <GeoStatusRow complete={group.slots.length === 1}
+          label={`Nothing to draw — the ${workshop === 'either' ? 'chosen' : workshop} room owns its training tile.`}
+          drawing={false} />
+        <ul className="mt-1 list-disc space-y-0.5 pl-4 t-micro text-arena-dim">
+          <li>One bot walks in and <b>waits on the tile</b>; the rules run the channel.</li>
+          <li>The channel breaks if it <b>moves, attacks, takes damage</b> or picks a Core up.</li>
+          <li>Living enemies in the room <b>pause</b> it — that is what the guards are for.</li>
+          <li>North and south are the same rooms for both sides; this choice does not mirror.</li>
+        </ul>
+        {job.recovery !== 'fight-on' && (
+          <p className="mt-1 t-micro text-arena-warning">
+            Breaking for the heal tile walks off the training tile and loses the
+            channel’s progress — “Fight on” is the recovery that finishes a session.
+          </p>
+        )}
+      </> : kindDef?.draw
         ? <GeoStatusRow complete={complete}
           label={describeGeometry(job, group)}
           drawing={drawing && task?.kind === 'job' && task.field !== 'via'}
@@ -837,14 +873,23 @@ export function JobSection(props: StepProps & {
         />
       )}
       <div className="lab mt-2">Posture</div>
-      {!POSTURES.some((value) => value.id === job.posture) && (
-        <p className="t-micro text-arena-warning">Existing advanced posture: <b>{job.posture}</b>. It remains active until you choose a normal posture.</p>
-      )}
-      <SegChips options={postures} value={job.posture} accent={color}
-        onChange={(posture) => mutateJob((target) => {
-          target.posture = posture as Posture;
-        })} />
-      <p className="t-micro mb-1 text-arena-dim">{POSTURES.find((value) => value.id === job.posture)?.blurb}</p>
+      {training ? (
+        // Passive by grammar: any fight resets the channel, so there is no
+        // posture to choose — saying so beats an advanced-value warning.
+        <p className="t-micro mb-1 text-arena-dim">
+          Fixed: the trainee <b>waits</b> on the tile and does not voluntarily fight.
+          A posture that picks fights would reset the channel every time.
+        </p>
+      ) : <>
+        {!POSTURES.some((value) => value.id === job.posture) && (
+          <p className="t-micro text-arena-warning">Existing advanced posture: <b>{job.posture}</b>. It remains active until you choose a normal posture.</p>
+        )}
+        <SegChips options={postures} value={job.posture} accent={color}
+          onChange={(posture) => mutateJob((target) => {
+            target.posture = posture as Posture;
+          })} />
+        <p className="t-micro mb-1 text-arena-dim">{POSTURES.find((value) => value.id === job.posture)?.blurb}</p>
+      </>}
       {(() => {
         // Travel needs an arrival to hand over at — hide it where the job
         // is all march (patrol/return/escort) or carries nothing forward.
@@ -857,8 +902,10 @@ export function JobSection(props: StepProps & {
         if (!arrival || ['patrol', 'return', 'escort'].includes(arrival)) {
           return null;
         }
-        const arrived = POSTURES.find((value) => value.id === job.posture)?.label
-          ?? 'The posture';
+        const arrived = training
+          ? 'Waiting quietly on the training tile'
+          : POSTURES.find((value) => value.id === job.posture)?.label
+            ?? 'The posture';
         const chosen = job.travel ?? 'same';
         const visibleTravel = TRAVEL_BEHAVIORS.find((value) =>
           value.id === (chosen === 'same' ? 'observe' : chosen));
