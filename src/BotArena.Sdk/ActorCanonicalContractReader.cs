@@ -561,21 +561,49 @@ public static class ActorCanonicalContractReader
                         Property(element, "teamAdvances"),
                         ReadTeamAdvance));
             case "arc-relay":
+                bool hasWorkshopBindings = element.TryGetProperty(
+                    "veterancyWorkshops", out _);
                 ExactObject(
                     element,
-                    "kind",
-                    "orderedWellRegionIds",
-                    "reactorRegionRoleId",
-                    "homePadRegionRoleId");
+                    [
+                        "kind",
+                        "orderedWellRegionIds",
+                        "reactorRegionRoleId",
+                        "homePadRegionRoleId",
+                        .. hasWorkshopBindings
+                            ? new[] { "veterancyWorkshops" }
+                            : System.Array.Empty<string>(),
+                    ]);
                 return new MatchContract.ArcRelayModeMapBinding(
                     Array(
                         Property(element, "orderedWellRegionIds"),
                         Id),
                     Id(element, "reactorRegionRoleId"),
-                    Id(element, "homePadRegionRoleId"));
+                    Id(element, "homePadRegionRoleId"))
+                {
+                    VeterancyWorkshops = hasWorkshopBindings
+                        ? Array(
+                            Property(element, "veterancyWorkshops"),
+                            ReadArcRelayWorkshopBinding)
+                        : [],
+                };
             default:
                 throw Unsupported("modeMapBinding.kind", kind);
         }
+    }
+
+    private static MatchContract.ArcRelayWorkshopRegionBinding
+        ReadArcRelayWorkshopBinding(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "workshopId",
+            "trainRegionId",
+            "contestRegionId");
+        return new MatchContract.ArcRelayWorkshopRegionBinding(
+            Id(element, "workshopId"),
+            Id(element, "trainRegionId"),
+            Id(element, "contestRegionId"));
     }
 
     private static MatchContract.FrontlineTeamAdvance ReadTeamAdvance(
@@ -773,6 +801,8 @@ public static class ActorCanonicalContractReader
             "sentryTeamVision", out _);
         bool hasReactiveImpactFacing = element.TryGetProperty(
             "reactiveImpactFacing", out _);
+        bool hasVeterancyWorkshops = element.TryGetProperty(
+            "veterancyWorkshops", out _);
         string[] modeFields =
         [
             "kind", "modeId", "victory", "scoreCatalog",
@@ -856,6 +886,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasReactiveImpactFacing
                 ? new[] { "reactiveImpactFacing" }
+                : System.Array.Empty<string>(),
+            .. hasVeterancyWorkshops
+                ? new[] { "veterancyWorkshops" }
                 : System.Array.Empty<string>(),
             "wells", "signatures",
         ];
@@ -969,7 +1002,33 @@ public static class ActorCanonicalContractReader
                 && Bool(element, "sentryTeamVision"),
             ReactiveImpactFacing = hasReactiveImpactFacing
                 && Bool(element, "reactiveImpactFacing"),
+            VeterancyWorkshops = hasVeterancyWorkshops
+                ? ReadArcRelayVeterancyWorkshops(
+                    Property(element, "veterancyWorkshops"))
+                : null,
         };
+    }
+
+    private static RulesContract.ArcRelayVeterancyWorkshops
+        ReadArcRelayVeterancyWorkshops(JsonElement element)
+    {
+        ExactObject(
+            element,
+            "workshopIds",
+            "unlockTick",
+            "requiredChannelTicks",
+            "xpAward",
+            "dormancyTicks");
+        return new RulesContract.ArcRelayVeterancyWorkshops(
+            Array(
+                Property(element, "workshopIds"),
+                value => value.GetString()
+                    ?? throw new FormatException(
+                        "Workshop ids must be strings.")),
+            Int(element, "unlockTick"),
+            Int(element, "requiredChannelTicks"),
+            Int(element, "xpAward"),
+            Int(element, "dormancyTicks"));
     }
 
     private static RulesContract.ArcRelayWellSchedule ReadArcRelayWell(

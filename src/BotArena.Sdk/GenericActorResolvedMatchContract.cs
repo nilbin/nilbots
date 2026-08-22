@@ -246,7 +246,20 @@ public sealed class GenericActorResolvedMatchContract
         ImmutableArray<string> OrderedWellRegionIds,
         string ReactorRegionRoleId,
         string HomePadRegionRoleId)
-        : ModeMapBindingDefinition(ModeMapBindingKind.ArcRelay);
+        : ModeMapBindingDefinition(ModeMapBindingKind.ArcRelay)
+    {
+        /// <summary>Per-Workshop region binding; empty on maps without
+        /// veterancy Workshops.</summary>
+        public ImmutableArray<ArcRelayWorkshopRegionBinding> VeterancyWorkshops
+        { get; init; } = [];
+    }
+
+    /// <summary>Binds one veterancy Workshop id onto its exact training
+    /// region and its authored contest region.</summary>
+    public sealed record ArcRelayWorkshopRegionBinding(
+        string WorkshopId,
+        string TrainRegionId,
+        string ContestRegionId);
 
     /// <summary>One team's advance direction through ordered objectives.</summary>
     /// <param name="TeamId">Stable scoring-team identifier.</param>

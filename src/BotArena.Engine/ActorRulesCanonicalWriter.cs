@@ -380,6 +380,24 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteBoolean("sentryTeamVision", true);
         if (mode.ReactiveImpactFacing)
             writer.WriteBoolean("reactiveImpactFacing", true);
+        // Written only when the profile carries Workshops, so historical
+        // rules bytes are untouched by this mechanic's existence.
+        if (mode.VeterancyWorkshops is { } workshops)
+        {
+            writer.WritePropertyName("veterancyWorkshops");
+            writer.WriteStartObject();
+            writer.WritePropertyName("workshopIds");
+            writer.WriteStartArray();
+            foreach (string workshopId in workshops.WorkshopIds)
+                writer.WriteStringValue(workshopId);
+            writer.WriteEndArray();
+            writer.WriteNumber("unlockTick", workshops.UnlockTick);
+            writer.WriteNumber(
+                "requiredChannelTicks", workshops.RequiredChannelTicks);
+            writer.WriteNumber("xpAward", workshops.XpAward);
+            writer.WriteNumber("dormancyTicks", workshops.DormancyTicks);
+            writer.WriteEndObject();
+        }
         writer.WritePropertyName("wells");
         writer.WriteStartArray();
         foreach (ArcRelayWellScheduleDefinition well in mode.Wells)

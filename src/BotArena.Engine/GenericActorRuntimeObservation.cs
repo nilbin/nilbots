@@ -888,6 +888,14 @@ public sealed record GenericActorRuntimeObservation(
             public ImmutableArray<ArcRelayPendingStrikeState> PendingStrikes
             { get; init; } = [];
 
+            /// <summary>
+            /// Public neutral veterancy Workshop states. Empty on rulesets
+            /// without Workshops, keeping historical observations
+            /// byte-identical.
+            /// </summary>
+            public ImmutableArray<ArcRelayVeterancyWorkshopState> Workshops
+            { get; init; } = [];
+
             public bool Equals(ArcRelay? other) =>
                 other is not null
                 && ModeId == other.ModeId
@@ -899,7 +907,8 @@ public sealed record GenericActorRuntimeObservation(
                 && LatestPulseTick == other.LatestPulseTick
                 && NextRespawnWaveTick == other.NextRespawnWaveTick
                 && RespawnWaveTeams.SequenceEqual(other.RespawnWaveTeams)
-                && PendingStrikes.SequenceEqual(other.PendingStrikes);
+                && PendingStrikes.SequenceEqual(other.PendingStrikes)
+                && Workshops.SequenceEqual(other.Workshops);
 
             public override int GetHashCode()
             {
@@ -916,6 +925,8 @@ public sealed record GenericActorRuntimeObservation(
                 foreach (ArcRelayRespawnWaveTeamState value in RespawnWaveTeams)
                     hash.Add(value);
                 foreach (ArcRelayPendingStrikeState value in PendingStrikes)
+                    hash.Add(value);
+                foreach (ArcRelayVeterancyWorkshopState value in Workshops)
                     hash.Add(value);
                 return hash.ToHashCode();
             }

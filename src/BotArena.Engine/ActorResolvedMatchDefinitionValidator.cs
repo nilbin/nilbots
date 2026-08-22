@@ -585,6 +585,46 @@ public static class ActorResolvedMatchDefinitionValidator
             }
         }
 
+        HashSet<string> boundWorkshops = binding.Workshops
+            .Select(value => value.WorkshopId)
+            .ToHashSet(StringComparer.Ordinal);
+        HashSet<string> ruledWorkshops = (mode.VeterancyWorkshops?.WorkshopIds
+            ?? []).ToHashSet(StringComparer.Ordinal);
+        if (!boundWorkshops.SetEquals(ruledWorkshops))
+        {
+            errors.Add(
+                "Arc Relay Workshop bindings must cover exactly the mode's "
+                + "declared Workshop ids.");
+        }
+        var workshopTiles = new HashSet<Position>();
+        foreach (ArcRelayWorkshopRegionBindingDefinition workshop
+                 in binding.Workshops)
+        {
+            if (!mapRegions.TryGetValue(
+                    workshop.TrainRegionId, out var trainRegion)
+                || trainRegion.Tiles.Length != 1)
+            {
+                errors.Add(
+                    $"Workshop '{workshop.WorkshopId}' needs a one-tile "
+                    + "training region.");
+            }
+            else if (!workshopTiles.Add(trainRegion.Tiles[0])
+                || wellTiles.Contains(trainRegion.Tiles[0]))
+            {
+                errors.Add(
+                    $"Workshop '{workshop.WorkshopId}' training tile "
+                    + "overlaps another objective.");
+            }
+            if (!mapRegions.TryGetValue(
+                    workshop.ContestRegionId, out var contestRegion)
+                || contestRegion.Tiles.Length == 0)
+            {
+                errors.Add(
+                    $"Workshop '{workshop.WorkshopId}' needs a non-empty "
+                    + "contest region.");
+            }
+        }
+
         if (topology is null)
             return;
 

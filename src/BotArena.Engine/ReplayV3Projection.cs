@@ -1204,6 +1204,46 @@ internal static class ReplayV3Projection
                     fact.Amount,
                     fact.NewHealth,
                     Position(fact.Position)),
+            ArcRelayEvent.WorkshopReady fact =>
+                new ReplayV3.ArcRelayFact.WorkshopReady(
+                    fact.WorkshopId,
+                    Position(fact.TrainingTile)),
+            ArcRelayEvent.WorkshopTrainingStarted fact =>
+                new ReplayV3.ArcRelayFact.WorkshopTrainingStarted(
+                    fact.WorkshopId,
+                    fact.TeamId,
+                    Position(fact.TrainingTile)),
+            ArcRelayEvent.WorkshopTrainingInterrupted fact =>
+                new ReplayV3.ArcRelayFact.WorkshopTrainingInterrupted(
+                    fact.WorkshopId,
+                    fact.TeamId,
+                    fact.Reason switch
+                    {
+                        ArcRelayEvent.WorkshopInterruptionKind.LeftTile =>
+                            "left-tile",
+                        ArcRelayEvent.WorkshopInterruptionKind.Moved =>
+                            "moved",
+                        ArcRelayEvent.WorkshopInterruptionKind.Damaged =>
+                            "damaged",
+                        ArcRelayEvent.WorkshopInterruptionKind.ActedInCombat =>
+                            "acted-in-combat",
+                        ArcRelayEvent.WorkshopInterruptionKind.AcquiredCore =>
+                            "acquired-core",
+                        ArcRelayEvent.WorkshopInterruptionKind.Died => "died",
+                        ArcRelayEvent.WorkshopInterruptionKind.Contested =>
+                            "contested",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    },
+                    fact.ProgressLost,
+                    Position(fact.TrainingTile)),
+            ArcRelayEvent.WorkshopTrainingCompleted fact =>
+                new ReplayV3.ArcRelayFact.WorkshopTrainingCompleted(
+                    fact.WorkshopId,
+                    fact.TeamId,
+                    ActorId(fact.TraineeActorId),
+                    fact.XpAward,
+                    fact.ReadyAgainTick,
+                    Position(fact.TrainingTile)),
             _ => throw new ArgumentOutOfRangeException(nameof(value)),
         };
 
@@ -1519,6 +1559,23 @@ internal static class ReplayV3Projection
                         ? ActorId(target)
                         : null,
                 })],
+            Workshops = [.. value.Workshops.Select(workshop =>
+                new ReplayV3.ArcWorkshop(
+                    workshop.WorkshopId,
+                    Position(workshop.TrainingTile),
+                    workshop.Phase switch
+                    {
+                        ArcRelayVeterancyWorkshopPhase.Ready => "ready",
+                        ArcRelayVeterancyWorkshopPhase.Training => "training",
+                        ArcRelayVeterancyWorkshopPhase.Contested =>
+                            "contested",
+                        ArcRelayVeterancyWorkshopPhase.Dormant => "dormant",
+                        _ => throw new ArgumentOutOfRangeException(),
+                    },
+                    workshop.TrainingTeamId,
+                    workshop.ProgressTicks,
+                    workshop.RequiredTicks,
+                    workshop.ReadyAtTick))],
         };
 
     internal static ReplayV3.MatchResult MatchResult(

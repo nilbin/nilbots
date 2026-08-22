@@ -355,6 +355,10 @@ public sealed class GenericActorRulesContract
         public bool SentryTeamVision { get; init; }
         public bool ReactiveImpactFacing { get; init; }
 
+        /// <summary>Neutral veterancy Workshop rules; null on rulesets
+        /// without Workshops.</summary>
+        public ArcRelayVeterancyWorkshops? VeterancyWorkshops { get; init; }
+
         /// <summary>
         /// Resolved veterancy/recovery magnitudes. Historical contracts use
         /// 1 damage per point capped at +2, vitality +1, heal +1, with the
@@ -411,6 +415,18 @@ public sealed class GenericActorRulesContract
     }
 
     /// <summary>One stable Well's complete production cadence.</summary>
+    /// <summary>
+    /// The Workshop mechanic's public numbers: which Workshops exist, when
+    /// training unlocks, how many consecutive qualifying ticks one session
+    /// takes, the XP it grants, and the global dormancy that follows.
+    /// </summary>
+    public sealed record ArcRelayVeterancyWorkshops(
+        IReadOnlyList<string> WorkshopIds,
+        int UnlockTick,
+        int RequiredChannelTicks,
+        int XpAward,
+        int DormancyTicks);
+
     public sealed record ArcRelayWellSchedule(
         string WellId,
         int FirstBirthTick,

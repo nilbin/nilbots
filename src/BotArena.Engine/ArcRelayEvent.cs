@@ -116,6 +116,46 @@ public abstract record ArcRelayEvent
         int NewHealth,
         Position Position) : ArcRelayEvent;
 
+    /// <summary>The Workshop became available: initial unlock or the end of
+    /// a post-completion dormancy.</summary>
+    public sealed record WorkshopReady(
+        string WorkshopId,
+        Position TrainingTile) : ArcRelayEvent;
+
+    /// <summary>A training channel opened: its first qualifying tick.</summary>
+    public sealed record WorkshopTrainingStarted(
+        string WorkshopId,
+        int TeamId,
+        Position TrainingTile) : ArcRelayEvent;
+
+    /// <summary>An active channel reset to zero, with the public reason.</summary>
+    public sealed record WorkshopTrainingInterrupted(
+        string WorkshopId,
+        int TeamId,
+        WorkshopInterruptionKind Reason,
+        int ProgressLost,
+        Position TrainingTile) : ArcRelayEvent;
+
+    /// <summary>A session completed: the XP landed and dormancy began.</summary>
+    public sealed record WorkshopTrainingCompleted(
+        string WorkshopId,
+        int TeamId,
+        ActorIdentity TraineeActorId,
+        int XpAward,
+        int ReadyAgainTick,
+        Position TrainingTile) : ArcRelayEvent;
+
+    public enum WorkshopInterruptionKind
+    {
+        LeftTile = 0,
+        Moved = 1,
+        Damaged = 2,
+        ActedInCombat = 3,
+        AcquiredCore = 4,
+        Died = 5,
+        Contested = 6,
+    }
+
     public enum CoreRelocationKind
     {
         CarriedMovement = 0,

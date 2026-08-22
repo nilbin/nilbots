@@ -73,7 +73,20 @@ public static class ArcRelayH0Definition
             new ArcRelayActorModeMapBindingDefinition(
                 ["well-centre", "well-north", "well-south"],
                 ReactorRoleId,
-                HomePadRoleId),
+                HomePadRoleId,
+                loopProfile.VeterancyWorkshops
+                    ?
+                    [
+                        new ArcRelayWorkshopRegionBindingDefinition(
+                            "north",
+                            "veterancy-workshop-north-train",
+                            "veterancy-workshop-north-contest"),
+                        new ArcRelayWorkshopRegionBindingDefinition(
+                            "south",
+                            "veterancy-workshop-south-train",
+                            "veterancy-workshop-south-contest"),
+                    ]
+                    : null),
             capabilityVersions ?? ActorMatchCapabilityVersions.Mind);
     }
 
@@ -746,9 +759,33 @@ public static class ArcRelayH0Definition
             anchors.Add(Anchor(1, unitId, Rotate(west[unitId]), Direction.West));
         }
 
+        // The Workshop training tile plus its explicitly authored contest
+        // region: the room interior, all three mouths and the skylight, so a
+        // disruptor never needs the exact training tile to contest. Exact
+        // open tiles of the accepted candidate; the south set is the exact
+        // 180-degree rotation.
+        Position workshopNorthTrain = new(18, 4);
+        Position workshopSouthTrain = Rotate(workshopNorthTrain);
+        Position[] workshopNorthContest =
+        [
+            new(18, 2), new(14, 3), new(15, 3), new(16, 3),
+            new(18, 3), new(19, 3), new(20, 3), new(21, 3),
+            new(14, 4), new(15, 4), new(16, 4), new(17, 4),
+            new(18, 4), new(19, 4), new(21, 4), new(22, 4),
+            new(15, 5), new(17, 5), new(18, 5), new(19, 5),
+            new(20, 5), new(21, 5), new(22, 5), new(15, 6),
+            new(16, 6), new(17, 6), new(18, 6), new(19, 6),
+            new(20, 6), new(21, 6), new(22, 6), new(16, 7),
+            new(17, 7), new(18, 7), new(19, 7), new(20, 7),
+        ];
+        Position[] workshopSouthContest =
+            [.. workshopNorthContest.Select(Rotate)
+                .OrderBy(value => value.Y).ThenBy(value => value.X)];
+
         Position[] forbidden =
         [
             wellNorth, wellCentre, wellSouth, reactorWest, reactorEast,
+            workshopNorthTrain, workshopSouthTrain,
         ];
         return new ActorMapDefinition(
             loopProfile.MapId,
@@ -776,6 +813,16 @@ public static class ArcRelayH0Definition
                     "home-east",
                     ActorMapRegionDefinition.RegionKind.Objective,
                     deliverEast),
+                Region("veterancy-workshop-north-train", workshopNorthTrain),
+                Region("veterancy-workshop-south-train", workshopSouthTrain),
+                new ActorMapRegionDefinition(
+                    "veterancy-workshop-north-contest",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    [.. workshopNorthContest]),
+                new ActorMapRegionDefinition(
+                    "veterancy-workshop-south-contest",
+                    ActorMapRegionDefinition.RegionKind.Objective,
+                    [.. workshopSouthContest]),
             ],
             [
                 new ActorMapTileTagDefinition(
@@ -1100,7 +1147,15 @@ public static class ArcRelayH0Definition
             bankTriggeredWellRechargeTicks:
                 loopProfile.BankTriggeredWellRechargeTicks,
             sentryTeamVision: loopProfile.SentryTeamVision,
-            reactiveImpactFacing: loopProfile.ReactiveImpactFacing);
+            reactiveImpactFacing: loopProfile.ReactiveImpactFacing,
+            veterancyWorkshops: loopProfile.VeterancyWorkshops
+                ? new ArcRelayVeterancyWorkshopRules(
+                    ["north", "south"],
+                    unlockTick: 25,
+                    requiredChannelTicks: 15,
+                    xpAward: 1,
+                    dormancyTicks: 45)
+                : null);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;
