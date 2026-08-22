@@ -1,6 +1,7 @@
 import type {
   ReplayArcRelayFact,
   ReplayArcRelayModeState,
+  ReplayArcWorkshopPhase,
   ReplayActorLifeKey,
   ReplayActorState,
   ReplayFormTransition,
@@ -488,6 +489,26 @@ export interface ArcRelayStoryPresentation {
     filledSocketWellIds: string[];
     integritySegments: number;
     accent: string;
+  }[];
+  /**
+   * Neutral veterancy Workshops, exactly as the engine published them, with
+   * the training team's accent resolved once so neither renderer re-derives
+   * it. Empty on every ruleset without Workshops — which is every historical
+   * replay — so a renderer reads the array rather than testing for the field.
+   *
+   * The trainee is deliberately absent: the landmark publishes a TEAM, and the
+   * body only ever appears on the completion fact.
+   */
+  workshops: {
+    workshopId: string;
+    trainingTile: { x: number; y: number };
+    phase: ReplayArcWorkshopPhase;
+    trainingTeamId: number | null;
+    /** The channelling team's accent; null in every phase but `training`. */
+    trainingAccent: string | null;
+    progressTicks: number;
+    requiredTicks: number;
+    readyAtTick: number | null;
   }[];
   // A declared strike in windup is NOT presented here any more (owner
   // ruling 2026-08). Its cone plates were removed from both renderers once
@@ -2043,6 +2064,26 @@ function arcRelayAt(
         filledSocketWellIds: reactor.filledSocketWellIds,
         integritySegments: reactor.integritySegments,
         accent: unit ? unitAccent(replay, unit.unitKey) : '#94a3b8',
+      };
+    }),
+    // `?? []` for the same reason `filledSocketWellIds` is read leniently: a
+    // replay normalized from any wire always carries the array, but a
+    // hand-built mode state (fixtures, synthetic frames) predates the field.
+    workshops: (state.workshops ?? []).map((workshop) => {
+      const unit = workshop.trainingTeamId === null
+        ? undefined
+        : replay.units.find(
+            (candidate) => candidate.teamId === workshop.trainingTeamId,
+          );
+      return {
+        workshopId: workshop.workshopId,
+        trainingTile: workshop.trainingTile,
+        phase: workshop.phase,
+        trainingTeamId: workshop.trainingTeamId,
+        trainingAccent: unit ? unitAccent(replay, unit.unitKey) : null,
+        progressTicks: workshop.progressTicks,
+        requiredTicks: workshop.requiredTicks,
+        readyAtTick: workshop.readyAtTick,
       };
     }),
     respawnWave: state.nextRespawnWaveTick === undefined

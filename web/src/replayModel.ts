@@ -1036,6 +1036,36 @@ export interface ReplayArcRelayModeState {
     target: ReplayActorIdentity | null;
     tiles: ReplayPosition[];
   }[];
+  /**
+   * Neutral veterancy Workshops, ordered as the engine published them. Empty
+   * on every ruleset without Workshops — which is every historical replay — so
+   * a consumer reads the array rather than testing for the field.
+   */
+  workshops: ReplayArcWorkshop[];
+}
+
+/** The public phase of one neutral veterancy Workshop. */
+export type ReplayArcWorkshopPhase =
+  | 'ready'
+  | 'training'
+  | 'contested'
+  | 'dormant';
+
+/**
+ * One Workshop's public state. Workshop state is public to BOTH teams, so a
+ * viewer renders it regardless of fog. It names the training TEAM and never
+ * the trainee, so presentation must not invent a body.
+ */
+export interface ReplayArcWorkshop {
+  workshopId: string;
+  trainingTile: ReplayPosition;
+  phase: ReplayArcWorkshopPhase;
+  /** Team channelling it; null in every phase but `training`. */
+  trainingTeamId: number | null;
+  progressTicks: number;
+  requiredTicks: number;
+  /** First tick a dormant Workshop is ready again; null unless dormant. */
+  readyAtTick: number | null;
 }
 
 export interface ReplayProjectileState {
@@ -1556,7 +1586,49 @@ export type ReplayArcRelayFact =
       amount: number;
       newHealth: number;
       position: ReplayPosition;
+    }
+  | {
+      kind: 'workshop-ready';
+      workshopId: string;
+      trainingTile: ReplayPosition;
+    }
+  | {
+      kind: 'workshop-training-started';
+      workshopId: string;
+      teamId: number;
+      trainingTile: ReplayPosition;
+    }
+  | {
+      kind: 'workshop-training-interrupted';
+      workshopId: string;
+      teamId: number;
+      reason: ReplayArcWorkshopInterruptionReason;
+      progressLost: number;
+      trainingTile: ReplayPosition;
+    }
+  | {
+      /**
+       * The channel paid out. `traineeActor` is the engine's own attribution —
+       * never derive it from who happens to stand on the tile.
+       */
+      kind: 'workshop-training-completed';
+      workshopId: string;
+      teamId: number;
+      traineeActor: ReplayActorIdentity;
+      xpAward: number;
+      readyAgainTick: number;
+      trainingTile: ReplayPosition;
     };
+
+/** Why a Workshop channel ended without awarding its XP. */
+export type ReplayArcWorkshopInterruptionReason =
+  | 'left-tile'
+  | 'moved'
+  | 'damaged'
+  | 'acted-in-combat'
+  | 'acquired-core'
+  | 'died'
+  | 'contested';
 
 export interface ReplayProjectileTraversal {
   projectileId: string;

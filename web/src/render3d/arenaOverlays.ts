@@ -34,6 +34,7 @@ import {
 } from '../render/teamVision';
 import { playsAt } from '../presentation/playAwareness';
 import { ARC_CORE_NEUTRAL_PALETTE } from '../presentation/arcCorePalette';
+import { arcWorkshopsFor } from '../render/arcWorkshopPresentation';
 import { ARC_SIGNATURE_PRESENTATION_ID } from '../render/arcSignaturePresentationId';
 import { ARC_TOSS_RELEASE_TICK_OFFSET } from '../render/signatures/definitions/arcToss';
 import { arenaTheme } from '../render/arenaThemes';
@@ -2062,6 +2063,7 @@ function buildArcRelayStory(
       ? replay.contract.rawContract.rules.gameMode
       : null;
   const currentArcStoryAt = createPresenter(replay).at;
+  const workshopIndex = arcWorkshopsFor(replay);
 
   const wellGeometry = new THREE.CylinderGeometry(
     arcArchitecture ? 0.28 : 0.31,
@@ -2107,6 +2109,25 @@ function buildArcRelayStory(
   const forgeWellClampGeometry = new THREE.BoxGeometry(0.13, 0.15, 0.11);
   const forgeWellRimGeometry = new THREE.TorusGeometry(0.31, 0.045, 6, 12);
   forgeWellRimGeometry.rotateX(Math.PI / 2);
+  // The Workshop is a hexagonal anvil bench: six sides so it is never a Well's
+  // disc, and low enough that a body training on it still reads as standing on
+  // a tile rather than on furniture.
+  const workshopPlateGeometry = new THREE.CylinderGeometry(0.4, 0.44, 0.05, 6);
+  const workshopRimGeometry = new THREE.RingGeometry(0.42, 0.49, 6);
+  workshopRimGeometry.rotateX(-Math.PI / 2);
+  const workshopAnvilFaceGeometry = new THREE.BoxGeometry(0.3, 0.04, 0.13);
+  const workshopAnvilHornGeometry = new THREE.ConeGeometry(0.055, 0.12, 6);
+  workshopAnvilHornGeometry.rotateZ(-Math.PI / 2);
+  const workshopAnvilWaistGeometry = new THREE.BoxGeometry(0.11, 0.055, 0.09);
+  const workshopAnvilBaseGeometry = new THREE.BoxGeometry(0.24, 0.04, 0.13);
+  disposables.push(
+    workshopPlateGeometry,
+    workshopRimGeometry,
+    workshopAnvilFaceGeometry,
+    workshopAnvilHornGeometry,
+    workshopAnvilWaistGeometry,
+    workshopAnvilBaseGeometry,
+  );
   disposables.push(
     wellGeometry,
     wellRingGeometry,
@@ -2407,6 +2428,124 @@ function buildArcRelayStory(
       );
     }
     return wells[index]!;
+  };
+
+  type WorkshopRig = {
+    group: THREE.Group;
+    plateMaterial: THREE.MeshStandardMaterial;
+    rimMaterial: THREE.MeshBasicMaterial;
+    anvilMaterial: THREE.MeshStandardMaterial;
+    dial: THREE.Mesh;
+    dialGeometry: THREE.RingGeometry;
+    dialMaterial: THREE.MeshBasicMaterial;
+    beat: THREE.Mesh;
+    beatMaterial: THREE.MeshBasicMaterial;
+    badge: THREE.Sprite;
+    badgeMaterial: THREE.SpriteMaterial;
+    badgeKey: string;
+  };
+  const workshops: WorkshopRig[] = [];
+  const workshop = (index: number): WorkshopRig => {
+    while (workshops.length <= index) {
+      const rig = new THREE.Group();
+      rig.userData.kind = 'arc-relay-workshop';
+      rig.userData.themeId = themeId;
+      const plateMaterial = new THREE.MeshStandardMaterial({
+        color: '#221a3a',
+        emissive: '#6d5bbd',
+        emissiveIntensity: 0.2,
+        roughness: 0.58,
+        metalness: 0.42,
+      });
+      const rimMaterial = new THREE.MeshBasicMaterial({
+        color: WORKSHOP_NEUTRAL_ACCENT,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const anvilMaterial = new THREE.MeshStandardMaterial({
+        color: '#cbb8ff',
+        emissive: WORKSHOP_NEUTRAL_ACCENT,
+        emissiveIntensity: 0.35,
+        roughness: 0.4,
+        metalness: 0.6,
+      });
+      const plate = new THREE.Mesh(workshopPlateGeometry, plateMaterial);
+      plate.position.y = 0.025;
+      const rim = new THREE.Mesh(workshopRimGeometry, rimMaterial);
+      rim.position.y = 0.055;
+      const anvil = new THREE.Group();
+      anvil.userData.kind = 'arc-relay-workshop-anvil';
+      const face = new THREE.Mesh(workshopAnvilFaceGeometry, anvilMaterial);
+      face.position.y = 0.155;
+      const horn = new THREE.Mesh(workshopAnvilHornGeometry, anvilMaterial);
+      horn.position.set(0.2, 0.155, 0);
+      const waist = new THREE.Mesh(workshopAnvilWaistGeometry, anvilMaterial);
+      waist.position.y = 0.108;
+      const base = new THREE.Mesh(workshopAnvilBaseGeometry, anvilMaterial);
+      base.position.y = 0.07;
+      anvil.add(face, horn, waist, base);
+      // The dial is a circle around a hexagon on purpose: the shape says
+      // "Workshop", the ring says "clock", and a hexagonal clock would read
+      // as part of the bench rather than as its state.
+      const dialGeometry = captureProgressGeometry(0.52, 0.6);
+      const dialMaterial = captureArcMaterial();
+      dialMaterial.color.set(WORKSHOP_NEUTRAL_ACCENT);
+      const dial = new THREE.Mesh(dialGeometry, dialMaterial);
+      dial.userData.kind = 'arc-relay-workshop-dial';
+      dial.position.y = 0.03;
+      const beatMaterial = new THREE.MeshBasicMaterial({
+        color: WORKSHOP_NEUTRAL_ACCENT,
+        transparent: true,
+        opacity: 0,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+      });
+      const beat = new THREE.Mesh(workshopRimGeometry, beatMaterial);
+      beat.userData.kind = 'arc-relay-workshop-beat';
+      beat.position.y = 0.07;
+      const badgeMaterial = new THREE.SpriteMaterial({
+        transparent: true,
+        depthWrite: false,
+        depthTest: false,
+      });
+      const badge = new THREE.Sprite(badgeMaterial);
+      badge.userData.kind = 'arc-relay-workshop-badge';
+      badge.position.set(0, 0.46, 0);
+      badge.scale.set(0.66, 0.25, 1);
+      badge.visible = false;
+      rig.add(plate, rim, anvil, dial, beat, badge);
+      rig.visible = false;
+      group.add(rig);
+      workshops.push({
+        group: rig,
+        plateMaterial,
+        rimMaterial,
+        anvilMaterial,
+        dial,
+        dialGeometry,
+        dialMaterial,
+        beat,
+        beatMaterial,
+        badge,
+        badgeMaterial,
+        badgeKey: '',
+      });
+      disposables.push(
+        plateMaterial,
+        rimMaterial,
+        anvilMaterial,
+        dialGeometry,
+        dialMaterial,
+        beatMaterial,
+        badgeMaterial,
+        { dispose: () => badgeMaterial.map?.dispose() },
+      );
+    }
+    return workshops[index]!;
   };
 
   type ReactorRig = {
@@ -2927,6 +3066,107 @@ function buildArcRelayStory(
     }
     for (let index = story.wells.length; index < wells.length; index++)
       wells[index]!.group.visible = false;
+
+    // Workshop state is public to both teams, so the bench and its read are
+    // drawn unconditionally — there is no fog branch to take. What the state
+    // never carries is the trainee, so nothing here names a body: the accent
+    // is the training TEAM's, and the trainee only appears as the completion
+    // fact's XP award.
+    const workshopReadings = workshopIndex.visualsAt(story.workshops, time);
+    for (const [index, reading] of workshopReadings.entries()) {
+      const rig = workshop(index);
+      const published = story.workshops[index];
+      rig.group.visible = true;
+      rig.group.position.set(
+        reading.tile.x + 0.5,
+        0,
+        reading.tile.y + 0.5,
+      );
+      const contested = reading.phase === 'contested';
+      const dormant = reading.phase === 'dormant';
+      const accent = contested
+        ? WORKSHOP_CONTESTED_ACCENT
+        : published?.trainingAccent ?? WORKSHOP_NEUTRAL_ACCENT;
+      const breathe =
+        0.5 + 0.5 * Math.sin(time * Math.PI * (contested ? 3.6 : 0.9) + index);
+      const dim = dormant ? 0.4 : 1;
+      rig.plateMaterial.emissive.set(dormant ? '#2b2740' : accent);
+      rig.plateMaterial.emissiveIntensity = (dormant ? 0.1 : 0.18) + 0.12 * breathe;
+      rig.rimMaterial.color.set(accent);
+      rig.rimMaterial.opacity =
+        (contested ? 0.5 + 0.45 * breathe : 0.3 + 0.3 * breathe) * dim;
+      rig.anvilMaterial.color.set(dormant ? '#6f6a86' : '#cbb8ff');
+      rig.anvilMaterial.emissive.set(
+        dormant ? '#3b3556' : contested ? WORKSHOP_CONTESTED_ACCENT : accent,
+      );
+      rig.anvilMaterial.emissiveIntensity = (dormant ? 0.14 : 0.34) + 0.16 * breathe;
+
+      const dialFraction =
+        reading.phase === 'training'
+          ? reading.progressFraction
+          : dormant
+            ? reading.dormantFraction ?? 0
+            : 0;
+      setCaptureArcFraction(rig.dialGeometry, dialFraction);
+      rig.dialMaterial.color.set(
+        reading.phase === 'training' ? accent : WORKSHOP_NEUTRAL_ACCENT,
+      );
+      rig.dialMaterial.opacity =
+        dialFraction > 0 ? (dormant ? 0.4 : 0.66 + 0.22 * breathe) : 0;
+
+      // The completion beat: the bench giving its XP up, as an expanding hex
+      // in the awarded team's colour. An interruption is the same gesture
+      // inverted, in the contested rose.
+      const completion = reading.completion;
+      const interruption = reading.interruption;
+      if (completion) {
+        rig.beatMaterial.color.set(
+          teamAccentFor(replay, completion.teamId) ?? WORKSHOP_NEUTRAL_ACCENT,
+        );
+        rig.beatMaterial.opacity = completion.strength * 0.85;
+        rig.beat.scale.setScalar(1 + 1.6 * (1 - completion.strength));
+        rig.beat.visible = true;
+      } else if (interruption) {
+        rig.beatMaterial.color.set(WORKSHOP_CONTESTED_ACCENT);
+        rig.beatMaterial.opacity = interruption.strength * 0.6;
+        rig.beat.scale.setScalar(1 + 1.1 * interruption.strength);
+        rig.beat.visible = true;
+      } else {
+        rig.beat.visible = false;
+      }
+
+      const badgeText = completion
+        ? `+${completion.xpAward} XP`
+        : reading.phase === 'training'
+          ? `${reading.progressTicks}/${reading.requiredTicks}`
+          : dormant && reading.dormantRemainingTicks !== null
+            ? String(reading.dormantRemainingTicks)
+            : '';
+      const badgeAccent = completion
+        ? teamAccentFor(replay, completion.teamId) ?? WORKSHOP_NEUTRAL_ACCENT
+        : reading.phase === 'training'
+          ? accent
+          : '#cbd5e1';
+      const badgeKey = `${badgeText}|${badgeAccent}`;
+      rig.badge.visible = badgeText.length > 0;
+      if (rig.badge.visible && rig.badgeKey !== badgeKey) {
+        const texture = workshopBadgeTexture(badgeText, badgeAccent);
+        if (texture) {
+          rig.badgeMaterial.map?.dispose();
+          rig.badgeMaterial.map = texture;
+          rig.badgeMaterial.needsUpdate = true;
+          rig.badgeKey = badgeKey;
+        } else {
+          rig.badge.visible = false;
+        }
+      }
+    }
+    for (
+      let index = workshopReadings.length;
+      index < workshops.length;
+      index++
+    )
+      workshops[index]!.group.visible = false;
 
     for (const [index, state] of story.reactors.entries()) {
       const rig = reactor(index);
@@ -3899,6 +4139,56 @@ function accentForUnit(
   unitKey: ReplayStableUnitKey,
 ): string {
   return unitAccent(replay, unitKey);
+}
+
+/**
+ * The Workshop's neutral colour, matched to the Canvas2D landmark so the two
+ * viewers name the same thing the same way. It is outside every other Arc
+ * Relay family — Wells amber, heal pads green, reactors team accents.
+ */
+const WORKSHOP_NEUTRAL_ACCENT = '#a78bfa';
+const WORKSHOP_CONTESTED_ACCENT = '#fb7185';
+
+function teamAccentFor(replay: ReplayModel, teamId: number): string | null {
+  const unit = replay.units.find((candidate) => candidate.teamId === teamId);
+  return unit ? unitAccent(replay, unit.unitKey) : null;
+}
+
+/**
+ * The Workshop's numeral plate. Guarded on `document` like every other painted
+ * texture here, so the headless presentation suites still import this module.
+ */
+function workshopBadgeTexture(
+  text: string,
+  accent: string,
+): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 176;
+  canvas.height = 68;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = 'rgba(6, 5, 14, 0.86)';
+  ctx.beginPath();
+  ctx.roundRect(4, 4, 168, 60, 22);
+  ctx.fill();
+  ctx.strokeStyle = accent;
+  ctx.lineWidth = 4;
+  ctx.stroke();
+  ctx.fillStyle = '#f8fafc';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  let size = 34;
+  ctx.font = `900 ${size}px ui-monospace, monospace`;
+  while (size > 14 && ctx.measureText(text).width > 140) {
+    size -= 2;
+    ctx.font = `900 ${size}px ui-monospace, monospace`;
+  }
+  ctx.fillText(text, 88, 36);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = 4;
+  return texture;
 }
 
 /** A soft round flare, drawn rather than shipped. */
