@@ -2756,6 +2756,15 @@ public sealed record GenericActorContext
             /// </summary>
             public ImmutableArray<ArcRelayPendingStrike> PendingStrikes
             { get; init; } = [];
+
+            /// <summary>
+            /// Public neutral veterancy Workshop states, visible to BOTH
+            /// teams: the objective signal is team-and-progress only and
+            /// never names the training body. Empty on every ruleset
+            /// without Workshops.
+            /// </summary>
+            public ImmutableArray<ArcRelayVeterancyWorkshopState> Workshops
+            { get; init; } = [];
         }
     }
 
@@ -2763,6 +2772,31 @@ public sealed record GenericActorContext
         int TeamId,
         int LiveBodies,
         int RespawnsNextWave);
+
+    /// <summary>
+    /// One public veterancy Workshop: its exact training tile, phase
+    /// (ready, training, contested, dormant), the training team when a
+    /// channel is open, progress against the required consecutive ticks,
+    /// and the one effective countdown — unlock or dormancy — when it is
+    /// not available.
+    /// </summary>
+    public sealed record ArcRelayVeterancyWorkshopState(
+        string WorkshopId,
+        Position TrainingTile,
+        ArcRelayVeterancyWorkshopPhase Phase,
+        int? TrainingTeamId,
+        int ProgressTicks,
+        int RequiredTicks,
+        int? ReadyAtTick);
+
+    /// <summary>The Workshop's public phase.</summary>
+    public enum ArcRelayVeterancyWorkshopPhase
+    {
+        Ready = 0,
+        Training = 1,
+        Contested = 2,
+        Dormant = 3,
+    }
 
     /// <summary>
     /// One publicly declared strike in windup (DECISIONS #212). Tiles are

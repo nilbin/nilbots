@@ -473,6 +473,18 @@ internal static class GenericActorSdkModelMapper
                                 ? ToSdk(target)
                                 : null,
                             [.. strike.Tiles.Select(ToSdk)]))],
+                    Workshops = [.. mode.Workshops.Select(workshop =>
+                        new Sdk.GenericActorContext
+                            .ArcRelayVeterancyWorkshopState(
+                                workshop.WorkshopId,
+                                ToSdk(workshop.TrainingTile),
+                                (Sdk.GenericActorContext
+                                    .ArcRelayVeterancyWorkshopPhase)
+                                    (int)workshop.Phase,
+                                workshop.TrainingTeamId,
+                                workshop.ProgressTicks,
+                                workshop.RequiredTicks,
+                                workshop.ReadyAtTick))],
                 },
             _ => throw UnknownUnion(value),
         };

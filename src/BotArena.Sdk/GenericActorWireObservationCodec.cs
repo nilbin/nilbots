@@ -197,6 +197,11 @@ internal static class GenericActorWireObservationCodec
                                     item,
                                     depth + 1))
                             : [],
+                        Workshops = payload.Optional(10) is { } workshops
+                            ? ActorWireValue.Array(
+                                workshops,
+                                item => DecodeArcWorkshop(item, depth + 1))
+                            : [],
                     },
                 _ => throw new FormatException(
                     "Unknown generic actor mode discriminator."),
@@ -1084,12 +1089,58 @@ internal static class GenericActorWireObservationCodec
                             arcRelay.RespawnWaveTeams,
                             EncodeArcRespawnWaveTeam));
                 }
+                // Additive Arc Relay mode-payload field: the neutral
+                // Workshop objective signal. Older guests skip tag 10 and
+                // retain the inert empty default.
+                if (!arcRelay.Workshops.IsEmpty)
+                {
+                    writer.Field(
+                        10,
+                        Array(arcRelay.Workshops, EncodeArcWorkshop));
+                }
                 break;
             default:
                 throw new InvalidOperationException(
                     "Unknown generic actor mode observation variant.");
         }
         return writer.ToArray();
+    }
+
+    private static byte[] EncodeArcWorkshop(
+        GenericActorContext.ArcRelayVeterancyWorkshopState value)
+    {
+        var writer = new ActorWireObjectWriter();
+        writer.Field(
+            1,
+            GenericActorWireCodecValues.SemanticId(value.WorkshopId));
+        writer.Field(
+            2,
+            GenericActorWireCodecValues.EncodePosition(value.TrainingTile));
+        writer.Field(3, ActorWireValue.Enum(value.Phase));
+        GenericActorWireCodecValues.OptionalInt32(
+            writer, 4, value.TrainingTeamId);
+        writer.Field(5, ActorWireValue.Int32(value.ProgressTicks));
+        writer.Field(6, ActorWireValue.Int32(value.RequiredTicks));
+        GenericActorWireCodecValues.OptionalInt32(
+            writer, 7, value.ReadyAtTick);
+        return writer.ToArray();
+    }
+
+    private static GenericActorContext.ArcRelayVeterancyWorkshopState
+        DecodeArcWorkshop(byte[] bytes, int depth)
+    {
+        var reader = new ActorWireObjectReader(bytes, depth);
+        return new GenericActorContext.ArcRelayVeterancyWorkshopState(
+            GenericActorWireCodecValues.SemanticId(reader.Required(1)),
+            GenericActorWireCodecValues.DecodePosition(
+                reader.Required(2), depth + 1),
+            GenericActorWireCodecValues.Enum<
+                GenericActorContext.ArcRelayVeterancyWorkshopPhase>(
+                reader, 3),
+            GenericActorWireCodecValues.OptionalInt32(reader, 4),
+            GenericActorWireCodecValues.Int32(reader, 5),
+            GenericActorWireCodecValues.Int32(reader, 6),
+            GenericActorWireCodecValues.OptionalInt32(reader, 7));
     }
 
     internal static byte[] EncodeArcCoreId(
