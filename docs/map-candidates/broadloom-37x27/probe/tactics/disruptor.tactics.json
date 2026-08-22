@@ -1,0 +1,206 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "bl-tactics-disruptor-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    {
+      "slot": 0,
+      "class": "kestrel",
+      "build": "scout",
+      "name": "Vex"
+    },
+    {
+      "slot": 1,
+      "class": "relay",
+      "build": "balanced",
+      "name": "Piston"
+    },
+    {
+      "slot": 2,
+      "class": "longshot",
+      "build": "balanced",
+      "name": "Gantry"
+    },
+    {
+      "slot": 3,
+      "class": "mortar",
+      "build": "balanced",
+      "name": "Maul"
+    },
+    {
+      "slot": 4,
+      "class": "sunder",
+      "build": "balanced",
+      "name": "Brand"
+    },
+    {
+      "slot": 5,
+      "class": "patchbay",
+      "build": "balanced",
+      "name": "Cinder"
+    },
+    {
+      "slot": 6,
+      "class": "mason",
+      "build": "durable",
+      "name": "Flux"
+    },
+    {
+      "slot": 7,
+      "class": "palisade",
+      "build": "durable",
+      "name": "Ember"
+    }
+  ],
+  "tactics": [
+    {
+      "id": "workshop-disruption",
+      "name": "Two-route disruption",
+      "recipe": "patrol",
+      "start": {
+        "mode": "always"
+      },
+      "delivery": {
+        "plan": "solo"
+      },
+      "groups": [
+        {
+          "id": "raid-loop",
+          "name": "North loop",
+          "slots": [
+            0,
+            1
+          ],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "mid-line",
+          "name": "Mid line",
+          "slots": [
+            2,
+            3,
+            4,
+            5
+          ],
+          "coreRule": "grab"
+        },
+        {
+          "id": "custody",
+          "name": "Custody",
+          "slots": [
+            6,
+            7
+          ],
+          "coreRule": "grab"
+        }
+      ],
+      "phases": [
+        {
+          "id": "run-the-loop",
+          "name": "Run the loop",
+          "jobs": {
+            "raid-loop": {
+              "kind": "patrol",
+              "posture": "aggressive",
+              "recovery": "fight-on",
+              "path": [
+                [
+                  12,
+                  2
+                ],
+                [
+                  17,
+                  1
+                ],
+                [
+                  21,
+                  3
+                ],
+                [
+                  18,
+                  6
+                ],
+                [
+                  16,
+                  7
+                ],
+                [
+                  12,
+                  8
+                ],
+                [
+                  12,
+                  2
+                ]
+              ]
+            },
+            "mid-line": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    12,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 2
+                },
+                {
+                  "at": [
+                    12,
+                    15
+                  ],
+                  "facing": "e",
+                  "slot": 3
+                },
+                {
+                  "at": [
+                    13,
+                    13
+                  ],
+                  "facing": "e",
+                  "slot": 4
+                },
+                {
+                  "at": [
+                    11,
+                    12
+                  ],
+                  "facing": "e",
+                  "slot": 5
+                }
+              ]
+            },
+            "custody": {
+              "kind": "posts",
+              "posture": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                {
+                  "at": [
+                    9,
+                    21
+                  ],
+                  "facing": "e",
+                  "slot": 6
+                },
+                {
+                  "at": [
+                    11,
+                    17
+                  ],
+                  "facing": "s",
+                  "slot": 7
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
