@@ -12,9 +12,11 @@ Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI/editor default is `tapline-12`
-on the owner-approved equal-return map with sealed outer-Well entrances and
-staggered Mid cover, coordinated movement planner, and
+revisions, match history, and rating. The current CLI/editor default is `broadloom-1`
+on the owner-approved 37x27 Broadloom whole-map identity — three Wells in
+distinct theatres, two neutral veterancy Workshops (unlock tick 25, 15-tick
+protected channel, exactly 1 capped XP, 45-tick public dormancy), the
+coordinated movement planner, and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
 public respawn waves, a seven-distinct-class roster floor, durable deployments, and
 scaled combat durability. All three Wells keep their public opening around tick
@@ -26,8 +28,10 @@ for its sixth tile. Swift, standard, and deliberate chassis expose deterministic
 movement rates of 1/1, 4/5, and 2/3 opportunities per tick cycle under one
 Combat Strafe facing model. Palisade now projects a mobile, facing-bound
 30-hull Prism Screen for six ticks; it stops hostile shots without blocking
-bodies. Hosted playlist v29 is the current Tapline-12 rating identity; v28
-remains immutable Tapline-11 history.
+bodies. Hosted playlist v33 is the current Broadloom rating identity; v32
+(complete-observation Tapline-14), v31, v30, v29 and older remain immutable
+history. Tactics documents author Train-at-Workshop and read the Workshop's
+public neutral state through dedicated condition rows.
 The primary loop is **change → run → watch → understand →
 change again**.
 
