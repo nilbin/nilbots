@@ -649,6 +649,137 @@ def validate_atlas_requirements(
     return requirements, errors
 
 
+MARK_KINDS = {"zone", "mouth", "post", "seal", "lane", "route"}
+
+
+def parse_tactical_sites(
+    spec: dict[str, Any], grid: Grid
+) -> list[dict[str, Any]]:
+    """Validate declared tactical-site overlays.
+
+    Sites are data, not viewer code: mouths, posts, seal tiles, firing
+    lanes, and named-play routes all arrive from the specification so the
+    atlas cannot drift from the analysis.
+    """
+    raw_sites = spec.get("tacticalSites", [])
+    if not isinstance(raw_sites, list):
+        raise SpecError("tacticalSites must be an array")
+    sites: list[dict[str, Any]] = []
+    ids: set[str] = set()
+    for index, raw in enumerate(raw_sites):
+        if not isinstance(raw, dict):
+            raise SpecError(f"tacticalSites[{index}] must be an object")
+        site_id = str(raw.get("id", "")).strip()
+        if not site_id or site_id in ids:
+            raise SpecError(f"tacticalSites[{index}].id must be non-empty and unique")
+        ids.add(site_id)
+        raw_marks = raw.get("marks")
+        if not isinstance(raw_marks, list) or not raw_marks:
+            raise SpecError(f"tacticalSites[{index}].marks must be a non-empty array")
+        marks: list[dict[str, Any]] = []
+        for mark_index, mark in enumerate(raw_marks):
+            field = f"tacticalSites[{index}].marks[{mark_index}]"
+            if not isinstance(mark, dict):
+                raise SpecError(f"{field} must be an object")
+            kind = str(mark.get("kind", "")).strip()
+            if kind not in MARK_KINDS:
+                raise SpecError(
+                    f"{field}.kind must be one of {', '.join(sorted(MARK_KINDS))}"
+                )
+            resolved: dict[str, Any] = {
+                "kind": kind,
+                "label": str(mark.get("label", "")),
+            }
+            if kind in {"zone", "mouth", "post", "seal"}:
+                tiles = points(mark.get("tiles"), f"{field}.tiles")
+                if not tiles:
+                    raise SpecError(f"{field}.tiles must be non-empty")
+                for tile in tiles:
+                    if not grid.is_open(tile):
+                        raise SpecError(f"{field} uses a blocked tile {tile}")
+                resolved["tiles"] = [list(tile) for tile in tiles]
+                if kind == "post":
+                    facing = mark.get("facing")
+                    if facing is not None:
+                        facing = str(facing).lower()
+                        if facing not in FACING_VECTORS:
+                            raise SpecError(f"{field}.facing must be cardinal")
+                        resolved["facing"] = facing
+            elif kind == "lane":
+                start = point(mark.get("from"), f"{field}.from")
+                end = point(mark.get("to"), f"{field}.to")
+                dx, dy = end[0] - start[0], end[1] - start[1]
+                if not (dx == 0 or dy == 0 or abs(dx) == abs(dy)):
+                    raise SpecError(f"{field} lane must be straight")
+                for tile in (start, end):
+                    if not grid.is_open(tile):
+                        raise SpecError(f"{field} lane endpoint {tile} is blocked")
+                resolved["from"] = list(start)
+                resolved["to"] = list(end)
+            else:  # route
+                path = points(mark.get("path"), f"{field}.path")
+                if len(path) < 2:
+                    raise SpecError(f"{field}.path needs at least two tiles")
+                for step_index, tile in enumerate(path):
+                    if not grid.is_open(tile):
+                        raise SpecError(f"{field}.path uses blocked tile {tile}")
+                    if step_index and not grid.step_ok(path[step_index - 1], tile):
+                        raise SpecError(
+                            f"{field}.path has illegal step "
+                            f"{path[step_index - 1]} -> {tile}"
+                        )
+                resolved["path"] = [list(tile) for tile in path]
+            marks.append(resolved)
+        sites.append(
+            {
+                "id": site_id,
+                "label": str(raw.get("label", site_id)),
+                "note": str(raw.get("note", "")),
+                "marks": marks,
+            }
+        )
+    return sites
+
+
+def parse_comparison(spec: dict[str, Any]) -> dict[str, Any] | None:
+    """Validate the optional baseline-versus-candidate table."""
+    raw = spec.get("comparison")
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise SpecError("comparison must be an object")
+    baseline_label = str(raw.get("baselineLabel", "")).strip()
+    candidate_label = str(raw.get("candidateLabel", "")).strip()
+    if not baseline_label or not candidate_label:
+        raise SpecError("comparison needs baselineLabel and candidateLabel")
+    raw_rows = raw.get("rows")
+    if not isinstance(raw_rows, list) or not raw_rows:
+        raise SpecError("comparison.rows must be a non-empty array")
+    rows: list[dict[str, str]] = []
+    for index, row in enumerate(raw_rows):
+        if not isinstance(row, dict):
+            raise SpecError(f"comparison.rows[{index}] must be an object")
+        metric = str(row.get("metric", "")).strip()
+        if not metric:
+            raise SpecError(f"comparison.rows[{index}].metric must be non-empty")
+        for key in ("baseline", "candidate"):
+            if key not in row:
+                raise SpecError(f"comparison.rows[{index}].{key} is required")
+        rows.append(
+            {
+                "metric": metric,
+                "baseline": str(row["baseline"]),
+                "candidate": str(row["candidate"]),
+                "note": str(row.get("note", "")),
+            }
+        )
+    return {
+        "baselineLabel": baseline_label,
+        "candidateLabel": candidate_label,
+        "rows": rows,
+    }
+
+
 def topology_analysis(
     spec: dict[str, Any],
     grid: Grid,
@@ -727,6 +858,8 @@ def analyze_spec(spec: dict[str, Any], spec_path: Path) -> dict[str, Any]:
     atlas_requirements, requirement_errors = validate_atlas_requirements(
         spec, routes, combat_reference
     )
+    tactical_sites = parse_tactical_sites(spec, grid)
+    comparison = parse_comparison(spec)
     errors = [
         *landmark_errors,
         *topology_errors,
@@ -751,6 +884,8 @@ def analyze_spec(spec: dict[str, Any], spec_path: Path) -> dict[str, Any]:
         "routes": routes,
         "atlasRequirements": atlas_requirements,
         "combatReference": combat_reference,
+        "tacticalSites": tactical_sites,
+        "comparison": comparison,
     }
 
 
@@ -761,7 +896,7 @@ HTML_TEMPLATE = r'''<!doctype html>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>__TITLE__</title>
 <style>
-:root{color-scheme:light dark;--bg:light-dark(#fff,#181818);--fg:light-dark(#1a1c1f,#fff);--panel:color-mix(in srgb,var(--fg) 5%,var(--bg));--wall:color-mix(in srgb,var(--fg) 72%,transparent);--border:color-mix(in srgb,var(--fg) 14%,transparent);--north:light-dark(#339cff,#83c3ff);--south:light-dark(#e2852f,#f59a56);--direct:light-dark(#916fe1,#aa91ef);--alternate:light-dark(#2db9af,#5acbc2);--well:light-dark(#5dc977,#74d58b);--candidate:light-dark(#eb77b1,#f08fc0);--reactor:light-dark(#297fd1,#83c3ff);--heal:light-dark(#35b9b1,#5acbc2);--vision:light-dark(#00a9d6,#52d6f4);--short-fast:light-dark(#ee6b64,#ff8d87);--medium-steady:light-dark(#e4a22f,#f5bc55);--long-slow:light-dark(#9b6ee3,#b795f2)}
+:root{color-scheme:light dark;--bg:light-dark(#fff,#181818);--fg:light-dark(#1a1c1f,#fff);--panel:color-mix(in srgb,var(--fg) 5%,var(--bg));--wall:color-mix(in srgb,var(--fg) 72%,transparent);--border:color-mix(in srgb,var(--fg) 14%,transparent);--north:light-dark(#339cff,#83c3ff);--south:light-dark(#e2852f,#f59a56);--direct:light-dark(#916fe1,#aa91ef);--alternate:light-dark(#2db9af,#5acbc2);--well:light-dark(#5dc977,#74d58b);--candidate:light-dark(#eb77b1,#f08fc0);--reactor:light-dark(#297fd1,#83c3ff);--heal:light-dark(#35b9b1,#5acbc2);--vision:light-dark(#00a9d6,#52d6f4);--short-fast:light-dark(#ee6b64,#ff8d87);--medium-steady:light-dark(#e4a22f,#f5bc55);--long-slow:light-dark(#9b6ee3,#b795f2);--mouth:light-dark(#2f9e44,#69cf7d);--seal:light-dark(#d6453d,#ff8d87);--post:light-dark(#c78116,#ecab3f);--lane:light-dark(#d6459e,#f08fc0);--zone:light-dark(#4263eb,#8aa2ff)}
 *{box-sizing:border-box}body{margin:0;padding:16px;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,sans-serif}main{max-width:960px;margin:0 auto}h1{font-size:20px;font-weight:600;margin:0 0 8px}h2{font-size:16px;margin:18px 0 4px}.controls{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}button{border:1px solid var(--border);border-radius:8px;padding:5px 9px;background:transparent;color:var(--fg);font:inherit}button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}#summary,.note{margin:4px 0 8px;color:color-mix(in srgb,var(--fg) 62%,transparent)}svg{display:block;width:100%;height:auto;touch-action:none}.legend{display:flex;flex-wrap:wrap;gap:8px 14px;margin:6px 0;font-size:12px}.key{display:inline-flex;align-items:center;gap:5px}.line{width:20px;border-top:3px solid var(--north)}.line.south{border-color:var(--south)}.line.direct{border-color:var(--direct)}.line.vision{border-color:var(--vision);border-top-style:dashed}.line.short-fast{border-color:var(--short-fast)}.line.medium-steady{border-color:var(--medium-steady)}.line.long-slow{border-color:var(--long-slow)}.box{width:12px;height:12px;background:var(--candidate)}.box.heal{background:var(--heal);text-align:center;line-height:12px}.table-wrap{max-width:100%;overflow-x:auto}table{width:100%;border-collapse:collapse}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);vertical-align:top}th.num,td.num{text-align:right;font-variant-numeric:tabular-nums}.errors{color:light-dark(#b33,#ff8b88)}#combat-reference[hidden],#reference-status[hidden]{display:none}[data-reference-handle]{cursor:grab}[data-reference-handle]:active{cursor:grabbing}@media(max-width:520px){body{padding:12px}th.ratio,td.ratio{display:none}}
 </style>
 </head>
@@ -769,6 +904,8 @@ HTML_TEMPLATE = r'''<!doctype html>
 <main>
 <h1>__TITLE__</h1>
 <div id="controls" class="controls" role="group" aria-label="Route group"></div>
+<div id="site-controls" class="controls" role="group" aria-label="Tactical sites" hidden></div>
+<p id="site-note" class="note" hidden></p>
 <p id="summary"></p>
 <p id="reference-status" class="note" aria-live="polite" hidden></p>
 <svg id="map" role="img"></svg>
@@ -780,6 +917,10 @@ HTML_TEMPLATE = r'''<!doctype html>
 <div id="combat-legend" class="legend"></div>
 <div class="table-wrap"><table><thead><tr><th>Profile</th><th class="num">Range</th><th>Classes</th></tr></thead><tbody id="combat-rows"></tbody></table></div>
 <p id="combat-note" class="note"></p>
+</section>
+<section id="comparison" hidden>
+<h2>Baseline comparison</h2>
+<div class="table-wrap"><table><thead><tr id="comparison-head"></tr></thead><tbody id="comparison-rows"></tbody></table></div>
 </section>
 <p id="errors" class="errors"></p>
 <p class="note">Routes report terrain-only corner-strict distance in steps, not elapsed match time. Carrier throttling, bodies, combat, signatures, and hesitation can all add ticks. The cyan outline is the geometric base-vision cone; cyan tile shading is actual wall-occluded vision. Attack contours are distance envelopes, not claims that every enclosed tile is a legal shot.</p>
@@ -868,6 +1009,42 @@ function drawCombat(scene,cell,combat){
   const [dx,dy]=vectors[combat.facing];
   scene.appendChild(make('line',{x1:(ox+.5)*cell,y1:(oy+.5)*cell,x2:(ox+.5+dx*.75)*cell,y2:(oy+.5+dy*.75)*cell,stroke:'var(--vision)','stroke-width':Math.max(2,cell*.16),'stroke-linecap':'round'}));
 }
+const activeSites=new Set();
+function drawSites(scene,cell){
+  const markColour={zone:'var(--zone)',mouth:'var(--mouth)',post:'var(--post)',seal:'var(--seal)',lane:'var(--lane)',route:'var(--lane)'};
+  for(const site of data.tacticalSites.filter(site=>activeSites.has(site.id))){
+    for(const mark of site.marks){
+      const stroke=markColour[mark.kind];
+      if(mark.kind==='zone'){
+        mark.tiles.forEach(([x,y])=>scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell,height:cell,fill:stroke,'fill-opacity':.18})));
+      }else if(mark.kind==='mouth'){
+        mark.tiles.forEach(([x,y])=>scene.appendChild(make('rect',{x:x*cell+cell*.08,y:y*cell+cell*.08,width:cell*.84,height:cell*.84,fill:'none',stroke,'stroke-width':Math.max(2,cell*.14)})));
+      }else if(mark.kind==='seal'){
+        mark.tiles.forEach(([x,y])=>{
+          scene.appendChild(make('line',{x1:x*cell+cell*.2,y1:y*cell+cell*.2,x2:x*cell+cell*.8,y2:y*cell+cell*.8,stroke,'stroke-width':Math.max(2,cell*.16),'stroke-linecap':'round'}));
+          scene.appendChild(make('line',{x1:x*cell+cell*.8,y1:y*cell+cell*.2,x2:x*cell+cell*.2,y2:y*cell+cell*.8,stroke,'stroke-width':Math.max(2,cell*.16),'stroke-linecap':'round'}));
+        });
+      }else if(mark.kind==='post'){
+        mark.tiles.forEach(([x,y])=>{
+          scene.appendChild(make('circle',{cx:(x+.5)*cell,cy:(y+.5)*cell,r:cell*.3,fill:'none',stroke,'stroke-width':Math.max(2,cell*.14)}));
+          if(mark.facing){const [dx,dy]={north:[0,-1],east:[1,0],south:[0,1],west:[-1,0]}[mark.facing];
+            scene.appendChild(make('line',{x1:(x+.5)*cell,y1:(y+.5)*cell,x2:(x+.5+dx*.55)*cell,y2:(y+.5+dy*.55)*cell,stroke,'stroke-width':Math.max(2,cell*.14),'stroke-linecap':'round'}));}
+        });
+      }else if(mark.kind==='lane'){
+        scene.appendChild(make('line',{x1:(mark.from[0]+.5)*cell,y1:(mark.from[1]+.5)*cell,x2:(mark.to[0]+.5)*cell,y2:(mark.to[1]+.5)*cell,stroke,'stroke-width':Math.max(2.5,cell*.16),'stroke-dasharray':`${Math.max(4,cell*.4)} ${Math.max(3,cell*.3)}`,'stroke-linecap':'round'}));
+      }else{
+        scene.appendChild(make('polyline',{points:mark.path.map(([x,y])=>`${(x+.5)*cell},${(y+.5)*cell}`).join(' '),fill:'none',stroke,'stroke-width':Math.max(2,cell*.14),'stroke-dasharray':`${Math.max(2,cell*.2)} ${Math.max(2,cell*.2)}`,'stroke-linejoin':'round','stroke-linecap':'round'}));
+      }
+    }
+  }
+}
+function updateSiteNote(){
+  const note=document.getElementById('site-note');
+  const shown=data.tacticalSites.filter(site=>activeSites.has(site.id));
+  if(!shown.length){note.hidden=true;return}
+  note.hidden=false;
+  note.textContent=shown.map(site=>`${site.label}${site.note?` — ${site.note}`:''}`).join(' · ');
+}
 function drawReferenceHandle(scene,cell,combat){
   if(!combat||!showCombat)return;
   const [ox,oy]=combat.origin;
@@ -892,6 +1069,7 @@ function draw(){
   data.rows.forEach((row,y)=>[...row].forEach((tile,x)=>{if(tile===data.wall)scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell+.15,height:cell+.15,fill:'var(--wall)'}))}));
   drawCombat(scene,cell,combat);
   data.addedWalls.forEach(([x,y])=>scene.appendChild(make('rect',{x:x*cell,y:y*cell,width:cell+.15,height:cell+.15,fill:'var(--candidate)',stroke:'var(--bg)','stroke-width':Math.max(1,cell*.09)})));
+  drawSites(scene,cell);
   visible.forEach(route=>{const stroke=colour[route.style]||colour.north;scene.appendChild(make('polyline',{points:route.path.map(([x,y])=>`${(x+.5)*cell},${(y+.5)*cell}`).join(' '),fill:'none',stroke,'stroke-width':Math.max(3,cell*.22),'stroke-linecap':'round','stroke-linejoin':'round'}));const label=route.labelAt||route.path[Math.floor((route.path.length-1)/2)];const w=Math.max(24,cell*1.55),h=Math.max(16,cell*.9);scene.appendChild(make('rect',{x:(label[0]+.5)*cell-w/2,y:(label[1]+.5)*cell-h/2,width:w,height:h,rx:h*.35,fill:'var(--bg)',stroke,'stroke-width':Math.max(1.5,cell*.08)}));addText(scene,label[0],label[1],cell,String(route.steps))});
   data.landmarks.forEach(item=>drawLandmark(scene,item,cell));
   drawReferenceHandle(scene,cell,combat);
@@ -900,6 +1078,7 @@ function draw(){
   svg.replaceChildren(title,desc,scene);svg.setAttribute('aria-label',title.textContent);
   document.getElementById('summary').textContent=visible.map(route=>`${route.label}: ${route.steps} steps`).join(' · ');
   updateReferenceCopy(combat);
+  updateSiteNote();
 }
 const controls=document.getElementById('controls');groups.forEach((group,index)=>{const button=document.createElement('button');button.type='button';button.dataset.kind='route';button.textContent=group;button.setAttribute('aria-pressed',String(index===0));button.addEventListener('click',()=>{active=group;[...controls.querySelectorAll('[data-kind="route"]')].forEach(peer=>peer.setAttribute('aria-pressed',String(peer===button)));draw()});controls.appendChild(button)});
 if(data.combatReference){
@@ -926,6 +1105,19 @@ if(data.combatReference){
   const vision=document.createElement('span');vision.className='key';vision.innerHTML=`<span class="line vision"></span>${combat.vision.label} cone ${combat.vision.range}`;legend.appendChild(vision);
   const rows=document.getElementById('combat-rows');
   combat.attacks.forEach(attack=>{const key=document.createElement('span');key.className='key';key.innerHTML=`<span class="line ${attack.style}"></span>${attack.label} ${attack.range}`;legend.appendChild(key);const tr=document.createElement('tr');for(const [value,className] of [[attack.label,''],[attack.range,'num'],[attack.classes.join(', '),'']]){const td=document.createElement('td');td.textContent=value;td.className=className;tr.appendChild(td)}rows.appendChild(tr)});
+}
+if(data.tacticalSites.length){
+  const siteControls=document.getElementById('site-controls');siteControls.hidden=false;
+  data.tacticalSites.forEach(site=>{const button=document.createElement('button');button.type='button';button.setAttribute('data-site-toggle',site.id);button.textContent=site.label;button.setAttribute('aria-pressed','false');button.addEventListener('click',()=>{if(activeSites.has(site.id))activeSites.delete(site.id);else activeSites.add(site.id);button.setAttribute('aria-pressed',String(activeSites.has(site.id)));draw()});siteControls.appendChild(button)});
+  const legend=document.querySelector('.legend');
+  [['mouth','mouth'],['seal','seal tile'],['post','post'],['lane','firing lane'],['zone','zone']].forEach(([kind,label])=>{const key=document.createElement('span');key.className='key';const swatch=document.createElement('span');swatch.className='box';swatch.style.background=`var(--${kind})`;key.appendChild(swatch);key.appendChild(document.createTextNode(label));legend.appendChild(key)});
+}
+if(data.comparison){
+  const section=document.getElementById('comparison');section.hidden=false;
+  const head=document.getElementById('comparison-head');
+  [['Measure',''],[data.comparison.baselineLabel,'num'],[data.comparison.candidateLabel,'num'],['Reading','']].forEach(([value,className])=>{const th=document.createElement('th');th.textContent=value;th.className=className;head.appendChild(th)});
+  const rows=document.getElementById('comparison-rows');
+  data.comparison.rows.forEach(row=>{const tr=document.createElement('tr');[[row.metric,''],[row.baseline,'num'],[row.candidate,'num'],[row.note,'']].forEach(([value,className])=>{const td=document.createElement('td');td.textContent=value;td.className=className;tr.appendChild(td)});rows.appendChild(tr)});
 }
 if(data.note){const note=document.createElement('p');note.className='note';note.textContent=data.note;document.querySelector('h1').after(note)}
 draw();new ResizeObserver(draw).observe(svg);

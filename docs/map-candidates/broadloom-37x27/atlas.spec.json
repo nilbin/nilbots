@@ -1,0 +1,2163 @@
+{
+  "title": "Broadloom 37x27 \u2014 first whole-map Arc Relay candidate",
+  "note": "UNIMPLEMENTED DESIGN CANDIDATE, west-team perspective \u2014 not the live map. Requires an explicit platform change: ArenaMap.MaxWidth 32 -> at least 37 (999 total tiles, below the 1,024-cell budget). Scoring is the exact reactor tile inside each protected pad. Workshops are proposed neutral veterancy sites; no workshop rules exist yet.",
+  "map": {
+    "builder": "build.py",
+    "function": "build"
+  },
+  "symmetry": "rotate-180",
+  "stubAllowance": 2,
+  "validateCutVertices": true,
+  "atlasRequirements": {
+    "distances": true,
+    "combatRanges": true
+  },
+  "landmarkRequirements": {
+    "reactor": 2,
+    "well": 3,
+    "healing": 2,
+    "workshop": 2,
+    "junction": 4,
+    "spawn-exit": 2
+  },
+  "combatReference": {
+    "origin": "north-workshop",
+    "facing": "south",
+    "source": "ArcRelayLoopProfile.Current (Tapline15) base profiles: vision 5 facing-quadrant with zero omnidirectional proximity, guns 3/4/6, Rail 12 separate. Signatures and veterancy excluded.",
+    "vision": {
+      "label": "Base vision",
+      "range": 5,
+      "shape": "facing-quadrant",
+      "lineOfSight": "corner-strict-supercover",
+      "pointBlankRange": 0
+    },
+    "attacks": [
+      {
+        "id": "short-fast",
+        "label": "Short-fast",
+        "style": "short-fast",
+        "range": 3,
+        "classes": [
+          "Kestrel",
+          "Palisade",
+          "Patchbay",
+          "Lantern",
+          "Minesmith",
+          "Relay",
+          "Mason",
+          "Repulsor",
+          "Veil"
+        ]
+      },
+      {
+        "id": "medium-steady",
+        "label": "Medium-steady",
+        "style": "medium-steady",
+        "range": 4,
+        "classes": [
+          "Towline",
+          "Mortar",
+          "Hush",
+          "Switchback",
+          "Sunder",
+          "Nest"
+        ]
+      },
+      {
+        "id": "long-slow",
+        "label": "Long-slow",
+        "style": "long-slow",
+        "range": 6,
+        "classes": [
+          "Longshot"
+        ]
+      }
+    ]
+  },
+  "landmarks": [
+    {
+      "id": "own-reactor",
+      "kind": "reactor",
+      "name": "Own reactor",
+      "label": "R",
+      "team": "west",
+      "position": [
+        3,
+        13
+      ]
+    },
+    {
+      "id": "enemy-reactor",
+      "kind": "reactor",
+      "name": "Enemy reactor",
+      "label": "R",
+      "team": "east",
+      "position": [
+        33,
+        13
+      ]
+    },
+    {
+      "id": "own-well",
+      "kind": "well",
+      "name": "Own Well (1)",
+      "label": "1",
+      "position": [
+        10,
+        19
+      ]
+    },
+    {
+      "id": "centre-well",
+      "kind": "well",
+      "name": "Centre Well (2)",
+      "label": "2",
+      "position": [
+        18,
+        13
+      ]
+    },
+    {
+      "id": "enemy-well",
+      "kind": "well",
+      "name": "Enemy Well (4)",
+      "label": "4",
+      "position": [
+        26,
+        7
+      ]
+    },
+    {
+      "id": "own-heal",
+      "kind": "healing",
+      "name": "Own healing tile",
+      "label": "+",
+      "position": [
+        8,
+        6
+      ]
+    },
+    {
+      "id": "enemy-heal",
+      "kind": "healing",
+      "name": "Enemy healing tile",
+      "label": "+",
+      "position": [
+        28,
+        20
+      ]
+    },
+    {
+      "id": "north-workshop",
+      "kind": "workshop",
+      "name": "North workshop (neutral)",
+      "label": "T",
+      "position": [
+        18,
+        4
+      ]
+    },
+    {
+      "id": "south-workshop",
+      "kind": "workshop",
+      "name": "South workshop (neutral)",
+      "label": "T",
+      "position": [
+        18,
+        22
+      ]
+    },
+    {
+      "id": "nw-junction",
+      "kind": "junction",
+      "name": "NW junction",
+      "label": "J",
+      "position": [
+        12,
+        8
+      ]
+    },
+    {
+      "id": "ne-junction",
+      "kind": "junction",
+      "name": "NE junction",
+      "label": "J",
+      "position": [
+        30,
+        8
+      ]
+    },
+    {
+      "id": "sw-junction",
+      "kind": "junction",
+      "name": "SW junction",
+      "label": "J",
+      "position": [
+        6,
+        18
+      ]
+    },
+    {
+      "id": "se-junction",
+      "kind": "junction",
+      "name": "SE junction",
+      "label": "J",
+      "position": [
+        24,
+        18
+      ]
+    },
+    {
+      "id": "own-spawn-exit",
+      "kind": "spawn-exit",
+      "name": "Own pad north exit",
+      "label": "\u00bb",
+      "team": "west",
+      "position": [
+        4,
+        9
+      ]
+    },
+    {
+      "id": "enemy-spawn-exit",
+      "kind": "spawn-exit",
+      "name": "Enemy pad south exit",
+      "label": "\u00bb",
+      "team": "east",
+      "position": [
+        32,
+        17
+      ]
+    }
+  ],
+  "routes": [
+    {
+      "id": "own-well-home-door",
+      "label": "Home door return",
+      "origin": "Own Well",
+      "group": "Own Well \u00b7 returns",
+      "style": "direct",
+      "from": "own-well",
+      "to": "own-reactor",
+      "mode": "shortest",
+      "expectedSteps": 8,
+      "labelAt": [
+        7,
+        19
+      ]
+    },
+    {
+      "id": "own-well-north-mouth",
+      "label": "Return when the home door is cut",
+      "origin": "Own Well",
+      "group": "Own Well \u00b7 returns",
+      "style": "north",
+      "from": "own-well",
+      "to": "own-reactor",
+      "mode": "shortest",
+      "avoid": [
+        [
+          7,
+          17
+        ],
+        [
+          7,
+          18
+        ]
+      ],
+      "expectedSteps": 13,
+      "labelAt": [
+        11,
+        15
+      ]
+    },
+    {
+      "id": "own-well-to-centre",
+      "label": "Rotate to Centre",
+      "origin": "Own Well",
+      "group": "Own Well \u00b7 returns",
+      "style": "alternate",
+      "from": "own-well",
+      "to": "centre-well",
+      "mode": "shortest",
+      "expectedSteps": 10,
+      "labelAt": [
+        14,
+        16
+      ]
+    },
+    {
+      "id": "centre-direct",
+      "label": "Fast return",
+      "origin": "Centre",
+      "group": "Centre \u00b7 returns",
+      "style": "direct",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "shortest",
+      "expectedSteps": 16,
+      "labelAt": [
+        10,
+        12
+      ]
+    },
+    {
+      "id": "centre-via-heal",
+      "label": "Return through own heal",
+      "origin": "Centre",
+      "group": "Centre \u00b7 returns",
+      "style": "north",
+      "from": "centre-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [
+        "own-heal"
+      ],
+      "expectedSteps": 22,
+      "labelAt": [
+        8,
+        4
+      ]
+    },
+    {
+      "id": "centre-to-north-workshop",
+      "label": "Rotate to N workshop",
+      "origin": "Centre",
+      "group": "Centre \u00b7 returns",
+      "style": "alternate",
+      "from": "centre-well",
+      "to": "north-workshop",
+      "mode": "shortest",
+      "expectedSteps": 11,
+      "labelAt": [
+        15,
+        9
+      ]
+    },
+    {
+      "id": "raid-fast",
+      "label": "Fast return",
+      "origin": "Raid",
+      "group": "Raid \u00b7 enemy Well",
+      "style": "direct",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "shortest",
+      "expectedSteps": 25,
+      "labelAt": [
+        20,
+        11
+      ]
+    },
+    {
+      "id": "raid-via-heal",
+      "label": "Wounded return through own heal",
+      "origin": "Raid",
+      "group": "Raid \u00b7 enemy Well",
+      "style": "alternate",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [
+        "own-heal"
+      ],
+      "expectedSteps": 28,
+      "labelAt": [
+        9,
+        5
+      ]
+    },
+    {
+      "id": "raid-shadow-gallery",
+      "label": "Shadow return over the roof",
+      "origin": "Raid",
+      "group": "Raid \u00b7 enemy Well",
+      "style": "north",
+      "from": "enemy-well",
+      "to": "own-reactor",
+      "mode": "via",
+      "via": [
+        [
+          26,
+          1
+        ],
+        [
+          13,
+          1
+        ]
+      ],
+      "expectedSteps": 37,
+      "labelAt": [
+        16,
+        1
+      ]
+    },
+    {
+      "id": "raid-well-to-centre",
+      "label": "Fall back to Centre",
+      "origin": "Raid",
+      "group": "Raid \u00b7 enemy Well",
+      "style": "south",
+      "from": "enemy-well",
+      "to": "centre-well",
+      "mode": "shortest",
+      "expectedSteps": 10,
+      "labelAt": [
+        23,
+        10
+      ]
+    },
+    {
+      "id": "own-to-north-workshop",
+      "label": "Own approach",
+      "origin": "N workshop",
+      "group": "N workshop \u00b7 approaches",
+      "style": "direct",
+      "from": "own-reactor",
+      "to": "north-workshop",
+      "mode": "shortest",
+      "expectedSteps": 18,
+      "labelAt": [
+        9,
+        9
+      ]
+    },
+    {
+      "id": "enemy-to-north-workshop",
+      "label": "Enemy approach",
+      "origin": "N workshop",
+      "group": "N workshop \u00b7 approaches",
+      "style": "south",
+      "from": "enemy-reactor",
+      "to": "north-workshop",
+      "mode": "shortest",
+      "expectedSteps": 15,
+      "labelAt": [
+        28,
+        6
+      ]
+    },
+    {
+      "id": "own-to-south-workshop",
+      "label": "Own approach",
+      "origin": "S workshop",
+      "group": "S workshop \u00b7 approaches",
+      "style": "direct",
+      "from": "own-reactor",
+      "to": "south-workshop",
+      "mode": "shortest",
+      "expectedSteps": 15,
+      "labelAt": [
+        9,
+        17
+      ]
+    },
+    {
+      "id": "enemy-to-south-workshop",
+      "label": "Enemy approach",
+      "origin": "S workshop",
+      "group": "S workshop \u00b7 approaches",
+      "style": "south",
+      "from": "enemy-reactor",
+      "to": "south-workshop",
+      "mode": "shortest",
+      "expectedSteps": 18,
+      "labelAt": [
+        28,
+        20
+      ]
+    },
+    {
+      "id": "train-to-raid",
+      "label": "Train, then raid the Well",
+      "origin": "Workshops",
+      "group": "Workshops \u00b7 continuations",
+      "style": "direct",
+      "from": "north-workshop",
+      "to": "enemy-well",
+      "mode": "shortest",
+      "expectedSteps": 8,
+      "labelAt": [
+        22,
+        3
+      ]
+    },
+    {
+      "id": "train-to-recover",
+      "label": "Fall back to own heal",
+      "origin": "Workshops",
+      "group": "Workshops \u00b7 continuations",
+      "style": "north",
+      "from": "north-workshop",
+      "to": "own-heal",
+      "mode": "shortest",
+      "expectedSteps": 12,
+      "labelAt": [
+        12,
+        4
+      ]
+    },
+    {
+      "id": "south-workshop-to-own-well",
+      "label": "Screen own Well",
+      "origin": "Workshops",
+      "group": "Workshops \u00b7 continuations",
+      "style": "alternate",
+      "from": "south-workshop",
+      "to": "own-well",
+      "mode": "shortest",
+      "expectedSteps": 8,
+      "labelAt": [
+        14,
+        21
+      ]
+    },
+    {
+      "id": "workshop-to-workshop",
+      "label": "Cross-map development swing",
+      "origin": "Workshops",
+      "group": "Workshops \u00b7 continuations",
+      "style": "south",
+      "from": "north-workshop",
+      "to": "south-workshop",
+      "mode": "shortest",
+      "expectedSteps": 19,
+      "labelAt": [
+        21,
+        13
+      ]
+    },
+    {
+      "id": "own-heal-run",
+      "label": "Recover at home",
+      "origin": "Home",
+      "group": "Home \u00b7 spine and flanks",
+      "style": "direct",
+      "from": "own-reactor",
+      "to": "own-heal",
+      "mode": "shortest",
+      "expectedSteps": 9,
+      "labelAt": [
+        5,
+        8
+      ]
+    },
+    {
+      "id": "spine",
+      "label": "Mid spine",
+      "origin": "Home",
+      "group": "Home \u00b7 spine and flanks",
+      "style": "south",
+      "from": "own-reactor",
+      "to": "enemy-reactor",
+      "mode": "shortest",
+      "expectedSteps": 32,
+      "labelAt": [
+        24,
+        13
+      ]
+    },
+    {
+      "id": "deep-flank",
+      "label": "Committed roof flank",
+      "origin": "Home",
+      "group": "Home \u00b7 spine and flanks",
+      "style": "north",
+      "from": "own-spawn-exit",
+      "to": "enemy-reactor",
+      "mode": "via",
+      "via": [
+        [
+          13,
+          1
+        ],
+        [
+          23,
+          1
+        ]
+      ],
+      "expectedSteps": 39,
+      "labelAt": [
+        28,
+        2
+      ]
+    },
+    {
+      "id": "enemy-heal-raid",
+      "label": "Deep raid on the enemy heal",
+      "origin": "Home",
+      "group": "Home \u00b7 spine and flanks",
+      "style": "alternate",
+      "from": "own-reactor",
+      "to": "enemy-heal",
+      "mode": "shortest",
+      "expectedSteps": 26,
+      "labelAt": [
+        24,
+        19
+      ]
+    },
+    {
+      "id": "junction-lateral",
+      "label": "Junction-to-junction lateral",
+      "origin": "Home",
+      "group": "Home \u00b7 spine and flanks",
+      "style": "direct",
+      "from": "nw-junction",
+      "to": "ne-junction",
+      "mode": "shortest",
+      "expectedSteps": 19,
+      "labelAt": [
+        21,
+        7
+      ]
+    }
+  ],
+  "tacticalSites": [
+    {
+      "id": "north-workshop-site",
+      "label": "N workshop",
+      "note": "Three wide mouths plus a sealable skylight and roof overwatch; one Mason can never seal it, two leave a +4 bounded detour.",
+      "marks": [
+        {
+          "kind": "zone",
+          "label": "training room",
+          "tiles": [
+            [
+              15,
+              3
+            ],
+            [
+              16,
+              3
+            ],
+            [
+              18,
+              3
+            ],
+            [
+              19,
+              3
+            ],
+            [
+              20,
+              3
+            ],
+            [
+              21,
+              3
+            ],
+            [
+              15,
+              4
+            ],
+            [
+              16,
+              4
+            ],
+            [
+              17,
+              4
+            ],
+            [
+              18,
+              4
+            ],
+            [
+              19,
+              4
+            ],
+            [
+              21,
+              4
+            ],
+            [
+              15,
+              5
+            ],
+            [
+              17,
+              5
+            ],
+            [
+              18,
+              5
+            ],
+            [
+              19,
+              5
+            ],
+            [
+              20,
+              5
+            ],
+            [
+              21,
+              5
+            ],
+            [
+              15,
+              6
+            ],
+            [
+              16,
+              6
+            ],
+            [
+              17,
+              6
+            ],
+            [
+              18,
+              6
+            ],
+            [
+              19,
+              6
+            ],
+            [
+              20,
+              6
+            ],
+            [
+              21,
+              6
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "W mouth",
+          "tiles": [
+            [
+              14,
+              3
+            ],
+            [
+              14,
+              4
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "E mouth",
+          "tiles": [
+            [
+              22,
+              4
+            ],
+            [
+              22,
+              5
+            ],
+            [
+              22,
+              6
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "S antechamber",
+          "tiles": [
+            [
+              16,
+              7
+            ],
+            [
+              17,
+              7
+            ],
+            [
+              18,
+              7
+            ],
+            [
+              19,
+              7
+            ],
+            [
+              20,
+              7
+            ]
+          ]
+        },
+        {
+          "kind": "seal",
+          "label": "skylight (1-wide)",
+          "tiles": [
+            [
+              18,
+              2
+            ]
+          ]
+        },
+        {
+          "kind": "seal",
+          "label": "fork slips (1-wide)",
+          "tiles": [
+            [
+              16,
+              8
+            ],
+            [
+              20,
+              8
+            ]
+          ]
+        },
+        {
+          "kind": "post",
+          "label": "trainee",
+          "tiles": [
+            [
+              18,
+              4
+            ]
+          ],
+          "facing": "south"
+        },
+        {
+          "kind": "post",
+          "label": "W guard",
+          "tiles": [
+            [
+              15,
+              3
+            ]
+          ],
+          "facing": "west"
+        },
+        {
+          "kind": "post",
+          "label": "E guard",
+          "tiles": [
+            [
+              21,
+              5
+            ]
+          ],
+          "facing": "east"
+        },
+        {
+          "kind": "post",
+          "label": "roof overwatch",
+          "tiles": [
+            [
+              18,
+              1
+            ]
+          ],
+          "facing": "south"
+        },
+        {
+          "kind": "lane",
+          "label": "band interrupt rail",
+          "from": [
+            12,
+            4
+          ],
+          "to": [
+            19,
+            4
+          ]
+        },
+        {
+          "kind": "lane",
+          "label": "skylight rail",
+          "from": [
+            18,
+            1
+          ],
+          "to": [
+            18,
+            4
+          ]
+        },
+        {
+          "kind": "lane",
+          "label": "roof gallery",
+          "from": [
+            12,
+            1
+          ],
+          "to": [
+            24,
+            1
+          ]
+        },
+        {
+          "kind": "route",
+          "label": "train -> raid continuation",
+          "path": [
+            [
+              18,
+              4
+            ],
+            [
+              19,
+              5
+            ],
+            [
+              20,
+              5
+            ],
+            [
+              21,
+              5
+            ],
+            [
+              22,
+              6
+            ],
+            [
+              23,
+              6
+            ],
+            [
+              24,
+              7
+            ],
+            [
+              25,
+              7
+            ],
+            [
+              26,
+              7
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "centre-plaza",
+      "label": "Centre plaza",
+      "note": "Broken inner cross around the 2-Well; no straight rail onto the Well from any mouth; pincer approaches stay separate until y10.",
+      "marks": [
+        {
+          "kind": "mouth",
+          "label": "W mouth",
+          "tiles": [
+            [
+              14,
+              12
+            ],
+            [
+              14,
+              13
+            ],
+            [
+              14,
+              14
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "E mouth",
+          "tiles": [
+            [
+              22,
+              12
+            ],
+            [
+              22,
+              13
+            ],
+            [
+              22,
+              14
+            ]
+          ]
+        },
+        {
+          "kind": "post",
+          "label": "cover posts",
+          "tiles": [
+            [
+              17,
+              11
+            ],
+            [
+              19,
+              15
+            ]
+          ],
+          "facing": "east"
+        },
+        {
+          "kind": "lane",
+          "label": "longest Well rail (5)",
+          "from": [
+            16,
+            13
+          ],
+          "to": [
+            20,
+            13
+          ]
+        },
+        {
+          "kind": "route",
+          "label": "pincer north arm",
+          "path": [
+            [
+              12,
+              8
+            ],
+            [
+              13,
+              8
+            ],
+            [
+              14,
+              8
+            ],
+            [
+              15,
+              8
+            ],
+            [
+              15,
+              9
+            ],
+            [
+              16,
+              10
+            ],
+            [
+              17,
+              10
+            ]
+          ]
+        },
+        {
+          "kind": "route",
+          "label": "pincer west arm",
+          "path": [
+            [
+              12,
+              12
+            ],
+            [
+              13,
+              12
+            ],
+            [
+              14,
+              12
+            ],
+            [
+              15,
+              12
+            ],
+            [
+              16,
+              12
+            ],
+            [
+              16,
+              13
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "east-well-room",
+      "label": "Enemy Well room",
+      "note": "West's 4-value raid target: four doors on three families plus two 1-wide shadow seams; the defender cannot watch all of them from one facing.",
+      "marks": [
+        {
+          "kind": "zone",
+          "label": "room",
+          "tiles": [
+            [
+              24,
+              5
+            ],
+            [
+              25,
+              5
+            ],
+            [
+              26,
+              5
+            ],
+            [
+              27,
+              5
+            ],
+            [
+              28,
+              5
+            ],
+            [
+              24,
+              6
+            ],
+            [
+              26,
+              6
+            ],
+            [
+              27,
+              6
+            ],
+            [
+              28,
+              6
+            ],
+            [
+              24,
+              7
+            ],
+            [
+              25,
+              7
+            ],
+            [
+              26,
+              7
+            ],
+            [
+              27,
+              7
+            ],
+            [
+              28,
+              7
+            ],
+            [
+              24,
+              8
+            ],
+            [
+              25,
+              8
+            ],
+            [
+              26,
+              8
+            ],
+            [
+              28,
+              8
+            ],
+            [
+              25,
+              9
+            ],
+            [
+              26,
+              9
+            ],
+            [
+              27,
+              9
+            ],
+            [
+              28,
+              9
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "W mouth (raid)",
+          "tiles": [
+            [
+              23,
+              6
+            ],
+            [
+              23,
+              7
+            ],
+            [
+              23,
+              8
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "S mouth (mid)",
+          "tiles": [
+            [
+              24,
+              10
+            ],
+            [
+              25,
+              10
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "E mouth (home lane)",
+          "tiles": [
+            [
+              29,
+              8
+            ],
+            [
+              29,
+              9
+            ]
+          ]
+        },
+        {
+          "kind": "seal",
+          "label": "N seams (1-wide)",
+          "tiles": [
+            [
+              24,
+              4
+            ],
+            [
+              28,
+              4
+            ]
+          ]
+        },
+        {
+          "kind": "post",
+          "label": "guard",
+          "tiles": [
+            [
+              27,
+              5
+            ]
+          ],
+          "facing": "west"
+        },
+        {
+          "kind": "post",
+          "label": "mine turn",
+          "tiles": [
+            [
+              25,
+              9
+            ]
+          ]
+        },
+        {
+          "kind": "route",
+          "label": "raid fast-return start",
+          "path": [
+            [
+              26,
+              7
+            ],
+            [
+              25,
+              8
+            ],
+            [
+              25,
+              9
+            ],
+            [
+              25,
+              10
+            ],
+            [
+              24,
+              11
+            ],
+            [
+              23,
+              12
+            ],
+            [
+              22,
+              13
+            ]
+          ]
+        },
+        {
+          "kind": "route",
+          "label": "raid shadow-return start",
+          "path": [
+            [
+              26,
+              7
+            ],
+            [
+              25,
+              7
+            ],
+            [
+              24,
+              7
+            ],
+            [
+              24,
+              6
+            ],
+            [
+              24,
+              5
+            ],
+            [
+              24,
+              4
+            ],
+            [
+              23,
+              3
+            ],
+            [
+              23,
+              2
+            ],
+            [
+              23,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "west-well-room",
+      "label": "Own Well room",
+      "note": "Mirror of the enemy room: the home door faces the pad lane, the east door faces the enemy raid theatre.",
+      "marks": [
+        {
+          "kind": "zone",
+          "label": "room",
+          "tiles": [
+            [
+              8,
+              17
+            ],
+            [
+              9,
+              17
+            ],
+            [
+              10,
+              17
+            ],
+            [
+              11,
+              17
+            ],
+            [
+              8,
+              18
+            ],
+            [
+              10,
+              18
+            ],
+            [
+              11,
+              18
+            ],
+            [
+              12,
+              18
+            ],
+            [
+              8,
+              19
+            ],
+            [
+              9,
+              19
+            ],
+            [
+              10,
+              19
+            ],
+            [
+              11,
+              19
+            ],
+            [
+              12,
+              19
+            ],
+            [
+              8,
+              20
+            ],
+            [
+              9,
+              20
+            ],
+            [
+              10,
+              20
+            ],
+            [
+              12,
+              20
+            ],
+            [
+              8,
+              21
+            ],
+            [
+              9,
+              21
+            ],
+            [
+              10,
+              21
+            ],
+            [
+              11,
+              21
+            ],
+            [
+              12,
+              21
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "E mouth (enemy raid)",
+          "tiles": [
+            [
+              13,
+              18
+            ],
+            [
+              13,
+              19
+            ],
+            [
+              13,
+              20
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "N mouth (mid)",
+          "tiles": [
+            [
+              11,
+              16
+            ],
+            [
+              12,
+              16
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "home door",
+          "tiles": [
+            [
+              7,
+              17
+            ],
+            [
+              7,
+              18
+            ]
+          ]
+        },
+        {
+          "kind": "seal",
+          "label": "S seams (1-wide)",
+          "tiles": [
+            [
+              8,
+              22
+            ],
+            [
+              12,
+              22
+            ]
+          ]
+        },
+        {
+          "kind": "post",
+          "label": "guard",
+          "tiles": [
+            [
+              9,
+              21
+            ]
+          ],
+          "facing": "east"
+        },
+        {
+          "kind": "route",
+          "label": "home convoy",
+          "path": [
+            [
+              10,
+              19
+            ],
+            [
+              9,
+              19
+            ],
+            [
+              8,
+              19
+            ],
+            [
+              8,
+              18
+            ],
+            [
+              7,
+              17
+            ],
+            [
+              6,
+              16
+            ],
+            [
+              5,
+              15
+            ],
+            [
+              4,
+              14
+            ],
+            [
+              3,
+              13
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "west-heal-room",
+      "label": "Own heal room",
+      "note": "Home-quarter recovery with three doors; one Null Field blankets the whole room, so heal denial is a real play.",
+      "marks": [
+        {
+          "kind": "zone",
+          "label": "room",
+          "tiles": [
+            [
+              6,
+              5
+            ],
+            [
+              7,
+              5
+            ],
+            [
+              8,
+              5
+            ],
+            [
+              9,
+              5
+            ],
+            [
+              10,
+              5
+            ],
+            [
+              6,
+              6
+            ],
+            [
+              7,
+              6
+            ],
+            [
+              8,
+              6
+            ],
+            [
+              9,
+              6
+            ],
+            [
+              10,
+              6
+            ],
+            [
+              6,
+              7
+            ],
+            [
+              7,
+              7
+            ],
+            [
+              8,
+              7
+            ],
+            [
+              9,
+              7
+            ],
+            [
+              10,
+              7
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "SW mouth",
+          "tiles": [
+            [
+              5,
+              7
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "S mouth",
+          "tiles": [
+            [
+              8,
+              8
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "E mouth",
+          "tiles": [
+            [
+              11,
+              7
+            ]
+          ]
+        },
+        {
+          "kind": "post",
+          "label": "overwatch",
+          "tiles": [
+            [
+              10,
+              5
+            ]
+          ],
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "id": "north-flank",
+      "label": "North flank and galleries",
+      "note": "The committed flank: roof gallery, NE field and the pad-exit avenue; patrol posts, a mine pinch and the deep-raid crossing.",
+      "marks": [
+        {
+          "kind": "seal",
+          "label": "loop crossing (1-wide)",
+          "tiles": [
+            [
+              11,
+              2
+            ]
+          ]
+        },
+        {
+          "kind": "post",
+          "label": "patrol posts",
+          "tiles": [
+            [
+              12,
+              2
+            ],
+            [
+              26,
+              1
+            ],
+            [
+              31,
+              2
+            ]
+          ]
+        },
+        {
+          "kind": "lane",
+          "label": "NE field lane",
+          "from": [
+            26,
+            1
+          ],
+          "to": [
+            33,
+            1
+          ]
+        },
+        {
+          "kind": "route",
+          "label": "committed flank entry",
+          "path": [
+            [
+              4,
+              9
+            ],
+            [
+              5,
+              9
+            ],
+            [
+              6,
+              9
+            ],
+            [
+              7,
+              9
+            ],
+            [
+              8,
+              9
+            ],
+            [
+              9,
+              9
+            ],
+            [
+              10,
+              9
+            ],
+            [
+              11,
+              9
+            ],
+            [
+              12,
+              8
+            ],
+            [
+              13,
+              7
+            ],
+            [
+              13,
+              6
+            ],
+            [
+              13,
+              5
+            ],
+            [
+              12,
+              4
+            ],
+            [
+              12,
+              3
+            ],
+            [
+              12,
+              2
+            ],
+            [
+              12,
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    {
+      "id": "homes",
+      "label": "Home pads",
+      "note": "Spawn-protected pads with the exact scoring reactor inside; no pad tile can rail or even see any Well, heal or workshop.",
+      "marks": [
+        {
+          "kind": "zone",
+          "label": "west pad",
+          "tiles": [
+            [
+              1,
+              10
+            ],
+            [
+              2,
+              10
+            ],
+            [
+              3,
+              10
+            ],
+            [
+              4,
+              10
+            ],
+            [
+              1,
+              11
+            ],
+            [
+              2,
+              11
+            ],
+            [
+              3,
+              11
+            ],
+            [
+              4,
+              11
+            ],
+            [
+              1,
+              12
+            ],
+            [
+              2,
+              12
+            ],
+            [
+              3,
+              12
+            ],
+            [
+              4,
+              12
+            ],
+            [
+              1,
+              13
+            ],
+            [
+              2,
+              13
+            ],
+            [
+              3,
+              13
+            ],
+            [
+              4,
+              13
+            ],
+            [
+              1,
+              14
+            ],
+            [
+              2,
+              14
+            ],
+            [
+              3,
+              14
+            ],
+            [
+              4,
+              14
+            ],
+            [
+              1,
+              15
+            ],
+            [
+              2,
+              15
+            ],
+            [
+              3,
+              15
+            ],
+            [
+              4,
+              15
+            ],
+            [
+              1,
+              16
+            ],
+            [
+              2,
+              16
+            ],
+            [
+              3,
+              16
+            ],
+            [
+              4,
+              16
+            ]
+          ]
+        },
+        {
+          "kind": "zone",
+          "label": "east pad",
+          "tiles": [
+            [
+              32,
+              10
+            ],
+            [
+              33,
+              10
+            ],
+            [
+              34,
+              10
+            ],
+            [
+              35,
+              10
+            ],
+            [
+              32,
+              11
+            ],
+            [
+              33,
+              11
+            ],
+            [
+              34,
+              11
+            ],
+            [
+              35,
+              11
+            ],
+            [
+              32,
+              12
+            ],
+            [
+              33,
+              12
+            ],
+            [
+              34,
+              12
+            ],
+            [
+              35,
+              12
+            ],
+            [
+              32,
+              13
+            ],
+            [
+              33,
+              13
+            ],
+            [
+              34,
+              13
+            ],
+            [
+              35,
+              13
+            ],
+            [
+              32,
+              14
+            ],
+            [
+              33,
+              14
+            ],
+            [
+              34,
+              14
+            ],
+            [
+              35,
+              14
+            ],
+            [
+              32,
+              15
+            ],
+            [
+              33,
+              15
+            ],
+            [
+              34,
+              15
+            ],
+            [
+              35,
+              15
+            ],
+            [
+              32,
+              16
+            ],
+            [
+              33,
+              16
+            ],
+            [
+              34,
+              16
+            ],
+            [
+              35,
+              16
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "west north exit",
+          "tiles": [
+            [
+              3,
+              9
+            ],
+            [
+              4,
+              9
+            ]
+          ]
+        },
+        {
+          "kind": "mouth",
+          "label": "east south exit",
+          "tiles": [
+            [
+              32,
+              17
+            ],
+            [
+              33,
+              17
+            ]
+          ]
+        }
+      ]
+    }
+  ],
+  "comparison": {
+    "baselineLabel": "Tapline15 (live)",
+    "candidateLabel": "Broadloom (candidate)",
+    "rows": [
+      {
+        "metric": "Canvas and open floor",
+        "baseline": "31x27, 517 open",
+        "candidate": "37x27, 681 open",
+        "note": "Needs the width-cap platform change; still under the 1,024-cell budget."
+      },
+      {
+        "metric": "Own Well -> own reactor",
+        "baseline": 12,
+        "candidate": 8,
+        "note": "Shorter, safer drip; income still gated by the 46-tick recharge."
+      },
+      {
+        "metric": "Centre Well -> own reactor",
+        "baseline": 19,
+        "candidate": 16,
+        "note": "Comparable mid commitment."
+      },
+      {
+        "metric": "Enemy Well -> own reactor",
+        "baseline": 31,
+        "candidate": 25,
+        "note": "Raids commit through the enemy workshop theatre instead of the centre line."
+      },
+      {
+        "metric": "Enemy-Well return spread",
+        "baseline": "31 / 33 / 41",
+        "candidate": "25 / 28 / 37",
+        "note": "Fast vs heal-detour vs shadow families."
+      },
+      {
+        "metric": "Centre Well -> own Well",
+        "baseline": 22,
+        "candidate": 10,
+        "note": "Defensive rotation exists; splitting is affordable."
+      },
+      {
+        "metric": "Centre Well -> nearest heal",
+        "baseline": 8,
+        "candidate": 13,
+        "note": "Healing decoupled from centre control."
+      },
+      {
+        "metric": "Own reactor -> near heal",
+        "baseline": 16,
+        "candidate": 9,
+        "note": "Heals move to the home quarters; contested healing becomes a raid, not a centre reward."
+      },
+      {
+        "metric": "Reactor -> reactor",
+        "baseline": 38,
+        "candidate": 32,
+        "note": "Wider map, better connected spine."
+      },
+      {
+        "metric": "Neutral workshops",
+        "baseline": "none",
+        "candidate": "2 on the centre column, 15/18 from the reactors",
+        "note": "3-step supply-side bias per team, measured below."
+      },
+      {
+        "metric": "Centre -> either workshop",
+        "baseline": "n/a",
+        "candidate": 11,
+        "note": "A centre force cannot flash-rotate to workshop defence."
+      },
+      {
+        "metric": "Workshop -> adjacent owned Well",
+        "baseline": "n/a",
+        "candidate": 8,
+        "note": "Training pressure and Well raids share a theatre."
+      }
+    ]
+  },
+  "requiredRouteIds": [
+    "own-well-home-door",
+    "own-well-north-mouth",
+    "own-well-to-centre",
+    "centre-direct",
+    "centre-via-heal",
+    "centre-to-north-workshop",
+    "raid-fast",
+    "raid-via-heal",
+    "raid-shadow-gallery",
+    "raid-well-to-centre",
+    "own-to-north-workshop",
+    "enemy-to-north-workshop",
+    "own-to-south-workshop",
+    "enemy-to-south-workshop",
+    "train-to-raid",
+    "train-to-recover",
+    "south-workshop-to-own-well",
+    "workshop-to-workshop",
+    "own-heal-run",
+    "spine",
+    "deep-flank",
+    "enemy-heal-raid",
+    "junction-lateral"
+  ],
+  "requiredLandmarkIds": [
+    "own-reactor",
+    "enemy-reactor",
+    "own-well",
+    "centre-well",
+    "enemy-well",
+    "own-heal",
+    "enemy-heal",
+    "north-workshop",
+    "south-workshop",
+    "nw-junction",
+    "ne-junction",
+    "sw-junction",
+    "se-junction",
+    "own-spawn-exit",
+    "enemy-spawn-exit"
+  ]
+}

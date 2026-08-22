@@ -222,6 +222,90 @@ class TaplineCandidateTests(unittest.TestCase):
         ):
             self.assertIn(expected, document)
 
+    def test_tactical_sites_and_comparison_reach_json_and_html(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["tacticalSites"] = [
+            {
+                "id": "centre-plaza",
+                "label": "Centre plaza",
+                "note": "mouths and cover",
+                "marks": [
+                    {"kind": "mouth", "label": "W mouth", "tiles": [[14, 13]]},
+                    {"kind": "post", "label": "guard", "tiles": [[16, 13]],
+                     "facing": "east"},
+                    {"kind": "seal", "tiles": [[15, 12]]},
+                    {"kind": "lane", "label": "rail", "from": [16, 13],
+                     "to": [20, 13]},
+                    {"kind": "route", "label": "break",
+                     "path": [[16, 13], [17, 13], [18, 13]]},
+                    {"kind": "zone", "label": "floor", "tiles": [[17, 12]]},
+                ],
+            }
+        ]
+        spec["comparison"] = {
+            "baselineLabel": "Tapline15 (live)",
+            "candidateLabel": "Candidate",
+            "rows": [
+                {"metric": "Own Well return", "baseline": 12, "candidate": 8,
+                 "note": "shorter"},
+            ],
+        }
+
+        result = map_analysis.analyze_spec(spec, EXAMPLE)
+
+        self.assertTrue(result["valid"], result["errors"])
+        self.assertEqual(result["tacticalSites"][0]["id"], "centre-plaza")
+        self.assertEqual(
+            result["comparison"]["rows"][0]["baseline"], "12"
+        )
+        document = map_analysis.render_html(result)
+        for expected in (
+            "Centre plaza",
+            "data-site-toggle",
+            "Baseline comparison",
+            "Tapline15 (live)",
+            "Own Well return",
+            "drawSites(scene,cell);",
+        ):
+            self.assertIn(expected, document)
+
+    def test_tactical_site_rejects_a_walled_tile(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["tacticalSites"] = [
+            {
+                "id": "bad",
+                "label": "Bad",
+                "marks": [{"kind": "post", "tiles": [[0, 0]]}],
+            }
+        ]
+
+        with self.assertRaises(map_analysis.SpecError):
+            map_analysis.analyze_spec(spec, EXAMPLE)
+
+    def test_tactical_site_rejects_a_bent_lane(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["tacticalSites"] = [
+            {
+                "id": "bad-lane",
+                "label": "Bad lane",
+                "marks": [{"kind": "lane", "from": [14, 13], "to": [16, 12]}],
+            }
+        ]
+
+        with self.assertRaises(map_analysis.SpecError):
+            map_analysis.analyze_spec(spec, EXAMPLE)
+
+    def test_comparison_requires_both_sides_of_every_row(self) -> None:
+        spec = copy.deepcopy(self.spec)
+        spec["comparison"] = {
+            "baselineLabel": "Baseline",
+            "candidateLabel": "Candidate",
+            "rows": [{"metric": "Own Well return", "baseline": 12}],
+        }
+
+        with self.assertRaises(map_analysis.SpecError):
+            map_analysis.analyze_spec(spec, EXAMPLE)
+
     def test_cli_writes_json_and_self_contained_html(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory)
