@@ -69,7 +69,8 @@ public sealed record ArcRelayLoopProfile
         bool reactiveImpactFacing = false,
         int veterancyDeathRetentionPercent = 0,
         bool alliedProjectilesBlock = false,
-        bool veterancyWorkshops = false)
+        bool veterancyWorkshops = false,
+        int veterancyWorkshopDormancyTicks = 45)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -138,6 +139,13 @@ public sealed record ArcRelayLoopProfile
         VeterancyDeathRetentionPercent = veterancyDeathRetentionPercent;
         AlliedProjectilesBlock = alliedProjectilesBlock;
         VeterancyWorkshops = veterancyWorkshops;
+        if (veterancyWorkshopDormancyTicks < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(veterancyWorkshopDormancyTicks));
+        }
+        VeterancyWorkshopDormancyTicks =
+            veterancyWorkshopDormancyTicks;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -286,6 +294,13 @@ public sealed record ArcRelayLoopProfile
     /// </summary>
     internal bool ReactiveImpactFacing { get; }
     internal bool VeterancyWorkshops { get; }
+
+    /// <summary>
+    /// Whole ticks a Workshop remains unavailable after a completed channel.
+    /// Historical Broadloom profiles use 45; zero allows the next qualifying
+    /// tick to begin the following channel immediately.
+    /// </summary>
+    internal int VeterancyWorkshopDormancyTicks { get; }
 
     private static void ValidateMovementRate(
         int opportunities,
@@ -1802,7 +1817,7 @@ public sealed record ArcRelayLoopProfile
         tapline15CombatDepth: false);
 
     /// <summary>
-    /// The current Broadloom product line: the complete Tapline-15 ruleset on
+    /// Historical Broadloom-2: the complete Tapline-15 ruleset on
     /// the accepted 37x27 whole-map candidate, plus the two neutral veterancy
     /// Workshops (unlock 25, 15 consecutive qualifying ticks, 1 XP, 45-tick
     /// global dormancy). New append-only identities; nothing historical
@@ -1813,10 +1828,22 @@ public sealed record ArcRelayLoopProfile
         "arc-relay-broadloom-2",
         tapline15CombatDepth: true);
 
+    /// <summary>
+    /// Current Broadloom product line. It preserves Broadloom-2 exactly except
+    /// that Workshop training has no post-completion cooldown: a body may
+    /// begin its next 15-tick channel on the following tick.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom3 { get; } = CreateBroadloom(
+        "broadloom-3",
+        "arc-relay-broadloom-3",
+        tapline15CombatDepth: true,
+        workshopDormancyTicks: 0);
+
     private static ArcRelayLoopProfile CreateBroadloom(
         string id,
         string rulesetId,
-        bool tapline15CombatDepth) => new(
+        bool tapline15CombatDepth,
+        int workshopDormancyTicks = 45) => new(
         id,
         rulesetId,
         "arc-relay-broadloom-01",
@@ -1865,14 +1892,15 @@ public sealed record ArcRelayLoopProfile
         reactiveImpactFacing: true,
         veterancyDeathRetentionPercent: tapline15CombatDepth ? 50 : 0,
         alliedProjectilesBlock: tapline15CombatDepth,
-        veterancyWorkshops: true);
+        veterancyWorkshops: true,
+        veterancyWorkshopDormancyTicks: workshopDormancyTicks);
 
     /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Broadloom2;
+    public static ArcRelayLoopProfile Current => Broadloom3;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1961,6 +1989,7 @@ public sealed record ArcRelayLoopProfile
         BroadloomProbe,
         Broadloom1,
         Broadloom2,
+        Broadloom3,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

@@ -25,7 +25,7 @@ public sealed class ArcRelayPrismScreenTests
     [Fact]
     public void Tapline12VersionsOnlyThePalisadeEnvelope()
     {
-        Assert.Same(ArcRelayLoopProfile.Broadloom2, ArcRelayLoopProfile.Current);
+        Assert.Same(ArcRelayLoopProfile.Broadloom3, ArcRelayLoopProfile.Current);
 
         ActorResolvedMatchDefinition prior = ArcRelayH0Definition.Create(
             Composition,

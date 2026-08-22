@@ -45,6 +45,7 @@ function withWorkshop(
   document: Loose,
   workshop: Loose | null,
   facts: { tick: number; fact: Loose }[] = [],
+  dormancyTicks = DORMANCY_TICKS,
 ): Loose {
   const rules = (
     (document.header as Loose).contract as Loose
@@ -58,7 +59,7 @@ function withWorkshop(
       unlockTick: 4,
       requiredChannelTicks: REQUIRED_TICKS,
       xpAward: 1,
-      dormancyTicks: DORMANCY_TICKS,
+      dormancyTicks,
     };
     binding.veterancyWorkshops = [
       {
@@ -218,6 +219,39 @@ test('phase and progress are read from the published state, not invented', () =>
 
   // A dormant bench and a channelling one must not look the same.
   assert.notEqual(frameHash(training, 8), frameHash(dormant, 8));
+});
+
+test('zero dormancy presents the completion boundary as immediately ready', () => {
+  const replay = loadReplayObject(
+    withWorkshop(
+      broadcast(),
+      {
+        ...readyWorkshop(),
+        phase: 'dormant',
+        readyAtTick: 9,
+      },
+      [],
+      0,
+    ),
+  ).replay;
+  const mode = replay.ticks[8]!.after.mode;
+  if (mode?.kind !== 'arc-relay') throw new Error('expected arc-relay');
+
+  const index = arcWorkshopsFor(replay);
+  const reading = index.visualsAt(mode.workshops, 8)[0]!;
+  assert.equal(index.dormancyTicks, 0);
+  assert.equal(reading.phase, 'ready');
+  assert.equal(reading.dormantRemainingTicks, null);
+  assert.equal(reading.dormantFraction, null);
+
+  const readyReplay = loadReplayObject(
+    withWorkshop(broadcast(), readyWorkshop(), [], 0),
+  ).replay;
+  assert.equal(
+    frameHash(replay, 8),
+    frameHash(readyReplay, 8),
+    'zero-dormancy completion must not dim or count down the Workshop',
+  );
 });
 
 test('a completion fact carries its trainee, its award, and a decaying beat', () => {

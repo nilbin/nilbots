@@ -288,12 +288,14 @@ function drawWorkshopPlates(
   state: ArcState,
 ): void {
   const { ctx, tile, time } = input;
+  const zeroDormancy =
+    arcWorkshopsFor(input.replay).dormancyTicks === 0;
   // `?? []` guards a hand-built mode state from before the field existed; a
   // normalized replay always carries the array, empty when there are none.
   for (const workshop of state.workshops ?? []) {
     const point = centre(input, workshop.trainingTile);
     const radius = tile * 0.4;
-    const dormant = workshop.phase === 'dormant';
+    const dormant = workshop.phase === 'dormant' && !zeroDormancy;
     const contested = workshop.phase === 'contested';
     // A contested Workshop names no team, so its alert is the landmark's own
     // colour shifted to rose rather than anyone's accent.

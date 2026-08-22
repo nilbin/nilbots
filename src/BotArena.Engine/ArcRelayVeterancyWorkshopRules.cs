@@ -57,6 +57,9 @@ public sealed record ArcRelayVeterancyWorkshopRules
     /// <summary>Veterancy XP granted by one completed session.</summary>
     public int XpAward { get; }
 
-    /// <summary>Global dormancy after a completion, in ticks.</summary>
+    /// <summary>
+    /// Post-completion dormancy in ticks. Zero permits a new channel on the
+    /// next qualifying tick.
+    /// </summary>
     public int DormancyTicks { get; }
 }

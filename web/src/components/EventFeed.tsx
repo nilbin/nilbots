@@ -157,7 +157,7 @@ export default function EventFeed({
         // The trainee is named because the COMPLETION fact carries it; the
         // landmark's own state never does, so nothing else in the viewer may.
         case 'workshop-training-completed':
-          return `${actorName(replay, arc.traineeActor)} trains up at the ${arc.workshopId} Workshop · +${arc.xpAward} XP · reopens T${arc.readyAgainTick}`;
+          return `${actorName(replay, arc.traineeActor)} trains up at the ${arc.workshopId} Workshop · +${arc.xpAward} XP · next channel T${arc.readyAgainTick}`;
       }
     }
     // Attack/destruction/disqualification arrive in version-specific

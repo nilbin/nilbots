@@ -301,7 +301,7 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `broadloom-2`: the 37x27 Broadloom map and
+            The default is `broadloom-3`: the 37x27 Broadloom map and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
@@ -323,8 +323,9 @@ static int CommandHelp(string command)
             accumulated veterancy XP on death (rounded down), and living
             allies harmlessly stop allied shots; friendly deployments remain
             transparent. Two public neutral Workshops each offer one veteran
-            XP after a protected 15-tick channel and then sleep for 45 ticks.
-            Hosted v34 pins `broadloom-2`; v33 pins first-Broadloom history;
+            XP after every protected 15-tick channel; the next channel may
+            begin on the following tick with no Workshop cooldown.
+            Hosted v35 pins `broadloom-3`; v34/v33 preserve Broadloom history;
             v7 through v32 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.

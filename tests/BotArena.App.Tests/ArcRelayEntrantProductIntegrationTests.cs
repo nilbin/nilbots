@@ -804,8 +804,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline14Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.CompleteObservationVersion)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.BroadloomInitialVersion)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Broadloom2Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Broadloom_v34_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Broadloom_v35_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -857,6 +858,10 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV31(),
                 ArcRelayEntrantPlaylistDefinition.CompleteObservationVersion =>
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV32(),
+                ArcRelayEntrantPlaylistDefinition.BroadloomInitialVersion =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33(),
+                ArcRelayEntrantPlaylistDefinition.Broadloom2Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV34(),
                 _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
             };
             var version = new PlaylistVersion
@@ -971,7 +976,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Broadloom_v34_refuses_to_skip_a_registered_v30_ladder()
+    public async Task Broadloom_v35_refuses_to_skip_a_registered_v30_ladder()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =

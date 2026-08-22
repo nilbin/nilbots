@@ -150,7 +150,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Broadloom2.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Broadloom3.MapId, catalog.Map.Id);
         Assert.Equal(37, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(2, catalog.StockOpponents.Count);
@@ -248,9 +248,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Broadloom2.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Broadloom3.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Broadloom2.RulesetId,
+                ArcRelayLoopProfile.Broadloom3.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -262,7 +262,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(
                     ArcRelayEntrantPlaylistDefinition
-                        .Broadloom2TacticalArtifactHash,
+                        .Broadloom3TacticalArtifactHash,
                     participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
@@ -286,7 +286,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Broadloom2.RulesetId,
+                ArcRelayLoopProfile.Broadloom3.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)
@@ -329,7 +329,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
             ArcRelayEntrantPlaylistDefinition
-                .Broadloom2TacticalArtifactHash,
+                .Broadloom3TacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 

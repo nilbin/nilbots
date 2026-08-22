@@ -179,23 +179,32 @@ export function buildArcWorkshops(replay: ReplayModel): ArcWorkshopIndex {
     requiredChannelTicks: declared?.requiredChannelTicks ?? null,
     visualsAt(workshops, time) {
       return (workshops ?? []).map((workshop) => {
+        const phase =
+          declared?.dormancyTicks === 0 && workshop.phase === 'dormant'
+            ? 'ready'
+            : workshop.phase;
         const requiredTicks = Math.max(1, workshop.requiredTicks);
         const dormantRemainingTicks =
-          workshop.readyAtTick === null
+          phase !== 'dormant' || workshop.readyAtTick === null
             ? null
             : Math.max(0, Math.ceil(workshop.readyAtTick - time));
         const dormancy = declared?.dormancyTicks ?? null;
         return {
           workshopId: workshop.workshopId,
           tile: { ...workshop.trainingTile },
-          phase: workshop.phase,
+          phase,
           trainingTeamId: workshop.trainingTeamId,
           progressTicks: workshop.progressTicks,
           requiredTicks: workshop.requiredTicks,
-          progressFraction: clamp01(workshop.progressTicks / requiredTicks),
+          progressFraction:
+            phase === 'training'
+              ? clamp01(workshop.progressTicks / requiredTicks)
+              : 0,
           dormantRemainingTicks,
           dormantFraction:
-            workshop.readyAtTick === null || dormancy === null
+            phase !== 'dormant' ||
+              workshop.readyAtTick === null ||
+              dormancy === null
               ? null
               : clamp01(
                   1 -

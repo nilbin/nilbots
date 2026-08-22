@@ -1159,7 +1159,8 @@ public static class ArcRelayH0Definition
                     unlockTick: 25,
                     requiredChannelTicks: 15,
                     xpAward: 1,
-                    dormancyTicks: 45)
+                    dormancyTicks:
+                        loopProfile.VeterancyWorkshopDormancyTicks)
                 : null);
 
     /// <summary>

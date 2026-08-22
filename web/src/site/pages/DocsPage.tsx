@@ -52,8 +52,8 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v34 and the local <code>nilbots arc-relay</code>
-          default both run broadloom-2 on the 37x27 Broadloom map — three Wells in
+          Hosted playlist v35 and the local <code>nilbots arc-relay</code>
+          default both run broadloom-3 on the 37x27 Broadloom map — three Wells in
           distinct roomed theatres, two neutral Workshops, signature grammar 3 and
           atomic convoy movement: bodies may enter a tile a teammate leaves in the
           same tick, but swaps, closed cycles and contested destinations still
@@ -74,9 +74,9 @@ export default function DocsPage() {
           allied shots, and never blocks bodies. Living teammates harmlessly stop
           allied fire, while friendly sentries, mines and walls remain transparent.
           On death, a bot keeps half its accumulated veteran XP, rounded down, on
-          its team-local roster slot. Playlist v34 opens a fresh rating book at
-          1200; playlists v23–v33 remain readable history and their ratings are
-          not carried into v34.
+          its team-local roster slot. Playlist v35 opens a fresh rating book at
+          1200; playlists v23–v34 remain readable history and their ratings are
+          not carried into v35.
         </p>
         <p className="mt-2 text-arena-dim">
           Ranked, practice, the Tactics editor and the local CLI all run that same
@@ -93,7 +93,8 @@ export default function DocsPage() {
           may stand anywhere in the Workshop&apos;s contest room. Any violation
           resets progress to zero, and dying or swapping bodies never inherits a
           channel. Completion grants exactly one veterancy XP through the normal
-          capped ladder and puts that Workshop into a public 45-tick recharge.
+          capped ladder, and another 15-tick channel can begin on the following
+          tick with no Workshop cooldown.
           Guards keep the room empty but never speed the channel up — a visible
           Training signal is an open invitation to contest it or to raid
           somewhere else while you answer.

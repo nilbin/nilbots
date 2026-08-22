@@ -1277,8 +1277,9 @@ internal sealed class ArcRelayActorMatchModeDriver
     /// stands in the authored contest region. The first tick a body arrives
     /// can never qualify (arrival is a move), so a channel's first qualifying
     /// tick is its first full stationary tick. Completion grants the XP
-    /// through the ordinary veterancy ladder and starts the global dormancy:
-    /// ready again at completion + 1 + dormancy.
+    /// through the ordinary veterancy ladder. A positive configured dormancy
+    /// delays the next channel; zero makes the Workshop available on the next
+    /// qualifying tick.
     /// </summary>
     private void EvaluateVeterancyWorkshops(
         GenericActorModeWorldView world,

@@ -8,8 +8,8 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile broadloom-2` (rules
-`arc-relay-broadloom-2`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
+The command defaults to `--loop-profile broadloom-3` (rules
+`arc-relay-broadloom-3`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
 geometry, complete signature grammar 3, promoted depth rules, neutral
 veterancy Workshops, 50% stable-slot XP retention, and harmless allied-body
 projectile blockers. Its joint movement step permits an acyclic convoy to
@@ -17,11 +17,12 @@ advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
 still block. Every historical profile remains an explicit immutable
 compatibility selection.
 
-**Hosted entrant playlist v34 pins Broadloom-2.** It uses the
+**Hosted entrant playlist v35 pins Broadloom-3.** It uses the
 `arc-relay-orders-v2` sheet format, Tempered Broadloom stock participant,
-authored movement urgency, body-local fight contact, and atomic EPIBT squad
-planning on the direct ATL2 executor. Playlist v33 preserves first Broadloom
-without retention/projectile blockers, and every older definition, artifact,
+authored movement urgency, body-local fight contact, repeatable Workshop
+training, and atomic EPIBT squad
+planning on the direct ATL2 executor. Playlists v34/v33 preserve Broadloom-2
+and first Broadloom respectively, and every older definition, artifact,
 rating and match remains readable history. Geometry is never projected between
 maps.
 
@@ -254,15 +255,14 @@ dependent chain. This is the engine contract required by coordinated squad
 planning; it is not permission to overlap bodies or resolve moves in command
 order.
 
-## Broadloom and veterancy Workshops (`arc-relay-broadloom-2`, 2026-08-22)
+## Broadloom and veterancy Workshops (`arc-relay-broadloom-3`, 2026-08-23)
 
-`broadloom-2` is the current contract. It keeps Broadloom-1's exact
-`arc-relay-broadloom-01` 37x27 whole-map identity and Workshop rules while
-adding Tapline-15's 50% stable-slot veterancy retention and harmless
-allied-body projectile blockers under the new ruleset id
-`arc-relay-broadloom-2`. Playlist v33 preserves first Broadloom
-(`broadloom-1` / `arc-relay-broadloom-1`) without those two additions;
-playlist v34 is Broadloom-2. Both use three Wells (outer Wells in roomed
+`broadloom-3` is the current contract. It keeps Broadloom-2's exact map,
+combat, logistics and durable-career rules while removing only the Workshop
+post-channel cooldown under ruleset `arc-relay-broadloom-3`. Playlist v34
+preserves Broadloom-2's 45-tick dormancy and playlist v33 preserves first
+Broadloom without 50% stable-slot XP retention or allied-body projectile
+blockers. All three use three Wells (outer Wells in roomed
 theatres at (10,19) and (26,7), the centre Well under a covered crossing),
 heal alcoves, and two rotationally symmetric neutral **Workshops** at (18,4)
 and (18,22).
@@ -281,8 +281,10 @@ training tile refuses authored signature placement, heals nothing, and
 scores nothing.
 
 Completion grants exactly **1 veterancy XP** through the ordinary capped
-veterancy system (visible on the next tick) and puts that Workshop into a
-**45-tick dormancy**; it is publicly Ready again 46 ticks after completion.
+veterancy system (visible on the next tick). The next 15-tick channel may
+begin on the following tick with **no Workshop cooldown**. A fresh level-1 bot
+therefore reaches level 5 after eight successful channels, or 120 qualifying
+ticks, if the team can protect it continuously.
 The two Workshops are independent: contesting or completing one never
 touches the other. A body already at maximum veterancy cannot train.
 

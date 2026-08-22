@@ -9656,3 +9656,29 @@ There is no Workshop scheduler, reservation system, or competing priority
 layer. `either` first prefers an already-ready Workshop, then the dormant one
 whose opening is soonest. A body already training never abandons its tile just
 because the other Workshop becomes preferable.
+
+## 361. Broadloom-3 removes Workshop dormancy so veteran-building is viable
+
+Owner promotion ruling (2026-08-23): remove the Workshop cooldown. The
+original protection costs were stacked too conservatively: a 15-tick
+interruptible channel granted only 1 XP against a 2-XP level threshold, then
+disabled that Workshop for 45 ticks. A fresh level-1 body therefore needed
+eight sessions spread across roughly 435 ticks to reach level 5, making the
+intended "protect and build this veteran" strategy irrational beside Well
+pressure.
+
+Profile `broadloom-3`, ruleset `arc-relay-broadloom-3`, keeps Broadloom-2's
+map and every other rule but sets Workshop dormancy to zero. Completion still
+grants exactly 1 capped XP after 15 consecutive qualifying ticks. The next
+channel may start on the following tick, so uninterrupted level-1-to-5
+training takes eight sessions and 120 qualifying ticks. Contest presence,
+damage, movement/displacement, combat action, signature use, Core custody,
+death, life replacement and the veterancy cap keep their existing behavior.
+The public completion boundary and event remain, preserving fog-free
+`workshopDone` evidence; there is simply no skipped qualifying tick.
+
+Hosted entrant playlist v35 pins Broadloom-3 and starts a fresh rating book
+because objective economics and registered gameplay change. Playlist v34
+remains byte-exact Broadloom-2 history with its 45-tick dormancy, and v33
+remains first-Broadloom history. This promotion is a mechanics correction in
+the owner's fast-iteration phase, not a population balance verdict.

@@ -14,7 +14,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 {
     public const string PlaylistKey = ArcRelayPlaylistDefinition.PlaylistKey;
     public const string DisplayName = ArcRelayPlaylistDefinition.DisplayName;
-    public const int Version = 34;
+    public const int Version = 35;
+    public const int Broadloom2Version = 34;
     public const int BroadloomInitialVersion = 33;
     public const int CompleteObservationVersion = 32;
     public const int Tapline14Version = 31;
@@ -82,6 +83,10 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
         "2657d3505603635417006a4206671ab190a92e83b4921ec09a3b555ce076b1da";
     public const string Broadloom2TacticalBuildInputHash =
         "4a9a7351da0892bf18bc40c9db7e1e6ebf59522fa36090e0554beff0f6d96872";
+    public const string Broadloom3TacticalArtifactHash =
+        Broadloom2TacticalArtifactHash;
+    public const string Broadloom3TacticalBuildInputHash =
+        Broadloom2TacticalBuildInputHash;
     public const string CompleteObservationTacticalArtifactHash =
         "db2d421ba1da1ca78b8bc58347f36a9dffe2155e78724ae1d50a721f79a3c9fe";
     public const string CompleteObservationTacticalBuildInputHash =
@@ -209,9 +214,17 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 
     public static ArcRelayEntrantPlaylistDefinition Create() => Create(
         Version,
-        ArcRelayLoopProfile.Broadloom2,
-        source: "arc-relay-broadloom-workshops-retention-friendly-fire-lanes",
+        ArcRelayLoopProfile.Broadloom3,
+        source: "arc-relay-broadloom-continuous-workshop-training",
         canonicalGameplayUnchangedFromVersion1: false);
+
+    public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV34() =>
+        Create(
+            Broadloom2Version,
+            ArcRelayLoopProfile.Broadloom2,
+            source:
+                "arc-relay-broadloom-workshops-retention-friendly-fire-lanes",
+            canonicalGameplayUnchangedFromVersion1: false);
 
     public static ArcRelayEntrantPlaylistDefinition CreateHistoricalV33() =>
         Create(
@@ -464,7 +477,8 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 "stockArtifactHash",
                 version switch
                 {
-                    Version => Broadloom2TacticalArtifactHash,
+                    Version => Broadloom3TacticalArtifactHash,
+                    Broadloom2Version => Broadloom2TacticalArtifactHash,
                     BroadloomInitialVersion =>
                         Broadloom1TacticalArtifactHash,
                     CompleteObservationVersion =>
@@ -505,12 +519,12 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                         .HistoricalForwardStockArtifactHash,
                     _ => ArcRelayPlaylistDefinition.StockArtifactHash,
                 });
-            writer.WriteString("sheetSchema", version is Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
+            writer.WriteString("sheetSchema", version is Version or Broadloom2Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
                 ? "arc-relay-orders-v2"
                 : version >= TacticalVersion
                     ? "arc-relay-tactical-playbook-v1"
                     : ArcRelayLegacySnapshotCodec.SchemaId);
-            if (version is Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
+            if (version is Version or Broadloom2Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
                 or LooseCoreMemoryVersion
                 or StableCarrierVersion
                 or TrafficDetourVersion
@@ -522,7 +536,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             {
                 writer.WriteString(
                     "stockSheetId",
-                    version is Version or BroadloomInitialVersion
+                    version is Version or Broadloom2Version or BroadloomInitialVersion
                         ? BroadloomStockSheetId
                         : version is CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version
                         ? Tapline4StockSheetId
@@ -531,7 +545,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                         : StockSheetId);
                 writer.WriteString(
                     "stockPlaybookSourceHash",
-                    version is Version or BroadloomInitialVersion
+                    version is Version or Broadloom2Version or BroadloomInitialVersion
                         ? BroadloomStockPlaybookSourceHash
                         : version is CompleteObservationVersion or Tapline14Version or Tapline13Version
                         ? Tapline14StockPlaybookSourceHash
@@ -554,10 +568,10 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                         ? StockPlaybookSourceHash
                         : HistoricalStockPlaybookSourceHash);
                 writer.WriteString(
-                    version is Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
+                    version is Version or Broadloom2Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version
                         ? "stockMapPlanSourceHash"
                         : "stockLayoutSourceHash",
-                    version is Version or BroadloomInitialVersion
+                    version is Version or Broadloom2Version or BroadloomInitialVersion
                         ? BroadloomStockMapPlanSourceHash
                         : version is CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version
                         ? Tapline9StockMapPlanSourceHash
@@ -571,7 +585,7 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                             ? TaplineStockLayoutSourceHash
                         : StockLayoutSourceHash);
             }
-            if (version is Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
+            if (version is Version or Broadloom2Version or BroadloomInitialVersion or CompleteObservationVersion or Tapline14Version or Tapline13Version or Tapline12Version or Tapline11Version or Tapline10Version or Tapline9Version or Tapline8Version or Tapline6Version or Tapline5Version or Tapline4Version or Tapline3Version or OrdersV2Version or TaplineV1Version or ClaimableCoreVersion
                 or LooseCoreMemoryVersion
                 or StableCarrierVersion
                 or TrafficDetourVersion
@@ -585,7 +599,9 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                     "stockBuildInputHash",
                     version switch
                     {
-                        Version => Broadloom2TacticalBuildInputHash,
+                        Version => Broadloom3TacticalBuildInputHash,
+                        Broadloom2Version =>
+                            Broadloom2TacticalBuildInputHash,
                         BroadloomInitialVersion =>
                             Broadloom1TacticalBuildInputHash,
                         CompleteObservationVersion =>
@@ -641,19 +657,24 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
             writer.WriteBoolean(
                 "canonicalGameplayUnchangedFromVersion1",
                 canonicalGameplayUnchangedFromVersion1);
-            if (version is Version or BroadloomInitialVersion)
+            if (version is Version or Broadloom2Version or BroadloomInitialVersion)
             {
                 writer.WriteBoolean(
-                    version == Version
-                        ? "ownerApprovedBroadloom2"
-                        : "ownerApprovedBroadloom1",
+                    version switch
+                    {
+                        Version => "ownerApprovedBroadloom3",
+                        Broadloom2Version => "ownerApprovedBroadloom2",
+                        _ => "ownerApprovedBroadloom1",
+                    },
                     true);
-                writer.WriteBoolean("newImmutableMapIdentity", true);
+                writer.WriteBoolean(
+                    "newImmutableMapIdentity",
+                    version != Version);
                 writer.WriteBoolean("holisticWholeMapCandidate", true);
                 writer.WriteNumber("mapWidth", 37);
                 writer.WriteNumber("mapHeight", 27);
                 writer.WriteBoolean("neutralVeterancyWorkshops", true);
-                if (version == Version)
+                if (version is Version or Broadloom2Version)
                 {
                     writer.WriteNumber(
                         "veterancyDeathRetentionPercent", 50);
@@ -667,7 +688,9 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 writer.WriteNumber("workshopUnlockTick", 25);
                 writer.WriteNumber("workshopChannelTicks", 15);
                 writer.WriteNumber("workshopXpAward", 1);
-                writer.WriteNumber("workshopDormancyTicks", 45);
+                writer.WriteNumber(
+                    "workshopDormancyTicks",
+                    AssertWorkshopRules(representative).DormancyTicks);
                 writer.WriteBoolean("workshopPublicNeutralSignal", true);
                 writer.WriteBoolean("trainAtWorkshopTactics", true);
                 writer.WriteNumber("baseVisionRange", 5);
@@ -699,9 +722,12 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
                 writer.WriteBoolean("temperedBroadloomTacticsStock", true);
                 writer.WriteBoolean("reactiveImpactFacing", true);
                 writer.WriteBoolean(
-                    version == Version
-                        ? "broadloom2TacticalArtifact"
-                        : "broadloom1TacticalArtifact",
+                    version switch
+                    {
+                        Version => "broadloom3TacticalArtifact",
+                        Broadloom2Version => "broadloom2TacticalArtifact",
+                        _ => "broadloom1TacticalArtifact",
+                    },
                     true);
                 writer.WriteBoolean("ordersV2DirectExecutor", true);
                 writer.WriteBoolean("exactRoleClasses", true);
@@ -1656,6 +1682,13 @@ public sealed class ArcRelayEntrantPlaylistDefinition : IHostedGenericMatchDefin
 
     private static string Sha256(string value) =>
         Convert.ToHexStringLower(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+    private static ArcRelayVeterancyWorkshopRules AssertWorkshopRules(
+        ActorResolvedMatchDefinition definition) =>
+        ((ArcRelayGameModeDefinition)definition.Rules.GameMode)
+            .VeterancyWorkshops
+        ?? throw new InvalidOperationException(
+            "Broadloom playlist definition requires Workshop rules.");
 
     private static string WriteJson(Action<Utf8JsonWriter> write)
     {

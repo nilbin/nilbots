@@ -32,15 +32,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         JsonElement document = receipt.RootElement;
 
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Broadloom2TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalArtifactHash,
             document.GetProperty("artifactSha256").GetString());
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Broadloom2TacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalBuildInputHash,
             document.GetProperty("buildInputSha256").GetString());
     }
 
     [Fact]
-    public void Entrant_v34_promotes_broadloom_while_v2_through_v33_remain_resolvable_history()
+    public void Entrant_v35_removes_workshop_dormancy_while_v2_through_v34_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -108,22 +108,24 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV32();
         ArcRelayEntrantPlaylistDefinition broadloomV33 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33();
+        ArcRelayEntrantPlaylistDefinition broadloomV34 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV34();
 
-        Assert.Equal(34, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Broadloom2.MapId, current.Match.Map.Id);
+        Assert.Equal(35, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Broadloom3.MapId, current.Match.Map.Id);
         Assert.Equal("arc-relay-broadloom-01", current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Broadloom2.RulesetId,
+            ArcRelayLoopProfile.Broadloom3.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Broadloom2TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalArtifactHash,
             current.CanonicalDefinition);
         Assert.Contains("arc-relay-orders-v2", current.CanonicalDefinition);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockSheetId,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Broadloom2TacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalBuildInputHash,
             current.CanonicalDefinition);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockPlaybookSourceHash,
@@ -131,8 +133,8 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedBroadloom2", current.Provenance);
-        Assert.Contains("\"newImmutableMapIdentity\":true", current.Provenance);
+        Assert.Contains("ownerApprovedBroadloom3", current.Provenance);
+        Assert.Contains("\"newImmutableMapIdentity\":false", current.Provenance);
         Assert.Contains("\"mapWidth\":37", current.Provenance);
         Assert.Contains("\"mapHeight\":27", current.Provenance);
         Assert.Contains(
@@ -140,7 +142,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("\"workshopUnlockTick\":25", current.Provenance);
         Assert.Contains("\"workshopChannelTicks\":15", current.Provenance);
         Assert.Contains("\"workshopXpAward\":1", current.Provenance);
-        Assert.Contains("\"workshopDormancyTicks\":45", current.Provenance);
+        Assert.Contains("\"workshopDormancyTicks\":0", current.Provenance);
         Assert.Contains(
             "\"workshopPublicNeutralSignal\":true", current.Provenance);
         Assert.Contains("\"trainAtWorkshopTactics\":true", current.Provenance);
@@ -156,7 +158,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("delayedCentreOpening", current.Provenance);
         Assert.Contains("broadloomNativeMapPlansOnly", current.Provenance);
         Assert.Contains("temperedBroadloomTacticsStock", current.Provenance);
-        Assert.Contains("broadloom2TacticalArtifact", current.Provenance);
+        Assert.Contains("broadloom3TacticalArtifact", current.Provenance);
         Assert.Contains(
             "completeTacticalObservationProjection", current.Provenance);
         Assert.Contains("teamRelativeCoreCharge", current.Provenance);
@@ -174,6 +176,17 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.DoesNotContain("ownerApprovedTapline14", current.Provenance);
         Assert.DoesNotContain("frozenTemperedStandardStock", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(34, broadloomV34.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Broadloom2.RulesetId,
+            broadloomV34.Match.Rules.RulesetId);
+        Assert.Contains("ownerApprovedBroadloom2", broadloomV34.Provenance);
+        Assert.Contains(
+            "\"workshopDormancyTicks\":45",
+            broadloomV34.Provenance);
+        Assert.Equal(
+            "f7a1416289596dbc25555f78f4f13c208f880238e61ab8dd32ccce4fd28550ce",
+            broadloomV34.DefinitionFingerprint);
         Assert.Equal(33, broadloomV33.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.Broadloom1.MapId,

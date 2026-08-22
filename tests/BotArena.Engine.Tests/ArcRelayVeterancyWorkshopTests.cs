@@ -6,9 +6,9 @@ namespace BotArena.Engine.Tests;
 /// The neutral veterancy Workshop contract, driven at the mode seam so no
 /// mind can hide a timing bug: the tick-25 unlock boundary, the 15 exact
 /// qualifying ticks, the single XP grant through the ordinary ladder, the
-/// 45-tick global dormancy, per-Workshop independence, every reset cause,
-/// identity hygiene across lives and teams, and the profile gating that
-/// keeps historical rules bytes untouched.
+/// historical 45-tick dormancy, current repeatable channels, per-Workshop
+/// independence, every reset cause, identity hygiene across lives and teams,
+/// and the profile gating that keeps historical rules bytes untouched.
 /// </summary>
 public sealed class ArcRelayVeterancyWorkshopTests
 {
@@ -62,6 +62,31 @@ public sealed class ArcRelayVeterancyWorkshopTests
             southContest,
             northContest.Select(Rotate).ToImmutableHashSet());
         Assert.Contains(NorthTile, northContest);
+    }
+
+    [Fact]
+    public void Broadloom3RemovesDormancyWithoutRewritingBroadloom2()
+    {
+        ArcRelayVeterancyWorkshopRules historical = Assert.IsType<
+            ArcRelayVeterancyWorkshopRules>(Assert.IsType<
+                ArcRelayGameModeDefinition>(ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.Broadloom2)
+                    .Rules.GameMode).VeterancyWorkshops);
+        ArcRelayVeterancyWorkshopRules current = Assert.IsType<
+            ArcRelayVeterancyWorkshopRules>(Assert.IsType<
+                ArcRelayGameModeDefinition>(ArcRelayH0Definition.Create(
+                    loopProfile: ArcRelayLoopProfile.Broadloom3)
+                    .Rules.GameMode).VeterancyWorkshops);
+
+        Assert.Equal(DormancyTicks, historical.DormancyTicks);
+        Assert.Equal(0, current.DormancyTicks);
+        Assert.Equal("arc-relay-broadloom-3",
+            ArcRelayLoopProfile.Broadloom3.RulesetId);
+        Assert.NotEqual(
+            ActorContractFingerprint.ComputeRules(ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Broadloom2).Rules),
+            ActorContractFingerprint.ComputeRules(ArcRelayH0Definition.Create(
+                loopProfile: ArcRelayLoopProfile.Broadloom3).Rules));
     }
 
     [Fact]
@@ -188,6 +213,45 @@ public sealed class ArcRelayVeterancyWorkshopTests
             Tick(driver, tick, Life(trainee, NorthTile));
         }
         Assert.Equal(2, driver.VeterancyLevel(trainee));
+    }
+
+    [Fact]
+    public void ZeroDormancyCompletesEightBackToBackChannelsIn120Ticks()
+    {
+        ArcRelayActorMatchModeDriver driver = Driver(
+            ArcRelayLoopProfile.Broadloom3);
+        ActorIdentity trainee = ActorIdentity.FromTeamUnitLife(0, 3, 0);
+        var completionTicks = new List<int>();
+
+        for (int tick = UnlockTick;
+             tick < UnlockTick + ChannelTicks * 8;
+             tick++)
+        {
+            GenericActorModeTickResult step = Tick(
+                driver, tick, Life(trainee, NorthTile));
+            ArcRelayEvent.WorkshopTrainingCompleted? completion = Facts(step)
+                .OfType<ArcRelayEvent.WorkshopTrainingCompleted>()
+                .SingleOrDefault();
+            if (completion is not null)
+            {
+                completionTicks.Add(tick);
+                Assert.Equal(tick + 1, completion.ReadyAgainTick);
+            }
+        }
+
+        Assert.Equal(
+            Enumerable.Range(1, 8)
+                .Select(session => UnlockTick + ChannelTicks * session - 1),
+            completionTicks);
+        Assert.Equal(5, driver.VeterancyLevel(trainee));
+        GenericActorModeTickResult capped = Tick(
+            driver,
+            UnlockTick + ChannelTicks * 8,
+            Life(trainee, NorthTile));
+        Assert.Empty(Facts(capped).OfType<ArcRelayEvent.LeveledUp>());
+        Assert.Equal(
+            ArcRelayVeterancyWorkshopPhase.Ready,
+            Workshop(driver, "north").Phase);
     }
 
     [Fact]
@@ -411,9 +475,10 @@ public sealed class ArcRelayVeterancyWorkshopTests
             World(lives),
             new GenericActorModeTickInput(tick, [], []));
 
-    private static ArcRelayActorMatchModeDriver Driver() => new(
+    private static ArcRelayActorMatchModeDriver Driver(
+        ArcRelayLoopProfile? profile = null) => new(
         ArcRelayH0Definition.Create(
-            loopProfile: ArcRelayLoopProfile.Broadloom1),
+            loopProfile: profile ?? ArcRelayLoopProfile.Broadloom1),
         matchSeed: 20_260_822UL);
 
     private static ArcRelayVeterancyWorkshopState Workshop(

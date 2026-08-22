@@ -8,7 +8,7 @@ namespace BotArena.App.Competition;
 
 /// <summary>
 /// Seeds the current immutable entrant lane. Each promoted rules profile starts
-/// a fresh rating book when public gameplay changes; immutable v8-v33 ladders
+/// a fresh rating book when public gameplay changes; immutable v8-v34 ladders
 /// remain readable.
 /// </summary>
 public sealed class ArcRelayEntrantPlaylistSeeder(
@@ -340,6 +340,17 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         {
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33()
                 .Validate(playlist, tapline15Version);
+        }
+        PlaylistVersion? broadloom2Version =
+            await db.PlaylistVersions.SingleOrDefaultAsync(value =>
+                value.PlaylistId == playlist.Id &&
+                value.Version == ArcRelayEntrantPlaylistDefinition
+                    .Broadloom2Version,
+                cancellationToken);
+        if (broadloom2Version is not null)
+        {
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV34()
+                .Validate(playlist, broadloom2Version);
         }
         PlaylistVersion? recoveryVersion = await db.PlaylistVersions
             .SingleOrDefaultAsync(value => value.PlaylistId == playlist.Id &&
