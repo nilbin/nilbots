@@ -22,6 +22,14 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
     public const string UnpublishedMistakenTapline9DefinitionFingerprint =
         "75c909ff904d8c985559f868968644380316929c16b56dfe0d582d6113cd5e6b";
 
+    // A concurrent development session seeded an unpublished Tapline-15
+    // experiment as v33 into a shared local database while Broadloom was the
+    // owner-ordered v33 promotion. This exact fingerprint is that unpublished
+    // claim and is the only persisted v33 definition the seeder may repair in
+    // place; the Tapline-15 arm renumbers when it lands.
+    public const string UnpublishedConcurrentTapline15DefinitionFingerprint =
+        "8fd91114083d921570760fd22f743962639101eb4809bd1c5854de7c67c35348";
+
     public async Task<ArcRelayEntrantSeedResult> SeedAsync(
         CancellationToken cancellationToken = default)
     {
@@ -351,6 +359,17 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
             value => value.PlaylistId == playlist.Id &&
                 value.Version == ArcRelayEntrantPlaylistDefinition.Version,
             cancellationToken);
+        if (version is not null && string.Equals(
+                version.DefinitionFingerprint,
+                UnpublishedConcurrentTapline15DefinitionFingerprint,
+                StringComparison.Ordinal))
+        {
+            await RepairUnpublishedCurrentAsync(
+                version,
+                expected,
+                UnpublishedConcurrentTapline15DefinitionFingerprint,
+                cancellationToken);
+        }
         if (version is null)
         {
             version = new PlaylistVersion
@@ -519,6 +538,17 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         PlaylistVersion version,
         ArcRelayEntrantPlaylistDefinition expected,
         CancellationToken cancellationToken)
+        => await RepairUnpublishedCurrentAsync(
+            version,
+            expected,
+            UnpublishedMistakenTapline9DefinitionFingerprint,
+            cancellationToken);
+
+    private async Task RepairUnpublishedCurrentAsync(
+        PlaylistVersion version,
+        ArcRelayEntrantPlaylistDefinition expected,
+        string repairableFingerprint,
+        CancellationToken cancellationToken)
     {
         bool hasMatchHistory = await db.Matches.AnyAsync(
                 value => value.PlaylistVersionId == version.Id,
@@ -529,7 +559,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
         if (hasMatchHistory)
         {
             throw new InvalidOperationException(
-                "The unpublished mistaken Arc Relay v26 definition has "
+                "The unpublished Arc Relay playlist definition has "
                 + "match history and cannot be corrected in place.");
         }
 
@@ -559,7 +589,7 @@ public sealed class ArcRelayEntrantPlaylistSeeder(
                     "Provenance" = CAST({expected.Provenance} AS jsonb),
                     "Visibility" = {ArcRelayEntrantPlaylistDefinition.Visibility}
                 WHERE "Id" = {version.Id}
-                  AND "DefinitionFingerprint" = {UnpublishedMistakenTapline9DefinitionFingerprint};
+                  AND "DefinitionFingerprint" = {repairableFingerprint};
                 """, cancellationToken);
         }
         finally
