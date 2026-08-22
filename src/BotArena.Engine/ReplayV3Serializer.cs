@@ -3523,12 +3523,13 @@ internal static class ReplayV3Serializer
                 })
                 .ToImmutableArray();
             var optionalParameters = ImmutableArray.CreateBuilder<string>();
-            // Windup attacks admit a heading-only suppressive declaration:
-            // UnitTarget is a lock, not a required aiming argument. Runtime
-            // admission and chronology already enforce that rule; replay-v3
-            // must validate the same legal partial payload instead of
-            // requiring either every argument or none.
-            if (string.Equals(kind, "attack", StringComparison.Ordinal)
+            // Windup attacks and strike signatures admit a heading-only
+            // suppressive declaration: UnitTarget is a lock, not a required
+            // aiming argument. Runtime admission and chronology already
+            // enforce that rule; replay-v3 must validate the same legal
+            // partial payload instead of requiring either every argument or
+            // none.
+            if (kind is "attack" or "signature"
                 && parameters.Contains("unit-target", StringComparer.Ordinal)
                 && parameters.Contains(
                     "projectile-heading", StringComparer.Ordinal))

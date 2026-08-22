@@ -141,7 +141,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
         // compiled identity.
         JsonObject rework = JsonNode.Parse(
             catalog.StarterSheets[0].TacticsJson)!.AsObject();
-        rework["tactics"]![1]!["finish"]!["maxAttempt"] = "long";
+        rework["tactics"]![1]!["phases"]![0]!["jobs"]!["holders"]!
+            ["posture"] = "aggressive";
         HttpResponseMessage reworkUpdate = await client.PutAsJsonAsync(
             $"/api/sheets/{sheets[0].Id}",
             new SaveTacticalSheetRequest(

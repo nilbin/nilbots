@@ -32,12 +32,10 @@ public sealed class ArcRelayPlaylistDefinitionTests
         JsonElement document = receipt.RootElement;
 
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition
-                .CompleteObservationTacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom1TacticalArtifactHash,
             document.GetProperty("artifactSha256").GetString());
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition
-                .CompleteObservationTacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom1TacticalBuildInputHash,
             document.GetProperty("buildInputSha256").GetString());
     }
 

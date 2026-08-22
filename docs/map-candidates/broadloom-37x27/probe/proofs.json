@@ -2715,9 +2715,9 @@
   "sheet0": "feint-raid",
   "sheet1": "workshop-guard",
   "seed": 7102,
-  "endTick": 599,
-  "completionReason": "max-ticks",
-  "winnerTeamId": 1,
+  "endTick": 506,
+  "completionReason": "reactor-destroyed",
+  "winnerTeamId": 0,
   "workshopEvents": [
    {
     "tick": 25,
@@ -2884,28 +2884,6 @@
     "tick": 485,
     "kind": "workshop-ready",
     "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 575,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 586,
-    "kind": "workshop-training-interrupted",
-    "workshopId": "north",
-    "teamId": 0,
-    "reason": "contested",
-    "progressLost": 11,
     "trainingTile": {
      "x": 18,
      "y": 4
@@ -3082,7 +3060,7 @@
     }
    },
    {
-    "tick": 479,
+    "tick": 494,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 0,
@@ -3092,75 +3070,33 @@
     "level": 2,
     "position": {
      "x": 20,
-     "y": 6
-    }
-   },
-   {
-    "tick": 489,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 6,
-     "lifeId": 6
-    },
-    "level": 2,
-    "position": {
-     "x": 18,
-     "y": 1
-    }
-   },
-   {
-    "tick": 528,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 6,
-     "lifeId": 6
-    },
-    "level": 3,
-    "position": {
-     "x": 19,
      "y": 7
     }
    },
    {
-    "tick": 531,
+    "tick": 495,
     "kind": "leveled-up",
     "actorId": {
-     "teamId": 0,
-     "unitId": 1,
-     "lifeId": 3
+     "teamId": 1,
+     "unitId": 7,
+     "lifeId": 5
     },
     "level": 2,
     "position": {
      "x": 19,
-     "y": 5
-    }
-   },
-   {
-    "tick": 581,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 1,
-     "lifeId": 3
-    },
-    "level": 3,
-    "position": {
-     "x": 22,
-     "y": 11
+     "y": 6
     }
    }
   ],
   "banks": {
-   "0:enemy": 1,
+   "0:enemy": 2,
    "0:own": 1,
    "1:centre": 2,
-   "1:own": 4
+   "1:own": 3
   },
   "destructions": {
-   "0": 20,
-   "1": 19
+   "0": 16,
+   "1": 15
   },
   "matchDir": "feint-raid-vs-workshop-guard-s7102"
  },
@@ -3739,7 +3675,7 @@
   "sheet0": "counter-demolition",
   "sheet1": "demolition",
   "seed": 7101,
-  "endTick": 337,
+  "endTick": 344,
   "completionReason": "reactor-destroyed",
   "winnerTeamId": 1,
   "workshopEvents": [
@@ -3950,6 +3886,23 @@
      "x": 18,
      "y": 4
     }
+   },
+   {
+    "tick": 340,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 0,
+    "traineeActorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "xpAward": 1,
+    "readyAgainTick": 386,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
    }
   ],
   "levelUps": [
@@ -4008,6 +3961,20 @@
      "x": 19,
      "y": 10
     }
+   },
+   {
+    "tick": 340,
+    "kind": "leveled-up",
+    "actorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "level": 4,
+    "position": {
+     "x": 18,
+     "y": 4
+    }
    }
   ],
   "banks": {
@@ -4017,7 +3984,7 @@
    "1:own": 1
   },
   "destructions": {
-   "0": 6
+   "0": 7
   },
   "matchDir": "counter-demolition-vs-demolition-s7101"
  },
@@ -4026,7 +3993,7 @@
   "sheet0": "counter-demolition",
   "sheet1": "demolition",
   "seed": 7102,
-  "endTick": 366,
+  "endTick": 296,
   "completionReason": "reactor-destroyed",
   "winnerTeamId": 0,
   "workshopEvents": [
@@ -4131,29 +4098,7 @@
     }
    },
    {
-    "tick": 148,
-    "kind": "workshop-training-interrupted",
-    "workshopId": "north",
-    "teamId": 0,
-    "reason": "acquired-core",
-    "progressLost": 2,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 152,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 166,
+    "tick": 160,
     "kind": "workshop-training-completed",
     "workshopId": "north",
     "teamId": 0,
@@ -4163,14 +4108,14 @@
      "lifeId": 0
     },
     "xpAward": 1,
-    "readyAgainTick": 212,
+    "readyAgainTick": 206,
     "trainingTile": {
      "x": 18,
      "y": 4
     }
    },
    {
-    "tick": 212,
+    "tick": 206,
     "kind": "workshop-ready",
     "workshopId": "north",
     "trainingTile": {
@@ -4179,7 +4124,7 @@
     }
    },
    {
-    "tick": 212,
+    "tick": 206,
     "kind": "workshop-training-started",
     "workshopId": "north",
     "teamId": 0,
@@ -4189,7 +4134,7 @@
     }
    },
    {
-    "tick": 226,
+    "tick": 220,
     "kind": "workshop-training-completed",
     "workshopId": "north",
     "teamId": 0,
@@ -4199,14 +4144,14 @@
      "lifeId": 0
     },
     "xpAward": 1,
-    "readyAgainTick": 272,
+    "readyAgainTick": 266,
     "trainingTile": {
      "x": 18,
      "y": 4
     }
    },
    {
-    "tick": 272,
+    "tick": 266,
     "kind": "workshop-ready",
     "workshopId": "north",
     "trainingTile": {
@@ -4215,7 +4160,7 @@
     }
    },
    {
-    "tick": 272,
+    "tick": 266,
     "kind": "workshop-training-started",
     "workshopId": "north",
     "teamId": 0,
@@ -4225,7 +4170,7 @@
     }
    },
    {
-    "tick": 286,
+    "tick": 280,
     "kind": "workshop-training-completed",
     "workshopId": "north",
     "teamId": 0,
@@ -4235,43 +4180,7 @@
      "lifeId": 0
     },
     "xpAward": 1,
-    "readyAgainTick": 332,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 332,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 332,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 346,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 392,
+    "readyAgainTick": 326,
     "trainingTile": {
      "x": 18,
      "y": 4
@@ -4294,7 +4203,7 @@
     }
    },
    {
-    "tick": 114,
+    "tick": 190,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 1,
@@ -4303,26 +4212,12 @@
     },
     "level": 2,
     "position": {
-     "x": 18,
-     "y": 11
+     "x": 19,
+     "y": 10
     }
    },
    {
-    "tick": 213,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 0,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 15,
-     "y": 12
-    }
-   },
-   {
-    "tick": 226,
+    "tick": 220,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 0,
@@ -4334,23 +4229,257 @@
      "x": 18,
      "y": 4
     }
-   },
+   }
+  ],
+  "banks": {
+   "0:enemy": 2,
+   "0:own": 4,
+   "1:centre": 3
+  },
+  "destructions": {
+   "0": 6,
+   "1": 1
+  },
+  "matchDir": "counter-demolition-vs-demolition-s7102"
+ },
+ {
+  "scenario": "counter-demolition",
+  "sheet0": "counter-demolition",
+  "sheet1": "demolition",
+  "seed": 7103,
+  "endTick": 366,
+  "completionReason": "reactor-destroyed",
+  "winnerTeamId": 1,
+  "workshopEvents": [
    {
-    "tick": 227,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 0,
-     "lifeId": 1
-    },
-    "level": 3,
-    "position": {
-     "x": 20,
-     "y": 14
+    "tick": 25,
+    "kind": "workshop-ready",
+    "workshopId": "north",
+    "trainingTile": {
+     "x": 18,
+     "y": 4
     }
    },
    {
-    "tick": 293,
+    "tick": 25,
+    "kind": "workshop-ready",
+    "workshopId": "south",
+    "trainingTile": {
+     "x": 18,
+     "y": 22
+    }
+   },
+   {
+    "tick": 26,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 0,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 40,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 0,
+    "traineeActorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "xpAward": 1,
+    "readyAgainTick": 86,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 86,
+    "kind": "workshop-ready",
+    "workshopId": "north",
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 86,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 0,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 100,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 0,
+    "traineeActorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "xpAward": 1,
+    "readyAgainTick": 146,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 146,
+    "kind": "workshop-ready",
+    "workshopId": "north",
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 146,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 0,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 147,
+    "kind": "workshop-training-interrupted",
+    "workshopId": "north",
+    "teamId": 0,
+    "reason": "contested",
+    "progressLost": 1,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 206,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 0,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 220,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 0,
+    "traineeActorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 1
+    },
+    "xpAward": 1,
+    "readyAgainTick": 266,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 266,
+    "kind": "workshop-ready",
+    "workshopId": "north",
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 266,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 0,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 280,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 0,
+    "traineeActorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 1
+    },
+    "xpAward": 1,
+    "readyAgainTick": 326,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 326,
+    "kind": "workshop-ready",
+    "workshopId": "north",
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 326,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 0,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 340,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 0,
+    "traineeActorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 1
+    },
+    "xpAward": 1,
+    "readyAgainTick": 386,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   }
+  ],
+  "levelUps": [
+   {
+    "tick": 100,
+    "kind": "leveled-up",
+    "actorId": {
+     "teamId": 0,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "level": 2,
+    "position": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 151,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 1,
@@ -4360,74 +4489,32 @@
     "level": 2,
     "position": {
      "x": 18,
-     "y": 11
+     "y": 4
     }
    },
    {
-    "tick": 298,
+    "tick": 280,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 0,
-     "unitId": 1,
-     "lifeId": 2
+     "unitId": 4,
+     "lifeId": 0
     },
     "level": 2,
     "position": {
-     "x": 19,
+     "x": 18,
      "y": 12
     }
    },
    {
-    "tick": 301,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 6,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 18,
-     "y": 11
-    }
-   },
-   {
-    "tick": 308,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 3,
-     "lifeId": 0
-    },
-    "level": 2,
-    "position": {
-     "x": 19,
-     "y": 14
-    }
-   },
-   {
-    "tick": 309,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 0,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 17,
-     "y": 11
-    }
-   },
-   {
-    "tick": 346,
+    "tick": 280,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 0,
      "unitId": 2,
-     "lifeId": 0
+     "lifeId": 1
     },
-    "level": 4,
+    "level": 2,
     "position": {
      "x": 18,
      "y": 4
@@ -4435,355 +4522,13 @@
    }
   ],
   "banks": {
-   "0:enemy": 1,
    "0:own": 5,
-   "1:centre": 3,
-   "1:own": 1
+   "1:centre": 4,
+   "1:own": 2
   },
   "destructions": {
-   "0": 7,
-   "1": 7
-  },
-  "matchDir": "counter-demolition-vs-demolition-s7102"
- },
- {
-  "scenario": "counter-demolition",
-  "sheet0": "counter-demolition",
-  "sheet1": "demolition",
-  "seed": 7103,
-  "endTick": 360,
-  "completionReason": "reactor-destroyed",
-  "winnerTeamId": 0,
-  "workshopEvents": [
-   {
-    "tick": 25,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 25,
-    "kind": "workshop-ready",
-    "workshopId": "south",
-    "trainingTile": {
-     "x": 18,
-     "y": 22
-    }
-   },
-   {
-    "tick": 26,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 40,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 86,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 86,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 86,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 100,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 146,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 146,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 146,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 148,
-    "kind": "workshop-training-interrupted",
-    "workshopId": "north",
-    "teamId": 0,
-    "reason": "acquired-core",
-    "progressLost": 2,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 152,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 166,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 212,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 212,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 212,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 226,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 272,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 272,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 272,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 286,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 332,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 332,
-    "kind": "workshop-ready",
-    "workshopId": "north",
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 332,
-    "kind": "workshop-training-started",
-    "workshopId": "north",
-    "teamId": 0,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 346,
-    "kind": "workshop-training-completed",
-    "workshopId": "north",
-    "teamId": 0,
-    "traineeActorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "xpAward": 1,
-    "readyAgainTick": 392,
-    "trainingTile": {
-     "x": 18,
-     "y": 4
-    }
-   }
-  ],
-  "levelUps": [
-   {
-    "tick": 100,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "level": 2,
-    "position": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 114,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 6,
-     "lifeId": 0
-    },
-    "level": 2,
-    "position": {
-     "x": 18,
-     "y": 11
-    }
-   },
-   {
-    "tick": 226,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "level": 3,
-    "position": {
-     "x": 18,
-     "y": 4
-    }
-   },
-   {
-    "tick": 287,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 2,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 21,
-     "y": 9
-    }
-   },
-   {
-    "tick": 346,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 2,
-     "lifeId": 0
-    },
-    "level": 4,
-    "position": {
-     "x": 18,
-     "y": 4
-    }
-   }
-  ],
-  "banks": {
-   "0:enemy": 1,
-   "0:own": 5,
-   "1:centre": 3,
-   "1:own": 1
-  },
-  "destructions": {
-   "0": 7,
-   "1": 1
+   "0": 6,
+   "1": 3
   },
   "matchDir": "counter-demolition-vs-demolition-s7103"
  },
@@ -4792,7 +4537,7 @@
   "sheet0": "demolition",
   "sheet1": "counter-demolition",
   "seed": 7101,
-  "endTick": 315,
+  "endTick": 348,
   "completionReason": "reactor-destroyed",
   "winnerTeamId": 0,
   "workshopEvents": [
@@ -4984,6 +4729,42 @@
      "x": 18,
      "y": 4
     }
+   },
+   {
+    "tick": 326,
+    "kind": "workshop-ready",
+    "workshopId": "north",
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 326,
+    "kind": "workshop-training-started",
+    "workshopId": "north",
+    "teamId": 1,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
+   },
+   {
+    "tick": 340,
+    "kind": "workshop-training-completed",
+    "workshopId": "north",
+    "teamId": 1,
+    "traineeActorId": {
+     "teamId": 1,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "xpAward": 1,
+    "readyAgainTick": 386,
+    "trainingTile": {
+     "x": 18,
+     "y": 4
+    }
    }
   ],
   "levelUps": [
@@ -5002,6 +4783,20 @@
     }
    },
    {
+    "tick": 200,
+    "kind": "leveled-up",
+    "actorId": {
+     "teamId": 0,
+     "unitId": 4,
+     "lifeId": 0
+    },
+    "level": 2,
+    "position": {
+     "x": 16,
+     "y": 17
+    }
+   },
+   {
     "tick": 220,
     "kind": "leveled-up",
     "actorId": {
@@ -5016,28 +4811,43 @@
     }
    },
    {
-    "tick": 258,
+    "tick": 294,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 0,
-     "unitId": 2,
+     "unitId": 6,
      "lifeId": 0
     },
     "level": 2,
     "position": {
-     "x": 19,
-     "y": 16
+     "x": 20,
+     "y": 13
+    }
+   },
+   {
+    "tick": 340,
+    "kind": "leveled-up",
+    "actorId": {
+     "teamId": 1,
+     "unitId": 2,
+     "lifeId": 0
+    },
+    "level": 4,
+    "position": {
+     "x": 18,
+     "y": 4
     }
    }
   ],
   "banks": {
-   "0:centre": 3,
-   "0:own": 3,
+   "0:centre": 4,
+   "0:own": 1,
+   "1:enemy": 1,
    "1:own": 4
   },
   "destructions": {
    "0": 1,
-   "1": 4
+   "1": 5
   },
   "matchDir": "demolition-vs-counter-demolition-s7101"
  },
@@ -5278,20 +5088,6 @@
   ],
   "levelUps": [
    {
-    "tick": 76,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 4,
-     "lifeId": 0
-    },
-    "level": 2,
-    "position": {
-     "x": 16,
-     "y": 14
-    }
-   },
-   {
     "tick": 100,
     "kind": "leveled-up",
     "actorId": {
@@ -5303,76 +5099,6 @@
     "position": {
      "x": 18,
      "y": 4
-    }
-   },
-   {
-    "tick": 146,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 1,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 17,
-     "y": 14
-    }
-   },
-   {
-    "tick": 152,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 0,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 18,
-     "y": 14
-    }
-   },
-   {
-    "tick": 155,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 0,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 17,
-     "y": 12
-    }
-   },
-   {
-    "tick": 163,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 4,
-     "lifeId": 0
-    },
-    "level": 2,
-    "position": {
-     "x": 17,
-     "y": 12
-    }
-   },
-   {
-    "tick": 173,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 5,
-     "lifeId": 0
-    },
-    "level": 2,
-    "position": {
-     "x": 18,
-     "y": 13
     }
    },
    {
@@ -5390,7 +5116,7 @@
     }
    },
    {
-    "tick": 255,
+    "tick": 290,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 0,
@@ -5399,8 +5125,8 @@
     },
     "level": 2,
     "position": {
-     "x": 19,
-     "y": 13
+     "x": 18,
+     "y": 16
     }
    },
    {
@@ -5416,31 +5142,17 @@
      "x": 18,
      "y": 4
     }
-   },
-   {
-    "tick": 356,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 3,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 20,
-     "y": 13
-    }
    }
   ],
   "banks": {
    "0:centre": 3,
-   "0:own": 1,
+   "0:own": 2,
    "1:enemy": 1,
    "1:own": 5
   },
   "destructions": {
-   "0": 9,
-   "1": 12
+   "0": 3,
+   "1": 6
   },
   "matchDir": "demolition-vs-counter-demolition-s7102"
  },
@@ -5737,42 +5449,14 @@
     }
    },
    {
-    "tick": 264,
+    "tick": 326,
     "kind": "leveled-up",
     "actorId": {
      "teamId": 1,
      "unitId": 5,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 17,
-     "y": 15
-    }
-   },
-   {
-    "tick": 265,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 0,
-     "unitId": 7,
-     "lifeId": 1
-    },
-    "level": 2,
-    "position": {
-     "x": 19,
-     "y": 15
-    }
-   },
-   {
-    "tick": 340,
-    "kind": "leveled-up",
-    "actorId": {
-     "teamId": 1,
-     "unitId": 3,
      "lifeId": 0
     },
-    "level": 2,
+    "level": 3,
     "position": {
      "x": 21,
      "y": 14
@@ -5795,13 +5479,13 @@
   ],
   "banks": {
    "0:centre": 3,
-   "0:own": 1,
+   "0:own": 2,
    "1:enemy": 1,
    "1:own": 5
   },
   "destructions": {
-   "0": 7,
-   "1": 8
+   "0": 6,
+   "1": 5
   },
   "matchDir": "demolition-vs-counter-demolition-s7103"
  }

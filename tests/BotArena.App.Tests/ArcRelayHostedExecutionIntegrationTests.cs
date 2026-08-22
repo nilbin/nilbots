@@ -150,17 +150,17 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Tapline14.MapId, catalog.Map.Id);
-        Assert.Equal(31, catalog.Map.Width);
+        Assert.Equal(ArcRelayLoopProfile.Broadloom1.MapId, catalog.Map.Id);
+        Assert.Equal(37, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(2, catalog.StockOpponents.Count);
         Assert.Equal(
-            ["first-stand-v1", "mid-pincer-v1"],
+            ["first-stand-v2", "mid-pincer-v2"],
             catalog.StarterSheets.Select(value => value.Id));
         Assert.All(catalog.StarterSheets, starter =>
         {
             Assert.Equal(8, starter.Composition.Count);
-            Assert.Contains("arc-relay-tactics-v1", starter.TacticsJson);
+            Assert.Contains("arc-relay-tactics-v2", starter.TacticsJson);
         });
         Assert.Equal(16, catalog.Classes.Count);
         Assert.All(catalog.Classes, entry =>
@@ -191,8 +191,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         Assert.True(relay.SignatureAuthoring.AllowsRouteAheadRole);
         Assert.True(relay.SignatureAuthoring.AllowsFriendlyRole);
         TacticalStockSheetResponse stock = catalog.StockOpponents[0];
-        Assert.Equal("demolition-march-v1", stock.Id);
-        Assert.Equal("idle-field-v1", catalog.StockOpponents[1].Id);
+        Assert.Equal("demolition-march-v2", stock.Id);
+        Assert.Equal("idle-field-v2", catalog.StockOpponents[1].Id);
 
         TacticalSheetResponse first = await SaveAsync(
             client,
@@ -202,7 +202,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             catalog.StarterSheets[0].TacticsJson)!.AsObject();
         // Change a real executable value so distinct drafts get distinct
         // materializations and therefore distinct hashes.
-        counterPlan["tactics"]![1]!["finish"]!["maxAttempt"] = "long";
+        counterPlan["tactics"]![1]!["phases"]![0]!["jobs"]!["holders"]!
+            ["posture"] = "aggressive";
         TacticalSheetResponse second = await SaveAsync(
             client,
             "Counter line",
@@ -247,9 +248,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Tapline14.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Broadloom1.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Tapline14.RulesetId,
+                ArcRelayLoopProfile.Broadloom1.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -285,7 +286,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Tapline14.RulesetId,
+                ArcRelayLoopProfile.Broadloom1.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)
