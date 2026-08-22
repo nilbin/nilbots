@@ -301,7 +301,7 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `tapline-12`: the accepted mid-Well-ribs Tapline and
+            The default is `tapline-15`: the accepted mid-Well-ribs Tapline and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
@@ -319,8 +319,11 @@ static int CommandHelp(string command)
             tick cycle; every chassis uses the same combat-strafe facing rule.
             Palisade's 30-hull Prism Screen follows its position and facing for
             six ticks without body collision; hostile shots crossing the screen
-            damage it, while allies fire through it. Hosted v29 pins
-            `tapline-12`; v7 through v28 remain exact history, and all
+            damage it, while allies fire through it. Bots retain half their
+            accumulated veterancy XP on death (rounded down), and living
+            allies harmlessly stop allied shots; friendly deployments remain
+            transparent. Hosted v33 pins `tapline-15`; v7 through v32 remain
+            exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.
 

@@ -169,9 +169,14 @@ test('clearance and local fighting use truthful map-first language', () => {
 test('the phase map keeps adjacent bot positions visible as quiet context', () => {
   assert.match(editor, /Show every phase/);
   assert.match(editor, /showAdjacentPhases\s*\n/);
-  assert.match(canvas, /distance > \(showAdjacentPhases \? 1 : 0\)/);
   assert.match(canvas, /phaseIndex === focus\s*\? 1 : distance === 1 \? \.24 : \.12/);
   assert.match(canvas, /editable\(tactic\) && phaseIndex === focus/);
+  assert.match(canvas, /phasePaintOrder\(/,
+    'selected phase geometry must paint after its contextual neighbours');
+  assert.match(canvas, /phase\.custody[\s\S]*<PhasePostControls/,
+    'topmost Post controls follow every marker in the selected phase');
+  assert.match(canvas, /Position targets stay below every rotation grip/,
+    'an adjacent bot position cannot bury a facing grip');
 });
 
 test('engine vocabulary never reaches the player surface', () => {

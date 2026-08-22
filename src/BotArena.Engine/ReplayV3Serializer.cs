@@ -2019,6 +2019,17 @@ internal static class ReplayV3Serializer
                 writer.WritePropertyName("position");
                 WritePosition(writer, fact.Position);
                 break;
+            case ReplayV3.ArcRelayFact.VeterancyRetained fact:
+                writer.WritePropertyName("actorId");
+                WriteActorId(writer, fact.ActorId);
+                writer.WriteNumber("previousLevel", fact.PreviousLevel);
+                writer.WriteNumber("retainedLevel", fact.RetainedLevel);
+                writer.WriteNumber("retainedTotalXp", fact.RetainedTotalXp);
+                writer.WriteNumber(
+                    "retainedSpentPoints", fact.RetainedSpentPoints);
+                writer.WritePropertyName("position");
+                WritePosition(writer, fact.Position);
+                break;
             case ReplayV3.ArcRelayFact.ZoneHealed fact:
                 writer.WritePropertyName("actorId");
                 WriteActorId(writer, fact.ActorId);
@@ -7985,6 +7996,13 @@ internal static class ReplayV3Serializer
                 || value.Value < 2,
             ReplayV3.ArcRelayFact.LeveledUp value =>
                 value.Level < 2,
+            ReplayV3.ArcRelayFact.VeterancyRetained value =>
+                value.PreviousLevel < 1
+                || value.RetainedLevel < 1
+                || value.RetainedLevel > value.PreviousLevel
+                || value.RetainedTotalXp < 0
+                || value.RetainedSpentPoints < 0
+                || value.RetainedSpentPoints > value.RetainedLevel - 1,
             ReplayV3.ArcRelayFact.ZoneHealed value =>
                 value.Amount < 1 || value.NewHealth < 1,
             ReplayV3.ArcRelayFact.CorePickedUp value =>
@@ -8793,6 +8811,8 @@ internal static class ReplayV3Serializer
                         typeof(ReplayV3.ArcRelayFact.CoreRipened),
                     ["leveled-up"] =
                         typeof(ReplayV3.ArcRelayFact.LeveledUp),
+                    ["veterancy-retained"] =
+                        typeof(ReplayV3.ArcRelayFact.VeterancyRetained),
                     ["zone-healed"] =
                         typeof(ReplayV3.ArcRelayFact.ZoneHealed),
                     ["core-picked-up"] =

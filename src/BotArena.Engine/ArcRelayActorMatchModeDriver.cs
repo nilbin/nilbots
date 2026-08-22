@@ -15,13 +15,15 @@ internal sealed class ArcRelayActorMatchModeDriver
 
     private readonly ActorResolvedMatchDefinition _definition;
     private readonly ArcRelayGameModeDefinition _gameMode;
-    private readonly Dictionary<ActorIdentity, VeterancyState> _veterancy = [];
+    private readonly Dictionary<(int TeamId, int UnitId), VeterancyState>
+        _veterancy = [];
 
     internal ArcRelayGameModeDefinition GameMode => _gameMode;
 
     /// <summary>
-    /// One life's earned progression. Keyed by the full life identity, so
-    /// death resets it by construction: a respawn is a new life.
+    /// One stable squad slot's earned progression. Historical rules remove
+    /// the entry on death; retention rules reduce it and let the next life in
+    /// the same team-local slot inherit the remainder.
     /// </summary>
     private sealed class VeterancyState
     {
@@ -32,8 +34,12 @@ internal sealed class ArcRelayActorMatchModeDriver
         public int VisionPoints { get; set; }
         public int ReachPoints { get; set; }
         public int VitalityPoints { get; set; }
+        public List<string> InvestmentOrder { get; } = [];
         public int UnspentPoints => Level - 1 - SpentPoints;
     }
+
+    private static (int TeamId, int UnitId) VeterancyKey(
+        ActorIdentity actor) => (actor.TeamId, actor.UnitId);
     private readonly PublicMatchTopology _topology;
     private readonly ImmutableArray<WellRuntime> _wells;
     private readonly Dictionary<string, WellRuntime> _wellsById;
@@ -497,27 +503,45 @@ internal sealed class ArcRelayActorMatchModeDriver
                          .OrderBy(value => value.ActorId))
             {
                 int victimLevel = VeterancyLevel(destruction.ActorId);
-                _veterancy.Remove(destruction.ActorId);
+                var retention = ApplyDeathRetention(destruction.ActorId);
+                if (retention is { } retained)
+                {
+                    // Stable-slot rank is public strategic state, like the
+                    // respawn wave and reactor economy. Publishing the
+                    // retention result also lets a team plan during the dead
+                    // interval when no body remains to observe the death tile.
+                    events.Add(Public(
+                        new ArcRelayEvent.VeterancyRetained(
+                            destruction.ActorId,
+                            retained.PreviousLevel,
+                            retained.Level,
+                            retained.TotalXp,
+                            retained.SpentPoints,
+                            destruction.Position)));
+                }
                 if (destruction.SourceActorId is not { } killer
                     || killer.TeamId == destruction.ActorId.TeamId
                     || dying.Contains(killer))
                 {
                     continue;
                 }
-                if (!_veterancy.TryGetValue(killer, out VeterancyState? state))
-                    _veterancy[killer] = state = new VeterancyState();
+                (int TeamId, int UnitId) killerKey = VeterancyKey(killer);
+                if (!_veterancy.TryGetValue(killerKey, out VeterancyState? state))
+                    _veterancy[killerKey] = state = new VeterancyState();
                 // The bounty: a higher-level victim pays its level above 1
                 // on top of the base kill XP.
-                state.Xp += 1 + Math.Max(0, victimLevel - 1);
-                while (state.Level < _gameMode.VeterancyMaxLevel
-                       && state.Xp >= _gameMode.VeterancyXpPerLevel)
+                int oldLevel = state.Level;
+                int totalXp = Math.Min(
+                    MaximumVeterancyXp,
+                    TotalVeterancyXp(state)
+                        + 1 + Math.Max(0, victimLevel - 1));
+                SetTotalVeterancyXp(state, totalXp);
+                for (int level = oldLevel + 1; level <= state.Level; level++)
                 {
-                    state.Xp -= _gameMode.VeterancyXpPerLevel;
-                    state.Level++;
                     events.Add(Spatial(
                         new ArcRelayEvent.LeveledUp(
                             killer,
-                            state.Level,
+                            level,
                             destruction.Position),
                         destruction.Position));
                 }
@@ -783,11 +807,11 @@ internal sealed class ArcRelayActorMatchModeDriver
                     .ToImmutableArray()),
             ProjectState(),
             veterancyLevelByActor: _gameMode.VeteranCommand
-                ? _veterancy
-                    .Where(value => value.Value.Level > 1)
+                ? world.ActiveLives
+                    .Where(value => VeterancyLevel(value.ActorId) > 1)
                     .ToDictionary(
-                        value => value.Key,
-                        value => value.Value.Level)
+                        value => value.ActorId,
+                        value => VeterancyLevel(value.ActorId))
                 : null);
     }
 
@@ -800,7 +824,8 @@ internal sealed class ArcRelayActorMatchModeDriver
     public bool TryInvest(int tick, ActorIdentity actor, string trackId)
     {
         if (_gameMode.VeterancyXpPerLevel == 0
-            || !_veterancy.TryGetValue(actor, out VeterancyState? state)
+            || !_veterancy.TryGetValue(
+                VeterancyKey(actor), out VeterancyState? state)
             || state.UnspentPoints <= 0)
         {
             return false;
@@ -823,12 +848,14 @@ internal sealed class ArcRelayActorMatchModeDriver
                 return false;
         }
         state.SpentPoints++;
+        state.InvestmentOrder.Add(trackId);
         return true;
     }
 
     public GenericActorModeStatModifiers StatModifiersFor(ActorIdentity actor) =>
         _gameMode.VeterancyXpPerLevel > 0
-        && _veterancy.TryGetValue(actor, out VeterancyState? state)
+        && _veterancy.TryGetValue(
+            VeterancyKey(actor), out VeterancyState? state)
             ? new GenericActorModeStatModifiers(
                 state.ReachPoints,
                 state.VisionPoints,
@@ -837,16 +864,90 @@ internal sealed class ArcRelayActorMatchModeDriver
                     * _gameMode.VitalityHealthPerPoint))
             : GenericActorModeStatModifiers.None;
 
-    /// <summary>Skill points this life has put into damage.</summary>
+    /// <summary>Skill points this stable roster slot has put into damage.</summary>
     internal int VeterancyDamagePoints(ActorIdentity actor) =>
-        _veterancy.TryGetValue(actor, out VeterancyState? state)
+        _veterancy.TryGetValue(
+            VeterancyKey(actor), out VeterancyState? state)
             ? state.DamagePoints
             : 0;
 
     internal int VeterancyLevel(ActorIdentity actor) =>
-        _veterancy.TryGetValue(actor, out VeterancyState? state)
+        _veterancy.TryGetValue(
+            VeterancyKey(actor), out VeterancyState? state)
             ? state.Level
             : 1;
+
+    internal int VeterancyTotalXp(ActorIdentity actor) =>
+        _veterancy.TryGetValue(
+            VeterancyKey(actor), out VeterancyState? state)
+            ? TotalVeterancyXp(state)
+            : 0;
+
+    internal int VeterancySpentPoints(ActorIdentity actor) =>
+        _veterancy.TryGetValue(
+            VeterancyKey(actor), out VeterancyState? state)
+            ? state.SpentPoints
+            : 0;
+
+    private int MaximumVeterancyXp =>
+        (_gameMode.VeterancyMaxLevel - 1)
+            * _gameMode.VeterancyXpPerLevel;
+
+    private int TotalVeterancyXp(VeterancyState state) => Math.Min(
+        MaximumVeterancyXp,
+        (state.Level - 1) * _gameMode.VeterancyXpPerLevel + state.Xp);
+
+    private void SetTotalVeterancyXp(VeterancyState state, int totalXp)
+    {
+        totalXp = Math.Clamp(totalXp, 0, MaximumVeterancyXp);
+        state.Level = Math.Min(
+            _gameMode.VeterancyMaxLevel,
+            1 + totalXp / _gameMode.VeterancyXpPerLevel);
+        state.Xp = state.Level == _gameMode.VeterancyMaxLevel
+            ? 0
+            : totalXp % _gameMode.VeterancyXpPerLevel;
+        while (state.InvestmentOrder.Count > state.Level - 1)
+        {
+            string removed = state.InvestmentOrder[^1];
+            state.InvestmentOrder.RemoveAt(state.InvestmentOrder.Count - 1);
+            switch (removed)
+            {
+                case "damage": state.DamagePoints--; break;
+                case "vision": state.VisionPoints--; break;
+                case "reach": state.ReachPoints--; break;
+                case "vitality": state.VitalityPoints--; break;
+                default:
+                    throw new InvalidOperationException(
+                        $"Unknown veterancy investment '{removed}'.");
+            }
+        }
+        state.SpentPoints = state.InvestmentOrder.Count;
+    }
+
+    private (int PreviousLevel, int Level, int TotalXp, int SpentPoints)?
+        ApplyDeathRetention(ActorIdentity actor)
+    {
+        (int TeamId, int UnitId) key = VeterancyKey(actor);
+        if (!_veterancy.TryGetValue(key, out VeterancyState? state))
+            return null;
+        if (_gameMode.VeterancyDeathRetentionPercent == 0)
+        {
+            _veterancy.Remove(key);
+            return null;
+        }
+        int previousLevel = state.Level;
+        int retainedXp = TotalVeterancyXp(state)
+            * _gameMode.VeterancyDeathRetentionPercent / 100;
+        SetTotalVeterancyXp(state, retainedXp);
+        var result = (
+            PreviousLevel: previousLevel,
+            Level: state.Level,
+            TotalXp: retainedXp,
+            SpentPoints: state.SpentPoints);
+        if (retainedXp == 0 && state.SpentPoints == 0)
+            _veterancy.Remove(key);
+        return result;
+    }
 
     private void Birth(
         WellRuntime well,

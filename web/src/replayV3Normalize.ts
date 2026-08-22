@@ -469,6 +469,9 @@ function validateContract(
               ...(own(mode, 'veterancyXpPerLevel')
                 ? ['veterancyXpPerLevel', 'veterancyMaxLevel']
                 : []),
+              ...(own(mode, 'veterancyDeathRetentionPercent')
+                ? ['veterancyDeathRetentionPercent']
+                : []),
               ...(own(mode, 'seedPhasedResolutionOrder')
                 ? ['seedPhasedResolutionOrder']
                 : []),
@@ -1231,6 +1234,7 @@ function validateContract(
       'rearArcDamageMultiplier',
       'veterancyXpPerLevel',
       'veterancyMaxLevel',
+      'veterancyDeathRetentionPercent',
       'healZoneTicksPerHp',
       'veterancyDamagePerPoint',
       'veterancyDamageBonusCap',
@@ -1331,6 +1335,13 @@ function validateContract(
         (mode.veterancyMaxLevel as number) < 2)
     )
       fail(`${modePath}.veterancyXpPerLevel`, 'contains invalid veterancy tuning');
+    if (
+      own(mode, 'veterancyDeathRetentionPercent') &&
+      ((mode.veterancyDeathRetentionPercent as number) <= 0
+        || (mode.veterancyDeathRetentionPercent as number) > 100
+        || !own(mode, 'veterancyXpPerLevel'))
+    )
+      fail(`${modePath}.veterancyDeathRetentionPercent`, 'must be 1–100 and requires veterancy');
     if (
       own(mode, 'healZoneTicksPerHp') &&
       (mode.healZoneTicksPerHp as number) <= 0
@@ -9020,6 +9031,16 @@ function arcRelayFactFromV3(
         kind: fact.kind,
         actor: identity(fact.actorId),
         level: fact.level,
+        position: copyPosition(fact.position),
+      };
+    case 'veterancy-retained':
+      return {
+        kind: fact.kind,
+        actor: identity(fact.actorId),
+        previousLevel: fact.previousLevel,
+        retainedLevel: fact.retainedLevel,
+        retainedTotalXp: fact.retainedTotalXp,
+        retainedSpentPoints: fact.retainedSpentPoints,
         position: copyPosition(fact.position),
       };
     case 'zone-healed':

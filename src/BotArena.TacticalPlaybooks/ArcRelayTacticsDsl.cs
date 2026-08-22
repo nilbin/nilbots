@@ -70,7 +70,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         "groupsSet", "held", "healed", "contact", "enemiesAt", "coreLoose",
         "coreSoon", "enemiesDown", "kills", "killsWithin", "losses",
         "lossesWithin", "cleared", "notFighting", "coreAcquired", "coreBanked", "coreLost",
-        "reached", "observed",
+        "reached", "observed", "veterancy",
     ];
 
     private static readonly string[] TacticAbortRows =
@@ -1273,6 +1273,36 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(healedValue, at, ["percent"]);
             healed = Range(healedValue, "percent", at, 1, 100);
         }
+        ArcRelayTacticVeterancyRow? veterancy = null;
+        if (value.TryGetProperty("veterancy", out JsonElement veteranValue))
+        {
+            string at = $"{path}.veterancy";
+            Object(veteranValue, at, ["level", "slots", "count"]);
+            int[] slots = BoundedArray(
+                    veteranValue.GetProperty("slots"), $"{at}.slots", 1, 8)
+                .Select((slot, index) =>
+                {
+                    if (slot.ValueKind != JsonValueKind.Number
+                        || !slot.TryGetInt32(out int parsed))
+                    {
+                        throw Error($"{at}.slots[{index}]",
+                            "slot must be an integer.");
+                    }
+                    return parsed;
+                })
+                .ToArray();
+            if (slots.Any(slot => slot is < 0 or > 7)
+                || slots.Distinct().Count() != slots.Length)
+            {
+                throw Error($"{at}.slots",
+                    "choose unique stable squad slots from 0 through 7.");
+            }
+            int count = Range(veteranValue, "count", at, 1, slots.Length);
+            veterancy = new ArcRelayTacticVeterancyRow(
+                Range(veteranValue, "level", at, 2, 5),
+                slots,
+                count);
+        }
         ArcRelayTacticEnemiesAtRow? enemiesAt = null;
         if (value.TryGetProperty("enemiesAt", out JsonElement enemies))
         {
@@ -1397,7 +1427,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             enemiesAt, contact, coreLooseWell, coreSoon, enemiesDown,
             carrier, losses, lossesWithin, groupsSet, heldTicks, healed,
             kills, cleared, notFighting, coreAcquired, coreBanked, coreLost, reached,
-            observed, coreAcquiredWell, killsWithin);
+            observed, coreAcquiredWell, killsWithin, veterancy);
     }
 
     private static bool FlagRow(
@@ -1566,7 +1596,8 @@ internal sealed record ArcRelayTacticConditionRows(
     bool Reached,
     bool Observed,
     string? CoreAcquiredWell = null,
-    ArcRelayTacticLossesWithinRow? KillsWithin = null)
+    ArcRelayTacticLossesWithinRow? KillsWithin = null,
+    ArcRelayTacticVeterancyRow? Veterancy = null)
 {
     public int ActiveCount =>
         (EnemiesAt is null ? 0 : 1) + (Contact ? 1 : 0)
@@ -1579,8 +1610,14 @@ internal sealed record ArcRelayTacticConditionRows(
         + (NotFighting is null ? 0 : 1)
         + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
         + (Reached ? 1 : 0) + (Observed ? 1 : 0)
-        + (KillsWithin is null ? 0 : 1);
+        + (KillsWithin is null ? 0 : 1)
+        + (Veterancy is null ? 0 : 1);
 }
+
+internal sealed record ArcRelayTacticVeterancyRow(
+    int Level,
+    IReadOnlyList<int> Slots,
+    int Count);
 
 /// <summary>"We lost {count} bots within the last {ticks} ticks" — the
 /// remembered-casualty row for aborts and emergency starts.</summary>

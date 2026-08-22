@@ -9,8 +9,8 @@ namespace BotArena.Engine.Tests;
 /// does — a named target, a frozen 90° wedge, a lock that follows inside it,
 /// and the strike's cancels — and differ ONLY in what leaves the muzzle: the
 /// rail beam PIERCES its line, so ENEMY interposition shares it instead of
-/// stopping it. Its own team is transparent to it, like every other delivery
-/// on this ruleset (owner consistency ruling 2026-08-10).
+/// stopping it. Historical rules make its own team transparent; Tapline-15
+/// makes a living teammate end the beam harmlessly.
 /// <para>
 /// Tracking follows the same spotter rule as a gun strike: the lock lives
 /// while the shooter's TEAM sees it and a clear physical ray joins the two.
@@ -60,6 +60,23 @@ public sealed class ArcRelaySignatureLockTests
 
         Assert.Equal(allyBefore, arena.Body(matured, 0, 1).Health);
         Assert.Equal(3, arena.Body(matured, 1, 0).Health);
+    }
+
+    [Fact]
+    public void Tapline15TeammateEndsTheRailWithoutTakingDamage()
+    {
+        using Arena arena = Arena.Create(
+            Zero(Shooter, new Position(5, 4)),
+            One(new Position(8, 4)),
+            alliedProjectilesBlock: true);
+
+        GenericActorMatchStepResult declared =
+            arena.Step((0, 0, arena.Rail(ProjectileHeading.East, target: 0)));
+        int allyBefore = arena.Body(declared, 0, 1).Health;
+        GenericActorMatchStepResult matured = arena.Step();
+
+        Assert.Equal(allyBefore, arena.Body(matured, 0, 1).Health);
+        Assert.Equal(5, arena.Body(matured, 1, 0).Health);
     }
 
     [Fact]
@@ -322,8 +339,14 @@ public sealed class ArcRelaySignatureLockTests
             IReadOnlyList<Position> teamZero,
             IReadOnlyList<Position> teamOne,
             Position? pillar = null,
-            IReadOnlyList<string>? teamZeroClasses = null) =>
-            new(Definition(teamZero, teamOne, pillar, teamZeroClasses));
+            IReadOnlyList<string>? teamZeroClasses = null,
+            bool alliedProjectilesBlock = false) =>
+            new(Definition(
+                teamZero,
+                teamOne,
+                pillar,
+                teamZeroClasses,
+                alliedProjectilesBlock));
 
         /// <summary>
         /// A rail declared down <paramref name="heading"/>, naming a team-1
@@ -427,7 +450,8 @@ public sealed class ArcRelaySignatureLockTests
             IReadOnlyList<Position> teamZero,
             IReadOnlyList<Position> teamOne,
             Position? pillar,
-            IReadOnlyList<string>? teamZeroClasses)
+            IReadOnlyList<string>? teamZeroClasses,
+            bool alliedProjectilesBlock)
         {
             string[] classesZero = teamZeroClasses is null
                 ?
@@ -458,6 +482,40 @@ public sealed class ArcRelaySignatureLockTests
             ];
             ActorRulesDefinition rules = ArcRelayH0Definition.CreateRules(
                 ArcRelayLoopProfile.AmbushWarren11);
+            if (alliedProjectilesBlock)
+            {
+                ActorCollisionDefinition old = rules.Collisions;
+                rules = new ActorRulesDefinition(
+                    "arc-relay-signature-lock-allied-block-fixture",
+                    rules.Limits,
+                    rules.SeedMechanics,
+                    rules.GameMode,
+                    rules.Lifecycle,
+                    rules.Forms,
+                    rules.MovementProfiles,
+                    rules.VisionProfiles,
+                    rules.AttackProfiles,
+                    rules.Actions,
+                    rules.FabricationTransitions,
+                    rules.SameLifeTransitions,
+                    rules.ReplicationTransitions,
+                    rules.TeamPerception,
+                    new ActorCollisionDefinition(
+                        old.ActorsBlockWalls,
+                        old.ActorsBlockActors,
+                        old.SameDestinationMovesBlockAll,
+                        old.SwapMovesBlocked,
+                        old.FollowingVacatedActorAllowed,
+                        old.ProjectilesBlockMovement,
+                        old.MovingOntoProjectileCausesHit,
+                        old.WallsConsumeProjectiles,
+                        old.ProjectilesIgnoreFiringLife,
+                        old.ProjectilesStopOnFirstEnemyActor,
+                        old.ProjectilesCollideWithProjectiles,
+                        ActorCollisionDefinition.AlliedProjectileContactKind
+                            .BlockWithoutDamage),
+                    rules.TickResolution);
+            }
             var slots = ImmutableArray.CreateBuilder<PublicUnitSlot>();
             var lives = ImmutableArray.CreateBuilder<PublicInitialLife>();
             var spawns = ImmutableArray.CreateBuilder<InitialSpawnDefinition>();

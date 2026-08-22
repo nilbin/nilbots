@@ -1241,6 +1241,69 @@ test('the level-up transient starts on its exact fact and is gone after 1.8 tick
   );
 });
 
+test('retained veterancy seeds the next life in the same team-local slot', () => {
+  const replay = loadReplayJson(
+    readFileSync(
+      new URL('./fixtures/generic-mind-replay-v3.json', import.meta.url),
+      'utf8',
+    ),
+  ).replay;
+  assert.ok(replay.ticks.length >= 4);
+  const oldLife = replay.ticks[0]!.after.actors[0]!.identity;
+  const newLife = { ...oldLife, lifeId: oldLife.lifeId + 1 };
+  replay.ticks[1]!.actorTurns[0]!.actionResolution.validatedActionId = 'invest';
+  replay.ticks[1]!.actorTurns[0]!.actionResolution.result = 'success';
+  replay.ticks[1]!.actorTurns[0]!.actionResolution.validatedPayload = {
+    shotProgram: null,
+    direction: null,
+    launchHeading: null,
+    unitKey: null,
+    formTargetId: null,
+    positionTarget: null,
+    upgradeTrackId: 'vitality',
+  };
+  replay.ticks[2]!.events.push({
+    ...replay.ticks[2]!.events[0]!,
+    eventId: 'arc:veterancy-retained:test',
+    arcRelayFact: {
+      kind: 'veterancy-retained',
+      actor: oldLife,
+      previousLevel: 4,
+      retainedLevel: 2,
+      retainedTotalXp: 3,
+      retainedSpentPoints: 1,
+      position: { ...replay.ticks[2]!.after.actors[0]!.position },
+    },
+  });
+  replay.ticks[3]!.lifecycleEvents.push({
+    ...replay.ticks[3]!.events[0]!,
+    eventId: 'life-spawned:retained:test',
+    type: 'life-spawned',
+    sourceActor: newLife,
+    targetActor: null,
+    arcRelayFact: undefined,
+  });
+
+  const veterancy = buildArcVeterancy(replay);
+  assert.equal(
+    veterancy.levelAt(3, newLife.teamId, newLife.unitId, newLife.lifeId),
+    2,
+  );
+  assert.equal(
+    veterancy.vitalityPointsAt(
+      3,
+      newLife.teamId,
+      newLife.unitId,
+      newLife.lifeId,
+    ),
+    1,
+  );
+  assert.equal(
+    veterancy.levelUpAt(3, newLife.teamId, newLife.unitId, newLife.lifeId),
+    null,
+  );
+});
+
 test('a scaled vitality investment raises the inspected maximum without inventing health', () => {
   const replay = loadReplayJson(
     gunzipSync(readFileSync(new URL(

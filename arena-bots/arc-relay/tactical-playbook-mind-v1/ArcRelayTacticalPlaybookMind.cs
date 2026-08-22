@@ -23,9 +23,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     // (often bodies its vision cone cannot see), scoped to the order path so
     // a fresh order always presses anew. Cleared by any successful move.
     private readonly Dictionary<int, (string Path, int Ticks)> _wedgedPresses = [];
-    private readonly Dictionary<int, (ActorIdentity Actor, int Level)> _levels = [];
-    private readonly Dictionary<int, int> _pendingInvest = [];
-    private readonly Dictionary<int, (ActorIdentity Actor, int Spent)> _invested = [];
+    private readonly Dictionary<int, (ActorIdentity? Actor, int Level)> _levels = [];
+    private readonly Dictionary<int, (ActorIdentity? Actor, int Points)>
+        _pendingInvest = [];
+    private readonly Dictionary<int, (ActorIdentity? Actor, int Spent)> _invested = [];
     private readonly Dictionary<int, PendingOneShot> _pendingOneShots = [];
     private readonly Dictionary<int, PendingSoloToss> _pendingSoloTosses = [];
     private readonly Dictionary<ActorIdentity, int> _lastSignatureUseTick = [];
@@ -75,6 +76,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     private Position _enemyReactor;
     private Position[] _healTiles = [];
     private bool _mirrored;
+    private bool _retainsVeterancy;
     private int _teamId;
     private int _lastOwnCharge;
     private int _lastObjectiveProgressTick;
@@ -83,6 +85,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         _contract = start.Contract;
         _teamId = start.TeamId;
+        _retainsVeterancy = ArenaBasics.ArcRules(start.Contract)
+            ?.VeterancyDeathRetentionPercent > 0;
         _custodyLatch = new CustodyLatch(_teamId);
         _pendingSoloTosses.Clear();
         _evidence.Reset();
@@ -516,8 +520,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         break;
                     }
                     if (!needsWindupMargin
-                        && ArenaBasics.CanAimAtPosition(
-                            contract, body, targetPosition))
+                        && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
+                            contract, mind, body, targetPosition))
                     {
                         result.Add(Hold(
                             $"fight-position:{targetKey}",
@@ -1276,8 +1280,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                                          || value.Positions.Any(position =>
                                              package.Contains(
                                                  fight.Zone, position)))
-                                     && ArenaBasics.CanAimAtPosition(
-                                         contract, body, value.Positions[0]))
+                                     && ArenaBasics
+                                         .CanAimAtPositionWithClearFriendlyLine(
+                                             contract, mind, body,
+                                             value.Positions[0]))
                                  .OrderBy(value => ArenaBasics.StaticDistance(
                                          contract.Map,
                                          body.Position,
@@ -1454,7 +1460,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     allowCarrierRotation: true);
         }
         if (!needsWindupMargin
-            && ArenaBasics.CanAimAtPosition(contract, body, target))
+            && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
+                contract, mind, body, target))
             return true;
         if (targetActor is not null
             && fight.Style == "kite"
@@ -2089,6 +2096,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             StringComparer.Ordinal)
                         .First().Deployment);
         int damage = signature.Damage ?? 0;
+        HashSet<Position> alliedBodies = string.Equals(
+                contract.Rules.Collisions.AlliedProjectileContact,
+                "block-without-damage",
+                StringComparison.Ordinal)
+            ? ArenaBasics.Friendlies(mind)
+            : [];
+        alliedBodies.Remove(body.Position);
         var lanes = new List<(ResolvedTarget Target, int Value, int Hits,
             int CarrierValue, int Kills, ProjectileHeading Heading)>();
         foreach (ProjectileHeading heading in headings.AllowedValues)
@@ -2099,9 +2113,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             int deploymentIndex = Array.FindIndex(
                 ray, position => deployments.ContainsKey(position));
-            Position[] damaging = deploymentIndex < 0
-                ? ray
-                : ray[..(deploymentIndex + 1)];
+            int alliedIndex = Array.FindIndex(
+                ray, alliedBodies.Contains);
+            int effectiveDeploymentIndex = deploymentIndex >= 0
+                && (alliedIndex < 0 || deploymentIndex < alliedIndex)
+                    ? deploymentIndex
+                    : -1;
+            int damagingLength = ray.Length;
+            if (effectiveDeploymentIndex >= 0)
+                damagingLength = effectiveDeploymentIndex + 1;
+            if (alliedIndex >= 0)
+                damagingLength = Math.Min(damagingLength, alliedIndex);
+            Position[] damaging = ray[..damagingLength];
             HashSet<Position> tiles = damaging.ToHashSet();
             GenericActorContext.ObservedEnemyState[] struck = mind.Enemies
                 .Where(enemy => tiles.Contains(enemy.Position))
@@ -2113,9 +2136,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 : struck.Count(enemy => enemy.Health <= damage);
             int veterans = struck.Sum(enemy =>
                 Math.Max(0, enemy.VeterancyLevel - 1));
-            int constructValue = deploymentIndex < 0
+            int constructValue = effectiveDeploymentIndex < 0
                 ? 0
-                : 50 + (deployments[ray[deploymentIndex]].RemainingCapacity
+                : 50 + (deployments[ray[effectiveDeploymentIndex]]
+                        .RemainingCapacity
                         <= damage
                     ? 30
                     : 0);
@@ -2572,8 +2596,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         fight);
                 if (!targetExists
                     || !needsWindupMargin
-                        && ArenaBasics.CanAimAtPosition(
+                        && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
                             contract,
+                            mind,
                             proposal.Body,
                             proposal.Target.Position))
                 {
@@ -3330,7 +3355,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     ArenaBasics.CarriedCore(mind, body.ActorId) is not null))
             return;
         if (!needsWindupMargin
-            && ArenaBasics.CanAimAtPosition(contract, body, targetPosition))
+            && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
+                contract, mind, body, targetPosition))
         {
             // A Hold fighter owns its authored ground while the Fight leaf
             // remains selected. Cadence never hands its facing or tile back
@@ -3692,6 +3718,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 ? 1
                 : 0;
         }
+        if (fact == "friendly-veterans-in-roles")
+        {
+            HashSet<string> selected = (condition.Roles ?? [])
+                .ToHashSet(StringComparer.Ordinal);
+            int minimumLevel = condition.Level ?? 2;
+            return mind.Bodies.Count(candidate =>
+                package.RolesByUnit.TryGetValue(candidate.UnitId, out var role)
+                && selected.Contains(role.Id)
+                && CurrentLevel(candidate) >= minimumLevel);
+        }
         if (fact is "deployment-active" or "deployment-lifetime-percent"
                 or "deployment-durability-percent"
                 or "self-deployment-in-zone")
@@ -3903,8 +3939,30 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         }
         foreach (GenericActorContext.ObservedEvent observed in mind.VisibleEvents)
         {
-            if (!_processedEvents.Add(observed.EventHandle)
-                || observed.Payload is not GenericActorContext.EventPayload.ArcRelay mode)
+            if (!_processedEvents.Add(observed.EventHandle))
+                continue;
+            if (_retainsVeterancy
+                && observed.Payload is GenericActorContext.EventPayload.Destruction death
+                && death.ActorId.TeamId == _teamId)
+            {
+                if (_levels.GetValueOrDefault(death.ActorId.UnitId).Actor
+                    == death.ActorId)
+                {
+                    _levels.Remove(death.ActorId.UnitId);
+                }
+                if (_invested.GetValueOrDefault(death.ActorId.UnitId).Actor
+                    == death.ActorId)
+                {
+                    _invested.Remove(death.ActorId.UnitId);
+                }
+                if (_pendingInvest.GetValueOrDefault(death.ActorId.UnitId).Actor
+                    == death.ActorId)
+                {
+                    _pendingInvest.Remove(death.ActorId.UnitId);
+                }
+                continue;
+            }
+            if (observed.Payload is not GenericActorContext.EventPayload.ArcRelay mode)
                 continue;
             switch (mode.Fact)
             {
@@ -3937,8 +3995,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 case GenericActorContext.ArcRelayEvent.LeveledUp level
                     when level.ActorId.TeamId == _teamId:
                     _levels[level.ActorId.UnitId] = (level.ActorId, level.Level);
-                    _pendingInvest[level.ActorId.UnitId] =
-                        _pendingInvest.GetValueOrDefault(level.ActorId.UnitId) + 1;
+                    _pendingInvest[level.ActorId.UnitId] = (
+                        level.ActorId,
+                        PendingInvestPoints(level.ActorId) + 1);
+                    break;
+                case GenericActorContext.ArcRelayEvent.VeterancyRetained retained
+                    when retained.ActorId.TeamId == _teamId:
+                    _levels[retained.ActorId.UnitId] = (
+                        null,
+                        retained.RetainedLevel);
+                    _invested[retained.ActorId.UnitId] =
+                        (null, retained.RetainedSpentPoints);
+                    _pendingInvest[retained.ActorId.UnitId] = (
+                        null,
+                        Math.Max(
+                            0,
+                            retained.RetainedLevel - 1
+                                - retained.RetainedSpentPoints));
                     break;
             }
         }
@@ -4228,7 +4301,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             _firingEpisodeFields[episode] = reachable;
         }
         Position[] goals = ArenaBasics.FiringContributionGoals(
-            contract, body, target, reachable);
+            contract, mind, body, target, reachable);
         _firingGround[key] = goals;
         return goals;
     }
@@ -4286,19 +4359,22 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (!WillInvest(contract, mind, body, role, carried)
             || body.Action("invest") is not { Available: true } invest)
             return false;
-        (ActorIdentity Actor, int Spent) state = _invested.GetValueOrDefault(
-            body.UnitId, (body.ActorId, 0));
-        if (state.Actor != body.ActorId)
-            state = (body.ActorId, 0);
+        (ActorIdentity? Actor, int Spent) investment =
+            _invested.GetValueOrDefault(body.UnitId);
+        int spent = investment.Actor is null || investment.Actor == body.ActorId
+            ? investment.Spent
+            : 0;
         string track = role.UpgradePath[Math.Min(
-            state.Spent, role.UpgradePath.Length - 1)];
+            spent, role.UpgradePath.Length - 1)];
         body.Command(
             invest.ActionId,
             invest.ActionCode,
             [new GenericActorActionArgument.UpgradeTrackArgument(track)],
             $"orders:{ProgramPrefix(body.UnitId)}{role.Id}:upgrade:{track}");
-        _invested[body.UnitId] = (body.ActorId, state.Spent + 1);
-        _pendingInvest[body.UnitId]--;
+        _invested[body.UnitId] = (body.ActorId, spent + 1);
+        _pendingInvest[body.UnitId] = (
+            body.ActorId,
+            PendingInvestPoints(body.ActorId) - 1);
         return true;
     }
 
@@ -4312,16 +4388,32 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         _ = contract;
         _ = role;
-        return _pendingInvest.GetValueOrDefault(body.UnitId) > 0
+        return PendingInvestPoints(body.ActorId) > 0
             && !carried.ContainsKey(body.ActorId)
             && !mind.Enemies.Any(enemy =>
                 enemy.Position.ChebyshevDistance(body.Position) <= 5)
             && body.Action("invest") is { Available: true };
     }
 
-    private int CurrentLevel(MindBody body) =>
-        _levels.TryGetValue(body.UnitId, out (ActorIdentity Actor, int Level) level)
-            && level.Actor == body.ActorId ? level.Level : 1;
+    private int CurrentLevel(MindBody body)
+    {
+        (ActorIdentity? Actor, int Level) level =
+            _levels.GetValueOrDefault(body.UnitId);
+        return level.Actor is null || level.Actor == body.ActorId
+            ? Math.Max(1, level.Level)
+            : 1;
+    }
+
+    private int PendingInvestPoints(ActorIdentity actor)
+    {
+        (ActorIdentity? Actor, int Points) pending =
+            _pendingInvest.GetValueOrDefault(actor.UnitId);
+        if (!_retainsVeterancy)
+            return pending.Points;
+        return pending.Actor is null || pending.Actor == actor
+            ? pending.Points
+            : 0;
+    }
 
     private Position[] PostureGoals(Position[] goals, string? posture)
         => TacticalPosturePlanner.Resolve(

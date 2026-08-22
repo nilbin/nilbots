@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Arc Relay Phase Editor Alpha Pruning Plan</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system,
+        BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0d1218;
+      color: #e5edf5;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #0d1218; }
+    main {
+      width: min(900px, 100%);
+      margin: 0 auto;
+      padding: 36px 22px 90px;
+    }
+    h1 { margin: 0 0 10px; color: #fff; font-size: clamp(1.8rem, 5vw, 2.55rem); line-height: 1.12; }
+    h2 { margin: 44px 0 14px; padding-top: 14px; border-top: 1px solid #2b3743; color: #f4f8fb; font-size: 1.45rem; }
+    h3 { margin: 30px 0 10px; color: #dcecff; font-size: 1.12rem; }
+    h4 { margin: 24px 0 8px; color: #bcd8ee; font-size: 1rem; }
+    p, li { font-size: 1rem; line-height: 1.62; }
+    p { margin: 10px 0; }
+    ul, ol { padding-left: 1.45rem; }
+    li { margin: 6px 0; }
+    strong { color: #fff; }
+    code {
+      border: 1px solid #30404e;
+      border-radius: 4px;
+      padding: .08em .32em;
+      background: #15202a;
+      color: #b9e5ff;
+      font: .9em ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    blockquote {
+      margin: 16px 0;
+      padding: 4px 16px;
+      border-left: 3px solid #59acd4;
+      background: #121c25;
+      color: #cdd9e3;
+    }
+    a { color: #79caf1; }
+    @media (max-width: 560px) {
+      main { padding: 24px 17px 70px; }
+      h2 { margin-top: 36px; }
+      p, li { font-size: .97rem; }
+    }
+  </style>
+</head>
+<body>
+<main>
+<h1>Arc Relay Phase Editor Alpha Pruning Plan</h1>
+<p>Status: owner-approved implementation handoff, 2026-08-20.</p>
+<h2>Start condition</h2>
+<p>Do not begin this work until the currently running Scan / verified-clear /
+zone-bounded-not-fighting / Hold-facing implementation has finished, committed,
+and left the shared checkout clean. Re-read the resulting implementation before
+changing it. This plan consumes that work; it must not independently recreate or
+overwrite it.</p>
+<p>Follow <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>web/CLAUDE.md</code>, and
+<code>.claude/skills/sheet-tuning/SKILL.md</code>. Work on <code>main</code> unless there is a real
+need for isolation. Do not touch immutable historical playlists or tracked WASM
+artifacts for this editor iteration.</p>
+<h2>Goal</h2>
+<p>Make a useful phase straightforward to author from blank without exposing the
+full Tactics DSL. Keep the strategic depth in the compiler and executor, but
+reduce the normal phase editor to a small, truthful vocabulary.</p>
+<p>The player should mostly answer four questions:</p>
+<ol>
+<li>Where should this group move or stand?</li>
+<li>How should it behave there and on the way?</li>
+<li>How should it recover?</li>
+<li>What observable event completes this phase?</li>
+</ol>
+<p>This is a product-surface pruning pass plus the small semantic fixes required
+for the remaining controls to tell the truth. It is not a new executor, a
+second priority system, a balance pass, or a replacement for the existing
+Tactics coordinator and ordinary generated Instructions.</p>
+<h2>Locked product decisions</h2>
+<h3>1. Visible phase job vocabulary</h3>
+<p>Offer only these four choices when authoring a new phase job:</p>
+<ul>
+<li><strong>Take up posts</strong> — assigned positions, one post per bot.</li>
+<li><strong>Converge on a spot</strong> — one shared destination.</li>
+<li><strong>Occupy an area</strong> — flexible positions inside a drawn area. Rename the
+current <code>Hold an area</code>; geometry must not also imply posture.</li>
+<li><strong>Patrol a loop</strong> — repeatedly follow a drawn loop.</li>
+</ul>
+<p>Do not offer Line, Approach, Advance, Return, Escort, or Carry on as new job
+choices.</p>
+<p>Carry-forward is still necessary, but it is implicit. When a new phase does not
+replace a group&#39;s ground, it inherits the prior effective job and geometry.
+The UI may explain that it is continuing the previous assignment, but the
+player must not select a fifth <code>Carry on</code> mode. It is acceptable to retain
+<code>none</code> as an internal encoding if that remains the cleanest materialization.</p>
+<p>Keep legacy job parsing/materialization while it is cheap and harmless. A
+loaded draft that actively contains a hidden job must not silently lose it:
+show its current value as legacy content or normalize it deliberately with a
+clear explanation. Do not let built-in recipes create an apparently blank or
+uneditable job. Update recipes to the visible vocabulary where practical,
+while preserving the intent of Demolition March.</p>
+<h4>Destructive mode switching</h4>
+<p>Changing job type when compatible geometry already exists must show a
+confirmation before clearing anything. The message must name what will be
+removed, such as eight posts and their facings, an area, a route, or dependent
+spatial skill marks.</p>
+<ul>
+<li>Default action: Cancel.</li>
+<li>Confirm: clear only geometry that is incompatible with the new mode.</li>
+<li>Offer Undo through the editor&#39;s normal document history/toast mechanism.</li>
+<li>Do not warn when there is nothing material to lose.</li>
+<li>Merely changing posture, travel behavior, recovery, or conditions must never
+clear geometry.</li>
+</ul>
+<h3>2. Visible destination posture</h3>
+<p>Offer only:</p>
+<ul>
+<li><strong>Observe</strong> — stay on the authored task and do not engage.</li>
+<li><strong>Hold</strong> — fight for the authored ground, turn toward threats from any
+direction, and do not meaningfully chase.</li>
+<li><strong>Aggressive</strong> — pursue and finish nearby enemies within the authored leash.</li>
+</ul>
+<p>Fold Wait into Observe for normal authoring. Do not promise that Observe
+&quot;breaks contact&quot; unless evasive movement truly exists; the minimum honest
+behavior is no voluntary Fight instruction, continued movement toward/along
+the job, and retention or resumption of its ground.</p>
+<p>Steal and Escort are Core-custody policies, not general destination postures.
+Hide them from this control. Existing internal values may remain where needed
+for old documents or generated custody behavior.</p>
+<h3>3. Visible on-the-way behavior</h3>
+<p>Offer only:</p>
+<ul>
+<li><strong>Just march</strong> — do not fight en route; the destination posture takes over
+on arrival.</li>
+<li><strong>Respond to contact</strong> — engage a nearby enemy with the short Hold leash,
+then resume the same route. This replaces the misleading label <code>Answer attacks</code>: the current mechanism reacts to nearby contact, not specifically
+to having received an attack.</li>
+<li><strong>Brawl through</strong> — use the Aggressive fight policy while travelling, then
+resume the route and hand over to the destination posture on arrival.</li>
+</ul>
+<p>Hide Hang back. Its current rear-side destination bias is not enemy avoidance
+or safe-route planning, so do not rename it <code>Avoid enemies</code>. It can return in
+the future only with a separately approved, truthful mechanic.</p>
+<p>Travel behavior is not a second order or priority layer. Continue compiling it
+as phase-scoped ordinary Instructions gated by whether the bot has arrived.</p>
+<h3>4. Visible recovery behavior</h3>
+<p>Offer only:</p>
+<ul>
+<li><strong>Fight on</strong>.</li>
+<li><strong>Break for the heal tile</strong>.</li>
+<li><strong>Heal up fully</strong>.</li>
+</ul>
+<p>Hide Patch up close. Explain the actual health trigger and completion threshold
+in the option copy/readback; do not make a player infer them from the label.
+Recovery must still pre-empt the ordinary phase floor according to the existing
+Instruction priority and then return the bot to the same active phase.</p>
+<h2>Formation readiness</h2>
+<p>Rename <code>Everyone in position</code> to <strong>Formation is ready</strong>. Dead bots remain
+excused, but readiness needs one simple forgiveness control:</p>
+<ul>
+<li><strong>Everyone</strong> — zero late bots.</li>
+<li><strong>All but one</strong> — one late bot allowed.</li>
+<li><strong>All but two</strong> — two late bots allowed.</li>
+</ul>
+<p>Default to Everyone for every job, preserving today&#39;s strict body count until
+the player deliberately allows late bots. Encode the setting explicitly, for
+example by allowing the current <code>groupsSet: true</code> to mean zero slack and adding
+an object form with <code>allowedLate: 0|1|2</code>. The exact wire shape is an
+implementation choice, but it must validate in both the TypeScript and C#
+models and survive a save/load/compile round trip.</p>
+<p>Slack is team-wide body slack, not extra spatial radius. Do not change any
+job&#39;s current spatial tolerance and do not add a distance-tolerance control in
+this pass. In particular, an assigned Post currently counts as reached on its
+own tile or an adjacent tile (Chebyshev distance at most one); preserve that
+exact rule. Evaluate the allowed-late count only after applying the unchanged
+spatial checks.</p>
+<h3>Stable rejoin semantics</h3>
+<p>Freeze the readiness cohort when the phase begins:</p>
+<ul>
+<li>A living bot at phase entry is required until it reaches its ground, dies,
+or the phase advances.</li>
+<li>A bot dead at phase entry is excused for that phase.</li>
+<li>Once a required life dies, its later respawn must not newly block readiness.</li>
+<li>A respawned bot still receives and performs the active phase job.</li>
+<li>A respawn may help occupy ground, but it must not increase the number of
+bodies the phase is waiting for.</li>
+</ul>
+<p>Do not expose a rejoiner checkbox. This fixed rule prevents readiness from
+flapping because a respawn wave occurred while the team was assembling.</p>
+<h3>Exact Posts correctness</h3>
+<p>Posts retain stronger meaning than a bounding box:</p>
+<ul>
+<li>Each squad slot is checked against its assigned post.</li>
+<li>Use the existing per-post Chebyshev-distance-one tolerance unchanged.</li>
+<li>One bot cannot satisfy two required posts, even when readiness ranges
+overlap.</li>
+<li>Slack means an authored number of assigned posts may remain unfilled; it
+does not turn the formation into an undifferentiated area.</li>
+<li>Apply this to large groups too. Remove the current shortcut where groups
+larger than three are accepted merely because every body is somewhere in
+the combined posts footprint. This applies the existing assigned-post check
+consistently; it must not tighten or expand that check&#39;s spatial radius.</li>
+</ul>
+<p>If the ordinary condition-zone budget cannot express this honestly, perform
+the squad-level readiness calculation in the existing Tactics coordinator.
+Do not introduce another scheduler or reservation system.</p>
+<h2>Visible phase-completion conditions</h2>
+<p>The normal phase picker should contain only the following rows.</p>
+<h3>Our team</h3>
+<ul>
+<li><strong>Formation is ready</strong>, including the slack control above.</li>
+<li><strong>Everyone is healed up</strong>.</li>
+</ul>
+<p>Hide losses and losses-within from the normal phase surface.</p>
+<h3>Enemies</h3>
+<ul>
+<li><strong>Any enemy contact</strong>.</li>
+<li><strong>At least N enemies were recently seen here</strong>. Rename <code>Enemies gather somewhere</code>. It uses bounded team knowledge, not omniscience. Stale knowledge
+must not satisfy it. Use one canonical fixed freshness window and state that
+window in helper/readback text rather than adding another ordinary control.</li>
+<li><strong>At least N enemies are currently down</strong>.</li>
+<li><strong>This area has been verified clear</strong>, using the accepted rolling-observation
+and Scan semantics from the preceding implementation.</li>
+<li><strong>No friendly is currently fighting in this area</strong>, using the accepted
+zone-bounded fight-state semantics from the preceding implementation.</li>
+</ul>
+<p>Hide enemies destroyed this phase and enemies destroyed in a short window.</p>
+<h4>Multi-zone conditions</h4>
+<p>Every condition row that authors a zone must support between one and three
+zones. In the current phase surface this applies to recent-enemy presence,
+verified clear, and no-friendly-fighting; use the same reusable editor/model
+for any other zone condition that remains elsewhere in Tactics.</p>
+<p>Multiple zones form one possibly disconnected watched area. They do not create
+another AND/OR editor:</p>
+<ul>
+<li><strong>Recent enemies:</strong> count distinct recently known enemy lives across the
+union. An enemy inside overlapping zones counts once.</li>
+<li><strong>Verified clear:</strong> every walkable tile in the union must satisfy the
+accepted rolling observation/no-unresolved-memory rule. Therefore every
+authored zone must be proved clear.</li>
+<li><strong>No friendly fighting:</strong> no qualifying friendly fight may intersect any
+tile in the union.</li>
+</ul>
+<p>This gives the player a simple way to describe several entrances, both sides
+of a corridor, or disconnected pieces of tactically equivalent ground without
+duplicating an entire condition case. Per-zone enemy thresholds and arbitrary
+nested zone logic are out of scope.</p>
+<p>The UI should show all zones in the condition&#39;s colour, distinguish them as
+Area 1–3, allow each to be selected/redrawn/deleted independently, offer <code>Add another area</code> until the cap is reached, and use an honest summary such as
+<code>3+ enemies recently seen across these areas</code> or <code>all three areas verified clear</code>.</p>
+<p>Use a one-to-three <code>zones</code> collection in newly authored documents. Continue to
+accept the existing singular <code>zone</code> shape as a one-element legacy form, and
+normalize it on an intentional edit/save rather than silently dropping it.
+Validate the cap and non-empty collection in both TypeScript and C#. Shared or
+overlapping tiles and actors must be canonicalized before evaluation so overlap
+never multiplies counts, scan work, or fight state.</p>
+<h3>Cores</h3>
+<ul>
+<li><strong>A Core is up for grabs</strong>.</li>
+<li><strong>A Core spawns soon</strong>.</li>
+<li><strong>A Core was taken this phase</strong>.</li>
+</ul>
+<p>Do not offer Core banked or Core lost as normal phase-completion conditions.
+Core custody is a temporary, higher-priority branch inside whichever phase is
+active:</p>
+<ol>
+<li>A bot acquires a Core.</li>
+<li>The active phase/tactic custody preset takes over: keep carrying, bank
+alone, or bank under escort.</li>
+<li>The Core is banked or lost.</li>
+<li>Custody ends and surviving bots resume the still-active phase.</li>
+</ol>
+<p><code>A Core was taken this phase</code> remains because an author may genuinely want the
+wider tactic to change after acquisition. Ordinary pickup, return, banking,
+loss, and resumption must not require a dedicated phase. Keep bank/loss facts
+internally if the custody executor needs them; merely remove them from normal
+phase authoring.</p>
+<h3>Time and ground</h3>
+<p>Hide all current rows:</p>
+<ul>
+<li>We have been at this phase a while.</li>
+<li>The destination is reached.</li>
+<li>The ground has been watched for long enough.</li>
+</ul>
+<p><code>Destination reached</code> is not identical to Formation ready, but its current
+majority/first-mover meaning is weaker and harder to understand. Formation
+ready owns the common intent.</p>
+<p><code>Ground watched long enough</code> is not the inverse of clear. It currently means
+continuous observation even when enemies are present. Verified-clear plus
+Scan owns the common player intent. Keep the underlying fact only if it is
+still consumed elsewhere.</p>
+<h3>Hidden conditions and loaded drafts</h3>
+<p>Hide is not the same as silently deleting authored content. Continue parsing
+hidden condition rows unless removal materially simplifies the system. If a
+loaded draft actively uses one, show a compact <code>Existing advanced condition</code>
+readback with a way to remove it. Do not make hidden state invisible while it
+still changes execution.</p>
+<p>Do not redesign the existing Required / Triggered / Unless and alternative-case
+semantics in this pass.</p>
+<h2>Strictly linear phase sequencing</h2>
+<p>Remove the next-phase picker and explicit authored phase jumps entirely.</p>
+<ul>
+<li>Completing a non-final phase always activates the following phase in array
+order.</li>
+<li>Completing the final phase finishes the tactic.</li>
+<li>A phase with no completion cases remains active indefinitely.</li>
+<li>Alternative completion cases all have the same destination.</li>
+<li>A phase whose completion condition is already true may naturally advance on
+its normal first evaluation tick; do not add explicit skip pointers.</li>
+<li>Tactic-wide abort/restart behavior is unchanged.</li>
+</ul>
+<p>The persisted player-facing Tactics document should no longer require a <code>to</code>
+field on each transition. The compiler/coordinator may still generate or use
+an internal next-phase index/id as execution machinery, but it is not authored
+policy.</p>
+<p>There are no meaningful saved explicit jumps that require a compatibility UI.
+Remove the picker, named-forward-target validation, summary wording, recipes,
+fixtures, and tests that exist solely to support arbitrary jumps. Do not build
+a migration subsystem for unused jumps.</p>
+<h2>Tactic completion and rearm</h2>
+<p>Remove the generated hidden 40-tick tactic rearm delay. It was inherited from
+the old root-Order cooldown; the current squad coordinator requires only one
+dark evaluation pass to clear per-body Instruction state between activations.
+There is no separate documented gameplay reason for the remaining 40 ticks.</p>
+<p>Use these semantics when a tactic ends on tick <code>T</code>:</p>
+<ul>
+<li>Its tags are dark for the completion evaluation, clearing the ended run’s
+Instruction episodes.</li>
+<li>A different eligible tactic may still be selected immediately on tick <code>T</code>,
+following ordinary top-to-bottom tactic order.</li>
+<li>If no other tactic becomes active, the same tactic may be selected again on
+tick <code>T + 1</code> when its start conditions are still true.</li>
+<li>A newly selected tactic remains non-pre-emptible under the existing
+coordinator rules; the completed higher tactic does not reclaim the team
+merely because it becomes eligible again.</li>
+</ul>
+<p>Generate <code>rearm: 0</code>, or internalize the mandatory one-tick boundary in the
+coordinator if the generated field can be removed cleanly. Keeping the Orders
+program field for contract simplicity is acceptable; emitting 40 is not. Do
+not add a cooldown control to the simplified editor. If meaningful tactical
+cooldowns are wanted later, they require a separate owner decision and must be
+player-visible rather than hidden policy.</p>
+<h2>UI and authoring requirements</h2>
+<ul>
+<li>Keep the existing Nilbots visual language and map-first editor; this is not
+a mobile-first redesign.</li>
+<li>From a blank sheet, the four job modes and their drawing affordances must be
+immediately understandable without reading DSL documentation.</li>
+<li>The phase readback must use the same player-facing labels as the controls.</li>
+<li>Hidden vocabulary must not leak through summaries, tooltips, validation
+errors, or blank recipe defaults during normal authoring.</li>
+<li>Map geometry remains editable in place after the phase has been created.</li>
+<li>No raw JSON editing may be required for any acceptance flow below.</li>
+</ul>
+<h2>Required tests</h2>
+<h3>Document, compiler, and coordinator</h3>
+<ul>
+<li>Save/load/validate/compile each visible job, posture, travel behavior,
+recovery behavior, and condition.</li>
+<li>Prove strict sequential phase activation and final-phase completion without
+authored targets.</li>
+<li>Prove a phase with no completion condition holds indefinitely.</li>
+<li>Prove multiple alternative cases all advance to the same next phase.</li>
+<li>Prove tactic-wide abort behavior remains higher-level and unchanged.</li>
+<li>Prove a tactic ending on tick T cannot reselect itself on T, may reselect on
+T+1 when no other tactic owns the team, and begins with fresh Instruction
+state.</li>
+<li>Prove a different eligible tactic may begin on the completion tick and is
+not subsequently pre-empted by the completed tactic.</li>
+<li>Prove Core custody bank and loss both return control to the same still-active
+phase unless that phase independently completed.</li>
+<li>Prove <code>A Core was taken this phase</code> can still intentionally advance a phase.</li>
+</ul>
+<h3>Formation readiness</h3>
+<ul>
+<li>Zero, one, and two allowed-late settings.</li>
+<li>Dead at phase entry is excused.</li>
+<li>Death while assembling excuses that life.</li>
+<li>Respawn during the same phase performs the job but does not re-block it.</li>
+<li>Eight assigned Posts are checked individually.</li>
+<li>Overlapping post tolerances cannot let one body satisfy multiple posts.</li>
+<li>Area, spot, and patrol readiness use their honest job footprints.</li>
+</ul>
+<h3>Posture, travel, and recovery behavior</h3>
+<p>Use focused deterministic scene tests, not only materialized JSON assertions:</p>
+<ul>
+<li>Observe reaches/retains its job and never emits a voluntary Fight action.</li>
+<li>Hold turns and fires against frontal, side, and rear contact, respects its
+short leash, and returns to its ground.</li>
+<li>Aggressive pursues within its leash and resumes its ground afterward.</li>
+<li>Just march ignores contact en route and hands over on arrival.</li>
+<li>Respond to contact fights with the short leash, resumes the same route, and
+does not keep the travel fight after arrival.</li>
+<li>Brawl through uses the aggressive leash, resumes the route, and hands over
+on arrival.</li>
+<li>Every recovery option pre-empts at its documented health threshold and then
+resumes the same phase/job.</li>
+<li>Every emitted executor action carries a non-empty <code>debugMessage</code> explaining
+the selected phase intent.</li>
+</ul>
+<h3>Conditions and vision</h3>
+<ul>
+<li>Recent-enemy presence succeeds from fresh bounded team knowledge and fails
+once that knowledge is stale.</li>
+<li>Every zone-bearing condition round-trips one, two, and three zones; zero and
+four are rejected in both validators.</li>
+<li>Recent-enemy presence counts distinct enemy lives across the zone union and
+never double-counts overlap.</li>
+<li>Verified clear cannot succeed from lack of vision; it requires the accepted
+rolling scan evidence and no unresolved enemy memory across every zone in
+the union.</li>
+<li>No-friendly-fighting is affected only by fights intersecting its authored
+zone union.</li>
+<li>Hidden active conditions in a loaded draft remain visible as legacy/advanced
+content until removed.</li>
+</ul>
+<h3>Frontend</h3>
+<ul>
+<li>Normal controls expose exactly the approved option sets.</li>
+<li>A destructive job-mode switch can be cancelled with no document mutation.</li>
+<li>Confirming the switch removes only incompatible geometry and can be undone.</li>
+<li>A non-destructive switch produces no warning.</li>
+<li>New phases carry prior ground implicitly.</li>
+<li>No next-phase target picker appears.</li>
+<li>Normal newly authored transitions serialize without arbitrary targets.</li>
+<li>Zone-bearing rows can add, select, redraw, and remove up to three independently
+visible areas, and their summaries state the union semantics.</li>
+<li>Built-in recipes open without invisible active jobs or conditions.</li>
+</ul>
+<h2>Required acceptance flow</h2>
+<p>Starting from a blank sheet in the visible editor, author a three-phase tactic
+without raw JSON:</p>
+<ol>
+<li>Take up assigned Posts under Observe. Continue when Formation is ready with
+one allowed late bot and at least N enemies recently seen in a drawn area.</li>
+<li>Occupy a drawn area under Hold, Respond to contact on the way, and Break for
+the heal tile. Continue when the drawn combat area is verified clear and no
+friendly is fighting there.</li>
+<li>Patrol a drawn loop under Aggressive/Brawl through and remain there because
+the final phase has no completion condition.</li>
+</ol>
+<p>Give the tactic an ordinary Core-custody preset. In deterministic proof, a Core
+pickup must enter custody, bank or lose the Core, and return survivors to the
+same phase without a Core-specific phase or a bank/loss transition row.</p>
+<p>The saved/read-back tactic must be understandable from the map and phase
+storyboard alone. Switching one populated job mode must visibly exercise the
+warning, Cancel, Confirm, and Undo flow.</p>
+<h2>Replay-visible acceptance</h2>
+<p>Because readiness, Hold, travel fighting, and custody affect runtime behavior,
+finish with trace-first evidence under
+<code>.claude/skills/sheet-tuning/SKILL.md</code>:</p>
+<ol>
+<li>Trace the focused deterministic scenes for the semantics above.</li>
+<li>Run focused compiler/coordinator/movement tests.</li>
+<li>Author the combined acceptance sheet through the visible editor.</li>
+<li>Run the standard six-cell Arc Relay exhibit with that exact sheet on the
+current Tapline profile. Do not run a balance battery and do not describe
+the six outcomes as balance evidence.</li>
+<li>Inspect the manifest and all horizon outcomes, and publish the phone-readable
+exhibit through a Cloudflare tunnel.</li>
+</ol>
+<p>This is an implementation/usability proof: the controls produce the behavior
+they promise. It is not evidence that the tactic or reduced vocabulary is
+balanced.</p>
+<h2>Documentation and delivery</h2>
+<p>Update the relevant current Tactics specification and authoring documentation,
+plus <code>docs/DECISIONS.md</code> if the implementation needs a durable numbered
+decision. Remove stale UI terminology from current docs, but do not rewrite
+historical experimental reports.</p>
+<p>Deliver:</p>
+<ul>
+<li>a concise implementation report;</li>
+<li>the exact focused test commands and results;</li>
+<li>the authored acceptance sheet identity;</li>
+<li>deterministic replay/trace evidence and known limitations;</li>
+<li>the public six-cell exhibit URL;</li>
+<li>the final commit SHA.</li>
+</ul>
+<p>Completion requires a clean working tree with all changes committed. No
+playlist/rating-era, tracked WASM, CLI-version, or deployment work belongs in
+this pass unless the owner separately authorizes a release.</p>
+</main>
+</body>
+</html>

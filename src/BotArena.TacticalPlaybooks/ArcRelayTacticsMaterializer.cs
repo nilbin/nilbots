@@ -456,6 +456,17 @@ internal static class ArcRelayTacticsMaterializer
                 else
                     entries.AddRange(perRole);
             }
+            if (rows.Veterancy is ArcRelayTacticVeterancyRow veteran)
+            {
+                Add(new ConditionShape(
+                        "friendly-veterans-in-roles",
+                        "at-least",
+                        veteran.Count,
+                        Roles: veteran.Slots.Select(RoleId).ToArray(),
+                        Level: veteran.Level),
+                    $"c-{prefix}-{context}-veterans-{veteran.Count}-at-"
+                        + veteran.Level);
+            }
             if (rows.EnemiesAt is ArcRelayTacticEnemiesAtRow enemies)
             {
                 string[] zones = enemies.Zones.Select((zone, index) => Zone(
@@ -2107,13 +2118,15 @@ internal static class ArcRelayTacticsMaterializer
         int? WindowTicks = null,
         string? Since = null,
         string[]? Roles = null,
-        string[]? ZoneIds = null)
+        string[]? ZoneIds = null,
+        int? Level = null)
     {
         public string Key => string.Join('|',
             Fact, Operator, Value, Role, ZoneId, Well, FreshnessTicks,
             WindowTicks, Since,
             Roles is null ? null : string.Join(',', Roles),
-            ZoneIds is null ? null : string.Join(',', ZoneIds));
+            ZoneIds is null ? null : string.Join(',', ZoneIds),
+            Level);
     }
 
     private sealed record ConditionDef(string Id, ConditionShape Shape)
@@ -2128,6 +2141,8 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteString("role", Shape.Role);
             if (Shape.ZoneId is not null)
                 writer.WriteString("zone", Shape.ZoneId);
+            if (Shape.Level is int level)
+                writer.WriteNumber("level", level);
             if (Shape.ZoneIds is not null)
             {
                 writer.WriteStartArray("zones");

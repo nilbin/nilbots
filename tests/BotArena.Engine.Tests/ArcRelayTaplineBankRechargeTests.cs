@@ -17,24 +17,24 @@ public sealed class ArcRelayTaplineBankRechargeTests
         "e536d04deff7e53296d10f2b93c38741a6a3e465a03e779a84336ba0ae1df519";
 
     [Fact]
-    public void Tapline14IsCurrentAndKeepsTapline8RechargeRules()
+    public void Tapline15IsCurrentAndKeepsTapline8RechargeRules()
     {
         ActorResolvedMatchDefinition historical = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline7);
         ActorResolvedMatchDefinition recharge = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline8);
         ActorResolvedMatchDefinition prior = ArcRelayH0Definition.Create(
-            loopProfile: ArcRelayLoopProfile.Tapline13);
-        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
             loopProfile: ArcRelayLoopProfile.Tapline14);
+        ActorResolvedMatchDefinition current = ArcRelayH0Definition.Create(
+            loopProfile: ArcRelayLoopProfile.Tapline15);
         var historicalMode = Assert.IsType<ArcRelayGameModeDefinition>(
             historical.Rules.GameMode);
         var currentMode = Assert.IsType<ArcRelayGameModeDefinition>(
             current.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline14, ArcRelayLoopProfile.Current);
-        Assert.Equal("tapline-14", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-tapline-14", current.Rules.RulesetId);
+        Assert.Same(ArcRelayLoopProfile.Tapline15, ArcRelayLoopProfile.Current);
+        Assert.Equal("tapline-15", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-tapline-15", current.Rules.RulesetId);
         Assert.Equal("arc-relay-tapline-03", current.Map.Id);
         Assert.Equal(600, current.Rules.Limits.MaxTicks);
         Assert.Equal(RechargeTicks,
@@ -44,8 +44,16 @@ public sealed class ArcRelayTaplineBankRechargeTests
             currentMode.CentreWellCoreCharge,
             currentMode.EnemyWellCoreCharge));
         Assert.True(currentMode.ReactiveImpactFacing);
-        Assert.False(Assert.IsType<ArcRelayGameModeDefinition>(
-            prior.Rules.GameMode).ReactiveImpactFacing);
+        Assert.Equal(50, currentMode.VeterancyDeathRetentionPercent);
+        Assert.Equal(
+            ActorCollisionDefinition.AlliedProjectileContactKind
+                .BlockWithoutDamage,
+            current.Rules.Collisions.AlliedProjectileContact);
+        Assert.Equal(0, Assert.IsType<ArcRelayGameModeDefinition>(
+            prior.Rules.GameMode).VeterancyDeathRetentionPercent);
+        Assert.Equal(
+            ActorCollisionDefinition.AlliedProjectileContactKind.PassThrough,
+            prior.Rules.Collisions.AlliedProjectileContact);
         Assert.All(currentMode.Wells, well => Assert.Equal(
             well.FirstBirthTick,
             well.FinalBirthTick));

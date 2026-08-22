@@ -327,6 +327,70 @@ public sealed class ArcRelayTaplineDepthTests
     }
 
     [Fact]
+    public void Tapline15RetainsHalfOfStableSlotXpAndOldestInvestments()
+    {
+        ArcRelayActorMatchModeDriver driver = Driver(
+            ArcRelayLoopProfile.Tapline15);
+        ActorIdentity firstLife =
+            ActorIdentity.FromTeamUnitLife(0, 0, 0);
+
+        for (int ordinal = 0; ordinal < 6; ordinal++)
+        {
+            driver.HandleDestructions(10 + ordinal,
+            [
+                new FrontlineScrapDestruction(
+                    ActorIdentity.FromTeamUnitLife(1, ordinal, 0),
+                    new Position(10, 10),
+                    firstLife),
+            ]);
+        }
+        Assert.Equal(4, driver.VeterancyLevel(firstLife));
+        Assert.True(driver.TryInvest(20, firstLife, "damage"));
+        Assert.True(driver.TryInvest(21, firstLife, "vitality"));
+        Assert.True(driver.TryInvest(22, firstLife, "damage"));
+
+        GenericActorModeEvent[] events =
+            driver.HandleDestructions(30,
+            [
+                new FrontlineScrapDestruction(
+                    firstLife,
+                    new Position(11, 10),
+                    ActorIdentity.FromTeamUnitLife(1, 7, 0)),
+            ]).ToArray();
+
+        GenericActorRuntimeObservation.EventPayload.ArcRelay payload =
+            Assert.IsType<GenericActorRuntimeObservation.EventPayload.ArcRelay>(
+                Assert.Single(events, value =>
+                value.Payload is GenericActorRuntimeObservation.EventPayload
+                    .ArcRelay
+                    {
+                        Fact: ArcRelayEvent.VeterancyRetained,
+                    }).Payload);
+        ArcRelayEvent.VeterancyRetained retained = Assert.IsType<
+            ArcRelayEvent.VeterancyRetained>(payload.Fact);
+        Assert.Equal(4, retained.PreviousLevel);
+        Assert.Equal(2, retained.RetainedLevel);
+        Assert.Equal(3, retained.RetainedTotalXp);
+        Assert.Equal(1, retained.RetainedSpentPoints);
+
+        ActorIdentity secondLife =
+            ActorIdentity.FromTeamUnitLife(0, 0, 1);
+        Assert.Equal(2, driver.VeterancyLevel(secondLife));
+        Assert.Equal(1, driver.VeterancyDamagePoints(secondLife));
+        Assert.Equal(0, driver.StatModifiersFor(secondLife).MaxHealthDelta);
+
+        driver.HandleDestructions(31,
+        [
+            new FrontlineScrapDestruction(
+                ActorIdentity.FromTeamUnitLife(1, 6, 1),
+                new Position(12, 10),
+                secondLife),
+        ]);
+        Assert.Equal(3, driver.VeterancyLevel(secondLife));
+        Assert.True(driver.TryInvest(32, secondLife, "vitality"));
+    }
+
+    [Fact]
     public void Score124PublishesExactValuesAndEnoughScheduledSupply()
     {
         ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
@@ -377,7 +441,7 @@ public sealed class ArcRelayTaplineDepthTests
         var candidateMode = Assert.IsType<ArcRelayGameModeDefinition>(
             candidate.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Tapline14, ArcRelayLoopProfile.Current);
+        Assert.Same(ArcRelayLoopProfile.Tapline15, ArcRelayLoopProfile.Current);
         Assert.Equal("arc-relay-tapline-05", candidate.Rules.RulesetId);
         Assert.Equal(previous.Map.Id, candidate.Map.Id);
         Assert.True(previous.Map.TileRows.SequenceEqual(candidate.Map.TileRows));

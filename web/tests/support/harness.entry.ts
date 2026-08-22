@@ -160,7 +160,8 @@ export {
   HEALTH_BAR_COLORS,
 } from '../../src/presentation/healthBar';
 export {
-  BotProjectionLayer, JobOverlay, SelectedBotRanges,
+  BotProjectionLayer, JobOverlay, PhasePostControls, SelectedBotRanges,
+  TacticsMapCanvas,
 } from '../../src/site/tactics/TacticsMapCanvas';
 export {
   TacticsIcon, TacticsIconAudition, TacticsIconButton,

@@ -1085,6 +1085,14 @@ internal static class ReplayV3Projection
                     ActorId(fact.ActorId),
                     fact.Level,
                     Position(fact.Position)),
+            ArcRelayEvent.VeterancyRetained fact =>
+                new ReplayV3.ArcRelayFact.VeterancyRetained(
+                    ActorId(fact.ActorId),
+                    fact.PreviousLevel,
+                    fact.RetainedLevel,
+                    fact.RetainedTotalXp,
+                    fact.RetainedSpentPoints,
+                    Position(fact.Position)),
             ArcRelayEvent.ZoneHealed fact =>
                 new ReplayV3.ArcRelayFact.ZoneHealed(
                     ActorId(fact.ActorId),

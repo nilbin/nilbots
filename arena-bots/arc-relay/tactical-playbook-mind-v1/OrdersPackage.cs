@@ -628,6 +628,9 @@ internal sealed class OrdersPackage
             : null,
         value.TryGetProperty("zones", out JsonElement zones)
             ? zones.EnumerateArray().Select(entry => entry.GetString()!).ToArray()
+            : null,
+        value.TryGetProperty("level", out JsonElement level)
+            ? level.GetInt32()
             : null);
 
     private static CoreBankValueFilter ParseCoreBankValue(JsonElement value) =>
@@ -778,7 +781,8 @@ internal sealed class OrdersPackage
         string[]? Roles = null,
         bool CorrelateAcquisition = false,
         string[]? Outcomes = null,
-        string[]? Zones = null)
+        string[]? Zones = null,
+        int? Level = null)
     {
         public string[] ZoneSet => Zones is { Length: > 0 }
             ? Zones

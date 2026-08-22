@@ -182,6 +182,41 @@ public sealed class TacticsEncodingLifecycleTests
     }
 
     [Fact]
+    public void AuthoredVeteranCountTransitionsOnlyForLiveSelectedTeamSlots()
+    {
+        Harness harness = Harness.ForRole("vex", tactics =>
+        {
+            JsonObject document = JsonNode.Parse(
+                ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                    System.Text.Encoding.UTF8.GetBytes(tactics)))!.AsObject();
+            document["tactics"]![0]!["phases"]![0]!["continue"]![0]!
+                ["required"] = JsonNode.Parse(
+                    """{"veterancy":{"level":3,"slots":[0,3],"count":2}}""");
+            return document.ToJsonString();
+        });
+        harness.World.EnemiesAtMid = _ => true;
+        // Same team-local unit id on the opponent, a dead selected veteran,
+        // and an unselected friendly veteran are all insufficient.
+        harness.World.Veterans =
+        [
+            new(new ActorIdentity(1, 0, 0), Level: 5, Live: true),
+            new(new ActorIdentity(0, 0, 0), Level: 5, Live: false),
+            new(new ActorIdentity(0, 2, 0), Level: 5, Live: true),
+            new(new ActorIdentity(0, 3, 0), Level: 2, Live: true),
+        ];
+
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(4));
+        Assert.Equal("t1-p1-g2-move", harness.EligibleLeaf(5));
+
+        harness.World.Veterans =
+        [
+            new(new ActorIdentity(0, 0, 1), Level: 3, Live: true),
+            new(new ActorIdentity(0, 3, 0), Level: 4, Live: true),
+        ];
+        Assert.Equal("t1-p2-g2-move", harness.EligibleLeaf(6));
+    }
+
+    [Fact]
     public void SupportBehaviorStaysInsideTheActivePhase()
     {
         Harness harness = Harness.ForRole("vex");
@@ -585,6 +620,7 @@ public sealed class TacticsEncodingLifecycleTests
         public Func<int, bool> Carrying { get; set; } = _ => false;
         public Func<int, bool> CoreInReach { get; set; } = _ => false;
         public int[] KillTicks { get; set; } = [];
+        public Veteran[] Veterans { get; set; } = [];
 
         public bool Truth(string name, int tick, int elapsed) => name switch
         {
@@ -611,6 +647,12 @@ public sealed class TacticsEncodingLifecycleTests
             "dn-piston" => FlankerDown(4),
             "dn-cinder" => FlankerDown(5),
             "c-t1-p1-enemies" => EnemiesAtMid(tick),
+            var value when value.Contains("-veterans-", StringComparison.Ordinal) =>
+                Veterans.Count(veteran =>
+                    veteran.Live
+                    && veteran.Actor.TeamId == 0
+                    && veteran.Actor.UnitId is 0 or 3
+                    && veteran.Level >= 3) >= 2,
             "enemy-contact" => Contact(tick),
             // Historical evidence anchored at phase entry: the coordinator
             // passes ticks-in-phase, so only kills inside that window count
@@ -637,5 +679,7 @@ public sealed class TacticsEncodingLifecycleTests
             "loose-core-known" => CoreInReach(tick),
             _ => false,
         };
+
+        public sealed record Veteran(ActorIdentity Actor, int Level, bool Live);
     }
 }

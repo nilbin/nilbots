@@ -1,13 +1,15 @@
 ---
 name: analyze-arc-relay-map
-description: Measure and visualize Arc Relay map geometry with pinned route distances, landmark-complete 2D atlases, draggable and rotatable vision/gun-range references, and topology checks. Use for Nilbots Arc Relay map candidates, route-distance or sightline questions, wall-layout changes, landmark audits, and owner-facing 2D map reviews. Do not treat its terrain-only measurements or range envelopes as balance evidence.
+description: Measure and review Arc Relay map geometry with pinned routes, complete 2D atlases, combat references, topology checks, and signature-aware tactical-site audits. Use for map candidates, route or sightline questions, wall layouts, ambush/guard/setup potential, neutral-objective counterplay, and owner-facing reviews. Do not treat terrain measurements or affordance checks as population balance evidence.
 ---
 
 # Analyze Arc Relay Map
 
 Use the deterministic analyzer for route mathematics and the self-contained
-HTML atlas for review. Keep the result tied to the actual map source and exact
-scoring landmarks.
+HTML atlas for review. For map design, pair it with the tactical-geometry audit
+in [references/tactical-geometry.md](references/tactical-geometry.md). Keep the
+result tied to the actual map source, current rules, and exact scoring
+landmarks.
 
 ## Workflow
 
@@ -24,22 +26,34 @@ scoring landmarks.
 4. Read the active rules for the base, unupgraded vision profile and the three
    ordinary gun profiles. Add one `combatReference` origin and facing that make
    the important lanes easy to compare. Keep signature ranges separate.
-5. Read [references/spec.md](references/spec.md), then create or adapt a JSON
-   specification in `sandbox/` or a temporary directory. Start from
+5. When evaluating or creating gameplay geometry, read
+   [references/tactical-geometry.md](references/tactical-geometry.md). Inventory
+   the encounter sites and route families being changed before drawing walls.
+   For every proposed setup, name its trigger, payoff, counterplay, and useful
+   continuation. Audit the current signature definitions from code; do not
+   inherit stale numbers from an old report.
+6. Read [references/spec.md](references/spec.md), then create or adapt a JSON
+   specification in `sandbox/` or a temporary directory. For the historical
+   Tapline-6 equal-return geometry, start from
    [references/tapline-equal-return-candidate.json](references/tapline-equal-return-candidate.json)
-   when investigating the current equal-return candidate.
+   and explicitly apply any later promoted terrain delta when reviewing the
+   current product map.
    Owner-facing atlases must set both `atlasRequirements.distances` and
    `atlasRequirements.combatRanges` to `true`.
-6. Run the analyzer from the repository root:
+7. Run the analyzer from the repository root:
 
    ```bash
    python3 .claude/skills/analyze-arc-relay-map/scripts/map_analysis.py \
      <spec.json> --json-out <analysis.json> --html-out <atlas.html>
    ```
 
-7. Treat every validation error as a blocker. Pin accepted distances with
+8. Treat every validation error as a blocker. Pin accepted distances with
    `expectedSteps` so later geometry drift fails loudly.
-8. Publish the analyzer-generated HTML as the authoritative atlas; do not keep
+9. For a design candidate, report topology and tactical geometry separately.
+   Include site cards, the signature-affordance matrix, named setup/counter
+   pairs, and authorability findings. Use hard failures and explicit tradeoffs;
+   do not hide them inside an aggregate score.
+10. Publish the analyzer-generated HTML as the authoritative atlas; do not keep
    a second hand-authored viewer whose route inventory can drift. Open the HTML
    and inspect every route group at desktop and narrow-phone
    widths in light and dark themes. Check that walls, both reactors, all three
@@ -86,7 +100,9 @@ scoring landmarks.
 - Preserve team rotation and 180-degree symmetry unless asymmetry is explicit.
 - Keep analysis read-only unless the user separately asks to implement a map.
 - Distinguish topology validation from play balance. Geometry can prove route
-  length and connectivity, not whether a route is fun, fair, or tactically safe.
+  length, connectivity, firing envelopes, and whether an authored setup has a
+  geometric counter. It cannot prove that the setup is fun, fair, or balanced
+  in population play.
 - Base labels and coordinates on code, not on earlier prose or screenshots.
 
 ## Verification

@@ -49,7 +49,8 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         int healZoneHealthPerActivation = 1,
         int bankTriggeredWellRechargeTicks = 0,
         bool sentryTeamVision = false,
-        bool reactiveImpactFacing = false)
+        bool reactiveImpactFacing = false,
+        int veterancyDeathRetentionPercent = 0)
         : base(modeId, victory, scoreCatalog)
     {
         RequirePositive(
@@ -77,6 +78,18 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         BankTriggeredWellRechargeTicks = bankTriggeredWellRechargeTicks;
         SentryTeamVision = sentryTeamVision;
         ReactiveImpactFacing = reactiveImpactFacing;
+        if (veterancyDeathRetentionPercent is < 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(veterancyDeathRetentionPercent));
+        }
+        if (veterancyXpPerLevel == 0 && veterancyDeathRetentionPercent != 0)
+        {
+            throw new ArgumentException(
+                "Veterancy death retention requires active veterancy.",
+                nameof(veterancyDeathRetentionPercent));
+        }
+        VeterancyDeathRetentionPercent = veterancyDeathRetentionPercent;
         if (ownWellCoreCharge < 1
             || centreWellCoreCharge < 1
             || enemyWellCoreCharge < 1)
@@ -391,6 +404,13 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     /// </summary>
     public int VeterancyXpPerLevel { get; }
     public int VeterancyMaxLevel { get; }
+
+    /// <summary>
+    /// Percentage of capped total career XP retained by the stable team slot
+    /// when its current life is destroyed. Zero preserves historical
+    /// per-life reset semantics.
+    /// </summary>
+    public int VeterancyDeathRetentionPercent { get; }
 
     /// <summary>
     /// Heal zones (owner direction 2026-08-05): a body that Waits on a tile

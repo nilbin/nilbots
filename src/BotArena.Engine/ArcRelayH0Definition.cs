@@ -865,8 +865,11 @@ public static class ArcRelayH0Definition
                 projectilesIgnoreFiringLife: true,
                 projectilesStopOnFirstEnemyActor: true,
                 projectilesCollideWithProjectiles: false,
-                ActorCollisionDefinition.AlliedProjectileContactKind
-                    .PassThrough),
+                loopProfile.AlliedProjectilesBlock
+                    ? ActorCollisionDefinition.AlliedProjectileContactKind
+                        .BlockWithoutDamage
+                    : ActorCollisionDefinition.AlliedProjectileContactKind
+                        .PassThrough),
             new ActorTickResolutionDefinition(
                 observationsUsePreTickState: true,
                 decisionsResolveAsJointStep: true,
@@ -973,7 +976,9 @@ public static class ArcRelayH0Definition
             bankTriggeredWellRechargeTicks:
                 loopProfile.BankTriggeredWellRechargeTicks,
             sentryTeamVision: loopProfile.SentryTeamVision,
-            reactiveImpactFacing: loopProfile.ReactiveImpactFacing);
+            reactiveImpactFacing: loopProfile.ReactiveImpactFacing,
+            veterancyDeathRetentionPercent:
+                loopProfile.VeterancyDeathRetentionPercent);
 
     /// <summary>
     /// Grammar 2 swaps exactly three envelopes for their dodgeable forms;

@@ -772,6 +772,14 @@ internal sealed record ReplayV3(
             int Level,
             PositionValue Position) : ArcRelayFact("leveled-up");
 
+        internal sealed record VeterancyRetained(
+            ActorId ActorId,
+            int PreviousLevel,
+            int RetainedLevel,
+            int RetainedTotalXp,
+            int RetainedSpentPoints,
+            PositionValue Position) : ArcRelayFact("veterancy-retained");
+
         internal sealed record ZoneHealed(
             ActorId ActorId,
             int Amount,

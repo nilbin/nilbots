@@ -51,6 +51,9 @@ export interface TacticConds {
   held?: { ticks: number };
   /** Every LIVING bot is at ≥N% health — the dead excuse themselves. */
   healed?: { percent: number };
+  /** At least count of the selected, currently living roster slots have
+   * reached level or higher. */
+  veterancy?: { level: number; slots: number[]; count: number };
   enemiesAt?: { count: number; zones: ZoneRef[]; zone?: never };
   contact?: true;
   coreLoose?: { well: WellChoice };
@@ -85,7 +88,7 @@ export const START_ROWS: CondKind[] = [
 ];
 
 export const TRANSITION_ROWS: CondKind[] = [
-  'groupsSet', 'held', 'healed', 'contact', 'enemiesAt', 'coreLoose',
+  'groupsSet', 'held', 'healed', 'veterancy', 'contact', 'enemiesAt', 'coreLoose',
   'coreSoon', 'enemiesDown', 'kills', 'killsWithin', 'losses',
   'lossesWithin', 'cleared', 'notFighting', 'coreAcquired', 'coreBanked', 'coreLost',
   'reached', 'observed',
@@ -1079,6 +1082,21 @@ function validateCaseRows(
     ['unless', value.unless],
   ] as const) {
     if (!rows) continue;
+    if (rows.veterancy) {
+      const value = rows.veterancy;
+      const unique = new Set(value.slots);
+      if (value.level < 2 || value.level > 5) {
+        error(`${at}.${side}.veterancy`, 'Veteran level must be from 2 to 5.');
+      }
+      if (value.slots.length < 1 || value.slots.length > 8
+        || unique.size !== value.slots.length
+        || value.slots.some((slot) => !Number.isInteger(slot) || slot < 0 || slot > 7)) {
+        error(`${at}.${side}.veterancy`, 'Choose one or more distinct squad bots.');
+      }
+      if (!Number.isInteger(value.count) || value.count < 1 || value.count > value.slots.length) {
+        error(`${at}.${side}.veterancy`, 'The required count cannot exceed the selected bots.');
+      }
+    }
     for (const key of Object.keys(rows) as CondKind[]) {
       if (!allowed.includes(key)) {
         error(`${at}.${side}`, `'${key}' is not a condition this step takes.`);

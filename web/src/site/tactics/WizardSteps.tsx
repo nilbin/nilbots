@@ -71,7 +71,7 @@ export interface StepProps {
 // ConditionRows for overview. Positive rows are all AND in the editor;
 // Unless drops readiness because that row reads only one way.
 const noEveryoneRows = (rows: readonly CondKind[]) =>
-  rows.filter((kind) => kind !== 'groupsSet' && kind !== 'healed');
+  rows.filter((kind) => kind !== 'groupsSet' && kind !== 'healed' && kind !== 'veterancy');
 const noReadinessRows = (rows: readonly CondKind[]) =>
   rows.filter((kind) => kind !== 'groupsSet');
 
@@ -588,6 +588,10 @@ export function TransitionEditor(props: StepProps & { phaseIndex: number }) {
         maximum={3}
         accent="#c8763c"
         watchAdjective="orange"
+        slots={props.document.squad.map((bot) => ({
+          slot: bot.slot,
+          label: bot.name || `${bot.class} ${bot.slot + 1}`,
+        }))}
         requiredKinds={[...TRANSITION_ROWS]}
         triggerKinds={noEveryoneRows(TRANSITION_ROWS)}
         unlessKinds={noReadinessRows(TRANSITION_ROWS)}

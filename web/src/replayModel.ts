@@ -1470,6 +1470,15 @@ export type ReplayArcRelayFact =
       position: ReplayPosition;
     }
   | {
+      kind: 'veterancy-retained';
+      actor: ReplayActorIdentity;
+      previousLevel: number;
+      retainedLevel: number;
+      retainedTotalXp: number;
+      retainedSpentPoints: number;
+      position: ReplayPosition;
+    }
+  | {
       kind: 'zone-healed';
       actor: ReplayActorIdentity;
       amount: number;

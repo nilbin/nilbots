@@ -188,6 +188,46 @@ public sealed class GenericActorProjectileDeflectionTests
             item => item.Position == alliedTile);
     }
 
+    [Fact]
+    public void AlliedFireStopsOnALivingTeammateWithoutDamage()
+    {
+        var alliedTile = new Position(4, 3);
+        GenericActorMatchChronology chronology = Run(
+            WithAlliedBlocking(GuardedDefinition("teams")),
+            (_, observation) =>
+            {
+                if (observation.Self.ActorId.TeamId != 0)
+                    return GenericDeathmatchSessionTestFixture.Wait();
+                if (observation.Self.Position == WestTile)
+                {
+                    return observation.Tick >= 4
+                        ? GenericDeathmatchSessionTestFixture.Shoot()
+                        : GenericDeathmatchSessionTestFixture.Wait();
+                }
+                if (observation.Self.Position != alliedTile)
+                {
+                    return FrontlineLabsSkillArmTestFixture.WalkTo(
+                            observation,
+                            alliedTile)
+                        ?? GenericDeathmatchSessionTestFixture.Wait();
+                }
+                return GenericDeathmatchSessionTestFixture.Wait();
+            });
+
+        GenericActorProjectileTraversal[] alliedContacts =
+        [
+            .. chronology.Ticks.SelectMany(frame => frame.Traversals)
+                .Where(value => value.OwnerTeamId == 0
+                    && value.Path.Length > 0
+                    && value.Path[^1] == alliedTile
+                    && value.Terminal is GenericActorProjectileTraversal
+                        .TerminalDisposition.ActorContact),
+        ];
+        Assert.NotEmpty(alliedContacts);
+        Assert.Empty(chronology.Ticks.SelectMany(frame => Damages(frame)));
+        Assert.Empty(chronology.Ticks.SelectMany(frame => Deflections(frame)));
+    }
+
     /// <summary>
     /// Two guarded bodies on one row, facing each other, both firing on tick
     /// zero. With <paramref name="turnAwayTick"/> set, team 0 turns north on
@@ -274,6 +314,53 @@ public sealed class GenericActorProjectileDeflectionTests
             source.Rules.ReplicationTransitions,
             source.Rules.TeamPerception,
             source.Rules.Collisions,
+            source.Rules.TickResolution);
+        return new ActorResolvedMatchDefinition(
+            rules,
+            source.Map,
+            source.Format,
+            source.Topology,
+            source.InitialDeployment,
+            source.LifecycleAssignments,
+            source.ParticipantRegionAssignments,
+            source.ModeMapBinding,
+            source.CapabilityVersions);
+    }
+
+    private static ActorResolvedMatchDefinition WithAlliedBlocking(
+        ActorResolvedMatchDefinition source)
+    {
+        ActorCollisionDefinition old = source.Rules.Collisions;
+        var collisions = new ActorCollisionDefinition(
+            old.ActorsBlockWalls,
+            old.ActorsBlockActors,
+            old.SameDestinationMovesBlockAll,
+            old.SwapMovesBlocked,
+            old.FollowingVacatedActorAllowed,
+            old.ProjectilesBlockMovement,
+            old.MovingOntoProjectileCausesHit,
+            old.WallsConsumeProjectiles,
+            old.ProjectilesIgnoreFiringLife,
+            old.ProjectilesStopOnFirstEnemyActor,
+            old.ProjectilesCollideWithProjectiles,
+            ActorCollisionDefinition.AlliedProjectileContactKind
+                .BlockWithoutDamage);
+        var rules = new ActorRulesDefinition(
+            "generic-deathmatch-allied-shot-block-fixture",
+            source.Rules.Limits,
+            source.Rules.SeedMechanics,
+            source.Rules.GameMode,
+            source.Rules.Lifecycle,
+            source.Rules.Forms,
+            source.Rules.MovementProfiles,
+            source.Rules.VisionProfiles,
+            source.Rules.AttackProfiles,
+            source.Rules.Actions,
+            source.Rules.FabricationTransitions,
+            source.Rules.SameLifeTransitions,
+            source.Rules.ReplicationTransitions,
+            source.Rules.TeamPerception,
+            collisions,
             source.Rules.TickResolution);
         return new ActorResolvedMatchDefinition(
             rules,

@@ -215,6 +215,30 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void VeteranTransitionTargetsSelectedRosterSlots()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!
+            ["required"]!["veterancy"] = JsonNode.Parse(
+                """{"level":3,"slots":[0,3],"count":2}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        string orders = Encoding.UTF8.GetString(
+            compilation.MaterializedOrders!);
+
+        Assert.Contains("\"fact\": \"friendly-veterans-in-roles\"", orders);
+        Assert.Contains("\"level\": 3", orders);
+        Assert.Contains("\"operator\": \"at-least\"", orders);
+        Assert.Contains("\"value\": 2", orders);
+        Assert.Contains("\"vex\"", orders);
+        Assert.Contains("\"flux\"", orders);
+    }
+
+    [Fact]
     public void ReleaseOrsSeveralTriggerRowsInsideTheReadinessGate()
     {
         // Two ticked release rows OR together in the transition case's any()

@@ -26,20 +26,21 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
   coreLost: 'The Core is lost',
   reached: 'The destination is reached',
   observed: 'The ground has been watched long enough',
+  veterancy: 'Selected bots reach a veteran level',
 };
 
 /** Presentation grouping: every side shows its rows bucketed under these
  * headings, in this order, so a player scans for "the Core rows" instead
  * of a flat list (the old "More conditions" fold is gone). */
 const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
-  { label: 'Our team', kinds: ['groupsSet', 'healed'] },
+  { label: 'Our team', kinds: ['groupsSet', 'healed', 'veterancy'] },
   { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'notFighting'] },
   { label: 'Cores', kinds: ['coreLoose', 'coreSoon', 'coreAcquired'] },
 ];
 
 export function ConditionRows({
   conds, kinds, accent, watchSymbol = '⚡', watchAdjective,
-  watching, onChange, onDrawWatch, onStopWatch, onBranch,
+  slots, watching, onChange, onDrawWatch, onStopWatch, onBranch,
 }: {
   conds: TacticConds;
   kinds: ConditionRowKind[];
@@ -48,6 +49,7 @@ export function ConditionRows({
   watchSymbol?: string;
   /** Names the box's colour in the hint ("pale", "orange"). */
   watchAdjective?: string;
+  slots?: { slot: number; label: string }[];
   /** Which drawable row of THIS rows object is being drawn right now. */
   watching?: { row: 'enemiesAt' | 'cleared' | 'notFighting'; zoneIndex: number } | null;
   onChange: (conds: TacticConds) => void;
@@ -82,6 +84,12 @@ export function ConditionRows({
           else if (kind === 'groupsSet') next.groupsSet = { allowedLate: 0 };
           else if (kind === 'held') next.held = { ticks: 40 };
           else if (kind === 'healed') next.healed = { percent: 90 };
+          else if (kind === 'veterancy') next.veterancy = {
+            level: 2,
+            slots: (slots ?? Array.from({ length: 8 }, (_, slot) => ({ slot, label: `Bot ${slot + 1}` })))
+              .map((value) => value.slot),
+            count: 1,
+          };
           else if (kind === 'enemiesAt') next.enemiesAt = { count: 5, zones: [{ name: 'mid', rect: ZONE_OPTIONS[0].rect }] };
           else if (kind === 'contact') next.contact = true;
           else if (kind === 'coreLoose') next.coreLoose = { well: 'centre' };
@@ -213,6 +221,48 @@ export function ConditionRows({
           onChange={(value) => set((next) => { next.healed!.percent = value; })} />
         <span className="t-micro text-arena-dim">%</span>
       </>, on));
+      return;
+    }
+    if (kind === 'veterancy') {
+      const on = Boolean(conds.veterancy);
+      const choices = slots ?? Array.from(
+        { length: 8 },
+        (_, slot) => ({ slot, label: `Bot ${slot + 1}` }),
+      );
+      rows.push(row('veterancy', ROW_LABELS.veterancy!, on && conds.veterancy && (
+        <div className="flex w-full flex-col gap-1.5" onClick={(event) => event.stopPropagation()}>
+          <div className="flex flex-wrap items-center gap-1">
+            <span className="t-micro text-arena-dim">At least</span>
+            <CountStepper value={conds.veterancy.count} min={1}
+              max={Math.max(1, conds.veterancy.slots.length)}
+              onChange={(value) => set((next) => { next.veterancy!.count = value; })} />
+            <span className="t-micro text-arena-dim">reach level</span>
+            <CountStepper value={conds.veterancy.level} min={2} max={5}
+              onChange={(value) => set((next) => { next.veterancy!.level = value; })} />
+          </div>
+          <div className="flex flex-wrap gap-1" aria-label="Bots whose veterancy counts">
+            {choices.map((choice) => {
+              const selected = conds.veterancy!.slots.includes(choice.slot);
+              return <button key={choice.slot} type="button"
+                className={`btn !min-h-6 !px-1.5 !text-[10px] ${selected ? '!border-arena-accent !text-arena-text' : 'opacity-55'}`}
+                aria-pressed={selected}
+                title={`${selected ? 'Stop counting' : 'Count'} ${choice.label}`}
+                onClick={() => set((next) => {
+                  const current = next.veterancy!;
+                  if (current.slots.includes(choice.slot)) {
+                    if (current.slots.length === 1) return;
+                    current.slots = current.slots.filter((slot) => slot !== choice.slot);
+                    current.count = Math.min(current.count, current.slots.length);
+                  } else {
+                    current.slots = [...current.slots, choice.slot].sort((a, b) => a - b);
+                  }
+                })}>
+                {choice.label}
+              </button>;
+            })}
+          </div>
+        </div>
+      ), on));
       return;
     }
     if (kind === 'held') {
@@ -393,7 +443,7 @@ export function ConditionRows({
 export function CaseListEditor<T extends TacticCase>({
   cases, maximum = 3, accent, watchSymbol, watchAdjective,
   requiredKinds, triggerKinds, unlessKinds, makeCase, onChange,
-  caseFooter, watching, onDrawWatch, onStopWatch,
+  caseFooter, slots, watching, onDrawWatch, onStopWatch,
 }: {
   cases: T[];
   maximum?: number;
@@ -407,6 +457,7 @@ export function CaseListEditor<T extends TacticCase>({
   makeCase: () => T;
   onChange: (cases: T[]) => void;
   caseFooter?: (value: T, update: (apply: (next: T) => void) => void, index: number) => React.ReactNode;
+  slots?: { slot: number; label: string }[];
   /** Which case/side/row is being drawn on the map, if any. */
   watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' | 'notFighting'; zoneIndex: number } | null;
   onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared' | 'notFighting', zoneIndex: number) => void;
@@ -511,6 +562,7 @@ export function CaseListEditor<T extends TacticCase>({
               conds={positiveRows(value)}
               kinds={positiveKinds}
               accent={accent}
+              slots={slots}
               watchSymbol={watchSymbol}
               watchAdjective={watchAdjective}
               watching={watching && watching.caseIndex === index
@@ -536,6 +588,7 @@ export function CaseListEditor<T extends TacticCase>({
                   conds={value.unless ?? {}}
                   kinds={unlessKinds!}
                   accent={accent}
+                  slots={slots}
                   watchSymbol={watchSymbol}
                   watchAdjective={watchAdjective}
                   watching={watching && watching.caseIndex === index

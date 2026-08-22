@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Broadloom promotion — implementation report</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; background: #0b1017; color: #dbe4ee; font: 15px/1.55 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 860px; margin: 0 auto; padding: 20px 16px 80px; }
+  h1 { font-size: 1.45rem; margin: 8px 0 2px; }
+  h2 { font-size: 1.08rem; margin: 28px 0 8px; color: #93c5fd; border-bottom: 1px solid #1e2a3a; padding-bottom: 4px; }
+  .sub { color: #8195ab; font-size: .9rem; margin-bottom: 18px; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .84em; }
+  .fp { word-break: break-all; color: #9fb4cc; }
+  table { border-collapse: collapse; width: 100%; font-size: .88rem; margin: 8px 0; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid #1a2433; vertical-align: top; }
+  th { color: #8ca3bd; font-weight: 600; }
+  td.n, th.n { text-align: right; font-family: ui-monospace, Menlo, monospace; }
+  .ok { color: #4ade80; }
+  .warn { color: #fbbf24; }
+  .card { background: #101826; border: 1px solid #1c2a3d; border-radius: 10px; padding: 12px 14px; margin: 10px 0; }
+  .imgrow { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .imgrow figure { margin: 0; }
+  .imgrow img { width: 100%; border-radius: 8px; border: 1px solid #223146; }
+  figcaption { font-size: .8rem; color: #8195ab; margin-top: 4px; }
+  ul { margin: 6px 0; padding-left: 20px; }
+  li { margin: 3px 0; }
+  a { color: #7dd3fc; }
+  .tot { font-size: 1.02rem; }
+  @media (max-width: 560px) { .imgrow { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Broadloom promotion — implementation report</h1>
+<p class="sub">broadloom-1 · playlist v33 · neutral veterancy Workshops · 2026-08-22 · branch <code>agent/broadloom-probe</code></p>
+
+<div class="card tot">
+  <b class="ok">Promoted and verified.</b> <code>Current ⇒ Broadloom1</code>, hosted playlist <b>v33</b> minted with a fresh rating book, all acceptance suites green — <b>2,594 .NET tests + 645 web tests, zero failures</b> — and the Compose app at <code>127.0.0.1:8080</code> refreshed from this branch against the established persistent database (28 users, 10 sheets, 95 matches intact; Google sign-in advertised and challenging).
+</div>
+
+<h2>Identities (append-only, minted from source)</h2>
+<table>
+<tr><th>Surface</th><th>Identity</th></tr>
+<tr><td>Profile / ruleset / map</td><td><code>broadloom-1</code> · <code>arc-relay-broadloom-1</code> · <code>arc-relay-broadloom-01</code> v1 (37×27, 681 open tiles)</td></tr>
+<tr><td>Hosted playlist</td><td><b>v33</b>, fresh rating book; v32 (complete-observation Tapline-14) immutable history with provenance bytes preserved exactly and validated as <code>CreateHistoricalV32</code></td></tr>
+<tr><td>Entrant stock</td><td><code>tempered-broadloom-v1</code> — authored as a Tactics document, pinned as its materialized Orders + map plan</td></tr>
+<tr><td>Engine size contract</td><td>width/height ≤ 37 under a 1,024-cell budget; 37×27 passes, overflow rejected, every historical map byte-identical</td></tr>
+<tr><td>SDK</td><td>0.10.16 — additive Workshop contract (context, canonical reader, tagged observation/event codecs); CLI stays 0.9.70 per the v29–v32 promotion precedent (the release checkpoint owns the bump)</td></tr>
+</table>
+
+<h2>Fingerprints</h2>
+<table>
+<tr><td>rules</td><td class="fp mono">c86c3316833280fa4760de0f3c9d5f613b43c3c7d94a4033296fc2cad38ca8ce</td></tr>
+<tr><td>map</td><td class="fp mono">59127ad0012ae10eb6f154f7d13d3bfff442abb6e97b28fdfd33f13782f1ce16</td></tr>
+<tr><td>v33 definition</td><td class="fp mono">5ed88ecdb0a05d024ca47058661e622a1682215388965e6dcc6abc6d1ff1ee4a</td></tr>
+<tr><td>tactical mirror artifact</td><td class="fp mono">457e0e1e391557c18cbf0616d345c7749c7aaf7f7973c8e41bf0e56513184630</td></tr>
+<tr><td>mirror build input</td><td class="fp mono">e5a2f950fa81d05c769afd04b627e341bc0a7b0d3bb877867ed231bcf7899ffb</td></tr>
+<tr><td>stock playbook pin</td><td class="fp mono">9373f4d554aa45fe36d1facb3d4dde8b4ce02c3c3c6eb089fba5404f7f236c33</td></tr>
+<tr><td>stock map plan pin</td><td class="fp mono">fd3995dab73d8af319aa74fa3a2cb857ec1ea26047667058891177681b6fcd10</td></tr>
+</table>
+
+<h2>Workshop chronology (deterministic, documented)</h2>
+<ul>
+<li>Evaluation runs inside <code>ApplyJointTick</code> <b>after</b> movement, attacks, damage, destructions and after-combat signatures; the session supplies per-tick moved/displaced, combat-acting and damaged actor sets.</li>
+<li>The arrival tick never qualifies (arrival is a move). Unlock tick 25 doubles as the first qualifying tick. Completion tick C ⇒ publicly Ready again at C+1+45.</li>
+<li>Channel identity is team+slot+life: death, respawn or rejoining never inherits progress; no cross-team aliasing.</li>
+<li>Proven cadence at seed after seed: sessions 26→40, 86→100, 146→160 … every 60 ticks; 8/8 sessions per protected match; the dormancy boundary exact on every completion.</li>
+<li>Fog narrowing deliberately preserves Workshop state — it is a public neutral-objective signal; nothing else leaks.</li>
+</ul>
+
+<h2>Practice proofs — 19 seeded matches on broadloom-1 (mechanics evidence, not balance)</h2>
+<table>
+<tr><th>Scenario</th><th>Result</th></tr>
+<tr><td>Protected training (trainer vs turtle ×3 seeds)</td><td class="ok">8/8 sessions per match, exact 15-tick channels, exact dormancy, 4 level events (cap reached)</td></tr>
+<tr><td>Disruption route (east-seat authored loop)</td><td class="ok">2 interruptions per match, reason <code>contested</code>; loop holds 380–460 body-ticks in the contest room</td></tr>
+<tr><td>Suppression (mirrored seat)</td><td class="ok">standing contest denies every completion (0 in 600 ticks; 503 contest body-ticks)</td></tr>
+<tr><td>Workshop feint → outer-Well raid (vs a two-phase guard doc)</td><td class="ok">3/3 seeds — the public Training signal fires the guard's <code>workshopTraining{team:enemy}</code> transition, custody rotates 304–384 body-ticks into the contest room, raiders bank 1–2 Cores from the abandoned Well</td></tr>
+<tr><td>Contest resolves → survivors continue</td><td class="ok"><code>workshopDone</code> row drives the phase transition at t40 every seed; the trainee provably leaves the tile and takes its centre post</td></tr>
+<tr><td>Demolition March pressure (both orientations ×3 seeds)</td><td class="ok">34 completions under march pressure; <code>demolition-march-v2</code> — now a Tactics document per instruction — stands as the deathball regression opponent</td></tr>
+</table>
+<p class="sub">Geometry note settled en route: authored posts/patrols mirror 180° with the seat, while Workshop ids are global — contest routes are authored per seat, and the docs record it.</p>
+
+<h2>Viewer evidence — both renderers read the same public state</h2>
+<div class="imgrow">
+  <figure><img src="crop-workshop-t33.png" alt="Canvas2D training"><figcaption>Canvas2D, t33 — violet anvil bench, training arc in the team accent, 8/15</figcaption></figure>
+  <figure><img src="crop-workshop-t40.png" alt="Canvas2D completion"><figcaption>Canvas2D, t40 — +1 XP flash, 46-tick dormancy countdown begins</figcaption></figure>
+  <figure><img src="z-three-t33.png" alt="WebGL training"><figcaption>WebGL, t33 — hex rig with capture-arc dial and progress badge</figcaption></figure>
+  <figure><img src="z-three-t40.png" alt="WebGL completion"><figcaption>WebGL, t40 — completion beat ring and XP flash</figcaption></figure>
+</div>
+<p>Replay v3, the SDK observation, the wire codec, the site viewers and the Tactics editor all read the identical <code>workshops</code> mode state; each surface carries its own tests. The event feed names the trainee only where the completion fact carries it.</p>
+
+<h2>What the deterministic proofs caught (engine truths, found by proving)</h2>
+<ul>
+<li><b>Canonical replay reader rejected Workshop replays.</b> The exact mode-state shape check never learned <code>workshops</code>, so full verification of any Workshop replay failed. Fixed as the gated optional it is; splice coverage now round-trips every lifecycle fact kind.</li>
+<li><b>Signature-rail declarations aborted replay writing.</b> The replay contract marked the strike lock optional only for windup <em>attacks</em>; the smart Rail's heading-only full-lane declaration (the pinned v32 scene behavior) failed on signature strikes. The documented rule — “UnitTarget is a lock, not a required aiming argument” — now applies to signature strikes too. The mind keeps unlocked declarations, and the mirror bytes stayed identical to the pinned receipt.</li>
+<li><b>The stage command dropped Workshop rules in its mode copy</b> — the new binding-coverage validator caught it immediately.</li>
+</ul>
+
+<h2>Product sheets and editor</h2>
+<ul>
+<li>Starters: <code>first-stand-v2</code> (now sends one body to <b>train at the north Workshop</b>), <code>mid-pincer-v2</code> (two-phase pincer). Stock practice opponents: <code>demolition-march-v2</code> (Tactics), <code>idle-field-v2</code>. All Broadloom-native; v1 files remain tracked history.</li>
+<li>Editor: “Train at Workshop” job (workshop selector North/South/Either, one-bot rule, wait posture, constraint copy), six new condition rows with plain-language labels, summary readback (“Gantry trains at the north Workshop”), practice readback that says <em>why progress stopped</em> (contested / took damage / moved / carrying / recharging), recipes and named places re-anchored on the real Broadloom landmarks. 645 web tests green, production build clean.</li>
+</ul>
+
+<h2>Acceptance totals</h2>
+<table>
+<tr><th>Suite</th><th class="n">Passed</th><th>Note</th></tr>
+<tr><td>Engine</td><td class="n">1587</td><td>includes 12 Workshop rules tests + 2 replay round-trip proofs; historical goldens byte-exact</td></tr>
+<tr><td>App</td><td class="n">314</td><td>PostgreSQL half included; a real broadloom-1 match executes through the hosted queue; 3 release-gated skips</td></tr>
+<tr><td>Cli</td><td class="n">378</td><td>materializer, movement scenes (pinned to their authored geometry), signature stages</td></tr>
+<tr><td>Tactical mind</td><td class="n">103</td><td></td></tr>
+<tr><td>Sdk</td><td class="n">90</td><td>Workshop wire round-trips incl. the empty historical default</td></tr>
+<tr><td>Runtime.Wasm</td><td class="n">69</td><td></td></tr>
+<tr><td>Guest / Determinism</td><td class="n">36 / 17</td><td>guest artifact rebuilt for SDK 0.10.16</td></tr>
+<tr><td>Web</td><td class="n">645</td><td>viewers + editor; golden frames unchanged; production build clean</td></tr>
+<tr><td>Analyzer skill / candidate</td><td class="n">15 / all</td><td>self-test OK; <code>verify.py</code> re-run on the branch passes</td></tr>
+</table>
+
+<h2>Compose refresh (established persistent database)</h2>
+<ul>
+<li><code>nilbots-app-1</code> rebuilt from this branch and healthy; <code>nilbots-db-1</code> untouched at 47 hours; volume <code>nilbots_pgdata</code> reused — <b>no fresh database</b>.</li>
+<li>Users 28, sheets 10, matches 95 — identical before and after.</li>
+<li>Google sign-in: <code>/api/accounts/providers → {"google":true}</code>, challenge route 302s into OAuth; sheet APIs auth-gated (401 anonymous).</li>
+<li>Seeded v33 = <code>arc-relay-broadloom-1</code> with the definition fingerprint above; v32 and older rows untouched.</li>
+<li><b>One collision found and repaired:</b> a parallel session had seeded its unpublished Tapline-15 experiment as v33 into this shared database (zero matches). The codified unpublished-row repair (the Tapline-9 precedent) now covers that exact fingerprint; my v31/v32 definitions reproduce the database’s immutable fingerprints byte-for-byte, proving only the conflicted row moved. The Tapline map line is superseded by Broadloom; that arm’s surviving rules ideas would be re-authored against Broadloom under a new identity.</li>
+</ul>
+
+<h2>Remaining hypotheses (deliberately unsettled — balance, not mechanics)</h2>
+<ul>
+<li>Raid economics still hinge on authored escort/custody (the settlement battery’s finding stands).</li>
+<li>Workshop side-theatre value shows up as level events and displaced custody, not raw bank swings; whether one veterancy point per hold is the right price is a tuning question.</li>
+<li>Turtle remains non-viable. Demolition March records here are regression evidence only.</li>
+</ul>
+
+<h2>Deferred to the release checkpoint (owner call)</h2>
+<ul>
+<li><code>publish-cli</code> + CLI version bump, WASM cross-runtime parity verifier, production deployment of playlist v33.</li>
+</ul>
+
+<p class="sub">Companion pages: <a href="atlas.html">map atlas</a> · <a href="probe.html">settlement probe</a>. Final commit SHA in the chat report.</p>
+</main>
+</body>
+</html>

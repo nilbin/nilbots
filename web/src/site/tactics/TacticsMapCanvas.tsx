@@ -3,7 +3,7 @@ import type { TacticalSheetCatalog } from '../api';
 import { BaseMap } from './BaseMap';
 import { projectPhaseBots, slotsInMapRect } from './botProjection';
 import {
-  facingFromPointer, materializeSpatialJob, rotatePostSelection,
+  facingFromPointer, materializeSpatialJob, phasePaintOrder, rotatePostSelection,
   translatePostSelection,
 } from './mapFirstSpatial';
 import { classSprite } from './classArt';
@@ -511,10 +511,13 @@ export function TacticsMapCanvas({
                 editable={editable(tactic)} startDrag={startDrag} pathfinder={path}
                 activePhaseIndex={activePhaseIndex} showAllPhases={showAllPhases}
                 showAdjacentPhases={showAdjacentPhases} />
-              {tactic.phases.map((phase, phaseIndex) => {
+              {phasePaintOrder(
+                tactic.phases.length, activePhaseIndex ?? 0,
+                showAllPhases, showAdjacentPhases,
+              ).map((phaseIndex) => {
+                const phase = tactic.phases[phaseIndex]!;
                 const focus = activePhaseIndex ?? 0;
                 const distance = Math.abs(phaseIndex - focus);
-                if (!showAllPhases && distance > (showAdjacentPhases ? 1 : 0)) return null;
                 const phaseOpacity = phaseIndex === focus
                   ? 1 : distance === 1 ? .24 : .12;
                 return (
@@ -552,6 +555,10 @@ export function TacticsMapCanvas({
                           color={shade} />}
                       </g>;
                     })()}
+                  <PhasePostControls tactic={tactic} phaseIndex={phaseIndex}
+                    editable={editable(tactic) && phaseIndex === focus}
+                    allowInheritedSpatialEditing={allowInheritedSpatialEditing}
+                    selectedSlots={selectedSlots} startDrag={startDrag} />
                 </g>
                 );
               })}
@@ -1049,18 +1056,6 @@ export function JobOverlay({
                 <circle key={wi} cx={wx + .5} cy={wy + .5} r={.1} fill={color} opacity=".75" />)}
             </g>
           )}
-          {geometryEditable && <>
-            <Handle cx={cx} cy={cy} r={.42}
-              onDown={(event) => startDrag(event, {
-                kind: 'post', groupId: group.id, phaseIndex, index, slot,
-                slots: selectedSlots.includes(slot) ? [...selectedSlots] : [slot], origin: [x, y],
-              })} />
-            <Handle cx={tipX} cy={tipY} r={.3}
-              onDown={(event) => startDrag(event, {
-                kind: 'postface', groupId: group.id, phaseIndex, index, slot,
-                slots: selectedSlots.includes(slot) ? [...selectedSlots] : [slot],
-              })} />
-          </>}
         </g>);
       });
     }
@@ -1172,6 +1167,74 @@ export function JobOverlay({
   }
 
   return <>{parts}</>;
+}
+
+/** Post controls are deliberately separate from Post pictures. Rendering one
+ * topmost phase-level interaction layer means a neighbouring bot, signature
+ * mark, or later group can never bury the rotation grip at an arrow tip. */
+export function PhasePostControls({
+  tactic, phaseIndex, editable,
+  allowInheritedSpatialEditing = false, selectedSlots = [], startDrag,
+}: {
+  tactic: Tactic;
+  phaseIndex: number;
+  editable: boolean;
+  allowInheritedSpatialEditing?: boolean;
+  selectedSlots?: readonly number[];
+  startDrag: (event: React.PointerEvent, target: DragTarget) => void;
+}) {
+  if (!editable) return null;
+  const controls = tactic.groups.flatMap((group) => {
+    const resolution = effectiveJobResolution(tactic, phaseIndex, group.id);
+    if (!resolution || !resolution.job.posts) return [];
+    const inherited = resolution.inherited;
+    const geometryEditable = !inherited || (allowInheritedSpatialEditing
+      && (resolution.job.kind === 'posts' || resolution.job.kind === 'patrol'));
+    if (!geometryEditable) return [];
+    const color = phaseShade(
+      groupColor(tactic, group.id), phaseIndex, tactic.phases.length);
+    return resolution.job.posts.map((post, index) => {
+      const slot = post.slot ?? group.slots[index];
+      if (slot == null) return null;
+      const [x, y] = post.at;
+      const [fx, fy] = FACING_DELTAS[post.facing];
+      const angle = Math.atan2(fy, fx);
+      return {
+        groupId: group.id, index, slot, x, y, color,
+        // Keep the grip just beyond this bot, rather than at the arrow tip.
+        // With bots on neighbouring tiles this leaves the neighbour's centre
+        // free to grab while the turn control remains visible above its edge.
+        tipX: x + .5 + Math.cos(angle) * .68,
+        tipY: y + .5 + Math.sin(angle) * .68,
+        selected: selectedSlots.includes(slot),
+      };
+    }).filter((value): value is NonNullable<typeof value> => value !== null);
+  }).sort((left, right) => Number(left.selected) - Number(right.selected)
+    || left.slot - right.slot);
+  if (!controls.length) return null;
+  return <g data-testid={`phase-post-controls-${phaseIndex}`}>
+    {/* Position targets stay below every rotation grip. If the two overlap,
+        turning remains available—the operation that used to be buried. */}
+    {controls.map((control) => <Handle
+      key={`move-${control.groupId}-${control.index}`}
+      cx={control.x + .5} cy={control.y + .5} r={.42}
+      onDown={(event) => startDrag(event, {
+        kind: 'post', groupId: control.groupId, phaseIndex,
+        index: control.index, slot: control.slot,
+        slots: control.selected ? [...selectedSlots] : [control.slot],
+        origin: [control.x, control.y],
+      })} />)}
+    {controls.map((control) => <FacingGrip
+      key={`face-${control.groupId}-${control.index}`}
+      cx={control.tipX} cy={control.tipY} color={control.color}
+      selected={control.selected}
+      testId={`post-facing-handle-${phaseIndex}-${control.groupId}-${control.slot}`}
+      onDown={(event) => startDrag(event, {
+        kind: 'postface', groupId: control.groupId, phaseIndex,
+        index: control.index, slot: control.slot,
+        slots: control.selected ? [...selectedSlots] : [control.slot],
+      })} />)}
+  </g>;
 }
 
 function TaskLayer({ task, hover, rectDraft, hints, pathfinder, document }: {
@@ -1315,6 +1378,24 @@ function Handle({ cx, cy, onDown, cursor = 'grab', r = .3 }: {
 }) {
   return <circle cx={cx} cy={cy} r={r} fill="#fff1d8" fillOpacity=".001"
     cursor={cursor} onPointerDown={onDown} />;
+}
+
+function FacingGrip({ cx, cy, color, selected, testId, onDown }: {
+  cx: number;
+  cy: number;
+  color: string;
+  selected: boolean;
+  testId: string;
+  onDown: (event: React.PointerEvent) => void;
+}) {
+  return <g data-testid={testId} cursor="grab" onPointerDown={onDown}>
+    <circle cx={cx} cy={cy} r={.26} fill="#fff1d8" fillOpacity=".001" />
+    <circle cx={cx} cy={cy} r={selected ? .19 : .15} fill="#06090c"
+      stroke={selected ? '#e9fbff' : color} strokeWidth={selected ? .09 : .065}
+      pointerEvents="none" />
+    <circle cx={cx} cy={cy} r={.055} fill={color} pointerEvents="none" />
+    <title>Drag to turn</title>
+  </g>;
 }
 
 function ChipLabel({

@@ -8,6 +8,25 @@ import {
 
 const pointKey = ([x, y]: Point) => `${x},${y}`;
 
+/** Paint quiet phase context first and the selected phase last. SVG has no
+ * z-index for ordinary children, so DOM order is the honest stacking rule. */
+export function phasePaintOrder(
+  phaseCount: number,
+  focus: number,
+  showAllPhases: boolean,
+  showAdjacentPhases: boolean,
+): number[] {
+  if (phaseCount <= 0) return [];
+  const selected = Math.min(Math.max(focus, 0), phaseCount - 1);
+  const visible = Array.from({ length: phaseCount }, (_, index) => index)
+    .filter((index) => showAllPhases
+      || Math.abs(index - selected) <= (showAdjacentPhases ? 1 : 0));
+  return [
+    ...visible.filter((index) => index !== selected),
+    ...(visible.includes(selected) ? [selected] : []),
+  ];
+}
+
 /**
  * Copy-on-write boundary for inherited ground. A `none` job remains the saved
  * inheritance spelling until the first spatial edit. At that moment only the

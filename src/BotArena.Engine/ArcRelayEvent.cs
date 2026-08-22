@@ -24,6 +24,14 @@ public abstract record ArcRelayEvent
         int Level,
         Position Position) : ArcRelayEvent;
 
+    public sealed record VeterancyRetained(
+        ActorIdentity ActorId,
+        int PreviousLevel,
+        int RetainedLevel,
+        int RetainedTotalXp,
+        int RetainedSpentPoints,
+        Position Position) : ArcRelayEvent;
+
     public sealed record ZoneHealed(
         ActorIdentity ActorId,
         int Amount,

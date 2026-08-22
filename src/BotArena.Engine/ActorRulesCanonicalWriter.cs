@@ -303,6 +303,12 @@ internal static class ActorRulesCanonicalWriter
             writer.WriteNumber(
                 "veterancyXpPerLevel", mode.VeterancyXpPerLevel);
             writer.WriteNumber("veterancyMaxLevel", mode.VeterancyMaxLevel);
+            if (mode.VeterancyDeathRetentionPercent != 0)
+            {
+                writer.WriteNumber(
+                    "veterancyDeathRetentionPercent",
+                    mode.VeterancyDeathRetentionPercent);
+            }
         }
         if (mode.SeedPhasedResolutionOrder)
         {

@@ -302,6 +302,7 @@ export interface ReplayV3ArcRelayModeDefinition extends ReplayV3JsonObject {
   rearArcDamageMultiplier?: number;
   veterancyXpPerLevel?: number;
   veterancyMaxLevel?: number;
+  veterancyDeathRetentionPercent?: number;
   seedPhasedResolutionOrder?: true;
   seedPhasedWellLead?: true;
   chiralWellBirths?: true;
@@ -1171,6 +1172,7 @@ export type ReplayV3ArcRelayFact =
   | (ReplayV3JsonObject & { kind: 'core-born'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position; chargeValue?: number })
   | (ReplayV3JsonObject & { kind: 'core-ripened'; coreId: ReplayV3ArcCoreId; position: ReplayV3Position; value: number })
   | (ReplayV3JsonObject & { kind: 'leveled-up'; actorId: ReplayV3ActorId; level: number; position: ReplayV3Position })
+  | (ReplayV3JsonObject & { kind: 'veterancy-retained'; actorId: ReplayV3ActorId; previousLevel: number; retainedLevel: number; retainedTotalXp: number; retainedSpentPoints: number; position: ReplayV3Position })
   | (ReplayV3JsonObject & { kind: 'zone-healed'; actorId: ReplayV3ActorId; amount: number; newHealth: number; position: ReplayV3Position })
   | (ReplayV3JsonObject & { kind: 'core-picked-up'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId; position: ReplayV3Position; nextRelocationTick: number })
   | (ReplayV3JsonObject & { kind: 'core-relocated'; coreId: ReplayV3ArcCoreId; carrierActorId: ReplayV3ActorId | null; from: ReplayV3Position; to: ReplayV3Position; nextRelocationTick: number; relocationKind: string })

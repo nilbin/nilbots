@@ -66,7 +66,9 @@ public sealed record ArcRelayLoopProfile
         bool movingPrismScreen = false,
         bool contextualCombatStrafeMovement = false,
         bool sentryTeamVision = false,
-        bool reactiveImpactFacing = false)
+        bool reactiveImpactFacing = false,
+        int veterancyDeathRetentionPercent = 0,
+        bool alliedProjectilesBlock = false)
     {
         if (combatMagnitudeScale <= 0)
             throw new ArgumentOutOfRangeException(nameof(combatMagnitudeScale));
@@ -127,6 +129,13 @@ public sealed record ArcRelayLoopProfile
         ContextualCombatStrafeMovement = contextualCombatStrafeMovement;
         SentryTeamVision = sentryTeamVision;
         ReactiveImpactFacing = reactiveImpactFacing;
+        if (veterancyDeathRetentionPercent is < 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(veterancyDeathRetentionPercent));
+        }
+        VeterancyDeathRetentionPercent = veterancyDeathRetentionPercent;
+        AlliedProjectilesBlock = alliedProjectilesBlock;
         TeamRelativeCoreCharge = teamRelativeCoreCharge;
         VeteranCommand = veteranCommand;
         RespawnWavePeriodTicks = respawnWavePeriodTicks;
@@ -186,6 +195,7 @@ public sealed record ArcRelayLoopProfile
     internal int OmniProximityRange { get; }
     internal int VeterancyXpPerLevel { get; }
     internal int VeterancyMaxLevel { get; }
+    internal int VeterancyDeathRetentionPercent { get; }
     internal int HealZoneTicksPerHp { get; }
     internal bool SeedPhasedResolutionOrder { get; }
     internal bool RotationalSpawnAssignment { get; }
@@ -214,6 +224,7 @@ public sealed record ArcRelayLoopProfile
     internal int RespawnMinimumDeadTicks { get; }
     internal int MinimumDistinctClasses { get; }
     internal bool DurableDeployments { get; }
+    internal bool AlliedProjectilesBlock { get; }
     internal int CombatMagnitudeScale { get; }
     internal int BodyHullBonus { get; }
     internal int CentreOpeningDelayTicks { get; }
@@ -1667,11 +1678,67 @@ public sealed record ArcRelayLoopProfile
         reactiveImpactFacing: true);
 
     /// <summary>
+    /// Tapline-14 with stable-slot veteran careers and honest friendly firing
+    /// lanes. A destroyed slot retains half of its capped total XP; living
+    /// allies consume team projectiles without taking damage. Friendly
+    /// deployments remain transparent to their owner's fire.
+    /// </summary>
+    public static ArcRelayLoopProfile Tapline15 { get; } = new(
+        "tapline-15",
+        "arc-relay-tapline-15",
+        "arc-relay-tapline-03",
+        ArcRelayMapGeometry.TaplineSealedEntrancesStaggeredMidCover,
+        30, 65, 25, 1,
+        directionalCombat: true,
+        signatureGrammarVersion: 3,
+        wellBirthJitterTicks: 6,
+        alternatingResolutionOrder: true,
+        rearArcDamageMultiplier: 2,
+        omniProximityRange: 0,
+        veterancyXpPerLevel: 2,
+        veterancyMaxLevel: 5,
+        healZoneTicksPerHp: 3,
+        seedPhasedResolutionOrder: true,
+        rotationalSpawnAssignment: true,
+        chiralWellBirths: true,
+        strikeWindupTicks: 1,
+        followingVacatedActorAllowed: true,
+        teamRelativeCoreCharge: true,
+        veteranCommand: true,
+        respawnWavePeriodTicks: 30,
+        respawnMinimumDeadTicks: 15,
+        minimumDistinctClasses: 7,
+        durableDeployments: true,
+        combatMagnitudeScale: 10,
+        centreOpeningDelayTicks: 25,
+        arcTossTellTicks: 0,
+        arcTossTravelTilesPerTick: 3,
+        arcTossActivationTiming: ArcRelaySignatureDefinition
+            .ActivationTimingKind.AfterCombat,
+        bankTriggeredWellRechargeTicks: 46,
+        visionRange: 5,
+        shortAttackRange: 3,
+        mediumAttackRange: 4,
+        longAttackRange: 6,
+        swiftMoveOpportunitiesPerCycle: 1,
+        swiftMoveCycleTicks: 1,
+        standardMoveOpportunitiesPerCycle: 4,
+        standardMoveCycleTicks: 5,
+        deliberateMoveOpportunitiesPerCycle: 2,
+        deliberateMoveCycleTicks: 3,
+        movingPrismScreen: true,
+        contextualCombatStrafeMovement: true,
+        sentryTeamVision: true,
+        reactiveImpactFacing: true,
+        veterancyDeathRetentionPercent: 50,
+        alliedProjectilesBlock: true);
+
+    /// <summary>
     /// Owner-selected product line. Kept separate from H0 and every historical
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Tapline14;
+    public static ArcRelayLoopProfile Current => Tapline15;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1756,6 +1823,7 @@ public sealed record ArcRelayLoopProfile
         Tapline12,
         Tapline13,
         Tapline14,
+        Tapline15,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

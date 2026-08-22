@@ -159,7 +159,7 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
-    public void Tapline14CurrentAndHistoricalReleaseArtifactsRemainPinned()
+    public void Tapline15CurrentAndHistoricalReleaseArtifactsRemainPinned()
     {
         string root = FindRepoRoot();
         string projectDirectory = Path.Combine(
@@ -214,10 +214,10 @@ public sealed class MindToolchainSurfaceTests
             Sha256(Path.Combine(historicalTapline4Directory, "bot.wasm")));
         Assert.Equal("0.10.15", current.SdkVersion);
         Assert.Equal(
-            "07b7f90442bdd5b84e551b1fbaffc146565d006b867757bc9628f132cbc3774f",
+            "c55d76c77725600545787c8b35e6e5933aba565cfa817e198e906294e0a3081f",
             current.ArtifactSha256);
         Assert.Equal(
-            "98daa9559ba38dcc49e6673baba28ca8e15d03283fc6e36cc659745d1f8bf610",
+            "bcba66e53cc7343c58178dc5525877c5ada7f42983a41741b80e16f6e91dde48",
             current.BuildInputSha256);
         Assert.Equal(
             currentRelease.ArtifactSha256,

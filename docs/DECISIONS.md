@@ -9534,3 +9534,36 @@ occupies the footprint. Catalog copy and the map-first design reports state the
 same rule. A deterministic engine scene places the Mortar and an ally in the
 same cross as an enemy and pins hostile damage with zero allied signature
 damage.
+
+## 358. Tapline-15 promotes veteran careers and honest friendly firing lanes
+
+Owner promotion ruling (2026-08-22): a destroyed bot retains 50% of its capped
+total veterancy XP, rounded down. Progress belongs to the stable team-local
+roster slot, never to the same unit id on the opposing team. Retained XP
+re-derives level and remainder; if the lower level cannot support every spent
+point, the newest investments are removed first. The next life inherits the
+remaining level, XP and oldest investments. Historical profiles retain their
+exact per-life reset.
+
+Living allies now consume allied projectiles without taking damage. This
+applies to basic fire and projectile-delivered signatures such as Sentinel and
+Hook bolts. Rail still pierces any number of enemies but ends harmlessly at the
+first living ally. Friendly Sentries, Mines, Hardlight Blocks and Prism Screens
+remain transparent to allied fire; hostile shots still collide with and damage
+them. The first-party tactical executor treats allied bodies as real firing-
+lane obstructions when choosing targets and repositioning, including Smart
+Rail lanes, so the rule creates formation and crossfire play rather than a
+routine source of wasted shots.
+
+Tactics phase transitions add one player-facing veteran condition: select one
+or more named roster bots, choose level 2–5, and require at least N selected
+living bots to have reached it. It compiles to the ordinary condition and
+Instruction executor; there is no new scheduler or tactic state machine.
+
+The immutable product identity is profile `tapline-15`, ruleset
+`arc-relay-tapline-15`, on Tapline-14's unchanged map, economy, combat numbers,
+movement, roster and signatures. Hosted playlist v33 pins the rebuilt tactical
+artifact and starts a fresh rating book. Playlist v32 and profile Tapline-14
+remain resolvable immutable history. A proposed workshop/veterancy tile is
+explicitly deferred; this promotion tests durable careers and bodyguarding
+without adding another map objective at the same time.

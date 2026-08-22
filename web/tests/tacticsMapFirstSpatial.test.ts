@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TacticalSheetCatalog } from '../src/site/api.ts';
 import {
-  formationObjectivePoint, materializeSpatialJob, rotatePostSelection,
+  formationObjectivePoint, materializeSpatialJob, phasePaintOrder, rotatePostSelection,
   suggestFormationPosts, translatePostSelection,
 } from '../src/site/tactics/mapFirstSpatial.ts';
 import {
@@ -83,6 +83,12 @@ test('copy-on-write independently materializes an inherited patrol', () => {
   materialized.path![1] = [4, 3];
   assert.deepEqual(tactic.phases[0].jobs.group.path, source);
   assert.deepEqual(tactic.phases[1].jobs.group.path![1], [4, 3]);
+});
+
+test('phase paint order always puts the selected visible phase on top', () => {
+  assert.deepEqual(phasePaintOrder(4, 1, false, true), [0, 2, 1]);
+  assert.deepEqual(phasePaintOrder(4, 1, true, true), [0, 2, 3, 1]);
+  assert.deepEqual(phasePaintOrder(4, 3, false, false), [3]);
 });
 
 test('selection translation preserves offsets, snaps legally, and avoids reservations', () => {

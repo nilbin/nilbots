@@ -376,11 +376,13 @@ public sealed class GenericActorRulesContract
         /// Veterancy: XP per level (0 disables), kill XP is 1 plus the
         /// victim's level above 1, levels cap at
         /// <see cref="VeterancyMaxLevel"/>, each level past 1 grants a
-        /// skill point spent via the invest action, and death resets all
-        /// of it.
+        /// skill point spent via the invest action. Death retains the declared
+        /// percentage of total XP on the team-local roster slot; zero keeps
+        /// the historical full reset.
         /// </summary>
         public int VeterancyXpPerLevel { get; init; }
         public int VeterancyMaxLevel { get; init; }
+        public int VeterancyDeathRetentionPercent { get; init; }
 
         /// <summary>
         /// Heal zones: Waiting on a heal-region tile recovers the mode's

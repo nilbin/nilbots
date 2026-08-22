@@ -157,6 +157,10 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   }
   if (conds.held) out.push(`${conds.held.ticks} ticks have passed here`);
   if (conds.healed) out.push(`everyone is healed to ${conds.healed.percent}%`);
+  if (conds.veterancy) {
+    const selected = conds.veterancy.slots.length;
+    out.push(`${conds.veterancy.count} of ${selected} selected ${selected === 1 ? 'bot' : 'bots'} reach level ${conds.veterancy.level}`);
+  }
   if (conds.enemiesAt) {
     const count = zonesOf(conds.enemiesAt).length;
     const enemies = conds.enemiesAt.count === 1

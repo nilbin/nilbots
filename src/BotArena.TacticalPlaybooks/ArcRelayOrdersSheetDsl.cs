@@ -33,6 +33,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "formation-late-count",
             "friendly-carriers", "live-enemies",
             "friendly-carriers-in-roles",
+            "friendly-veterans-in-roles",
             "friendly-respawns-next-wave", "enemy-respawns-next-wave",
             "ticks-until-respawn-wave",
             "known-enemy-carriers", "visible-enemy-carriers",
@@ -103,6 +104,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         new(StringComparer.Ordinal)
         {
             "friendly-carriers-in-roles", "friendly-core-pickups",
+            "friendly-veterans-in-roles",
             "friendly-core-acquisitions", "friendly-core-banks",
             "friendly-core-drops", "friendly-core-losses",
             "friendly-core-resolutions", "formation-late-count",
@@ -321,6 +323,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "role", "zone", "well", "freshnessTicks",
                     "windowTicks", "since", "signature", "coreBankValue",
                     "roles", "zones", "correlateAcquisition", "outcomes",
+                    "level",
                 ]);
             string fact = RequiredString(property.Value, "fact", at);
             if (!ConditionFacts.Contains(fact))
@@ -374,6 +377,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             if (fact == "formation-late-count" && comparison is < 0 or > 2)
                 throw Error(at, "formation allowed-late must be in [0, 2].");
+            if (fact == "friendly-veterans-in-roles"
+                && comparison is < 0 or > 8)
+            {
+                throw Error(at, "veteran count must be in [0, 8].");
+            }
 
             bool hasRole = property.Value.TryGetProperty("role", out JsonElement role);
             bool hasRoles = property.Value.TryGetProperty("roles", out JsonElement roleList);
@@ -394,6 +402,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "correlateAcquisition", out JsonElement correlation);
             bool hasOutcomes = property.Value.TryGetProperty(
                 "outcomes", out JsonElement outcomes);
+            bool hasLevel = property.Value.TryGetProperty(
+                "level", out JsonElement level);
             if (RoleFacts.Contains(fact))
             {
                 // role-live-count alone may count across a roles list
@@ -410,7 +420,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             else if (hasRole)
                 throw Error(at, $"'{fact}' does not take role.");
-            if (fact is "friendly-carriers-in-roles" or "formation-late-count"
+            if (fact is "friendly-carriers-in-roles"
+                    or "friendly-veterans-in-roles"
+                    or "formation-late-count"
                 && !hasRoles)
                 throw Error(at, $"'{fact}' needs declared roles.");
             bool takesRoleList = RoleListFacts.Contains(fact)
@@ -425,6 +437,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             else if (!takesRoleList && hasRoles)
                 throw Error(at, $"'{fact}' does not take roles.");
+            if (fact == "friendly-veterans-in-roles")
+            {
+                if (!hasLevel || level.ValueKind != JsonValueKind.Number
+                    || !level.TryGetInt32(out int minimumLevel)
+                    || minimumLevel is < 2 or > 5)
+                {
+                    throw Error(at, $"'{fact}' needs level in [2, 5].");
+                }
+            }
+            else if (hasLevel)
+            {
+                throw Error(at, $"'{fact}' does not take level.");
+            }
             if (fact == "friendly-core-resolutions")
             {
                 if (!hasOutcomes)

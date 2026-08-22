@@ -749,6 +749,8 @@ public static class ActorCanonicalContractReader
             "rearArcDamageMultiplier", out _);
         bool hasVeterancy = element.TryGetProperty(
             "veterancyXpPerLevel", out _);
+        bool hasVeterancyRetention = element.TryGetProperty(
+            "veterancyDeathRetentionPercent", out _);
         bool hasSeedPhase = element.TryGetProperty(
             "seedPhasedResolutionOrder", out _);
         bool hasWellLead = element.TryGetProperty(
@@ -810,6 +812,9 @@ public static class ActorCanonicalContractReader
                 : System.Array.Empty<string>(),
             .. hasVeterancy
                 ? new[] { "veterancyXpPerLevel", "veterancyMaxLevel" }
+                : System.Array.Empty<string>(),
+            .. hasVeterancyRetention
+                ? new[] { "veterancyDeathRetentionPercent" }
                 : System.Array.Empty<string>(),
             .. hasSeedPhase
                 ? new[] { "seedPhasedResolutionOrder" }
@@ -919,6 +924,10 @@ public static class ActorCanonicalContractReader
                 : 0,
             VeterancyMaxLevel = hasVeterancy
                 ? Int(element, "veterancyMaxLevel")
+                : 0,
+            VeterancyDeathRetentionPercent = element.TryGetProperty(
+                    "veterancyDeathRetentionPercent", out JsonElement retention)
+                ? Int(retention)
                 : 0,
             HealZoneTicksPerHp = hasHealZones
                 ? Int(element, "healZoneTicksPerHp")

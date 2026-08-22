@@ -8,9 +8,10 @@ import type {
  *
  * Level is not part of the per-tick mode state — it exists in the replay only
  * as `leveled-up` facts — so the viewer folds those facts once per replay
- * here rather than in each renderer. The fold is per exact life
- * (team/unit/life): a respawn is a new life with no facts, which is precisely
- * the death-reset rule, so no explicit reset handling is needed.
+ * here rather than in each renderer. Levels are displayed per exact life,
+ * while a `veterancy-retained` fact seeds the next life of the same team-local
+ * roster slot. Replays from reset-on-death rules have no such fact and retain
+ * their historical fresh-life behavior.
  *
  * Heal channels are likewise fact-driven: the engine emits `zone-healed`
  * once per recovered point (every `healZoneTicksPerHp` waited ticks), so
@@ -53,6 +54,7 @@ export interface ArcVeterancyIndex {
 
 const lifeKey = (teamId: number, unitId: number, lifeId: number) =>
   `${teamId}:${unitId}:${lifeId}`;
+const slotKey = (teamId: number, unitId: number) => `${teamId}:${unitId}`;
 
 const cache = new WeakMap<
   ReplayModel,
@@ -78,28 +80,35 @@ const HEAL_GLOW_TICKS = 3;
 export const LEVEL_UP_BEAT_TICKS = 1.8;
 
 export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
-  const levels = new Map<string, { tick: number; level: number }[]>();
+  const levels = new Map<
+    string,
+    { tick: number; level: number; promoted: boolean }[]
+  >();
   const heals = new Map<string, number[]>();
   const vitalityInvestments = new Map<string, number[]>();
+  const retainedLevels = new Map<string, number>();
+  const investmentOrder = new Map<string, string[]>();
   for (const [tickIndex, tick] of replay.ticks.entries()) {
-    for (const turn of tick.actorTurns) {
-      if (
-        turn.actionResolution.validatedActionId !== 'invest' ||
-        turn.actionResolution.result !== 'success' ||
-        turn.actionResolution.validatedPayload?.upgradeTrackId !== 'vitality'
-      ) continue;
-      const key = lifeKey(
-        turn.actor.teamId,
-        turn.actor.unitId,
-        turn.actor.lifeId,
-      );
-      const ticks = vitalityInvestments.get(key) ?? [];
-      ticks.push(tickIndex);
-      vitalityInvestments.set(key, ticks);
-    }
-    for (const event of [...tick.lifecycleEvents, ...tick.events]) {
+    const foldEvent = (event: (typeof tick.events)[number]) => {
+      if (event.type === 'life-spawned' && event.sourceActor) {
+        const actor = event.sourceActor;
+        const stable = slotKey(actor.teamId, actor.unitId);
+        const retained = retainedLevels.get(stable);
+        if (retained !== undefined) {
+          const key = lifeKey(actor.teamId, actor.unitId, actor.lifeId);
+          levels.set(key, [{ tick: tickIndex, level: retained, promoted: false }]);
+          const vitality = (investmentOrder.get(stable) ?? [])
+            .filter((track) => track === 'vitality').length;
+          if (vitality > 0) {
+            vitalityInvestments.set(key, Array.from(
+              { length: vitality },
+              () => tickIndex,
+            ));
+          }
+        }
+      }
       const fact = event.arcRelayFact;
-      if (!fact) continue;
+      if (!fact) return;
       if (fact.kind === 'leveled-up') {
         const key = lifeKey(
           fact.actor.teamId,
@@ -107,8 +116,13 @@ export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
           fact.actor.lifeId,
         );
         const steps = levels.get(key) ?? [];
-        steps.push({ tick: tickIndex, level: fact.level });
+        steps.push({ tick: tickIndex, level: fact.level, promoted: true });
         levels.set(key, steps);
+      } else if (fact.kind === 'veterancy-retained') {
+        const stable = slotKey(fact.actor.teamId, fact.actor.unitId);
+        retainedLevels.set(stable, fact.retainedLevel);
+        const order = investmentOrder.get(stable) ?? [];
+        investmentOrder.set(stable, order.slice(0, fact.retainedSpentPoints));
       } else if (fact.kind === 'zone-healed') {
         const key = lifeKey(
           fact.actor.teamId,
@@ -119,7 +133,31 @@ export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
         ticks.push(tickIndex);
         heals.set(key, ticks);
       }
+    };
+    tick.lifecycleEvents.forEach(foldEvent);
+    for (const turn of tick.actorTurns) {
+      if (
+        turn.actionResolution.validatedActionId !== 'invest' ||
+        turn.actionResolution.result !== 'success' ||
+        !turn.actionResolution.validatedPayload?.upgradeTrackId
+      ) continue;
+      const track = turn.actionResolution.validatedPayload.upgradeTrackId;
+      if (track === 'vitality') {
+        const key = lifeKey(
+          turn.actor.teamId,
+          turn.actor.unitId,
+          turn.actor.lifeId,
+        );
+        const ticks = vitalityInvestments.get(key) ?? [];
+        ticks.push(tickIndex);
+        vitalityInvestments.set(key, ticks);
+      }
+      const stable = slotKey(turn.actor.teamId, turn.actor.unitId);
+      const order = investmentOrder.get(stable) ?? [];
+      order.push(track);
+      investmentOrder.set(stable, order);
     }
+    tick.events.forEach(foldEvent);
   }
 
   const healTiles = replay.map.regions
@@ -151,6 +189,7 @@ export function buildArcVeterancy(replay: ReplayModel): ArcVeterancyIndex {
       let active: { level: number; age: number } | null = null;
       for (const step of steps) {
         if (step.tick > time) break;
+        if (!step.promoted) continue;
         const age = time - step.tick;
         if (age + Number.EPSILON < LEVEL_UP_BEAT_TICKS)
           active = { level: step.level, age };

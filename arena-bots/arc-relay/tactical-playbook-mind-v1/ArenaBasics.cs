@@ -1533,6 +1533,8 @@ internal static class ArenaBasics
         Position target,
         bool allowCarrierRotation = false)
     {
+        if (!FriendlyLineClear(contract, mind, body, body.Position, target))
+            return false;
         GenericActorActionLegality? action = AvailableAction(
             contract, body, GenericActorRulesContract.ActionKind.Attack,
             requireAvailable: false);
@@ -1596,6 +1598,14 @@ internal static class ArenaBasics
         MindBody body,
         Position target) => CanAimFrom(
             contract, body.FormId, body.Position, target);
+
+    public static bool CanAimAtPositionWithClearFriendlyLine(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position target) =>
+        CanAimAtPosition(contract, body, target)
+        && FriendlyLineClear(contract, mind, body, body.Position, target);
 
     public static bool CanAimFrom(
         GenericActorResolvedMatchContract contract,
@@ -1719,6 +1729,7 @@ internal static class ArenaBasics
 
     internal static Position[] FiringContributionGoals(
         GenericActorResolvedMatchContract contract,
+        MindContext mind,
         MindBody body,
         Position target,
         IReadOnlyList<int> episodeReachability)
@@ -1742,6 +1753,8 @@ internal static class ArenaBasics
                     continue;
                 }
                 if (!CanAimFrom(contract, body.FormId, tile, target))
+                    continue;
+                if (!FriendlyLineClear(contract, mind, body, tile, target))
                     continue;
                 result.Add(tile);
             }
@@ -1776,6 +1789,11 @@ internal static class ArenaBasics
         ActorIdentity? declaredTarget = null,
         bool allowCarrierRotation = false)
     {
+        if (!FriendlyLineClear(
+                contract, mind, body, body.Position, target))
+        {
+            return false;
+        }
         GenericActorActionLegality? action = AvailableAction(
             contract, body, GenericActorRulesContract.ActionKind.Attack,
             requireAvailable: false);
@@ -3183,6 +3201,27 @@ internal static class ArenaBasics
         foreach (GenericActorContext.ObservedAllyState ally in mind.Allies)
             friends.Add(ally.Position);
         return friends;
+    }
+
+    private static bool FriendlyLineClear(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        MindBody body,
+        Position source,
+        Position target)
+    {
+        if (!string.Equals(
+                contract.Rules.Collisions.AlliedProjectileContact,
+                "block-without-damage",
+                StringComparison.Ordinal))
+        {
+            return true;
+        }
+        HashSet<Position> friendlies = Friendlies(mind);
+        // A hypothetical firing tile replaces this body's current tile. The
+        // shooter itself is ignored at the ray origin by the engine.
+        friendlies.Remove(body.Position);
+        return FirstOwnBodyOnLine(source, target, friendlies) is null;
     }
 
     /// <summary>

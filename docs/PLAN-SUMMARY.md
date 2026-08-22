@@ -6,13 +6,13 @@ document. `docs/DECISIONS.md` records where open choices were pinned.
 [`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
 plans, and historical evidence.
 
-## Current product (2026-08-20)
+## Current product (2026-08-22)
 
 Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI/editor default is `tapline-12`
+revisions, match history, and rating. The current CLI/editor default is `tapline-15`
 on the owner-approved equal-return map with sealed outer-Well entrances and
 staggered Mid cover, coordinated movement planner, and
 the promoted combined depth rules: team-relative 1/2/4 Core charge, veteran command,
@@ -26,8 +26,12 @@ for its sixth tile. Swift, standard, and deliberate chassis expose deterministic
 movement rates of 1/1, 4/5, and 2/3 opportunities per tick cycle under one
 Combat Strafe facing model. Palisade now projects a mobile, facing-bound
 30-hull Prism Screen for six ticks; it stops hostile shots without blocking
-bodies. Hosted playlist v29 is the current Tapline-12 rating identity; v28
-remains immutable Tapline-11 history.
+bodies. Living allies harmlessly block allied shots, while friendly sentries,
+mines, Hardlight and Prism remain transparent. A destroyed bot retains 50% of
+its accumulated veteran XP, rounded down, on its team-local roster slot; phase
+transitions can target selected bots reaching a chosen veteran level. Hosted
+playlist v33 is the current Tapline-15 rating identity; v32 remains immutable
+complete-observation/Tapline-14 history.
 The primary loop is **change → run → watch → understand →
 change again**.
 

@@ -1145,7 +1145,12 @@ internal sealed partial class ArcRelaySignatureRuntime
                         muzzle,
                         candidate.Position,
                         operation.OwnerActorId.TeamId,
-                        tick))
+                        tick)
+                    && !LivingAllyBetween(
+                        muzzle,
+                        candidate.Position,
+                        operation.OwnerActorId.TeamId,
+                        lives))
                 .OrderBy(value => muzzle.ChebyshevDistance(value.Position))
                 .ThenBy(value => TargetTieKey(
                     operation.OwnerActorId.TeamId, value))
@@ -1183,7 +1188,12 @@ internal sealed partial class ArcRelaySignatureRuntime
                         origin,
                         target.Position,
                         operation.OwnerActorId.TeamId,
-                        tick))
+                        tick)
+                    && !LivingAllyBetween(
+                        origin,
+                        target.Position,
+                        operation.OwnerActorId.TeamId,
+                        lives))
                 .OrderBy(value => origin.ChebyshevDistance(value.Position))
                 .ThenBy(value => TargetTieKey(
                     operation.OwnerActorId.TeamId, value))
@@ -1376,6 +1386,27 @@ internal sealed partial class ArcRelaySignatureRuntime
             }
         }
         return true;
+    }
+
+    private static bool LivingAllyBetween(
+        Position origin,
+        Position target,
+        int teamId,
+        IReadOnlyDictionary<ActorIdentity, Life> lives)
+    {
+        HashSet<Position> allied = lives.Values
+            .Where(value => value.ActorId.TeamId == teamId)
+            .Select(value => value.Position)
+            .ToHashSet();
+        foreach (Position position in Visibility.SupercoverLine(origin, target))
+        {
+            if (position != origin && position != target
+                && allied.Contains(position))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     private Position ClipStraightLanding(Position source, Position requested)

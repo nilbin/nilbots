@@ -565,6 +565,15 @@ internal static class GenericActorWireEventCodec
                 writer.Field(3, ActorWireValue.Int32(fact.Level));
                 writer.Field(4, GenericActorWireCodecValues.EncodePosition(fact.Position));
                 break;
+            case GenericActorContext.ArcRelayEvent.VeterancyRetained fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId("veterancy-retained"));
+                writer.Field(2, GenericActorWireCodecValues.EncodeIdentity(fact.ActorId));
+                writer.Field(3, ActorWireValue.Int32(fact.PreviousLevel));
+                writer.Field(4, ActorWireValue.Int32(fact.RetainedLevel));
+                writer.Field(5, ActorWireValue.Int32(fact.RetainedTotalXp));
+                writer.Field(6, ActorWireValue.Int32(fact.RetainedSpentPoints));
+                writer.Field(7, GenericActorWireCodecValues.EncodePosition(fact.Position));
+                break;
             case GenericActorContext.ArcRelayEvent.ZoneHealed fact:
                 writer.Field(1, GenericActorWireCodecValues.SemanticId("zone-healed"));
                 writer.Field(2, GenericActorWireCodecValues.EncodeIdentity(fact.ActorId));
@@ -706,6 +715,16 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireCodecValues.Int32(reader, 3),
                         GenericActorWireCodecValues.DecodePosition(
                             reader.Required(4), depth + 1)),
+                "veterancy-retained" =>
+                    new GenericActorContext.ArcRelayEvent.VeterancyRetained(
+                        GenericActorWireCodecValues.DecodeIdentity(
+                            reader.Required(2), depth + 1),
+                        GenericActorWireCodecValues.Int32(reader, 3),
+                        GenericActorWireCodecValues.Int32(reader, 4),
+                        GenericActorWireCodecValues.Int32(reader, 5),
+                        GenericActorWireCodecValues.Int32(reader, 6),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(7), depth + 1)),
                 "zone-healed" =>
                     new GenericActorContext.ArcRelayEvent.ZoneHealed(
                         GenericActorWireCodecValues.DecodeIdentity(

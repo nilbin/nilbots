@@ -2932,6 +2932,18 @@ public sealed record GenericActorContext
             ActorIdentity ActorId,
             int Level,
             Position Position) : ArcRelayEvent;
+        /// <summary>
+        /// A destroyed stable squad slot retained part of its veteran career.
+        /// The actor identity names the destroyed life; team and unit identify
+        /// the slot inherited by its next life.
+        /// </summary>
+        public sealed record VeterancyRetained(
+            ActorIdentity ActorId,
+            int PreviousLevel,
+            int RetainedLevel,
+            int RetainedTotalXp,
+            int RetainedSpentPoints,
+            Position Position) : ArcRelayEvent;
         /// <summary>A body channeled a point of health on a heal tile.</summary>
         public sealed record ZoneHealed(
             ActorIdentity ActorId,
