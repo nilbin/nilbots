@@ -140,6 +140,74 @@ public sealed class OrdersSignatureOpportunitySceneTests
             command.ActionId);
     }
 
+    [Theory]
+    [InlineData("minesmith", 7, 6)]
+    [InlineData("nest", 8, 6)]
+    [InlineData("mason", 15, 6)]
+    public void ExactDurableDeploymentApproachesADistantMarkThenResumes(
+        string classId,
+        int anchorX,
+        int anchorY)
+    {
+        TacticalPlaybookCompilation sheet = DistantDeploymentSheet(
+            classId, new Position(anchorX, anchorY));
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            sheet.Composition,
+            sheet.Composition,
+            loopProfile: ArcRelayLoopProfile.Tapline7);
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, sheet), Participant(1, sheet)],
+            matchSeed: 9021,
+            recordChronology: false);
+        string skill = ArcRelaySignatureAuthoringCatalog.ForClass(classId)
+            .SkillId;
+        bool approached = false;
+        bool deployed = false;
+        bool resumed = false;
+        var seen = new List<string>();
+
+        while (!session.IsCompleted && session.Tick < 80 && !resumed)
+        {
+            GenericActorMatchStepResult step = session.Step();
+            GenericMindCommandResolution? resolution = Assert.Single(
+                    step.MindTurns, turn => turn.TeamId == 0).Commands
+                .FirstOrDefault(value => value.Command.UnitId == 7);
+            if (resolution is null)
+                continue;
+            GenericMindCommand command = resolution.Command;
+            string reason = command.DebugMessage ?? "";
+            seen.Add($"t{step.Tick}:{command.ActionId}:{reason}");
+            if (!deployed
+                && command.ActionId == ArcRelayH0Definition.MoveActionId)
+            {
+                approached |= reason.Contains(
+                    $"approach-deployment:{skill}",
+                    StringComparison.Ordinal);
+            }
+            if (command.ActionId == skill)
+            {
+                deployed = true;
+                continue;
+            }
+            if (deployed
+                && reason.Contains(
+                    "hold-after-deployment",
+                    StringComparison.Ordinal))
+            {
+                resumed = true;
+            }
+        }
+
+        Assert.True(approached,
+            $"{classId} should walk toward a distant deployment mark. "
+                + string.Join(" | ", seen));
+        Assert.True(deployed,
+            $"{classId} should deploy once that mark becomes castable.");
+        Assert.True(resumed,
+            $"{classId} should resume the ordinary continuation after casting.");
+    }
+
     [Fact]
     public void KestrelDashesForwardThenResumesTheSameTerminalRoute()
     {
@@ -607,6 +675,41 @@ public sealed class OrdersSignatureOpportunitySceneTests
         // while every enemy remains outside team vision.
         map["anchors"]!["deployment-mark"] = new JsonArray(2, 7);
         return Compile(source, map, $"{classId}-uncontested-deployment");
+    }
+
+    private static TacticalPlaybookCompilation DistantDeploymentSheet(
+        string classId,
+        Position mark)
+    {
+        (JsonObject source, JsonObject map) = Starter();
+        ArcRelaySignatureAuthoringDescriptor descriptor =
+            ArcRelaySignatureAuthoringCatalog.ForClass(classId);
+        JsonObject far = source["roles"]!.AsArray().Single(value =>
+            value!["id"]!.GetValue<string>() == "far-team")!.AsObject();
+        far["classes"] = new JsonArray("towline", "lantern", classId);
+        far["orders"] = new JsonArray
+        {
+            new JsonObject
+            {
+                ["id"] = "maintain-distant-deployment",
+                ["use"] = new JsonObject
+                {
+                    ["skill"] = descriptor.SkillId,
+                    ["target"] = "self",
+                    ["at"] = "distant-deployment-mark",
+                    ["opportunity"] = ArcRelaySignatureAuthoringCatalog
+                        .StableId(descriptor.Opportunity),
+                },
+            },
+            new JsonObject
+            {
+                ["id"] = "hold-after-deployment",
+                ["move"] = new JsonObject { ["to"] = "current-position" },
+            },
+        };
+        map["anchors"]!["distant-deployment-mark"] =
+            new JsonArray(mark.X, mark.Y);
+        return Compile(source, map, $"{classId}-distant-deployment");
     }
 
     private static (JsonObject Source, JsonObject Map) Starter()

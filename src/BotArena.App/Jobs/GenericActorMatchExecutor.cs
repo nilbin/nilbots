@@ -297,9 +297,8 @@ public sealed class GenericActorMatchExecutor(
                     {
                         if (tacticalSheets)
                         {
-                            var factory = new InProcessGenericMindRuntimeFactory(
-                                static () => new global::ArcRelayTacticalPlaybookMind(),
-                                trustedArcRelayStockProjection: true);
+                            InProcessGenericMindRuntimeFactory factory =
+                                CreateTacticalMindRuntimeFactory();
                             factories.Add(factory);
                             TacticalSheetSnapshot snapshot =
                                 tacticalSheetSnapshots[index]
@@ -569,6 +568,16 @@ public sealed class GenericActorMatchExecutor(
                 sheetHash, linkedData, composition.ClassIds);
         }
     }
+
+    /// <summary>
+    /// Tactics evaluates observed events, remembered map clearance, and other
+    /// fields omitted by the allocation-minimal legacy stock projection. Keep
+    /// this construction seam explicit so hosted execution cannot silently
+    /// regress to the stock-only observation contract again.
+    /// </summary>
+    internal static InProcessGenericMindRuntimeFactory
+        CreateTacticalMindRuntimeFactory() => new(
+            static () => new global::ArcRelayTacticalPlaybookMind());
 
     private sealed record TacticalSheetSnapshot(
         string ContentHash,

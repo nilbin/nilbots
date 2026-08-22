@@ -595,6 +595,31 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         $"scan-move:{scan.Zone}:{proposal.Target.Key}"));
                     break;
                 }
+                case OrdersPackage.UseAction use:
+                {
+                    MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
+                    if (plan is null || plan.Arrived)
+                    {
+                        result.Add(Hold(
+                            $"signature:{use.Skill}:{proposal.Target.Key}",
+                            pinned: true));
+                        break;
+                    }
+                    result.Add(new SquadMovementIntent(
+                        body,
+                        key,
+                        $"signature-approach:{use.Skill}:{proposal.Target.Key}",
+                        plan.Goals,
+                        null,
+                        priority,
+                        Pinned: false,
+                        PrefersHold: false,
+                        CanStage: true,
+                        LeaderUnitId: null,
+                        RouteClass: SquadRouteClass.Ordinary,
+                        $"signature-approach:{use.Skill}:{proposal.Target.Key}"));
+                    break;
+                }
                 default:
                     result.Add(Hold("non-movement-action", pinned: true));
                     break;
@@ -1555,11 +1580,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             : null;
         if (use.TargetKind == "named" && use.Target == "self")
         {
+            Position targetPosition = exactPlacement ?? body.Position;
             var self = new ResolvedTarget(
-                $"body:{body.ActorId}", body.Position, [body.Position],
+                use.AtAnchor is string placementAnchor
+                    ? $"anchor:{placementAnchor}"
+                    : $"body:{body.ActorId}",
+                targetPosition,
+                [targetPosition],
                 body.ActorId, null);
-            if (!CanExecuteUse(
-                    contract, body, self, use, exactPlacement))
+            bool executable = CanExecuteUse(
+                contract, body, self, use, exactPlacement);
+            if (!executable
+                && !CanApproachExactDeployment(signature, use, exactPlacement))
             {
                 decline = $"signature-{use.Skill}-illegal-at-self";
                 return [];
@@ -1928,8 +1960,16 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         use, "no-enemy-in-cross", out decline);
             case "deploy-unoccupied-anchor":
             case "block-unoccupied-choke":
-                return !durablePresent || RejectSignatureOpportunity(
-                    use, "useful-deployment-still-active", out decline);
+                if (durablePresent)
+                    return RejectSignatureOpportunity(
+                        use, "useful-deployment-still-active", out decline);
+                return !mind.Bodies.Any(value => value.Position == place)
+                        && !mind.Enemies.Any(value => value.Position == place)
+                        && !arc.VisibleSignatures.Any(value =>
+                            value.RemainingCapacity > 0
+                            && value.Positions.Contains(place))
+                    || RejectSignatureOpportunity(
+                        use, "deployment-anchor-occupied", out decline);
             case "seed-after-team-contact":
                 // A plotted Nest mark means maintain this emplacement. The
                 // exact authored ground is itself sufficient intent; contact
@@ -1937,8 +1977,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 if (use.AtAnchor is null && mind.Enemies.Length == 0)
                     return RejectSignatureOpportunity(
                         use, "no-team-contact", out decline);
-                return !durablePresent || RejectSignatureOpportunity(
-                    use, "useful-deployment-still-active", out decline);
+                if (durablePresent)
+                    return RejectSignatureOpportunity(
+                        use, "useful-deployment-still-active", out decline);
+                return use.AtAnchor is null
+                        || !mind.Bodies.Any(value => value.Position == place)
+                            && !mind.Enemies.Any(value => value.Position == place)
+                            && !arc.VisibleSignatures.Any(value =>
+                                value.RemainingCapacity > 0
+                                && value.Positions.Contains(place))
+                    || RejectSignatureOpportunity(
+                        use, "deployment-anchor-occupied", out decline);
             case "suppress-hostile-signature":
                 return arc.VisibleSignatures.Any(value =>
                         value.OwnerTeamId != _teamId && !value.Suppressed
@@ -2396,6 +2445,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             contract, body, signature.Kind);
     }
 
+    private static bool CanApproachExactDeployment(
+        GenericActorRulesContract.ArcRelaySignature signature,
+        OrdersPackage.UseAction use,
+        Position? exactPlacement) => exactPlacement is not null
+        && use.AtAnchor is not null
+        && IsDeploymentKind(signature.Kind);
+
     private static bool ArcTossLandsExactly(
         GenericActorMapContract map,
         Position source,
@@ -2559,6 +2615,21 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         == proposal.Target.Position));
                 continue;
             }
+            if (proposal.Leaf.Node.Action is OrdersPackage.UseAction use
+                && DeploymentApproachGoals(
+                    contract, package, proposal.Body, proposal.Target, use)
+                    is { Length: > 0 } approach)
+            {
+                Position nearest = Nearest(
+                    contract.Map, proposal.Body.Position, approach);
+                result.Add(unitId, new MovePlan(
+                    proposal.Leaf.Node.Path,
+                    nearest,
+                    approach,
+                    null,
+                    Arrived: approach.Contains(proposal.Body.Position)));
+                continue;
+            }
             if (proposal.Leaf.Node.Action is not OrdersPackage.MoveAction move)
                 continue;
             MindBody body = proposal.Body;
@@ -2653,6 +2724,28 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 standing || crowded || wedged));
         }
         return result;
+    }
+
+    private static Position[] DeploymentApproachGoals(
+        GenericActorResolvedMatchContract contract,
+        OrdersPackage package,
+        MindBody body,
+        ResolvedTarget target,
+        OrdersPackage.UseAction use)
+    {
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            ArenaBasics.ArcRules(contract)?.Signatures.FirstOrDefault(value =>
+                value.SignatureId == use.Skill || value.Kind == use.Skill);
+        Position? placement = use.AtAnchor is string anchor
+            ? package.AnchorPosition(anchor)
+            : null;
+        if (signature is null
+            || !CanApproachExactDeployment(signature, use, placement)
+            || CanExecuteUse(contract, body, target, use, placement))
+        {
+            return [];
+        }
+        return AdjacentStandTiles(contract.Map, placement!.Value);
     }
 
     /// <summary>
@@ -2949,6 +3042,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             proposal.Target.Position,
                             mind.Tick + 40);
                     }
+                }
+                else if (movePlan is not null
+                    && !movePlan.Arrived
+                    && ArenaBasics.TryMoveToward(
+                        contract,
+                        mind,
+                        body,
+                        movePlan.Goals,
+                        claims,
+                        $"{reason}:approach-deployment:{use.Skill}"
+                            + $":{_stepper.Trace(body.UnitId)}"))
+                {
+                    return;
                 }
                 else
                     body.Hold($"{reason}:use-unavailable");

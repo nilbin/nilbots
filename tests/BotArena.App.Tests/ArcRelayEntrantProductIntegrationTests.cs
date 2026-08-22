@@ -800,8 +800,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline11Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline12Version)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline13Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Tapline14Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline14_v31_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Complete_tactics_v32_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -849,6 +850,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV29(),
                 ArcRelayEntrantPlaylistDefinition.Tapline13Version =>
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV30(),
+                ArcRelayEntrantPlaylistDefinition.Tapline14Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV31(),
                 _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
             };
             var version = new PlaylistVersion
@@ -928,17 +931,17 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                 value.Id == predecessorLadderId);
             Assert.Equal(LadderStatus.Closed, predecessorLadder.Status);
             Assert.False(predecessorLadder.IsListed);
-            Ladder v31Ladder = await (
+            Ladder currentLadder = await (
                 from ladder in db.Ladders
                 join version in db.PlaylistVersions
                     on ladder.PlaylistVersionId equals version.Id
                 where version.Version == ArcRelayEntrantPlaylistDefinition.Version
                 select ladder).SingleAsync();
-            Assert.Equal(LadderStatus.Open, v31Ladder.Status);
-            Assert.True(v31Ladder.IsListed);
+            Assert.Equal(LadderStatus.Open, currentLadder.Status);
+            Assert.True(currentLadder.IsListed);
             ArcRelayEntrantRating fresh = await db.ArcRelayEntrantRatings
                 .SingleAsync(value => value.EntrantId == entrantId &&
-                    value.LadderId == v31Ladder.Id);
+                    value.LadderId == currentLadder.Id);
             Assert.Equal(BotRating.DefaultRating, fresh.Rating);
             Assert.Equal(0, fresh.RankedMatches);
             ArcRelayEntrantRating historical = await db.ArcRelayEntrantRatings
@@ -963,7 +966,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Tapline14_v31_refuses_to_skip_a_registered_v30_ladder()
+    public async Task Complete_tactics_v32_refuses_to_skip_a_registered_v30_ladder()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =

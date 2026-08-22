@@ -12,6 +12,14 @@ public sealed class InProcessGenericMindRuntimeFactory(
     Func<Sdk.IGenericMindBot> botFactory,
     bool trustedArcRelayStockProjection = false) : IGenericMindRuntimeFactory
 {
+    /// <summary>
+    /// True only for the frozen legacy stock minds whose observation usage is
+    /// deliberately smaller than the public MIND contract. Tactical minds
+    /// consume events and the complete visible map and must leave this false.
+    /// </summary>
+    public bool UsesTrustedArcRelayStockProjection =>
+        trustedArcRelayStockProjection;
+
     public IGenericMindRuntime CreateRuntime() =>
         new InProcessGenericMindRuntime(
             botFactory,

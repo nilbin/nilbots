@@ -12,6 +12,7 @@ using BotArena.App.Shared;
 using BotArena.App.Sheets;
 using BotArena.App.Storage;
 using BotArena.Engine;
+using BotArena.Runtime;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit.Abstractions;
@@ -26,6 +27,15 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
     public ArcRelayHostedExecutionIntegrationTests(ITestOutputHelper output)
     {
         this.output = output;
+    }
+
+    [Fact]
+    public void TacticalHostedLaneRetainsTheCompleteObservationContract()
+    {
+        using InProcessGenericMindRuntimeFactory factory =
+            GenericActorMatchExecutor.CreateTacticalMindRuntimeFactory();
+
+        Assert.False(factory.UsesTrustedArcRelayStockProjection);
     }
 
     [SkippableFact]
@@ -250,7 +260,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             {
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(
-                    ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
+                    ArcRelayEntrantPlaylistDefinition
+                        .CompleteObservationTacticalArtifactHash,
                     participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
@@ -316,7 +327,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(first.ContentHash, value.GetProperty("mindDataHash").GetString()),
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Tapline14TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition
+                .CompleteObservationTacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 
