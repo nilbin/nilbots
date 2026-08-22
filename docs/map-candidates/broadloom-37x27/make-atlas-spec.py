@@ -149,11 +149,11 @@ spec = {
             {"metric": "Centre Well -> own reactor", "baseline": 19,
              "candidate": 16, "note": "Comparable mid commitment."},
             {"metric": "Enemy Well -> own reactor", "baseline": 31,
-             "candidate": 25,
+             "candidate": 24,
              "note": "Raids commit through the enemy workshop theatre "
                      "instead of the centre line."},
             {"metric": "Enemy-Well return spread", "baseline": "31 / 33 / 41",
-             "candidate": "25 / 28 / 37",
+             "candidate": "24 / 28 / 37",
              "note": "Fast vs heal-detour vs shadow families."},
             {"metric": "Centre Well -> own Well", "baseline": 22,
              "candidate": 10,
@@ -165,13 +165,13 @@ spec = {
              "candidate": 9,
              "note": "Heals move to the home quarters; contested healing "
                      "becomes a raid, not a centre reward."},
-            {"metric": "Reactor -> reactor", "baseline": 38, "candidate": 32,
+            {"metric": "Reactor -> reactor", "baseline": 38, "candidate": 31,
              "note": "Wider map, better connected spine."},
             {"metric": "Neutral workshops", "baseline": "none",
              "candidate": "2 on the centre column, 15/18 from the reactors",
              "note": "3-step supply-side bias per team, measured below."},
             {"metric": "Centre -> either workshop", "baseline": "n/a",
-             "candidate": 11,
+             "candidate": 10,
              "note": "A centre force cannot flash-rotate to workshop "
                      "defence."},
             {"metric": "Workshop -> adjacent owned Well", "baseline": "n/a",
@@ -216,10 +216,10 @@ spec["routes"] = [
           via=["own-heal"], steps=22, label_at=[8, 4]),
     route("centre-to-north-workshop", "Rotate to N workshop",
           "Centre · returns", "alternate", "centre-well", "north-workshop",
-          steps=11, label_at=[15, 9]),
+          steps=10, label_at=[15, 9]),
     # Raid returns (enemy Well, west perspective)
     route("raid-fast", "Fast return", "Raid · enemy Well", "direct",
-          "enemy-well", "own-reactor", steps=25, label_at=[20, 11]),
+          "enemy-well", "own-reactor", steps=24, label_at=[20, 11]),
     route("raid-via-heal", "Wounded return through own heal",
           "Raid · enemy Well", "alternate", "enemy-well", "own-reactor",
           mode="via", via=["own-heal"], steps=28, label_at=[9, 5]),
@@ -256,7 +256,7 @@ spec["routes"] = [
     route("own-heal-run", "Recover at home", "Home · spine and flanks",
           "direct", "own-reactor", "own-heal", steps=9, label_at=[5, 8]),
     route("spine", "Mid spine", "Home · spine and flanks", "south",
-          "own-reactor", "enemy-reactor", steps=32, label_at=[24, 13]),
+          "own-reactor", "enemy-reactor", steps=31, label_at=[24, 13]),
     route("deep-flank", "Committed roof flank", "Home · spine and flanks",
           "north", "own-spawn-exit", "enemy-reactor", mode="via",
           via=[[13, 1], [23, 1]], steps=39, label_at=[28, 2]),
@@ -274,7 +274,7 @@ spec["tacticalSites"] = [
         "label": "N workshop",
         "note": (
             "Three wide mouths plus a sealable skylight and roof overwatch; "
-            "one Mason can never seal it, two leave a +4 bounded detour."
+            "one Mason can never seal it, two leave a +6 bounded detour."
         ),
         "marks": [
             {"kind": "zone", "label": "training room", "tiles": zone(15, 3, 21, 6)},
@@ -308,8 +308,9 @@ spec["tacticalSites"] = [
         "id": "centre-plaza",
         "label": "Centre plaza",
         "note": (
-            "Broken inner cross around the 2-Well; no straight rail onto the "
-            "Well from any mouth; pincer approaches stay separate until y10."
+            "Staggered cover around the 2-Well caps its longest rail line at 5 "
+            "and keeps all eight Well exits open: no two-tile seal can entomb "
+            "it. Pincer approaches stay separate until y10."
         ),
         "marks": [
             {"kind": "mouth", "label": "W mouth",

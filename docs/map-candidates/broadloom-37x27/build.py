@@ -78,8 +78,11 @@ BLOCKS = [
     # west mid corridor north edge + corridor cover
     (6, 10, 3, 1),
     (10, 11, 1, 1), (10, 12, 1, 1),
-    # mid-band rail breaks (rot completes the y14 partners)
-    (18, 12, 1, 1), (26, 12, 1, 1), (28, 11, 1, 1),
+    # mid-band rail breaks (rot completes the y14 partners). Deliberately
+    # NOT on the Well's own row-neighbours: a wall directly north or south
+    # of the Well kills all four corner-strict diagonal exits and two
+    # Hardlights could then entomb the Well on (17,13)/(19,13).
+    (23, 12, 1, 1), (26, 12, 1, 1), (28, 11, 1, 1),
 
     # NE: east own-Well room around (26,7), floor x24-28 y5-9
     (25, 4, 3, 1),                    # north wall x25-27; seams (24,4),(28,4)

@@ -79,42 +79,47 @@ for team, pad in PADS.items():
             print(f'  team{team} pad -> {name}: rail-capable {hits[:4]} vision {seen[:4]}')
 print('  none' if not issues else f'  {issues} findings')
 
-print('== workshop seal audit ==')
-for wname, wtile in (('N', bb.WORKSHOP_N), ('S', bb.WORKSHOP_S)):
-    # mouths: open tiles adjacent to the room boundary; take every open tile
-    # within Chebyshev 3 of the workshop that has an open neighbour further
-    # than 3 (i.e. door-zone tiles), then test all 1- and 2-tile removals.
-    zone = [p for p in open_t if cheb(p, wtile) <= 3]
-    base = bfs_dist(wtile)
-    reach_all = {p for p in open_t if p in base}
-    origins = [bb.REACTOR0, bb.rot(bb.REACTOR0), bb.WELL_CENTRE]
-    cands = sorted({p for p in zone if p != wtile})
+print('== seal audit: every major site, all 1- and 2-tile removals, radius 5 ==')
+# Radius 5 matters: a radius-3 sweep once missed that two walls beside the
+# centre Well left it exactly two corner-strict exits — an entombable
+# objective. Any DISCONNECT line below is a hard design failure.
+SEAL_SITES = {
+    'N workshop': (bb.WORKSHOP_N, [bb.REACTOR0, bb.rot(bb.REACTOR0), bb.WELL_CENTRE]),
+    'S workshop': (bb.WORKSHOP_S, [bb.REACTOR0, bb.rot(bb.REACTOR0), bb.WELL_CENTRE]),
+    'centre well': (bb.WELL_CENTRE, [bb.REACTOR0, bb.rot(bb.REACTOR0)]),
+    'W own well': (bb.WELL_OWN0, [bb.REACTOR0, bb.rot(bb.REACTOR0)]),
+    'E own well': (bb.WELL_OWN1, [bb.REACTOR0, bb.rot(bb.REACTOR0)]),
+    'W heal': (bb.HEAL_W, [bb.REACTOR0, bb.rot(bb.REACTOR0)]),
+    'E heal': (bb.rot(bb.HEAL_W), [bb.REACTOR0, bb.rot(bb.REACTOR0)]),
+}
+for sname, (stile, origins) in SEAL_SITES.items():
+    base = bfs_dist(stile)
+    cands = sorted(p for p in open_t if p != stile and cheb(p, stile) <= 5)
     worst1 = worst2 = None
-    sealed2 = []
+    sealed = []
     for r in cands:
-        d = bfs_dist(wtile, blocked=frozenset([r]))
+        d = bfs_dist(stile, blocked=frozenset([r]))
         for o in origins:
             if o not in d:
-                print(f'  {wname}: single removal {r} disconnects {o}!')
+                sealed.append(((r,), o))
             else:
                 grow = d[o] - base[o]
                 if worst1 is None or grow > worst1[0]:
                     worst1 = (grow, r, o)
     for r1, r2 in combinations(cands, 2):
-        d = bfs_dist(wtile, blocked=frozenset([r1, r2]))
+        d = bfs_dist(stile, blocked=frozenset([r1, r2]))
         for o in origins:
             if o not in d:
-                sealed2.append((r1, r2, o))
+                sealed.append(((r1, r2), o))
             else:
                 grow = d[o] - base[o]
                 if worst2 is None or grow > worst2[0]:
                     worst2 = (grow, r1, r2, o)
-    print(f'  {wname}: worst 1-seal detour +{worst1[0]} steps (seal {worst1[1]} vs {worst1[2]})')
-    if sealed2:
-        print(f'  {wname}: {len(sealed2)} 2-seal DISCONNECTS e.g. {sealed2[:3]}')
+    if sealed:
+        print(f'  {sname}: {len(sealed)} DISCONNECTS — HARD FAILURE, e.g. {sealed[:3]}')
     else:
-        print(f'  {wname}: no 2-seal disconnect; worst 2-seal detour +{worst2[0]} '
-              f'(seals {worst2[1]},{worst2[2]} vs {worst2[3]})')
+        print(f'  {sname}: no disconnect; worst 1-seal +{worst1[0]}, worst 2-seal '
+              f'+{worst2[0]} (seals {worst2[1]},{worst2[2]} vs {worst2[3]})')
 
 print('== workshop facing audit (vision 5, facing quadrant, from training tile) ==')
 VEC = {'north': (0, -1), 'east': (1, 0), 'south': (0, 1), 'west': (-1, 0)}

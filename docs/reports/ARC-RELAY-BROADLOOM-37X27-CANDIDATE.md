@@ -85,13 +85,13 @@ Intended relationships:
   the workshop and raid approaches share their first half.
 - **Profitable trades exist against a deathball.** If east balls at centre
   (2s, throttled by the 46-tick bank-triggered recharge), west can bank its
-  own 1s (8-step run), train at either workshop, or take the 25/28/37-step
+  own 1s (8-step run), train at either workshop, or take the 24/28/37-step
   raid families at the undefended NE Well — each a productive allocation that
   does not fight eight bodies.
 - **Rejection test.** Centre is *not* the best assembly (junctions and the
   x12 staging column are), not the heal pivot (heals are 13 away, versus 8
   on Tapline), and not on the workshop approach families (centre → workshop
-  is 11 through 1-wide fork slips). It remains the best *scoring* crossroads
+  is 10 through 1-wide fork slips). It remains the best *scoring* crossroads
   only — which is what a 2-value Well should be.
 
 ## 3. Exact geometry
@@ -114,9 +114,9 @@ palindromic middle row; the lower half **is** the rotation. 681 open tiles
   9 ###..........##..###...##......######
  10 #____.###.....#........#..###...____#
  11 #____ddd..#...#.#...#.......#ddd____#
- 12 #____ddd..#.......#.......#..ddd____#
+ 12 #____ddd..#............#..#..ddd____#
  13 #__R_ddd..##...#..2..#...##..ddd_R__#
- 14 #____ddd..#.......#.......#..ddd____#
+ 14 #____ddd..#..#............#..ddd____#
  15 #____ddd#.......#...#.#...#..ddd____#
  16 #____...###..#........#.....###.____#
  17 ######......##...###..##..........###
@@ -144,13 +144,13 @@ from the reactors by construction. East = rotation.
 | Canvas / open floor | 31×27 / 517 | 37×27 / 681 |
 | Own Well → own reactor | 12 | **8** |
 | Centre → own reactor | 19 | 16 |
-| Enemy Well → own reactor (fast / heal / shadow) | 31 / 33 / 41 | **25 / 28 / 37** |
+| Enemy Well → own reactor (fast / heal / shadow) | 31 / 33 / 41 | **24 / 28 / 37** |
 | Centre → own Well | 22 | **10** |
 | Centre → nearest heal | 8 | **13** |
 | Own reactor → near heal | 16 | **9** |
-| Reactor → reactor | 38 | 32 |
+| Reactor → reactor | 38 | 31 |
 | Reactor → workshops | — | **15 / 18** (3-step supply-side bias) |
-| Centre → either workshop | — | 11 |
+| Centre → either workshop | — | 10 |
 | Workshop → adjacent owned Well | — | 8 |
 | Workshop → own heal | — | 12 |
 | Workshop ↔ workshop | — | 19 |
@@ -170,17 +170,20 @@ From the analyzer (`analysis.json`, valid, zero errors) and `verify.py`:
   or even vision-range sight — to any Well, heal or workshop. Vertical
   through-pad rail alleys were explicitly walled off ((3,4)–(4,5) block and
   its rotation; (31,9)/(5,17) pinches).
-- **Workshop seals.** No single tile removal disconnects anything (worst
-  detour +1 step). No two-tile removal disconnects a workshop; worst
-  two-Mason detour is **+4 steps**, measured over every candidate pair near
-  the mouths. The 1-wide skylight and fork slips are deliberate sealable
-  *slips*, never the only family.
-- **Straight-lane discipline.** After teeth placement, the only open straights
-  ≥ 12 are the two roof galleries (13 long, 1-wide) — deliberate committed
-  flanks where rail overwatch is the authored counter to skylight raids, and
-  where allied bodies block the lane by the live honest-firing rule. The
-  longest lane through a training tile is 8 (< rail 12, so an interrupting
-  Longshot must post inside the contested band).
+- **Seal audit, every major site.** All one- and two-tile removals within
+  radius 5 of both workshops, all three Wells and both heals: **no removal
+  pair disconnects any site**; worst bounded detours are +6 (workshops), +1
+  (centre Well), +5 (owned Wells), +10 (heals, which trade three 1-wide
+  doors for deep home positions). The 1-wide skylight and fork slips are
+  deliberate sealable *slips*, never the only family. This audit caught and
+  fixed one hard failure during design (below).
+- **Straight-lane discipline.** After teeth placement, the open straights
+  ≥ 12 are the two roof galleries (13 long, 1-wide committed flanks whose
+  rail overwatch is the authored counter to skylight raids, single-file
+  under the live honest-firing rule) and the two exactly-12 mid-band rows
+  (y12/y14), whose shooters must stand inside the exposed corridor ends.
+  The longest lane through a training tile is 8 (< rail 12, so an
+  interrupting Longshot must post inside the contested band).
 
 ## 6. Site cards
 
@@ -194,16 +197,18 @@ construction. First observation: attackers cross vision range in the band /
 gallery / forks before any mouth. Interrupt lanes: band rail (12,4)→(19,4)
 and skylight rail (18,1)→(18,4); both start on exposed, reachable ground and
 each is blocked by one Hardlight or an allied body. Seals: bounded above
-(+4). Continuations: raid the adjacent Well (8), fall back to own heal (12),
+(+6). Continuations: raid the adjacent Well (8), fall back to own heal (12),
 reinforce centre (11). Authoring: posts, screen areas and patrol loops all on
 open rectangles; no raw JSON.
 
 **S workshop (18,22)** — *pass* (exact rotation; same numbers, east's near
 band).
 
-**Centre plaza (18,13)** — *pass.* 9×7 chamber with a broken inner cross
-((15,13),(21,13),(18,12),(18,14) plus staggered pillars). Longest rail line
-onto the Well is 5, so no mouth post owns the objective. W/E mouths 3-wide;
+**Centre plaza (18,13)** — *pass.* 9×7 chamber with staggered cover
+((15,13),(21,13) row pillars, (16,11)/(20,11)-family stagger, off-axis
+(23,12)/(13,14) breaks). Longest rail line onto the Well is 5, so no mouth
+post owns the objective, and the Well keeps all eight corner-strict exits —
+the seal audit proves no two-tile pair can entomb it. W/E mouths 3-wide;
 N/S approaches arrive over 1-wide fork slips — pincers stay separate until
 one step from the plaza. Formation: 7-wide rows at y12/y14, 5-wide at y13.
 Null radius covers 41 tiles but 20 escape-ring tiles exist. It is the best
@@ -363,7 +368,13 @@ per-bot posts stable across group refactors. No raw JSON, no hidden anchors.
 
 ## 10. Hard failures, accepted tradeoffs, hypotheses
 
-Hard failures: **none open** — all gates in §5 pass with measurements.
+Hard failures: **none open** — all gates in §5 pass with measurements. One
+hard failure existed transiently during design and is disclosed for the
+record: two late anti-rail walls placed directly north and south of the
+centre Well ((18,12)/(18,14)) reduced the Well to exactly two corner-strict
+exit tiles, so two Hardlights could entomb it for 30 ticks. A radius-3 seal
+audit missed it; the widened radius-5 all-sites audit (now permanent in
+`verify.py`) caught it, and the breaks moved off-axis to (23,12)/(13,14).
 
 Accepted tradeoffs (deliberate, documented):
 1. Roof galleries are 13-long rail lanes — 1-wide, self-blocking, reachable
@@ -397,7 +408,8 @@ Broadloom build — before any workshop-rules tuning.
 ```
 python3 docs/map-candidates/broadloom-37x27/build.py      # symmetric, connected,
                                                           # 0 corner-touch, 0 cut vertex, 681 open
-python3 docs/map-candidates/broadloom-37x27/verify.py     # spawn LOS none; seals +1/+4 bounded;
+python3 docs/map-candidates/broadloom-37x27/verify.py     # spawn LOS none; radius-5 seal audit over
+                                                          # 7 sites: no disconnect, detours bounded;
                                                           # one-mouth-per-facing; lanes 8/7; spans ok
 python3 docs/map-candidates/broadloom-37x27/make-atlas-spec.py
 python3 .claude/skills/analyze-arc-relay-map/scripts/map_analysis.py \

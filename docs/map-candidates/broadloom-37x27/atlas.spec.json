@@ -328,7 +328,7 @@
       "from": "centre-well",
       "to": "north-workshop",
       "mode": "shortest",
-      "expectedSteps": 11,
+      "expectedSteps": 10,
       "labelAt": [
         15,
         9
@@ -343,7 +343,7 @@
       "from": "enemy-well",
       "to": "own-reactor",
       "mode": "shortest",
-      "expectedSteps": 25,
+      "expectedSteps": 24,
       "labelAt": [
         20,
         11
@@ -551,7 +551,7 @@
       "from": "own-reactor",
       "to": "enemy-reactor",
       "mode": "shortest",
-      "expectedSteps": 32,
+      "expectedSteps": 31,
       "labelAt": [
         24,
         13
@@ -617,7 +617,7 @@
     {
       "id": "north-workshop-site",
       "label": "N workshop",
-      "note": "Three wide mouths plus a sealable skylight and roof overwatch; one Mason can never seal it, two leave a +4 bounded detour.",
+      "note": "Three wide mouths plus a sealable skylight and roof overwatch; one Mason can never seal it, two leave a +6 bounded detour.",
       "marks": [
         {
           "kind": "zone",
@@ -934,7 +934,7 @@
     {
       "id": "centre-plaza",
       "label": "Centre plaza",
-      "note": "Broken inner cross around the 2-Well; no straight rail onto the Well from any mouth; pincer approaches stay separate until y10.",
+      "note": "Staggered cover around the 2-Well caps its longest rail line at 5 and keeps all eight Well exits open: no two-tile seal can entomb it. Pincer approaches stay separate until y10.",
       "marks": [
         {
           "kind": "mouth",
@@ -1271,6 +1271,14 @@
             ],
             [
               23,
+              11
+            ],
+            [
+              22,
+              11
+            ],
+            [
+              22,
               12
             ],
             [
@@ -2065,13 +2073,13 @@
       {
         "metric": "Enemy Well -> own reactor",
         "baseline": 31,
-        "candidate": 25,
+        "candidate": 24,
         "note": "Raids commit through the enemy workshop theatre instead of the centre line."
       },
       {
         "metric": "Enemy-Well return spread",
         "baseline": "31 / 33 / 41",
-        "candidate": "25 / 28 / 37",
+        "candidate": "24 / 28 / 37",
         "note": "Fast vs heal-detour vs shadow families."
       },
       {
@@ -2095,7 +2103,7 @@
       {
         "metric": "Reactor -> reactor",
         "baseline": 38,
-        "candidate": 32,
+        "candidate": 31,
         "note": "Wider map, better connected spine."
       },
       {
@@ -2107,7 +2115,7 @@
       {
         "metric": "Centre -> either workshop",
         "baseline": "n/a",
-        "candidate": 11,
+        "candidate": 10,
         "note": "A centre force cannot flash-rotate to workshop defence."
       },
       {
