@@ -52,6 +52,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "friendly-core-acquisitions", "friendly-core-banks",
             "friendly-core-drops", "friendly-core-losses",
             "friendly-core-resolutions", "friendly-destructions",
+            "workshop-ready", "workshop-training", "workshop-training-self",
+            "workshop-training-enemy", "workshop-contested",
+            "workshop-dormant", "friendly-workshop-completions",
+        };
+
+    /// <summary>Facts that read one Workshop's public state and therefore
+    /// carry the 'workshop' selector (north/south/either).</summary>
+    private static readonly HashSet<string> WorkshopFacts =
+        new(StringComparer.Ordinal)
+        {
+            "workshop-ready", "workshop-training", "workshop-training-self",
+            "workshop-training-enemy", "workshop-contested",
+            "workshop-dormant", "friendly-workshop-completions",
         };
 
     // Facts whose answer depends on the evaluating body. They are meaningless
@@ -97,6 +110,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "friendly-core-acquisitions", "friendly-core-banks",
             "friendly-core-drops", "friendly-core-losses",
             "friendly-core-resolutions", "friendly-destructions",
+            "friendly-workshop-completions",
         };
 
     private static readonly HashSet<string> RoleListFacts =
@@ -321,10 +335,26 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "role", "zone", "well", "freshnessTicks",
                     "windowTicks", "since", "signature", "coreBankValue",
                     "roles", "zones", "correlateAcquisition", "outcomes",
+                    "workshop",
                 ]);
             string fact = RequiredString(property.Value, "fact", at);
             if (!ConditionFacts.Contains(fact))
                 throw Error(at, $"unknown condition fact '{fact}'.");
+            bool hasWorkshop = property.Value.TryGetProperty(
+                "workshop", out JsonElement workshopSelector);
+            if (hasWorkshop != WorkshopFacts.Contains(fact))
+            {
+                throw Error(at, hasWorkshop
+                    ? $"'{fact}' does not take a workshop."
+                    : $"'{fact}' needs a workshop selector.");
+            }
+            if (hasWorkshop
+                && StringValue(workshopSelector, $"{at}.workshop")
+                    is not ("north" or "south" or "either"))
+            {
+                throw Error($"{at}.workshop",
+                    "workshop must be north/south/either.");
+            }
             OneOf(property.Value, "operator", at,
                 "at-least", "at-most", "equals", "less-than", "greater-than");
             int comparison = RequiredInt(property.Value, "value", at);
@@ -1375,7 +1405,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (value.ValueKind != JsonValueKind.Object)
             throw Error(path, "expected dynamic target or map target object.");
-        string[] keys = ["zone", "anchor", "adjacentTo", "well"];
+        string[] keys = ["zone", "anchor", "adjacentTo", "well", "workshop"];
         string[] found = keys.Where(name => value.TryGetProperty(name, out _))
             .ToArray();
         if (found.Length != 1)
@@ -1388,6 +1418,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             if (id is not ("north" or "centre" or "south" or "own" or "enemy"))
                 throw Error(path, "well must be north/centre/south/own/enemy.");
+            return;
+        }
+        if (found[0] == "workshop")
+        {
+            if (id is not ("north" or "south" or "either"))
+                throw Error(path, "workshop must be north/south/either.");
             return;
         }
         IdentifierValue(id, path,

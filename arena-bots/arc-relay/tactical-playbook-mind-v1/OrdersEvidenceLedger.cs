@@ -14,6 +14,10 @@ internal sealed class OrdersEvidenceLedger
     private readonly List<EnemyEntry> _entries = [];
     private readonly List<EnemyDestruction> _destructions = [];
     private readonly List<int> _friendlyDestructionTicks = [];
+    private readonly List<WorkshopCompletion> _workshopCompletions = [];
+    private readonly Dictionary<string,
+        GenericActorContext.ArcRelayVeterancyWorkshopState>
+        _previousWorkshops = new(StringComparer.Ordinal);
     private readonly List<FriendlyCorePickup> _friendlyCorePickups = [];
     private readonly List<FriendlyCoreEvent> _friendlyCoreEvents = [];
     private readonly HashSet<string> _processedEvents = new(StringComparer.Ordinal);
@@ -27,9 +31,42 @@ internal sealed class OrdersEvidenceLedger
         _entries.Clear();
         _destructions.Clear();
         _friendlyDestructionTicks.Clear();
+        _workshopCompletions.Clear();
+        _previousWorkshops.Clear();
         _friendlyCorePickups.Clear();
         _friendlyCoreEvents.Clear();
         _processedEvents.Clear();
+    }
+
+    /// <summary>
+    /// Workshop completions derive from the PUBLIC state, never from a
+    /// spatial event a body might have missed: a channel our team held that
+    /// turns dormant is a completion — an interruption turns ready or
+    /// contested instead — so the anchored 'trained here this phase' row is
+    /// fog-free by construction.
+    /// </summary>
+    public void ObserveWorkshops(
+        int teamId,
+        int tick,
+        IReadOnlyList<GenericActorContext.ArcRelayVeterancyWorkshopState>
+            workshops)
+    {
+        foreach (GenericActorContext.ArcRelayVeterancyWorkshopState workshop
+                 in workshops)
+        {
+            if (_previousWorkshops.TryGetValue(
+                    workshop.WorkshopId, out var previous)
+                && previous.Phase == GenericActorContext
+                    .ArcRelayVeterancyWorkshopPhase.Training
+                && previous.TrainingTeamId == teamId
+                && workshop.Phase == GenericActorContext
+                    .ArcRelayVeterancyWorkshopPhase.Dormant)
+            {
+                _workshopCompletions.Add(new WorkshopCompletion(
+                    tick, workshop.WorkshopId));
+            }
+            _previousWorkshops[workshop.WorkshopId] = workshop;
+        }
     }
 
     public void Observe(int teamId, MindContext mind)
@@ -266,6 +303,24 @@ internal sealed class OrdersEvidenceLedger
         Func<GenericActorContext.ArcRelayCoreId, bool>? sourceMatches = null,
         Func<EvidenceRead>? fallback = null)
     {
+        if (condition.Fact == "friendly-workshop-completions")
+        {
+            (int start, int end) = Interval(
+                condition, decisionTick, orderTicks);
+            int count = _workshopCompletions.Count(value =>
+                value.Tick >= start && value.Tick < end
+                && (condition.Workshop is null or "either"
+                    || string.Equals(
+                        value.WorkshopId,
+                        condition.Workshop,
+                        StringComparison.Ordinal)));
+            string interval = end <= start
+                ? $"{start}..empty"
+                : $"{start}..{end - 1}";
+            return new EvidenceRead(
+                count,
+                $"{condition.Id}={count}-workshop-completions@{interval}");
+        }
         if (condition.Fact == "friendly-core-pickups")
         {
             (int start, int end) = Interval(
@@ -521,6 +576,7 @@ internal sealed class OrdersEvidenceLedger
     }
 
     internal readonly record struct EvidenceRead(int Actual, string Trace);
+    private sealed record WorkshopCompletion(int Tick, string WorkshopId);
     internal sealed record ClearanceRead(
         bool Cleared,
         Position[] StaleTiles,

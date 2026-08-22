@@ -664,6 +664,50 @@ internal static class GenericActorWireEventCodec
                     fact.SignatureId, fact.OwnerActorId, fact.TargetActorId,
                     fact.Amount, fact.NewHealth, fact.Position);
                 break;
+            case GenericActorContext.ArcRelayEvent.WorkshopReady fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId(
+                    "workshop-ready"));
+                writer.Field(2, GenericActorWireCodecValues.SemanticId(
+                    fact.WorkshopId));
+                writer.Field(3, GenericActorWireCodecValues.EncodePosition(
+                    fact.TrainingTile));
+                break;
+            case GenericActorContext.ArcRelayEvent.WorkshopTrainingStarted fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId(
+                    "workshop-training-started"));
+                writer.Field(2, GenericActorWireCodecValues.SemanticId(
+                    fact.WorkshopId));
+                writer.Field(3, ActorWireValue.Int32(fact.TeamId));
+                writer.Field(4, GenericActorWireCodecValues.EncodePosition(
+                    fact.TrainingTile));
+                break;
+            case GenericActorContext.ArcRelayEvent
+                .WorkshopTrainingInterrupted fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId(
+                    "workshop-training-interrupted"));
+                writer.Field(2, GenericActorWireCodecValues.SemanticId(
+                    fact.WorkshopId));
+                writer.Field(3, ActorWireValue.Int32(fact.TeamId));
+                writer.Field(4, GenericActorWireCodecValues.SemanticId(
+                    fact.Reason));
+                writer.Field(5, ActorWireValue.Int32(fact.ProgressLost));
+                writer.Field(6, GenericActorWireCodecValues.EncodePosition(
+                    fact.TrainingTile));
+                break;
+            case GenericActorContext.ArcRelayEvent
+                .WorkshopTrainingCompleted fact:
+                writer.Field(1, GenericActorWireCodecValues.SemanticId(
+                    "workshop-training-completed"));
+                writer.Field(2, GenericActorWireCodecValues.SemanticId(
+                    fact.WorkshopId));
+                writer.Field(3, ActorWireValue.Int32(fact.TeamId));
+                writer.Field(4, GenericActorWireCodecValues.EncodeIdentity(
+                    fact.TraineeActorId));
+                writer.Field(5, ActorWireValue.Int32(fact.XpAward));
+                writer.Field(6, ActorWireValue.Int32(fact.ReadyAgainTick));
+                writer.Field(7, GenericActorWireCodecValues.EncodePosition(
+                    fact.TrainingTile));
+                break;
             default:
                 throw new InvalidOperationException(
                     "Unknown Arc Relay event fact variant.");
@@ -764,6 +808,43 @@ internal static class GenericActorWireEventCodec
                         GenericActorWireCodecValues.DecodePosition(reader.Required(7), depth + 1)),
                 "signature-damage" => DecodeArcSignatureDamage(reader, depth),
                 "signature-repair" => DecodeArcSignatureRepair(reader, depth),
+                "workshop-ready" =>
+                    new GenericActorContext.ArcRelayEvent.WorkshopReady(
+                        GenericActorWireCodecValues.SemanticId(
+                            reader.Required(2)),
+                        GenericActorWireCodecValues.DecodePosition(
+                            reader.Required(3), depth + 1)),
+                "workshop-training-started" =>
+                    new GenericActorContext.ArcRelayEvent
+                        .WorkshopTrainingStarted(
+                            GenericActorWireCodecValues.SemanticId(
+                                reader.Required(2)),
+                            GenericActorWireCodecValues.Int32(reader, 3),
+                            GenericActorWireCodecValues.DecodePosition(
+                                reader.Required(4), depth + 1)),
+                "workshop-training-interrupted" =>
+                    new GenericActorContext.ArcRelayEvent
+                        .WorkshopTrainingInterrupted(
+                            GenericActorWireCodecValues.SemanticId(
+                                reader.Required(2)),
+                            GenericActorWireCodecValues.Int32(reader, 3),
+                            GenericActorWireCodecValues.SemanticId(
+                                reader.Required(4)),
+                            GenericActorWireCodecValues.Int32(reader, 5),
+                            GenericActorWireCodecValues.DecodePosition(
+                                reader.Required(6), depth + 1)),
+                "workshop-training-completed" =>
+                    new GenericActorContext.ArcRelayEvent
+                        .WorkshopTrainingCompleted(
+                            GenericActorWireCodecValues.SemanticId(
+                                reader.Required(2)),
+                            GenericActorWireCodecValues.Int32(reader, 3),
+                            GenericActorWireCodecValues.DecodeIdentity(
+                                reader.Required(4), depth + 1),
+                            GenericActorWireCodecValues.Int32(reader, 5),
+                            GenericActorWireCodecValues.Int32(reader, 6),
+                            GenericActorWireCodecValues.DecodePosition(
+                                reader.Required(7), depth + 1)),
                 _ => throw new FormatException(
                     "Unknown Arc Relay fact discriminator."),
             },

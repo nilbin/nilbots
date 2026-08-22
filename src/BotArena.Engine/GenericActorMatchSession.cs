@@ -4918,6 +4918,9 @@ public sealed class GenericActorMatchSession : IDisposable
             // otherwise wave-aware sheet facts silently read as absent.
             NextRespawnWaveTick = arcRelay.NextRespawnWaveTick,
             RespawnWaveTeams = arcRelay.RespawnWaveTeams,
+            // The Workshop objective signal is public by design (team and
+            // progress only), so the one-team narrowing preserves it whole.
+            Workshops = arcRelay.Workshops,
         };
     }
 
