@@ -388,10 +388,15 @@ Accepted tradeoffs (deliberate, documented):
 5. Reactor→reactor is 32 (was 38): faster home pressure under 30-tick
    respawn waves; the pads' zero-projection audit keeps it honest.
 
-Playtest hypotheses (geometry cannot decide): deathball-versus-trades income
-balance under the 46-tick recharge; workshop camping rate once workshop
-rules exist; heal-turtle viability; whether the 1-wide slips read fairly in
-live play.
+Playtest hypotheses — now SETTLED by the deterministic probe battery on
+this branch (`ARC-RELAY-BROADLOOM-PROBE-SETTLEMENT.md`, 96 seeded matches):
+counterplay to the eight-body mass exists and wins 8–4 when authored
+through the player surface; raids bank 85% as patrol motion and 7% as
+parked siege; heal-home turtling loses 0–24; the own-Well run is safe by
+default and deniable by commitment; the workshop bias is a bounded ≤4-tick
+head start that no plausible training channel can convert into ownership.
+Still open for live play: how the 1-wide slips read to humans, and the
+ball-congestion margin once the carrier-traffic executor seam is fixed.
 
 ## 11. Geometry evidence versus balance claims
 
