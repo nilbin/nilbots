@@ -9736,3 +9736,22 @@ note, while a channel opportunity that passes unused remains a deviation. A
 Hold response beginning one tile beyond readiness tolerance is likewise a
 defensive-leash note; starts farther away and large fight excursions remain
 deviations.
+
+## 366. Exact durable marks respect job ingress before committing locally
+
+Tactics exact marks for persistent deployments no longer compete with their
+job's movement floor from phase entry. When a Posts, Area, Line, Approach,
+Converge, or Advance job has arrival ground, the durable signature leaf first
+requires that body's normal on-station fact. Once selected, the existing
+Instruction lifecycle latches the local approach until the owned deployment
+appears on the marked tile or a 40-tick timeout ends the attempt. Higher
+priority leaves retain normal pre-emption. Patrol and other jobs without one
+arrival ground keep their contextual behavior; no deployment scheduler,
+reservation, or second state machine is introduced.
+
+Replay conformance now uses the same Post readiness contract as execution.
+Literal tile occupancy remains reported, but Chebyshev-one arrival is a pass,
+and a `groupsSet` transition may prove readiness from the release-boundary
+position that caused the phase to advance. This removes false deviations in
+which the executor truthfully released a ready formation while the reader
+looked only at the preceding phase-labelled decision tick.

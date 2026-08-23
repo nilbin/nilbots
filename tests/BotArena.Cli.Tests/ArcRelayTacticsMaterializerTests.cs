@@ -1682,6 +1682,39 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void ExactDurableDeploymentWaitsForJobGroundThenLatchesItsApproach()
+    {
+        JsonObject source = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        JsonObject migrated = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Encoding.UTF8.GetBytes(source.ToJsonString())))!.AsObject();
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(migrated.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement flux = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "flux");
+        JsonElement deployment = Descendants(flux).Single(node =>
+            node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty("use", out JsonElement use)
+            && use.GetProperty("skill").GetString() == "hardlight-block");
+
+        string[] when = deployment.GetProperty("when").GetProperty("all")
+            .EnumerateArray().Select(value => value.GetString()!).ToArray();
+        JsonElement conditions = orders.RootElement.GetProperty("conditions");
+        Assert.Contains(when, name =>
+            conditions.TryGetProperty(name, out JsonElement condition)
+            && condition.GetProperty("fact").GetString() == "self-in-zone");
+        Assert.Equal(40, deployment.GetProperty("timeout").GetInt32());
+        string until = deployment.GetProperty("until").GetString()!;
+        Assert.Equal("self-deployment-in-zone",
+            conditions.GetProperty(until).GetProperty("fact").GetString());
+    }
+
+    [Fact]
     public void PostureBundledClassesRejectSpatialMarks()
     {
         JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();

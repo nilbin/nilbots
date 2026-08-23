@@ -22,6 +22,7 @@ internal static class ArcRelayTacticsMaterializer
     private const int RememberedFreshnessTicks = 20;
     private const int ObservedWindowTicks = 120;
     private const int GrabWalkingSteps = 6;
+    private const int DeploymentApproachTimeout = 40;
 
     public static ArcRelayTacticsMaterialization Materialize(
         ArcRelayTacticsDocument document)
@@ -1514,13 +1515,22 @@ internal static class ArcRelayTacticsMaterializer
             {
                 for (int index = 0; index < plan.Points.Count; index++)
                 {
+                    int[] point = plan.Points[index];
                     string anchor = Anchor(
-                        plan.Points[index],
+                        point,
                         $"g-{geometryPrefix}-s{bot.Slot}-{index}");
-                    leaves.Add(new Node
+                    string? station = descriptor.DurableDeployment
+                        && job is not null
+                            ? OnStationCondition(
+                                scope.Prefix, scope.GroupTag, job, group, bot)
+                            : null;
+                    var conditions = new List<string>();
+                    if (station is not null)
+                        conditions.Add(station);
+                    var leaf = new Node
                     {
                         Id = scope.Id($"s{bot.Slot}-mark-{index}"),
-                        When = SignatureWhen(descriptor),
+                        When = SignatureWhen(descriptor, conditions.ToArray()),
                         Action = UseSkill(descriptor.SkillId, writer =>
                         {
                             writer.WriteString(
@@ -1529,7 +1539,20 @@ internal static class ArcRelayTacticsMaterializer
                                     : DefaultNamedTarget(descriptor));
                             writer.WriteString("at", anchor);
                         }),
-                    });
+                    };
+                    if (descriptor.DurableDeployment && station is not null)
+                    {
+                        string markZone = Zone(
+                            [point[0], point[1], point[0], point[1]],
+                            $"g-{geometryPrefix}-s{bot.Slot}-{index}-mark");
+                        leaf.Until = Expr.One(Condition(
+                            new ConditionShape(
+                                "self-deployment-in-zone", "equals", 1,
+                                ZoneId: markZone),
+                            $"c-{geometryPrefix}-s{bot.Slot}-{index}-planted"));
+                        leaf.Timeout = DeploymentApproachTimeout;
+                    }
+                    leaves.Add(leaf);
                 }
                 if (policy == "only")
                     return;
@@ -1636,10 +1659,19 @@ internal static class ArcRelayTacticsMaterializer
         }
 
         private Expr SignatureWhen(
-            ArcRelaySignatureAuthoringDescriptor descriptor) =>
-            descriptor.Custody == ArcRelaySignatureCustodyBehavior.CarrierSafe
-                ? Expr.One(SignatureReady())
-                : Expr.All(EmptyHanded(), SignatureReady());
+            ArcRelaySignatureAuthoringDescriptor descriptor,
+            params string[] extra)
+        {
+            var conditions = new List<string>(extra.Length + 2);
+            if (descriptor.Custody !=
+                ArcRelaySignatureCustodyBehavior.CarrierSafe)
+            {
+                conditions.Add(EmptyHanded());
+            }
+            conditions.Add(SignatureReady());
+            conditions.AddRange(extra);
+            return Expr.All(conditions.ToArray());
+        }
 
         private void AddFloor(
             List<Node> leaves,

@@ -1606,6 +1606,10 @@ class TacticProjection:
             for index, post in enumerate(posts)
         }
         findings = []
+        readiness_release = any(
+            (rule.get("required") or {}).get("groupsSet") is not None
+            for rule in phase.get("continue") or []
+        )
         for slot in group["slots"]:
             post = by_slot.get(slot)
             if post is None:
@@ -1621,16 +1625,40 @@ class TacticProjection:
             live = [row for row in rows if row["position"] is not None]
             exact = [row for row in live if row["position"] == target]
             ready = [row for row in live if chebyshev(row["position"], target) <= 1]
+            boundary = None
+            if readiness_release:
+                next_tick = segment["endTick"] + 1
+                track = self.records[team, slot]
+                if next_tick < len(track) and track[next_tick]["position"] is not None:
+                    boundary = track[next_tick]
+            boundary_ready = (
+                boundary is not None
+                and chebyshev(boundary["position"], target) <= 1
+            )
             longest_exact = 0
+            longest_ready = 0
             exact_run = 0
+            ready_run = 0
             for row in live:
                 exact_run = exact_run + 1 if row["position"] == target else 0
+                ready_run = (
+                    ready_run + 1
+                    if chebyshev(row["position"], target) <= 1
+                    else 0
+                )
                 longest_exact = max(longest_exact, exact_run)
+                longest_ready = max(longest_ready, ready_run)
             parked, parked_start, parked_end = (
                 self._longest_park(live) if live else (None, None, None)
             )
             valid = self.index.is_walkable(target)
-            status = "pass" if valid and exact and longest_exact >= 2 else "deviation"
+            # Runtime formation readiness deliberately accepts Chebyshev-one
+            # around an exact post. Requiring the literal tile here made the
+            # checker contradict a legal groupsSet release, especially when
+            # adjacent bodies occupied the final tiles. Entering the authored
+            # readiness range is the observable promise; exact occupancy is
+            # still reported as the stronger placement detail.
+            status = "pass" if valid and (ready or boundary_ready) else "deviation"
             target_text = self._position_text(self.index.position_model(target, team))
             if not valid:
                 summary = f"authored post {target_text} is not walkable map terrain"
@@ -1638,7 +1666,21 @@ class TacticProjection:
                 summary = (
                     f"arrived t{exact[0]['tick']}; exact {len(exact)}/{len(live)} body-ticks; "
                     f"longest hold {longest_exact}; "
-                    f"readiness-range {len(ready)}/{len(live)}"
+                    f"readiness-range {len(ready)}/{len(live)} "
+                    f"(longest {longest_ready})"
+                )
+            elif ready:
+                summary = (
+                    f"entered readiness range of {target_text} t{ready[0]['tick']}; "
+                    f"exact 0/{len(live)} body-ticks; "
+                    f"readiness-range {len(ready)}/{len(live)} "
+                    f"(longest {longest_ready})"
+                )
+            elif boundary_ready:
+                summary = (
+                    f"became ready within one tile of {target_text} at the "
+                    f"phase-release boundary t{boundary['tick']}; exact "
+                    f"0/{len(live)} phase body-ticks"
                 )
             else:
                 parked_text = self._position_text(
@@ -1657,10 +1699,17 @@ class TacticProjection:
                 {
                     "target": self.index.position_model(target, team),
                     "walkable": valid,
-                    "arrivalTick": exact[0]["tick"] if exact else None,
+                    "arrivalTick": (
+                        ready[0]["tick"] if ready
+                        else boundary["tick"] if boundary_ready
+                        else None
+                    ),
+                    "exactArrivalTick": exact[0]["tick"] if exact else None,
                     "exactBodyTicks": len(exact),
                     "longestExactHoldTicks": longest_exact,
                     "readinessBodyTicks": len(ready),
+                    "longestReadinessHoldTicks": longest_ready,
+                    "readyAtReleaseBoundary": boundary_ready,
                     "liveBodyTicks": len(live),
                     "parked": self.index.position_model(parked, team),
                     "parkedWindow": [parked_start, parked_end],

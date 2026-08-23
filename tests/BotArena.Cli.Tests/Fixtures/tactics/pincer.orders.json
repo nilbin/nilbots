@@ -429,9 +429,12 @@
                   "when": {
                     "all": [
                       "empty-handed",
-                      "signature-ready"
+                      "signature-ready",
+                      "c-t1-g2-on-station"
                     ]
                   },
+                  "until": "c-t1-g2-p2-s3-0-planted",
+                  "timeout": 40,
                   "use": {
                     "skill": "hardlight-block",
                     "opportunity": "block-unoccupied-choke",
@@ -1261,6 +1264,18 @@
       "operator": "equals",
       "value": 1,
       "zone": "g-t1-g1-near-post-1"
+    },
+    "c-t1-g2-on-station": {
+      "fact": "self-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g2-set-2"
+    },
+    "c-t1-g2-p2-s3-0-planted": {
+      "fact": "self-deployment-in-zone",
+      "operator": "equals",
+      "value": 1,
+      "zone": "g-t1-g2-p2-s3-0-mark"
     },
     "c-t1-g1-at-post-0-self": {
       "fact": "self-in-zone",
