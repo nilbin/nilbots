@@ -9682,3 +9682,14 @@ because objective economics and registered gameplay change. Playlist v34
 remains byte-exact Broadloom-2 history with its 45-tick dormancy, and v33
 remains first-Broadloom history. This promotion is a mechanics correction in
 the owner's fast-iteration phase, not a population balance verdict.
+
+## 362. Canonical replays gain one deterministic tactic-reading projection
+
+Replay diagnosis now uses `scripts/arc-relay-tactic-read.py` as the joined,
+read-only view of tactical intent and observed execution. Its text and JSON
+formats render one internal span model, retain dual global/seat coordinates,
+consume Workshop lifecycle boundaries from replay events, and parse the same
+`orders:` attribution grammar as the practice editor. Tactics conformance is
+evidence, not match validity: deviations exit zero unless `--strict` is
+explicitly requested. This adds no engine, replay, SDK, CLI, playlist, or
+executor behavior.

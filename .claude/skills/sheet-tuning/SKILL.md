@@ -200,6 +200,7 @@ scripts/arc-relay-traffic-read.py REPLAY [--team N]
 scripts/arc-relay-declare-read.py REPLAY [--team N]
 scripts/arc-relay-strike-cancel-audit.py REPLAY
 scripts/arc-relay-state-digest.py REPLAY
+scripts/arc-relay-tactic-read.py REPLAY [--spans] [--check TACTICS.json]
 ```
 
 - Use `fight-trace` for the reason timeline, fight interruptions, and
@@ -215,6 +216,9 @@ scripts/arc-relay-state-digest.py REPLAY
   rules.
 - Use `state-digest` to compare gameplay identity across renamed or
   provenance-only replays; `replayHash` is not suitable for that comparison.
+- Use `tactic-read` for the compact whole-match digest, joined per-unit spans,
+  exact tick drill-down, ASCII keyframes, and promise-by-promise comparison of
+  one Tactics v2 document with its canonical replay.
 
 In the viewer, select the body under investigation. Its follow camera, order
 and action chip, cyan destination lens, next step, and crossed-blades engaged
