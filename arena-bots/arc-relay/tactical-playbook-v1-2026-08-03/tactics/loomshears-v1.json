@@ -1,0 +1,102 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "loomshears-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" },
+    { "slot": 1, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 2, "class": "longshot", "build": "aggressive", "name": "Gantry" },
+    { "slot": 3, "class": "mortar", "build": "aggressive", "name": "Maul" },
+    { "slot": 4, "class": "sunder", "build": "balanced", "name": "Brand" },
+    { "slot": 5, "class": "patchbay", "build": "durable", "name": "Cinder" },
+    { "slot": 6, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 7, "class": "palisade", "build": "durable", "name": "Ember" }
+  ],
+  "tactics": [
+    {
+      "id": "cut-the-loom",
+      "name": "Cut the Loom",
+      "recipe": "patrol",
+      "start": { "mode": "always" },
+      "delivery": { "plan": "solo", "preferredSlots": [2, 4, 6, 7] },
+      "groups": [
+        {
+          "id": "shears",
+          "name": "Workshop shears",
+          "slots": [0, 1],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "wedge",
+          "name": "Centre wedge",
+          "slots": [2, 3, 4, 5],
+          "coreRule": "hunt"
+        },
+        {
+          "id": "ward",
+          "name": "Well ward",
+          "slots": [6, 7],
+          "coreRule": "grab"
+        }
+      ],
+      "phases": [
+        {
+          "id": "three-point-cut",
+          "name": "Three-point cut",
+          "jobs": {
+            "shears": {
+              "kind": "patrol",
+              "posture": "aggressive",
+              "recovery": "fight-on",
+              "path": [
+                [12, 8], [12, 2], [17, 1], [21, 3],
+                [18, 6], [16, 7], [12, 8]
+              ],
+              "sigs": {
+                "0": {
+                  "policy": "prefer",
+                  "line": [[12, 2], [17, 1], [21, 3]]
+                },
+                "1": { "policy": "smart" }
+              }
+            },
+            "wedge": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [14, 12], "facing": "e", "slot": 2 },
+                { "at": [14, 15], "facing": "e", "slot": 3 },
+                { "at": [15, 12], "facing": "e", "slot": 4 },
+                { "at": [15, 14], "facing": "e", "slot": 5 }
+              ],
+              "sigs": {
+                "2": { "policy": "smart" },
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" },
+                "5": { "policy": "smart" }
+              }
+            },
+            "ward": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [9, 21], "facing": "e", "slot": 6 },
+                { "at": [11, 17], "facing": "s", "slot": 7 }
+              ],
+              "sigs": {
+                "6": { "policy": "prefer", "points": [[12, 18]] },
+                "7": { "policy": "smart" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
