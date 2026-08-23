@@ -9,6 +9,11 @@ export default defineArcSignature({
   audio: [
     { trigger: 'started', cue: 'attack-windup' },
     {
+      trigger: 'completed',
+      cue: 'signature-tether',
+      replacesGenericRelease: true,
+    },
+    {
       trigger: 'launched',
       cue: 'signature-tether',
       replacesGenericRelease: true,

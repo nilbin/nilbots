@@ -1076,6 +1076,10 @@ public static class ActorCanonicalContractReader
         // The bolt-class telegraph windup (owner ruling 2026-08-08), written
         // only by a ruleset that authors one.
         bool hasWindup = element.TryGetProperty("windupTicks", out _);
+        bool hasFireWindup = element.TryGetProperty(
+            "fireWindupTicks", out _);
+        bool hasDeclaredDelivery = element.TryGetProperty(
+            "delivery", out _);
         bool hasActivationTiming = element.TryGetProperty(
             "activationTiming", out _);
         bool retainsCore = element.TryGetProperty("retainsCore", out _);
@@ -1105,7 +1109,14 @@ public static class ActorCanonicalContractReader
             "prism-wall" => hasScreenHull
                 ? ["segmentCount", "hull", "durationTicks"]
                 : ["segmentCount", "durationTicks", "contactCapacity"],
-            "tractor-hook" => hasBolt
+            "tractor-hook" => hasDeclaredDelivery
+                ? hasAuthoredWallPenetration
+                    ? ["windupTicks", "range", "maxPullTiles", "damage",
+                        "authoredWallPenetrationTiles", "delivery",
+                        "contactPolicy"]
+                    : ["windupTicks", "range", "maxPullTiles", "damage",
+                        "delivery", "contactPolicy"]
+                : hasBolt
                 ? hasWindup
                     ? hasAuthoredWallPenetration
                         ? ["windupTicks", "range", "maxPullTiles",
@@ -1140,8 +1151,10 @@ public static class ActorCanonicalContractReader
             "exchange" => targetRetainsCore
                 ? ["range", "tellTicks", "targetRetainsCore"]
                 : ["range", "tellTicks"],
-            "rail-line" =>
-                ["tellTicks", "range", "damage", "cancelCooldownTicks"],
+            "rail-line" => hasDeclaredDelivery
+                ? ["tellTicks", "range", "damage", "cancelCooldownTicks",
+                    "delivery", "contactPolicy"]
+                : ["tellTicks", "range", "damage", "cancelCooldownTicks"],
             "hardlight-block" => ["hull", "durationTicks"],
             "target-paint" => hasAcquisition
                 ? ["range", "acquisitionTicks", "durationTicks",
@@ -1159,7 +1172,11 @@ public static class ActorCanonicalContractReader
                 ? ["range", "radius", "durationTicks",
                     "travelTilesPerTick"]
                 : ["range", "radius", "durationTicks"],
-            "sentinel-seed" => hasBolt
+            "sentinel-seed" => hasDeclaredDelivery
+                ? ["windupTicks", "hull", "range", "damage",
+                    "fireCooldownTicks", "fireWindupTicks", "durationTicks",
+                    "delivery", "contactPolicy"]
+                : hasBolt
                 ? hasWindup
                     ? ["windupTicks", "hull", "range", "damage",
                         "fireCooldownTicks", "durationTicks",
@@ -1226,8 +1243,17 @@ public static class ActorCanonicalContractReader
             BonusDamage = Optional("bonusDamage"),
             PushTiles = Optional("pushTiles"),
             FireCooldownTicks = Optional("fireCooldownTicks"),
+            FireWindupTicks = hasFireWindup
+                ? Int(element, "fireWindupTicks")
+                : null,
             BoltTilesPerAdvance = specific.Contains("boltTilesPerAdvance")
                 ? Int(element, "boltTilesPerAdvance")
+                : null,
+            Delivery = hasDeclaredDelivery
+                ? Semantic(element, "delivery")
+                : null,
+            ContactPolicy = hasDeclaredDelivery
+                ? Semantic(element, "contactPolicy")
                 : null,
             AcquisitionTicks = Optional("acquisitionTicks"),
             RetainsCore = retainsCore

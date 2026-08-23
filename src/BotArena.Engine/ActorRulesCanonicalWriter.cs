@@ -423,7 +423,9 @@ internal static class ActorRulesCanonicalWriter
                 writer,
                 signature,
                 includeMetadata: mode.SignatureGrammarVersion >= 2,
-                includeTiming: mode.SignatureGrammarVersion >= 3);
+                includeTiming: mode.SignatureGrammarVersion >= 3,
+                includeDeclaredLineDelivery:
+                    mode.SignatureGrammarVersion >= 7);
         writer.WriteEndArray();
     }
 
@@ -431,7 +433,8 @@ internal static class ActorRulesCanonicalWriter
         Utf8JsonWriter writer,
         ArcRelaySignatureDefinition signature,
         bool includeMetadata,
-        bool includeTiming)
+        bool includeTiming,
+        bool includeDeclaredLineDelivery)
     {
         writer.WriteStartObject();
         writer.WriteString("kind", Id(signature.Kind));
@@ -533,6 +536,12 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber(
                     "cancelCooldownTicks",
                     value.CancelCooldownTicks);
+                if (includeDeclaredLineDelivery)
+                {
+                    writer.WriteString("delivery", "declared-ray");
+                    writer.WriteString(
+                        "contactPolicy", "piercing-hostiles");
+                }
                 break;
             case ArcRelaySignatureDefinition.HardlightBlock value:
                 writer.WriteNumber("hull", value.Hull);
@@ -581,6 +590,23 @@ internal static class ActorRulesCanonicalWriter
                     "boltTilesPerAdvance",
                     value.BoltTilesPerAdvance);
                 break;
+            case ArcRelaySignatureDefinition.SentinelSeed3 value:
+                if (value.PlacementWindupTicks > 0)
+                {
+                    writer.WriteNumber(
+                        "windupTicks", value.PlacementWindupTicks);
+                }
+                writer.WriteNumber("hull", value.Hull);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("damage", value.Damage);
+                writer.WriteNumber(
+                    "fireCooldownTicks", value.FireCooldownTicks);
+                writer.WriteNumber(
+                    "fireWindupTicks", value.FireWindupTicks);
+                writer.WriteNumber("durationTicks", value.DurationTicks);
+                writer.WriteString("delivery", "declared-ray");
+                writer.WriteString("contactPolicy", "first-contact");
+                break;
             case ArcRelaySignatureDefinition.TractorHook2 value:
                 if (value.WindupTicks > 0)
                     writer.WriteNumber("windupTicks", value.WindupTicks);
@@ -597,6 +623,22 @@ internal static class ActorRulesCanonicalWriter
                         "authoredWallPenetrationTiles",
                         value.AuthoredWallPenetrationTiles);
                 }
+                break;
+            case ArcRelaySignatureDefinition.TractorHook3 value:
+                if (value.WindupTicks > 0)
+                    writer.WriteNumber("windupTicks", value.WindupTicks);
+                writer.WriteNumber("range", value.Range);
+                writer.WriteNumber("maxPullTiles", value.MaxPullTiles);
+                if (value.Damage > 0)
+                    writer.WriteNumber("damage", value.Damage);
+                if (value.AuthoredWallPenetrationTiles > 0)
+                {
+                    writer.WriteNumber(
+                        "authoredWallPenetrationTiles",
+                        value.AuthoredWallPenetrationTiles);
+                }
+                writer.WriteString("delivery", "declared-ray");
+                writer.WriteString("contactPolicy", "first-contact");
                 break;
             case ArcRelaySignatureDefinition.NullField2 value:
                 writer.WriteNumber("radius", value.Radius);

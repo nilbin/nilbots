@@ -251,6 +251,98 @@ public sealed class ArcRelaySignatureLockTests
             arena.Body(walked, 0, 0).Position);
     }
 
+    [Fact]
+    public void Broadloom7HookDeclaresThenHitsAndPullsFirstContactOnly()
+    {
+        using Arena arena = Arena.Create(
+            Zero(new Position(3, 1), Shooter),
+            One(new Position(8, 4), new Position(5, 4)),
+            loopProfile: ArcRelayLoopProfile.Broadloom7);
+
+        GenericActorMatchStepResult declared = arena.Step(
+            (0, 1, arena.Hook(ProjectileHeading.East, target: 0)));
+        Assert.Equal(Shooter, Assert.Single(Arena.PendingStrikes(declared)).Origin);
+
+        GenericActorMatchStepResult contact = arena.Step();
+        Assert.Empty(contact.PostState.Projectiles);
+        Assert.Equal(50, arena.Body(contact, 1, 0).Health);
+        Assert.Equal(40, arena.Body(contact, 1, 1).Health);
+
+        GenericActorMatchStepResult pulled = arena.Step();
+        Assert.Equal(new Position(3, 4), arena.Body(pulled, 1, 1).Position);
+        Assert.Equal(new Position(8, 4), arena.Body(pulled, 1, 0).Position);
+    }
+
+    [Fact]
+    public void Broadloom7SentryPublishesPerShotTellAndRetainsNoProjectile()
+    {
+        string[] nestSheet =
+        [
+            ArcRelayLaunchClassIds.Nest,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Veil,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Mortar,
+            ArcRelayLaunchClassIds.Minesmith,
+        ];
+        using Arena arena = Arena.Create(
+            Zero(Shooter),
+            One(new Position(6, 4), new Position(5, 4)),
+            teamZeroClasses: nestSheet,
+            loopProfile: ArcRelayLoopProfile.Broadloom7);
+
+        Position seed = new(3, 4);
+        arena.Step((0, 0, arena.Seed(seed)));
+        arena.Step();
+        GenericActorMatchStepResult declared = arena.Step();
+        GenericActorRuntimeObservation.ArcRelayPendingStrikeState pending =
+            Assert.Single(Arena.PendingStrikes(declared));
+        Assert.Equal(seed, pending.Origin);
+        Assert.Contains(new Position(5, 4), pending.Tiles);
+
+        GenericActorMatchStepResult contact = arena.Step();
+        Assert.Empty(contact.PostState.Projectiles);
+        Assert.Equal(50, arena.Body(contact, 1, 0).Health);
+        Assert.Equal(40, arena.Body(contact, 1, 1).Health);
+    }
+
+    [Fact]
+    public void Broadloom7AuthoredBlindHookRayKeepsItsOneWallBreach()
+    {
+        using Arena arena = Arena.Create(
+            Zero(new Position(3, 1), Shooter),
+            One(new Position(5, 4)),
+            pillar: new Position(4, 4),
+            loopProfile: ArcRelayLoopProfile.Broadloom7);
+
+        arena.Step((0, 1, arena.Hook(ProjectileHeading.East, target: null)));
+        GenericActorMatchStepResult contact = arena.Step();
+        Assert.Equal(40, arena.Body(contact, 1, 0).Health);
+        Assert.Empty(contact.PostState.Projectiles);
+
+        GenericActorMatchStepResult pulled = arena.Step();
+        Assert.Equal(new Position(3, 4), arena.Body(pulled, 1, 0).Position);
+    }
+
+    [Fact]
+    public void Broadloom7RailStillDamagesEveryHostileOnItsLine()
+    {
+        using Arena arena = Arena.Create(
+            Zero(Shooter, new Position(7, 5)),
+            One(new Position(8, 4), new Position(5, 4), new Position(6, 4)),
+            loopProfile: ArcRelayLoopProfile.Broadloom7);
+
+        arena.Step((0, 0, arena.Rail(ProjectileHeading.East, target: 0)));
+        GenericActorMatchStepResult matured = arena.Step();
+
+        Assert.Equal(30, arena.Body(matured, 1, 0).Health);
+        Assert.Equal(30, arena.Body(matured, 1, 1).Health);
+        Assert.Equal(30, arena.Body(matured, 1, 2).Health);
+        Assert.Empty(matured.PostState.Projectiles);
+    }
+
     /// <summary>
     /// The seven team-0 bodies that are not under test, parked in the west
     /// column: ten tiles and more from every lane, so team sight is exactly
@@ -340,13 +432,15 @@ public sealed class ArcRelaySignatureLockTests
             IReadOnlyList<Position> teamOne,
             Position? pillar = null,
             IReadOnlyList<string>? teamZeroClasses = null,
-            bool alliedProjectilesBlock = false) =>
+            bool alliedProjectilesBlock = false,
+            ArcRelayLoopProfile? loopProfile = null) =>
             new(Definition(
                 teamZero,
                 teamOne,
                 pillar,
                 teamZeroClasses,
-                alliedProjectilesBlock));
+                alliedProjectilesBlock,
+                loopProfile ?? ArcRelayLoopProfile.AmbushWarren11));
 
         /// <summary>
         /// A rail declared down <paramref name="heading"/>, naming a team-1
@@ -387,6 +481,44 @@ public sealed class ArcRelaySignatureLockTests
                 [
                     new GenericActorRuntimeActionArgument.PositionTargetArgument(
                         Shooter.Offset(1, 0)),
+                ],
+                null);
+        }
+
+        public GenericActorRuntimeDecision Hook(
+            ProjectileHeading heading,
+            int? target)
+        {
+            ActorActionDefinition action = Action("tractor-hook");
+            return new GenericActorRuntimeDecision(
+                action.Id,
+                action.Code,
+                target is int unitId
+                    ?
+                    [
+                        new GenericActorRuntimeActionArgument
+                            .ProjectileHeadingArgument(heading),
+                        new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                            new GenericActorRuntimeActionArgument.UnitTarget(
+                                1, unitId)),
+                    ]
+                    :
+                    [
+                        new GenericActorRuntimeActionArgument
+                            .ProjectileHeadingArgument(heading),
+                    ],
+                null);
+        }
+
+        public GenericActorRuntimeDecision Seed(Position position)
+        {
+            ActorActionDefinition action = Action("sentinel-seed");
+            return new GenericActorRuntimeDecision(
+                action.Id,
+                action.Code,
+                [
+                    new GenericActorRuntimeActionArgument.PositionTargetArgument(
+                        position),
                 ],
                 null);
         }
@@ -451,7 +583,8 @@ public sealed class ArcRelaySignatureLockTests
             IReadOnlyList<Position> teamOne,
             Position? pillar,
             IReadOnlyList<string>? teamZeroClasses,
-            bool alliedProjectilesBlock)
+            bool alliedProjectilesBlock,
+            ArcRelayLoopProfile loopProfile)
         {
             string[] classesZero = teamZeroClasses is null
                 ?
@@ -472,16 +605,16 @@ public sealed class ArcRelaySignatureLockTests
             string[] classesOne =
             [
                 ArcRelayLaunchClassIds.Repulsor,
-                ArcRelayLaunchClassIds.Repulsor,
                 ArcRelayLaunchClassIds.Mason,
-                ArcRelayLaunchClassIds.Mason,
-                ArcRelayLaunchClassIds.Sunder,
-                ArcRelayLaunchClassIds.Sunder,
+                ArcRelayLaunchClassIds.Palisade,
                 ArcRelayLaunchClassIds.Hush,
-                ArcRelayLaunchClassIds.Hush,
+                ArcRelayLaunchClassIds.Sunder,
+                ArcRelayLaunchClassIds.Patchbay,
+                ArcRelayLaunchClassIds.Lantern,
+                ArcRelayLaunchClassIds.Minesmith,
             ];
             ActorRulesDefinition rules = ArcRelayH0Definition.CreateRules(
-                ArcRelayLoopProfile.AmbushWarren11);
+                loopProfile);
             if (alliedProjectilesBlock)
             {
                 ActorCollisionDefinition old = rules.Collisions;
@@ -590,7 +723,20 @@ public sealed class ArcRelaySignatureLockTests
                 new ArcRelayActorModeMapBindingDefinition(
                     ["well-centre", "well-north", "well-south"],
                     ArcRelayH0Definition.ReactorRoleId,
-                    ArcRelayH0Definition.HomePadRoleId),
+                    ArcRelayH0Definition.HomePadRoleId,
+                    loopProfile.VeterancyWorkshops
+                        ?
+                        [
+                            new ArcRelayWorkshopRegionBindingDefinition(
+                                "north",
+                                "veterancy-workshop-north-train",
+                                "veterancy-workshop-north-contest"),
+                            new ArcRelayWorkshopRegionBindingDefinition(
+                                "south",
+                                "veterancy-workshop-south-train",
+                                "veterancy-workshop-south-contest"),
+                        ]
+                        : null),
                 ActorMatchCapabilityVersions.Mind);
         }
 
@@ -614,6 +760,7 @@ public sealed class ArcRelaySignatureLockTests
             Position[] required =
             [
                 new(10, 1), new(10, 4), new(10, 7), new(1, 4), new(19, 4),
+                new(9, 2), new(11, 6),
             ];
             return new ActorMapDefinition(
                 "arc-signature-lock-arena",
@@ -633,6 +780,18 @@ public sealed class ArcRelaySignatureLockTests
                     Region("reactor-east", new Position(19, 4)),
                     Region("home-west", new Position(1, 3)),
                     Region("home-east", new Position(19, 5)),
+                    Region("veterancy-workshop-north-train",
+                        new Position(9, 2)),
+                    new ActorMapRegionDefinition(
+                        "veterancy-workshop-north-contest",
+                        ActorMapRegionDefinition.RegionKind.Objective,
+                        [new Position(9, 2), new Position(9, 3)]),
+                    Region("veterancy-workshop-south-train",
+                        new Position(11, 6)),
+                    new ActorMapRegionDefinition(
+                        "veterancy-workshop-south-contest",
+                        ActorMapRegionDefinition.RegionKind.Objective,
+                        [new Position(11, 6), new Position(11, 5)]),
                 ],
                 [
                     new ActorMapTileTagDefinition(

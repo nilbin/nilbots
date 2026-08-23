@@ -109,7 +109,7 @@ public sealed class TacticalSheetCompilerTests
             tactics, unlocked, "loomsplit-v1");
 
         Assert.Equal(
-            "b94736e4644e522f8820849df105754be76be5a7801a5a61697f7335678d51f1",
+            "e890295d74bdb2f62b900ef5173dd9f55ae13b0cc03417c9e947bd42fb4bc438",
             compiled.ContentHash);
         Assert.Equal(tactics, compiled.TacticsJson);
         using JsonDocument orders = JsonDocument.Parse(

@@ -165,7 +165,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                 && ((_sentryTeamVision
                         && operation.Definition is
                             ArcRelaySignatureDefinition.SentinelSeed
-                                or ArcRelaySignatureDefinition.SentinelSeed2)
+                                or ArcRelaySignatureDefinition.SentinelSeed2
+                                or ArcRelaySignatureDefinition.SentinelSeed3)
                     || operation.Definition is
                         ArcRelaySignatureDefinition.SurveyFlare
                     { TeamVisionRadius: > 0 }))
@@ -180,6 +181,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                     ArcRelaySignatureDefinition.SentinelSeed value =>
                         value.Range,
                     ArcRelaySignatureDefinition.SentinelSeed2 value =>
+                        value.Range,
+                    ArcRelaySignatureDefinition.SentinelSeed3 value =>
                         value.Range,
                     ArcRelaySignatureDefinition.SurveyFlare value =>
                         value.TeamVisionRadius,
@@ -246,7 +249,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                 candidates.Where(target =>
                     source.ChebyshevDistance(target) <= value.Range),
             ArcRelaySignatureDefinition.SentinelSeed
-                or ArcRelaySignatureDefinition.SentinelSeed2 =>
+                or ArcRelaySignatureDefinition.SentinelSeed2
+                or ArcRelaySignatureDefinition.SentinelSeed3 =>
                 PlacementTargets(source, lives, forbidTaggedTile: true),
             _ => [],
         };
@@ -597,11 +601,12 @@ internal sealed partial class ArcRelaySignatureRuntime
     /// the theatrical whiff down its declared heading.
     /// <para>
     /// ONLY the delivery differs from a strike, and each signature keeps its
-    /// own: rail fires the piercing beam down the line to the lock — every
-    /// body on it takes the damage, so interposition SHARES the beam rather
-    /// than stopping it — and the hook throws its grapple bolt down the
-    /// eight-way heading that line starts on, which still catches the first
-    /// body it meets.
+    /// own: Rail fires the piercing beam down the line to the lock — every
+    /// hostile body on it takes damage, so interposition SHARES the beam
+    /// rather than stopping it. Historical Hook launches a grapple bolt;
+    /// grammar 7 resolves the same first-contact path immediately as a
+    /// declared ray, retaining physical interposition without retaining a
+    /// deterministic projectile for executor micro.
     /// </para>
     /// </remarks>
     public TickResult ResolveLockedLineStrikes(
@@ -648,11 +653,19 @@ internal sealed partial class ArcRelaySignatureRuntime
                 Complete(operation, tick, "lock-lost", events);
                 continue;
             }
-            ImmutableArray<Position> path = GenericActorStrikeCone.LineTo(
-                _map,
-                operation.SourcePosition,
-                aim.Value,
-                _diagonalCornersMustBeClear);
+            ImmutableArray<Position> path = operation.Definition
+                    is ArcRelaySignatureDefinition.TractorHook3 rayHook
+                && operation.TargetActorId is null
+                ? RayWithMapWallBreach(
+                    operation.SourcePosition,
+                    operation.Heading!.Value,
+                    rayHook.Range,
+                    rayHook.AuthoredWallPenetrationTiles)
+                : GenericActorStrikeCone.LineTo(
+                    _map,
+                    operation.SourcePosition,
+                    aim.Value,
+                    _diagonalCornersMustBeClear);
             if (path.IsEmpty)
             {
                 Complete(operation, tick, "lock-lost", events);
@@ -671,7 +684,7 @@ internal sealed partial class ArcRelaySignatureRuntime
                         path));
                     Complete(operation, tick, "completed", events);
                     break;
-                case ArcRelaySignatureDefinition.TractorHook2 hook:
+                case ArcRelaySignatureDefinition.TractorHook2 legacyHook:
                     effects.Add(new Effect.HookBolt(
                         operation.OperationId,
                         operation.OwnerActorId,
@@ -679,19 +692,94 @@ internal sealed partial class ArcRelaySignatureRuntime
                         ProjectileHeadingExtensions.Between(
                             operation.SourcePosition,
                             path[0]),
-                        hook.Range,
-                        hook.MaxPullTiles,
-                        hook.BoltTilesPerAdvance,
-                        hook.Damage,
+                        legacyHook.Range,
+                        legacyHook.MaxPullTiles,
+                        legacyHook.BoltTilesPerAdvance,
+                        legacyHook.Damage,
                         operation.TargetActorId is null
-                            ? hook.AuthoredWallPenetrationTiles
+                            ? legacyHook.AuthoredWallPenetrationTiles
                             : 0));
                     Complete(operation, tick, "launched", events);
+                    break;
+                case ArcRelaySignatureDefinition.TractorHook3 currentHook:
+                    effects.Add(new Effect.FirstContactRay(
+                        operation.OperationId,
+                        operation.OwnerActorId,
+                        operation.SourcePosition,
+                        ProjectileHeadingExtensions.Between(
+                            operation.SourcePosition,
+                            path[0]),
+                        path,
+                        "hook-ray",
+                        currentHook.MaxPullTiles,
+                        operation.TargetActorId is null
+                            ? currentHook.AuthoredWallPenetrationTiles
+                            : 0));
+                    Complete(operation, tick, "completed", events);
                     break;
                 default:
                     Complete(operation, tick, "lock-lost", events);
                     break;
             }
+        }
+        foreach (Operation operation in _operations.Values
+                     .Where(value => value.Definition
+                             is ArcRelaySignatureDefinition.SentinelSeed3
+                         && value.Phase
+                            == ArcRelaySignatureState.SignaturePhase.Active
+                         && value.PendingAutonomousLine is
+                            { ResolveAtTick: var resolve }
+                         && resolve <= tick)
+                     .OrderBy(value => value.OwnerActorId)
+                     .ThenBy(value => value.OperationId,
+                         StringComparer.Ordinal)
+                     .ToArray())
+        {
+            PendingAutonomousLine pending =
+                operation.PendingAutonomousLine!;
+            operation.PendingAutonomousLine = null;
+            world.TryGetValue(pending.Target, out Life? target);
+            string? cancellationReason;
+            if (operation.Suppressed)
+                cancellationReason = "shot-cancelled-suppressed";
+            else if (target is null)
+                cancellationReason = "shot-cancelled-target-lost";
+            else if (!pending.ConeTiles.Contains(target.Position))
+                cancellationReason = "shot-cancelled-left-line";
+            else if (!lockStaysTrackable(
+                         operation.OwnerActorId.TeamId,
+                         pending.Origin,
+                         target.Position))
+                cancellationReason = "shot-cancelled-tracking-lost";
+            else
+                cancellationReason = null;
+            if (cancellationReason is not null)
+            {
+                events.Add(SignatureEvent(operation, cancellationReason));
+                continue;
+            }
+            Life lockedTarget = target!;
+            ImmutableArray<Position> path = GenericActorStrikeCone.LineTo(
+                _map,
+                pending.Origin,
+                lockedTarget.Position,
+                _diagonalCornersMustBeClear);
+            if (path.IsEmpty)
+            {
+                events.Add(SignatureEvent(operation, "shot-cancelled-path-lost"));
+                continue;
+            }
+            effects.Add(new Effect.FirstContactRay(
+                operation.OperationId,
+                operation.OwnerActorId,
+                pending.Origin,
+                ProjectileHeadingExtensions.Between(
+                    pending.Origin, path[0]),
+                path,
+                "sentinel-ray",
+                MaxPullTiles: 0,
+                AuthoredWallPenetrationTiles: 0));
+            events.Add(SignatureEvent(operation, "shot-resolved"));
         }
         return new TickResult(events.ToImmutable(), effects.ToImmutable());
     }
@@ -706,15 +794,30 @@ internal sealed partial class ArcRelaySignatureRuntime
         [.. _operations.Values
             .Where(value => value.DeclaresLock
                 && value.Phase == ArcRelaySignatureState.SignaturePhase.Tell)
-            .OrderBy(value => value.OwnerActorId)
-            .ThenBy(value => value.OperationId, StringComparer.Ordinal)
             .Select(value => new PendingLineStrike(
                 value.OwnerActorId,
                 value.CompletesAtTick!.Value,
                 value.SourcePosition,
                 value.Heading!.Value,
                 value.TargetActorId,
-                value.ConeTiles))];
+                value.ConeTiles))
+            .Concat(_operations.Values
+                .Where(value => value.PendingAutonomousLine is not null)
+                .Select(value =>
+                {
+                    PendingAutonomousLine pending =
+                        value.PendingAutonomousLine!;
+                    return new PendingLineStrike(
+                        value.OwnerActorId,
+                        pending.ResolveAtTick,
+                        pending.Origin,
+                        pending.CentralHeading,
+                        pending.Target,
+                        pending.ConeTiles);
+                }))
+            .OrderBy(value => value.Shooter)
+            .ThenBy(value => value.ResolveAtTick)
+            .ThenBy(value => value.CentralHeading)];
 
     /// <summary>
     /// The follow: a locked line re-publishes itself at the lock's current
@@ -750,10 +853,17 @@ internal sealed partial class ArcRelaySignatureRuntime
     {
         if (operation.TargetActorId is not null)
             return null;
-        ImmutableArray<Position> ray = Ray(
-            operation.SourcePosition,
-            operation.Heading!.Value,
-            LineAttackRange(operation.Definition));
+        ImmutableArray<Position> ray = operation.Definition
+                is ArcRelaySignatureDefinition.TractorHook3 hook
+            ? RayWithMapWallBreach(
+                operation.SourcePosition,
+                operation.Heading!.Value,
+                hook.Range,
+                hook.AuthoredWallPenetrationTiles)
+            : Ray(
+                operation.SourcePosition,
+                operation.Heading!.Value,
+                LineAttackRange(operation.Definition));
         return ray.IsEmpty || ray[^1] == operation.SourcePosition
             ? null
             : ray[^1];
@@ -765,6 +875,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         {
             ArcRelaySignatureDefinition.RailLine rail => rail.Range,
             ArcRelaySignatureDefinition.TractorHook2 hook => hook.Range,
+            ArcRelaySignatureDefinition.TractorHook3 hook => hook.Range,
             _ => throw new ArgumentOutOfRangeException(nameof(definition)),
         };
 
@@ -774,6 +885,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         {
             ArcRelaySignatureDefinition.RailLine rail => rail.WindupTicks,
             ArcRelaySignatureDefinition.TractorHook2 hook => hook.WindupTicks,
+            ArcRelaySignatureDefinition.TractorHook3 hook => hook.WindupTicks,
             _ => throw new ArgumentOutOfRangeException(nameof(definition)),
         };
 
@@ -1055,7 +1167,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                     or ArcRelaySignatureDefinition.TripNode
                     or ArcRelaySignatureDefinition.HardlightBlock
                     or ArcRelaySignatureDefinition.SentinelSeed
-                    or ArcRelaySignatureDefinition.SentinelSeed2)
+                    or ArcRelaySignatureDefinition.SentinelSeed2
+                    or ArcRelaySignatureDefinition.SentinelSeed3)
             .OrderBy(value => value.OperationId, StringComparer.Ordinal)
             .FirstOrDefault();
         if (construct is null)
@@ -1214,12 +1327,12 @@ internal sealed partial class ArcRelaySignatureRuntime
             }
         }
         else if (operation.Definition
-                     is ArcRelaySignatureDefinition.SentinelSeed2 turret
+                     is ArcRelaySignatureDefinition.SentinelSeed2 boltTurret
                  && operation.Phase
                     == ArcRelaySignatureState.SignaturePhase.Active
                  && !operation.Suppressed
                  && (tick - operation.StartedTick)
-                    % turret.FireCooldownTicks == 0)
+                    % boltTurret.FireCooldownTicks == 0)
         {
             // Grammar 2: the turret launches a bolt along an eight-way ray.
             // Only ray-aligned enemies can be engaged, and the bolt itself
@@ -1230,7 +1343,7 @@ internal sealed partial class ArcRelaySignatureRuntime
                         != operation.OwnerActorId.TeamId
                     && muzzle.ChebyshevDistance(candidate.Position)
                         is > 0 and var boltDistance
-                    && boltDistance <= turret.Range
+                    && boltDistance <= boltTurret.Range
                     && IsStraight(muzzle, candidate.Position)
                     && HasUnoccludedLine(
                         muzzle,
@@ -1256,9 +1369,9 @@ internal sealed partial class ArcRelaySignatureRuntime
                     ProjectileHeadingExtensions.Between(
                         muzzle,
                         aligned.Position),
-                    turret.Range,
-                    turret.Damage,
-                    turret.BoltTilesPerAdvance));
+                    boltTurret.Range,
+                    boltTurret.Damage,
+                    boltTurret.BoltTilesPerAdvance));
             }
         }
         else if (operation.Definition
@@ -1301,6 +1414,104 @@ internal sealed partial class ArcRelaySignatureRuntime
         }
     }
 
+    /// <summary>
+    /// Autonomous declared shots begin after movement, exactly where their
+    /// one-tick response window will later resolve. This keeps creation,
+    /// tracking, and maturity out of the tick-start lifecycle boundary and
+    /// lets an already-fighting target spend the advertised response move.
+    /// </summary>
+    private void ResolveSentinelRayPostMovement(
+        Operation operation,
+        int tick,
+        IReadOnlyCollection<Life> lives,
+        ImmutableArray<GenericActorModeEvent>.Builder events)
+    {
+        if (operation.Definition
+                is not ArcRelaySignatureDefinition.SentinelSeed3 rayTurret
+            || operation.Phase
+                != ArcRelaySignatureState.SignaturePhase.Active
+            || operation.Suppressed)
+        {
+            return;
+        }
+        Dictionary<ActorIdentity, Life> world = lives.ToDictionary(
+            value => value.ActorId);
+        Position muzzle = operation.Positions[0];
+        if (operation.PendingAutonomousLine is { } pending)
+        {
+            if (world.TryGetValue(pending.Target, out Life? target)
+                && pending.ConeTiles.Contains(target.Position))
+            {
+                ImmutableArray<Position> tracked =
+                    GenericActorStrikeCone.LineTo(
+                        _map,
+                        muzzle,
+                        target.Position,
+                        _diagonalCornersMustBeClear);
+                if (!tracked.IsEmpty)
+                {
+                    operation.PendingAutonomousLine = pending with
+                    {
+                        Tiles = tracked,
+                    };
+                }
+            }
+            return;
+        }
+        if ((tick - operation.StartedTick) % rayTurret.FireCooldownTicks != 0
+            || SelectSentinelLineTarget(
+                operation, rayTurret.Range, world, tick) is not Life selected)
+        {
+            return;
+        }
+        ProjectileHeading heading = ProjectileHeadingExtensions.Between(
+            muzzle, selected.Position);
+        ImmutableArray<Position> cone = GenericActorStrikeCone.Tiles(
+            _map,
+            muzzle,
+            heading,
+            rayTurret.Range,
+            _diagonalCornersMustBeClear);
+        operation.PendingAutonomousLine = new PendingAutonomousLine(
+            selected.ActorId,
+            checked(tick + rayTurret.FireWindupTicks),
+            muzzle,
+            heading,
+            cone,
+            cone);
+        events.Add(SignatureEvent(operation, "shot-declared"));
+    }
+
+    private Life? SelectSentinelLineTarget(
+        Operation operation,
+        int range,
+        IReadOnlyDictionary<ActorIdentity, Life> lives,
+        int tick)
+    {
+        Position muzzle = operation.Positions[0];
+        return lives.Values.Where(candidate =>
+                candidate.ActorId.TeamId != operation.OwnerActorId.TeamId
+                && muzzle.ChebyshevDistance(candidate.Position)
+                    is > 0 and var distance
+                && distance <= range
+                && IsStraight(muzzle, candidate.Position)
+                && HasUnoccludedLine(
+                    muzzle,
+                    candidate.Position,
+                    operation.OwnerActorId.TeamId,
+                    tick)
+                && !LivingAllyBetween(
+                    muzzle,
+                    candidate.Position,
+                    operation.OwnerActorId.TeamId,
+                    lives))
+            .OrderBy(value => muzzle.ChebyshevDistance(value.Position))
+            .ThenBy(value => TargetTieKey(
+                operation.OwnerActorId.TeamId, value))
+            .ThenBy(value => value.ActorId)
+            .FirstOrDefault();
+    }
+
     private void ReplaceOwnedConstruct(
         Operation replacement,
         ImmutableArray<GenericActorModeEvent>.Builder events)
@@ -1311,7 +1522,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                 or ArcRelaySignatureDefinition.TripNode
                 or ArcRelaySignatureDefinition.HardlightBlock
                 or ArcRelaySignatureDefinition.SentinelSeed
-                or ArcRelaySignatureDefinition.SentinelSeed2))
+                or ArcRelaySignatureDefinition.SentinelSeed2
+                or ArcRelaySignatureDefinition.SentinelSeed3))
         {
             return;
         }
@@ -1359,7 +1571,8 @@ internal sealed partial class ArcRelaySignatureRuntime
             or ArcRelaySignatureDefinition.TripNode
             or ArcRelaySignatureDefinition.HardlightBlock
             or ArcRelaySignatureDefinition.SentinelSeed
-            or ArcRelaySignatureDefinition.SentinelSeed2;
+            or ArcRelaySignatureDefinition.SentinelSeed2
+            or ArcRelaySignatureDefinition.SentinelSeed3;
 
     private static int ConstructDamageAmount(
         ArcRelaySignatureDefinition definition,
@@ -1379,6 +1592,7 @@ internal sealed partial class ArcRelaySignatureRuntime
             ArcRelaySignatureDefinition.HardlightBlock value => value.Hull,
             ArcRelaySignatureDefinition.SentinelSeed value => value.Hull,
             ArcRelaySignatureDefinition.SentinelSeed2 value => value.Hull,
+            ArcRelaySignatureDefinition.SentinelSeed3 value => value.Hull,
             _ => 0,
         };
 
@@ -1621,6 +1835,45 @@ internal sealed partial class ArcRelaySignatureRuntime
         return result.Count == 0 ? [source] : result.ToImmutable();
     }
 
+    /// <summary>
+    /// The authored lockless Hook line may cross its published number of map
+    /// wall/corner blocks. Smart locked Hook never calls this helper. Keeping
+    /// the breached tile in the announced path makes the public tell and the
+    /// maturity traversal describe the same geometry.
+    /// </summary>
+    private ImmutableArray<Position> RayWithMapWallBreach(
+        Position source,
+        ProjectileHeading heading,
+        int range,
+        int wallPenetrationTiles)
+    {
+        var result = ImmutableArray.CreateBuilder<Position>();
+        Position position = source;
+        int remaining = wallPenetrationTiles;
+        var (dx, dy) = heading.Vector();
+        for (int step = 0; step < range; step++)
+        {
+            Position next = position.Offset(dx, dy);
+            if (next.X < 0 || next.Y < 0
+                || next.X >= _map.Width || next.Y >= _map.Height)
+            {
+                break;
+            }
+            bool blocked = _map.IsWall(next)
+                || dx != 0 && dy != 0
+                && _diagonalCornersMustBeClear
+                && (_map.IsWall(position.Offset(dx, 0))
+                    || _map.IsWall(position.Offset(0, dy)));
+            if (blocked && remaining == 0)
+                break;
+            if (blocked)
+                remaining--;
+            position = next;
+            result.Add(position);
+        }
+        return result.Count == 0 ? [source] : result.ToImmutable();
+    }
+
     private static ImmutableArray<Position> Cross(Position centre) =>
         [
             centre,
@@ -1680,6 +1933,20 @@ internal sealed partial class ArcRelaySignatureRuntime
         Position Origin,
         ProjectileHeading CentralHeading,
         ActorIdentity? Target,
+        ImmutableArray<Position> Tiles);
+
+    /// <summary>
+    /// One autonomous deployment shot using the same target lock, response
+    /// movement and first-contact geometry as a declared gun. It is nested
+    /// under the maintained deployment rather than becoming a second public
+    /// signature operation or scheduler.
+    /// </summary>
+    private sealed record PendingAutonomousLine(
+        ActorIdentity Target,
+        int ResolveAtTick,
+        Position Origin,
+        ProjectileHeading CentralHeading,
+        ImmutableArray<Position> ConeTiles,
         ImmutableArray<Position> Tiles);
 
     internal abstract record Effect(string OperationId, ActorIdentity Owner)
@@ -1762,6 +2029,20 @@ internal sealed partial class ArcRelaySignatureRuntime
             int TilesPerAdvance,
             int Damage,
             int AuthoredWallPenetrationTiles) : Effect(Id, Actor);
+        /// <summary>
+        /// A telegraphed first-contact line whose complete path traverses on
+        /// this maturity tick. The attack profile supplies contact damage;
+        /// optional Hook data adds the pull without changing ray traversal.
+        /// </summary>
+        internal sealed record FirstContactRay(
+            string Id,
+            ActorIdentity Actor,
+            Position Origin,
+            ProjectileHeading Heading,
+            ImmutableArray<Position> Path,
+            string AttackProfileId,
+            int MaxPullTiles,
+            int AuthoredWallPenetrationTiles) : Effect(Id, Actor);
     }
 
     private sealed class Operation
@@ -1830,5 +2111,11 @@ internal sealed partial class ArcRelaySignatureRuntime
         /// steps out.
         /// </summary>
         public ImmutableArray<Position> ConeTiles { get; set; } = [];
+
+        /// <summary>
+        /// At most one winding autonomous Sentinel shot. The deployment stays
+        /// Active and damageable while this public child tell is pending.
+        /// </summary>
+        public PendingAutonomousLine? PendingAutonomousLine { get; set; }
     }
 }

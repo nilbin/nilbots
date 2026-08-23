@@ -49,7 +49,7 @@ public sealed class ArcRelayClassCatalog
             Class(mechanics, ArcRelayLaunchClassIds.Mortar, "Mortar", "Falling Star",
                 "Lobbing artillery that punishes formations which stay put.", false),
             Class(mechanics, ArcRelayLaunchClassIds.Minesmith, "Minesmith", "Trip Node",
-                "Route controller carrying visible nodes for watched ground.", false),
+                "Route controller carrying two concealed nodes for watched ground.", false),
             Class(mechanics, ArcRelayLaunchClassIds.Hush, "Hush", "Null Field",
                 "Dampener array that suppresses signatures instead of racing damage.", true),
             Class(mechanics, ArcRelayLaunchClassIds.Relay, "Relay", "Arc Toss",

@@ -2111,7 +2111,7 @@ public sealed class GenericActorMatchSession : IDisposable
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
         var relocated = ImmutableArray.CreateBuilder<ActorIdentity>();
-        // A hook bolt that connected last tick reels its catch in now, in
+        // A Hook contact that connected last tick reels its catch in now, in
         // the same forced-movement phase every other signature relocation
         // uses.
         ApplyPendingHookPulls(mode, relocated, events);
@@ -2145,7 +2145,29 @@ public sealed class GenericActorMatchSession : IDisposable
                             grapple.Origin,
                             grapple.MaxPullTiles,
                             grapple.Damage,
-                            grapple.AuthoredWallPenetrationTiles)));
+                            grapple.AuthoredWallPenetrationTiles),
+                        Path: []));
+                    break;
+                case ArcRelaySignatureRuntime.Effect.FirstContactRay ray:
+                    _pendingSignatureBolts.Add(new PendingSignatureBolt(
+                        ray.Id,
+                        ray.Actor,
+                        ray.Origin,
+                        ray.Heading,
+                        ray.AttackProfileId,
+                        ray.MaxPullTiles > 0
+                            ? new SignatureBoltHook(
+                                ray.Origin,
+                                ray.MaxPullTiles,
+                                _definition.Rules.AttackProfiles.Single(value =>
+                                    string.Equals(
+                                        value.Id,
+                                        ray.AttackProfileId,
+                                        StringComparison.Ordinal))
+                                    .Projectile.DamagePerHit,
+                                ray.AuthoredWallPenetrationTiles)
+                            : null,
+                        ray.Path));
                     break;
                 case ArcRelaySignatureRuntime.Effect.Repair repair:
                     ApplySignatureRepair(mode, repair, events);
@@ -2294,7 +2316,8 @@ public sealed class GenericActorMatchSession : IDisposable
         Position Origin,
         ProjectileHeading Heading,
         string ProfileId,
-        SignatureBoltHook? HookPull);
+        SignatureBoltHook? HookPull,
+        ImmutableArray<Position> Path = default);
 
     private sealed record PendingHookPull(
         string OperationId,
@@ -2305,11 +2328,12 @@ public sealed class GenericActorMatchSession : IDisposable
         int WallPenetrationTiles);
 
     /// <summary>
-    /// Grammar-2 signature bolts ride the ordinary projectile machinery:
-    /// traced, traversal-recorded, wall- and construct-blockable, and
-    /// dodged by leaving the ray. A sentinel bolt damages through the
-    /// standard contact pipeline; a hook bolt records a pending pull that
-    /// the next signature phase reels in.
+    /// Signature deliveries ride one ordinary contact pipeline. Historical
+    /// grammar-2 bolts may remain in flight; grammar-7 declared rays traverse
+    /// the complete frozen path immediately and are never retained. Both are
+    /// traversal-recorded, wall- and construct-blockable, and stop on first
+    /// body contact. A Hook contact records a pending pull that the next
+    /// signature phase reels in.
     /// </summary>
     private void LaunchPendingSignatureBolts(
         ICollection<PendingDamageContact> contacts,
@@ -2328,11 +2352,23 @@ public sealed class GenericActorMatchSession : IDisposable
                 .AttackProfiles.Single(candidate => string.Equals(
                     candidate.Id, pending.ProfileId, StringComparison.Ordinal));
             (ImmutableArray<Position> path, int remainingBreach) =
-                TraceSignatureBoltPath(
-                    pending.Origin,
-                    pending.Heading,
-                    profile,
-                    pending.HookPull?.AuthoredWallPenetrationTiles ?? 0);
+                pending.Path.IsDefaultOrEmpty
+                    ? TraceSignatureBoltPath(
+                        pending.Origin,
+                        pending.Heading,
+                        profile,
+                        pending.HookPull?.AuthoredWallPenetrationTiles ?? 0)
+                    : (
+                        pending.Path,
+                        Math.Max(
+                            0,
+                            (pending.HookPull
+                                ?.AuthoredWallPenetrationTiles ?? 0)
+                            - MapWallBlocksCrossed(
+                                pending.Origin,
+                                pending.Path,
+                                profile.Projectile
+                                    .DiagonalCornersMustBeClear)));
             long projectileId = _nextProjectileId;
             _nextProjectileId = checked(_nextProjectileId + 1);
             var projectile = new ProjectileState(
@@ -2351,9 +2387,13 @@ public sealed class GenericActorMatchSession : IDisposable
                 SignatureBoltHook = pending.HookPull,
                 SignatureBreachRemaining = remainingBreach,
             };
+            int launchTiles = profile.Projectile.Mode
+                    == ActorProjectileMode.InstantRay
+                ? path.Length
+                : profile.Projectile.LaunchTiles;
             TraverseProjectile(
                 projectile,
-                profile.Projectile.LaunchTiles,
+                launchTiles,
                 contacts,
                 ref contactOrdinal,
                 deflections,
@@ -2361,7 +2401,9 @@ public sealed class GenericActorMatchSession : IDisposable
                 traversals,
                 GenericActorProjectileTraversal.TraversalTrigger
                     .AttackLaunch);
-            if (!projectile.Consumed && projectile.RemainingTiles > 0)
+            if (!projectile.Consumed
+                && projectile.RemainingTiles > 0
+                && profile.Projectile.Mode == ActorProjectileMode.Discrete)
                 _projectiles.Add(projectile);
         }
         _pendingSignatureBolts.Clear();
@@ -5022,20 +5064,14 @@ public sealed class GenericActorMatchSession : IDisposable
             arcRelay.LatestPulseTeamId,
             arcRelay.LatestPulseTick)
         {
-            // Declared strikes follow the SHOOTER's visibility (owner ruling
-            // 2026-08-12: an enemy cannot see a cone declared from behind
-            // unless that team has vision there). Seeing the striker reveals
-            // the whole swing; not seeing it reveals NOTHING - not even lit
-            // ground underfoot, or every backstab would warn its victim. Own
-            // strikes are always fully visible, and the spectator's
-            // authoritative view keeps every cone.
+            // Declared strikes follow the DECLARE ORIGIN's visibility. That
+            // equals the shooter tile for bodies and the deployment tile for
+            // a Sentry, so a remote owner cannot accidentally hide or reveal
+            // its turret's tell. Seeing the origin reveals the whole swing;
+            // not seeing it reveals nothing. Own strikes are always visible.
             PendingStrikes = [.. PendingStrikeStates()
                 .Where(strike => strike.Shooter.TeamId == observingTeamId
-                    || visibleTiles.Contains(
-                        _lives.TryGetValue(
-                            strike.Shooter, out LifeState? striker)
-                            ? striker.Position
-                            : strike.Origin))],
+                    || visibleTiles.Contains(strike.Origin))],
             // Respawn waves are public match state. Preserve them when the
             // authoritative Arc Relay projection is narrowed to one team;
             // otherwise wave-aware sheet facts silently read as absent.
@@ -6552,6 +6588,30 @@ public sealed class GenericActorMatchSession : IDisposable
             path.Add(position);
         }
         return (path.ToImmutable(), remaining);
+    }
+
+    private int MapWallBlocksCrossed(
+        Position origin,
+        ImmutableArray<Position> path,
+        bool diagonalCornersMustBeClear)
+    {
+        int crossed = 0;
+        Position previous = origin;
+        foreach (Position next in path)
+        {
+            int dx = next.X - previous.X;
+            int dy = next.Y - previous.Y;
+            bool blocked = _definition.Map.IsWall(next)
+                || dx != 0
+                && dy != 0
+                && diagonalCornersMustBeClear
+                && (_definition.Map.IsWall(previous.Offset(dx, 0))
+                    || _definition.Map.IsWall(previous.Offset(0, dy)));
+            if (blocked)
+                crossed++;
+            previous = next;
+        }
+        return crossed;
     }
 
     private ProjectileContact Contact(

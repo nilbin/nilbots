@@ -974,6 +974,16 @@ test('authored signature carriers and same-tick advances render as one projectil
     'Towline owns its hook visual instead of layering a generic class projectile',
   );
 
+  launch.attackProfileId = 'hook-ray';
+  tick.projectileTraversals.at(-1)!.attackProfileId = 'hook-ray';
+  assert.equal(
+    boltsAt(replay, 10.5, 'projectile-traversal').some(
+      (bolt) => bolt.id === 'signature-carrier',
+    ),
+    false,
+    'the current Hook ray remains one authored tether visual',
+  );
+
   launch.attackProfileId = 'sentinel-bolt';
   tick.projectileTraversals.at(-1)!.attackProfileId = 'sentinel-bolt';
   const sentinel = boltsAt(replay, 10.5, 'projectile-traversal').filter(
@@ -984,6 +994,16 @@ test('authored signature carriers and same-tick advances render as one projectil
     sentinel[0]!.x,
     launch.from.x + 1,
     'the one bolt samples the concatenated launch and advance path',
+  );
+
+  launch.attackProfileId = 'sentinel-ray';
+  tick.projectileTraversals.at(-1)!.attackProfileId = 'sentinel-ray';
+  assert.equal(
+    boltsAt(replay, 10.5, 'projectile-traversal').filter(
+      (bolt) => bolt.id === 'signature-carrier',
+    ).length,
+    1,
+    'the current Sentry ray keeps one traversal visual',
   );
 });
 

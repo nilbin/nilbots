@@ -485,7 +485,17 @@ public sealed class GenericActorRulesContract
         public int? BonusDamage { get; init; }
         public int? PushTiles { get; init; }
         public int? FireCooldownTicks { get; init; }
+        /// <summary>Per-shot public tell for an autonomous deployment. This
+        /// is distinct from <see cref="WindupTicks"/>, which covers placing
+        /// the deployment itself.</summary>
+        public int? FireWindupTicks { get; init; }
         public int? BoltTilesPerAdvance { get; init; }
+        /// <summary>Stable delivery vocabulary such as
+        /// <c>declared-ray</c>. Null on historical contracts.</summary>
+        public string? Delivery { get; init; }
+        /// <summary>How bodies on the declared line receive the effect:
+        /// <c>first-contact</c> or <c>piercing-hostiles</c>.</summary>
+        public string? ContactPolicy { get; init; }
         public int? AcquisitionTicks { get; init; }
         /// <summary>True when this relocation keeps a carried Arc Relay
         /// Core attached to its owner.</summary>

@@ -81,7 +81,7 @@ export function replayAudioEventsAt(
       return fact?.kind === 'signature-changed' &&
         fact.signatureId === 'tractor-hook' &&
         fact.phase === null &&
-        fact.reason === 'launched'
+        (fact.reason === 'launched' || fact.reason === 'completed')
         ? [fact.ownerActor.actorKey]
         : [];
     }),
@@ -92,7 +92,7 @@ export function replayAudioEventsAt(
       return fact?.kind === 'signature-changed' &&
         fact.signatureId === 'tractor-hook' &&
         fact.phase === null &&
-        fact.reason === 'launched'
+        (fact.reason === 'launched' || fact.reason === 'completed')
         ? [fact.operationId]
         : [];
     }),
@@ -161,7 +161,7 @@ export function replayAudioEventsAt(
       traversal.attackProfileId === undefined ||
       !presentedAttackProfiles.has(traversal.attackProfileId) ||
       signatureReleaseActors.has(traversal.ownerActorKey) ||
-      (traversal.attackProfileId === 'hook-bolt' &&
+      (['hook-bolt', 'hook-ray'].includes(traversal.attackProfileId) &&
         (hookLaunchActors.has(traversal.ownerActorKey) ||
           hookLaunchOperations.has(traversal.projectileId)))
     ) {

@@ -94,8 +94,8 @@ export default defineArcSignatureWebGLPainter({
   paintOutcome({ rig, priorSignature, facts, fraction }) {
     const origin = priorSignature?.positions[0];
     if (!hasConstructRemoval(facts) || !origin) return;
-    // The ordinary projectile renderer already owns the one real Sentinel bolt. On
-    // removal, recall the floor socket upward instead of manufacturing another shot.
+    // The ordinary attack renderer already owns the authoritative Sentinel traversal.
+    // On removal, recall the floor socket upward instead of manufacturing another shot.
     const anchor = new THREE.Vector3(origin.x + 0.5, 0.06, origin.y + 0.5);
     const life = 1 - fraction;
     const socket = rig.toruses[0]!;

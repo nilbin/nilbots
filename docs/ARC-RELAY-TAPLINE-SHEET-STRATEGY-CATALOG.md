@@ -210,7 +210,7 @@ phase machine, or hidden squad memory is needed.
 - **Why it earns a sheet:** It is not denial for denial's sake: the entire
   formation exists to turn a hostile possession into this team's next scoring
   attempt.
-- **Failure/counterplay:** Prism cover can eat hook bolts, Hush can remove the
+- **Failure/counterplay:** Prism cover or a bodyguard can intercept Hook's declared ray, Hush can remove the
   combo, and a disciplined carrier can route outside the pocket and make the
   formation idle.
 

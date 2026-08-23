@@ -6,7 +6,7 @@ export default defineArcSignature({
   phases: ['tell', 'active'],
   canvasMarker: 'prop',
   webglPainterId: 'sentinel-seed',
-  projectileAudioProfileIds: ['sentinel-bolt'],
+  projectileAudioProfileIds: ['sentinel-bolt', 'sentinel-ray'],
   audio: [
     {
       trigger: 'started',

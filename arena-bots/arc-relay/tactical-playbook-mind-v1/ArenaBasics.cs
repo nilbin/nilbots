@@ -1250,22 +1250,35 @@ internal static class ArenaBasics
     public static Position[] SafeEvasionGoals(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
-        MindBody body)
+        MindBody body,
+        bool includeDeclaredStrikes = false)
     {
         GenericActorContext.ObservedProjectile[] hostile =
             mind.VisibleProjectiles?
                 .Where(projectile => projectile.OwnerTeamId != body.ActorId.TeamId)
                 .ToArray()
             ?? [];
+        GenericActorContext.ArcRelayPendingStrike[] declared =
+            includeDeclaredStrikes
+                && SupportsDeclaredRayDelivery(contract)
+                ? ArcState(mind)?.PendingStrikes
+                    .Where(strike =>
+                        strike.Shooter.TeamId != body.ActorId.TeamId)
+                    .ToArray()
+                    ?? []
+                : [];
         if (!hostile.Any(projectile =>
-                Threatens(projectile, body.Position, advances: 2)))
+                Threatens(projectile, body.Position, advances: 2))
+            && !declared.Any(strike =>
+                strike.Tiles.Contains(body.Position)))
         {
             return [];
         }
         return RouteHeadings(contract, body)
             .Select(heading => Step(body.Position, heading))
             .Where(tile => CanEnter(contract.Map, tile)
-                && !hostile.Any(projectile => Threatens(projectile, tile, 2)))
+                && !hostile.Any(projectile => Threatens(projectile, tile, 2))
+                && !declared.Any(strike => strike.Tiles.Contains(tile)))
             .Distinct()
             .ToArray();
     }
@@ -1306,8 +1319,19 @@ internal static class ArenaBasics
                 .Where(projectile => projectile.OwnerTeamId != body.ActorId.TeamId)
                 .ToArray()
             ?? [];
+        GenericActorContext.ArcRelayPendingStrike[] declared =
+            preserveImmediateEngagement
+                && SupportsDeclaredRayDelivery(contract)
+                ? ArcState(mind)?.PendingStrikes
+                    .Where(strike =>
+                        strike.Shooter.TeamId != body.ActorId.TeamId)
+                    .ToArray()
+                    ?? []
+                : [];
         if (!hostile.Any(projectile =>
-                Threatens(projectile, body.Position, advances: 2)))
+                Threatens(projectile, body.Position, advances: 2))
+            && !declared.Any(strike =>
+                strike.Tiles.Contains(body.Position)))
         {
             return false;
         }
@@ -1318,7 +1342,8 @@ internal static class ArenaBasics
             (int dx, int dy) = heading.Vector();
             Position tile = body.Position.Offset(dx, dy);
             if (CanEnter(contract.Map, tile)
-                && !hostile.Any(projectile => Threatens(projectile, tile, 2)))
+                && !hostile.Any(projectile => Threatens(projectile, tile, 2))
+                && !declared.Any(strike => strike.Tiles.Contains(tile)))
             {
                 safe.Add(tile);
             }
@@ -1483,6 +1508,13 @@ internal static class ArenaBasics
         }
         return false;
     }
+
+    private static bool SupportsDeclaredRayDelivery(
+        GenericActorResolvedMatchContract contract) =>
+        ArcRules(contract)?.Signatures.Any(signature => string.Equals(
+            signature.Delivery,
+            "declared-ray",
+            StringComparison.Ordinal)) == true;
 
     public static bool CanFireAt(
         GenericActorResolvedMatchContract contract,

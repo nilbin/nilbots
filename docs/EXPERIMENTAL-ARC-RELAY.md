@@ -8,20 +8,20 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile broadloom-4` (rules
-`arc-relay-broadloom-4`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
-geometry, complete signature grammar 4, promoted depth rules, neutral
+The command defaults to `--loop-profile broadloom-7` (rules
+`arc-relay-broadloom-7`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
+geometry, complete signature grammar 7, promoted depth rules, neutral
 veterancy Workshops, 50% stable-slot XP retention, and harmless allied-body
 projectile blockers. Its joint movement step permits an acyclic convoy to
 advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
 still block. Every historical profile remains an explicit immutable
 compatibility selection.
 
-**Hosted entrant playlist v36 pins Broadloom-4.** It uses the
+**Hosted entrant playlist v37 pins Broadloom-7.** It uses the
 `arc-relay-orders-v2` sheet format, Tempered Broadloom stock participant,
 authored movement urgency, body-local fight contact, repeatable Workshop
 training, and atomic EPIBT squad
-planning on the direct ATL2 executor. Playlist v35 preserves Broadloom-3,
+planning on the direct ATL2 executor. Playlist v36 preserves Broadloom-4, v35 preserves Broadloom-3,
 v34/v33 preserve Broadloom-2 and first Broadloom respectively, and every older definition, artifact,
 rating and match remains readable history. Geometry is never projected between
 maps.
@@ -118,29 +118,30 @@ shot does not silently rotate the body. Short/fast range is 3 with cooldown 2,
 medium/steady range 4 with cooldown 3, and long/slow range 6 with cooldown 5.
 Team perception is an immediate union of allied sensors, so Longshot may use a
 teammate's contact to fire the sixth tile beyond its own five-tile sight.
-A basic hit deals 1 hull. Signature targeting is unchanged, and the deployed,
-faceless Sentinel remains an omnidirectional automated exception.
+A basic hit deals 10 Hull before veterancy and rear-arc bonuses. The deployed,
+faceless Sentinel remains an omnidirectional automated exception with team
+vision matching its range.
 
 ## Launch classes
 
 | Class | Hull | Handling | Gun | One signature |
 | --- | ---: | --- | --- | --- |
-| Kestrel | 3 | swift | short | **Vector Dash** — 1-tick tell, straight surge up to 4; drops a carried Core; cooldown 12 after completion. |
-| Palisade | 5 | deliberate | short | **Prism Wall** — 3 projectile-blocking segments for 8 ticks or 3 contacts; bodies pass; cooldown 16. |
-| Towline | 4 | standard | medium | **Tractor Hook** — straight range 6, pull first body up to 3 tiles; carrier/Core follow recovery; cooldown 12. |
-| Patchbay | 4 | standard | short | **Repair Beam** — ally range 4, 1 hull per 2 uninterrupted ticks, max 2; cooldown 10 from end. |
-| Lantern | 3 | swift | short | **Survey Flare** — target within 8, travel 2/tick, reveal radius 4 through smoke for 8 ticks; cooldown 16. |
-| Mortar | 3 | deliberate | medium | **Falling Star** — visible target within 8, 2-tick reticle, 1 damage on centre and cardinal neighbours; cooldown 12. |
-| Minesmith | 4 | standard | short | **Trip Node** — adjacent node, hull 1, 2 trigger damage, proximity reveal; cooldown 12. |
-| Hush | 4 | standard | medium | **Null Field** — 1-tick actionable tell, then radius 3 for 5 ticks; blocks starts and suppresses hostile signatures; cooldown 18. |
-| Relay | 4 | swift | short | **Arc Toss** — carrier targets straight landing within 5; no tell, surviving carrier releases after that tick's combat, Core flies 3/tick; cooldown 12 from launch. |
-| Switchback | 3 | standard | medium | **Exchange** — visible ally within 6, 1-tick tell and target Wait; carrier drops first; cooldown 16. |
-| Longshot | 3 | deliberate | long | **Rail Line** — fixed heading, 2-tick charge, range 12, 2 damage through bodies; cooldown 18 (8 if interrupted). |
-| Mason | 5 | deliberate | short | **Hardlight Block** — adjacent hull-3 block for 12 ticks; one active; cooldown 14. |
-| Sunder | 4 | standard | medium | **Target Paint** — 1-tick tracked acquisition on enemy within 7; then 8 ticks or 3 allied hits, each +1 damage; cooldown 16 (8 on move-abandon). |
-| Repulsor | 5 | standard | short | **Kinetic Burst** — 1-tick actionable tell, then push bodies still adjacent after response movement; cooldown 12 (6 on move-abandon). |
-| Veil | 3 | swift | short | **Smoke Canister** — target within 6, public flight at 3 tiles/tick, then radius-2 sight blocker for a full 10 ticks; cooldown 18 from launch. |
-| Nest | 4 | deliberate | medium | **Sentinel Seed** — adjacent hull-2 sentry, range 4, 1 damage, fires every 3 ticks for up to 30; cooldown 18. |
+| Kestrel | 30 | swift | short | **Vector Dash** — 1-tick tell, straight surge up to 4, retaining a carried Core; cooldown 12. |
+| Palisade | 50 | deliberate | short | **Prism Screen** — moving three-panel frontal screen with 30 shared Hull for 6 ticks; cooldown 18. |
+| Towline | 40 | standard | medium | **Tractor Hook** — public range-6 first-contact ray, 10 damage, then pulls a survivor up to 5 tiles to the front of Towline; cooldown 12. |
+| Patchbay | 40 | standard | short | **Repair Beam** — ally range 4, +10 Hull per 2 uninterrupted ticks, max +20; cooldown 10 from end. |
+| Lantern | 30 | swift | short | **Survey Flare** — point within 8, travel 2/tick, team-vision radius 4 for 8 ticks; cooldown 16. |
+| Mortar | 30 | deliberate | medium | **Falling Star** — point within 8, public 2-tick cross, 10 hostile-only damage; an explicit point may be plotted blind; cooldown 12. |
+| Minesmith | 40 | standard | short | **Trip Node** — up to two hidden 10-Hull nodes; an exact hostile step deals 20 hostile-only damage in the surrounding 3×3; cooldown 12. |
+| Hush | 40 | standard | medium | **Null Field** — 1-tick tell, then radius-3 full hostile-signature suppression for 7 ticks; cooldown 18. |
+| Relay | 40 | swift | short | **Arc Toss** — carrier targets a straight landing within 5; releases after combat, flies 3/tick, and can reclaim its own toss; cooldown 12. |
+| Switchback | 30 | standard | medium | **Exchange** — swaps with an ally within 6 after a 1-tick tell; the target retains its carried Core; cooldown 16. |
+| Longshot | 30 | deliberate | long | **Rail Line** — public rooted line, range 12, 20 damage to every hostile body on it; cooldown 18 (8 if interrupted). |
+| Mason | 50 | deliberate | short | **Hardlight Block** — adjacent 30-Hull body/projectile block for 30 ticks; one active; cooldown 14. |
+| Sunder | 40 | standard | medium | **Target Paint** — 1-tick tracked acquisition within 7; then 8 ticks or 3 allied hits at +10; cooldown 16 (8 if interrupted). |
+| Repulsor | 50 | standard | short | **Kinetic Burst** — 1-tick tell, then 10 damage and a one-tile push to every adjacent hostile; cooldown 12 (6 if interrupted). |
+| Veil | 30 | swift | short | **Smoke Canister** — point within 6, flight at 3 tiles/tick, then radius-2 sight denial for 10 ticks; cooldown 18. |
+| Nest | 40 | deliberate | medium | **Sentinel Seed** — adjacent 20-Hull sentry with team vision 4; every 2 ticks it declares a 1-tick, 10-damage first-contact ray; lasts 30, cooldown 18. |
 
 The action legality mask is authoritative. Read its typed constraints every
 tick instead of reconstructing targets or cooldowns. Exact static values are
@@ -255,9 +256,31 @@ dependent chain. This is the engine contract required by coordinated squad
 planning; it is not permission to overlap bodies or resolve moves in command
 order.
 
+## Broadloom-7 declared signature line (`arc-relay-broadloom-7`, 2026-08-24)
+
+`broadloom-7` is the current contract. It includes Broadloom-5's player-plotted
+blind Falling Star and Broadloom-6's two hidden radius-one Trip Nodes plus
+seven-tick full Hush suppression. Grammar 7 then makes the three long line
+attacks explicit:
+
+- Hook and each autonomous Sentry shot publish a one-tick declared cone, then
+  resolve their whole range immediately and stop on first contact. Bodies can
+  interpose; no deterministic projectile remains to be perfectly micro-dodged.
+- Hook keeps its damaging front pull and an explicitly drawn lockless ray may
+  still cross one map wall or hostile Hardlight tile.
+- Rail keeps its distinct piercing identity: every hostile body on the line
+  takes 20, though allied bodies and hostile deployments still stop it.
+- Bodies currently executing a Fight may move out of a visible hostile tell
+  when a safe adjacent tile exists. Posted/staging bodies do not automatically
+  abandon their authored ground merely because a tell overlaps it.
+
+Playlist v37 pins this combined profile. Playlist v36 remains exact
+Broadloom-4 history; Broadloom-5 and Broadloom-6 remain registered candidate
+identities rather than rewritten into a historical hosted version.
+
 ## Broadloom-4 signature depth (`arc-relay-broadloom-4`, 2026-08-23)
 
-`broadloom-4` is the current contract. It keeps Broadloom-3's exact map,
+`broadloom-4` is the historical signature-depth contract. It keeps Broadloom-3's exact map,
 Workshop cadence, scoring, supply, movement, and combat numbers while moving
 to signature grammar 4:
 

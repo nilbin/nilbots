@@ -9833,3 +9833,32 @@ The two-node maximum and Hush sweep points remain ordinary authoring catalog,
 top-to-bottom Instruction, typed signature lifecycle, observation, and replay
 facts. They add no trap scheduler, detection state machine, or per-signature
 executor priority system.
+
+## 370. Broadloom-7 promotes the complete signature-depth line with declared contact
+
+Owner promotion ruling (2026-08-24): profile `broadloom-7`, ruleset
+`arc-relay-broadloom-7`, and hosted entrant playlist v37 promote Broadloom-4's
+signature usability pass together with Broadloom-5's plotted blind Falling
+Star and Broadloom-6's two hidden Trip Nodes and full seven-tick Null Field.
+Playlist v36 and its exact grammar-4 tactical artifact are frozen in
+`broadloom-4-stock-v1`; v37 pins the rebuilt grammar-7 artifact and starts a
+fresh rating book. This is one accumulated gameplay promotion, not three
+independent live feature switches.
+
+Hook, Sentry, and Rail now share one public declared-line vocabulary and the
+same one-tick opportunity for physical interposition. Hook and each autonomous
+Sentry shot resolve as instantaneous first-contact rays: the first body or
+construct on the line receives the effect and can protect bodies behind it.
+Hook deals 10 damage, then pulls a surviving body to the closest legal tile in
+front of the caster; its explicitly plotted lockless ray alone may cross one
+wall or hostile Hardlight tile. Rail remains the specialist exception and
+damages every hostile on its declared line. None of these attacks leaves a
+travelling projectile for deterministic micro to exploit.
+
+The current tactical mind may step away from a hostile declared line only
+while it is already executing a Fight instruction. Posts, staging, custody,
+recovery, and other authored ground do not gain an implicit retreat system.
+The behavior is enabled by the contract's `delivery: declared-ray` capability,
+so historical rules and artifacts retain their exact behavior. The engine
+shares declared-strike projection and contact traversal; signatures contribute
+typed parameters rather than owning parallel executors.

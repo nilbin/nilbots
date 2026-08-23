@@ -396,7 +396,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 continue;
             }
             Position[] evade = ArenaBasics.SafeEvasionGoals(
-                contract, mind, body);
+                contract,
+                mind,
+                body,
+                includeDeclaredStrikes:
+                    proposal?.Leaf.Node.Action
+                        is OrdersPackage.FightAction);
             if (evade.Length > 0)
             {
                 result.Add(new SquadMovementIntent(
@@ -411,7 +416,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     CanStage: false,
                     LeaderUnitId: null,
                     RouteClass: SquadRouteClass.Ordinary,
-                    "projectile-evasion"));
+                    "declared-or-projectile-evasion"));
                 continue;
             }
             if (proposal is null)

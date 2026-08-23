@@ -281,7 +281,7 @@ ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 |---|---|---|---|
 | Kestrel | Vector Dash | `completed` | `signature-motion`, the unique displacement resolve |
 | Palisade | Prism Screen | `started` | `signature-construct`, the moving energy-panel deployment |
-| Towline | Tractor Hook | `started`, then `launched` | shared `attack-windup`, then unique `signature-tether`; the tether replaces generic release |
+| Towline | Tractor Hook | `started`, then `completed` (historical: `launched`) | shared `attack-windup`, then unique `signature-tether`; the tether replaces generic release |
 | Patchbay | Repair Beam | `signature-repair` fact | `signature-repair`, distinct from the arena healing tile |
 | Lantern | Survey Flare | `landed` | `signature-survey`, the calibration-field arrival |
 | Mortar | Falling Star | `completed` | `signature-falling-star`, one descent/arrival gesture with no second impact layer |
@@ -294,7 +294,7 @@ ordinary armor, healing-tile, and Core outcomes retain their shared vocabulary.
 | Sunder | Target Paint | `acquired` | `signature-target`, the confirmed acquisition lock |
 | Repulsor | Kinetic Burst | `completed` | `signature-kinetic`, the compact pressure resolve |
 | Veil | Smoke Canister | `landed` | `signature-smoke`, the field bloom rather than the flight |
-| Nest | Sentinel Seed | `deployed`, each `sentinel-bolt` launch, optional `signature-damage` | `signature-sentinel-deploy`, then short `signature-sentinel-fire`; a real hit adds shared `impact` |
+| Nest | Sentinel Seed | `deployed`, each `sentinel-ray` resolution (historical: `sentinel-bolt`), optional `signature-damage` | `signature-sentinel-deploy`, then short `signature-sentinel-fire`; a real hit adds shared `impact` |
 
 Maintenance, suppression, replacement, expiry, voluntary cancellation, and
 interruption stay silent unless a future replay fact gives them an independently

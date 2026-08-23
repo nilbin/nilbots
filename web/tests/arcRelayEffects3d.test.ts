@@ -159,6 +159,14 @@ test('the typed Arc package gives every signature an owned WebGL treatment', () 
       replacesGenericRelease: true,
     },
   );
+  assert.deepEqual(
+    hook?.audio.find((binding) => binding.trigger === 'completed'),
+    {
+      trigger: 'completed',
+      cue: 'signature-tether',
+      replacesGenericRelease: true,
+    },
+  );
 });
 
 test('Arc Toss leaves the in-flight object entirely to the authoritative Core', () => {

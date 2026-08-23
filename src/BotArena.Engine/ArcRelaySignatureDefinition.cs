@@ -458,6 +458,47 @@ public abstract record ArcRelaySignatureDefinition
     }
 
     /// <summary>
+    /// Declared-ray Sentinel. Planting retains its rooted public tell; each
+    /// autonomous shot then publishes a separate declared-strike tell and
+    /// resolves one first-contact instant ray. There is no retained projectile
+    /// for deterministic executor micro to solve.
+    /// </summary>
+    public sealed record SentinelSeed3 : ArcRelaySignatureDefinition
+    {
+        public SentinelSeed3(string signatureId, string classId,
+            string actionId, int placementWindupTicks, int hull, int range,
+            int damage, int fireCooldownTicks, int fireWindupTicks,
+            int durationTicks, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(placementWindupTicks,
+                nameof(placementWindupTicks));
+            RequirePositive(hull, nameof(hull));
+            RequirePositive(range, nameof(range));
+            RequirePositive(damage, nameof(damage));
+            RequirePositive(fireCooldownTicks, nameof(fireCooldownTicks));
+            RequirePositive(fireWindupTicks, nameof(fireWindupTicks));
+            RequirePositive(durationTicks, nameof(durationTicks));
+            PlacementWindupTicks = placementWindupTicks;
+            Hull = hull;
+            Range = range;
+            Damage = damage;
+            FireCooldownTicks = fireCooldownTicks;
+            FireWindupTicks = fireWindupTicks;
+            DurationTicks = durationTicks;
+        }
+
+        public override SignatureKind Kind => SignatureKind.SentinelSeed3;
+        public int PlacementWindupTicks { get; }
+        public int Hull { get; }
+        public int Range { get; }
+        public int Damage { get; }
+        public int FireCooldownTicks { get; }
+        public int FireWindupTicks { get; }
+        public int DurationTicks { get; }
+    }
+
+    /// <summary>
     /// Grammar-2 hook: a grapple bolt that travels its ray and pulls on
     /// contact — dodgeable, and a wall eats it.
     /// </summary>
@@ -492,6 +533,42 @@ public abstract record ArcRelaySignatureDefinition
         public int Range { get; }
         public int MaxPullTiles { get; }
         public int BoltTilesPerAdvance { get; }
+        public int Damage { get; }
+        public int AuthoredWallPenetrationTiles { get; }
+    }
+
+    /// <summary>
+    /// Declared-ray Hook. It keeps the public lock/tell used by ordinary guns
+    /// and grammar-2 Hook, but resolves the complete first-contact ray on the
+    /// maturity tick instead of leaving a perfectly solvable projectile in
+    /// flight. The first hostile contact takes the damage and is pulled;
+    /// bodies, deployments and screens can still interpose.
+    /// </summary>
+    public sealed record TractorHook3 : ArcRelaySignatureDefinition
+    {
+        public TractorHook3(string signatureId, string classId,
+            string actionId, int range, int maxPullTiles, int windupTicks,
+            int damage, int authoredWallPenetrationTiles, int cooldownTicks)
+            : base(signatureId, classId, actionId, cooldownTicks)
+        {
+            RequirePositive(range, nameof(range));
+            RequirePositive(maxPullTiles, nameof(maxPullTiles));
+            RequirePositive(windupTicks, nameof(windupTicks));
+            RequirePositive(damage, nameof(damage));
+            RequireNonNegative(
+                authoredWallPenetrationTiles,
+                nameof(authoredWallPenetrationTiles));
+            Range = range;
+            MaxPullTiles = maxPullTiles;
+            WindupTicks = windupTicks;
+            Damage = damage;
+            AuthoredWallPenetrationTiles = authoredWallPenetrationTiles;
+        }
+
+        public override SignatureKind Kind => SignatureKind.TractorHook3;
+        public int Range { get; }
+        public int MaxPullTiles { get; }
+        public int WindupTicks { get; }
         public int Damage { get; }
         public int AuthoredWallPenetrationTiles { get; }
     }
@@ -682,6 +759,8 @@ public abstract record ArcRelaySignatureDefinition
         KineticBurst2 = 21,
         SmokeCanister2 = 22,
         PrismScreen = 23,
+        SentinelSeed3 = 24,
+        TractorHook3 = 25,
     }
 
     /// <summary>
@@ -694,7 +773,8 @@ public abstract record ArcRelaySignatureDefinition
     {
         SignatureKind.VectorDash => "vector-dash",
         SignatureKind.PrismWall or SignatureKind.PrismScreen => "prism-wall",
-        SignatureKind.TractorHook or SignatureKind.TractorHook2 =>
+        SignatureKind.TractorHook or SignatureKind.TractorHook2
+            or SignatureKind.TractorHook3 =>
             "tractor-hook",
         SignatureKind.RepairBeam => "repair-beam",
         SignatureKind.SurveyFlare => "survey-flare",
@@ -712,7 +792,8 @@ public abstract record ArcRelaySignatureDefinition
             "kinetic-burst",
         SignatureKind.SmokeCanister or SignatureKind.SmokeCanister2 =>
             "smoke-canister",
-        SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2 =>
+        SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2
+            or SignatureKind.SentinelSeed3 =>
             "sentinel-seed",
         _ => throw new ArgumentOutOfRangeException(nameof(kind)),
     };
@@ -747,13 +828,15 @@ public abstract record ArcRelaySignatureDefinition
                 new SignatureMetadata("damage", "heading", 12),
             SignatureKind.FallingStar =>
                 new SignatureMetadata("damage", "position", 8),
-            SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2 =>
+            SignatureKind.SentinelSeed or SignatureKind.SentinelSeed2
+                or SignatureKind.SentinelSeed3 =>
                 new SignatureMetadata("damage", "position", 6),
             SignatureKind.KineticBurst or SignatureKind.KineticBurst2 =>
                 new SignatureMetadata("damage", "parameterless", 1),
             SignatureKind.TargetPaint or SignatureKind.TargetPaint2 =>
                 new SignatureMetadata("control", "unit", 7),
-            SignatureKind.TractorHook or SignatureKind.TractorHook2 =>
+            SignatureKind.TractorHook or SignatureKind.TractorHook2
+                or SignatureKind.TractorHook3 =>
                 new SignatureMetadata("control", "heading", 6),
             SignatureKind.NullField or SignatureKind.NullField2
                 or SignatureKind.NullField3 =>
@@ -817,6 +900,10 @@ public abstract record ArcRelaySignatureDefinition
             SignatureKind.SentinelSeed2 =>
                 new("tell", "tick-start", "start"),
             SignatureKind.TractorHook2 =>
+                new("tell", "post-movement", "start"),
+            SignatureKind.SentinelSeed3 =>
+                new("tell", "post-movement", "start"),
+            SignatureKind.TractorHook3 =>
                 new("tell", "post-movement", "start"),
             SignatureKind.NullField2 =>
                 new("tell", "tick-start", "start"),

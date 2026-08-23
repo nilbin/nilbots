@@ -52,9 +52,9 @@ export default function DocsPage() {
           remain deterministic executor mechanics rather than repeated micro-orders.
         </p>
         <p className="mt-2 text-arena-dim">
-          Hosted playlist v36 and the local <code>nilbots arc-relay</code>
-          default both run broadloom-4 on the 37x27 Broadloom map — three Wells in
-          distinct roomed theatres, two neutral Workshops, signature grammar 4 and
+          Hosted playlist v37 and the local <code>nilbots arc-relay</code>
+          default both run broadloom-7 on the 37x27 Broadloom map — three Wells in
+          distinct roomed theatres, two neutral Workshops, signature grammar 7 and
           atomic convoy movement: bodies may enter a tile a teammate leaves in the
           same tick, but swaps, closed cycles and contested destinations still
           block. Sheets authored for earlier maps
@@ -74,14 +74,16 @@ export default function DocsPage() {
           allied shots, and never blocks bodies. Living teammates harmlessly stop
           allied fire, while friendly sentries, mines and walls remain transparent.
           On death, a bot keeps half its accumulated veteran XP, rounded down, on
-          its team-local roster slot. Grammar 4 makes Kestrel&apos;s Dash and
+          its team-local roster slot. Grammar 7 makes Kestrel&apos;s Dash and
           Switchback&apos;s carrier Exchange Core-safe; Towline&apos;s Hook deals 10,
           pulls a survivor to its front, and may cross one player-drawn wall or
           hostile Hardlight tile; Repulsor damages and pushes every adjacent
           hostile; Lantern Flare grants radius-4 team sight; and Sunder benefits
-          from its own Paint. Playlist v36 opens a fresh rating book at 1200;
-          playlists v23–v35 remain readable history and their ratings are not
-          carried into v36.
+          from its own Paint. It also promotes blind plotted Falling Star, two
+          hidden radius-one mines, full seven-tick Hush suppression, and public
+          one-tick first-contact Hook/Sentry rays while Rail stays piercing.
+          Playlist v37 opens a fresh rating book at 1200; playlists v23–v36
+          remain readable history and their ratings are not carried into v37.
         </p>
         <p className="mt-2 text-arena-dim">
           Ranked, practice, the Tactics editor and the local CLI all run that same

@@ -433,7 +433,10 @@ export type OrdinaryAttackPresentation =
  * WebGL already draws the Towline hook head and cable from the same public operation, so
  * layering the generic class projectile on top makes one cast look like two attacks.
  */
-const WEBGL_AUTHORED_SIGNATURE_CARRIERS = new Set(['hook-bolt']);
+const WEBGL_AUTHORED_SIGNATURE_CARRIERS = new Set([
+  'hook-bolt',
+  'hook-ray',
+]);
 
 function hidesAuthoredSignatureCarrier(
   attackProfileId: string | undefined,

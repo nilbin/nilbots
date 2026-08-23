@@ -127,7 +127,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         }
         MinimumDistinctClasses = minimumDistinctClasses;
         DurableDeployments = durableDeployments;
-        if (signatureGrammarVersion is not (1 or 2 or 3 or 4 or 5 or 6))
+        if (signatureGrammarVersion is not (1 or 2 or 3 or 4 or 5 or 6 or 7))
             throw new ArgumentOutOfRangeException(
                 nameof(signatureGrammarVersion));
         SignatureGrammarVersion = signatureGrammarVersion;
@@ -463,7 +463,9 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
     public bool ChiralWellBirths { get; }
 
     public override ImmutableArray<string> ModeOwnedAttackProfileIds =>
-        SignatureGrammarVersion >= 2
+        SignatureGrammarVersion >= 7
+            ? ["sentinel-ray", "hook-ray"]
+            : SignatureGrammarVersion >= 2
             ? ["sentinel-bolt", "hook-bolt"]
             : [];
 

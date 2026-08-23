@@ -1537,7 +1537,9 @@ function indexSignatureShotYaws(
     if (!state) continue;
     for (const traversal of tick.projectileTraversals) {
       if (
-        traversal.attackProfileId !== 'sentinel-bolt' ||
+        !['sentinel-bolt', 'sentinel-ray'].includes(
+          traversal.attackProfileId ?? '',
+        ) ||
         traversal.trigger !== 'attack-launch' ||
         traversal.path.length === 0
       ) continue;

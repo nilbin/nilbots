@@ -117,13 +117,14 @@ but not rules, map, or match fingerprints. Absence selects the frozen legacy
 treatment; an unknown ID or signature renders a generic public phase/footprint
 marker instead of disappearing or borrowing today's treatment.
 
-Current Broadloom-4 grammar-4 replays still use `arc-relay-signatures-v4`:
-the refreshed mechanics need no new visual topology or public phase. Grammar
-and presentation-package versions are independent axes. V4 adds the
-owner-attached Prism Screen presentation; V3 retains the instant Arc Toss plus
-historical static Prism Wall; V2 remains the recognized one-tick Toss package,
-and V1 keeps its original audio bindings. A future visual change still mints a
-new package rather than mutating any historical read.
+Current Broadloom-7 grammar-7 replays still use `arc-relay-signatures-v4`:
+the refreshed mechanics use existing declared-line, traversal, and construct
+presentation vocabulary rather than a new package topology. Grammar and
+presentation-package versions are independent axes. V4 adds the owner-attached
+Prism Screen presentation; V3 retains the instant Arc Toss plus historical
+static Prism Wall; V2 remains the recognized one-tick Toss package, and V1
+keeps its original audio bindings. A future visual change still mints a new
+package rather than mutating any historical read.
 
 ## 4. Visual assets and painters
 

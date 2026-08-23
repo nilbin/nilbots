@@ -46,7 +46,9 @@ internal sealed partial class ArcRelaySignatureRuntime
             new SmokeCanisterBehavior(),
             new SentinelSeedBehavior(),
             new SentinelSeed2Behavior(),
+            new SentinelSeed3Behavior(),
             new TractorHook2Behavior(),
+            new TractorHook3Behavior(),
             new NullField2Behavior(),
             new NullField3Behavior(),
             new TargetPaint2Behavior(),
@@ -908,6 +910,73 @@ internal sealed partial class ArcRelaySignatureRuntime
                     ? hook.AuthoredWallPenetrationTiles
                     : 0));
         }
+    }
+
+    private sealed class SentinelSeed3Behavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.SentinelSeed3;
+        public override bool CooldownStartsAtActivation => true;
+        public override bool RootsTellOnMove => true;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start)
+        {
+            var value = (ArcRelaySignatureDefinition.SentinelSeed3)
+                start.Definition;
+            return NewOperation(
+                start,
+                ArcRelaySignatureState.SignaturePhase.Tell,
+                checked(start.Tick + value.PlacementWindupTicks),
+                endsAtTick: null,
+                [start.TargetPosition!.Value],
+                value.Hull);
+        }
+
+        public override void AdvanceAtTickStart(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            IReadOnlyDictionary<ActorIdentity, Life> lives,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events)
+        {
+            var seed = (ArcRelaySignatureDefinition.SentinelSeed3)
+                operation.Definition;
+            operation.Phase = ArcRelaySignatureState.SignaturePhase.Active;
+            operation.CompletesAtTick = null;
+            operation.EndsAtTick = checked(tick + seed.DurationTicks);
+            events.Add(runtime.SignatureEvent(operation, "deployed"));
+        }
+
+        public override void ResolvePostMovement(
+            ArcRelaySignatureRuntime runtime,
+            Operation operation,
+            int tick,
+            IReadOnlyCollection<Life> lives,
+            Func<int, Position, bool> teamCanSee,
+            ImmutableArray<Effect>.Builder effects,
+            ImmutableArray<GenericActorModeEvent>.Builder events) =>
+            runtime.ResolveSentinelRayPostMovement(
+                operation,
+                tick,
+                lives,
+                events);
+    }
+
+    private sealed class TractorHook3Behavior : SignatureBehavior
+    {
+        public override ArcRelaySignatureDefinition.SignatureKind Kind =>
+            ArcRelaySignatureDefinition.SignatureKind.TractorHook3;
+        public override bool CooldownStartsAtActivation => true;
+        public override bool DeclaresLineLock => true;
+        public override bool RootsTellOnMove => true;
+
+        protected override Operation CreateUnlocked(
+            ArcRelaySignatureRuntime runtime,
+            SignatureStartContext start) => throw new InvalidOperationException(
+                "Declared-ray Hook always creates a locked-line envelope.");
     }
 
     private sealed class NullField2Behavior : SignatureBehavior

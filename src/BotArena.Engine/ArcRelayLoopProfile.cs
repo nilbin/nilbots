@@ -1876,6 +1876,20 @@ public sealed record ArcRelayLoopProfile
         workshopDormancyTicks: 0,
         signatureGrammarVersion: 6);
 
+    /// <summary>
+    /// Owner-approved combined signature product: includes Broadloom-5's
+    /// plotted Falling Star and Broadloom-6's two hidden mines/full Hush,
+    /// then replaces deterministic Sentry and Hook bolts with public
+    /// one-tick declared rays. Sentry and Hook stop at first contact; Rail
+    /// remains the piercing whole-line specialist.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom7 { get; } = CreateBroadloom(
+        "broadloom-7",
+        "arc-relay-broadloom-7",
+        tapline15CombatDepth: true,
+        workshopDormancyTicks: 0,
+        signatureGrammarVersion: 7);
+
     private static ArcRelayLoopProfile CreateBroadloom(
         string id,
         string rulesetId,
@@ -1938,7 +1952,7 @@ public sealed record ArcRelayLoopProfile
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Broadloom4;
+    public static ArcRelayLoopProfile Current => Broadloom7;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -2031,6 +2045,7 @@ public sealed record ArcRelayLoopProfile
         Broadloom4,
         Broadloom5,
         Broadloom6,
+        Broadloom7,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

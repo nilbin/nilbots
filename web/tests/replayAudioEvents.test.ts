@@ -821,6 +821,17 @@ test('Tractor Hook replaces the generic release and signature bursts cap at two 
     'the hook launch does not layer an ordinary projectile release',
   );
 
+  tick.events = [
+    signature(actors[0]!, 'tractor-hook', 'completed', hookOperation),
+  ];
+  tick.projectileTraversals[0]!.attackProfileId = 'hook-ray';
+  replay.signaturePresentationId = 'arc-relay-signatures-v4';
+  assert.deepEqual(
+    replayAudioEventsAt(replay, 0).map((event) => event.cue),
+    ['signature-tether'],
+    'the current instant Hook ray also owns one tether release',
+  );
+
   tick.projectileTraversals = [];
   tick.events = [
     signature(actors[0]!, 'vector-dash', 'completed', 'dash'),

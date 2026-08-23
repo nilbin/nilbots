@@ -717,8 +717,8 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayLoopProfile.Broadloom3,
             active: false,
             cancellationToken);
-        return await SeedTaplineTacticalPlaybookMindVersionAsync(
-            "tactical-playbook-mind-v1",
+        await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "broadloom-4-stock-v1",
             ArcRelayEntrantPlaylistDefinition.Broadloom4TacticalArtifactHash,
             "arc-relay-orders-v2",
             ArcRelayEntrantPlaylistDefinition.BroadloomStockSheetId,
@@ -726,6 +726,17 @@ public sealed class ArcRelayPlaylistSeeder(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockMapPlanSourceHash,
             ArcRelayEntrantPlaylistDefinition.Broadloom4TacticalBuildInputHash,
             ArcRelayLoopProfile.Broadloom4,
+            active: false,
+            cancellationToken);
+        return await SeedTaplineTacticalPlaybookMindVersionAsync(
+            "tactical-playbook-mind-v1",
+            ArcRelayEntrantPlaylistDefinition.Broadloom7TacticalArtifactHash,
+            "arc-relay-orders-v2",
+            ArcRelayEntrantPlaylistDefinition.BroadloomStockSheetId,
+            ArcRelayEntrantPlaylistDefinition.BroadloomStockPlaybookSourceHash,
+            ArcRelayEntrantPlaylistDefinition.BroadloomStockMapPlanSourceHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom7TacticalBuildInputHash,
+            ArcRelayLoopProfile.Broadloom7,
             active: true,
             cancellationToken);
     }

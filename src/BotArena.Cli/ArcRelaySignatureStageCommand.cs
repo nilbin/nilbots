@@ -186,7 +186,12 @@ public static class ArcRelaySignatureStageCommand
             vitalityHealthPerPoint: mode.VitalityHealthPerPoint,
             healZoneHealthPerActivation:
                 mode.HealZoneHealthPerActivation,
+            bankTriggeredWellRechargeTicks:
+                mode.BankTriggeredWellRechargeTicks,
+            sentryTeamVision: mode.SentryTeamVision,
             reactiveImpactFacing: mode.ReactiveImpactFacing,
+            veterancyDeathRetentionPercent:
+                mode.VeterancyDeathRetentionPercent,
             veterancyWorkshops: mode.VeterancyWorkshops);
         var stagedRules = new ActorRulesDefinition(
             $"arc-relay-signature-stage-t{maxTicks}-01",
@@ -368,9 +373,17 @@ public static class ArcRelaySignatureStageCommand
                     "Focused Arc Toss stage did not produce a readable long toss.");
             case "sentinel-seed" when !session.Chronology.Ticks
                 .SelectMany(frame => frame.Traversals)
-                .Any(value => value.AttackProfileId == "sentinel-bolt"):
+                .Any(value => value.AttackProfileId is
+                    "sentinel-ray" or "sentinel-bolt"):
                 throw new InvalidOperationException(
-                    "Focused Sentinel stage deployed but never fired a real bolt.");
+                    "Focused Sentinel stage deployed but never fired a real shot. "
+                    + "Signature reasons=["
+                    + string.Join(',', signatureFacts.Select(value => value.Reason))
+                    + "]; traversals=["
+                    + string.Join(',', session.Chronology.Ticks
+                        .SelectMany(frame => frame.Traversals)
+                        .Select(value => value.AttackProfileId))
+                    + "].");
         }
         if (spec.SignatureId == "sentinel-seed"
             && !signatureFacts.Any(value => value.Reason == "deployed"))

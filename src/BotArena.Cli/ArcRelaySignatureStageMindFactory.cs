@@ -22,14 +22,7 @@ internal sealed class ArcRelaySignatureStageMindFactory(
     public static readonly Position ExchangeCasterReady = new(13, 12);
     public static readonly Position ExchangeAllyReady = new(17, 12);
 
-    private static readonly Position[] SentinelEnemyWaypoints =
-    [
-        new(16, 12),
-        new(16, 14),
-        new(14, 14),
-        new(12, 14),
-        new(12, 12),
-    ];
+    private static readonly Position SentinelEnemyPosition = new(16, 12);
 
     public static Position StartPosition(ArcRelaySignatureStageSpec value) =>
         value.SignatureId switch
@@ -61,8 +54,6 @@ internal sealed class ArcRelaySignatureStageMindFactory(
         private bool _tripMovingWest = true;
         private bool _exchangeIssued;
         private int? _prismCastTick;
-        private int _sentinelWaypoint;
-        private int _sentinelDwellTicks;
 
         public void StartMatch(GenericMindRuntimeStart start)
         {
@@ -310,26 +301,19 @@ internal sealed class ArcRelaySignatureStageMindFactory(
             GenericMindRuntimeObservation observation,
             GenericMindRuntimeObservation.ObservedBodyState body)
         {
-            Position target = SentinelEnemyWaypoints[_sentinelWaypoint];
+            Position target = SentinelEnemyPosition;
             if (body.Position != target)
             {
-                _sentinelDwellTicks = 0;
                 return MoveToward(
                     observation,
                     body,
                     target,
                     "stage-sentinel-target");
             }
-            if (_sentinelDwellTicks++ < 2)
-                return Wait(body, "stage-sentinel-target");
-            _sentinelDwellTicks = 0;
-            _sentinelWaypoint =
-                (_sentinelWaypoint + 1) % SentinelEnemyWaypoints.Length;
-            return MoveToward(
-                observation,
-                body,
-                SentinelEnemyWaypoints[_sentinelWaypoint],
-                "stage-sentinel-target");
+            // This is a presentation proof, not an evasion scenario: hold the
+            // aligned target so the public per-shot tell and first-contact
+            // resolution are both guaranteed to appear in the short replay.
+            return Wait(body, "stage-sentinel-target");
         }
 
         private ImmutableArray<GenericActorRuntimeActionArgument> Arguments(

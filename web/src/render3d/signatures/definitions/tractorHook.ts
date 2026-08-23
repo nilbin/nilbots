@@ -23,8 +23,9 @@ export default defineArcSignatureWebGLPainter({
   paint({ rig, points, owner, target, phase, phaseProgress, phaseAge }) {
     const destination = target ?? points.at(-1);
     if (!owner || !destination) return;
-    // The public hook promise is a one-tick tell followed by a discrete launched fact; it
-    // has no retained in-flight state. Extend only the narrow cable inside that tell. A
+    // The current public hook promise is a one-tick tell followed by an instant declared
+    // ray; historical replays may carry a discrete launched fact. Extend only the narrow
+    // cable inside that tell. A
     // procedural grapple head was much heavier than Towline's authored winch at gameplay
     // scale, so the live treatment deliberately has no separate front object for now.
     const progress = phase === 'in-flight' || phase === 'active'
@@ -57,7 +58,8 @@ export default defineArcSignatureWebGLPainter({
   }) {
     const relocation = facts.find((fact) => fact.kind === 'body-relocated');
     const launch = facts.find(
-      (fact) => fact.kind === 'signature-changed' && fact.reason === 'launched',
+      (fact) => fact.kind === 'signature-changed' &&
+        (fact.reason === 'launched' || fact.reason === 'completed'),
     );
     if ((!relocation || relocation.kind !== 'body-relocated') && !launch) return;
     // The launch owns the one-tick latch hold and the relocation owns the one-tick

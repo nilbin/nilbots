@@ -911,10 +911,21 @@ public static class ArcRelayH0Definition
                 loopProfile.DirectionalCombat,
                 loopProfile.StrikeWindupTicks,
                 damagePerHit: loopProfile.CombatMagnitudeScale),
-            // Grammar-2 signature bolts are contract-declared projectiles:
-            // the world snapshot, validators, and viewers all know them the
-            // same way they know the guns. No body selects them as its gun.
-            .. loopProfile.SignatureGrammarVersion >= 2
+            // Signature delivery profiles are contract-declared attacks: the
+            // world snapshot, validators, and viewers know them the same way
+            // they know guns. Grammar 2-6 retain bolts; grammar 7 promotes
+            // instantaneous first-contact rays. No body selects them as a gun.
+            .. loopProfile.SignatureGrammarVersion >= 7
+                ? new[]
+                {
+                    InstantRayAttack(
+                        "sentinel-ray", range: 4,
+                        damagePerHit: loopProfile.CombatMagnitudeScale),
+                    InstantRayAttack(
+                        "hook-ray", range: 6,
+                        damagePerHit: loopProfile.CombatMagnitudeScale),
+                }
+                : loopProfile.SignatureGrammarVersion >= 2
                 ? new[]
                 {
                     Attack("sentinel-bolt", range: 4, nextFireInterval: 2,
@@ -1369,8 +1380,43 @@ public static class ArcRelayH0Definition
                     },
                     _ => entry,
                 })];
+        ImmutableArray<LaunchClass> declaredRays =
+            loopProfile.SignatureGrammarVersion < 7
+                ? signatureDepth
+                : [.. signatureDepth.Select(entry => entry.Signature switch
+                {
+                    ArcRelaySignatureDefinition.TractorHook2 hook => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.TractorHook3(
+                            hook.SignatureId,
+                            hook.ClassId,
+                            hook.ActionId,
+                            hook.Range,
+                            hook.MaxPullTiles,
+                            hook.WindupTicks,
+                            hook.Damage,
+                            hook.AuthoredWallPenetrationTiles,
+                            hook.CooldownTicks),
+                    },
+                    ArcRelaySignatureDefinition.SentinelSeed2 seed => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.SentinelSeed3(
+                            seed.SignatureId,
+                            seed.ClassId,
+                            seed.ActionId,
+                            seed.WindupTicks,
+                            seed.Hull,
+                            seed.Range,
+                            seed.Damage,
+                            seed.FireCooldownTicks,
+                            fireWindupTicks: windup,
+                            seed.DurationTicks,
+                            seed.CooldownTicks),
+                    },
+                    _ => entry,
+                })];
         ImmutableArray<LaunchClass> signatureTiming =
-            [.. signatureDepth.Select(entry => entry.Signature switch
+            [.. declaredRays.Select(entry => entry.Signature switch
             {
                 ArcRelaySignatureDefinition.ArcToss toss
                     when toss.TellTicks != loopProfile.ArcTossTellTicks
@@ -1513,6 +1559,21 @@ public static class ArcRelayH0Definition
                     checked(seed.Damage * scale), seed.FireCooldownTicks,
                     seed.DurationTicks, seed.BoltTilesPerAdvance,
                     seed.CooldownTicks, seed.WindupTicks),
+            ArcRelaySignatureDefinition.SentinelSeed3 seed =>
+                new ArcRelaySignatureDefinition.SentinelSeed3(
+                    seed.SignatureId, seed.ClassId, seed.ActionId,
+                    seed.PlacementWindupTicks,
+                    checked(seed.Hull * scale), seed.Range,
+                    checked(seed.Damage * scale), seed.FireCooldownTicks,
+                    seed.FireWindupTicks, seed.DurationTicks,
+                    seed.CooldownTicks),
+            ArcRelaySignatureDefinition.TractorHook3 hook =>
+                new ArcRelaySignatureDefinition.TractorHook3(
+                    hook.SignatureId, hook.ClassId, hook.ActionId,
+                    hook.Range, hook.MaxPullTiles, hook.WindupTicks,
+                    hook.Damage,
+                    hook.AuthoredWallPenetrationTiles,
+                    hook.CooldownTicks),
             _ => signature,
         };
 
@@ -1588,7 +1649,7 @@ public static class ArcRelayH0Definition
     /// One signature's declared argument shape.
     /// </summary>
     /// <remarks>
-    /// The bolt-class LINE attacks — rail and the grammar-2 hook — name WHO
+    /// The declared LINE attacks — Rail and the versioned Hook — name WHO
     /// they are shooting at on a ruleset that carries the strike lock (owner
     /// ruling 2026-08-09), exactly as a windup gun does since DECISIONS #222.
     /// The parameter is optional, so a declare that names nobody stays the
@@ -1605,6 +1666,7 @@ public static class ArcRelayH0Definition
         signature switch
         {
             ArcRelaySignatureDefinition.TractorHook2 or
+            ArcRelaySignatureDefinition.TractorHook3 or
             ArcRelaySignatureDefinition.RailLine
                 when loopProfile.StrikeWindupTicks > 0 =>
                 [
@@ -1614,6 +1676,7 @@ public static class ArcRelayH0Definition
             ArcRelaySignatureDefinition.VectorDash or
             ArcRelaySignatureDefinition.TractorHook or
             ArcRelaySignatureDefinition.TractorHook2 or
+            ArcRelaySignatureDefinition.TractorHook3 or
             ArcRelaySignatureDefinition.RailLine =>
                 [ActorActionParameterKind.ProjectileHeading],
             ArcRelaySignatureDefinition.RepairBeam or
@@ -1629,7 +1692,8 @@ public static class ArcRelayH0Definition
             ArcRelaySignatureDefinition.SmokeCanister or
             ArcRelaySignatureDefinition.SmokeCanister2 or
             ArcRelaySignatureDefinition.SentinelSeed or
-            ArcRelaySignatureDefinition.SentinelSeed2 =>
+            ArcRelaySignatureDefinition.SentinelSeed2 or
+            ArcRelaySignatureDefinition.SentinelSeed3 =>
                 [ActorActionParameterKind.PositionTarget],
             ArcRelaySignatureDefinition.PrismWall or
             ArcRelaySignatureDefinition.PrismScreen =>
@@ -1681,6 +1745,36 @@ public static class ArcRelayH0Definition
             energyRegenerationAmount: 0,
             DisabledShotProgram(),
             facingAimHalfWidthSectors: directionalCombat ? 1 : 0);
+
+    /// <summary>
+    /// An already-declared signature ray. Its public response window belongs
+    /// to the signature operation, so this profile owns only same-tick
+    /// first-contact traversal at maturity—never another windup and never a
+    /// retained projectile.
+    /// </summary>
+    private static ActorAttackProfileDefinition InstantRayAttack(
+        string id,
+        int range,
+        int damagePerHit) => new(
+        id,
+        omnidirectionalAim: true,
+        new ActorProjectileDefinition(
+            ActorProjectileMode.InstantRay,
+            damagePerHit,
+            maxTravelTiles: range,
+            ticksPerAdvance: 0,
+            tilesPerAdvance: 1,
+            launchTiles: 1,
+            advancesOnLaunchTick: false,
+            damageAppliedSimultaneously: true,
+            diagonalCornersMustBeClear: true),
+        cooldownTicks: 0,
+        maxEnergy: 0,
+        attackEnergyCost: 0,
+        energyRegenerationIntervalTicks: 0,
+        energyRegenerationAmount: 0,
+        DisabledShotProgram(),
+        facingAimHalfWidthSectors: 0);
 
     private static IEnumerable<string> AllowedActions(
         LaunchClass entry,

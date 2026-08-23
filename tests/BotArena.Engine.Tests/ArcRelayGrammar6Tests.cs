@@ -30,7 +30,7 @@ public sealed class ArcRelayGrammar6Tests
         var mode = Assert.IsType<ArcRelayGameModeDefinition>(
             candidate.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Broadloom4, ArcRelayLoopProfile.Current);
+        Assert.Same(ArcRelayLoopProfile.Broadloom7, ArcRelayLoopProfile.Current);
         Assert.Equal(6, mode.SignatureGrammarVersion);
         ArcRelaySignatureDefinition.TripNode mine = Assert.Single(
             mode.Signatures.OfType<ArcRelaySignatureDefinition.TripNode>());

@@ -76,6 +76,8 @@ real counterplay, and this has only been tested against one named opponent.
 - Materialized Orders SHA-256: `ae87b067e481bf8fee23c66026202e94a2f815fceb7074bc61f25e3ae20fc596`
 - Map-plan SHA-256: `1d887fe49aa02b9fb6523f594dcc4b91db55fa3f16509effee107ac61b181fa2`
 - Linked package/content hash: `b94736e4644e522f8820849df105754be76be5a7801a5a61697f7335678d51f1`
+- Current Broadloom-7 recompilation: `e890295d74bdb2f62b900ef5173dd9f55ae13b0cc03417c9e947bd42fb4bc438`
+  (the preceding hash remains the exact package used by this historical replay report)
 - Gallery: <https://larger-assuming-mats-returned.trycloudflare.com>
 - Local account row: `Loomsplit Vanguard`, id
   `0357f0a2-3a6a-48e3-980e-df3345a17b28`, revision 1, ladder disabled.

@@ -1825,7 +1825,8 @@ public sealed record GenericActorMatchChronology
                     == ArcRelaySignatureState.SignaturePhase.Tell
                 && signature.Kind is
                     ArcRelaySignatureDefinition.SignatureKind.RailLine
-                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook2),
+                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook2
+                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook3),
         ];
         var sessionOwned = ImmutableArray.CreateBuilder<
             GenericActorRuntimeObservation.ArcRelayPendingStrikeState>();

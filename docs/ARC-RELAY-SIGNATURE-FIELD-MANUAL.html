@@ -172,15 +172,15 @@
     <p class="dek">All sixteen Broadloom signatures in one place: exact reach, footprint, damage, wall interaction, player plotting, Smart use, Core custody, timing, and counterplay.</p>
 
     <div class="contract" aria-label="Broadloom shared rules">
-      <div><b>Current rules</b><span>Broadloom-4 · signature grammar 4</span></div>
+      <div><b>Current rules</b><span>Broadloom-7 · signature grammar 7</span></div>
       <div><b>Body scale</b><span>30–50 Hull · regular shots deal 10</span></div>
       <div><b>Shared sight</b><span>5-tile facing vision · guns reach 3 / 4 / 6</span></div>
       <div><b>Distance</b><span>Chebyshev tiles; diagonals count as one</span></div>
     </div>
 
     <div class="candidate">
-      <strong>Broadloom-5 / 6 candidates</strong>
-      <p>Broadloom-5 adds player-plotted blind Falling Star. Broadloom-6 keeps that and tests the trap/counterplay pass: each Minesmith maintains at most <strong>two</strong> fully hidden radius-one mines, while Hush gains a seven-tick full-suppression field that exposes and disables hidden mines. Broadloom-4 remains current until an explicit promotion.</p>
+      <strong>Promoted signature line</strong>
+      <p>Broadloom-7 combines plotted blind Falling Star, two hidden radius-one mines, seven-tick full Hush suppression, and one-tick declared Sentry/Hook rays. Hook and Sentry stop on the first body or construct; Rail deliberately remains the whole-line piercing specialist.</p>
     </div>
   </header>
 
@@ -243,11 +243,11 @@
         cls: "Towline", classId: "towline", name: "Tractor Hook", id: "tractor-hook",
         fantasy: "Damaging formation disruptor that pulls a target to its front tile.",
         body: "40 Hull · standard · gun 4", reach: "Straight ray 6", output: "10 damage + pull up to 5",
-        timing: "1-tick rooted tell · bolt speed 2 · cooldown 12", lifetime: "One bolt after the tell", cap: "No persistent object", plotting: "Line, up to 2 ray marks",
-        walls: "Smart locked hooks obey normal walls. An explicitly drawn blind ray may breach exactly one map wall or hostile Hardlight tile; bodies and constructs can intercept the bolt.",
+        timing: "1-tick rooted tell · instant resolution · cooldown 12", lifetime: "One declared ray after the tell", cap: "No persistent object", plotting: "Line, up to 2 ray marks",
+        walls: "Smart locked hooks obey normal walls. An explicitly drawn blind ray may breach exactly one map wall or hostile Hardlight tile. On maturity, the first body or construct on the line intercepts it; nothing travels between ticks.",
         smart: "Prioritizes a visible enemy Core carrier, then the weakest/nearest legal target; the first contact is pulled toward the caster. It does not run a separate support-count solver.",
         custody: "Blocked while carrying.",
-        counter: "Leave the announced ray, interpose a durable construct, punish the rooted cast, or block the pull destination.",
+        counter: "Leave the announced cone while actively fighting, interpose a body or durable construct, punish the rooted cast, or block the pull destination. A posted defender does not automatically abandon its post.",
         tags: ["damage", "control", "plotted"]
       },
       {
@@ -278,34 +278,31 @@
         body: "30 Hull · deliberate · gun 4", reach: "Point within 8; centre + 4 cardinal tiles", output: "10 damage to every hostile in cross",
         timing: "Public 2-tick tell · cooldown 12", lifetime: "One five-tile impact", cap: "No persistent object", plotting: "Up to 2 exact impact points",
         walls: "Impact ignores intervening walls and can damage hostile deployments. The cross is fixed, does not track, and never hurts allies.",
-        smart: "Current and candidate Smart use both require a visible enemy in the cross. Only Broadloom-5 exact plotted points may be blind-fired.",
+        smart: "Smart use requires a visible enemy in the cross. An exact player-plotted point may be fired blind through walls.",
         custody: "Blocked while carrying.",
         counter: "The entire five-tile cross is public for two ticks: leave it, close on the Mortar, or force a low-value cast.",
-        delta: "Candidate delta: plotted blind fire only; no vision, tracking, retargeting, or hidden-hit confirmation.",
         tags: ["damage", "control", "plotted"]
       },
       {
         cls: "Minesmith", classId: "minesmith", name: "Trip Node", id: "trip-node",
         fantasy: "Route controller carrying concealed nodes for watched ground.",
         body: "40 Hull · standard · gun 3", reach: "Adjacent floor tile", output: "20 trigger damage · 10 Hull",
-        timing: "Persistent until used/replaced/destroyed · cooldown 12", lifetime: "Persistent until triggered, destroyed, or replaced", cap: "B6: 2 per Minesmith; third replaces oldest (FIFO)", plotting: "Up to 2 exact points; bot approaches them",
-        walls: "Does not block bodies. B6 triggers on an exact hostile step for 20 hostile-only damage in the surrounding 3×3 area. Ordinary blind projectiles cannot hit it; a Flare-revealed or Hush-exposed mine has 10 Hull and can be shot.",
-        smart: "Maintains two distinct unoccupied plotted points. B6 enemies never learn a mine through ordinary sight—even adjacent; Survey Flare reveals it and hostile Null Field exposes it as a disabled silhouette.",
+        timing: "Persistent until used/replaced/destroyed · cooldown 12", lifetime: "Persistent until triggered, destroyed, or replaced", cap: "2 per Minesmith; third replaces oldest (FIFO)", plotting: "Up to 2 exact points; bot approaches them",
+        walls: "Does not block bodies. An exact hostile step deals 20 hostile-only damage in the surrounding 3×3 area. Ordinary blind attacks cannot hit it; a Flare-revealed or Hush-exposed mine has 10 Hull and can be shot.",
+        smart: "Maintains two distinct unoccupied plotted points. Enemies never learn a mine through ordinary sight—even adjacent; Survey Flare reveals it and hostile Null Field exposes it as a disabled silhouette.",
         custody: "Blocked while carrying.",
         counter: "Flare likely trap ground, sweep it with Hush, vary the route, or shoot a revealed/exposed mine. Blind fire is not a mine sweeper.",
-        delta: "Candidate delta: two hidden mines, radius-one hostile AoE, FIFO replacement, and explicit Flare/Hush counterplay.",
         tags: ["damage", "control", "plotted", "deployment"]
       },
       {
         cls: "Hush", classId: "hush", name: "Null Field", id: "null-field",
         fantasy: "Dampener array that suppresses signatures instead of racing damage.",
         body: "40 Hull · standard · gun 4", reach: "Self-centred square radius 3", output: "Signature suppression; 0 damage",
-        timing: "1-tick tell · lasts 7 in B6 · cooldown 18", lifetime: "B4: 5 ticks · B6: 7 ticks", cap: "1 active field per Hush by cooldown", plotting: "Up to 2 sweep points; Hush approaches and casts from the mark",
-        walls: "The static radius-three footprint extends around walls. In B6, overlapping constructs, sensors, smoke, paint, channels, tells, locked lines, and resolving one-shots are inert or cancelled; guns, bodies, and Core rules continue normally.",
+        timing: "1-tick tell · lasts 7 · cooldown 18", lifetime: "7 ticks", cap: "1 active field per Hush by cooldown", plotting: "Up to 2 sweep points; Hush approaches and casts from the mark",
+        walls: "The static radius-three footprint extends around walls. Overlapping constructs, sensors, smoke, paint, channels, tells, locked lines, and resolving one-shots are inert or cancelled; guns, bodies, and Core rules continue normally.",
         smart: "Casts when a visible hostile signature is close enough to overlap the local field. An exact plotted mark is deliberate trap-sweeping intent and does not cheat by detecting hidden mines.",
         custody: "Blocked while carrying.",
         counter: "Use the response-movement tick to leave the announced square, bait the 18-tick cooldown, or fight with regular fire.",
-        delta: "Candidate delta: duration 7 and complete typed signature suppression, including exposing disabled hidden mines.",
         tags: ["control", "utility"]
       },
       {
@@ -388,12 +385,12 @@
       {
         cls: "Nest", classId: "nest", name: "Sentinel Seed", id: "sentinel-seed",
         fantasy: "Pod carrier that leaves one persistent, killable guard behind.",
-        body: "40 Hull · deliberate · gun 4", reach: "Adjacent placement; turret gun and team vision 4", output: "20 Hull · 10 damage bolts every 2 ticks",
-        timing: "1-tick rooted deploy · bolt speed 2 · lasts 30 · cooldown 18", lifetime: "30 ticks or until destroyed", cap: "1 sentry per Nest; recast replaces", plotting: "Up to 2 exact posts; bot approaches them",
-        walls: "Does not block bodies. Turret needs a straight, unoccluded lane and will not fire through an allied body. It is damageable, absorbs hostile shots, and recast replaces that Nest’s previous seed.",
+        body: "40 Hull · deliberate · gun 4", reach: "Adjacent placement; turret gun and team vision 4", output: "20 Hull · 10 damage first-contact ray every 2 ticks",
+        timing: "1-tick rooted deploy · each shot has 1-tick tell · lasts 30 · cooldown 18", lifetime: "30 ticks or until destroyed", cap: "1 sentry per Nest; recast replaces", plotting: "Up to 2 exact posts; bot approaches them",
+        walls: "Does not block bodies. The turret needs a straight, unoccluded lane and will not declare through an allied body. Its public per-shot tell originates at the seed; on maturity the first body or construct intercepts the ray. It is damageable, absorbs hostile shots, and recast replaces that Nest’s previous seed.",
         smart: "Maintains an exact plotted post even before contact; without a mark, waits for team contact before seeding.",
         custody: "Blocked while carrying.",
-        counter: "Approach through broken angles/smoke, shoot the 20-Hull seed, interpose a wall, suppress it, or wait 30 ticks.",
+        counter: "Approach through broken angles/smoke, leave the declared cone while actively fighting, interpose a body or wall, shoot the 20-Hull seed, suppress it, or wait 30 ticks.",
         tags: ["damage", "control", "plotted", "deployment"]
       }
     ];

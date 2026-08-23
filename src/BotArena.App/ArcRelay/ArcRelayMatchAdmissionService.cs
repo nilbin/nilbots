@@ -205,7 +205,7 @@ public sealed class ArcRelayMatchAdmissionService(
                 bot.Id,
                 version.Id,
                 ArcRelayEntrantPlaylistDefinition
-                    .Broadloom4TacticalArtifactHash,
+                    .Broadloom7TacticalArtifactHash,
                 compiled.Compilation.Composition,
                 compiled.Composition.CanonicalJson,
                 compiled.Composition.ContentHash,
@@ -284,7 +284,7 @@ public sealed class ArcRelayMatchAdmissionService(
             bot.Id,
             version.Id,
             ArcRelayEntrantPlaylistDefinition
-                .Broadloom4TacticalArtifactHash,
+                .Broadloom7TacticalArtifactHash,
             source.Composition,
             composition.CanonicalJson,
             composition.ContentHash,
@@ -307,7 +307,7 @@ public sealed class ArcRelayMatchAdmissionService(
             && value.IsActive
             && value.ArtifactHash
                 == ArcRelayEntrantPlaylistDefinition
-                    .Broadloom4TacticalArtifactHash,
+                    .Broadloom7TacticalArtifactHash,
             cancellationToken);
         return (bot, version);
     }

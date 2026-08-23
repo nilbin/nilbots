@@ -301,7 +301,7 @@ static int CommandHelp(string command)
 
             Loop profile. --loop-profile selects the ruleset/map pair; every
             registered id is listed in the error text when one is misspelled.
-            The default is `broadloom-4`: the 37x27 Broadloom map and
+            The default is `broadloom-7`: the 37x27 Broadloom map and
             coordinated movement plus the 1/2/4 Core economy, veteran command,
             public respawn waves, seven-class roster floor, durable
             deployments, tenfold combat scale, and a centre Well whose opening
@@ -325,12 +325,15 @@ static int CommandHelp(string command)
             transparent. Two public neutral Workshops each offer one veteran
             XP after every protected 15-tick channel; the next channel may
             begin on the following tick with no Workshop cooldown.
-            Signature grammar 4 makes Kestrel Dash and Switchback Exchange
+            Signature grammar 7 makes Kestrel Dash and Switchback Exchange
             Core-safe, gives Towline a damaging front-pull Hook with a
             player-drawn one-wall breach, turns Repulsor Burst into hostile
             adjacent damage plus displacement, grants Lantern Flare radius-4
-            team sight, and lets Sunder benefit from its own Paint.
-            Hosted v36 pins `broadloom-4`; v35/v34/v33 preserve Broadloom history;
+            team sight, and lets Sunder benefit from its own Paint. It also
+            promotes blind plotted Falling Star, two hidden radius-one mines,
+            full seven-tick Hush suppression, and declared first-contact Hook
+            and Sentry rays while Rail remains piercing.
+            Hosted v37 pins `broadloom-7`; v36/v35/v34/v33 preserve Broadloom history;
             v7 through v32 remain exact history, and all
             historical profiles and playlist versions stay explicitly
             selectable and byte-verifiable.

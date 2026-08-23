@@ -6,13 +6,13 @@ document. `docs/DECISIONS.md` records where open choices were pinned.
 [`DOCUMENTATION.md`](DOCUMENTATION.md) classifies shipped contracts, active
 plans, and historical evidence.
 
-## Current product (2026-08-23)
+## Current product (2026-08-24)
 
 Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI/editor default is `broadloom-4`
+revisions, match history, and rating. The current CLI/editor default is `broadloom-7`
 on the owner-approved 37x27 Broadloom whole-map identity — three Wells in
 distinct theatres, two neutral veterancy Workshops (unlock tick 25, repeatable
 15-tick protected channels, exactly 1 capped XP per channel and no cooldown), the
@@ -32,10 +32,12 @@ bodies. Living allies harmlessly block allied shots, while friendly sentries,
 mines, Hardlight and Prism remain transparent. A destroyed bot retains 50% of
 its accumulated veteran XP, rounded down, on its team-local roster slot; phase
 transitions can target selected bots reaching a chosen veteran level. Signature
-grammar 4 adds carrier-safe Dash/Exchange, damaging front-pull Hook, hostile
+grammar 7 adds carrier-safe Dash/Exchange, damaging front-pull Hook, hostile
 damaging Burst, team-vision Flare, owner-inclusive Paint, and contextual Smart
-use without a second executor. Hosted playlist v36 is the current Broadloom-4
-rating identity; v35/v34/v33 remain
+use without a second executor. It also includes blind plotted Falling Star,
+two hidden radius-one mines, full seven-tick Hush suppression, and declared
+first-contact Hook/Sentry rays while Rail stays piercing. Hosted playlist v37
+is the current Broadloom-7 rating identity; v36/v35/v34/v33 remain
 immutable Broadloom history and v32 remains complete-observation/Tapline-14 history.
 Tactics documents author Train-at-Workshop and read the Workshop's
 public neutral state through dedicated condition rows.

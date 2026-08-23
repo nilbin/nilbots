@@ -200,6 +200,8 @@ builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV35());
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV36());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.Create());
 builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
 

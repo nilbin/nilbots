@@ -35,8 +35,8 @@ public sealed class ArcRelayClassCatalogTests
                 .Cast<System.Text.RegularExpressions.Match>());
         }
 
-        Assert.Contains("Broadloom-4", document, StringComparison.Ordinal);
-        Assert.Contains("Broadloom-5 / 6 candidates", document,
+        Assert.Contains("Broadloom-7", document, StringComparison.Ordinal);
+        Assert.Contains("two hidden radius-one mines", document,
             StringComparison.Ordinal);
     }
 
