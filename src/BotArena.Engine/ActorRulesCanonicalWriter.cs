@@ -498,6 +498,12 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("hull", value.Hull);
                 writer.WriteNumber("triggerDamage", value.TriggerDamage);
                 writer.WriteNumber("revealRange", value.RevealRange);
+                if (value.TriggerRadius > 0)
+                    writer.WriteNumber("triggerRadius", value.TriggerRadius);
+                if (value.MaximumActive > 1)
+                    writer.WriteNumber("maximumActive", value.MaximumActive);
+                if (value.HiddenFromNormalVision)
+                    writer.WriteBoolean("hiddenFromNormalVision", true);
                 break;
             case ArcRelaySignatureDefinition.NullField value:
                 writer.WriteNumber("radius", value.Radius);
@@ -601,6 +607,8 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("radius", value.Radius);
                 writer.WriteNumber("durationTicks", value.DurationTicks);
                 writer.WriteNumber("tellTicks", value.TellTicks);
+                if (value.FullSuppression)
+                    writer.WriteBoolean("fullSuppression", true);
                 break;
             case ArcRelaySignatureDefinition.TargetPaint2 value:
                 writer.WriteNumber("range", value.Range);

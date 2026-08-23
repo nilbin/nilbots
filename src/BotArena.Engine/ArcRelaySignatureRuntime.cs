@@ -440,6 +440,17 @@ internal sealed partial class ArcRelaySignatureRuntime
                 continue;
             }
             operation.Suppressed = suppressed;
+            if (IsFullySuppressed(operation, tick)
+                && operation.Definition
+                    is not ArcRelaySignatureDefinition.ArcToss
+                && operation.Phase
+                    is ArcRelaySignatureState.SignaturePhase.Tell
+                        or ArcRelaySignatureState.SignaturePhase.InFlight
+                && operation.CompletesAtTick <= tick)
+            {
+                Complete(operation, tick, "cancelled-null-field", events);
+                continue;
+            }
             if (operation.EndsAtTick == tick)
             {
                 Complete(operation, tick, "expired", events);
@@ -509,6 +520,15 @@ internal sealed partial class ArcRelaySignatureRuntime
                          .EstablishesPostMovementSuppression
                      && _operations.ContainsKey(value.OperationId)))
         {
+            if (IsFullySuppressed(operation, tick)
+                && operation.Phase
+                    is ArcRelaySignatureState.SignaturePhase.Tell
+                        or ArcRelaySignatureState.SignaturePhase.InFlight
+                && operation.CompletesAtTick <= tick)
+            {
+                Complete(operation, tick, "cancelled-null-field", events);
+                continue;
+            }
             BehaviorFor(operation.Definition.Kind).ResolvePostMovement(
                 this,
                 operation,
@@ -549,6 +569,16 @@ internal sealed partial class ArcRelaySignatureRuntime
                 continue;
             }
             operation.Suppressed = suppressed;
+            if (IsFullySuppressed(operation, tick)
+                && operation.Definition
+                    is not ArcRelaySignatureDefinition.ArcToss
+                && operation.Phase
+                    is ArcRelaySignatureState.SignaturePhase.Tell
+                        or ArcRelaySignatureState.SignaturePhase.InFlight
+                && operation.CompletesAtTick <= tick)
+            {
+                Complete(operation, tick, "cancelled-null-field", events);
+            }
         }
     }
 
@@ -593,6 +623,11 @@ internal sealed partial class ArcRelaySignatureRuntime
                      .ThenBy(value => value.OperationId, StringComparer.Ordinal)
                      .ToArray())
         {
+            if (IsFullySuppressed(operation, tick))
+            {
+                Complete(operation, tick, "cancelled-null-field", events);
+                continue;
+            }
             if (!world.ContainsKey(operation.OwnerActorId))
             {
                 Complete(operation, tick, "owner-destroyed", events);
@@ -930,6 +965,7 @@ internal sealed partial class ArcRelaySignatureRuntime
                 or ArcRelaySignatureDefinition.SmokeCanister2
             && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
             && value.EndsAtTick > tick
+            && !IsFullySuppressed(value, tick)
             && value.Positions.Contains(position));
 
     /// <summary>
@@ -953,11 +989,13 @@ internal sealed partial class ArcRelaySignatureRuntime
                     is ArcRelaySignatureDefinition.SmokeCanister
                         or ArcRelaySignatureDefinition.SmokeCanister2)
             {
-                smoke.UnionWith(operation.Positions);
+                if (!IsFullySuppressed(operation, tick))
+                    smoke.UnionWith(operation.Positions);
             }
             else if (operation.Definition
                         is ArcRelaySignatureDefinition.SurveyFlare
-                     && operation.OwnerActorId.TeamId == teamId)
+                     && operation.OwnerActorId.TeamId == teamId
+                     && !IsFullySuppressed(operation, tick))
             {
                 revealed.UnionWith(operation.Positions);
             }
@@ -972,6 +1010,7 @@ internal sealed partial class ArcRelaySignatureRuntime
             && value.OwnerActorId.TeamId == teamId
             && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
             && value.EndsAtTick > tick
+            && !IsFullySuppressed(value, tick)
             && value.Positions.Contains(position));
 
     public bool BlocksBody(Position position, int tick) =>
@@ -1005,7 +1044,11 @@ internal sealed partial class ArcRelaySignatureRuntime
             .Where(value =>
                 value.OwnerActorId.TeamId != projectileTeamId
                 && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
-                && !value.Suppressed
+                && (value.Definition
+                        is ArcRelaySignatureDefinition.TripNode
+                        { HiddenFromNormalVision: true }
+                    ? TripNodeRevealedForTeam(value, projectileTeamId, tick)
+                    : !value.Suppressed)
                 && value.ProjectileCollisionPositions.Contains(position)
                 && value.Definition is ArcRelaySignatureDefinition.PrismWall
                     or ArcRelaySignatureDefinition.PrismScreen
@@ -1046,6 +1089,7 @@ internal sealed partial class ArcRelaySignatureRuntime
     public bool TryDamageDeployment(
         Position position,
         int attackerTeamId,
+        int tick,
         int damage,
         string source,
         out GenericActorModeEvent? modeEvent)
@@ -1055,7 +1099,8 @@ internal sealed partial class ArcRelaySignatureRuntime
             modeEvent = null;
             return false;
         }
-        Operation? construct = HostileConstructAt(position, attackerTeamId);
+        Operation? construct = HostileConstructAt(
+            position, attackerTeamId, tick);
         if (construct is null)
         {
             modeEvent = null;
@@ -1072,6 +1117,26 @@ internal sealed partial class ArcRelaySignatureRuntime
         return true;
     }
 
+    public bool TryDamageDeployment(
+        Position position,
+        int attackerTeamId,
+        int damage,
+        string source,
+        out GenericActorModeEvent? modeEvent) => TryDamageDeployment(
+            position,
+            attackerTeamId,
+            tick: 0,
+            damage,
+            source,
+            out modeEvent);
+
+    private bool TripNodeRevealedForTeam(
+        Operation node,
+        int teamId,
+        int tick) =>
+        node.Suppressed
+        || IsRevealedForTeam(node.Positions[0], teamId, tick);
+
     public int TargetPaintBonus(
         ActorIdentity attacker,
         ActorIdentity target,
@@ -1084,6 +1149,7 @@ internal sealed partial class ArcRelaySignatureRuntime
             && value.OwnerActorId.TeamId == attacker.TeamId
             && value.TargetActorId == target
             && value.EndsAtTick > tick
+            && !IsFullySuppressed(value, tick)
             && value.RemainingCapacity > 0);
         operationId = paint?.OperationId;
         return paint?.Definition switch
@@ -1249,7 +1315,11 @@ internal sealed partial class ArcRelaySignatureRuntime
         {
             return;
         }
-        foreach (Operation existing in _operations.Values.Where(value =>
+        int maximumActive = replacement.Definition
+            is ArcRelaySignatureDefinition.TripNode node
+                ? node.MaximumActive
+                : 1;
+        Operation[] existing = [.. _operations.Values.Where(value =>
                      (_durableDeployments
                          ? value.OwnerActorId.TeamId
                             == replacement.OwnerActorId.TeamId
@@ -1257,19 +1327,27 @@ internal sealed partial class ArcRelaySignatureRuntime
                                 == replacement.OwnerActorId.UnitId
                          : value.OwnerActorId == replacement.OwnerActorId)
                      && value.Definition.Kind == replacement.Definition.Kind)
-                 .ToArray())
+                 .OrderBy(value => value.StartedTick)
+                 .ThenBy(value => value.OperationId, StringComparer.Ordinal)];
+        int replaceCount = Math.Max(0, existing.Length - maximumActive + 1);
+        foreach (Operation value in existing.Take(replaceCount))
         {
-            Remove(existing, "replaced", events);
+            Remove(value, "replaced", events);
         }
     }
 
     private Operation? HostileConstructAt(
         Position position,
-        int attackerTeamId) => _operations.Values
+        int attackerTeamId,
+        int tick) => _operations.Values
         .Where(value =>
             value.OwnerActorId.TeamId != attackerTeamId
             && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
-            && !value.Suppressed
+            && (value.Definition
+                    is ArcRelaySignatureDefinition.TripNode
+                    { HiddenFromNormalVision: true }
+                ? TripNodeRevealedForTeam(value, attackerTeamId, tick)
+                : !value.Suppressed)
             && value.ProjectileCollisionPositions.Contains(position)
             && IsDeployment(value.Definition))
         .OrderBy(value => value.OperationId, StringComparer.Ordinal)
@@ -1333,7 +1411,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                     operation.OwnerActorId,
                     Phase: null,
                     reason)),
-            SpatialPosition: null));
+            SpatialPosition: null,
+            PrivateTeamIdFor(operation, reason)));
     }
 
     private GenericActorModeEvent SignatureEvent(
@@ -1347,7 +1426,17 @@ internal sealed partial class ArcRelaySignatureRuntime
                     operation.OwnerActorId,
                     operation.Phase,
                     reason)),
-            SpatialPosition: null);
+            SpatialPosition: null,
+            PrivateTeamIdFor(operation, reason));
+
+    private static int? PrivateTeamIdFor(
+        Operation operation,
+        string reason) => operation.Definition
+            is ArcRelaySignatureDefinition.TripNode
+            { HiddenFromNormalVision: true }
+            && reason is "started" or "replaced"
+                ? operation.OwnerActorId.TeamId
+                : null;
 
     private bool SuppressedByHostileNullField(
         int teamId,
@@ -1377,6 +1466,33 @@ internal sealed partial class ArcRelaySignatureRuntime
             position,
             tick,
             excludedOperationId));
+
+    private bool FullySuppressedByHostileNullField(
+        int teamId,
+        IEnumerable<Position> positions,
+        int tick,
+        string? excludedOperationId = null) =>
+        positions.Any(position => _operations.Values.Any(value =>
+            !string.Equals(
+                value.OperationId,
+                excludedOperationId,
+                StringComparison.Ordinal)
+            && value.Definition
+                is ArcRelaySignatureDefinition.NullField3
+                {
+                    FullSuppression: true,
+                }
+            && value.OwnerActorId.TeamId != teamId
+            && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
+            && value.EndsAtTick > tick
+            && value.Positions.Contains(position)));
+
+    private bool IsFullySuppressed(Operation operation, int tick) =>
+        FullySuppressedByHostileNullField(
+            operation.OwnerActorId.TeamId,
+            SuppressionFootprint(operation),
+            tick,
+            operation.OperationId);
 
     private static IEnumerable<Position> SuppressionFootprint(
         Operation operation) => operation.Definition
@@ -1588,7 +1704,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         internal sealed record TripNode(
             string Id,
             ActorIdentity Actor,
-            ActorIdentity Target,
+            ImmutableArray<ActorIdentity> Targets,
             int Damage) : Effect(Id, Actor);
         internal sealed record ArcTossLaunch(
             string Id,

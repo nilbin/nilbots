@@ -1717,7 +1717,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             bool executable = CanExecuteUse(
                 contract, body, self, use, exactPlacement);
             if (!executable
-                && !CanApproachExactDeployment(signature, use, exactPlacement))
+                && !CanApproachExactSignature(signature, use, exactPlacement))
             {
                 decline = $"signature-{use.Skill}-illegal-at-self";
                 return [];
@@ -2152,8 +2152,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             Math.Max(Math.Abs(first.X - second.X), Math.Abs(first.Y - second.Y));
         int CrossDistance(Position first, Position second) =>
             Math.Abs(first.X - second.X) + Math.Abs(first.Y - second.Y);
-        bool durablePresent = OwnedDeployment(arc, body) is { } deployment
-            && deployment.RemainingCapacity > 0;
+        GenericActorContext.ArcRelaySignatureState[] ownedDeployments =
+            OwnedDeployments(arc, body)
+                .Where(value => value.RemainingCapacity > 0)
+                .ToArray();
+        bool durablePresent = ownedDeployments.Length > 0;
         switch (use.Opportunity)
         {
             case "route-forward":
@@ -2205,9 +2208,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         use, "no-enemy-in-cross", out decline);
             case "deploy-unoccupied-anchor":
             case "block-unoccupied-choke":
-                if (durablePresent)
+                bool exactDeploymentPresent = ownedDeployments.Any(value =>
+                    value.Positions.Contains(place));
+                if (exactDeploymentPresent)
                     return RejectSignatureOpportunity(
-                        use, "useful-deployment-still-active", out decline);
+                        use, "deployment-anchor-already-active", out decline);
+                // A different authored mark is deliberate relocation. The
+                // typed runtime owns the one-or-many cap and deterministic
+                // replacement order, so the mind must not strand a later
+                // phase behind an older persistent deployment.
                 return !mind.Bodies.Any(value => value.Position == place)
                         && !mind.Enemies.Any(value => value.Position == place)
                         && !arc.VisibleSignatures.Any(value =>
@@ -2234,7 +2243,8 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     || RejectSignatureOpportunity(
                         use, "deployment-anchor-occupied", out decline);
             case "suppress-hostile-signature":
-                return arc.VisibleSignatures.Any(value =>
+                return use.AtAnchor is not null
+                    || arc.VisibleSignatures.Any(value =>
                         value.OwnerTeamId != _teamId && !value.Suppressed
                         && value.Positions.Any(position =>
                             Nearby(position, body.Position) <= 4))
@@ -2736,16 +2746,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return ArenaBasics.CanUsePositionSignature(
                 contract, body, signature.Kind);
         }
-        return ArenaBasics.CanUseParameterlessSignature(
-            contract, body, signature.Kind);
+        return (exactPlacement is not Position station
+                || signature.Kind != "null-field"
+                || body.Position == station)
+            && ArenaBasics.CanUseParameterlessSignature(
+                contract, body, signature.Kind);
     }
 
-    private static bool CanApproachExactDeployment(
+    private static bool CanApproachExactSignature(
         GenericActorRulesContract.ArcRelaySignature signature,
         OrdersPackage.UseAction use,
         Position? exactPlacement) => exactPlacement is not null
         && use.AtAnchor is not null
-        && IsDeploymentKind(signature.Kind);
+        && (IsDeploymentKind(signature.Kind) || signature.Kind == "null-field");
 
     private static bool ArcTossLandsExactly(
         GenericActorMapContract map,
@@ -3036,11 +3049,13 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             ? package.AnchorPosition(anchor)
             : null;
         if (signature is null
-            || !CanApproachExactDeployment(signature, use, placement)
+            || !CanApproachExactSignature(signature, use, placement)
             || CanExecuteUse(contract, body, target, use, placement))
         {
             return [];
         }
+        if (signature.Kind == "null-field")
+            return [placement!.Value];
         return AdjacentStandTiles(contract.Map, placement!.Value);
     }
 
@@ -3743,6 +3758,12 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 value.SignatureId == use.Skill || value.Kind == use.Skill);
         if (signature is null)
             return false;
+        if (signature.Kind == "null-field"
+            && use.AtAnchor is string stationAnchor
+            && body.Position != package.AnchorPosition(stationAnchor))
+        {
+            return false;
+        }
         GenericActorActionLegality? action = body.Action(signature.ActionId);
         if (action is not { Available: true })
             return false;
@@ -4839,13 +4860,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
 
     private GenericActorContext.ArcRelaySignatureState? OwnedDeployment(
         GenericActorContext.ModeObservationState.ArcRelay arc,
-        MindBody body) => arc.VisibleSignatures
+        MindBody body) => OwnedDeployments(arc, body).FirstOrDefault();
+
+    private IEnumerable<GenericActorContext.ArcRelaySignatureState>
+        OwnedDeployments(
+            GenericActorContext.ModeObservationState.ArcRelay arc,
+            MindBody body) => arc.VisibleSignatures
         .Where(value => value.OwnerActorId.TeamId == body.ActorId.TeamId
             && value.OwnerActorId.UnitId == body.ActorId.UnitId
             && value.Phase == GenericActorContext.ArcRelaySignaturePhase.Active
             && IsDeploymentKind(value.Kind))
-        .OrderBy(value => value.OperationId, StringComparer.Ordinal)
-        .FirstOrDefault();
+        .OrderBy(value => value.OperationId, StringComparer.Ordinal);
 
     private static int MaxHealth(
         GenericActorResolvedMatchContract contract,

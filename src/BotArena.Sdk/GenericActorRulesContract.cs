@@ -476,6 +476,9 @@ public sealed class GenericActorRulesContract
         public int? Hull { get; init; }
         public int? TriggerDamage { get; init; }
         public int? RevealRange { get; init; }
+        public int? TriggerRadius { get; init; }
+        public int? MaximumActive { get; init; }
+        public bool? HiddenFromNormalVision { get; init; }
         public int? Radius { get; init; }
         public int? CancelCooldownTicks { get; init; }
         public int? EnhancedHitCount { get; init; }
@@ -499,6 +502,10 @@ public sealed class GenericActorRulesContract
         /// <summary>True when an area displacement affects hostile bodies
         /// only.</summary>
         public bool? HostilesOnly { get; init; }
+        /// <summary>True when a Null Field cancels maturing hostile effects
+        /// and disables every maintained effect in its footprint, rather
+        /// than only channels and durable constructs.</summary>
+        public bool? FullSuppression { get; init; }
         /// <summary>
         /// Optional non-default joint-tick activation phase. Null means the
         /// ordinary before-combat signature action phase.

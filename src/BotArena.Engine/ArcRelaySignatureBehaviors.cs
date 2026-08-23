@@ -440,20 +440,26 @@ internal sealed partial class ArcRelaySignatureRuntime
         {
             if (operation.Suppressed)
                 return;
-            Life? target = lives.Where(value =>
+            Life? trigger = lives.Where(value =>
                     value.ActorId.TeamId != operation.OwnerActorId.TeamId
                     && value.Position == operation.Positions[0])
                 .OrderBy(value => value.ActorId)
                 .FirstOrDefault();
-            if (target is null)
+            if (trigger is null)
                 return;
-            int damage = ((ArcRelaySignatureDefinition.TripNode)
-                operation.Definition).TriggerDamage;
+            var rule = (ArcRelaySignatureDefinition.TripNode)
+                operation.Definition;
+            ImmutableArray<ActorIdentity> targets = [.. lives.Where(value =>
+                    value.ActorId.TeamId != operation.OwnerActorId.TeamId
+                    && operation.Positions[0].ChebyshevDistance(value.Position)
+                        <= rule.TriggerRadius)
+                .OrderBy(value => value.ActorId)
+                .Select(value => value.ActorId)];
             effects.Add(new Effect.TripNode(
                 operation.OperationId,
                 operation.OwnerActorId,
-                target.ActorId,
-                damage));
+                targets,
+                rule.TriggerDamage));
             runtime.Remove(operation, "triggered", events);
         }
     }

@@ -1346,8 +1346,31 @@ public static class ArcRelayH0Definition
                     },
                     _ => entry,
                 })];
+        ImmutableArray<LaunchClass> signatureDepth =
+            loopProfile.SignatureGrammarVersion < 6
+                ? signatureRefresh
+                : [.. signatureRefresh.Select(entry => entry.Signature switch
+                {
+                    ArcRelaySignatureDefinition.TripNode node => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.TripNode(
+                            node.SignatureId, node.ClassId, node.ActionId,
+                            node.Hull, node.TriggerDamage,
+                            revealRange: 0, node.CooldownTicks,
+                            triggerRadius: 1, maximumActive: 2,
+                            hiddenFromNormalVision: true),
+                    },
+                    ArcRelaySignatureDefinition.NullField3 field => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.NullField3(
+                            field.SignatureId, field.ClassId, field.ActionId,
+                            field.Radius, durationTicks: 7, field.TellTicks,
+                            field.CooldownTicks, fullSuppression: true),
+                    },
+                    _ => entry,
+                })];
         ImmutableArray<LaunchClass> signatureTiming =
-            [.. signatureRefresh.Select(entry => entry.Signature switch
+            [.. signatureDepth.Select(entry => entry.Signature switch
             {
                 ArcRelaySignatureDefinition.ArcToss toss
                     when toss.TellTicks != loopProfile.ArcTossTellTicks
@@ -1451,7 +1474,9 @@ public static class ArcRelayH0Definition
                     node.SignatureId, node.ClassId, node.ActionId,
                     checked(node.Hull * scale),
                     checked(node.TriggerDamage * scale),
-                    node.RevealRange, node.CooldownTicks),
+                    node.RevealRange, node.CooldownTicks,
+                    node.TriggerRadius, node.MaximumActive,
+                    node.HiddenFromNormalVision),
             ArcRelaySignatureDefinition.RailLine rail =>
                 new ArcRelaySignatureDefinition.RailLine(
                     rail.SignatureId, rail.ClassId, rail.ActionId,

@@ -403,10 +403,11 @@ public sealed record GenericActorMatchChronology
         }
 
         HashSet<Position> visible = visiblePositions.ToHashSet();
-        int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
-                definition.Rules.GameMode).Signatures
+        ArcRelaySignatureDefinition.TripNode tripNode =
+            ((ArcRelayGameModeDefinition)definition.Rules.GameMode).Signatures
             .OfType<ArcRelaySignatureDefinition.TripNode>()
-            .Single().RevealRange;
+            .Single();
+        int tripNodeRevealRange = tripNode.RevealRange;
         Position[] ownBodies = state.ActiveLives
             .Where(value => value.ActorId.TeamId == observingTeamId)
             .Select(value => value.Position)
@@ -423,11 +424,27 @@ public sealed record GenericActorMatchChronology
                         == ArcRelaySignatureState.SignaturePhase.Tell
                     || signature.Kind
                         == ArcRelaySignatureDefinition.SignatureKind.TripNode
-                        && signature.Positions.Any(position =>
-                            ownBodies.Any(body =>
-                                body.ChebyshevDistance(position)
-                                    <= tripNodeRevealRange))
-                    || signature.Positions.Any(visible.Contains))
+                        && (tripNode.HiddenFromNormalVision
+                            ? signature.Suppressed
+                                || signature.Positions.Any(position =>
+                                    arcAuthoritative.VisibleSignatures.Any(
+                                        flare => flare.Kind
+                                            == ArcRelaySignatureDefinition
+                                                .SignatureKind.SurveyFlare
+                                        && flare.OwnerTeamId == observingTeamId
+                                        && flare.Phase
+                                            == ArcRelaySignatureState
+                                                .SignaturePhase.Active
+                                        && !flare.Suppressed
+                                        && flare.Positions.Contains(position)))
+                            : signature.Positions.Any(position =>
+                                visible.Contains(position)
+                                || ownBodies.Any(body =>
+                                    body.ChebyshevDistance(position)
+                                        <= tripNodeRevealRange)))
+                    || signature.Kind
+                        != ArcRelaySignatureDefinition.SignatureKind.TripNode
+                        && signature.Positions.Any(visible.Contains))
                 .ToImmutableArray();
         return string.Equals(
                 arcObserved.ModeId,

@@ -198,20 +198,30 @@ public abstract record ArcRelaySignatureDefinition
     public sealed record TripNode : ArcRelaySignatureDefinition
     {
         public TripNode(string signatureId, string classId, string actionId,
-            int hull, int triggerDamage, int revealRange, int cooldownTicks)
+            int hull, int triggerDamage, int revealRange, int cooldownTicks,
+            int triggerRadius = 0, int maximumActive = 1,
+            bool hiddenFromNormalVision = false)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequirePositive(hull, nameof(hull));
             RequirePositive(triggerDamage, nameof(triggerDamage));
-            RequirePositive(revealRange, nameof(revealRange));
+            RequireNonNegative(revealRange, nameof(revealRange));
+            RequireNonNegative(triggerRadius, nameof(triggerRadius));
+            RequirePositive(maximumActive, nameof(maximumActive));
             Hull = hull;
             TriggerDamage = triggerDamage;
             RevealRange = revealRange;
+            TriggerRadius = triggerRadius;
+            MaximumActive = maximumActive;
+            HiddenFromNormalVision = hiddenFromNormalVision;
         }
         public override SignatureKind Kind => SignatureKind.TripNode;
         public int Hull { get; }
         public int TriggerDamage { get; }
         public int RevealRange { get; }
+        public int TriggerRadius { get; }
+        public int MaximumActive { get; }
+        public bool HiddenFromNormalVision { get; }
     }
 
     public sealed record NullField : ArcRelaySignatureDefinition
@@ -517,7 +527,8 @@ public abstract record ArcRelaySignatureDefinition
     public sealed record NullField3 : ArcRelaySignatureDefinition
     {
         public NullField3(string signatureId, string classId, string actionId,
-            int radius, int durationTicks, int tellTicks, int cooldownTicks)
+            int radius, int durationTicks, int tellTicks, int cooldownTicks,
+            bool fullSuppression = false)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequirePositive(radius, nameof(radius));
@@ -526,11 +537,13 @@ public abstract record ArcRelaySignatureDefinition
             Radius = radius;
             DurationTicks = durationTicks;
             TellTicks = tellTicks;
+            FullSuppression = fullSuppression;
         }
         public override SignatureKind Kind => SignatureKind.NullField3;
         public int Radius { get; }
         public int DurationTicks { get; }
         public int TellTicks { get; }
+        public bool FullSuppression { get; }
     }
 
     /// <summary>

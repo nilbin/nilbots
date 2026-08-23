@@ -2176,6 +2176,7 @@ public sealed class GenericActorMatchSession : IDisposable
                         if (mode.Signatures.TryDamageDeployment(
                                 tile,
                                 star.Owner.TeamId,
+                                Tick,
                                 starRule.Damage,
                                 "falling-star",
                                 out GenericActorModeEvent? deploymentHit))
@@ -2185,10 +2186,10 @@ public sealed class GenericActorMatchSession : IDisposable
                     }
                     break;
                 case ArcRelaySignatureRuntime.Effect.TripNode node:
-                    if (_lives.TryGetValue(
-                            node.Target,
-                            out LifeState? nodeTarget))
+                    foreach (ActorIdentity target in node.Targets)
                     {
+                        if (!_lives.TryGetValue(target, out LifeState? nodeTarget))
+                            continue;
                         ApplySignatureDamage(
                             mode,
                             node.OperationId,
@@ -2610,6 +2611,7 @@ public sealed class GenericActorMatchSession : IDisposable
             if (mode.Signatures.TryDamageDeployment(
                     tile,
                     effect.Owner.TeamId,
+                    Tick,
                     rule.Damage,
                     "rail-line",
                     out GenericActorModeEvent? deploymentHit))
@@ -4500,16 +4502,22 @@ public sealed class GenericActorMatchSession : IDisposable
         GenericActorModeEvent modeEvent,
         ImmutableArray<GenericActorAuthoritativeEvent>.Builder events)
     {
-        events.Add(modeEvent.SpatialPosition is Position position
-            ? EmitSpatial(
+        events.Add(modeEvent.PrivateTeamId is int privateTeamId
+            ? EmitTeamPrivate(
+                Tick,
+                GenericActorRuntimeObservation.EventKind.ArcRelay,
+                modeEvent.Payload,
+                privateTeamId)
+            : modeEvent.SpatialPosition is Position position
+                ? EmitSpatial(
                 Tick,
                 GenericActorRuntimeObservation.EventKind.ArcRelay,
                 modeEvent.Payload,
                 position)
-            : EmitPublic(
-                Tick,
-                GenericActorRuntimeObservation.EventKind.ArcRelay,
-                modeEvent.Payload));
+                : EmitPublic(
+                    Tick,
+                    GenericActorRuntimeObservation.EventKind.ArcRelay,
+                    modeEvent.Payload));
     }
 
     private GenericActorModeCompletion Complete(
@@ -4963,10 +4971,11 @@ public sealed class GenericActorMatchSession : IDisposable
         }
         arcRelay = (GenericActorRuntimeObservation.ModeObservationState.ArcRelay)
             WithPendingStrikes(arcRelay);
-        int tripNodeRevealRange = ((ArcRelayGameModeDefinition)
-                _definition.Rules.GameMode).Signatures
+        ArcRelaySignatureDefinition.TripNode tripNode =
+            ((ArcRelayGameModeDefinition)_definition.Rules.GameMode).Signatures
             .OfType<ArcRelaySignatureDefinition.TripNode>()
-            .Single().RevealRange;
+            .Single();
+        int tripNodeRevealRange = tripNode.RevealRange;
         Position[] ownBodies = _lives.Values
             .Where(value => value.ActorId.TeamId == observingTeamId)
             .Select(value => value.Position)
@@ -4988,11 +4997,27 @@ public sealed class GenericActorMatchSession : IDisposable
                         == ArcRelaySignatureState.SignaturePhase.Tell
                     || signature.Kind
                         == ArcRelaySignatureDefinition.SignatureKind.TripNode
-                        && signature.Positions.Any(position =>
-                            ownBodies.Any(body =>
-                                body.ChebyshevDistance(position)
-                                    <= tripNodeRevealRange))
-                    || signature.Positions.Any(visibleTiles.Contains))
+                        && (tripNode.HiddenFromNormalVision
+                            ? signature.Suppressed
+                                || signature.Positions.Any(position =>
+                                    arcRelay.VisibleSignatures.Any(flare =>
+                                        flare.Kind
+                                            == ArcRelaySignatureDefinition
+                                                .SignatureKind.SurveyFlare
+                                        && flare.OwnerTeamId == observingTeamId
+                                        && flare.Phase
+                                            == ArcRelaySignatureState
+                                                .SignaturePhase.Active
+                                        && !flare.Suppressed
+                                        && flare.Positions.Contains(position)))
+                            : signature.Positions.Any(position =>
+                                visibleTiles.Contains(position)
+                                || ownBodies.Any(body =>
+                                    body.ChebyshevDistance(position)
+                                        <= tripNodeRevealRange)))
+                    || signature.Kind
+                        != ArcRelaySignatureDefinition.SignatureKind.TripNode
+                        && signature.Positions.Any(visibleTiles.Contains))
                 .ToImmutableArray(),
             arcRelay.LatestPulseTeamId,
             arcRelay.LatestPulseTick)

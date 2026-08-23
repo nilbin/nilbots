@@ -102,7 +102,7 @@
     }
     .filter.active { border-color: var(--cyan); color: #071412; background: var(--cyan); font-weight: 800; }
     .matrix-wrap { margin: 8px 0 28px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
-    table { width: 100%; min-width: 1020px; border-collapse: separate; border-spacing: 0; background: rgba(18, 24, 29, .94); }
+    table { width: 100%; min-width: 1320px; border-collapse: separate; border-spacing: 0; background: rgba(18, 24, 29, .94); }
     th, td { padding: 10px 12px; border-bottom: 1px solid #303c44; text-align: left; vertical-align: top; }
     th { color: var(--cyan); background: #192229; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
     td { color: #d7d2c2; font-size: 13px; }
@@ -179,8 +179,8 @@
     </div>
 
     <div class="candidate">
-      <strong>Broadloom-5 candidate</strong>
-      <p>Only one mechanic differs from current: a <em>player-plotted</em> Falling Star point may be called without team sight. Smart still requires a visible enemy. The fixed five-tile cross, public two-tick warning, 10 damage, range 8, and cooldown 12 do not change. It grants no vision and gives no hidden-hit confirmation—Lantern remains the reconnaissance signature.</p>
+      <strong>Broadloom-5 / 6 candidates</strong>
+      <p>Broadloom-5 adds player-plotted blind Falling Star. Broadloom-6 keeps that and tests the trap/counterplay pass: each Minesmith maintains at most <strong>two</strong> fully hidden radius-one mines, while Hush gains a seven-tick full-suppression field that exposes and disables hidden mines. Broadloom-4 remains current until an explicit promotion.</p>
     </div>
   </header>
 
@@ -200,7 +200,7 @@
 
     <div class="matrix-wrap">
       <table>
-        <thead><tr><th>Class / signature</th><th>Reach</th><th>Output</th><th>Plotting</th><th>Walls</th><th>Smart use</th><th>CD</th></tr></thead>
+        <thead><tr><th>Class / signature</th><th>Reach</th><th>Output</th><th>Lifetime / persistence</th><th>Active cap / replacement</th><th>Plotting</th><th>Walls</th><th>Smart use</th><th>CD</th></tr></thead>
         <tbody id="matrix"></tbody>
       </table>
     </div>
@@ -221,7 +221,7 @@
         cls: "Kestrel", classId: "kestrel", name: "Vector Dash", id: "vector-dash",
         fantasy: "Core-safe interceptor that bursts along an authored route or toward home.",
         body: "30 Hull · swift · gun 3", reach: "Up to 4 straight tiles", output: "Movement; 0 damage",
-        timing: "1-tick tell · cooldown 12", plotting: "Line, up to 8 route marks",
+        timing: "1-tick tell · cooldown 12", lifetime: "One burst after the tell", cap: "No persistent object", plotting: "Line, up to 8 route marks",
         walls: "Stops at the furthest legal tile before a wall, body, Hardlight Block, or forbidden ground.",
         smart: "Uses a useful straight window along the active route; while carrying, prefers safe homeward progress.",
         custody: "Carrier-safe: Dash retains the Core.",
@@ -232,7 +232,7 @@
         cls: "Palisade", classId: "palisade", name: "Prism Screen", id: "prism-wall",
         fantasy: "Convoy shield carrying directional cover through a firing lane.",
         body: "50 Hull · deliberate · gun 3", reach: "Three panels, 1 tile in front", output: "30 shared shield Hull",
-        timing: "Instant · lasts 6 · cooldown 18", plotting: "No map mark; follows facing",
+        timing: "Instant · lasts 6 · cooldown 18", lifetime: "6 ticks", cap: "1 screen per Palisade; recast replaces", plotting: "No map mark; follows facing",
         walls: "Moves and rotates with Palisade. Blocks hostile projectiles, not bodies; panels occupied by a body are inactive.",
         smart: "Faces the nearest threatened lane and carries the screen with movement.",
         custody: "Carrier-safe: Palisade may screen while carrying.",
@@ -243,7 +243,7 @@
         cls: "Towline", classId: "towline", name: "Tractor Hook", id: "tractor-hook",
         fantasy: "Damaging formation disruptor that pulls a target to its front tile.",
         body: "40 Hull · standard · gun 4", reach: "Straight ray 6", output: "10 damage + pull up to 5",
-        timing: "1-tick rooted tell · bolt speed 2 · cooldown 12", plotting: "Line, up to 2 ray marks",
+        timing: "1-tick rooted tell · bolt speed 2 · cooldown 12", lifetime: "One bolt after the tell", cap: "No persistent object", plotting: "Line, up to 2 ray marks",
         walls: "Smart locked hooks obey normal walls. An explicitly drawn blind ray may breach exactly one map wall or hostile Hardlight tile; bodies and constructs can intercept the bolt.",
         smart: "Prioritizes a visible enemy Core carrier, then the weakest/nearest legal target; the first contact is pulled toward the caster. It does not run a separate support-count solver.",
         custody: "Blocked while carrying.",
@@ -254,7 +254,7 @@
         cls: "Patchbay", classId: "patchbay", name: "Repair Beam", id: "repair-beam",
         fantasy: "Field medic that trades its own gun tempo to preserve an ally.",
         body: "40 Hull · standard · gun 3", reach: "Damaged ally within 4", output: "+10 Hull every 2 ticks; max +20",
-        timing: "Channel · cooldown 10 after ending", plotting: "Choose an ally/role; no geometry",
+        timing: "Channel · cooldown 10 after ending", lifetime: "Until broken, full, or +20 Hull", cap: "1 useful channel per Patchbay", plotting: "Choose an ally/role; no geometry",
         walls: "Requires an unoccluded line; walls and unrevealed smoke end the channel. Either body moving or taking damage also ends it.",
         smart: "Selects a damaged protected/weak ally and maintains only while the channel stays legal.",
         custody: "Escort-useful, but blocked while Patchbay carries.",
@@ -265,7 +265,7 @@
         cls: "Lantern", classId: "lantern", name: "Survey Flare", id: "survey-flare",
         fantasy: "Mobile sensor mast whose flare grants temporary team vision.",
         body: "30 Hull · swift · gun 3", reach: "Point within 8; reveal radius 4", output: "Team vision; 0 damage",
-        timing: "Travels 2 tiles/tick · lasts 8 · cooldown 16", plotting: "Up to 2 exact points; blind plotting allowed",
+        timing: "Travels 2 tiles/tick · lasts 8 · cooldown 16", lifetime: "8 ticks after landing", cap: "1 active flare per Lantern by cooldown", plotting: "Up to 2 exact points; blind plotting allowed",
         walls: "The flare can be lobbed onto unseen floor. Its sensor uses ordinary wall-aware vision and reveals smoke within its footprint.",
         smart: "Reveals smoke when useful. An exact player point remains useful even without smoke.",
         custody: "Blocked while carrying.",
@@ -276,7 +276,7 @@
         cls: "Mortar", classId: "mortar", name: "Falling Star", id: "falling-star",
         fantasy: "Lobbing artillery that punishes formations which stay put.",
         body: "30 Hull · deliberate · gun 4", reach: "Point within 8; centre + 4 cardinal tiles", output: "10 damage to every hostile in cross",
-        timing: "Public 2-tick tell · cooldown 12", plotting: "Up to 2 exact impact points",
+        timing: "Public 2-tick tell · cooldown 12", lifetime: "One five-tile impact", cap: "No persistent object", plotting: "Up to 2 exact impact points",
         walls: "Impact ignores intervening walls and can damage hostile deployments. The cross is fixed, does not track, and never hurts allies.",
         smart: "Current and candidate Smart use both require a visible enemy in the cross. Only Broadloom-5 exact plotted points may be blind-fired.",
         custody: "Blocked while carrying.",
@@ -288,29 +288,31 @@
         cls: "Minesmith", classId: "minesmith", name: "Trip Node", id: "trip-node",
         fantasy: "Route controller carrying concealed nodes for watched ground.",
         body: "40 Hull · standard · gun 3", reach: "Adjacent floor tile", output: "20 trigger damage · 10 Hull",
-        timing: "Persistent until used/replaced/destroyed · cooldown 12", plotting: "Up to 3 exact points; bot approaches them",
-        walls: "Does not block bodies. Hostile projectiles can hit it; it triggers when a hostile occupies its exact tile. Recast replaces that Minesmith’s previous node.",
-        smart: "Deploys an unoccupied plotted point. Enemies learn it through normal sight or by approaching within 2 tiles.",
+        timing: "Persistent until used/replaced/destroyed · cooldown 12", lifetime: "Persistent until triggered, destroyed, or replaced", cap: "B6: 2 per Minesmith; third replaces oldest (FIFO)", plotting: "Up to 2 exact points; bot approaches them",
+        walls: "Does not block bodies. B6 triggers on an exact hostile step for 20 hostile-only damage in the surrounding 3×3 area. Ordinary blind projectiles cannot hit it; a Flare-revealed or Hush-exposed mine has 10 Hull and can be shot.",
+        smart: "Maintains two distinct unoccupied plotted points. B6 enemies never learn a mine through ordinary sight—even adjacent; Survey Flare reveals it and hostile Null Field exposes it as a disabled silhouette.",
         custody: "Blocked while carrying.",
-        counter: "Scout within 2, shoot it, suppress it before crossing, or route around the single trigger tile.",
+        counter: "Flare likely trap ground, sweep it with Hush, vary the route, or shoot a revealed/exposed mine. Blind fire is not a mine sweeper.",
+        delta: "Candidate delta: two hidden mines, radius-one hostile AoE, FIFO replacement, and explicit Flare/Hush counterplay.",
         tags: ["damage", "control", "plotted", "deployment"]
       },
       {
         cls: "Hush", classId: "hush", name: "Null Field", id: "null-field",
         fantasy: "Dampener array that suppresses signatures instead of racing damage.",
         body: "40 Hull · standard · gun 4", reach: "Self-centred square radius 3", output: "Signature suppression; 0 damage",
-        timing: "1-tick tell · lasts 5 · cooldown 18", plotting: "No mark; centred on cast position",
-        walls: "The floor footprint extends around walls. It suppresses hostile signature operations whose footprint overlaps it; guns, bodies, and Core rules continue normally.",
-        smart: "Casts when a visible hostile signature is close enough to overlap the local field.",
+        timing: "1-tick tell · lasts 7 in B6 · cooldown 18", lifetime: "B4: 5 ticks · B6: 7 ticks", cap: "1 active field per Hush by cooldown", plotting: "Up to 2 sweep points; Hush approaches and casts from the mark",
+        walls: "The static radius-three footprint extends around walls. In B6, overlapping constructs, sensors, smoke, paint, channels, tells, locked lines, and resolving one-shots are inert or cancelled; guns, bodies, and Core rules continue normally.",
+        smart: "Casts when a visible hostile signature is close enough to overlap the local field. An exact plotted mark is deliberate trap-sweeping intent and does not cheat by detecting hidden mines.",
         custody: "Blocked while carrying.",
-        counter: "Use the response-movement tick to leave the announced square, bait the cooldown, or fight with regular fire.",
+        counter: "Use the response-movement tick to leave the announced square, bait the 18-tick cooldown, or fight with regular fire.",
+        delta: "Candidate delta: duration 7 and complete typed signature suppression, including exposing disabled hidden mines.",
         tags: ["control", "utility"]
       },
       {
         cls: "Relay", classId: "relay", name: "Arc Toss", id: "arc-toss",
         fantasy: "Core runner with a cradle and arms for one risky long handoff.",
         body: "40 Hull · swift · gun 3", reach: "Straight landing within 5", output: "Core relocation; 0 damage",
-        timing: "Instant after combat · flight speed 3 · cooldown 12", plotting: "Uses the active route/recipient, not separate marks",
+        timing: "Instant after combat · flight speed 3 · cooldown 12", lifetime: "Until that Core lands", cap: "1 carried/in-flight Core per Relay", plotting: "Uses the active route/recipient, not separate marks",
         walls: "The landing clips to the last floor tile before a map wall; bodies do not block the flight.",
         smart: "While carrying, throws for positive safe progress toward home, then chases and can reclaim its own toss. No escort is required.",
         custody: "Transfer-only: requires a carried Core.",
@@ -321,7 +323,7 @@
         cls: "Switchback", classId: "switchback", name: "Exchange", id: "exchange",
         fantasy: "Position exchanger that can safely advance a friendly Core carrier.",
         body: "30 Hull · standard · gun 4", reach: "Friendly body within 6", output: "Swap positions; 0 damage",
-        timing: "1-tick tell · cooldown 16", plotting: "Choose an ally/role; no geometry",
+        timing: "1-tick tell · cooldown 16", lifetime: "One swap after the tell", cap: "No persistent object", plotting: "Choose an ally/role; no geometry",
         walls: "Range is geometric rather than line-of-sight pathing, so a wall between bodies does not stop the swap. Both destination tiles must still be legal and both bodies must remain at their declared starts.",
         smart: "Advances a friendly carrier only when the swap gains at least 2 walking steps toward home and the landing is outside visible enemy attack envelopes.",
         custody: "Switchback is blocked while carrying; the swapped target retains its Core.",
@@ -332,7 +334,7 @@
         cls: "Longshot", classId: "longshot", name: "Rail Line", id: "rail-line",
         fantasy: "A body-length rail that turns a public corridor into a threat.",
         body: "30 Hull · deliberate · gun 6", reach: "Straight wall-bounded ray up to 12", output: "20 damage to each hostile on line",
-        timing: "1-tick rooted tell · cancel CD 8 · full CD 18", plotting: "No dedicated Tactics mark; posts/patrol establish the lane",
+        timing: "1-tick rooted tell · cancel CD 8 · full CD 18", lifetime: "One piercing beam", cap: "1 winding line per Longshot", plotting: "No dedicated Tactics mark; posts/patrol establish the lane",
         walls: "Map walls end the ray. A hostile deployment takes the hit and ends it; an allied body blocks it harmlessly. Enemy bodies are pierced rather than blocking one another.",
         smart: "From its current Post or Patrol ground, scores eight directions and fires the most valuable visible enemy lane.",
         custody: "Blocked while carrying.",
@@ -343,7 +345,7 @@
         cls: "Mason", classId: "mason", name: "Hardlight Block", id: "hardlight-block",
         fantasy: "Builder rig that bends a route with temporary cover.",
         body: "50 Hull · deliberate · gun 3", reach: "Adjacent single floor tile", output: "30 Hull terrain block",
-        timing: "Lasts 30 · cooldown 14", plotting: "Up to 2 exact points; bot approaches them",
+        timing: "Lasts 30 · cooldown 14", lifetime: "30 ticks or until destroyed", cap: "1 block per Mason; recast replaces", plotting: "Up to 2 exact points; bot approaches them",
         walls: "Blocks bodies from either team and hostile projectiles. It is damageable; rail stops on it and Falling Star can hit it. Recast replaces that Mason’s previous block.",
         smart: "Maintains an unoccupied choke tile while the plan is active; exact points are the reliable authoring path.",
         custody: "Blocked while carrying.",
@@ -354,7 +356,7 @@
         cls: "Sunder", classId: "sunder", name: "Target Paint", id: "target-paint",
         fantasy: "Priority designator whose own fire also exploits the marked target.",
         body: "40 Hull · standard · gun 4", reach: "Visible hostile within 7", output: "+10 on next 3 allied hits",
-        timing: "1-tick rooted acquisition · lasts 8 · cancel CD 8 · full CD 16", plotting: "Choose a target policy; no geometry",
+        timing: "1-tick rooted acquisition · lasts 8 · cancel CD 8 · full CD 16", lifetime: "8 ticks or 3 enhanced hits", cap: "1 active paint per Sunder by cooldown", plotting: "Choose a target policy; no geometry",
         walls: "Acquisition needs the target alive, in range, and team-visible after response movement. Walls/smoke that break tracking cancel it.",
         smart: "Carrier, then veteran, weakest, nearest—but only when Sunder or an ally can plausibly follow up. Sunder’s own hits consume paint too.",
         custody: "Blocked while carrying.",
@@ -365,7 +367,7 @@
         cls: "Repulsor", classId: "repulsor", name: "Kinetic Burst", id: "kinetic-burst",
         fantasy: "Damaging radial emitter that breaks every adjacent hostile away.",
         body: "50 Hull · standard · gun 3", reach: "All 8 adjacent tiles", output: "10 damage + push 1 to every hostile",
-        timing: "1-tick rooted tell · cancel CD 6 · full CD 12", plotting: "No mark; self-centred",
+        timing: "1-tick rooted tell · cancel CD 6 · full CD 12", lifetime: "One adjacent burst", cap: "No persistent object", plotting: "No mark; self-centred",
         walls: "Damage applies before the push. A wall, body, duplicate destination, or Hardlight may prevent displacement, but not the damage.",
         smart: "Uses as soon as at least one visible hostile is adjacent. Aggressive Tactics may close toward one-tile range while the skill is ready; there is no multi-target crowd optimizer.",
         custody: "Blocked while carrying.",
@@ -376,7 +378,7 @@
         cls: "Veil", classId: "veil", name: "Smoke Canister", id: "smoke-canister",
         fantasy: "Smoke-launcher skirmisher that authors uncertainty on the map.",
         body: "30 Hull · swift · gun 3", reach: "Point within 6; square radius 2", output: "Sight denial; 0 damage",
-        timing: "Flight speed 3 · lasts 10 · cooldown 18", plotting: "Up to 2 exact crossing points",
+        timing: "Flight speed 3 · lasts 10 · cooldown 18", lifetime: "10 ticks after landing", cap: "1 active cloud per Veil by cooldown", plotting: "Up to 2 exact crossing points",
         walls: "The canister crosses walls and bodies. Smoke blocks sight/target locks, not movement or projectiles; Survey Flare reveals it for the flare’s team.",
         smart: "Covers a plotted crossing only when a visible enemy can threaten that crossing.",
         custody: "Blocked while carrying.",
@@ -386,9 +388,9 @@
       {
         cls: "Nest", classId: "nest", name: "Sentinel Seed", id: "sentinel-seed",
         fantasy: "Pod carrier that leaves one persistent, killable guard behind.",
-        body: "40 Hull · deliberate · gun 4", reach: "Adjacent placement; turret gun 4", output: "20 Hull · 10 damage bolts every 2 ticks",
-        timing: "1-tick rooted deploy · bolt speed 2 · lasts 30 · cooldown 18", plotting: "Up to 2 exact posts; bot approaches them",
-        walls: "Turret needs a straight, unoccluded lane and will not fire through an allied body. It is damageable, absorbs hostile shots, and recast replaces that Nest’s previous seed.",
+        body: "40 Hull · deliberate · gun 4", reach: "Adjacent placement; turret gun and team vision 4", output: "20 Hull · 10 damage bolts every 2 ticks",
+        timing: "1-tick rooted deploy · bolt speed 2 · lasts 30 · cooldown 18", lifetime: "30 ticks or until destroyed", cap: "1 sentry per Nest; recast replaces", plotting: "Up to 2 exact posts; bot approaches them",
+        walls: "Does not block bodies. Turret needs a straight, unoccluded lane and will not fire through an allied body. It is damageable, absorbs hostile shots, and recast replaces that Nest’s previous seed.",
         smart: "Maintains an exact plotted post even before contact; without a mark, waits for team contact before seeding.",
         custody: "Blocked while carrying.",
         counter: "Approach through broken angles/smoke, shoot the 20-Hull seed, interpose a wall, suppress it, or wait 30 ticks.",
@@ -404,7 +406,7 @@
       const row = document.createElement("tr");
       row.className = "matrix-row";
       row.dataset.id = sig.id;
-      row.innerHTML = `<td><strong>${escapeHtml(sig.cls)}</strong><br>${escapeHtml(sig.name)}</td><td>${escapeHtml(sig.reach)}</td><td>${escapeHtml(sig.output)}</td><td>${escapeHtml(sig.plotting)}</td><td>${escapeHtml(sig.walls)}</td><td>${escapeHtml(sig.smart)}</td><td>${escapeHtml(sig.timing.replace(/^.*cooldown /i, ""))}</td>`;
+      row.innerHTML = `<td><strong>${escapeHtml(sig.cls)}</strong><br>${escapeHtml(sig.name)}</td><td>${escapeHtml(sig.reach)}</td><td>${escapeHtml(sig.output)}</td><td>${escapeHtml(sig.lifetime)}</td><td>${escapeHtml(sig.cap)}</td><td>${escapeHtml(sig.plotting)}</td><td>${escapeHtml(sig.walls)}</td><td>${escapeHtml(sig.smart)}</td><td>${escapeHtml(sig.timing.replace(/^.*cooldown /i, ""))}</td>`;
       row.addEventListener("click", () => document.querySelector(`#sig-${sig.id}`).scrollIntoView({behavior: "smooth", block: "start"}));
       matrix.append(row);
 
@@ -419,6 +421,7 @@
         </div>
         <div class="facts">
           <div class="fact"><h3>Reach &amp; result</h3><p><strong>${escapeHtml(sig.reach)}</strong><br>${escapeHtml(sig.output)}</p></div>
+          <div class="fact"><h3>Lifetime &amp; active cap</h3><p><strong>${escapeHtml(sig.lifetime)}</strong><br>${escapeHtml(sig.cap)}</p></div>
           <div class="fact"><h3>Player plotting</h3><p>${escapeHtml(sig.plotting)}</p></div>
           <div class="fact"><h3>Walls &amp; collision</h3><p>${escapeHtml(sig.walls)}</p></div>
           <div class="fact"><h3>Smart behavior</h3><p>${escapeHtml(sig.smart)}</p></div>

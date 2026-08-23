@@ -377,7 +377,8 @@ internal sealed record GenericActorModeTickResult
 
 internal sealed record GenericActorModeEvent(
     GenericActorRuntimeObservation.EventPayload Payload,
-    Position? SpatialPosition);
+    Position? SpatialPosition,
+    int? PrivateTeamId = null);
 
 internal sealed record GenericActorModeProjection
 {

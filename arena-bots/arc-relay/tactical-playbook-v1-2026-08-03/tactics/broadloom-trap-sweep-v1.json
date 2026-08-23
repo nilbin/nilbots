@@ -1,0 +1,98 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "broadloom-trap-sweep-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "minesmith", "build": "balanced", "name": "Latch" },
+    { "slot": 1, "class": "hush", "build": "balanced", "name": "Quiet" },
+    { "slot": 2, "class": "lantern", "build": "scout", "name": "Wick" },
+    { "slot": 3, "class": "mason", "build": "durable", "name": "Bond" },
+    { "slot": 4, "class": "nest", "build": "durable", "name": "Rook" },
+    { "slot": 5, "class": "kestrel", "build": "scout", "name": "Vane" },
+    { "slot": 6, "class": "relay", "build": "balanced", "name": "Skip" },
+    { "slot": 7, "class": "repulsor", "build": "durable", "name": "Thump" }
+  ],
+  "tactics": [
+    {
+      "id": "trap-and-sweep",
+      "name": "Trap and Sweep",
+      "recipe": "patrol",
+      "start": { "mode": "always" },
+      "delivery": { "plan": "solo", "preferredSlots": [5, 6, 7] },
+      "groups": [
+        {
+          "id": "centre-net",
+          "name": "Centre net",
+          "slots": [0, 1, 2, 3],
+          "coreRule": "grab"
+        },
+        {
+          "id": "well-eye",
+          "name": "Well eye",
+          "slots": [4],
+          "coreRule": "grab"
+        },
+        {
+          "id": "roof-runners",
+          "name": "Roof runners",
+          "slots": [5, 6, 7],
+          "coreRule": "hunt"
+        }
+      ],
+      "phases": [
+        {
+          "id": "weave",
+          "name": "Weave the crossings",
+          "jobs": {
+            "centre-net": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [13, 12], "facing": "e", "slot": 0 },
+                { "at": [14, 15], "facing": "e", "slot": 1 },
+                { "at": [15, 12], "facing": "e", "slot": 2 },
+                { "at": [15, 14], "facing": "e", "slot": 3 }
+              ],
+              "sigs": {
+                "0": { "policy": "only", "points": [[17, 12], [17, 14]] },
+                "1": { "policy": "prefer", "points": [[17, 13], [18, 13]] },
+                "2": { "policy": "prefer", "points": [[18, 13], [22, 13]] },
+                "3": { "policy": "prefer", "points": [[14, 13]] }
+              }
+            },
+            "well-eye": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [9, 21], "facing": "e", "slot": 4 }
+              ],
+              "sigs": {
+                "4": { "policy": "prefer", "points": [[12, 18]] }
+              }
+            },
+            "roof-runners": {
+              "kind": "patrol",
+              "posture": "aggressive",
+              "recovery": "fight-on",
+              "path": [
+                [4, 9], [12, 8], [12, 2], [17, 1], [23, 3],
+                [26, 7], [23, 7], [18, 11], [12, 8], [4, 9]
+              ],
+              "sigs": {
+                "5": { "policy": "smart" },
+                "6": { "policy": "smart" },
+                "7": { "policy": "smart" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

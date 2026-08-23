@@ -1086,6 +1086,12 @@ public static class ActorCanonicalContractReader
         bool hasAuthoredWallPenetration = element.TryGetProperty(
             "authoredWallPenetrationTiles", out _);
         bool hostilesOnly = element.TryGetProperty("hostilesOnly", out _);
+        bool hiddenFromNormalVision = element.TryGetProperty(
+            "hiddenFromNormalVision", out _);
+        bool hasTripNodeNetwork = element.TryGetProperty(
+            "maximumActive", out _);
+        bool fullSuppression = element.TryGetProperty(
+            "fullSuppression", out _);
         bool hasScreenHull = string.Equals(
                 kind,
                 "prism-wall",
@@ -1119,9 +1125,15 @@ public static class ActorCanonicalContractReader
                     : ["range", "travelTilesPerTick", "revealRadius",
                         "durationTicks"],
             "falling-star" => ["range", "tellTicks", "damage"],
-            "trip-node" => ["hull", "triggerDamage", "revealRange"],
+            "trip-node" => hasTripNodeNetwork
+                ? ["hull", "triggerDamage", "revealRange", "triggerRadius",
+                    "maximumActive", "hiddenFromNormalVision"]
+                : ["hull", "triggerDamage", "revealRange"],
             "null-field" => hasFieldTell
-                ? ["radius", "durationTicks", "tellTicks"]
+                ? fullSuppression
+                    ? ["radius", "durationTicks", "tellTicks",
+                        "fullSuppression"]
+                    : ["radius", "durationTicks", "tellTicks"]
                 : ["radius", "durationTicks"],
             "arc-toss" =>
                 ["range", "tellTicks", "travelTilesPerTick"],
@@ -1203,6 +1215,11 @@ public static class ActorCanonicalContractReader
             Hull = Optional("hull"),
             TriggerDamage = Optional("triggerDamage"),
             RevealRange = Optional("revealRange"),
+            TriggerRadius = Optional("triggerRadius"),
+            MaximumActive = Optional("maximumActive"),
+            HiddenFromNormalVision = hiddenFromNormalVision
+                ? Bool(element, "hiddenFromNormalVision")
+                : null,
             Radius = Optional("radius"),
             CancelCooldownTicks = Optional("cancelCooldownTicks"),
             EnhancedHitCount = Optional("enhancedHitCount"),
@@ -1224,6 +1241,9 @@ public static class ActorCanonicalContractReader
                 "authoredWallPenetrationTiles"),
             HostilesOnly = hostilesOnly
                 ? Bool(element, "hostilesOnly")
+                : null,
+            FullSuppression = fullSuppression
+                ? Bool(element, "fullSuppression")
                 : null,
             ActivationTiming = hasActivationTiming
                 ? Semantic(element, "activationTiming")

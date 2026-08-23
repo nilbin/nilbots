@@ -9806,3 +9806,30 @@ index for all sixteen signatures. Signature mechanics, lifecycle, collision,
 custody, Smart opportunity, plotting, replay, or presentation changes update
 that index in the same commit and label candidate-only behavior separately
 from the current profile.
+
+## 369. Broadloom-6 makes mines a small hidden network and Hush its explicit counter
+
+Broadloom-6 is a registered design-review candidate; Broadloom-4 remains the
+current product profile. Each Minesmith may maintain two Trip Nodes. A third
+placement removes the oldest node deterministically. Nodes persist, have 10
+Hull, do not block bodies, are completely absent from enemy normal vision, and
+trigger only when a hostile enters their exact tile. Triggering deals 20
+hostile-only damage to the centre and all eight adjacent tiles. Survey Flare
+reveals nodes in its footprint. A hostile full Null Field exposes them as
+suppressed silhouettes. Only revealed or exposed nodes accept hostile fire, so
+blind projectile and area spam is not a trap sweeper. Placement and replacement
+facts are team-private; triggers and combat damage/destruction remain public.
+
+Hush keeps radius 3, a one-tick public response window, and cooldown 18, while
+the candidate field lasts seven ticks. Full suppression makes overlapping
+construct collision/fire/vision/triggers, sensors, smoke, paint, and channels
+inert, and cancels maturing hostile tells, locked lines, and one-shot effects
+with cooldown spent. Guns, bodies, scoring, and Core custody continue normally.
+Smart Hush reacts only to visible signature evidence. Up to two exact player
+marks instead express deliberate trap-sweep ground: Hush approaches the mark
+and casts there without receiving hidden-mine knowledge.
+
+The two-node maximum and Hush sweep points remain ordinary authoring catalog,
+top-to-bottom Instruction, typed signature lifecycle, observation, and replay
+facts. They add no trap scheduler, detection state machine, or per-signature
+executor priority system.

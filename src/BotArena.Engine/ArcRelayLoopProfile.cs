@@ -1864,6 +1864,18 @@ public sealed record ArcRelayLoopProfile
         workshopDormancyTicks: 0,
         signatureGrammarVersion: 5);
 
+    /// <summary>
+    /// Trap-and-counterplay candidate: each Minesmith may maintain two hidden
+    /// radius-one Trip Nodes, while Hush's longer Null Field fully suppresses
+    /// signatures and exposes disabled hostile mines inside its footprint.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom6 { get; } = CreateBroadloom(
+        "broadloom-6",
+        "arc-relay-broadloom-6",
+        tapline15CombatDepth: true,
+        workshopDormancyTicks: 0,
+        signatureGrammarVersion: 6);
+
     private static ArcRelayLoopProfile CreateBroadloom(
         string id,
         string rulesetId,
@@ -2018,6 +2030,7 @@ public sealed record ArcRelayLoopProfile
         Broadloom3,
         Broadloom4,
         Broadloom5,
+        Broadloom6,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

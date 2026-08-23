@@ -3963,6 +3963,9 @@ internal static class ReplayV3Serializer
             int tripNodeRevealRange = RequiredInt32(
                 tripNode,
                 "revealRange");
+            bool tripNodeHiddenFromNormalVision =
+                tripNode.TryGetProperty("hiddenFromNormalVision", out _)
+                && tripNode.GetProperty("hiddenFromNormalVision").GetBoolean();
             JsonElement wells = RequiredArray(gameMode, "wells");
             JsonElement wellRegions = RequiredArray(
                 modeMapBinding,
@@ -3999,6 +4002,7 @@ internal static class ReplayV3Serializer
                     relocationTicks,
                     bankTriggeredWellRechargeTicks,
                     tripNodeRevealRange,
+                    tripNodeHiddenFromNormalVision,
                     wells.EnumerateArray()
                         .Select(value => RequiredString(value, "wellId"))
                         .ToImmutableArray()));
@@ -6398,6 +6402,8 @@ internal static class ReplayV3Serializer
         ReplayV3.PositionValue[] ownBodies = ownBodyPositions.ToArray();
         int tripNodeRevealRange = contract.Mode.ArcRelay!
             .TripNodeRevealRange;
+        bool tripNodeHiddenFromNormalVision = contract.Mode.ArcRelay
+            .TripNodeHiddenFromNormalVision;
         ImmutableArray<ReplayV3.ArcCore> expectedCores = arcAuthoritative
             .VisibleCores.Where(core =>
                 core.CarrierActorId?.TeamId == observingTeamId
@@ -6414,12 +6420,34 @@ internal static class ReplayV3Serializer
                         signature.SignatureKind,
                         "trip-node",
                         StringComparison.Ordinal)
-                        && signature.Positions.Any(position =>
-                            ownBodies.Any(body => Math.Max(
-                                Math.Abs(body.X - position.X),
-                                Math.Abs(body.Y - position.Y))
-                                    <= tripNodeRevealRange))
-                    || signature.Positions.Any(visible.Contains))
+                        && (tripNodeHiddenFromNormalVision
+                            ? signature.Suppressed
+                                || signature.Positions.Any(position =>
+                                    arcAuthoritative.VisibleSignatures.Any(
+                                        flare => flare.OwnerTeamId
+                                                == observingTeamId
+                                            && string.Equals(
+                                                flare.SignatureKind,
+                                                "survey-flare",
+                                                StringComparison.Ordinal)
+                                            && string.Equals(
+                                                flare.Phase,
+                                                "active",
+                                                StringComparison.Ordinal)
+                                            && !flare.Suppressed
+                                            && flare.Positions.Contains(
+                                                position)))
+                            : signature.Positions.Any(position =>
+                                visible.Contains(position)
+                                || ownBodies.Any(body => Math.Max(
+                                    Math.Abs(body.X - position.X),
+                                    Math.Abs(body.Y - position.Y))
+                                        <= tripNodeRevealRange)))
+                    || !string.Equals(
+                        signature.SignatureKind,
+                        "trip-node",
+                        StringComparison.Ordinal)
+                        && signature.Positions.Any(visible.Contains))
                 .ToImmutableArray();
         return string.Equals(
                 arcObserved.Id,
@@ -8517,6 +8545,7 @@ internal static class ReplayV3Serializer
         int CoreRelocationIntervalTicks,
         int BankTriggeredWellRechargeTicks,
         int TripNodeRevealRange,
+        bool TripNodeHiddenFromNormalVision,
         ImmutableArray<string> WellIds);
 
     private static void ValidatePresentation(

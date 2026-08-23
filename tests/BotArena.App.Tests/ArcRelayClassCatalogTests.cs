@@ -36,7 +36,7 @@ public sealed class ArcRelayClassCatalogTests
         }
 
         Assert.Contains("Broadloom-4", document, StringComparison.Ordinal);
-        Assert.Contains("Broadloom-5 candidate", document,
+        Assert.Contains("Broadloom-5 / 6 candidates", document,
             StringComparison.Ordinal);
     }
 
@@ -68,7 +68,8 @@ public sealed class ArcRelayClassCatalogTests
                 ArcRelaySignatureTargetCapability.ExactAnchor),
             ("minesmith", "trip-node",
                 ArcRelaySignatureTargetCapability.ExactAnchor),
-            ("hush", "null-field", 0),
+            ("hush", "null-field",
+                ArcRelaySignatureTargetCapability.ExactAnchor),
             ("relay", "arc-toss",
                 ArcRelaySignatureTargetCapability.FriendlyRole
                 | ArcRelaySignatureTargetCapability.MostExperiencedAlly
@@ -127,10 +128,16 @@ public sealed class ArcRelayClassCatalogTests
              ArcRelaySignatureAuthoringCatalog.ForClass("longshot")
                 .GuidanceMarkLimit));
         Assert.Equal(
-            (ArcRelaySignatureGuidanceGeometry.Points, 3),
+            (ArcRelaySignatureGuidanceGeometry.Points, 2),
             (ArcRelaySignatureAuthoringCatalog.ForClass("minesmith")
                 .GuidanceGeometry,
              ArcRelaySignatureAuthoringCatalog.ForClass("minesmith")
+                .GuidanceMarkLimit));
+        Assert.Equal(
+            (ArcRelaySignatureGuidanceGeometry.Points, 2),
+            (ArcRelaySignatureAuthoringCatalog.ForClass("hush")
+                .GuidanceGeometry,
+             ArcRelaySignatureAuthoringCatalog.ForClass("hush")
                 .GuidanceMarkLimit));
     }
 

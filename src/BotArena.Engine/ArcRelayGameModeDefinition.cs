@@ -127,7 +127,7 @@ public sealed record ArcRelayGameModeDefinition : GameModeDefinition
         }
         MinimumDistinctClasses = minimumDistinctClasses;
         DurableDeployments = durableDeployments;
-        if (signatureGrammarVersion is not (1 or 2 or 3 or 4 or 5))
+        if (signatureGrammarVersion is not (1 or 2 or 3 or 4 or 5 or 6))
             throw new ArgumentOutOfRangeException(
                 nameof(signatureGrammarVersion));
         SignatureGrammarVersion = signatureGrammarVersion;
