@@ -224,7 +224,7 @@ public static class ArcRelaySignatureAuthoringCatalog
                 guidanceGeometry: ArcRelaySignatureGuidanceGeometry.Points,
                 guidanceMarkLimit: 2,
                 preset: Preset("punish-staging-area", "Punish a staged area",
-                    "Call Falling Star onto an enemy-occupied cross without harming allies.",
+                    "Call Falling Star onto a plotted cross; Smart use still requires a known enemy.",
                     ArcRelaySignaturePresetTargetKind.ExactAnchor)),
             Entry("minesmith", "trip-node", BroadTargets,
                 ArcRelaySignatureTargetCapability.ExactAnchor,

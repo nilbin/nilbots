@@ -5,6 +5,13 @@ not complete when its mechanic works in isolation: it must remain discoverable
 from rules through replay, product catalog, WebGL, Canvas, audio, and review
 evidence. Exact-set tests are the guardrail against a partially wired class.
 
+The browser-readable roster reference is
+`docs/ARC-RELAY-SIGNATURE-FIELD-MANUAL.html`. Adding or changing a signature is
+not complete until that page truthfully reflects its live range, footprint,
+output, timing, plotting, wall/collision behavior, Smart use, custody, and
+counterplay. Update it in the same commit as the mechanic; never leave the
+reference describing a proposal as though it were the current ruleset.
+
 ## The two version axes
 
 Keep these separate:
@@ -187,6 +194,9 @@ A complete addition leaves these sets equal:
   canonical writer/reader cases;
 - ruleset signatures = presentation definitions = WebGL painters = audio
   definitions.
+- ruleset signatures = the sixteen entries in the browser-readable signature
+  field manual, with any candidate-only delta labelled separately from the
+  current profile.
 
 It also proves:
 

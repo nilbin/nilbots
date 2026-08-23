@@ -53,6 +53,7 @@ internal sealed partial class ArcRelaySignatureRuntime
     private readonly bool _diagonalCornersMustBeClear;
     private readonly bool _durableDeployments;
     private readonly bool _sentryTeamVision;
+    private readonly int _signatureGrammarVersion;
 
     /// <summary>
     /// Equal-distance target ties break toward the shooter's own reactor
@@ -77,6 +78,7 @@ internal sealed partial class ArcRelaySignatureRuntime
         _sideFairTargeting = mode.AlternatingResolutionOrder;
         _durableDeployments = mode.DurableDeployments;
         _sentryTeamVision = mode.SentryTeamVision;
+        _signatureGrammarVersion = mode.SignatureGrammarVersion;
         if (definition.ModeMapBinding is
                 ArcRelayActorModeMapBindingDefinition reactorBinding)
         {
@@ -220,7 +222,8 @@ internal sealed partial class ArcRelaySignatureRuntime
             ArcRelaySignatureDefinition.FallingStar value =>
                 candidates.Where(target =>
                     source.ChebyshevDistance(target) <= value.Range
-                    && visibleTiles.Contains(target)),
+                    && (_signatureGrammarVersion >= 5
+                        || visibleTiles.Contains(target))),
             ArcRelaySignatureDefinition.TripNode =>
                 PlacementTargets(source, lives, forbidTaggedTile: true),
             ArcRelaySignatureDefinition.ArcToss value when carriesCore =>

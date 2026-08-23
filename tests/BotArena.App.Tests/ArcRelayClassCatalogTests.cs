@@ -7,6 +7,40 @@ namespace BotArena.App.Tests;
 public sealed class ArcRelayClassCatalogTests
 {
     [Fact]
+    public void SignatureFieldManualExactlyNamesTheCurrentLaunchBand()
+    {
+        string path = Path.Combine(
+            RepositoryRoot(),
+            "docs",
+            "ARC-RELAY-SIGNATURE-FIELD-MANUAL.html");
+        string document = File.ReadAllText(path);
+        ArcRelaySignatureDefinition[] signatures =
+            ((ArcRelayGameModeDefinition)ArcRelayH0Definition.CreateRules(
+                ArcRelayLoopProfile.Current).GameMode).Signatures.ToArray();
+
+        Assert.Equal(16, signatures.Length);
+        Assert.Equal(16, System.Text.RegularExpressions.Regex.Matches(
+            document, "classId: \\\"[^\\\"]+\\\"").Count);
+        foreach (ArcRelaySignatureDefinition signature in signatures)
+        {
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(
+                    document,
+                    $"classId: \\\"{System.Text.RegularExpressions.Regex.Escape(
+                        signature.ClassId)}\\\"")
+                .Cast<System.Text.RegularExpressions.Match>());
+            Assert.Single(System.Text.RegularExpressions.Regex.Matches(
+                    document,
+                    $"id: \\\"{System.Text.RegularExpressions.Regex.Escape(
+                        signature.SignatureId)}\\\"")
+                .Cast<System.Text.RegularExpressions.Match>());
+        }
+
+        Assert.Contains("Broadloom-4", document, StringComparison.Ordinal);
+        Assert.Contains("Broadloom-5 candidate", document,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SignatureAuthoringVocabularyExactlyCoversTheLaunchBand()
     {
         ArcRelaySignatureAuthoringDescriptor[] values =
@@ -23,7 +57,8 @@ public sealed class ArcRelayClassCatalogTests
             ("kestrel", "vector-dash",
                 ArcRelaySignatureTargetCapability.RouteForward),
             ("palisade", "prism-wall", 0),
-            ("towline", "tractor-hook", 0),
+            ("towline", "tractor-hook",
+                ArcRelaySignatureTargetCapability.AuthoredRay),
             ("patchbay", "repair-beam",
                 ArcRelaySignatureTargetCapability.FriendlyRole
                 | ArcRelaySignatureTargetCapability.MostExperiencedAlly),
@@ -70,7 +105,7 @@ public sealed class ArcRelayClassCatalogTests
                 ArcRelaySignatureOpportunityBehavior.DeployUnoccupiedAnchor,
                 ArcRelaySignatureOpportunityBehavior.SuppressHostileSignature,
                 ArcRelaySignatureOpportunityBehavior.TransferForward,
-                ArcRelaySignatureOpportunityBehavior.RescueEndangeredAlly,
+                ArcRelaySignatureOpportunityBehavior.AdvanceFriendlyCarrier,
                 ArcRelaySignatureOpportunityBehavior.RailVisibleEnemy,
                 ArcRelaySignatureOpportunityBehavior.BlockUnoccupiedChoke,
                 ArcRelaySignatureOpportunityBehavior.PaintSupportedEnemy,
@@ -131,5 +166,18 @@ public sealed class ArcRelayClassCatalogTests
             Assert.False(string.IsNullOrWhiteSpace(product.SignatureName));
             Assert.False(string.IsNullOrWhiteSpace(product.Fantasy));
         }
+    }
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null
+               && !File.Exists(Path.Combine(directory.FullName,
+                   "BotArena.sln")))
+        {
+            directory = directory.Parent;
+        }
+        return directory?.FullName ?? throw new InvalidOperationException(
+            "Repository root not found.");
     }
 }

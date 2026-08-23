@@ -19,6 +19,13 @@ what a change does, never as a balance measurement.
   are running.
 - Give every executor action a non-empty `debugMessage`. Behavior without a
   reason is a bug; follow `docs/EXECUTOR-SILENT-POLICY.md`.
+- Treat `docs/ARC-RELAY-SIGNATURE-FIELD-MANUAL.html` as the player-facing
+  signature mechanics index. Any change to a signature definition, range,
+  footprint, damage/repair, lifecycle, wall or collision behavior, custody,
+  Smart opportunity, plotted geometry, replay fact, or presentation truth
+  updates that page in the same commit. Verify the wording against typed
+  Engine rules and `ArcRelaySignatureAuthoringCatalog`; do not copy a stale
+  design document into it.
 - Report the six outcomes as records only. Six cells show behavior and do not
   establish that a change is better or balanced.
 - Every gallery must identify both sides by the authored `sheetId` in its
@@ -356,6 +363,8 @@ If—and only if—the owner explicitly calls for a battery or balance read:
 
 ## Source map
 
+- Current signature mechanics and player authoring:
+  `docs/ARC-RELAY-SIGNATURE-FIELD-MANUAL.html`
 - Sheets and layouts:
   `arena-bots/arc-relay/tactical-playbook-v1-2026-08-03/playbooks/`
 - Grammar contract: `docs/SHEET-AUTHORING.md`

@@ -1676,6 +1676,34 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position? exactPlacement = use.AtAnchor is string anchor
             ? package.AnchorPosition(anchor)
             : null;
+        // Grammar 5 treats a plotted Falling Star cross as sufficient player
+        // intent. It therefore does not need a visible body merely to supply
+        // a position argument. Unmarked Smart use continues through the
+        // visible-enemy candidate path below.
+        if (ArenaBasics.ArcRules(contract)?.SignatureGrammarVersion >= 5
+            && exactPlacement is Position plottedStrike
+            && use.Skill == "falling-star"
+            && use.Opportunity == "strike-occupied-anchor")
+        {
+            var target = new ResolvedTarget(
+                $"anchor:{use.AtAnchor}",
+                plottedStrike,
+                [plottedStrike],
+                null,
+                null,
+                "authored-blind-strike");
+            if (!CanExecuteUse(
+                    contract, body, target, use, exactPlacement))
+            {
+                decline = $"signature-{use.Skill}-plotted-cross-illegal";
+                return [];
+            }
+            return SignatureOpportunityAllows(
+                contract, mind, arc, body, use, target,
+                exactPlacement, out decline)
+                    ? [target]
+                    : [];
+        }
         if (use.TargetKind == "named" && use.Target == "self")
         {
             Position targetPosition = exactPlacement ?? body.Position;
@@ -2169,7 +2197,10 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     || RejectSignatureOpportunity(
                         use, "no-hostile-smoke-at-mark", out decline);
             case "strike-occupied-anchor":
-                return mind.Enemies.Any(enemy => CrossDistance(enemy.Position, place) <= 1)
+                return ArenaBasics.ArcRules(contract)?.SignatureGrammarVersion >= 5
+                        && use.Skill == "falling-star"
+                        && use.AtAnchor is not null
+                    || mind.Enemies.Any(enemy => CrossDistance(enemy.Position, place) <= 1)
                     || RejectSignatureOpportunity(
                         use, "no-enemy-in-cross", out decline);
             case "deploy-unoccupied-anchor":

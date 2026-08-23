@@ -16,6 +16,39 @@ namespace BotArena.Cli.Tests;
 /// </summary>
 public sealed class OrdersSignatureOpportunitySceneTests
 {
+    [Fact]
+    public void Broadloom5ExecutesAPlayerPlottedStarBeyondTeamVision()
+    {
+        TacticalPlaybookCompilation sheet = BlindFallingStarTactic();
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create(
+            sheet.Composition,
+            sheet.Composition,
+            loopProfile: ArcRelayLoopProfile.Broadloom5);
+        using var session = new GenericActorMatchSession(
+            definition,
+            [Participant(0, sheet), Participant(1, sheet)],
+            matchSeed: 9051,
+            recordChronology: false);
+
+        Position plotted = new(12, 13);
+        GenericActorMatchStepResult first = session.Step();
+        GenericMindCommand command = Assert.Single(
+                first.MindTurns, turn => turn.TeamId == 0).Commands
+            .Single(value => value.Command.UnitId == 3).Command;
+
+        Assert.All(first.PostState.ActiveLives.Where(value =>
+                value.ActorId.TeamId == 0),
+            value => Assert.True(
+                value.Position.ChebyshevDistance(plotted) > 5,
+                $"{value.ActorId} at {value.Position} unexpectedly supplied "
+                    + "ordinary five-tile team vision."));
+        Assert.Equal("falling-star", command.ActionId);
+        Assert.Equal(plotted, Assert.Single(command.Arguments.OfType<
+            GenericActorRuntimeActionArgument.PositionTargetArgument>()).Value);
+        Assert.Contains("authored-blind-strike", command.DebugMessage,
+            StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("kestrel")]
     [InlineData("palisade")]
@@ -447,6 +480,15 @@ public sealed class OrdersSignatureOpportunitySceneTests
             },
         };
         return Compile(source, map, "route-dash-scene");
+    }
+
+    private static TacticalPlaybookCompilation BlindFallingStarTactic()
+    {
+        string root = FindRepoRoot();
+        string path = Path.Combine(root, "tests", "BotArena.Cli.Tests",
+            "Fixtures", "tactics", "falling-star-prediction.json");
+        return ArcRelayTacticalPlaybookCompiler.CompileTactics(
+            File.ReadAllBytes(path));
     }
 
     private static TacticalPlaybookCompilation RootedTellSheet()

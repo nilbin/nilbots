@@ -1852,6 +1852,18 @@ public sealed record ArcRelayLoopProfile
         workshopDormancyTicks: 0,
         signatureGrammarVersion: 4);
 
+    /// <summary>
+    /// Falling Star prediction candidate: a player-plotted impact cross may
+    /// be called without current team sight. Smart use remains observation
+    /// gated, and the public tell remains the opponent's counterplay.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom5 { get; } = CreateBroadloom(
+        "broadloom-5",
+        "arc-relay-broadloom-5",
+        tapline15CombatDepth: true,
+        workshopDormancyTicks: 0,
+        signatureGrammarVersion: 5);
+
     private static ArcRelayLoopProfile CreateBroadloom(
         string id,
         string rulesetId,
@@ -2005,6 +2017,7 @@ public sealed record ArcRelayLoopProfile
         Broadloom2,
         Broadloom3,
         Broadloom4,
+        Broadloom5,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

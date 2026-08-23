@@ -9789,3 +9789,20 @@ carrier, veteran, weakest, then nearest. These choices compile through normal
 top-to-bottom Instructions and the existing signature lifecycle; there is no
 parallel priority system, scheduler, reservation model, or per-signature
 executor architecture.
+
+## 368. Plotted Falling Star consumes prediction without replacing vision
+
+Broadloom-5 is a registered design-review candidate, not the current product
+profile. It preserves Broadloom-4 exactly except that a player's explicit
+Falling Star point is a legal target without current team sight. Smart use is
+still observation-gated. The strike remains a fixed five-tile cross with a
+public two-tick warning, range 8, 10 hostile-only damage, cooldown 12, no
+tracking or retargeting, no team sensor, and no hidden-hit confirmation. This
+makes a predicted choke strike possible while leaving Survey Flare as the
+signature that discovers and shares information.
+
+`docs/ARC-RELAY-SIGNATURE-FIELD-MANUAL.html` is the browser-readable mechanics
+index for all sixteen signatures. Signature mechanics, lifecycle, collision,
+custody, Smart opportunity, plotting, replay, or presentation changes update
+that index in the same commit and label candidate-only behavior separately
+from the current profile.
