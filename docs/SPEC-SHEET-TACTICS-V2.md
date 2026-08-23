@@ -113,7 +113,7 @@ what phases are.
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
 | `observed` | `true` | continue | the watchline stayed fully observed for 120 ticks |
 | `workshopReady` | `{ "workshop": "north"\|"south"\|"own"\|"enemy"\|"either" }` | start, continue | that Workshop (either = any) is publicly Ready |
-| `workshopTraining` | `{ "workshop": …, "team"?: "self"\|"enemy"\|"any" }` | start, continue | a body of that team is publicly channeling there (default any) |
+| `workshopTraining` | `{ "workshop": …, "team"?: "self"\|"enemy"\|"any" }` | start, continue, abort | a body of that team is publicly channeling there (default any) |
 | `workshopContested` | `{ "workshop": … }` | start, continue, abort | living enemies stand in that Workshop's contest region |
 | `workshopDormant` | `{ "workshop": … }` | start, continue, abort | that Workshop is publicly recharging |
 | `workshopDone` | `{ "workshop": …, "count"?: 1..8 }` | continue | ≥N friendly completions at that Workshop since THIS phase began (derived from the public Training→Dormant transition — never a fogged fact) |

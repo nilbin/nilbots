@@ -25,6 +25,7 @@ import {
 } from './TacticsMapCanvas';
 import {
   blankDocument, effectiveJobResolution, expectedGeometry, followMembership, freshLocalId, freshPhase, groupColor, identifierFromName,
+  abortCasesCanStart, applyAbortSwitchTarget, inferAbortSwitchTarget,
   normalizeEditableDocumentForCatalog, postFacingIssue, reversedWayIn,
   planJobKindChange, signatureMarkGeometry, stringifyDocument, tilePlacementIssue,
   validateDocument, sheetIssueFromCompilerError,
@@ -64,6 +65,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const { draft, mutate, undo, redo, replaceDraft } =
     useSheetDraft(null);
   const [wizard, setWizard] = useState<WizardState | null>(null);
+  const [abortSwitchTargetId, setAbortSwitchTargetId] = useState<string | null>(null);
   const wizardRef = useRef<WizardState | null>(null);
   wizardRef.current = wizard;
   const wizardUndoStack = useRef<Tactic[]>([]);
@@ -373,6 +375,10 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const commitWizard = () => {
     if (!wizard) return;
     const finished = wizard.tactic;
+    if (abortSwitchTargetId && !abortCasesCanStart(finished.abort?.cases)) {
+      toast('That abort contains a phase-only condition and cannot start its linked fallback.', 'hot');
+      return;
+    }
     mutate((next) => {
       next.document.squad = document.squad;
       if (wizard.editing && wizard.originalId) {
@@ -381,8 +387,12 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
       } else {
         next.document.tactics.push(finished);
       }
+      if (abortSwitchTargetId) {
+        applyAbortSwitchTarget(next.document, finished.id, abortSwitchTargetId);
+      }
     });
     setWizard(null);
+    setAbortSwitchTargetId(null);
     setMapFirstPanel(null);
     setSelectedSlots([]);
     endMapTask();
@@ -432,6 +442,9 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     const membershipComplete = document.squad.length === 8
       && assigned.length === 8 && uniqueAssigned.size === 8;
     resetWizardHistory();
+    setAbortSwitchTargetId(editing
+      ? inferAbortSwitchTarget(document, tactic.id)
+      : null);
     setWizard({
       tactic: structuredClone(tactic),
       hints,
@@ -460,6 +473,8 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
     wizard: wizard!,
     task,
     change: changeWizard,
+    abortSwitchTargetId,
+    setAbortSwitchTarget: setAbortSwitchTargetId,
     notify: toast,
     arm: (slot) => setWizard((current) => current && { ...current, armedSlot: slot }),
     selectPhase: (index) => setWizard((current) =>
@@ -809,6 +824,7 @@ export default function TacticsEditorPage({ catalog, initialSheetId }: {
   const cancelWizard = () => {
     if (!wizard) return;
     setWizard(null);
+    setAbortSwitchTargetId(null);
     setMapFirstPanel(null);
     setSelectedSlots([]);
     endMapTask();

@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   ABORT_ROWS, START_ROWS, TRANSITION_ROWS,
-  activeCaseCount, activeCondCount, freshJob, jobHasGeometry,
+  abortCasesCanStart, activeCaseCount, activeCondCount, applyAbortSwitchTarget,
+  freshJob, inferAbortSwitchTarget, jobHasGeometry,
   normalizeDocument, planJobKindChange, stringifyDocument, validateDocument,
   type Tactic, type TacticConds, type TacticsDocument,
 } from '../src/site/tactics/tacticsDocument';
@@ -167,10 +168,11 @@ test('the five Workshop rows and veteran condition are legal in their server con
     assert.ok(START_ROWS.includes(row), `${row} starts a Tactic`);
     assert.ok(TRANSITION_ROWS.includes(row), `${row} continues a phase`);
   }
-  // Only the two "something is wrong in that room" rows bail out.
+  // Public enemy training is itself a reason to abandon an operation; a
+  // defender need not already stand in the room and make it contested.
   assert.deepEqual(
     readAnywhere.filter((row) => ABORT_ROWS.includes(row)),
-    ['workshopContested', 'workshopDormant']);
+    ['workshopTraining', 'workshopContested', 'workshopDormant']);
   // Phase-anchored outcomes read only where a running phase exists.
   for (const row of ['workshopDone', 'veterancy'] as const) {
     assert.ok(TRANSITION_ROWS.includes(row));
@@ -194,6 +196,35 @@ test('an illegal Workshop row for its context is named, not silently dropped', (
   };
   assert.ok(errorsFor(aborting).some((message) =>
     /'veterancy' is not a condition this step takes/.test(message)));
+});
+
+test('abort switch sugar authors an ordinary matching Start and Sheet priority', () => {
+  const document = makeBroadloomDocument(catalog);
+  const source = trainingTactic(document);
+  source.id = 'source';
+  source.abort = { cases: [{ required: {
+    workshopTraining: { workshop: 'enemy', team: 'enemy' },
+  } }] };
+  const emergency = structuredClone(source);
+  emergency.id = 'emergency';
+  emergency.name = 'Answer their training';
+  emergency.abort = undefined;
+  emergency.start = { mode: 'always' };
+  const unrelated = structuredClone(emergency);
+  unrelated.id = 'unrelated';
+  document.tactics = [source, unrelated, emergency];
+
+  assert.equal(abortCasesCanStart(source.abort.cases), true);
+  assert.equal(applyAbortSwitchTarget(document, source.id, emergency.id), true);
+  assert.deepEqual(document.tactics.map((tactic) => tactic.id),
+    ['emergency', 'source', 'unrelated']);
+  assert.deepEqual(emergency.start, { mode: 'when', cases: source.abort.cases });
+  assert.notEqual(emergency.start.cases, source.abort.cases);
+  assert.equal(inferAbortSwitchTarget(document, source.id), emergency.id);
+
+  source.abort = { cases: [{ required: { coreLost: true } }] };
+  assert.equal(abortCasesCanStart(source.abort.cases), false);
+  assert.equal(applyAbortSwitchTarget(document, source.id, unrelated.id), false);
 });
 
 test('Workshop row values are bounded exactly as the server bounds them', () => {

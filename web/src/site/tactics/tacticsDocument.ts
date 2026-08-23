@@ -116,13 +116,84 @@ export const TRANSITION_ROWS: CondKind[] = [
 export const ABORT_ROWS: CondKind[] = [
   'losses', 'lossesWithin', 'coreLost', 'enemiesAt', 'contact', 'cleared', 'notFighting',
   'carrier', 'enemiesDown', 'coreLoose', 'coreSoon', 'killsWithin', 'healed',
-  'workshopContested', 'workshopDormant',
+  'workshopTraining', 'workshopContested', 'workshopDormant',
 ];
 
 export const WORKSHOP_CHOICES: WorkshopChoice[] = [
   'own', 'enemy', 'north', 'south', 'either',
 ];
 export const WORKSHOP_TEAMS: WorkshopTeam[] = ['self', 'enemy', 'any'];
+
+/** Abort-to-Tactic is editor sugar, not a saved scheduler edge. Only rows
+ * legal in both contexts can be copied into the target Tactic's Start. */
+export function abortCasesCanStart(cases: TacticCase[] | undefined): boolean {
+  if (!cases?.length) return false;
+  const startRows = new Set<CondKind>(START_ROWS);
+  let active = 0;
+  for (const tacticCase of cases) {
+    for (const conds of [tacticCase.required, tacticCase.triggers, tacticCase.unless]) {
+      for (const kind of Object.keys(conds ?? {}) as CondKind[]) {
+        if (!startRows.has(kind)) return false;
+        if (conds?.[kind] !== undefined) active += 1;
+      }
+    }
+  }
+  return active > 0;
+}
+
+function stableConditionJson(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableConditionJson).join(',')}]`;
+  }
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) =>
+      `${JSON.stringify(key)}:${stableConditionJson(record[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value) ?? 'undefined';
+}
+
+/** Recover the editor's linked-fallback affordance without adding metadata
+ * to the player document. The nearest earlier Tactic with the same Start
+ * cases is the one the authoring sugar most recently prepared. */
+export function inferAbortSwitchTarget(
+  document: TacticsDocument,
+  sourceId: string,
+): string | null {
+  const sourceIndex = document.tactics.findIndex((tactic) => tactic.id === sourceId);
+  const cases = document.tactics[sourceIndex]?.abort?.cases;
+  if (sourceIndex < 1 || !abortCasesCanStart(cases)) return null;
+  const wanted = stableConditionJson(cases);
+  for (let index = sourceIndex - 1; index >= 0; index -= 1) {
+    const tactic = document.tactics[index];
+    if (tactic.start.mode === 'when'
+      && stableConditionJson(tactic.start.cases ?? []) === wanted) {
+      return tactic.id;
+    }
+  }
+  return null;
+}
+
+/** Copy an active Tactic's abort promise into another Tactic's Start and put
+ * that target immediately above it. Runtime still does its one ordinary
+ * top-to-bottom Sheet reread; this merely authors the two matching halves. */
+export function applyAbortSwitchTarget(
+  document: TacticsDocument,
+  sourceId: string,
+  targetId: string,
+): boolean {
+  if (sourceId === targetId) return false;
+  const source = document.tactics.find((tactic) => tactic.id === sourceId);
+  const targetIndex = document.tactics.findIndex((tactic) => tactic.id === targetId);
+  if (!source || targetIndex < 0 || !abortCasesCanStart(source.abort?.cases)) return false;
+
+  const [target] = document.tactics.splice(targetIndex, 1);
+  target.start = { mode: 'when', cases: structuredClone(source.abort!.cases) };
+  const sourceIndex = document.tactics.findIndex((tactic) => tactic.id === sourceId);
+  if (sourceIndex < 0) return false;
+  document.tactics.splice(sourceIndex, 0, target);
+  return true;
+}
 
 /** Player-authored cases use all(required) AND none(unless). `triggers` is a
  * legacy read shape normalized into required by the editor; keeping it here

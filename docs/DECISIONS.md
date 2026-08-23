@@ -9718,3 +9718,21 @@ mirrors 180 degrees for the opposite seat, and leaves authored watch-anchor
 behavior compatible. Because a cardinal direction is intent rather than a
 destination, the hosted compiler and editor do not reject it when the adjacent
 tile happens to be a wall, boundary, or reserved ground.
+
+## 365. Abort fallbacks remain ordinary top-to-bottom Tactics
+
+Public enemy Workshop training is now a legal tactic-wide abort fact, matching
+the public signal already available to starts and phase transitions. The
+editor's “On abort, prepare…” control is authoring sugar only: it copies the
+abort cases into the chosen Tactic's ordinary Start and moves that Tactic
+directly above the source. After abort, the executor still performs its one
+normal top-to-bottom Sheet reread; there is no jump edge, tactic scheduler, or
+second priority system. Phase-local abort facts such as `coreLost` cannot be
+linked because they cannot truthfully start a fresh Tactic.
+
+The tactic conformance reader also distinguishes unavailable opportunity from
+broken intent. A Train phase ending before the first channel-capable tick is a
+note, while a channel opportunity that passes unused remains a deviation. A
+Hold response beginning one tile beyond readiness tolerance is likewise a
+defensive-leash note; starts farther away and large fight excursions remain
+deviations.

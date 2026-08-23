@@ -17,6 +17,7 @@ import {
   ABORT_ROWS, CORE_RULES, DELIVERY_PLANS, JOB_KINDS, MAX_DURATIONS, POSTURES,
   TRAVEL_BEHAVIORS,
   RECOVERIES, START_ROWS, TRANSITION_ROWS,
+  abortCasesCanStart,
   effectiveJob, effectiveJobResolution, followMembership, freshJob, freshPhase, groupColor, jobOf,
   jobHasGeometry, phaseShade, planJobKindChange, signatureMarkGeometry,
   tacticCanFinish, viaLegal,
@@ -65,6 +66,10 @@ export interface StepProps {
   highlightPost?: { groupId: string; postIndex: number } | null;
   /** Transient feedback toast — what a reshuffle carried along, and such. */
   notify?: (text: string) => void;
+  /** Editor-only authoring sugar: on Done, mirror this Tactic's abort cases
+   * into the chosen target's Start and place it immediately above. */
+  abortSwitchTargetId?: string | null;
+  setAbortSwitchTarget?: (tacticId: string | null) => void;
 }
 
 // One vocabulary per context (mirrors the server's row lists), grouped by
@@ -75,7 +80,10 @@ const noEveryoneRows = (rows: readonly CondKind[]) =>
 const noReadinessRows = (rows: readonly CondKind[]) =>
   rows.filter((kind) => kind !== 'groupsSet');
 
-export function StartStep({ wizard, change, task, startWatchTask, endTask }: StepProps) {
+export function StartStep({
+  document, wizard, change, task, startWatchTask, endTask,
+  abortSwitchTargetId, setAbortSwitchTarget,
+}: StepProps) {
   const tactic = wizard.tactic;
   const modes = [
     { id: 'always' as const, label: 'Always', blurb: 'Applies whenever nothing above it in the Sheet does.' },
@@ -136,6 +144,7 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
           onClick={() => {
             if (tactic.abort) {
               change((next) => { delete next.abort; });
+              setAbortSwitchTarget?.(null);
               setAbortOpen(false);
             } else {
               change((next) => {
@@ -168,6 +177,33 @@ export function StartStep({ wizard, change, task, startWatchTask, endTask }: Ste
           <p className="t-micro mt-1 text-arena-dim">After an abort the whole Sheet is reread —
             a higher emergency Tactic (a Regroup gated on the same losses) can take over,
             and this one may later restart from its first phase.</p>
+          <div className="mt-2 rounded-sm border border-arena-edge bg-arena-panel/35 p-2">
+            <label className="lab mb-1 block" htmlFor="abort-switch-target">
+              On abort, prepare… <span className="text-arena-dim">(authoring shortcut)</span>
+            </label>
+            <select id="abort-switch-target" className="field w-full"
+              value={abortSwitchTargetId ?? ''}
+              disabled={!abortCasesCanStart(tactic.abort.cases)}
+              onChange={(event) => setAbortSwitchTarget?.(event.target.value || null)}>
+              <option value="">No linked fallback — reread the Sheet normally</option>
+              {document.tactics.filter((candidate) => candidate.id !== tactic.id)
+                .map((candidate) => <option value={candidate.id} key={candidate.id}>
+                  {candidate.name}
+                </option>)}
+            </select>
+            {abortCasesCanStart(tactic.abort.cases) ? (
+              <p className="t-micro mt-1 text-arena-dim">
+                On Done, the chosen Tactic gets these same conditions as its Start and moves
+                directly above this one. The executor still rereads the Sheet top to bottom;
+                an eligible emergency Tactic above both can still win.
+              </p>
+            ) : (
+              <p className="t-micro mt-1 text-arena-hot">
+                This abort uses a phase-only fact that cannot start another Tactic. Choose
+                start-capable conditions to link a fallback.
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>

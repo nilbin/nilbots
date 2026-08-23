@@ -84,7 +84,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     [
         "losses", "lossesWithin", "coreLost", "enemiesAt", "contact",
         "cleared", "notFighting", "carrier", "enemiesDown", "coreLoose", "coreSoon",
-        "killsWithin", "healed", "workshopContested", "workshopDormant",
+        "killsWithin", "healed", "workshopTraining", "workshopContested",
+        "workshopDormant",
     ];
 
     /// <summary>

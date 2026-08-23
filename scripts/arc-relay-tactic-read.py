@@ -1827,9 +1827,42 @@ class TacticProjection:
                     else session["startTick"] - ready_tick
                 ),
             })
+        first_opportunities = []
+        for workshop_id in workshop_ids:
+            ready_ticks = self.workshops["readyTicks"].get(workshop_id, [])
+            candidates = [
+                max(segment["startTick"], tick + 1)
+                for tick in ready_ticks
+                if tick <= segment["endTick"]
+            ]
+            if candidates:
+                first_opportunities.append(min(candidates))
+        first_opportunity = min(first_opportunities) if first_opportunities else None
         if not sessions:
-            status = "deviation"
-            summary = "no Workshop channel session began during this phase run"
+            if first_opportunity is None or first_opportunity > segment["endTick"]:
+                status = "note"
+                future_ready = sorted(
+                    tick
+                    for workshop_id in workshop_ids
+                    for tick in self.workshops["readyTicks"].get(workshop_id, [])
+                    if tick >= segment["startTick"]
+                )
+                if future_ready:
+                    summary = (
+                        "phase ended before the first Workshop channel opportunity "
+                        f"(ready t{future_ready[0]}; earliest channel t{future_ready[0] + 1})"
+                    )
+                else:
+                    summary = (
+                        "no Workshop channel session began; no public readiness "
+                        "event made one possible in this phase window"
+                    )
+            else:
+                status = "deviation"
+                summary = (
+                    "no Workshop channel session began despite an observable "
+                    f"opportunity from t{first_opportunity}"
+                )
         else:
             status = "deviation" if unexpected_interruptions else "pass"
             parts = [
@@ -1868,6 +1901,7 @@ class TacticProjection:
                 "sessions": sessions,
                 "phaseExitInterruptions": phase_exit_interruptions,
                 "cadence": cadence,
+                "firstChannelOpportunityTick": first_opportunity,
             },
         )]
 
@@ -1885,11 +1919,13 @@ class TacticProjection:
         assert team is not None
         engage_rows = []
         starts = []
+        start_contexts = []
         max_excursion = 0
         for slot in group["slots"]:
             rows = self.records[team, slot][segment["startTick"]:segment["endTick"] + 1]
             in_episode = False
             anchor: tuple[int, int] | None = None
+            prior_row: dict[str, Any] | None = None
             for row in rows:
                 attribution: Attribution | None = row["attribution"]
                 owned = (
@@ -1903,12 +1939,14 @@ class TacticProjection:
                     engage_rows.append(row)
                     if not in_episode:
                         starts.append(row)
+                        start_contexts.append((row, prior_row))
                         anchor = row["position"]
                     if anchor is not None and row["position"] is not None:
                         max_excursion = max(max_excursion, chebyshev(anchor, row["position"]))
                 in_episode = owned
                 if not owned:
                     anchor = None
+                prior_row = row
         posture = job.get("posture", "observe")
         status = "pass"
         if posture == "observe":
@@ -1924,16 +1962,44 @@ class TacticProjection:
                 f"({len(at_ground)} at destination)"
             )
         elif posture == "hold":
-            bad_starts = [
-                row for row in starts
+            starts_with_distance = [
+                (row, prior, distance)
+                for row, prior in start_contexts
                 if row["position"] is not None
-                and (self._ground_distance(row["position"], job, team, row["unitId"]) or 0) > 1
+                for distance in [self._ground_distance(
+                    row["position"], job, team, row["unitId"]
+                )]
+                if distance is not None
+            ]
+            start_distances = [distance for _, _, distance in starts_with_distance]
+            leash_edge_starts = [distance for distance in start_distances if distance == 2]
+            signature_excursion_starts = [
+                distance
+                for _, prior, distance in starts_with_distance
+                if distance > 2 and prior is not None and any(
+                    token in prior["reason"]
+                    for token in ("approach-deployment", ":use:")
+                )
+            ]
+            bad_starts = [
+                distance
+                for _, prior, distance in starts_with_distance
+                if distance > 2 and not (
+                    prior is not None and any(
+                        token in prior["reason"]
+                        for token in ("approach-deployment", ":use:")
+                    )
+                )
             ]
             if bad_starts or max_excursion > 5:
                 status = "deviation"
+            elif leash_edge_starts or signature_excursion_starts:
+                status = "note"
             summary = (
                 f"hold: {len(engage_rows)} engage ticks, {len(starts)} episodes, "
-                f"{len(bad_starts)} starts off ground, max fight excursion {max_excursion}"
+                f"{len(leash_edge_starts)} starts at the defensive leash edge, "
+                f"{len(signature_excursion_starts)} after an authored signature excursion, "
+                f"{len(bad_starts)} beyond it, max fight excursion {max_excursion}"
             )
         elif posture == "wait":
             if engage_rows:
@@ -1953,6 +2019,10 @@ class TacticProjection:
                 "engageTicks": len(engage_rows),
                 "episodes": len(starts),
                 "maxExcursion": max_excursion,
+                "holdStartDistances": start_distances if posture == "hold" else [],
+                "holdSignatureExcursionStarts": (
+                    signature_excursion_starts if posture == "hold" else []
+                ),
             },
         )
 

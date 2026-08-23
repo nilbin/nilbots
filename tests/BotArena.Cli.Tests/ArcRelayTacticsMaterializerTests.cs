@@ -262,6 +262,33 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void PublicEnemyTrainingCanAbortAnActiveTactic()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["abort"] = JsonNode.Parse(
+            """{"cases":[{"required":{"workshopTraining":{"workshop":"enemy","team":"enemy"}}}]}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+
+        JsonElement abort = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First()
+            .GetProperty("abort").EnumerateArray().Single();
+        string conditionId = abort.GetProperty("all").EnumerateArray()
+            .Single().GetString()!;
+        JsonElement condition = orders.RootElement.GetProperty("conditions")
+            .GetProperty(conditionId);
+        Assert.Equal("workshop-training-enemy",
+            condition.GetProperty("fact").GetString());
+        Assert.Equal("enemy", condition.GetProperty("workshop").GetString());
+    }
+
+    [Fact]
     public void PostFacingMaterializesAsCardinalIntentWithoutFakeGeometry()
     {
         TacticalPlaybookCompilation compilation =
