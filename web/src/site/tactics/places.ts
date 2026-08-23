@@ -34,9 +34,19 @@ export const WELL_OPTIONS: { id: WellChoice; label: string }[] = [
   { id: 'enemy', label: 'their Well' },
 ];
 
-/** The two neutral veterancy Workshops, plus the "whichever is open" choice.
- * These are GLOBAL map identities — they do not mirror with the seat. */
+/** Seat-relative strategic choices come first. North/south remain available
+ * when the physical room itself matters; either lets the executor choose. */
 export const WORKSHOP_OPTIONS: { id: WorkshopChoice; label: string; blurb: string }[] = [
+  {
+    id: 'own',
+    label: 'Your side',
+    blurb: 'The Workshop nearest your own Well; this choice mirrors with your seat.',
+  },
+  {
+    id: 'enemy',
+    label: 'Their side',
+    blurb: 'The Workshop nearest the enemy Well; this choice mirrors with your seat.',
+  },
   {
     id: 'north',
     label: 'North Workshop',
@@ -55,6 +65,8 @@ export const WORKSHOP_OPTIONS: { id: WorkshopChoice; label: string; blurb: strin
 ];
 
 export function workshopLabel(workshop: WorkshopChoice | undefined): string {
+  if (workshop === 'own') return 'your-side Workshop';
+  if (workshop === 'enemy') return 'their-side Workshop';
   if (workshop === 'north') return 'the north Workshop';
   if (workshop === 'south') return 'the south Workshop';
   return 'either Workshop';

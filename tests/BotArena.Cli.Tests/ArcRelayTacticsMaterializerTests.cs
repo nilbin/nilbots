@@ -239,6 +239,45 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void SeatRelativeWorkshopChoiceMaterializesForMoveAndEvidence()
+    {
+        string source = File.ReadAllText(Path.Combine(
+            Root(), "arena-bots", "arc-relay",
+            "tactical-playbook-v1-2026-08-03", "tactics",
+            "tempered-broadloom-v1.json"));
+        JsonObject document = JsonNode.Parse(source)!.AsObject();
+        JsonObject phase = document["tactics"]![0]!["phases"]![0]!.AsObject();
+        phase["jobs"]!["trainee"]!["workshop"] = "own";
+        phase["continue"] = JsonNode.Parse(
+            """[{"required":{"workshopDone":{"workshop":"own","count":2}}}]""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        string orders = Encoding.UTF8.GetString(
+            compilation.MaterializedOrders!);
+
+        Assert.Contains("\"workshop\": \"own\"", orders);
+        Assert.Contains("\"fact\": \"friendly-workshop-completions\"", orders);
+    }
+
+    [Fact]
+    public void PostFacingMaterializesAsCardinalIntentWithoutFakeGeometry()
+    {
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(Fixture("pincer"));
+        string orders = Encoding.UTF8.GetString(
+            compilation.MaterializedOrders!);
+        string mapPlan = Encoding.UTF8.GetString(
+            compilation.MaterializedMapPlan!);
+
+        Assert.Contains("\"face\": {", orders);
+        Assert.Contains("\"direction\": \"e\"", orders);
+        Assert.DoesNotContain("-face-", orders);
+        Assert.DoesNotContain("-face-", mapPlan);
+    }
+
+    [Fact]
     public void ReleaseOrsSeveralTriggerRowsInsideTheReadinessGate()
     {
         // Two ticked release rows OR together in the transition case's any()

@@ -538,7 +538,8 @@ public sealed class TacticsEncodingLifecycleTests
                     : new OrdersPackage.MoveAction(
                         Kind: "to", TargetKind: "static",
                         Target: "current-position", Via: null, Posture: null,
-                        FaceAnchor: null, WithinWalkingSteps: null,
+                        FaceAnchor: null, FaceDirection: null,
+                        WithinWalkingSteps: null,
                         CoreBankValue: null));
         }
 

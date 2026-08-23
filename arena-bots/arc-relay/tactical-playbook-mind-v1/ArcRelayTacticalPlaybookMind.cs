@@ -1187,7 +1187,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (move.TargetKind == "workshop")
         {
             GenericActorContext.ArcRelayVeterancyWorkshopState[] workshops =
-                ResolveWorkshops(arc, move.Target);
+                ResolveWorkshops(contract, arc, move.Target);
             if (workshops.Length == 0)
                 return [];
             // 'either' picks deterministically. A body already on a training
@@ -1221,16 +1221,37 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         return [];
     }
 
-    /// <summary>North or south by name; 'either' reads both. Empty on a
-    /// ruleset without Workshops, so every workshop fact reads 0 there.</summary>
-    private static GenericActorContext.ArcRelayVeterancyWorkshopState[]
+    /// <summary>North or south names a global room; own/enemy selects the
+    /// room nearest/farthest from this team's own Well; either reads both.
+    /// Empty on a ruleset without Workshops, so every workshop fact reads
+    /// zero there.</summary>
+    private GenericActorContext.ArcRelayVeterancyWorkshopState[]
         ResolveWorkshops(
+            GenericActorResolvedMatchContract contract,
             GenericActorContext.ModeObservationState.ArcRelay arc,
-            string selector) =>
-        selector == "either"
-            ? [.. arc.Workshops]
-            : [.. arc.Workshops.Where(value => string.Equals(
+            string selector)
+    {
+        if (selector == "either")
+            return [.. arc.Workshops];
+        if (selector is "north" or "south")
+        {
+            return [.. arc.Workshops.Where(value => string.Equals(
                 value.WorkshopId, selector, StringComparison.Ordinal))];
+        }
+        if (arc.Workshops.Length == 0)
+            return [];
+
+        Position ownWell = ResolveWell(contract, arc, "own").Position;
+        GenericActorContext.ArcRelayVeterancyWorkshopState[] ordered =
+        [
+            .. arc.Workshops
+                .OrderBy(value => ArenaBasics.StaticDistance(
+                        contract.Map, ownWell, value.TrainingTile)
+                    ?? int.MaxValue)
+                .ThenBy(value => value.WorkshopId, StringComparer.Ordinal),
+        ];
+        return selector == "own" ? [ordered[0]] : [ordered[^1]];
+    }
 
     /// <summary>
     /// Arc Toss names an allied body but transmits a position target through
@@ -3225,6 +3246,26 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             if (TryRestingYield(contract, mind, body, claims, movement))
                 return;
+            if (authoredMove.FaceDirection is string authoredDirection)
+            {
+                Direction desired = authoredDirection switch
+                {
+                    "n" => _mirrored ? Direction.South : Direction.North,
+                    "e" => _mirrored ? Direction.West : Direction.East,
+                    "s" => _mirrored ? Direction.North : Direction.South,
+                    _ => _mirrored ? Direction.East : Direction.West,
+                };
+                string facing = $"{movement}:at-target:face-direction:"
+                    + authoredDirection;
+                if (desired != body.Facing
+                    && ArenaBasics.TryRotate(contract, body, desired, facing))
+                {
+                    return;
+                }
+                body.Hold($"{movement}:at-target:facing-direction:"
+                    + authoredDirection);
+                return;
+            }
             if (authoredMove.FaceAnchor is string anchorId)
             {
                 Position anchor = package.AnchorPosition(anchorId);
@@ -3598,8 +3639,24 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             }
             else if (condition.WindowTicks is not null || condition.Since is not null)
             {
+                OrdersPackage.Condition evidenceCondition = condition;
+                if (condition.Fact == "friendly-workshop-completions"
+                    && condition.Workshop is "own" or "enemy")
+                {
+                    GenericActorContext.ArcRelayVeterancyWorkshopState?
+                        workshop = ResolveWorkshops(
+                            contract, arc, condition.Workshop).SingleOrDefault();
+                    if (workshop is not null)
+                    {
+                        evidenceCondition = condition with
+                        {
+                            Workshop = workshop.WorkshopId,
+                        };
+                    }
+                }
                 OrdersEvidenceLedger.EvidenceRead read = _evidence.Read(
-                    package, contract.Map, condition, mind.Tick, orderTicks,
+                    package, contract.Map, evidenceCondition,
+                    mind.Tick, orderTicks,
                     core => CoreBankValue(contract, arc, core.SourceWellId),
                     core => condition.Well is null || string.Equals(
                         ResolveWell(contract, arc, condition.Well).WellId,
@@ -3926,7 +3983,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (fact.StartsWith("workshop-", StringComparison.Ordinal))
         {
             GenericActorContext.ArcRelayVeterancyWorkshopState[] workshops =
-                ResolveWorkshops(arc, condition.Workshop!);
+                ResolveWorkshops(contract, arc, condition.Workshop!);
             return fact switch
             {
                 "workshop-ready" => workshops.Any(value => value.Phase

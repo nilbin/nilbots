@@ -403,7 +403,7 @@ test('a post on a wall is caught before the server sees it', () => {
   assert.ok(messages.some((message) => /post at \(0,5\) stands on a wall/.test(message)));
 });
 
-test('a post facing into a wall is named with its fix', () => {
+test('a post may face into a wall because facing is not map geometry', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
   const { tactic } = instantiateRecipe(recipeById('hold-area'), document);
@@ -416,8 +416,7 @@ test('a post facing into a wall is named with its fix', () => {
   }));
   document.tactics.push(tactic);
   const messages = validateDocument(document, catalog).map((issue) => issue.message);
-  assert.ok(messages.some((message) =>
-    /post at \(1,5\) faces a wall — turn its arrow/.test(message)));
+  assert.ok(!messages.some((message) => /post at \(1,5\).*faces a wall/.test(message)));
 });
 
 test('an approach route validates on legal kinds and reads back in the summary', () => {

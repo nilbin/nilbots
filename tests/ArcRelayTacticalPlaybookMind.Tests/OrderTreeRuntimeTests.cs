@@ -20,6 +20,7 @@ public sealed class OrderTreeRuntimeTests
                     Via: null,
                     Posture: null,
                     FaceAnchor: null,
+                    FaceDirection: null,
                     WithinWalkingSteps: null,
                     CoreBankValue: null))
             ]);
@@ -71,14 +72,15 @@ public sealed class OrderTreeRuntimeTests
             action: new OrdersPackage.MoveAction(
                 Kind: "to", TargetKind: "dynamic",
                 Target: "nearest-heal-zone", Via: null, Posture: null,
-                FaceAnchor: null, WithinWalkingSteps: 8,
+                FaceAnchor: null, FaceDirection: null, WithinWalkingSteps: 8,
                 CoreBankValue: null));
         var returnHome = Node(
             "premium-carrier-return",
             action: new OrdersPackage.MoveAction(
                 Kind: "to", TargetKind: "dynamic",
                 Target: "own-reactor", Via: "premium-safe-return",
-                Posture: null, FaceAnchor: null, WithinWalkingSteps: null,
+                Posture: null, FaceAnchor: null, FaceDirection: null,
+                WithinWalkingSteps: null,
                 CoreBankValue: null));
         var custody = Node(
             "premium-four-carrying",
@@ -233,6 +235,7 @@ public sealed class OrderTreeRuntimeTests
         Via: null,
         Posture: null,
         FaceAnchor: null,
+        FaceDirection: null,
         WithinWalkingSteps: null,
         CoreBankValue: null);
 

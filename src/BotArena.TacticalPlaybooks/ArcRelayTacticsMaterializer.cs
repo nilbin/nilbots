@@ -1674,10 +1674,6 @@ internal static class ArcRelayTacticsMaterializer
                     ArcRelayTacticPost post = job.Posts![member];
                     string anchor = Anchor(
                         post.At, $"g-{geometryPrefix}-post-{member}");
-                    int[]? faceTile = FacingTile(post);
-                    string? face = faceTile is null
-                        ? null
-                        : Anchor(faceTile, $"g-{geometryPrefix}-face-{member}");
                     // A post's own drawn way in overrides the group route:
                     // this bot walks its route, groupmates keep theirs.
                     string? wayIn = post.Via is null
@@ -1694,12 +1690,9 @@ internal static class ArcRelayTacticsMaterializer
                             writer.WriteEndObject();
                             if (wayIn is not null)
                                 writer.WriteString("via", wayIn);
-                            if (face is not null)
-                            {
-                                writer.WriteStartObject("face");
-                                writer.WriteString("anchor", face);
-                                writer.WriteEndObject();
-                            }
+                            writer.WriteStartObject("face");
+                            writer.WriteString("direction", post.Facing);
+                            writer.WriteEndObject();
                             writer.WriteEndObject();
                         },
                     });
@@ -1867,23 +1860,6 @@ internal static class ArcRelayTacticsMaterializer
             if (_sharedLeafIds.Add(id))
                 SharedOrders.Add((id, define()));
             return new Node { SharedRef = id };
-        }
-
-        private int[]? FacingTile(ArcRelayTacticPost post)
-        {
-            (int dx, int dy) = post.Facing switch
-            {
-                "n" => (0, -1),
-                "s" => (0, 1),
-                "w" => (-1, 0),
-                _ => (1, 0),
-            };
-            int x = post.At[0] + dx;
-            int y = post.At[1] + dy;
-            if (x < 0 || y < 0 || x >= _document.MapWidth
-                || y >= _document.MapHeight)
-                return null;
-            return [x, y];
         }
 
         private static IEnumerable<int[]> GeometryPoints(ArcRelayTacticJob job)

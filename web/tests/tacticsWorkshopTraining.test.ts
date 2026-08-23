@@ -214,6 +214,10 @@ test('Workshop row values are bounded exactly as the server bounds them', () => 
     withRows({ veterancy: { slots: [7], count: 1, level: 5 } }), []);
   assert.deepEqual(
     withRows({ workshopTraining: { workshop: 'either', team: 'enemy' } }), []);
+  assert.deepEqual(
+    withRows({ workshopReady: { workshop: 'own' } }), []);
+  assert.deepEqual(
+    withRows({ workshopContested: { workshop: 'enemy' } }), []);
   assert.ok(withRows({ workshopDone: { workshop: 'north', count: 9 } })
     .some((message) => /from one to eight/.test(message)));
   assert.ok(withRows({ veterancy: { slots: [8], count: 1, level: 4 } })
@@ -224,7 +228,7 @@ test('Workshop row values are bounded exactly as the server bounds them', () => 
     workshopTraining: { workshop: 'north', team: 'neutral' as 'any' },
   }).some((message) => /is not a side/.test(message)));
   assert.ok(withRows({ workshopReady: { workshop: 'middle' as 'north' } })
-    .some((message) => /names north, south, or either/.test(message)));
+    .some((message) => /needs your-side, their-side, north, south, or either/.test(message)));
 });
 
 test('Workshop rows count as active conditions on both sides of a case', () => {

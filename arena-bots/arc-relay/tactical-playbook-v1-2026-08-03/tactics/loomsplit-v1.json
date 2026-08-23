@@ -1,0 +1,196 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "loomsplit-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "scout", "name": "Vex" },
+    { "slot": 1, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 2, "class": "longshot", "build": "aggressive", "name": "Gantry" },
+    { "slot": 3, "class": "mortar", "build": "aggressive", "name": "Maul" },
+    { "slot": 4, "class": "sunder", "build": "balanced", "name": "Brand" },
+    { "slot": 5, "class": "patchbay", "build": "durable", "name": "Cinder" },
+    { "slot": 6, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 7, "class": "palisade", "build": "durable", "name": "Ember" }
+  ],
+  "tactics": [
+    {
+      "id": "break-contact",
+      "name": "Break contact",
+      "recipe": "hold-area",
+      "start": {
+        "mode": "when",
+        "cases": [
+          { "required": { "lossesWithin": { "count": 4, "ticks": 20 } } }
+        ]
+      },
+      "maxDuration": "brief",
+      "delivery": { "plan": "solo", "preferredSlots": [0, 1] },
+      "groups": [
+        {
+          "id": "survivors",
+          "name": "Survivors",
+          "slots": [0, 1, 2, 3, 4, 5, 6, 7],
+          "coreRule": "grab"
+        }
+      ],
+      "phases": [
+        {
+          "id": "reset-the-line",
+          "name": "Reset the line",
+          "jobs": {
+            "survivors": {
+              "kind": "area",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "rect": [6, 11, 10, 15]
+            }
+          },
+          "continue": [
+            { "required": { "held": { "ticks": 30 } } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "raise-the-rail",
+      "name": "Raise the Rail",
+      "recipe": "core-raid",
+      "start": { "mode": "always" },
+      "abort": {
+        "cases": [
+          { "required": { "lossesWithin": { "count": 4, "ticks": 20 } } }
+        ]
+      },
+      "delivery": { "plan": "solo", "preferredSlots": [0, 1] },
+      "groups": [
+        {
+          "id": "ace",
+          "name": "Rail ace",
+          "slots": [2],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "raiders",
+          "name": "Outer raiders",
+          "slots": [0, 1],
+          "coreRule": "hunt"
+        },
+        {
+          "id": "screen",
+          "name": "Map screen",
+          "slots": [3, 4, 5, 6, 7],
+          "coreRule": "grab"
+        }
+      ],
+      "phases": [
+        {
+          "id": "weave-the-fork",
+          "name": "Weave the fork",
+          "jobs": {
+            "ace": {
+              "kind": "train",
+              "workshop": "own",
+              "posture": "wait",
+              "travel": "observe",
+              "recovery": "fight-on"
+            },
+            "raiders": {
+              "kind": "patrol",
+              "posture": "steal",
+              "recovery": "fight-on",
+              "path": [
+                [4, 9], [12, 2], [17, 1], [23, 3], [26, 7],
+                [23, 7], [13, 7], [5, 8], [4, 9]
+              ],
+              "sigs": {
+                "0": {
+                  "policy": "prefer",
+                  "line": [[12, 2], [17, 1], [23, 3]]
+                }
+              }
+            },
+            "screen": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [12, 12], "facing": "e", "slot": 3 },
+                { "at": [12, 15], "facing": "e", "slot": 4 },
+                { "at": [13, 13], "facing": "e", "slot": 5 },
+                { "at": [15, 21], "facing": "w", "slot": 6 },
+                { "at": [21, 23], "facing": "w", "slot": 7 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" },
+                "5": { "policy": "smart" },
+                "6": { "policy": "prefer", "points": [[15, 20]] },
+                "7": { "policy": "smart" }
+              }
+            }
+          },
+          "continue": [
+            {
+              "required": {
+                "veterancy": { "level": 3, "slots": [2], "count": 1 }
+              }
+            }
+          ]
+        },
+        {
+          "id": "work-the-fork",
+          "name": "Work the fork",
+          "jobs": {
+            "ace": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [14, 14], "facing": "e", "slot": 2 }
+              ],
+              "sigs": {
+                "2": { "policy": "smart" }
+              }
+            },
+            "raiders": {
+              "kind": "none",
+              "posture": "steal",
+              "recovery": "fight-on",
+              "sigs": {
+                "0": {
+                  "policy": "prefer",
+                  "line": [[12, 2], [17, 1], [23, 3]]
+                }
+              }
+            },
+            "screen": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [13, 12], "facing": "e", "slot": 3 },
+                { "at": [14, 12], "facing": "e", "slot": 4 },
+                { "at": [12, 14], "facing": "e", "slot": 5 },
+                { "at": [9, 21], "facing": "e", "slot": 6 },
+                { "at": [11, 17], "facing": "s", "slot": 7 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" },
+                "5": { "policy": "smart" },
+                "6": { "policy": "prefer", "points": [[12, 18]] },
+                "7": { "policy": "smart" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

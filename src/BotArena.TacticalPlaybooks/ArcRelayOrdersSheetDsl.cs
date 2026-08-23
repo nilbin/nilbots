@@ -59,7 +59,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         };
 
     /// <summary>Facts that read one Workshop's public state and therefore
-    /// carry the 'workshop' selector (north/south/either).</summary>
+    /// carry the 'workshop' selector
+    /// (north/south/own/enemy/either).</summary>
     private static readonly HashSet<string> WorkshopFacts =
         new(StringComparer.Ordinal)
         {
@@ -353,10 +354,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             if (hasWorkshop
                 && StringValue(workshopSelector, $"{at}.workshop")
-                    is not ("north" or "south" or "either"))
+                    is not ("north" or "south" or "own" or "enemy"
+                        or "either"))
             {
                 throw Error($"{at}.workshop",
-                    "workshop must be north/south/either.");
+                    "workshop must be north/south/own/enemy/either.");
             }
             OneOf(property.Value, "operator", at,
                 "at-least", "at-most", "equals", "less-than", "greater-than");
@@ -1401,11 +1403,31 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             throw Error($"{path}.move.face",
                 "face requires an authored zone or anchor move.to destination.");
         }
-        Object(face, $"{path}.move.face", ["anchor"]);
-        string faceAnchor = StringValue(
-            face.GetProperty("anchor"), $"{path}.move.face.anchor");
-        IdentifierValue(faceAnchor, $"{path}.move.face.anchor", "anchor");
-        consumers.ReferenceAnchor(faceAnchor, path);
+        Object(face, $"{path}.move.face", [], ["anchor", "direction"]);
+        bool hasAnchor = face.TryGetProperty(
+            "anchor", out JsonElement faceAnchorValue);
+        bool hasDirection = face.TryGetProperty(
+            "direction", out JsonElement faceDirectionValue);
+        if (hasAnchor == hasDirection)
+        {
+            throw Error($"{path}.move.face",
+                "face needs exactly one of anchor/direction.");
+        }
+        if (hasAnchor)
+        {
+            string faceAnchor = StringValue(
+                faceAnchorValue, $"{path}.move.face.anchor");
+            IdentifierValue(faceAnchor, $"{path}.move.face.anchor", "anchor");
+            consumers.ReferenceAnchor(faceAnchor, path);
+            return;
+        }
+        string direction = StringValue(
+            faceDirectionValue, $"{path}.move.face.direction");
+        if (direction is not ("n" or "e" or "s" or "w"))
+        {
+            throw Error($"{path}.move.face.direction",
+                "direction must be n/e/s/w.");
+        }
     }
 
     private static void ValidateMoveTarget(
@@ -1447,8 +1469,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         if (found[0] == "workshop")
         {
-            if (id is not ("north" or "south" or "either"))
-                throw Error(path, "workshop must be north/south/either.");
+            if (id is not ("north" or "south" or "own" or "enemy"
+                    or "either"))
+            {
+                throw Error(path,
+                    "workshop must be north/south/own/enemy/either.");
+            }
             return;
         }
         IdentifierValue(id, path,

@@ -28,9 +28,9 @@ export type RecipeId =
   | 'deliver-core' | 'blank';
 export type WellChoice = 'north' | 'centre' | 'south' | 'own' | 'enemy';
 /** Which neutral veterancy Workshop a train job or Workshop row means.
- * Unlike drawn geometry, these are GLOBAL map identities: they never mirror
- * with the seat, so "north" is the same room for both entrants. */
-export type WorkshopChoice = 'north' | 'south' | 'either';
+ * North/south are global identities; own/enemy are seat-relative strategic
+ * choices resolved against the team's Well. */
+export type WorkshopChoice = 'north' | 'south' | 'own' | 'enemy' | 'either';
 /** Whose channel a `workshopTraining` row reads. */
 export type WorkshopTeam = 'self' | 'enemy' | 'any';
 
@@ -119,7 +119,9 @@ export const ABORT_ROWS: CondKind[] = [
   'workshopContested', 'workshopDormant',
 ];
 
-export const WORKSHOP_CHOICES: WorkshopChoice[] = ['north', 'south', 'either'];
+export const WORKSHOP_CHOICES: WorkshopChoice[] = [
+  'own', 'enemy', 'north', 'south', 'either',
+];
 export const WORKSHOP_TEAMS: WorkshopTeam[] = ['self', 'enemy', 'any'];
 
 /** Player-authored cases use all(required) AND none(unless). `triggers` is a
@@ -325,7 +327,7 @@ export type TilePlacement = 'anchor' | 'route';
 /** Why this tile cannot host the placement — null when legal. Mirrors the
  * server sheet compiler exactly: geometry must be legal from BOTH seats,
  * because the same plan runs mirrored when the entrant is seated east.
- * Anchors (posts, facing targets, points, marks) must be open, unreserved
+ * Anchors (posts, points, marks) must be open, unreserved
  * ground; route waypoints additionally avoid protected home regions. */
 export function tilePlacementIssue(
   catalog: TacticalSheetCatalog,
@@ -407,19 +409,13 @@ function opponentForbidden(
   return value;
 }
 
-/** The post's facing-target problem, if any: out-of-bounds targets are fine
- * (no facing anchor is minted), everything else follows the anchor rule. */
+/** Facing is cardinal intent, not adjacent map geometry. A wall, boundary, or
+ * reserved tile in front of a post never makes the standing tile illegal. */
 export function postFacingIssue(
-  catalog: TacticalSheetCatalog,
-  post: TacticPost,
+  _catalog: TacticalSheetCatalog,
+  _post: TacticPost,
 ): string | null {
-  const [dx, dy] = FACING_DELTAS[post.facing];
-  const target: Point = [post.at[0] + dx, post.at[1] + dy];
-  if (target[0] < 0 || target[1] < 0
-    || target[0] >= catalog.map.width || target[1] >= catalog.map.height) {
-    return null;
-  }
-  return tilePlacementIssue(catalog, target, 'anchor');
+  return null;
 }
 
 export const GROUP_COLORS = ['#22d3ee', '#f0a35e', '#b49cff'];
@@ -1158,7 +1154,7 @@ function validateWorkshopRows(
 ) {
   const workshop = (kind: CondKind, value: WorkshopChoice | undefined) => {
     if (value !== undefined && !WORKSHOP_CHOICES.includes(value)) {
-      error(`${at}.${kind}`, `'${kind}' names north, south, or either — not '${value}'.`);
+      error(`${at}.${kind}`, `'${kind}' needs your-side, their-side, north, south, or either — not '${value}'.`);
     } else if (value === undefined) {
       error(`${at}.${kind}`, `'${kind}' needs a Workshop chosen.`);
     }
@@ -1300,9 +1296,9 @@ function validateTrainJob(
     return;
   }
   if (!job.workshop) {
-    error(at, `${group.name} needs a Workshop chosen — north, south, or either.`);
+    error(at, `${group.name} needs a Workshop chosen — your side, their side, north, south, or either.`);
   } else if (!WORKSHOP_CHOICES.includes(job.workshop)) {
-    error(at, `“${job.workshop}” is not a Workshop — choose north, south, or either.`);
+    error(at, `“${job.workshop}” is not a Workshop — choose your side, their side, north, south, or either.`);
   }
   if (group.slots.length !== 1) {
     error(at, `Training is one bot’s job — ${group.name} has ${group.slots.length} bots. Put the trainee in a Group of one and give the guards their own posted Group.`);

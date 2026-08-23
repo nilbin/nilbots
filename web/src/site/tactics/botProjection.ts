@@ -7,14 +7,16 @@ import {
 } from './tacticsDocument';
 
 /** The rules-owned training tile for a Workshop, straight from the catalog's
- * map export — the editor never invents it. `either` previews the north room
- * because a preview must pick one; the executor's own choice is a match-time
- * fact the editor cannot know. Null on a map with no Workshops. */
+ * map export — the editor never invents it. The editor authors from west's
+ * perspective, so own previews south and enemy previews north. `either`
+ * previews north because the executor's match-time choice is unknowable. */
 export function workshopTrainingTile(
   catalog: TacticalSheetCatalog,
   workshop: WorkshopChoice,
 ): Point | null {
-  const order = workshop === 'either' ? ['north', 'south'] : [workshop];
+  const order = workshop === 'own' ? ['south']
+    : workshop === 'enemy' ? ['north']
+      : workshop === 'either' ? ['north', 'south'] : [workshop];
   for (const id of order) {
     const tile = catalog.map.regions
       .find((region) => region.id === `veterancy-workshop-${id}-train`)?.tiles[0];

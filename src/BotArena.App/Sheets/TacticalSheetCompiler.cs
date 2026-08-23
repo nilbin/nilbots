@@ -236,27 +236,6 @@ public sealed class TacticalSheetCompiler(ArcRelayClassCatalog classCatalog)
                                     + "posts need open, unreserved ground "
                                     + "from both seats.");
                             }
-                            (int dx, int dy) = post.TryGetProperty(
-                                    "facing", out JsonElement facing)
-                                ? facing.GetString() switch
-                                {
-                                    "n" => (0, -1),
-                                    "s" => (0, 1),
-                                    "w" => (-1, 0),
-                                    _ => (1, 0),
-                                }
-                                : (1, 0);
-                            int fx = x + dx;
-                            int fy = y + dy;
-                            if (fx >= 0 && fy >= 0 && fx < map.Width
-                                && fy < map.Height
-                                && AnchorIssue(fx, fy) is string faced)
-                            {
-                                throw new InvalidDataException(
-                                    $"tactics.json {postPath}: the post at "
-                                    + $"({x},{y}) faces ({fx},{fy}), which "
-                                    + $"is {faced} — turn its facing.");
-                            }
                             if (post.TryGetProperty(
                                     "via", out JsonElement postVia)
                                 && postVia.ValueKind == JsonValueKind.Array)

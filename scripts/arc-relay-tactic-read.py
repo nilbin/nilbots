@@ -505,6 +505,46 @@ class ReplayIndex:
                     queue.append((candidate, distance + 1))
         return None
 
+    def resolve_workshop_selector(self, selector: str, team: int) -> set[str]:
+        """Resolve authored Workshop vocabulary exactly as the playbook mind.
+
+        north/south are global room ids; own/enemy are relative to the team's
+        own Well by static walking distance; either includes every room.
+        """
+        mode = self.initial_state.get("mode") or {}
+        workshops = list(mode.get("workshops") or [])
+        if selector == "either":
+            return {str(value["workshopId"]) for value in workshops}
+        if selector in {"north", "south"}:
+            return {selector}
+        if selector not in {"own", "enemy"} or not workshops:
+            return set()
+
+        reactors = [
+            value for value in mode.get("reactors") or []
+            if int(value["teamId"]) == team
+        ]
+        wells = list(mode.get("wells") or [])
+        if not reactors or not wells:
+            return set()
+
+        def distance(start: tuple[int, int], end: tuple[int, int]) -> int:
+            value = self.terrain_distance(start, end)
+            return sys.maxsize if value is None else value
+
+        reactor = point(reactors[0]["position"])
+        own_well = min(wells, key=lambda value: (
+            distance(reactor, point(value["position"])),
+            str(value["wellId"]),
+        ))
+        own_well_position = point(own_well["position"])
+        ordered = sorted(workshops, key=lambda value: (
+            distance(own_well_position, point(value["trainingTile"])),
+            str(value["workshopId"]),
+        ))
+        chosen = ordered[0] if selector == "own" else ordered[-1]
+        return {str(chosen["workshopId"])}
+
 
 def core_label(core_id: dict[str, Any] | None) -> str | None:
     if not core_id:
@@ -1750,16 +1790,25 @@ class TacticProjection:
         team = self.tactics_team
         assert team is not None
         workshop = job["workshop"]
+        workshop_ids = self.index.resolve_workshop_selector(workshop, team)
         sessions = [
             value for value in self.workshops["sessions"]
             if value.get("teamId") == team
-            and (workshop == "either" or value["workshopId"] == workshop)
+            and value["workshopId"] in workshop_ids
             and value.get("startTick") is not None
             and value["startTick"] <= segment["endTick"]
             and value["endTick"] >= segment["startTick"]
         ]
         interrupted = [value for value in sessions if value["outcome"] == "interrupted"]
         complete = [value for value in sessions if value["outcome"] == "complete"]
+        phase_exit_interruptions = [
+            value for value in interrupted
+            if segment["endTick"] <= value["endTick"] <= segment["endTick"] + 1
+        ]
+        unexpected_interruptions = [
+            value for value in interrupted
+            if value not in phase_exit_interruptions
+        ]
         cadence = []
         for session in sessions:
             ready_ticks = self.workshops["readyTicks"].get(
@@ -1782,12 +1831,16 @@ class TacticProjection:
             status = "deviation"
             summary = "no Workshop channel session began during this phase run"
         else:
-            status = "deviation" if interrupted else "pass"
+            status = "deviation" if unexpected_interruptions else "pass"
             parts = [
                 f"{value['startTick']}→{value['endTick']} {value['outcome']}"
                 + (
                     f"({value.get('reason')}, lost {value.get('progressLost')})"
                     if value["outcome"] == "interrupted" else ""
+                )
+                + (
+                    "[phase-exit]"
+                    if value in phase_exit_interruptions else ""
                 )
                 + (
                     f"; ready t{value['readyAgainTick']}"
@@ -1809,7 +1862,13 @@ class TacticProjection:
             f"train {tactic['name']} / {phase['name']} / {group['name']} / u{group['slots'][0]}",
             segment,
             summary,
-            {"workshopId": workshop, "sessions": sessions, "cadence": cadence},
+            {
+                "workshopId": workshop,
+                "resolvedWorkshopIds": sorted(workshop_ids),
+                "sessions": sessions,
+                "phaseExitInterruptions": phase_exit_interruptions,
+                "cadence": cadence,
+            },
         )]
 
     def _posture_finding(

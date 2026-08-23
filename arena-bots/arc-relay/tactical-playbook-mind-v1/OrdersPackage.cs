@@ -449,7 +449,13 @@ internal sealed class OrdersPackage
             ? postureValue.GetString()
             : null;
         string? faceAnchor = value.TryGetProperty("face", out JsonElement faceValue)
-            ? faceValue.GetProperty("anchor").GetString()
+            && faceValue.TryGetProperty("anchor", out JsonElement faceAnchorValue)
+            ? faceAnchorValue.GetString()
+            : null;
+        string? faceDirection = value.TryGetProperty("face", out faceValue)
+            && faceValue.TryGetProperty(
+                "direction", out JsonElement faceDirectionValue)
+            ? faceDirectionValue.GetString()
             : null;
         int? withinWalkingSteps = value.TryGetProperty(
             "withinWalkingSteps", out JsonElement withinValue)
@@ -462,22 +468,23 @@ internal sealed class OrdersPackage
         if (value.TryGetProperty("patrol", out JsonElement patrol))
             return new MoveAction(
                 "patrol", "route", patrol.GetString()!, via, posture, null,
-                null, null);
+                null, null, null);
         if (value.TryGetProperty("follow", out JsonElement follow))
             return follow.ValueKind == JsonValueKind.String
                 ? new MoveAction(
                     "follow", "role", follow.GetString()!, null, posture, null,
-                    null, null)
+                    null, null, null)
                 : follow.TryGetProperty("role", out JsonElement followedRole)
                     ? new MoveAction(
                         "follow", "role-highest-veteran", followedRole.GetString()!,
-                        null, posture, null, null, null)
+                        null, posture, null, null, null, null)
                 : new MoveAction(
                     "follow",
                     "selector",
                     follow.GetProperty("selector").GetString()!,
                     null,
                     posture,
+                    null,
                     null,
                     null,
                     follow.TryGetProperty(
@@ -493,12 +500,13 @@ internal sealed class OrdersPackage
         if (to.ValueKind == JsonValueKind.String)
             return new MoveAction(
                 "to", "dynamic", to.GetString()!, via, posture, null,
-                withinWalkingSteps, coreBankValue, null, Optional(value, "well"),
+                null, withinWalkingSteps, coreBankValue, null,
+                Optional(value, "well"),
                 Optional(value, "near"));
         JsonProperty target = to.EnumerateObject().Single();
         return new MoveAction(
             "to", target.Name, target.Value.GetString()!, via, posture,
-            faceAnchor, withinWalkingSteps, coreBankValue);
+            faceAnchor, faceDirection, withinWalkingSteps, coreBankValue);
     }
 
     private static FightAction ParseFight(JsonElement value) => new(
@@ -809,6 +817,7 @@ internal sealed class OrdersPackage
         string? Via,
         string? Posture,
         string? FaceAnchor,
+        string? FaceDirection,
         int? WithinWalkingSteps,
         CoreBankValueFilter? CoreBankValue,
         string[]? Roles = null,

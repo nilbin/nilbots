@@ -1525,7 +1525,7 @@ export function describeGeometry(job: TacticJob, group: TacticGroup): string {
     // Nothing is drawn: the room owns its training tile.
     return job.workshop
       ? `Training at ${workshopLabel(job.workshop)}`
-      : 'No Workshop chosen yet — pick north, south, or either.';
+      : 'No Workshop chosen yet — pick your side, their side, north, south, or either.';
   }
   return '';
 }

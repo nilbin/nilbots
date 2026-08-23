@@ -265,7 +265,7 @@ The finite fact catalog is:
 
 Role facts require `role`; zone facts require `zone`; Well facts require
 `well` (`north`, `centre`, `south`, `own`, or `enemy`). Workshop facts
-require `workshop` (`north`, `south`, or `either`) and read the veterancy
+require `workshop` (`north`, `south`, `own`, `enemy`, or `either`) and read the veterancy
 Workshop's public neutral state — the same state both teams always see, so
 none of them can leak a fogged position. `workshop-training` is true for any
 team's channel; the `-self`/`-enemy` forms narrow it.
@@ -377,11 +377,12 @@ caster is free. This observes engine state; it is not an authored duration.
 - `{ "anchor": "id" }`; or
 - `{ "adjacentTo": "anchor-id" }`; or
 - `{ "well": "north|centre|south|own|enemy" }`; or
-- `{ "workshop": "north|south|either" }`, the veterancy Workshop's
-  rules-owned training tile. `either` deterministically keeps the Workshop
-  this team is already training at, else the nearest Ready one, else the
-  nearest — Workshop ids are global map identities and never mirror with the
-  seat.
+- `{ "workshop": "north|south|own|enemy|either" }`, the veterancy Workshop's
+  rules-owned training tile. North/south name global rooms. Own/enemy select
+  the room nearest/farthest from this team's own Well, so strategic side
+  intent mirrors with the entrant. `either` deterministically keeps the
+  Workshop this team is already training at, else the nearest Ready one, else
+  the nearest.
 
 `adjacentTo` resolves the legal eight-way ring around one authored anchor. It
 is useful for placeable skills: the anchor states where the construct belongs
@@ -409,11 +410,13 @@ only on visible-Core moves and nearest-carrier Follow; the latter may also take
 `roles` and `well`. These are candidate filters, not hidden movement or pickup
 rules.
 
-Optional `face: { "anchor": "id" }` is legal only on a `move.to` whose
+Optional `face` is either `{ "anchor": "id" }` or
+`{ "direction": "n|e|s|w" }`, and is legal only on a `move.to` whose
 destination is an authored zone or anchor. It never changes travel. Once the
-body arrives, it keeps a facing whose bare 90-degree firing quadrant contains
-the anchor, spending an ordinary rotation action only when needed. Displacement
-first returns it to the destination; higher-priority orders still pre-empt it.
+body arrives, it keeps the cardinal direction (rotated with the entrant's
+seat), or a facing whose bare 90-degree firing quadrant contains the anchor,
+spending an ordinary rotation action only when needed. Displacement first
+returns it to the destination; higher-priority orders still pre-empt it.
 Patrols, follows, Wells, reactors, adjacent targets, and dynamic Core/heal
 targets cannot use `face`. Selected-body intent draws travel in cyan and the
 watched anchor in amber.

@@ -47,7 +47,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         };
 
     private static readonly HashSet<string> TacticWorkshopIds =
-        new(StringComparer.Ordinal) { "north", "south", "either" };
+        new(StringComparer.Ordinal)
+        { "north", "south", "own", "enemy", "either" };
 
     private static readonly HashSet<string> TacticWells =
         new(StringComparer.Ordinal)
@@ -905,7 +906,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             workshop = StringValue(workshopValue, $"{path}.workshop");
             if (!TacticWorkshopIds.Contains(workshop))
                 throw Error($"{path}.workshop",
-                    "workshop must be north/south/either.");
+                    "workshop must be north/south/own/enemy/either.");
         }
         if (kind == "train")
         {
@@ -1476,7 +1477,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(row, at, ["workshop"]);
             string workshop = RequiredString(row, "workshop", at);
             if (!TacticWorkshopIds.Contains(workshop))
-                throw Error(at, "workshop must be north/south/either.");
+                throw Error(at,
+                    "workshop must be north/south/own/enemy/either.");
             return workshop;
         }
         string? workshopReady = WorkshopRow("workshopReady");
@@ -1490,7 +1492,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(trainingRow, at, ["workshop"], ["team"]);
             string workshop = RequiredString(trainingRow, "workshop", at);
             if (!TacticWorkshopIds.Contains(workshop))
-                throw Error(at, "workshop must be north/south/either.");
+                throw Error(at,
+                    "workshop must be north/south/own/enemy/either.");
             string team = "any";
             if (trainingRow.TryGetProperty("team", out JsonElement teamValue))
             {
@@ -1508,7 +1511,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(doneRow, at, ["workshop"], ["count"]);
             string workshop = RequiredString(doneRow, "workshop", at);
             if (!TacticWorkshopIds.Contains(workshop))
-                throw Error(at, "workshop must be north/south/either.");
+                throw Error(at,
+                    "workshop must be north/south/own/enemy/either.");
             int count = doneRow.TryGetProperty("count", out _)
                 ? Range(doneRow, "count", at, 1, 8)
                 : 1;
@@ -1787,9 +1791,11 @@ internal sealed record ArcRelayTacticJob(
         Posts is not null || Rect is not null || Path is not null
         || Point is not null || Workshop is not null;
 
-    /// <summary>The 'train' job's Workshop selector: north, south, or
-    /// either. The exact training tile is rules-owned and resolved by the
-    /// executor from the match contract, never authored here.</summary>
+    /// <summary>The 'train' job's Workshop selector: north/south name a
+    /// global room; own/enemy select by proximity to that side's Well;
+    /// either lets the executor choose. The exact training tile is
+    /// rules-owned and resolved by the executor from the match contract,
+    /// never authored here.</summary>
     public string? Workshop { get; init; }
 }
 

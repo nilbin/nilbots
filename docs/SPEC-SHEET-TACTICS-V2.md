@@ -112,7 +112,7 @@ what phases are.
 | `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence since phase entry |
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
 | `observed` | `true` | continue | the watchline stayed fully observed for 120 ticks |
-| `workshopReady` | `{ "workshop": "north"\|"south"\|"either" }` | start, continue | that Workshop (either = any) is publicly Ready |
+| `workshopReady` | `{ "workshop": "north"\|"south"\|"own"\|"enemy"\|"either" }` | start, continue | that Workshop (either = any) is publicly Ready |
 | `workshopTraining` | `{ "workshop": …, "team"?: "self"\|"enemy"\|"any" }` | start, continue | a body of that team is publicly channeling there (default any) |
 | `workshopContested` | `{ "workshop": … }` | start, continue, abort | living enemies stand in that Workshop's contest region |
 | `workshopDormant` | `{ "workshop": … }` | start, continue, abort | that Workshop is publicly recharging |
@@ -198,11 +198,13 @@ Group's jobs rather than left behind.
 
 `kind: "train"` is **Train at Workshop**: the group must hold exactly one
 slot, `posture` must be `"wait"`, signature marks are refused, and the job
-carries `"workshop": "north"|"south"|"either"` instead of drawn geometry —
+carries `"workshop": "north"|"south"|"own"|"enemy"|"either"` instead of drawn geometry —
 the rules-owned training tile is resolved from the match contract's Workshop
 binding, never from authored coordinates, so the same document stays honest
-on any future map revision. Workshop ids are global map identities (they do
-not mirror with the seat), while every drawn post/area/path still does.
+on any future map revision. North/south are global map identities. Own/enemy
+resolve at match time to the Workshop nearest/farthest from that team's own
+Well, so a strategic side choice mirrors with the entrant just like drawn
+ground; `either` keeps its deterministic availability/distance choice.
 `travel` chooses the on-the-way behavior as usual; on arrival the body waits
 on the tile and the rules run the channel. Core custody outranks training: a
 `coreRule` that hands the trainee a Core suspends the channel until the Core

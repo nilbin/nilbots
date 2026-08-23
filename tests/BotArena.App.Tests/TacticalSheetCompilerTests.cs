@@ -93,6 +93,32 @@ public sealed class TacticalSheetCompilerTests
     }
 
     [Fact]
+    public void Loomsplit_candidate_reproduces_through_the_hosted_save_path()
+    {
+        string root = Path.GetDirectoryName(
+            BotArena.Toolchain.RepoPaths.FindUpward("BotArena.sln")!)!;
+        string tactics = File.ReadAllText(Path.Combine(
+            root, "arena-bots", "arc-relay",
+            "tactical-playbook-v1-2026-08-03", "tactics",
+            "loomsplit-v1.json"));
+        var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
+        IReadOnlySet<string> unlocked = ArcRelayClassCatalog.Default.All
+            .Select(value => value.Id).ToHashSet(StringComparer.Ordinal);
+
+        ValidatedTacticalSheet compiled = compiler.CompileTactics(
+            tactics, unlocked, "loomsplit-v1");
+
+        Assert.Equal(
+            "b94736e4644e522f8820849df105754be76be5a7801a5a61697f7335678d51f1",
+            compiled.ContentHash);
+        Assert.Equal(tactics, compiled.TacticsJson);
+        using JsonDocument orders = JsonDocument.Parse(
+            compiled.Compilation.MaterializedOrders!);
+        Assert.Equal("loomsplit-v1",
+            orders.RootElement.GetProperty("sheetId").GetString());
+    }
+
+    [Fact]
     public void ExistingV2PhaseTargetsNormalizeBeforeHostedSaveAndReadback()
     {
         var templates = new TacticalSheetTemplateCatalog();
@@ -167,7 +193,7 @@ public sealed class TacticalSheetCompilerTests
     }
 
     [Fact]
-    public void Tactics_path_names_the_post_whose_facing_points_into_a_wall()
+    public void Tactics_path_accepts_a_post_whose_cardinal_facing_points_into_a_wall()
     {
         var templates = new TacticalSheetTemplateCatalog();
         var compiler = new TacticalSheetCompiler(ArcRelayClassCatalog.Default);
@@ -198,13 +224,10 @@ public sealed class TacticalSheetCompilerTests
         post["at"] = new JsonArray(at.X, at.Y);
         post["facing"] = "e";
 
-        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
-            compiler.CompileTactics(
-                tactics.ToJsonString(), unlocked, "post-facing-wall"));
+        ValidatedTacticalSheet compiled = compiler.CompileTactics(
+            tactics.ToJsonString(), unlocked, "post-facing-wall");
 
-        Assert.Contains("tactics[1].phases[0].jobs.holders.posts[0]", error.Message);
-        Assert.Contains($"faces ({at.X + 1},{at.Y})", error.Message);
-        Assert.Contains("turn its facing", error.Message);
+        Assert.NotNull(compiled.Compilation.MaterializedOrders);
     }
 
     [Fact]

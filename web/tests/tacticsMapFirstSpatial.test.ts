@@ -115,18 +115,18 @@ test('selection translation preserves offsets, snaps legally, and avoids reserva
   }
 });
 
-test('translation keeps the requested tile and turns a post away from a wall', () => {
+test('translation keeps the requested tile and cardinal facing beside a wall', () => {
   const posts: TacticPost[] = [{ slot: 0, at: [7, 5], facing: 'e' }];
   const moved = translatePostSelection(catalog, posts, [0], 0, [7, 4]);
   assert.ok(moved);
   assert.deepEqual(moved.positions.get(0), [7, 4]);
-  assert.notEqual(moved.facings.get(0), 'e');
+  assert.equal(moved.facings.get(0), 'e');
   assert.equal(postFacingIssue(catalog, {
     ...posts[0], at: moved.positions.get(0)!, facing: moved.facings.get(0)!,
   }), null);
 });
 
-test('selection rotation is all-or-nothing when a facing would hit a wall', () => {
+test('selection rotation treats a wall-facing direction as legal intent', () => {
   const clear: TacticPost[] = [
     { slot: 0, at: [3, 3], facing: 'e' },
     { slot: 1, at: [3, 5], facing: 'e' },
@@ -136,7 +136,7 @@ test('selection rotation is all-or-nothing when a facing would hit a wall', () =
     ...clear,
     { slot: 2, at: [7, 4], facing: 'w' },
   ];
-  assert.equal(rotatePostSelection(catalog, blocked, [0, 2], 'e'), false);
+  assert.equal(rotatePostSelection(catalog, blocked, [0, 2], 'e'), true);
 });
 
 test('suggested formations are deterministic, distinct, legal and face the objective', () => {

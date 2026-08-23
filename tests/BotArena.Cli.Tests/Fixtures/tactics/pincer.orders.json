@@ -282,7 +282,7 @@
                       "anchor": "g-t1-g1-post-1"
                     },
                     "face": {
-                      "anchor": "g-t1-g1-face-1"
+                      "direction": "n"
                     }
                   }
                 }
@@ -361,7 +361,7 @@
                       "anchor": "g-t1-g1-post-1"
                     },
                     "face": {
-                      "anchor": "g-t1-g1-face-1"
+                      "direction": "n"
                     }
                   }
                 }
@@ -634,7 +634,7 @@
                       "anchor": "g-t1-g1-post-0"
                     },
                     "face": {
-                      "anchor": "g-t1-g2-goal"
+                      "direction": "e"
                     }
                   }
                 }
@@ -699,7 +699,7 @@
                       "anchor": "g-t1-g1-post-0"
                     },
                     "face": {
-                      "anchor": "g-t1-g2-goal"
+                      "direction": "e"
                     }
                   }
                 }

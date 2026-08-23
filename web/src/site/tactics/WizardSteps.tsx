@@ -771,7 +771,7 @@ export function JobSection(props: StepProps & {
           <li>One bot walks in and <b>waits on the tile</b>; the rules run the channel.</li>
           <li>The channel breaks if it <b>moves, attacks, takes damage</b> or picks a Core up.</li>
           <li>Living enemies in the room <b>pause</b> it — that is what the guards are for.</li>
-          <li>North and south are the same rooms for both sides; this choice does not mirror.</li>
+          <li>Your side and their side mirror with the entrant; north and south name a fixed room.</li>
         </ul>
         {job.recovery !== 'fight-on' && (
           <p className="mt-1 t-micro text-arena-warning">

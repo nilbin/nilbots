@@ -9693,3 +9693,28 @@ consume Workshop lifecycle boundaries from replay events, and parse the same
 evidence, not match validity: deviations exit zero unless `--strict` is
 explicitly requested. This adds no engine, replay, SDK, CLI, playlist, or
 executor behavior.
+
+## 363. Workshop authoring gains seat-relative side selectors
+
+Tactics and Orders Workshop selectors add `own` and `enemy` beside the global
+`north`, `south`, and `either` choices. The executor resolves `own` to the
+Workshop nearest this team's own Well and `enemy` to the farthest, with map
+walking distance and Workshop id as deterministic ordering. This preserves
+the neutral public Workshop state while letting one authored strategy mean
+"train on our side" from either seat; drawn ground and the selected Workshop
+no longer silently disagree after seat rotation. The player editor previews
+the same relation from its west-authoring perspective. Existing global choices
+and historical documents are unchanged.
+
+## 364. Exact Post facing compiles to a cardinal direction, not fake ground
+
+Orders `move.face` accepts a seat-relative `direction: n|e|s|w` beside its
+existing anchor form. Tactics Posts now materialize their authored direction
+directly. The former encoding invented an adjacent map anchor solely to derive
+a direction; looking toward a wall then failed match startup because every map
+anchor is correctly required to be traversable even though looking does not
+require traversable ground. Cardinal facing removes that category error,
+mirrors 180 degrees for the opposite seat, and leaves authored watch-anchor
+behavior compatible. Because a cardinal direction is intent rather than a
+destination, the hosted compiler and editor do not reject it when the adjacent
+tile happens to be a wall, boundary, or reserved ground.
