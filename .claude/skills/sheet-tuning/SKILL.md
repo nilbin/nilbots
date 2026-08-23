@@ -26,6 +26,19 @@ what a change does, never as a balance measurement.
   updates that page in the same commit. Verify the wording against typed
   Engine rules and `ArcRelaySignatureAuthoringCatalog`; do not copy a stale
   design document into it.
+- Keep the complete signature seam aligned in the same commit: typed Engine
+  definition/runtime behavior, canonical writer and SDK reader, authoring
+  catalogue descriptor, compiler-emitted opportunity/custody/guidance,
+  tactical mind execution, and the field manual. The catalogue is authoring
+  intent rather than runtime truth; expose any mechanic the editor or mind
+  needs through the typed contract. Prefer one reusable opportunity family to
+  a skill-id branch in the mind, while allowing typed signature-kind handling
+  for genuinely different targeting or lifecycle mechanics. Verify exact-mark
+  approach behavior, Smart usefulness gates, carrying policy, active cap and
+  replacement, duration, visibility, wall interaction, and counterplay. Run
+  the focused Engine signature tests, `ArcRelayClassCatalogTests`, and
+  `OrdersSignatureOpportunitySceneTests`; a catalogue entry without matching
+  executor coverage is incomplete.
 - Report the six outcomes as records only. Six cells show behavior and do not
   establish that a change is better or balanced.
 - Every gallery must identify both sides by the authored `sheetId` in its
