@@ -451,6 +451,8 @@ internal static class ActorRulesCanonicalWriter
             case ArcRelaySignatureDefinition.VectorDash value:
                 writer.WriteNumber("tellTicks", value.TellTicks);
                 writer.WriteNumber("maxTiles", value.MaxTiles);
+                if (value.RetainsCore)
+                    writer.WriteBoolean("retainsCore", true);
                 break;
             case ArcRelaySignatureDefinition.PrismWall value:
                 writer.WriteNumber("segmentCount", value.SegmentCount);
@@ -481,6 +483,11 @@ internal static class ActorRulesCanonicalWriter
                     value.TravelTilesPerTick);
                 writer.WriteNumber("revealRadius", value.RevealRadius);
                 writer.WriteNumber("durationTicks", value.DurationTicks);
+                if (value.TeamVisionRadius > 0)
+                {
+                    writer.WriteNumber(
+                        "teamVisionRadius", value.TeamVisionRadius);
+                }
                 break;
             case ArcRelaySignatureDefinition.FallingStar value:
                 writer.WriteNumber("range", value.Range);
@@ -506,6 +513,8 @@ internal static class ActorRulesCanonicalWriter
             case ArcRelaySignatureDefinition.Exchange value:
                 writer.WriteNumber("range", value.Range);
                 writer.WriteNumber("tellTicks", value.TellTicks);
+                if (value.TargetRetainsCore)
+                    writer.WriteBoolean("targetRetainsCore", true);
                 break;
             case ArcRelaySignatureDefinition.RailLine value:
                 // Rail's telegraph has always been on the wire as `tellTicks`
@@ -574,6 +583,14 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber(
                     "boltTilesPerAdvance",
                     value.BoltTilesPerAdvance);
+                if (value.Damage > 0)
+                    writer.WriteNumber("damage", value.Damage);
+                if (value.AuthoredWallPenetrationTiles > 0)
+                {
+                    writer.WriteNumber(
+                        "authoredWallPenetrationTiles",
+                        value.AuthoredWallPenetrationTiles);
+                }
                 break;
             case ArcRelaySignatureDefinition.NullField2 value:
                 writer.WriteNumber("radius", value.Radius);
@@ -601,6 +618,10 @@ internal static class ActorRulesCanonicalWriter
                 writer.WriteNumber("pushTiles", value.PushTiles);
                 writer.WriteNumber(
                     "cancelCooldownTicks", value.CancelCooldownTicks);
+                if (value.Damage > 0)
+                    writer.WriteNumber("damage", value.Damage);
+                if (value.HostilesOnly)
+                    writer.WriteBoolean("hostilesOnly", true);
                 break;
             case ArcRelaySignatureDefinition.SmokeCanister2 value:
                 writer.WriteNumber("range", value.Range);

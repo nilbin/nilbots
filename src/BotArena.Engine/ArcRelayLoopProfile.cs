@@ -241,7 +241,8 @@ public sealed record ArcRelayLoopProfile
     internal int ArcTossTellTicks { get; }
     internal int ArcTossTravelTilesPerTick { get; }
     internal ArcRelaySignatureDefinition.ActivationTimingKind
-        ArcTossActivationTiming { get; }
+        ArcTossActivationTiming
+    { get; }
 
     /// <summary>
     /// When positive, only each Well's initial schedule is global. Banking
@@ -1839,18 +1840,31 @@ public sealed record ArcRelayLoopProfile
         tapline15CombatDepth: true,
         workshopDormancyTicks: 0);
 
+    /// <summary>
+    /// Broadloom signature-depth pass: custody-safe Kestrel Dash, damaging
+    /// front-pull Hook with authored single-wall breach, hostile damaging
+    /// Burst, team-vision Flare, and custody-preserving Exchange.
+    /// </summary>
+    public static ArcRelayLoopProfile Broadloom4 { get; } = CreateBroadloom(
+        "broadloom-4",
+        "arc-relay-broadloom-4",
+        tapline15CombatDepth: true,
+        workshopDormancyTicks: 0,
+        signatureGrammarVersion: 4);
+
     private static ArcRelayLoopProfile CreateBroadloom(
         string id,
         string rulesetId,
         bool tapline15CombatDepth,
-        int workshopDormancyTicks = 45) => new(
+        int workshopDormancyTicks = 45,
+        int signatureGrammarVersion = 3) => new(
         id,
         rulesetId,
         "arc-relay-broadloom-01",
         ArcRelayMapGeometry.BroadloomCross,
         30, 65, 25, 1,
         directionalCombat: true,
-        signatureGrammarVersion: 3,
+        signatureGrammarVersion: signatureGrammarVersion,
         wellBirthJitterTicks: 6,
         alternatingResolutionOrder: true,
         rearArcDamageMultiplier: 2,
@@ -1900,7 +1914,7 @@ public sealed record ArcRelayLoopProfile
     /// hosted playlist so advancing the product never rewrites old contracts or
     /// golden replays.
     /// </summary>
-    public static ArcRelayLoopProfile Current => Broadloom3;
+    public static ArcRelayLoopProfile Current => Broadloom4;
 
     public static ArcRelayLoopProfile Return16 { get; } = new(
         "return-16",
@@ -1990,6 +2004,7 @@ public sealed record ArcRelayLoopProfile
         Broadloom1,
         Broadloom2,
         Broadloom3,
+        Broadloom4,
         TaplineDepthScore124,
         TaplineDepthVeteranCommand,
         TaplineDepthRespawnWave,

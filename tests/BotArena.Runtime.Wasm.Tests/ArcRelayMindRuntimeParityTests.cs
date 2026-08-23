@@ -11,7 +11,7 @@ namespace BotArena.Runtime.Wasm.Tests;
 /// <summary>
 /// Product-grade parity proof for the generic MIND profile. The scripted seam
 /// test catches codec shape changes; this test runs the shipped tactical mind,
-/// real Tapline contract, and real Orders packages through an entire match.
+/// current Arc Relay contract, and real Orders packages through an entire match.
 /// </summary>
 public sealed class ArcRelayMindRuntimeParityTests
 {
@@ -23,8 +23,8 @@ public sealed class ArcRelayMindRuntimeParityTests
             return;
 
         string root = FindRepoRoot();
-        const string firstSheet = "demolition-march-v1.json";
-        const string secondSheet = "tempered-standard-v1.json";
+        const string firstSheet = "tempered-broadloom-v1.json";
+        const string secondSheet = "broadloom-ball-v1.json";
         string artifact = Path.Combine(
             root,
             "arena-bots",
@@ -44,9 +44,9 @@ public sealed class ArcRelayMindRuntimeParityTests
 
         GenericActorReplayDocument viaWasm;
         using (var first = new WasmGenericMindRuntimeFactory(
-                   new WasmMindRuntimeOptions { ModulePath = artifact }))
+                   ParityRuntimeOptions(artifact)))
         using (var second = new WasmGenericMindRuntimeFactory(
-                   new WasmMindRuntimeOptions { ModulePath = artifact }))
+                   ParityRuntimeOptions(artifact)))
         {
             viaWasm = Run(
                 definition,
@@ -71,7 +71,7 @@ public sealed class ArcRelayMindRuntimeParityTests
                 static () => new global::ArcRelayTacticalPlaybookMind()));
 
         Assert.Equal(inProcess.ReplayHash, viaWasm.ReplayHash);
-        AssertTaplineHasNoTerminalDeliveryFallback(inProcess.CanonicalJson);
+        AssertCurrentMatchHasNoTerminalDeliveryFallback(inProcess.CanonicalJson);
     }
 
     private static GenericActorReplayDocument Run(
@@ -112,7 +112,7 @@ public sealed class ArcRelayMindRuntimeParityTests
     /// fallback. Stationary spans are not a sound proxy on current Tactics —
     /// Hold posts deliberately stay put — so pin the semantic failure itself.
     /// </summary>
-    private static void AssertTaplineHasNoTerminalDeliveryFallback(
+    private static void AssertCurrentMatchHasNoTerminalDeliveryFallback(
         string replayJson)
     {
         using JsonDocument replay = JsonDocument.Parse(replayJson);
@@ -122,20 +122,20 @@ public sealed class ArcRelayMindRuntimeParityTests
         {
             foreach (JsonElement turn in tick.GetProperty("mindTurns")
                          .EnumerateArray())
-            foreach (JsonElement command in turn.GetProperty("commands")
-                         .EnumerateArray())
-            {
-                string reason = command.GetProperty("debugMessage")
-                    .GetString() ?? "";
-                int team = turn.GetProperty("teamId").GetInt32();
-                if (reason.Contains(
-                        "custody:delivery-timeout-",
-                        StringComparison.Ordinal))
+                foreach (JsonElement command in turn.GetProperty("commands")
+                             .EnumerateArray())
                 {
-                    timeoutTicks[team] = timeoutTicks.GetValueOrDefault(team)
-                        + 1;
+                    string reason = command.GetProperty("debugMessage")
+                        .GetString() ?? "";
+                    int team = turn.GetProperty("teamId").GetInt32();
+                    if (reason.Contains(
+                            "custody:delivery-timeout-",
+                            StringComparison.Ordinal))
+                    {
+                        timeoutTicks[team] = timeoutTicks.GetValueOrDefault(team)
+                            + 1;
+                    }
                 }
-            }
         }
 
         foreach (int team in new[] { 0, 1 })
@@ -146,23 +146,38 @@ public sealed class ArcRelayMindRuntimeParityTests
         int participantId,
         TacticalPlaybookCompilation playbook,
         IGenericMindRuntimeFactory factory) => new()
-    {
-        ParticipantId = participantId,
-        TeamId = participantId,
-        Name = participantId == 0 ? "Hunter" : "Wellwright",
-        MindRuntimeFactory = factory,
-        // Replay provenance is deliberately identical between the two host
-        // implementations. Runtime choice is an execution detail; this is the
-        // same participant artifact and data under the determinism promise.
-        RuntimeKind = "tactical-mind-parity",
-        ArtifactHash = "tactical-mind-parity-artifact",
-        MindDataHash = Convert.ToHexStringLower(
+        {
+            ParticipantId = participantId,
+            TeamId = participantId,
+            Name = participantId == 0 ? "Hunter" : "Wellwright",
+            MindRuntimeFactory = factory,
+            // Replay provenance is deliberately identical between the two host
+            // implementations. Runtime choice is an execution detail; this is the
+            // same participant artifact and data under the determinism promise.
+            RuntimeKind = "tactical-mind-parity",
+            ArtifactHash = "tactical-mind-parity-artifact",
+            MindDataHash = Convert.ToHexStringLower(
             SHA256.HashData(playbook.LinkedData)),
-        MindEvaluationData = ImmutableArray.Create(playbook.LinkedData),
-        Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
-        LookId = "arc-relay-sheet",
-        ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
-    };
+            MindEvaluationData = ImmutableArray.Create(playbook.LinkedData),
+            Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
+            LookId = "arc-relay-sheet",
+            ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
+        };
+
+    /// <summary>
+    /// Large materialized Tactics documents are a trusted in-process product
+    /// surface, not public custom-mind qualification entrants. This semantic
+    /// parity proof intentionally gives their NativeAOT mirror ample fuel; the
+    /// sandbox budget has its own focused enforcement tests.
+    /// </summary>
+    private static WasmMindRuntimeOptions ParityRuntimeOptions(
+        string artifact) => new()
+        {
+            ModulePath = artifact,
+            BaseTickFuel = checked(
+            (ulong)GenericMindTickBudget.StartupFuel
+            + (ulong)GenericMindTickBudget.BaseTickFuel),
+        };
 
     private static TacticalPlaybookCompilation Compile(
         string root,
@@ -175,14 +190,11 @@ public sealed class ArcRelayMindRuntimeParityTests
             "tactical-playbook-v1-2026-08-03",
             "playbooks",
             fileName);
-        string mapPlan = Path.Combine(
-            root,
-            "arena-bots",
-            "arc-relay",
-            "tactical-playbook-v1-2026-08-03",
-            "map-plans",
-            "tapline-9",
-            fileName);
+        using JsonDocument playbookDocument = JsonDocument.Parse(
+            File.ReadAllBytes(playbook));
+        string mapPlan = Path.GetFullPath(
+            playbookDocument.RootElement.GetProperty("mapPlan").GetString()!,
+            Path.GetDirectoryName(playbook)!);
         return ArcRelayTacticalPlaybookCompiler.Compile(
             File.ReadAllBytes(playbook),
             File.ReadAllBytes(mapPlan),

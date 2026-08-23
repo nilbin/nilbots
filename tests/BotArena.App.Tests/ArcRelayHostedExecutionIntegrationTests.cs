@@ -78,10 +78,8 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                     "{\"midWellRibs\":true}";
                 await db.Database.ExecuteSqlInterpolatedAsync($"""
                     UPDATE "PlaylistVersions"
-                    SET "Version" = {
-                            ArcRelayEntrantPlaylistDefinition.Tapline9Version},
-                        "DefinitionFingerprint" = {
-                        ArcRelayEntrantPlaylistSeeder
+                    SET "Version" = {ArcRelayEntrantPlaylistDefinition.Tapline9Version},
+                        "DefinitionFingerprint" = {ArcRelayEntrantPlaylistSeeder
                             .UnpublishedMistakenTapline9DefinitionFingerprint},
                         "CanonicalDefinition" = CAST({mistakenCanonical} AS jsonb),
                         "Provenance" = CAST({mistakenProvenance} AS jsonb)
@@ -150,7 +148,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 await client.GetFromJsonAsync<TacticalSheetCatalogResponse>(
                     "/api/sheets/catalog"));
         Assert.Equal(ArcRelayComposition.SlotCount, catalog.SlotCount);
-        Assert.Equal(ArcRelayLoopProfile.Broadloom3.MapId, catalog.Map.Id);
+        Assert.Equal(ArcRelayLoopProfile.Broadloom4.MapId, catalog.Map.Id);
         Assert.Equal(37, catalog.Map.Width);
         Assert.Equal(27, catalog.Map.Height);
         Assert.Equal(2, catalog.StockOpponents.Count);
@@ -248,9 +246,9 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 .Include(value => value.TeamResults)
                 .SingleAsync(value => value.Id == created.Id);
             Assert.Equal(MatchStatus.Completed, match.Status);
-            Assert.Equal(ArcRelayLoopProfile.Broadloom3.MapId, match.MapId);
+            Assert.Equal(ArcRelayLoopProfile.Broadloom4.MapId, match.MapId);
             Assert.Equal(
-                ArcRelayLoopProfile.Broadloom3.RulesetId,
+                ArcRelayLoopProfile.Broadloom4.RulesetId,
                 match.GameRulesVersion);
             Assert.Equal(ArcRelayBroadcastDocument.FormatVersion, match.ReplayFormatVersion);
             Assert.Equal(1.25, match.PresentationTicksPerSecond);
@@ -262,7 +260,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 Assert.Equal(owner.DisplayName, participant.OwnerDisplayNameSnapshot);
                 Assert.Equal(
                     ArcRelayEntrantPlaylistDefinition
-                        .Broadloom3TacticalArtifactHash,
+                        .Broadloom4TacticalArtifactHash,
                     participant.ArtifactHashSnapshot);
                 Assert.NotNull(participant.SheetIdSnapshot);
                 Assert.NotNull(participant.EntrantIdSnapshot);
@@ -286,7 +284,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
                 })
                 .ToListAsync();
             Assert.All(tacticalVersions, value => Assert.Equal(
-                ArcRelayLoopProfile.Broadloom3.RulesetId,
+                ArcRelayLoopProfile.Broadloom4.RulesetId,
                 value.GameRulesVersion));
             Guid[] tacticalBotIds = tacticalVersions
                 .Select(value => value.BotId)
@@ -329,7 +327,7 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
             value => Assert.Equal(second.ContentHash, value.GetProperty("mindDataHash").GetString()));
         Assert.All(provenance, value => Assert.Equal(
             ArcRelayEntrantPlaylistDefinition
-                .Broadloom3TacticalArtifactHash,
+                .Broadloom4TacticalArtifactHash,
             value.GetProperty("artifactHash").GetString()));
         Assert.Equal(replayHash, replay.RootElement.GetProperty("replayHash").GetString());
 
@@ -546,19 +544,19 @@ public sealed class ArcRelayHostedExecutionIntegrationTests
         // benchmark; its unoptimized planner measured about 2.5s on the
         // hand-authored stock sheet and about 3.4s on the materialized
         // Tactics starter, whose per-bot post and fight leaves evaluate a
-        // larger order tree. Tapline-8's bank-gated supply makes matches run
-        // deeper into the 600-tick horizon (the reference cell ends ~541),
-        // which measured about 5.0s in Debug.
+        // larger order tree. Broadloom-4's 37x27 path field and bank-gated
+        // supply run the reference cell to tick 577, measuring about 8.3s in
+        // Debug; this remains only a coarse wrong-path guard.
 #if DEBUG
         Assert.True(
-            steadyElapsed.Elapsed < TimeSpan.FromSeconds(8),
+            steadyElapsed.Elapsed < TimeSpan.FromSeconds(10),
             $"Debug hosted entrant execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
 #else
-        // The Tapline-8 reference cell measured 2.220s steady in Release —
-        // the bank-gated economy runs matches deeper into the horizon than
-        // the 1.241s Tapline-3 reference this gate was first cut for.
+        // The Broadloom-4 reference cell measures about 3.16s steady in
+        // Release at tick 577; retain modest headroom while still catching a
+        // production-path regression.
         Assert.True(
-            steadyElapsed.Elapsed < TimeSpan.FromSeconds(3),
+            steadyElapsed.Elapsed < TimeSpan.FromSeconds(3.5),
             $"Steady hosted entrant execution took {steadyElapsed.Elapsed.TotalMilliseconds:F1}ms.");
 #endif
     }

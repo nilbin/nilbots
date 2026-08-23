@@ -32,13 +32,24 @@
                   }
                 },
                 {
-                  "shared": "t1-p1-g1-hunt-carrier"
-                },
-                {
                   "shared": "t1-p1-g1-hunt-core"
                 },
                 {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "id": "t1-p1-g1-carrier-sig",
+                  "when": {
+                    "all": [
+                      "carrying-core",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "vector-dash",
+                    "opportunity": "route-forward",
+                    "target": "own-reactor"
+                  }
                 },
                 {
                   "id": "t1-p1-g1-sig",
@@ -57,6 +68,9 @@
                       "minimumForwardTiles": 2
                     }
                   }
+                },
+                {
+                  "shared": "t1-p1-g1-hunt-carrier"
                 },
                 {
                   "shared": "t1-p1-g1-carrier-defence"
@@ -85,10 +99,24 @@
                   }
                 },
                 {
-                  "shared": "t1-p2-g1-hunt-carrier"
+                  "shared": "t1-p2-g1-hunt-core"
                 },
                 {
-                  "shared": "t1-p2-g1-hunt-core"
+                  "id": "t1-p2-g1-carrier-sig",
+                  "when": {
+                    "all": [
+                      "carrying-core",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "vector-dash",
+                    "opportunity": "route-forward",
+                    "target": "own-reactor"
+                  }
+                },
+                {
+                  "shared": "t1-p2-g1-hunt-carrier"
                 },
                 {
                   "shared": "t1-p2-g1-carrier-defence"
@@ -164,8 +192,8 @@
                   },
                   "use": {
                     "skill": "exchange",
-                    "opportunity": "rescue-endangered-ally",
-                    "target": "healthiest-ally"
+                    "opportunity": "advance-friendly-carrier",
+                    "target": "nearest-friendly-core-carrier-behind"
                   }
                 },
                 {
@@ -207,8 +235,8 @@
                   },
                   "use": {
                     "skill": "exchange",
-                    "opportunity": "rescue-endangered-ally",
-                    "target": "healthiest-ally"
+                    "opportunity": "advance-friendly-carrier",
+                    "target": "nearest-friendly-core-carrier-behind"
                   }
                 },
                 {
@@ -687,13 +715,13 @@
                   }
                 },
                 {
-                  "shared": "t1-p1-g1-hunt-carrier"
-                },
-                {
                   "shared": "t1-p1-g1-hunt-core"
                 },
                 {
                   "shared": "t1-p1-g1-patch"
+                },
+                {
+                  "shared": "t1-p1-g1-hunt-carrier"
                 },
                 {
                   "shared": "t1-p1-g1-carrier-defence"
@@ -736,10 +764,10 @@
                   }
                 },
                 {
-                  "shared": "t1-p2-g1-hunt-carrier"
+                  "shared": "t1-p2-g1-hunt-core"
                 },
                 {
-                  "shared": "t1-p2-g1-hunt-core"
+                  "shared": "t1-p2-g1-hunt-carrier"
                 },
                 {
                   "shared": "t1-p2-g1-carrier-defence"
@@ -963,22 +991,6 @@
         "posture": "line"
       }
     },
-    "t1-p1-g1-hunt-carrier": {
-      "when": {
-        "all": [
-          "empty-handed",
-          "enemy-carrier-visible"
-        ]
-      },
-      "fight": {
-        "targets": [
-          "carrier",
-          "nearest"
-        ],
-        "style": "advance",
-        "chaseLimit": 8
-      }
-    },
     "t1-p1-g1-hunt-core": {
       "when": {
         "all": [
@@ -1004,6 +1016,22 @@
       "move": {
         "to": "current-position",
         "posture": "rear"
+      }
+    },
+    "t1-p1-g1-hunt-carrier": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "enemy-carrier-visible"
+        ]
+      },
+      "fight": {
+        "targets": [
+          "carrier",
+          "nearest"
+        ],
+        "style": "advance",
+        "chaseLimit": 8
       }
     },
     "t1-p1-g1-carrier-defence": {
@@ -1062,6 +1090,18 @@
         "posture": "rear"
       }
     },
+    "t1-p2-g1-hunt-core": {
+      "when": {
+        "all": [
+          "empty-handed",
+          "loose-core-known"
+        ]
+      },
+      "capacity": "pair-per-core",
+      "move": {
+        "to": "nearest-known-loose-core"
+      }
+    },
     "t1-p2-g1-hunt-carrier": {
       "when": {
         "all": [
@@ -1076,18 +1116,6 @@
         ],
         "style": "advance",
         "chaseLimit": 8
-      }
-    },
-    "t1-p2-g1-hunt-core": {
-      "when": {
-        "all": [
-          "empty-handed",
-          "loose-core-known"
-        ]
-      },
-      "capacity": "pair-per-core",
-      "move": {
-        "to": "nearest-known-loose-core"
       }
     },
     "t1-p2-g1-carrier-defence": {
@@ -1372,11 +1400,6 @@
       "operator": "equals",
       "value": 1
     },
-    "enemy-carrier-visible": {
-      "fact": "visible-enemy-carriers",
-      "operator": "at-least",
-      "value": 1
-    },
     "patched-up": {
       "fact": "self-health-percent",
       "operator": "at-least",
@@ -1385,6 +1408,11 @@
     "signature-ready": {
       "fact": "signature-ready",
       "operator": "equals",
+      "value": 1
+    },
+    "enemy-carrier-visible": {
+      "fact": "visible-enemy-carriers",
+      "operator": "at-least",
       "value": 1
     },
     "enemy-no-longer-nearby": {

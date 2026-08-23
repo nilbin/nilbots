@@ -58,6 +58,24 @@
                   "shared": "t1-p2-g1-grab"
                 },
                 {
+                  "id": "t1-p2-g1-carrier-sig",
+                  "when": {
+                    "all": [
+                      "carrying-core",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "vector-dash",
+                    "opportunity": "route-forward",
+                    "target": {
+                      "route": "g-t1-g1-p2-s0-smart-dash",
+                      "progress": "forward",
+                      "minimumForwardTiles": 2
+                    }
+                  }
+                },
+                {
                   "id": "t1-p2-g1-sig",
                   "when": {
                     "all": [
@@ -169,8 +187,8 @@
                   },
                   "use": {
                     "skill": "exchange",
-                    "opportunity": "rescue-endangered-ally",
-                    "target": "healthiest-ally"
+                    "opportunity": "advance-friendly-carrier",
+                    "target": "nearest-friendly-core-carrier-behind"
                   }
                 },
                 {

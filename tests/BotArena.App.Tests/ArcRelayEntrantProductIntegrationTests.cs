@@ -805,8 +805,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
     [InlineData(ArcRelayEntrantPlaylistDefinition.CompleteObservationVersion)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.BroadloomInitialVersion)]
     [InlineData(ArcRelayEntrantPlaylistDefinition.Broadloom2Version)]
+    [InlineData(ArcRelayEntrantPlaylistDefinition.Broadloom3Version)]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Broadloom_v35_starts_a_fresh_book_from_the_open_prior_ladder(
+    public async Task Broadloom_v36_starts_a_fresh_book_from_the_open_prior_ladder(
         int predecessorVersion)
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
@@ -862,6 +863,8 @@ public sealed class ArcRelayEntrantProductIntegrationTests
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33(),
                 ArcRelayEntrantPlaylistDefinition.Broadloom2Version =>
                     ArcRelayEntrantPlaylistDefinition.CreateHistoricalV34(),
+                ArcRelayEntrantPlaylistDefinition.Broadloom3Version =>
+                    ArcRelayEntrantPlaylistDefinition.CreateHistoricalV35(),
                 _ => throw new ArgumentOutOfRangeException(nameof(predecessorVersion)),
             };
             var version = new PlaylistVersion
@@ -976,7 +979,7 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
     [SkippableFact]
     [Trait("Category", PostgreSqlDatabaseFixture.Category)]
-    public async Task Broadloom_v35_refuses_to_skip_a_registered_v30_ladder()
+    public async Task Broadloom_v36_refuses_to_skip_a_registered_v30_ladder()
     {
         await using var database = await PostgreSqlDatabaseFixture.CreateAsync();
         await using (AppDbContext migration =
@@ -1038,24 +1041,24 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
             PlaylistVersion Version(
                 ArcRelayEntrantPlaylistDefinition definition) => new()
-            {
-                PlaylistId = playlist.Id,
-                Version = definition.PlaylistVersion,
-                GameModeId = definition.Match.Rules.GameMode.ModeId,
-                RulesetId = definition.Match.Rules.RulesetId,
-                MatchFormatId = definition.Match.Format.FormatId,
-                MapPoolId = definition.Match.Map.Id,
-                SeriesPolicyId = ArcRelayEntrantPlaylistDefinition.SeriesPolicyId,
-                MatchmakingPolicyId =
+                {
+                    PlaylistId = playlist.Id,
+                    Version = definition.PlaylistVersion,
+                    GameModeId = definition.Match.Rules.GameMode.ModeId,
+                    RulesetId = definition.Match.Rules.RulesetId,
+                    MatchFormatId = definition.Match.Format.FormatId,
+                    MapPoolId = definition.Match.Map.Id,
+                    SeriesPolicyId = ArcRelayEntrantPlaylistDefinition.SeriesPolicyId,
+                    MatchmakingPolicyId =
                     ArcRelayEntrantPlaylistDefinition.MatchmakingPolicyId,
-                AdmissionPolicyId = definition.AdmissionPolicyId,
-                ExecutionPolicyId = definition.ExecutionPolicyId,
-                ExecutionEngineVersion = definition.ExecutionEngineVersion,
-                CanonicalDefinition = definition.CanonicalDefinition,
-                DefinitionFingerprint = definition.DefinitionFingerprint,
-                Provenance = definition.Provenance,
-                Visibility = ArcRelayEntrantPlaylistDefinition.Visibility,
-            };
+                    AdmissionPolicyId = definition.AdmissionPolicyId,
+                    ExecutionPolicyId = definition.ExecutionPolicyId,
+                    ExecutionEngineVersion = definition.ExecutionEngineVersion,
+                    CanonicalDefinition = definition.CanonicalDefinition,
+                    DefinitionFingerprint = definition.DefinitionFingerprint,
+                    Provenance = definition.Provenance,
+                    Visibility = ArcRelayEntrantPlaylistDefinition.Visibility,
+                };
         }
 
         await using AsyncServiceScope seedScope =
@@ -1082,7 +1085,9 @@ public sealed class ArcRelayEntrantProductIntegrationTests
 
         HttpResponseMessage challenge = await client.PostAsJsonAsync("/api/matches/challenge", new
         {
-            botId = Guid.NewGuid(), opponentBotId = Guid.NewGuid(), mapId = "arena-01",
+            botId = Guid.NewGuid(),
+            opponentBotId = Guid.NewGuid(),
+            mapId = "arena-01",
         });
         HttpResponseMessage ranked = await client.PostAsJsonAsync("/api/matches/ranked", new
         {

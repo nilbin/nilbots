@@ -159,6 +159,30 @@ public sealed class MindToolchainSurfaceTests
     }
 
     [Fact]
+    public void FrozenBroadloom3ArtifactRetainsItsOwnControlledBuildReceipt()
+    {
+        string root = FindRepoRoot();
+        string frozenDirectory = Path.Combine(
+            root,
+            "arena-bots",
+            "arc-relay",
+            "broadloom-3-stock-v1");
+        TrackedBuildReceipt frozen = ReadReceipt(Path.Combine(
+            frozenDirectory,
+            "bot.build-receipt.json"));
+
+        Assert.Equal(
+            frozen.ArtifactSha256,
+            Sha256(Path.Combine(frozenDirectory, "bot.wasm")));
+        Assert.Equal(
+            "2657d3505603635417006a4206671ab190a92e83b4921ec09a3b555ce076b1da",
+            frozen.ArtifactSha256);
+        Assert.Equal(
+            "4a9a7351da0892bf18bc40c9db7e1e6ebf59522fa36090e0554beff0f6d96872",
+            frozen.BuildInputSha256);
+    }
+
+    [Fact]
     public void BroadloomCurrentAndHistoricalReleaseArtifactsRemainPinned()
     {
         string root = FindRepoRoot();
@@ -222,10 +246,10 @@ public sealed class MindToolchainSurfaceTests
             Sha256(Path.Combine(historicalTapline4Directory, "bot.wasm")));
         Assert.Equal("0.10.16", current.SdkVersion);
         Assert.Equal(
-            "2657d3505603635417006a4206671ab190a92e83b4921ec09a3b555ce076b1da",
+            "d9929b5622e99f4db0bb0efa1539e990baea3442f7f1b0ec0b2d297de4667209",
             current.ArtifactSha256);
         Assert.Equal(
-            "4a9a7351da0892bf18bc40c9db7e1e6ebf59522fa36090e0554beff0f6d96872",
+            "39bcea043afd862f5cfd7ce4fe27dc7d9eba5bf82b317597d7ebb9a251a679df",
             current.BuildInputSha256);
         Assert.Equal(
             currentRelease.ArtifactSha256,

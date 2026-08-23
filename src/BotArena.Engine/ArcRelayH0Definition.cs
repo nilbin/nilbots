@@ -1298,8 +1298,56 @@ public static class ArcRelayH0Definition
                     },
                     _ => entry,
                 })];
+        ImmutableArray<LaunchClass> signatureRefresh =
+            loopProfile.SignatureGrammarVersion < 4
+                ? grammar
+                : [.. grammar.Select(entry => entry.Signature switch
+                {
+                    ArcRelaySignatureDefinition.VectorDash dash => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.VectorDash(
+                            dash.SignatureId, dash.ClassId, dash.ActionId,
+                            dash.TellTicks, dash.MaxTiles, dash.CooldownTicks,
+                            retainsCore: true),
+                    },
+                    ArcRelaySignatureDefinition.TractorHook2 hook => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.TractorHook2(
+                            hook.SignatureId, hook.ClassId, hook.ActionId,
+                            hook.Range, 5,
+                            hook.BoltTilesPerAdvance, hook.CooldownTicks,
+                            hook.WindupTicks, damage: 10,
+                            authoredWallPenetrationTiles: 1),
+                    },
+                    ArcRelaySignatureDefinition.SurveyFlare flare => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.SurveyFlare(
+                            flare.SignatureId, flare.ClassId, flare.ActionId,
+                            flare.Range, flare.TravelTilesPerTick,
+                            flare.RevealRadius, flare.DurationTicks,
+                            flare.CooldownTicks,
+                            teamVisionRadius: flare.RevealRadius),
+                    },
+                    ArcRelaySignatureDefinition.Exchange exchange => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.Exchange(
+                            exchange.SignatureId, exchange.ClassId,
+                            exchange.ActionId, exchange.Range,
+                            exchange.TellTicks, exchange.CooldownTicks,
+                            targetRetainsCore: true),
+                    },
+                    ArcRelaySignatureDefinition.KineticBurst2 burst => entry with
+                    {
+                        Signature = new ArcRelaySignatureDefinition.KineticBurst2(
+                            burst.SignatureId, burst.ClassId, burst.ActionId,
+                            burst.TellTicks, burst.PushTiles,
+                            burst.CancelCooldownTicks, burst.CooldownTicks,
+                            damage: 10, hostilesOnly: true),
+                    },
+                    _ => entry,
+                })];
         ImmutableArray<LaunchClass> signatureTiming =
-            [.. grammar.Select(entry => entry.Signature switch
+            [.. signatureRefresh.Select(entry => entry.Signature switch
             {
                 ArcRelaySignatureDefinition.ArcToss toss
                     when toss.TellTicks != loopProfile.ArcTossTellTicks
@@ -1380,68 +1428,68 @@ public static class ArcRelayH0Definition
     private static ArcRelaySignatureDefinition ScaleCombatMagnitude(
         ArcRelaySignatureDefinition signature,
         int scale) => signature switch
-    {
-        ArcRelaySignatureDefinition.RepairBeam repair =>
-            new ArcRelaySignatureDefinition.RepairBeam(
-                repair.SignatureId, repair.ClassId, repair.ActionId,
-                repair.Range, repair.TicksPerRepair,
-                checked(repair.HullPerRepair * scale),
-                checked(repair.MaxHullPerActivation * scale),
-                repair.CooldownTicks),
-        ArcRelaySignatureDefinition.PrismScreen screen =>
-            new ArcRelaySignatureDefinition.PrismScreen(
-                screen.SignatureId, screen.ClassId, screen.ActionId,
-                screen.SegmentCount, checked(screen.Hull * scale),
-                screen.DurationTicks, screen.CooldownTicks),
-        ArcRelaySignatureDefinition.FallingStar star =>
-            new ArcRelaySignatureDefinition.FallingStar(
-                star.SignatureId, star.ClassId, star.ActionId,
-                star.Range, star.TellTicks,
-                checked(star.Damage * scale), star.CooldownTicks),
-        ArcRelaySignatureDefinition.TripNode node =>
-            new ArcRelaySignatureDefinition.TripNode(
-                node.SignatureId, node.ClassId, node.ActionId,
-                checked(node.Hull * scale),
-                checked(node.TriggerDamage * scale),
-                node.RevealRange, node.CooldownTicks),
-        ArcRelaySignatureDefinition.RailLine rail =>
-            new ArcRelaySignatureDefinition.RailLine(
-                rail.SignatureId, rail.ClassId, rail.ActionId,
-                rail.WindupTicks, rail.Range,
-                checked(rail.Damage * scale),
-                rail.CancelCooldownTicks, rail.CooldownTicks),
-        ArcRelaySignatureDefinition.HardlightBlock block =>
-            new ArcRelaySignatureDefinition.HardlightBlock(
-                block.SignatureId, block.ClassId, block.ActionId,
-                checked(block.Hull * scale), block.DurationTicks,
-                block.CooldownTicks),
-        ArcRelaySignatureDefinition.TargetPaint paint =>
-            new ArcRelaySignatureDefinition.TargetPaint(
-                paint.SignatureId, paint.ClassId, paint.ActionId,
-                paint.Range, paint.DurationTicks, paint.EnhancedHitCount,
-                checked(paint.BonusDamage * scale), paint.CooldownTicks),
-        ArcRelaySignatureDefinition.TargetPaint2 paint =>
-            new ArcRelaySignatureDefinition.TargetPaint2(
-                paint.SignatureId, paint.ClassId, paint.ActionId,
-                paint.Range, paint.AcquisitionTicks, paint.DurationTicks,
-                paint.EnhancedHitCount,
-                checked(paint.BonusDamage * scale),
-                paint.CancelCooldownTicks, paint.CooldownTicks),
-        ArcRelaySignatureDefinition.SentinelSeed seed =>
-            new ArcRelaySignatureDefinition.SentinelSeed(
-                seed.SignatureId, seed.ClassId, seed.ActionId,
-                checked(seed.Hull * scale), seed.Range,
-                checked(seed.Damage * scale), seed.FireCooldownTicks,
-                seed.DurationTicks, seed.CooldownTicks),
-        ArcRelaySignatureDefinition.SentinelSeed2 seed =>
-            new ArcRelaySignatureDefinition.SentinelSeed2(
-                seed.SignatureId, seed.ClassId, seed.ActionId,
-                checked(seed.Hull * scale), seed.Range,
-                checked(seed.Damage * scale), seed.FireCooldownTicks,
-                seed.DurationTicks, seed.BoltTilesPerAdvance,
-                seed.CooldownTicks, seed.WindupTicks),
-        _ => signature,
-    };
+        {
+            ArcRelaySignatureDefinition.RepairBeam repair =>
+                new ArcRelaySignatureDefinition.RepairBeam(
+                    repair.SignatureId, repair.ClassId, repair.ActionId,
+                    repair.Range, repair.TicksPerRepair,
+                    checked(repair.HullPerRepair * scale),
+                    checked(repair.MaxHullPerActivation * scale),
+                    repair.CooldownTicks),
+            ArcRelaySignatureDefinition.PrismScreen screen =>
+                new ArcRelaySignatureDefinition.PrismScreen(
+                    screen.SignatureId, screen.ClassId, screen.ActionId,
+                    screen.SegmentCount, checked(screen.Hull * scale),
+                    screen.DurationTicks, screen.CooldownTicks),
+            ArcRelaySignatureDefinition.FallingStar star =>
+                new ArcRelaySignatureDefinition.FallingStar(
+                    star.SignatureId, star.ClassId, star.ActionId,
+                    star.Range, star.TellTicks,
+                    checked(star.Damage * scale), star.CooldownTicks),
+            ArcRelaySignatureDefinition.TripNode node =>
+                new ArcRelaySignatureDefinition.TripNode(
+                    node.SignatureId, node.ClassId, node.ActionId,
+                    checked(node.Hull * scale),
+                    checked(node.TriggerDamage * scale),
+                    node.RevealRange, node.CooldownTicks),
+            ArcRelaySignatureDefinition.RailLine rail =>
+                new ArcRelaySignatureDefinition.RailLine(
+                    rail.SignatureId, rail.ClassId, rail.ActionId,
+                    rail.WindupTicks, rail.Range,
+                    checked(rail.Damage * scale),
+                    rail.CancelCooldownTicks, rail.CooldownTicks),
+            ArcRelaySignatureDefinition.HardlightBlock block =>
+                new ArcRelaySignatureDefinition.HardlightBlock(
+                    block.SignatureId, block.ClassId, block.ActionId,
+                    checked(block.Hull * scale), block.DurationTicks,
+                    block.CooldownTicks),
+            ArcRelaySignatureDefinition.TargetPaint paint =>
+                new ArcRelaySignatureDefinition.TargetPaint(
+                    paint.SignatureId, paint.ClassId, paint.ActionId,
+                    paint.Range, paint.DurationTicks, paint.EnhancedHitCount,
+                    checked(paint.BonusDamage * scale), paint.CooldownTicks),
+            ArcRelaySignatureDefinition.TargetPaint2 paint =>
+                new ArcRelaySignatureDefinition.TargetPaint2(
+                    paint.SignatureId, paint.ClassId, paint.ActionId,
+                    paint.Range, paint.AcquisitionTicks, paint.DurationTicks,
+                    paint.EnhancedHitCount,
+                    checked(paint.BonusDamage * scale),
+                    paint.CancelCooldownTicks, paint.CooldownTicks),
+            ArcRelaySignatureDefinition.SentinelSeed seed =>
+                new ArcRelaySignatureDefinition.SentinelSeed(
+                    seed.SignatureId, seed.ClassId, seed.ActionId,
+                    checked(seed.Hull * scale), seed.Range,
+                    checked(seed.Damage * scale), seed.FireCooldownTicks,
+                    seed.DurationTicks, seed.CooldownTicks),
+            ArcRelaySignatureDefinition.SentinelSeed2 seed =>
+                new ArcRelaySignatureDefinition.SentinelSeed2(
+                    seed.SignatureId, seed.ClassId, seed.ActionId,
+                    checked(seed.Hull * scale), seed.Range,
+                    checked(seed.Damage * scale), seed.FireCooldownTicks,
+                    seed.DurationTicks, seed.BoltTilesPerAdvance,
+                    seed.CooldownTicks, seed.WindupTicks),
+            _ => signature,
+        };
 
     private static ImmutableArray<LaunchClass> CreateClasses() =>
     [

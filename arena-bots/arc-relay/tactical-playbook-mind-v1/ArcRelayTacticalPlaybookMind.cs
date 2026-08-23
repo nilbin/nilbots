@@ -234,9 +234,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             if (eligibilityTrace is not null)
             {
                 proposals = proposals.Select(proposal => proposal with
-                    {
-                        EligibilityTrace = eligibilityTrace,
-                    }).ToList();
+                {
+                    EligibilityTrace = eligibilityTrace,
+                }).ToList();
             }
             proposalsByBody.Add(body.UnitId, proposals);
         }
@@ -423,209 +423,215 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             switch (proposal.Leaf.Node.Action)
             {
                 case OrdersPackage.MoveAction move:
-                {
-                    if (move.Kind == "to"
-                        && move.TargetKind == "dynamic"
-                        && move.Target == "current-position")
                     {
-                        result.Add(Hold(
-                            "signature-commitment-hold", pinned: true));
-                        break;
-                    }
-                    MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
-                    if (plan is null)
-                    {
-                        result.Add(Hold("move-at-target"));
-                        break;
-                    }
-                    int? leader = move.Kind == "follow"
-                        && proposal.Target.Actor is ActorIdentity actor
-                            ? actor.UnitId
-                            : null;
-                    result.Add(new SquadMovementIntent(
-                        body,
-                        key,
-                        $"move:{move.Kind}:{proposal.Target.Key}",
-                        plan.Goals,
-                        plan.Course?.Next,
-                        priority,
-                        Pinned: false,
-                        PrefersHold: plan.Arrived
-                            || plan.Goals.Contains(body.Position),
-                        CanStage: IsSingleServiceMoveTarget(
-                            move, proposal.Target.Key),
-                        LeaderUnitId: leader,
-                        RouteClass: carried.ContainsKey(body.ActorId)
-                            && move.Kind == "to"
-                            && string.Equals(
-                                proposal.Target.Key,
-                                "reactor:own",
-                                StringComparison.Ordinal)
-                                ? SquadRouteClass.LoadedReturn
-                                : SquadRouteClass.Ordinary,
-                        $"move:{proposal.Target.Key}"));
-                    break;
-                }
-                case OrdersPackage.FightAction fight:
-                {
-                    GenericActorContext.ObservedEnemyState? target = mind.Enemies
-                        .FirstOrDefault(value => value.ActorId
-                            == proposal.Target.Actor);
-                    bool deployment = proposal.Target.Key.StartsWith(
-                        "deployment:", StringComparison.Ordinal);
-                    if (target is null && !deployment)
-                    {
-                        result.Add(Hold("fight-target-lost"));
-                        break;
-                    }
-                    Position targetPosition = target?.Position
-                        ?? proposal.Target.Position;
-                    string targetKey = target is null
-                        ? proposal.Target.Key
-                        : target.ActorId.ToString();
-                    bool needsWindupMargin = target is not null
-                        && NeedsWindupClosingMargin(
-                            contract, mind, body, target.ActorId,
-                            targetPosition, fight);
-                    Position anchor = FightEpisodeAnchor(
-                        body, proposal.Leaf);
-                    if (target is not null
-                        && fight.Style == "kite"
-                        && targetPosition.ChebyshevDistance(body.Position) <= 2)
-                    {
-                        Position[] away = ArenaBasics.AwayGoals(
-                            contract, body, [targetPosition]);
-                        if (away.Length > 0)
+                        if (move.Kind == "to"
+                            && move.TargetKind == "dynamic"
+                            && move.Target == "current-position")
                         {
-                            result.Add(new SquadMovementIntent(
-                                body,
-                                key,
-                                $"fight-kite:{targetKey}",
-                                away,
-                                null,
-                                priority,
-                                Pinned: false,
-                                PrefersHold: false,
-                                CanStage: false,
-                                LeaderUnitId: null,
-                                RouteClass: SquadRouteClass.Ordinary,
-                                $"kite:{targetKey}"));
+                            result.Add(Hold(
+                                "signature-commitment-hold", pinned: true));
                             break;
                         }
-                    }
-                    if (!needsWindupMargin
-                        && ArenaBasics.CommitsAttackPositionThisTick(
-                            contract, mind, body, targetPosition))
-                    {
-                        result.Add(Hold(
-                            $"fight-commit:{targetKey}", pinned: true));
+                        MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
+                        if (plan is null)
+                        {
+                            result.Add(Hold("move-at-target"));
+                            break;
+                        }
+                        int? leader = move.Kind == "follow"
+                            && proposal.Target.Actor is ActorIdentity actor
+                                ? actor.UnitId
+                                : null;
+                        result.Add(new SquadMovementIntent(
+                            body,
+                            key,
+                            $"move:{move.Kind}:{proposal.Target.Key}",
+                            plan.Goals,
+                            plan.Course?.Next,
+                            priority,
+                            Pinned: false,
+                            PrefersHold: plan.Arrived
+                                || plan.Goals.Contains(body.Position),
+                            CanStage: IsSingleServiceMoveTarget(
+                                move, proposal.Target.Key),
+                            LeaderUnitId: leader,
+                            RouteClass: carried.ContainsKey(body.ActorId)
+                                && move.Kind == "to"
+                                && string.Equals(
+                                    proposal.Target.Key,
+                                    "reactor:own",
+                                    StringComparison.Ordinal)
+                                    ? SquadRouteClass.LoadedReturn
+                                    : SquadRouteClass.Ordinary,
+                            $"move:{proposal.Target.Key}"));
                         break;
                     }
-                    if (!needsWindupMargin
-                        && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
-                            contract, mind, body, targetPosition))
+                case OrdersPackage.FightAction fight:
                     {
-                        result.Add(Hold(
-                            $"fight-position:{targetKey}",
-                            pinned: fight.Style == "hold"));
+                        GenericActorContext.ObservedEnemyState? target = mind.Enemies
+                            .FirstOrDefault(value => value.ActorId
+                                == proposal.Target.Actor);
+                        bool deployment = proposal.Target.Key.StartsWith(
+                            "deployment:", StringComparison.Ordinal);
+                        if (target is null && !deployment)
+                        {
+                            result.Add(Hold("fight-target-lost"));
+                            break;
+                        }
+                        Position targetPosition = target?.Position
+                            ?? proposal.Target.Position;
+                        string targetKey = target is null
+                            ? proposal.Target.Key
+                            : target.ActorId.ToString();
+                        bool needsWindupMargin = target is not null
+                            && NeedsWindupClosingMargin(
+                                contract, mind, body, target.ActorId,
+                                targetPosition, fight);
+                        bool outsidePreferredRange = fight.PreferredRange is int
+                                preferredRange
+                            && body.Position.ChebyshevDistance(targetPosition)
+                                > preferredRange;
+                        Position anchor = FightEpisodeAnchor(
+                            body, proposal.Leaf);
+                        if (target is not null
+                            && fight.Style == "kite"
+                            && targetPosition.ChebyshevDistance(body.Position) <= 2)
+                        {
+                            Position[] away = ArenaBasics.AwayGoals(
+                                contract, body, [targetPosition]);
+                            if (away.Length > 0)
+                            {
+                                result.Add(new SquadMovementIntent(
+                                    body,
+                                    key,
+                                    $"fight-kite:{targetKey}",
+                                    away,
+                                    null,
+                                    priority,
+                                    Pinned: false,
+                                    PrefersHold: false,
+                                    CanStage: false,
+                                    LeaderUnitId: null,
+                                    RouteClass: SquadRouteClass.Ordinary,
+                                    $"kite:{targetKey}"));
+                                break;
+                            }
+                        }
+                        if (!needsWindupMargin && !outsidePreferredRange
+                            && ArenaBasics.CommitsAttackPositionThisTick(
+                                contract, mind, body, targetPosition))
+                        {
+                            result.Add(Hold(
+                                $"fight-commit:{targetKey}", pinned: true));
+                            break;
+                        }
+                        if (!needsWindupMargin && !outsidePreferredRange
+                            && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
+                                contract, mind, body, targetPosition))
+                        {
+                            result.Add(Hold(
+                                $"fight-position:{targetKey}",
+                                pinned: fight.Style == "hold"));
+                            break;
+                        }
+                        string holdMotive = "";
+                        bool holdClose = fight.Style == "hold"
+                            && HoldMayClose(
+                                contract, mind, body, target?.ActorId,
+                                out holdMotive);
+                        bool inLeash = fight.ChaseLimit == 0
+                            ? body.Position == anchor
+                            : ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, anchor)
+                                <= fight.ChaseLimit;
+                        if (!inLeash
+                            || fight.Style != "advance" && !holdClose)
+                        {
+                            result.Add(Hold($"fight-leash:{targetKey}"));
+                            break;
+                        }
+                        Position[] firing = FiringContributionGoals(
+                            contract, mind, body, targetPosition, anchor,
+                            fight.ChaseLimit);
+                        firing = PreferredRangeGoals(
+                            fight, targetPosition, firing);
+                        if (needsWindupMargin)
+                        {
+                            firing = WindupBufferedFiringGoals(
+                                contract, body, targetPosition, firing);
+                        }
+                        if (firing.Length == 0)
+                        {
+                            result.Add(Hold($"fight-no-firing-ground:{targetKey}"));
+                            break;
+                        }
+                        result.Add(new SquadMovementIntent(
+                            body,
+                            key,
+                            $"fight:{targetKey}",
+                            firing,
+                            null,
+                            priority,
+                            Pinned: false,
+                            PrefersHold: false,
+                            CanStage: true,
+                            LeaderUnitId: null,
+                            RouteClass: SquadRouteClass.Ordinary,
+                            holdClose
+                                ? $"hold-{holdMotive}-close:{targetKey}"
+                                : $"fight-close:{targetKey}"));
                         break;
                     }
-                    string holdMotive = "";
-                    bool holdClose = fight.Style == "hold"
-                        && HoldMayClose(
-                            contract, mind, body, target?.ActorId,
-                            out holdMotive);
-                    bool inLeash = fight.ChaseLimit == 0
-                        ? body.Position == anchor
-                        : ArenaBasics.StaticDistance(
-                            contract.Map, body.Position, anchor)
-                            <= fight.ChaseLimit;
-                    if (!inLeash
-                        || fight.Style != "advance" && !holdClose)
-                    {
-                        result.Add(Hold($"fight-leash:{targetKey}"));
-                        break;
-                    }
-                    Position[] firing = FiringContributionGoals(
-                        contract, mind, body, targetPosition, anchor,
-                        fight.ChaseLimit);
-                    if (needsWindupMargin)
-                    {
-                        firing = WindupBufferedFiringGoals(
-                            contract, body, targetPosition, firing);
-                    }
-                    if (firing.Length == 0)
-                    {
-                        result.Add(Hold($"fight-no-firing-ground:{targetKey}"));
-                        break;
-                    }
-                    result.Add(new SquadMovementIntent(
-                        body,
-                        key,
-                        $"fight:{targetKey}",
-                        firing,
-                        null,
-                        priority,
-                        Pinned: false,
-                        PrefersHold: false,
-                        CanStage: true,
-                        LeaderUnitId: null,
-                        RouteClass: SquadRouteClass.Ordinary,
-                        holdClose
-                            ? $"hold-{holdMotive}-close:{targetKey}"
-                            : $"fight-close:{targetKey}"));
-                    break;
-                }
                 case OrdersPackage.ScanAction scan:
-                {
-                    MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
-                    if (plan is null || plan.Arrived)
                     {
-                        result.Add(Hold(
-                            $"scan-view:{scan.Zone}:{proposal.Target.Key}",
-                            pinned: true));
+                        MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
+                        if (plan is null || plan.Arrived)
+                        {
+                            result.Add(Hold(
+                                $"scan-view:{scan.Zone}:{proposal.Target.Key}",
+                                pinned: true));
+                            break;
+                        }
+                        result.Add(new SquadMovementIntent(
+                            body,
+                            key,
+                            $"scan:{scan.Zone}:{proposal.Target.Key}",
+                            plan.Goals,
+                            null,
+                            priority,
+                            Pinned: false,
+                            PrefersHold: false,
+                            CanStage: true,
+                            LeaderUnitId: null,
+                            RouteClass: SquadRouteClass.Ordinary,
+                            $"scan-move:{scan.Zone}:{proposal.Target.Key}"));
                         break;
                     }
-                    result.Add(new SquadMovementIntent(
-                        body,
-                        key,
-                        $"scan:{scan.Zone}:{proposal.Target.Key}",
-                        plan.Goals,
-                        null,
-                        priority,
-                        Pinned: false,
-                        PrefersHold: false,
-                        CanStage: true,
-                        LeaderUnitId: null,
-                        RouteClass: SquadRouteClass.Ordinary,
-                        $"scan-move:{scan.Zone}:{proposal.Target.Key}"));
-                    break;
-                }
                 case OrdersPackage.UseAction use:
-                {
-                    MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
-                    if (plan is null || plan.Arrived)
                     {
-                        result.Add(Hold(
-                            $"signature:{use.Skill}:{proposal.Target.Key}",
-                            pinned: true));
+                        MovePlan? plan = movePlans.GetValueOrDefault(body.UnitId);
+                        if (plan is null || plan.Arrived)
+                        {
+                            result.Add(Hold(
+                                $"signature:{use.Skill}:{proposal.Target.Key}",
+                                pinned: true));
+                            break;
+                        }
+                        result.Add(new SquadMovementIntent(
+                            body,
+                            key,
+                            $"signature-approach:{use.Skill}:{proposal.Target.Key}",
+                            plan.Goals,
+                            null,
+                            priority,
+                            Pinned: false,
+                            PrefersHold: false,
+                            CanStage: true,
+                            LeaderUnitId: null,
+                            RouteClass: SquadRouteClass.Ordinary,
+                            $"signature-approach:{use.Skill}:{proposal.Target.Key}"));
                         break;
                     }
-                    result.Add(new SquadMovementIntent(
-                        body,
-                        key,
-                        $"signature-approach:{use.Skill}:{proposal.Target.Key}",
-                        plan.Goals,
-                        null,
-                        priority,
-                        Pinned: false,
-                        PrefersHold: false,
-                        CanStage: true,
-                        LeaderUnitId: null,
-                        RouteClass: SquadRouteClass.Ordinary,
-                        $"signature-approach:{use.Skill}:{proposal.Target.Key}"));
-                    break;
-                }
                 default:
                     result.Add(Hold("non-movement-action", pinned: true));
                     break;
@@ -741,19 +747,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         switch (node.Action)
         {
             case OrdersPackage.MoveAction move:
-            {
-                ResolvedTarget[] targets = ResolveMoveTargets(
-                    contract, mind, arc, package, body, move, carried);
-                if (targets.Length == 0
-                    && move.Kind == "follow"
-                    && move.TargetKind == "selector")
                 {
-                    decline = move.Target == "nearest-friendly-core-carrier"
-                        ? $"after-{node.Id}-no-qualifying-friendly-core-carrier"
-                        : $"after-{node.Id}-no-experienced-ally";
+                    ResolvedTarget[] targets = ResolveMoveTargets(
+                        contract, mind, arc, package, body, move, carried);
+                    if (targets.Length == 0
+                        && move.Kind == "follow"
+                        && move.TargetKind == "selector")
+                    {
+                        decline = move.Target == "nearest-friendly-core-carrier"
+                            ? $"after-{node.Id}-no-qualifying-friendly-core-carrier"
+                            : $"after-{node.Id}-no-experienced-ally";
+                    }
+                    return targets;
                 }
-                return targets;
-            }
             case OrdersPackage.FightAction fight:
                 return ResolveEnemyTargets(
                     contract, mind, arc, package, body, leaf, fight, out decline);
@@ -761,30 +767,30 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 return ResolveScanTargets(
                     contract, mind, package, body, leaf, scan);
             case OrdersPackage.UseAction use:
-            {
-                ResolvedTarget[] targets = ResolveUseTargets(
-                    contract, mind, arc, package, body, use, carried,
-                    out string? useDecline);
-                if (targets.Length == 0 && useDecline is not null)
-                    decline = $"after-{node.Id}-{useDecline}";
-                if (targets.Length == 0
-                    && decline is null
-                    && (use.TargetKind is "role" or "selector"
-                        || use.Target == "veteran"))
                 {
-                    decline = use.AheadVia is string route
-                        ? $"after-{node.Id}-no-forward-role-{use.Target}"
-                            + $"-via-{route}"
-                            + ForwardRouteDeclineTrace(
-                                contract, mind, package, body, use, route)
-                        : use.TargetKind == "role"
-                        ? $"after-{node.Id}-no-live-role-{use.Target}"
-                        : use.Target == "veteran"
-                            ? $"after-{node.Id}-no-visible-veteran"
-                            : $"after-{node.Id}-no-experienced-ally";
+                    ResolvedTarget[] targets = ResolveUseTargets(
+                        contract, mind, arc, package, body, use, carried,
+                        out string? useDecline);
+                    if (targets.Length == 0 && useDecline is not null)
+                        decline = $"after-{node.Id}-{useDecline}";
+                    if (targets.Length == 0
+                        && decline is null
+                        && (use.TargetKind is "role" or "selector"
+                            || use.Target == "veteran"))
+                    {
+                        decline = use.AheadVia is string route
+                            ? $"after-{node.Id}-no-forward-role-{use.Target}"
+                                + $"-via-{route}"
+                                + ForwardRouteDeclineTrace(
+                                    contract, mind, package, body, use, route)
+                            : use.TargetKind == "role"
+                            ? $"after-{node.Id}-no-live-role-{use.Target}"
+                            : use.Target == "veteran"
+                                ? $"after-{node.Id}-no-visible-veteran"
+                                : $"after-{node.Id}-no-experienced-ally";
+                    }
+                    return targets;
                 }
-                return targets;
-            }
             case OrdersPackage.HandoffAction handoff:
                 return ResolveHandoffTargets(
                     contract, mind, body, handoff, package, carried);
@@ -1461,11 +1467,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         {
             return veteranUnavailable
                 ? ordered.Select(target => target with
-                    {
-                        Trace = target.Trace is null
+                {
+                    Trace = target.Trace is null
                             ? "veteran-unresolved-fallback"
                             : $"veteran-unresolved-fallback:{target.Trace}",
-                    }).ToArray()
+                }).ToArray()
                 : ordered.ToArray();
         }
 
@@ -1528,7 +1534,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     target,
                     allowCarrierRotation: true);
         }
-        if (!needsWindupMargin
+        bool outsidePreferredRange = fight.PreferredRange is int preferredRange
+            && body.Position.ChebyshevDistance(target) > preferredRange;
+        if (!needsWindupMargin && !outsidePreferredRange
             && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
                 contract, mind, body, target))
             return true;
@@ -1554,6 +1562,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         Position[] firing = FiringContributionGoals(
             contract, mind, body, target, anchor,
             fight.ChaseLimit);
+        firing = PreferredRangeGoals(fight, target, firing);
         if (needsWindupMargin)
         {
             firing = WindupBufferedFiringGoals(
@@ -1644,6 +1653,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return ResolveSmartRailTargets(
                 contract, mind, arc, body, signature, out decline);
         }
+        if (ArenaBasics.ArcRules(contract)?.SignatureGrammarVersion >= 4
+            && use.Opportunity is "pull-enemy-carrier"
+                or "paint-supported-enemy")
+        {
+            return ResolvePriorityEnemySignatureTargets(
+                contract, mind, arc, body, use, signature, out decline);
+        }
+        if (use.TargetKind == "ray")
+        {
+            ResolvedTarget? ray = ResolveAuthoredRayUse(
+                contract, mind, arc, package, body, use, out decline);
+            return ray is null ? [] : [ray];
+        }
         if (use.TargetKind == "route")
         {
             ResolvedTarget? forward = ResolveForwardRouteUse(
@@ -1732,79 +1754,95 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                             + CurrentLevel(candidate)))),
                 "named" => use.Target switch
                 {
-                "nearest-ally" => mind.Bodies
-                    .Where(candidate => candidate.UnitId != body.UnitId)
-                    .OrderBy(candidate => ArenaBasics.StaticDistance(
-                            contract.Map, body.Position, candidate.Position)
-                        ?? int.MaxValue)
-                    .ThenBy(candidate => candidate.UnitId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        CurrentLevel(candidate), (string?)null)),
-                "weakest-ally" => mind.Bodies
-                    .Where(candidate => candidate.UnitId != body.UnitId)
-                    .OrderBy(candidate => candidate.Health)
-                    .ThenBy(candidate => candidate.UnitId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        CurrentLevel(candidate), (string?)null)),
-                "healthiest-ally" => mind.Bodies
-                    .Where(candidate => candidate.UnitId != body.UnitId)
-                    .OrderByDescending(candidate => candidate.Health)
-                    .ThenBy(candidate => candidate.UnitId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        CurrentLevel(candidate), (string?)null)),
-                "nearest-ally-toward-own-reactor" => mind.Bodies
-                    .Where(candidate => candidate.UnitId != body.UnitId
-                        && !carried.ContainsKey(candidate.ActorId)
-                        && (ArenaBasics.StaticDistance(
-                                contract.Map, candidate.Position, _ownReactor)
-                            ?? int.MaxValue) < (ArenaBasics.StaticDistance(
-                                contract.Map, body.Position, _ownReactor)
-                            ?? int.MaxValue))
-                    .OrderBy(candidate => ArenaBasics.StaticDistance(
-                            contract.Map, body.Position, candidate.Position)
-                        ?? int.MaxValue)
-                    .ThenBy(candidate => candidate.UnitId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        CurrentLevel(candidate), (string?)null)),
-                "nearest-enemy" => mind.Enemies
-                    .OrderBy(candidate => ArenaBasics.StaticDistance(
-                            contract.Map, body.Position, candidate.Position)
-                        ?? int.MaxValue)
-                    .ThenBy(candidate => candidate.ActorId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        candidate.VeterancyLevel, (string?)null)),
-                "weakest-enemy" => mind.Enemies
-                    .OrderBy(candidate => candidate.Health)
-                    .ThenBy(candidate => candidate.ActorId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        candidate.VeterancyLevel, (string?)null)),
-                "enemy-carrier" => mind.Enemies.Where(candidate =>
-                        _rememberedEnemies.GetValueOrDefault(candidate.ActorId)
-                            ?.Carrier == true)
-                    .OrderBy(candidate => candidate.ActorId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        candidate.VeterancyLevel, (string?)null)),
-                "veteran" when ArenaBasics.ArcRules(contract)
-                        ?.VeteranCommand == true => mind.Enemies
-                    .Where(candidate => candidate.VeterancyLevel > 1)
-                    .OrderByDescending(candidate => candidate.VeterancyLevel)
-                    .ThenBy(candidate => ArenaBasics.StaticDistance(
-                            contract.Map, body.Position, candidate.Position)
-                        ?? int.MaxValue)
-                    .ThenBy(candidate => candidate.ActorId)
-                    .Select(candidate => (candidate.ActorId,
-                        candidate.Position, candidate.Health,
-                        candidate.VeterancyLevel,
-                        OptionalTrace($"veteran-level-"
-                            + candidate.VeterancyLevel))),
-                _ => [],
+                    "nearest-ally" => mind.Bodies
+                        .Where(candidate => candidate.UnitId != body.UnitId)
+                        .OrderBy(candidate => ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.UnitId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            CurrentLevel(candidate), (string?)null)),
+                    "weakest-ally" => mind.Bodies
+                        .Where(candidate => candidate.UnitId != body.UnitId)
+                        .OrderBy(candidate => candidate.Health)
+                        .ThenBy(candidate => candidate.UnitId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            CurrentLevel(candidate), (string?)null)),
+                    "healthiest-ally" => mind.Bodies
+                        .Where(candidate => candidate.UnitId != body.UnitId)
+                        .OrderByDescending(candidate => candidate.Health)
+                        .ThenBy(candidate => candidate.UnitId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            CurrentLevel(candidate), (string?)null)),
+                    "nearest-ally-toward-own-reactor" => mind.Bodies
+                        .Where(candidate => candidate.UnitId != body.UnitId
+                            && !carried.ContainsKey(candidate.ActorId)
+                            && (ArenaBasics.StaticDistance(
+                                    contract.Map, candidate.Position, _ownReactor)
+                                ?? int.MaxValue) < (ArenaBasics.StaticDistance(
+                                    contract.Map, body.Position, _ownReactor)
+                                ?? int.MaxValue))
+                        .OrderBy(candidate => ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.UnitId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            CurrentLevel(candidate), (string?)null)),
+                    "nearest-friendly-core-carrier-behind" => mind.Bodies
+                        .Where(candidate => candidate.UnitId != body.UnitId
+                            && carried.ContainsKey(candidate.ActorId)
+                            && (ArenaBasics.StaticDistance(
+                                    contract.Map, candidate.Position, _ownReactor)
+                                ?? int.MaxValue) >= (ArenaBasics.StaticDistance(
+                                    contract.Map, body.Position, _ownReactor)
+                                ?? int.MaxValue) + 2)
+                        .OrderBy(candidate => ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.UnitId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            CurrentLevel(candidate),
+                            (string?)"carrier-behind")),
+                    "nearest-enemy" => mind.Enemies
+                        .OrderBy(candidate => ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.ActorId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            candidate.VeterancyLevel, (string?)null)),
+                    "weakest-enemy" => mind.Enemies
+                        .OrderBy(candidate => candidate.Health)
+                        .ThenBy(candidate => candidate.ActorId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            candidate.VeterancyLevel, (string?)null)),
+                    "enemy-carrier" => mind.Enemies.Where(candidate =>
+                            _rememberedEnemies.GetValueOrDefault(candidate.ActorId)
+                                ?.Carrier == true)
+                        .OrderBy(candidate => candidate.ActorId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            candidate.VeterancyLevel, (string?)null)),
+                    "veteran" when ArenaBasics.ArcRules(contract)
+                            ?.VeteranCommand == true => mind.Enemies
+                        .Where(candidate => candidate.VeterancyLevel > 1)
+                        .OrderByDescending(candidate => candidate.VeterancyLevel)
+                        .ThenBy(candidate => ArenaBasics.StaticDistance(
+                                contract.Map, body.Position, candidate.Position)
+                            ?? int.MaxValue)
+                        .ThenBy(candidate => candidate.ActorId)
+                        .Select(candidate => (candidate.ActorId,
+                            candidate.Position, candidate.Health,
+                            candidate.VeterancyLevel,
+                            OptionalTrace($"veteran-level-"
+                                + candidate.VeterancyLevel))),
+                    _ => [],
                 },
                 _ => [],
             };
@@ -1862,6 +1900,103 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (useful.Count == 0 && opportunityDecline is not null)
             decline = opportunityDecline;
         return useful.ToArray();
+    }
+
+    private ResolvedTarget? ResolveAuthoredRayUse(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        OrdersPackage package,
+        MindBody body,
+        OrdersPackage.UseAction use,
+        out string? decline)
+    {
+        decline = null;
+        Position[] ray = package.RoutePoints(use.Target);
+        if (ray.Length < 2)
+        {
+            decline = $"signature-{use.Skill}-ray-needs-two-points";
+            return null;
+        }
+        int? toSource = ArenaBasics.StaticDistance(
+            contract.Map, body.Position, ray[0]);
+        if (toSource is null or > 1)
+        {
+            decline = $"signature-{use.Skill}-not-at-ray-source";
+            return null;
+        }
+        var target = new ResolvedTarget(
+            $"authored-ray:{use.Target}",
+            ray[^1],
+            [ray[^1]],
+            null,
+            null,
+            $"authored-ray-{use.Target}");
+        if (!CanExecuteUse(contract, body, target, use))
+        {
+            decline = $"signature-{use.Skill}-ray-illegal";
+            return null;
+        }
+        return SignatureOpportunityAllows(
+            contract, mind, arc, body, use, target,
+            exactPlacement: null, out decline)
+                ? target
+                : null;
+    }
+
+    private ResolvedTarget[] ResolvePriorityEnemySignatureTargets(
+        GenericActorResolvedMatchContract contract,
+        MindContext mind,
+        GenericActorContext.ModeObservationState.ArcRelay arc,
+        MindBody body,
+        OrdersPackage.UseAction use,
+        GenericActorRulesContract.ArcRelaySignature signature,
+        out string? decline)
+    {
+        decline = null;
+        HashSet<ActorIdentity> carriers = arc.VisibleCores
+            .Where(core => core.Disposition
+                == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && core.CarrierActorId?.TeamId != _teamId)
+            .Select(core => core.CarrierActorId!)
+            .ToHashSet();
+        bool paint = use.Opportunity == "paint-supported-enemy";
+        IEnumerable<GenericActorContext.ObservedEnemyState> candidates =
+            mind.Enemies
+                .Where(enemy =>
+                {
+                    var candidate = new ResolvedTarget(
+                        $"body:{enemy.ActorId}", enemy.Position,
+                        [enemy.Position], enemy.ActorId, null,
+                        $"priority-signature-{use.Skill}");
+                    return CanExecuteUse(contract, body, candidate, use);
+                })
+                .OrderBy(enemy => carriers.Contains(enemy.ActorId)
+                    ? 0
+                    : paint && enemy.VeterancyLevel > 1 ? 1 : 2)
+                .ThenByDescending(enemy => paint && !carriers.Contains(enemy.ActorId)
+                    ? enemy.VeterancyLevel
+                    : 0)
+                .ThenBy(enemy => enemy.Health)
+                .ThenBy(enemy => ArenaBasics.StaticDistance(
+                        contract.Map, body.Position, enemy.Position)
+                    ?? int.MaxValue)
+                .ThenBy(enemy => enemy.ActorId);
+        string? lastDecline = null;
+        foreach (GenericActorContext.ObservedEnemyState enemy in candidates)
+        {
+            var target = new ResolvedTarget(
+                $"body:{enemy.ActorId}", enemy.Position,
+                [enemy.Position], enemy.ActorId, null,
+                $"priority-signature-{use.Skill}");
+            if (SignatureOpportunityAllows(
+                    contract, mind, arc, body, use, target,
+                    exactPlacement: null, out string? rejected))
+                return [target];
+            lastDecline = rejected;
+        }
+        decline = lastDecline ?? $"signature-{signature.SignatureId}-no-target";
+        return [];
     }
 
     /// <summary>
@@ -1999,33 +2134,36 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             case "pull-enemy-carrier":
                 return true;
             case "screen-threatened-lane":
-            {
-                if (durablePresent)
-                    return RejectSignatureOpportunity(
-                        use, "useful-screen-still-active", out decline);
-                MindBody[] protectedBodies = mind.Bodies.Where(ally =>
-                        ally.UnitId == body.UnitId
-                        || ArenaBasics.CarriedCore(mind, ally.ActorId) is not null
-                        || Nearby(ally.Position, body.Position) <= 1)
-                    .ToArray();
-                return mind.Enemies.Any(enemy => protectedBodies.Any(ally =>
-                        ArenaBasics.CanAimFrom(
-                            contract, enemy.FormId, enemy.Position, ally.Position)))
-                    || RejectSignatureOpportunity(
-                        use, "no-threatening-lane", out decline);
-            }
+                {
+                    if (durablePresent)
+                        return RejectSignatureOpportunity(
+                            use, "useful-screen-still-active", out decline);
+                    MindBody[] protectedBodies = mind.Bodies.Where(ally =>
+                            ally.UnitId == body.UnitId
+                            || ArenaBasics.CarriedCore(mind, ally.ActorId) is not null
+                            || Nearby(ally.Position, body.Position) <= 1)
+                        .ToArray();
+                    return mind.Enemies.Any(enemy => protectedBodies.Any(ally =>
+                            ArenaBasics.CanAimFrom(
+                                contract, enemy.FormId, enemy.Position, ally.Position)))
+                        || RejectSignatureOpportunity(
+                            use, "no-threatening-lane", out decline);
+                }
             case "repair-damaged-ally":
-            {
-                MindBody? ally = target.Actor is ActorIdentity actor
-                    ? mind.Bodies.FirstOrDefault(candidate =>
-                        candidate.ActorId == actor)
-                    : null;
-                return ally is not null && ally.Health < MaxHealth(contract, ally)
-                    || RejectSignatureOpportunity(
-                        use, "target-not-damaged", out decline);
-            }
+                {
+                    MindBody? ally = target.Actor is ActorIdentity actor
+                        ? mind.Bodies.FirstOrDefault(candidate =>
+                            candidate.ActorId == actor)
+                        : null;
+                    return ally is not null && ally.Health < MaxHealth(contract, ally)
+                        || RejectSignatureOpportunity(
+                            use, "target-not-damaged", out decline);
+                }
             case "reveal-smoke":
-                return arc.VisibleSignatures.Any(value =>
+                return ArenaBasics.ArcRules(contract)
+                            ?.SignatureGrammarVersion >= 4
+                        && use.AtAnchor is not null
+                    || arc.VisibleSignatures.Any(value =>
                         value.Kind.Contains("smoke", StringComparison.Ordinal)
                         && value.Positions.Any(position => Nearby(position, place) <= 2))
                     || RejectSignatureOpportunity(
@@ -2072,29 +2210,62 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     || RejectSignatureOpportunity(
                         use, "no-hostile-signature-value", out decline);
             case "rescue-endangered-ally":
-            {
-                MindBody? ally = target.Actor is ActorIdentity actor
-                    ? mind.Bodies.FirstOrDefault(candidate =>
-                        candidate.ActorId == actor)
-                    : null;
-                return ally is not null
-                    && (ally.Health * 2 <= MaxHealth(contract, ally)
-                        || ArenaBasics.CarriedCore(mind, ally.ActorId) is not null)
-                    || RejectSignatureOpportunity(
-                        use, "ally-not-endangered", out decline);
-            }
+                {
+                    MindBody? ally = target.Actor is ActorIdentity actor
+                        ? mind.Bodies.FirstOrDefault(candidate =>
+                            candidate.ActorId == actor)
+                        : null;
+                    return ally is not null
+                        && (ally.Health * 2 <= MaxHealth(contract, ally)
+                            || ArenaBasics.CarriedCore(mind, ally.ActorId) is not null)
+                        || RejectSignatureOpportunity(
+                            use, "ally-not-endangered", out decline);
+                }
+            case "advance-friendly-carrier":
+                {
+                    MindBody? carrier = target.Actor is ActorIdentity actor
+                        ? mind.Bodies.FirstOrDefault(candidate =>
+                            candidate.ActorId == actor)
+                        : null;
+                    int sourceHome = ArenaBasics.StaticDistance(
+                        contract.Map, body.Position, _ownReactor) ?? int.MaxValue;
+                    int carrierHome = carrier is null
+                        ? int.MinValue
+                        : ArenaBasics.StaticDistance(
+                            contract.Map, carrier.Position, _ownReactor)
+                            ?? int.MinValue;
+                    bool safeLanding = !mind.Enemies.Any(enemy =>
+                        ArenaBasics.CanAimFrom(
+                            contract,
+                            enemy.FormId,
+                            enemy.Position,
+                            body.Position));
+                    return (carrier is not null
+                        && ArenaBasics.CarriedCore(mind, carrier.ActorId) is not null
+                        && carrierHome >= sourceHome + 2
+                        && safeLanding)
+                        || RejectSignatureOpportunity(
+                            use, "no-safe-two-step-carrier-gain", out decline);
+                }
             case "paint-supported-enemy":
                 return target.Actor is not null
-                    && mind.Bodies.Any(ally => ally.UnitId != body.UnitId
-                        && ArenaBasics.CanAimFrom(
-                            contract, ally.FormId, ally.Position, target.Position))
+                    && (ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
+                            contract, mind, body, target.Position)
+                        || mind.Bodies.Any(ally => ally.UnitId != body.UnitId
+                            && ArenaBasics.CanAimFrom(
+                                contract, ally.FormId, ally.Position,
+                                target.Position)))
                     || RejectSignatureOpportunity(
                         use, "no-allied-follow-up", out decline);
             case "burst-crowd":
-                return mind.Enemies.Count(enemy =>
-                        Nearby(enemy.Position, body.Position) <= 3) >= 2
+                return (ArenaBasics.ArcRules(contract)
+                            ?.SignatureGrammarVersion >= 4
+                        ? mind.Enemies.Any(enemy =>
+                            Nearby(enemy.Position, body.Position) == 1)
+                        : mind.Enemies.Count(enemy =>
+                            Nearby(enemy.Position, body.Position) <= 3) >= 2)
                     || RejectSignatureOpportunity(
-                        use, "not-crowded", out decline);
+                        use, "no-adjacent-target", out decline);
             case "smoke-threatened-crossing":
                 return mind.Enemies.Any(enemy =>
                         ArenaBasics.CanAimFrom(
@@ -2385,11 +2556,11 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             .Select(value => value.index)
             .ToArray();
         var projections = points.Select((point, index) => new
-            {
-                Index = index,
-                Distance = ArenaBasics.StaticDistance(
+        {
+            Index = index,
+            Distance = ArenaBasics.StaticDistance(
                     contract.Map, position, point),
-            })
+        })
             .Where(value => value.Distance is >= 0 and <= 1)
             .ToArray();
         if (exactIndexes.Length == 1)
@@ -2858,7 +3029,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                      value.Key))
         {
             if (proposal.Leaf.Node.Action is not OrdersPackage.MoveAction
-                    { Kind: "follow" }
+                { Kind: "follow" }
                 || proposal.Target.Actor is not ActorIdentity leader
                 || !movePlans.TryGetValue(unitId, out MovePlan? follower)
                 || !movePlans.TryGetValue(leader.UnitId, out MovePlan? lead))
@@ -3432,7 +3603,9 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 target.ActorId,
                 targetPosition,
                 fight);
-        if (!needsWindupMargin
+        bool outsidePreferredRange = fight.PreferredRange is int preferredRange
+            && body.Position.ChebyshevDistance(targetPosition) > preferredRange;
+        if (!needsWindupMargin && !outsidePreferredRange
             && ArenaBasics.TryShootAtPosition(
                 contract,
                 mind,
@@ -3443,7 +3616,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                 allowCarrierRotation:
                     ArenaBasics.CarriedCore(mind, body.ActorId) is not null))
             return;
-        if (!needsWindupMargin
+        if (!needsWindupMargin && !outsidePreferredRange
             && ArenaBasics.CanAimAtPositionWithClearFriendlyLine(
                 contract, mind, body, targetPosition))
         {
@@ -3468,6 +3641,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             Position[] firing = FiringContributionGoals(
                 contract, mind, body, targetPosition, anchor,
                 fight.ChaseLimit);
+            firing = PreferredRangeGoals(fight, targetPosition, firing);
             if (needsWindupMargin)
             {
                 firing = WindupBufferedFiringGoals(
@@ -4482,6 +4656,15 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             position.ChebyshevDistance(target) <= bufferedReach)];
     }
 
+    private static Position[] PreferredRangeGoals(
+        OrdersPackage.FightAction fight,
+        Position target,
+        IEnumerable<Position> firing) =>
+        fight.PreferredRange is int range
+            ? [.. firing.Where(position =>
+                position.ChebyshevDistance(target) <= range)]
+            : [.. firing];
+
     private bool TryInvest(
         GenericActorResolvedMatchContract contract,
         MindContext mind,
@@ -4559,14 +4742,14 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
     {
         var result = new List<Position>(8);
         for (int dy = -1; dy <= 1; dy++)
-        for (int dx = -1; dx <= 1; dx++)
-        {
-            if (dx == 0 && dy == 0)
-                continue;
-            Position candidate = anchor.Offset(dx, dy);
-            if (ArenaBasics.CanEnter(map, candidate))
-                result.Add(candidate);
-        }
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                if (dx == 0 && dy == 0)
+                    continue;
+                Position candidate = anchor.Offset(dx, dy);
+                if (ArenaBasics.CanEnter(map, candidate))
+                    result.Add(candidate);
+            }
         return result.OrderBy(point => point.Y).ThenBy(point => point.X)
             .ToArray();
     }

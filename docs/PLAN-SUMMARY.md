@@ -12,7 +12,7 @@ Arc Relay is the shipped game. Players field **entrants** of two kinds: tactical
 **sheets** executed by the registered first-party tactical mind in the trusted
 in-process worker, and submitted C# **custom minds** built to WASM through the
 controlled toolchain. Each entrant owns a crest, ordered eight-class composition,
-revisions, match history, and rating. The current CLI/editor default is `broadloom-3`
+revisions, match history, and rating. The current CLI/editor default is `broadloom-4`
 on the owner-approved 37x27 Broadloom whole-map identity — three Wells in
 distinct theatres, two neutral veterancy Workshops (unlock tick 25, repeatable
 15-tick protected channels, exactly 1 capped XP per channel and no cooldown), the
@@ -31,8 +31,11 @@ Combat Strafe facing model. Palisade now projects a mobile, facing-bound
 bodies. Living allies harmlessly block allied shots, while friendly sentries,
 mines, Hardlight and Prism remain transparent. A destroyed bot retains 50% of
 its accumulated veteran XP, rounded down, on its team-local roster slot; phase
-transitions can target selected bots reaching a chosen veteran level. Hosted
-playlist v35 is the current Broadloom-3 rating identity; v34/v33 remain
+transitions can target selected bots reaching a chosen veteran level. Signature
+grammar 4 adds carrier-safe Dash/Exchange, damaging front-pull Hook, hostile
+damaging Burst, team-vision Flare, owner-inclusive Paint, and contextual Smart
+use without a second executor. Hosted playlist v36 is the current Broadloom-4
+rating identity; v35/v34/v33 remain
 immutable Broadloom history and v32 remains complete-observation/Tapline-14 history.
 Tactics documents author Train-at-Workshop and read the Workshop's
 public neutral state through dedicated condition rows.

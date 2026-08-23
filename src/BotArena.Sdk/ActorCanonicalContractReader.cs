@@ -1078,6 +1078,14 @@ public static class ActorCanonicalContractReader
         bool hasWindup = element.TryGetProperty("windupTicks", out _);
         bool hasActivationTiming = element.TryGetProperty(
             "activationTiming", out _);
+        bool retainsCore = element.TryGetProperty("retainsCore", out _);
+        bool hasTeamVision = element.TryGetProperty(
+            "teamVisionRadius", out _);
+        bool targetRetainsCore = element.TryGetProperty(
+            "targetRetainsCore", out _);
+        bool hasAuthoredWallPenetration = element.TryGetProperty(
+            "authoredWallPenetrationTiles", out _);
+        bool hostilesOnly = element.TryGetProperty("hostilesOnly", out _);
         bool hasScreenHull = string.Equals(
                 kind,
                 "prism-wall",
@@ -1085,22 +1093,31 @@ public static class ActorCanonicalContractReader
             && element.TryGetProperty("hull", out _);
         string[] specific = kind switch
         {
-            "vector-dash" => ["tellTicks", "maxTiles"],
+            "vector-dash" => retainsCore
+                ? ["tellTicks", "maxTiles", "retainsCore"]
+                : ["tellTicks", "maxTiles"],
             "prism-wall" => hasScreenHull
                 ? ["segmentCount", "hull", "durationTicks"]
                 : ["segmentCount", "durationTicks", "contactCapacity"],
             "tractor-hook" => hasBolt
                 ? hasWindup
-                    ? ["windupTicks", "range", "maxPullTiles",
-                        "boltTilesPerAdvance"]
+                    ? hasAuthoredWallPenetration
+                        ? ["windupTicks", "range", "maxPullTiles",
+                            "boltTilesPerAdvance", "damage",
+                            "authoredWallPenetrationTiles"]
+                        : ["windupTicks", "range", "maxPullTiles",
+                            "boltTilesPerAdvance"]
                     : ["range", "maxPullTiles", "boltTilesPerAdvance"]
                 : ["range", "maxPullTiles"],
             "repair-beam" =>
                 ["range", "ticksPerRepair", "hullPerRepair",
                     "maxHullPerActivation"],
             "survey-flare" =>
-                ["range", "travelTilesPerTick", "revealRadius",
-                    "durationTicks"],
+                hasTeamVision
+                    ? ["range", "travelTilesPerTick", "revealRadius",
+                        "durationTicks", "teamVisionRadius"]
+                    : ["range", "travelTilesPerTick", "revealRadius",
+                        "durationTicks"],
             "falling-star" => ["range", "tellTicks", "damage"],
             "trip-node" => ["hull", "triggerDamage", "revealRange"],
             "null-field" => hasFieldTell
@@ -1108,7 +1125,9 @@ public static class ActorCanonicalContractReader
                 : ["radius", "durationTicks"],
             "arc-toss" =>
                 ["range", "tellTicks", "travelTilesPerTick"],
-            "exchange" => ["range", "tellTicks"],
+            "exchange" => targetRetainsCore
+                ? ["range", "tellTicks", "targetRetainsCore"]
+                : ["range", "tellTicks"],
             "rail-line" =>
                 ["tellTicks", "range", "damage", "cancelCooldownTicks"],
             "hardlight-block" => ["hull", "durationTicks"],
@@ -1119,7 +1138,10 @@ public static class ActorCanonicalContractReader
                 : ["range", "durationTicks", "enhancedHitCount",
                     "bonusDamage"],
             "kinetic-burst" => hasCancelCooldown
-                ? ["tellTicks", "pushTiles", "cancelCooldownTicks"]
+                ? hostilesOnly
+                    ? ["tellTicks", "pushTiles", "cancelCooldownTicks",
+                        "damage", "hostilesOnly"]
+                    : ["tellTicks", "pushTiles", "cancelCooldownTicks"]
                 : ["tellTicks", "pushTiles"],
             "smoke-canister" => hasTravel
                 ? ["range", "radius", "durationTicks",
@@ -1191,6 +1213,18 @@ public static class ActorCanonicalContractReader
                 ? Int(element, "boltTilesPerAdvance")
                 : null,
             AcquisitionTicks = Optional("acquisitionTicks"),
+            RetainsCore = retainsCore
+                ? Bool(element, "retainsCore")
+                : null,
+            TeamVisionRadius = Optional("teamVisionRadius"),
+            TargetRetainsCore = targetRetainsCore
+                ? Bool(element, "targetRetainsCore")
+                : null,
+            AuthoredWallPenetrationTiles = Optional(
+                "authoredWallPenetrationTiles"),
+            HostilesOnly = hostilesOnly
+                ? Bool(element, "hostilesOnly")
+                : null,
             ActivationTiming = hasActivationTiming
                 ? Semantic(element, "activationTiming")
                 : null,

@@ -9,7 +9,7 @@ namespace BotArena.Cli;
 /// Produces one short, real-rules Arc Relay replay for judging a named
 /// signature in isolation. This is presentation diagnostics, not balance or
 /// audit evidence: one caster and only the context the signature needs are
-/// staged in an open Tapline pocket while every other body waits.
+/// staged in a controlled map pocket while every other body waits.
 /// </summary>
 public static class ArcRelaySignatureStageCommand
 {
@@ -130,14 +130,14 @@ public static class ArcRelaySignatureStageCommand
                 "prism-wall" => ArcRelayLoopProfile.Tapline12,
                 // Core-adjacent staging is authored around the Tapline
                 // centre Well; Broadloom's centre sits elsewhere.
-                "arc-toss" or "exchange" => ArcRelayLoopProfile.Tapline14,
+                "arc-toss" => ArcRelayLoopProfile.Tapline14,
                 _ => ArcRelayLoopProfile.Current,
             });
 
         ActorRulesDefinition rules = source.Rules;
         ArcRelayGameModeDefinition mode = (ArcRelayGameModeDefinition)
             rules.GameMode;
-        int firstCoreTick = spec.Context == ArcRelaySignatureStageContext.Core
+        int firstCoreTick = spec.NeedsCore
             ? 12
             : Math.Max(MinimumTicks - 1, maxTicks - 1);
         var stagedMode = new ArcRelayGameModeDefinition(
@@ -246,14 +246,14 @@ public static class ArcRelaySignatureStageCommand
         }
         else if (id == "team-0-unit-1" && spec.NeedsAlly)
         {
-            position = ArcRelaySignatureStageMindFactory.AllyStart;
+            position = spec.SignatureId == "exchange"
+                ? ArcRelaySignatureStageMindFactory.ExchangeAllyStart
+                : ArcRelaySignatureStageMindFactory.AllyStart;
             facing = Direction.East;
         }
         else if (id == "team-1-unit-0" && spec.NeedsEnemy)
         {
-            position = spec.Context == ArcRelaySignatureStageContext.KineticTarget
-                ? ArcRelaySignatureStageMindFactory.KineticEnemyStart
-                : ArcRelaySignatureStageMindFactory.EnemyStart;
+            position = ArcRelaySignatureStageMindFactory.EnemyPosition(spec);
             facing = Direction.West;
         }
         return new ActorMapSpawnAnchorDefinition(
@@ -304,13 +304,20 @@ public static class ArcRelaySignatureStageCommand
         ArcRelaySignatureStageSpec spec,
         IReadOnlyCollection<ArcRelayEvent.SignatureChanged> signatureFacts)
     {
-        IEnumerable<ArcRelayEvent> arcFacts = session.Chronology.Ticks
+        GenericActorRuntimeObservation.EventPayload[] payloads = session
+            .Chronology.Ticks
             .SelectMany(frame => frame.TickStart.Events.Concat(frame.Events))
             .Select(value => value.Payload)
+            .ToArray();
+        IEnumerable<ArcRelayEvent> arcFacts = payloads
             .OfType<GenericActorRuntimeObservation.EventPayload.ArcRelay>()
             .Select(value => value.Fact);
         switch (spec.SignatureId)
         {
+            case "vector-dash":
+                RequireCarrierSafeRelocation(
+                    session, arcFacts, spec.SignatureId, unitId: 0);
+                break;
             case "exchange" when !arcFacts
                 .OfType<ArcRelayEvent.BodyRelocated>()
                 .Any(value => value.SignatureId == spec.SignatureId):
@@ -320,6 +327,38 @@ public static class ArcRelaySignatureStageCommand
                     + string.Join(", ", signatureFacts.Select(value =>
                         $"{value.Phase}:{value.Reason}"))
                     + ".");
+            case "exchange":
+                RequireCarrierSafeRelocation(
+                    session, arcFacts, spec.SignatureId, unitId: 1);
+                break;
+            case "tractor-hook" when !arcFacts
+                .OfType<ArcRelayEvent.BodyRelocated>()
+                .Any(value => value.SignatureId == spec.SignatureId
+                    && value.TargetActorId.TeamId == 1
+                    && value.From == ArcRelaySignatureStageMindFactory
+                        .HookEnemyStart
+                    && value.To == ArcRelaySignatureStageMindFactory
+                        .HookCasterStart.Offset(1, 0))
+                || !payloads.OfType<
+                    GenericActorRuntimeObservation.EventPayload.Damage>()
+                    .Any(value => value.SourceActorId is
+                    { TeamId: 0, UnitId: 0 }
+                        && value.TargetActorId is { TeamId: 1, UnitId: 0 }
+                        && value.Amount == 10):
+                throw new InvalidOperationException(
+                    "Focused Tractor Hook stage did not deal 10 damage and pull; "
+                    + StageEffectSummary(payloads, arcFacts, spec.SignatureId));
+            case "kinetic-burst" when !arcFacts
+                .OfType<ArcRelayEvent.SignatureDamage>()
+                .Any(value => value.SignatureId == spec.SignatureId
+                    && value.TargetActorId.TeamId == 1
+                    && value.Amount == 10)
+                || !arcFacts.OfType<ArcRelayEvent.BodyRelocated>()
+                    .Any(value => value.SignatureId == spec.SignatureId
+                        && value.TargetActorId.TeamId == 1):
+                throw new InvalidOperationException(
+                    "Focused Kinetic Burst stage did not deal 10 damage and push; "
+                    + StageEffectSummary(payloads, arcFacts, spec.SignatureId));
             case "arc-toss" when !arcFacts
                 .OfType<ArcRelayEvent.CoreRelocated>()
                 .Any(value => value.Kind
@@ -338,6 +377,62 @@ public static class ArcRelaySignatureStageCommand
         {
             throw new InvalidOperationException(
                 "Focused Sentinel stage never reached its deployed phase.");
+        }
+    }
+
+    private static string StageEffectSummary(
+        IEnumerable<GenericActorRuntimeObservation.EventPayload> payloads,
+        IEnumerable<ArcRelayEvent> arcFacts,
+        string signatureId)
+    {
+        string damage = string.Join(",", payloads
+            .OfType<GenericActorRuntimeObservation.EventPayload.Damage>()
+            .Select(value =>
+                $"{value.SourceActorId}->{value.TargetActorId}:{value.Amount}"));
+        string signatureDamage = string.Join(",", arcFacts
+            .OfType<ArcRelayEvent.SignatureDamage>()
+            .Select(value =>
+                $"{value.SignatureId}:{value.TargetActorId}:{value.Amount}"));
+        string moves = string.Join(",", arcFacts
+            .OfType<ArcRelayEvent.BodyRelocated>()
+            .Where(value => value.SignatureId == signatureId)
+            .Select(value =>
+                $"{value.TargetActorId}:{value.From}->{value.To}"));
+        return $"damage=[{damage}], signatureDamage=[{signatureDamage}], "
+            + $"moves=[{moves}]";
+    }
+
+    private static void RequireCarrierSafeRelocation(
+        GenericActorMatchSession session,
+        IEnumerable<ArcRelayEvent> arcFacts,
+        string signatureId,
+        int unitId)
+    {
+        ActorIdentity expectedCarrier = ActorIdentity.FromTeamUnitLife(
+            0, unitId, 0);
+        ArcRelayEvent[] facts = arcFacts.ToArray();
+        if (!facts.OfType<ArcRelayEvent.CorePickedUp>().Any(value =>
+                value.CarrierActorId == expectedCarrier)
+            || !facts.OfType<ArcRelayEvent.BodyRelocated>().Any(value =>
+                value.SignatureId == signatureId
+                && value.TargetActorId == expectedCarrier)
+            || facts.OfType<ArcRelayEvent.CoreDropped>().Any(value =>
+                value.SourceActorId == expectedCarrier
+                && value.Kind == ArcRelayEvent.CoreDropKind.SignatureDeparture))
+        {
+            throw new InvalidOperationException(
+                $"Focused {signatureId} stage did not prove a carried Core "
+                + "survives its relocation.");
+        }
+        var finalArc = session.Chronology.Ticks[^1].PostState.Mode as
+            GenericActorRuntimeObservation.ModeObservationState.ArcRelay
+            ?? throw new InvalidOperationException(
+                "Focused signature stage ended without Arc Relay state.");
+        if (!finalArc.VisibleCores.Any(value =>
+                value.CarrierActorId == expectedCarrier))
+        {
+            throw new InvalidOperationException(
+                $"Focused {signatureId} stage lost the relocated carrier's Core.");
         }
     }
 
@@ -363,6 +458,7 @@ internal enum ArcRelaySignatureStageContext
 {
     None,
     AllyTarget,
+    AllyCarrier,
     EnemyTarget,
     RepairTarget,
     KineticTarget,
@@ -377,7 +473,12 @@ internal sealed record ArcRelaySignatureStageSpec(
 {
     public bool NeedsAlly =>
         Context is ArcRelaySignatureStageContext.AllyTarget
+            or ArcRelaySignatureStageContext.AllyCarrier
             or ArcRelaySignatureStageContext.RepairTarget;
+
+    public bool NeedsCore =>
+        Context is ArcRelaySignatureStageContext.Core
+            or ArcRelaySignatureStageContext.AllyCarrier;
 
     public bool NeedsEnemy =>
         Context is ArcRelaySignatureStageContext.EnemyTarget
@@ -391,7 +492,8 @@ internal static class ArcRelaySignatureStageCatalog
     private static readonly IReadOnlyDictionary<string, ArcRelaySignatureStageSpec>
         Entries = new[]
         {
-            Spec("vector-dash", ArcRelayLaunchClassIds.Kestrel),
+            Spec("vector-dash", ArcRelayLaunchClassIds.Kestrel,
+                ArcRelaySignatureStageContext.Core),
             Spec("prism-wall", ArcRelayLaunchClassIds.Palisade),
             Spec("tractor-hook", ArcRelayLaunchClassIds.Towline,
                 ArcRelaySignatureStageContext.EnemyTarget),
@@ -406,7 +508,7 @@ internal static class ArcRelaySignatureStageCatalog
             Spec("arc-toss", ArcRelayLaunchClassIds.Relay,
                 ArcRelaySignatureStageContext.Core),
             Spec("exchange", ArcRelayLaunchClassIds.Switchback,
-                ArcRelaySignatureStageContext.AllyTarget),
+                ArcRelaySignatureStageContext.AllyCarrier),
             Spec("rail-line", ArcRelayLaunchClassIds.Longshot,
                 ArcRelaySignatureStageContext.EnemyTarget),
             Spec("hardlight-block", ArcRelayLaunchClassIds.Mason),

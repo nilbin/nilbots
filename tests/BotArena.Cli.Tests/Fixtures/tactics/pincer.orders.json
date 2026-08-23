@@ -159,8 +159,8 @@
                   },
                   "use": {
                     "skill": "exchange",
-                    "opportunity": "rescue-endangered-ally",
-                    "target": "healthiest-ally"
+                    "opportunity": "advance-friendly-carrier",
+                    "target": "nearest-friendly-core-carrier-behind"
                   }
                 },
                 {

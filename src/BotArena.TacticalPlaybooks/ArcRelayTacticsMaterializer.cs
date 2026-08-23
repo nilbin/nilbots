@@ -850,10 +850,13 @@ internal static class ArcRelayTacticsMaterializer
                 // travel posture makes the march and the ground different.
                 AddSignatureLeaves(
                     leaves, scope, group, bot, raw.Posture, raw.Sigs,
-                    effective);
+                    effective, phase, custodyPlan);
+                AddCarrierHunt(
+                    leaves, scope, group.CoreRule, group,
+                    excludeAttachedEscort: custodyPlan == "escort");
                 AddCustodyFight(
                     leaves, scope, custodyPlan, group, raw.Posture);
-                AddPostureFight(leaves, scope, raw.Posture,
+                AddPostureFight(leaves, scope, raw.Posture, bot,
                     standing || (mover && travel is not null)
                         ? () => OnStationCondition(
                             prefix, groupTag, effective!, group, bot)
@@ -1311,14 +1314,6 @@ internal static class ArcRelayTacticsMaterializer
             }
             else if (coreRule == "hunt")
             {
-                leaves.Add(GroupLeaf(scope, "hunt-carrier", () => new Node
-                {
-                    When = Expr.All(FreeToCollect(Condition(
-                        new ConditionShape(
-                            "visible-enemy-carriers", "at-least", 1),
-                        "enemy-carrier-visible"))),
-                    Action = Fight(["carrier", "nearest"], "advance", 8),
-                }));
                 leaves.Add(GroupLeaf(scope, "hunt-core", () => new Node
                 {
                     When = Expr.All(FreeToCollect(Condition(
@@ -1330,10 +1325,33 @@ internal static class ArcRelayTacticsMaterializer
             }
         }
 
+        private void AddCarrierHunt(
+            List<Node> leaves,
+            LeafScope scope,
+            string coreRule,
+            ArcRelayTacticGroup group,
+            bool excludeAttachedEscort)
+        {
+            if (coreRule != "hunt")
+                return;
+            string[] conditions = excludeAttachedEscort
+                ? [EmptyHanded(), NoFriendlyCarrier(group, scope)]
+                : [EmptyHanded()];
+            leaves.Add(GroupLeaf(scope, "hunt-carrier", () => new Node
+            {
+                When = Expr.All([.. conditions, Condition(
+                    new ConditionShape(
+                        "visible-enemy-carriers", "at-least", 1),
+                    "enemy-carrier-visible")]),
+                Action = Fight(["carrier", "nearest"], "advance", 8),
+            }));
+        }
+
         private void AddPostureFight(
             List<Node> leaves,
             LeafScope scope,
             string posture,
+            ArcRelayTacticsSquadBot bot,
             Func<string?>? stationCondition = null)
         {
             (string[] Targets, string Style, int Chase)? fight = posture switch
@@ -1357,6 +1375,25 @@ internal static class ArcRelayTacticsMaterializer
             // exists — consumer honesty. Posts groups gate per bot (its own
             // post), so the leaf inlines instead of sharing.
             string? onStation = stationCondition?.Invoke();
+            if (bot.ClassId == "repulsor" && posture == "aggressive")
+            {
+                var closeConditions = new List<string>
+                {
+                    EmptyHanded(), SignatureReady(), EnemyNearby(),
+                };
+                if (onStation is not null)
+                    closeConditions.Add(onStation);
+                leaves.Add(new Node
+                {
+                    Id = scope.Id("burst-close"),
+                    When = Expr.All(closeConditions.ToArray()),
+                    Action = Fight(
+                        ["carrier", "weakest", "nearest"],
+                        "advance",
+                        6,
+                        preferredRange: 1),
+                });
+            }
             Node Define() => new()
             {
                 When = onStation is null
@@ -1501,7 +1538,9 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTacticsSquadBot bot,
             string posture,
             IReadOnlyList<ArcRelayTacticSignaturePlan> plans,
-            ArcRelayTacticJob? job)
+            ArcRelayTacticJob? job,
+            ArcRelayTacticPhaseDef phase,
+            string custodyPlan)
         {
             string geometryPrefix = $"{scope.Prefix}-{scope.GroupTag}-{scope.PhaseTag}";
             ArcRelayTacticSignaturePlan? plan = plans.FirstOrDefault(
@@ -1568,14 +1607,23 @@ internal static class ArcRelayTacticsMaterializer
                         plan.Line, $"g-{geometryPrefix}-s{bot.Slot}-dash");
                     leaves.Add(new Node
                     {
-                        Id = scope.Id("dash"),
-                        When = Expr.All(EmptyHanded(), SignatureReady()),
+                        Id = scope.Id(bot.ClassId == "towline"
+                            ? "breach-hook"
+                            : "dash"),
+                        When = SignatureWhen(descriptor),
                         Action = UseSkill(descriptor.SkillId, writer =>
                         {
                             writer.WriteStartObject("target");
-                            writer.WriteString("route", route);
-                            writer.WriteString("progress", "forward");
-                            writer.WriteNumber("minimumForwardTiles", 2);
+                            if (bot.ClassId == "towline")
+                            {
+                                writer.WriteString("ray", route);
+                            }
+                            else
+                            {
+                                writer.WriteString("route", route);
+                                writer.WriteString("progress", "forward");
+                                writer.WriteNumber("minimumForwardTiles", 2);
+                            }
                             writer.WriteEndObject();
                         }),
                     });
@@ -1607,23 +1655,57 @@ internal static class ArcRelayTacticsMaterializer
                     { Via: not null } => job.Via,
                     _ => null,
                 };
-                if (path is null)
-                    return;
-                string route = Route(
-                    path, $"g-{geometryPrefix}-s{bot.Slot}-smart-dash");
-                leaves.Add(new Node
+                string? jobRoute = path is null
+                    ? null
+                    : Route(
+                        path, $"g-{geometryPrefix}-s{bot.Slot}-smart-dash");
+                IReadOnlyList<int[]>? custodyPath = phase.Custody?.Via;
+                string? custodyRoute = custodyPath is null
+                    ? null
+                    : Route(custodyPath,
+                        $"g-{scope.Prefix}-{scope.PhaseTag}-carry");
+                bool banksNow = custodyPlan is not ("none" or "keep");
+                string? carrierRoute = custodyRoute
+                    ?? (banksNow ? null : jobRoute);
+                if (banksNow || carrierRoute is not null)
                 {
-                    Id = scope.Id("sig"),
-                    When = Expr.All(EmptyHanded(), SignatureReady()),
-                    Action = UseSkill(descriptor.SkillId, writer =>
+                    leaves.Add(new Node
                     {
-                        writer.WriteStartObject("target");
-                        writer.WriteString("route", route);
-                        writer.WriteString("progress", "forward");
-                        writer.WriteNumber("minimumForwardTiles", 2);
-                        writer.WriteEndObject();
-                    }),
-                });
+                        Id = scope.Id("carrier-sig"),
+                        When = Expr.All(CarryingCore(), SignatureReady()),
+                        Action = UseSkill(descriptor.SkillId, writer =>
+                        {
+                            if (carrierRoute is null)
+                            {
+                                writer.WriteString("target", "own-reactor");
+                            }
+                            else
+                            {
+                                writer.WriteStartObject("target");
+                                writer.WriteString("route", carrierRoute);
+                                writer.WriteString("progress", "forward");
+                                writer.WriteNumber("minimumForwardTiles", 2);
+                                writer.WriteEndObject();
+                            }
+                        }),
+                    });
+                }
+                if (jobRoute is not null)
+                {
+                    leaves.Add(new Node
+                    {
+                        Id = scope.Id("sig"),
+                        When = Expr.All(EmptyHanded(), SignatureReady()),
+                        Action = UseSkill(descriptor.SkillId, writer =>
+                        {
+                            writer.WriteStartObject("target");
+                            writer.WriteString("route", jobRoute);
+                            writer.WriteString("progress", "forward");
+                            writer.WriteNumber("minimumForwardTiles", 2);
+                            writer.WriteEndObject();
+                        }),
+                    });
+                }
                 return;
             }
             if (bot.ClassId == "longshot")
@@ -1701,176 +1783,176 @@ internal static class ArcRelayTacticsMaterializer
                 // tile), so they stay inline; every other floor is
                 // group-uniform and shares one definition.
                 case "posts":
-                {
-                    int member = group.Slots.ToList().IndexOf(bot.Slot);
-                    ArcRelayTacticPost post = job.Posts![member];
-                    string anchor = Anchor(
-                        post.At, $"g-{geometryPrefix}-post-{member}");
-                    // A post's own drawn way in overrides the group route:
-                    // this bot walks its route, groupmates keep theirs.
-                    string? wayIn = post.Via is null
-                        ? via
-                        : Route(post.Via, $"g-{geometryPrefix}-in-{member}");
-                    leaves.Add(new Node
                     {
-                        Id = scope.Id("move"),
-                        Action = writer =>
+                        int member = group.Slots.ToList().IndexOf(bot.Slot);
+                        ArcRelayTacticPost post = job.Posts![member];
+                        string anchor = Anchor(
+                            post.At, $"g-{geometryPrefix}-post-{member}");
+                        // A post's own drawn way in overrides the group route:
+                        // this bot walks its route, groupmates keep theirs.
+                        string? wayIn = post.Via is null
+                            ? via
+                            : Route(post.Via, $"g-{geometryPrefix}-in-{member}");
+                        leaves.Add(new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("anchor", anchor);
-                            writer.WriteEndObject();
-                            if (wayIn is not null)
-                                writer.WriteString("via", wayIn);
-                            writer.WriteStartObject("face");
-                            writer.WriteString("direction", post.Facing);
-                            writer.WriteEndObject();
-                            writer.WriteEndObject();
-                        },
-                    });
-                    break;
-                }
+                            Id = scope.Id("move"),
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteStartObject("to");
+                                writer.WriteString("anchor", anchor);
+                                writer.WriteEndObject();
+                                if (wayIn is not null)
+                                    writer.WriteString("via", wayIn);
+                                writer.WriteStartObject("face");
+                                writer.WriteString("direction", post.Facing);
+                                writer.WriteEndObject();
+                                writer.WriteEndObject();
+                            },
+                        });
+                        break;
+                    }
                 case "line":
-                {
-                    int member = group.Slots.ToList().IndexOf(bot.Slot);
-                    int point = member % job.Path!.Count;
-                    string anchor = Anchor(
-                        job.Path[point], $"g-{geometryPrefix}-line-{point}");
-                    leaves.Add(new Node
                     {
-                        Id = scope.Id("move"),
-                        Action = writer =>
+                        int member = group.Slots.ToList().IndexOf(bot.Slot);
+                        int point = member % job.Path!.Count;
+                        string anchor = Anchor(
+                            job.Path[point], $"g-{geometryPrefix}-line-{point}");
+                        leaves.Add(new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("anchor", anchor);
-                            writer.WriteEndObject();
-                            if (via is not null)
-                                writer.WriteString("via", via);
-                            writer.WriteString("posture", posture);
-                            writer.WriteEndObject();
-                        },
-                    });
-                    break;
-                }
+                            Id = scope.Id("move"),
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteStartObject("to");
+                                writer.WriteString("anchor", anchor);
+                                writer.WriteEndObject();
+                                if (via is not null)
+                                    writer.WriteString("via", via);
+                                writer.WriteString("posture", posture);
+                                writer.WriteEndObject();
+                            },
+                        });
+                        break;
+                    }
                 case "area":
-                {
-                    string zone = Zone(job.Rect!, $"g-{geometryPrefix}-hold");
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        string zone = Zone(job.Rect!, $"g-{geometryPrefix}-hold");
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         { Action = MoveToZone(zone, posture, via) }));
-                    break;
-                }
+                        break;
+                    }
                 case "approach":
-                {
-                    string anchor = Anchor(
-                        job.Point!, $"g-{geometryPrefix}-mark");
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
                     {
-                        Action = writer =>
+                        string anchor = Anchor(
+                            job.Point!, $"g-{geometryPrefix}-mark");
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("adjacentTo", anchor);
-                            writer.WriteEndObject();
-                            if (via is not null)
-                                writer.WriteString("via", via);
-                            writer.WriteString("posture", "rear");
-                            writer.WriteEndObject();
-                        },
-                    }));
-                    break;
-                }
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteStartObject("to");
+                                writer.WriteString("adjacentTo", anchor);
+                                writer.WriteEndObject();
+                                if (via is not null)
+                                    writer.WriteString("via", via);
+                                writer.WriteString("posture", "rear");
+                                writer.WriteEndObject();
+                            },
+                        }));
+                        break;
+                    }
                 case "converge":
-                {
-                    string anchor = Anchor(
-                        job.Point!, $"g-{geometryPrefix}-goal");
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
                     {
-                        Action = writer =>
+                        string anchor = Anchor(
+                            job.Point!, $"g-{geometryPrefix}-goal");
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("adjacentTo", anchor);
-                            writer.WriteEndObject();
-                            if (via is not null)
-                                writer.WriteString("via", via);
-                            writer.WriteString("posture", posture);
-                            writer.WriteEndObject();
-                        },
-                    }));
-                    break;
-                }
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteStartObject("to");
+                                writer.WriteString("adjacentTo", anchor);
+                                writer.WriteEndObject();
+                                if (via is not null)
+                                    writer.WriteString("via", via);
+                                writer.WriteString("posture", posture);
+                                writer.WriteEndObject();
+                            },
+                        }));
+                        break;
+                    }
                 case "advance":
-                {
-                    int[] last = job.Path![^1];
-                    int[] rect = PadBounds([last[0], last[1], last[0], last[1]], 1);
-                    string zone = Zone(rect, $"g-{geometryPrefix}-goal");
-                    string route = Route(job.Path, $"g-{geometryPrefix}-way");
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
                     {
-                        Action = writer =>
+                        int[] last = job.Path![^1];
+                        int[] rect = PadBounds([last[0], last[1], last[0], last[1]], 1);
+                        string zone = Zone(rect, $"g-{geometryPrefix}-goal");
+                        string route = Route(job.Path, $"g-{geometryPrefix}-way");
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("zone", zone);
-                            writer.WriteEndObject();
-                            writer.WriteString("via", route);
-                            writer.WriteString("posture", posture);
-                            writer.WriteEndObject();
-                        },
-                    }));
-                    break;
-                }
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteStartObject("to");
+                                writer.WriteString("zone", zone);
+                                writer.WriteEndObject();
+                                writer.WriteString("via", route);
+                                writer.WriteString("posture", posture);
+                                writer.WriteEndObject();
+                            },
+                        }));
+                        break;
+                    }
                 case "train":
-                {
-                    // The trainee walks to the rules-owned training tile and
-                    // stands. The Workshop channel itself is mode-owned: the
-                    // executor authors no progress, and the authored 'wait'
-                    // posture emits no fight leaf, so a quiet stand is
-                    // exactly what materializes.
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
                     {
-                        Action = writer =>
+                        // The trainee walks to the rules-owned training tile and
+                        // stands. The Workshop channel itself is mode-owned: the
+                        // executor authors no progress, and the authored 'wait'
+                        // posture emits no fight leaf, so a quiet stand is
+                        // exactly what materializes.
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteStartObject("to");
-                            writer.WriteString("workshop", job.Workshop!);
-                            writer.WriteEndObject();
-                            if (via is not null)
-                                writer.WriteString("via", via);
-                            writer.WriteString("posture", "rear");
-                            writer.WriteEndObject();
-                        },
-                    }));
-                    break;
-                }
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteStartObject("to");
+                                writer.WriteString("workshop", job.Workshop!);
+                                writer.WriteEndObject();
+                                if (via is not null)
+                                    writer.WriteString("via", via);
+                                writer.WriteString("posture", "rear");
+                                writer.WriteEndObject();
+                            },
+                        }));
+                        break;
+                    }
                 case "patrol":
-                {
-                    string route = Route(job.Path!, $"g-{geometryPrefix}-beat");
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
                     {
-                        Action = writer =>
+                        string route = Route(job.Path!, $"g-{geometryPrefix}-beat");
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         {
-                            writer.WriteStartObject("move");
-                            writer.WriteString("patrol", route);
-                            writer.WriteString("posture", posture);
-                            writer.WriteEndObject();
-                        },
-                    }));
-                    break;
-                }
+                            Action = writer =>
+                            {
+                                writer.WriteStartObject("move");
+                                writer.WriteString("patrol", route);
+                                writer.WriteString("posture", posture);
+                                writer.WriteEndObject();
+                            },
+                        }));
+                        break;
+                    }
                 case "return":
-                {
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         { Action = MoveToDynamic("own-reactor", via: via) }));
-                    break;
-                }
+                        break;
+                    }
                 case "escort":
-                {
-                    leaves.Add(GroupLeaf(scope, "move", () => new Node
+                    {
+                        leaves.Add(GroupLeaf(scope, "move", () => new Node
                         { Action = FollowCarrier() }));
-                    break;
-                }
+                        break;
+                    }
             }
         }
 
@@ -2028,7 +2110,8 @@ internal static class ArcRelayTacticsMaterializer
         private static Action<Utf8JsonWriter> Fight(
             string[] targets,
             string style,
-            int chaseLimit) => writer =>
+            int chaseLimit,
+            int? preferredRange = null) => writer =>
         {
             writer.WriteStartObject("fight");
             writer.WriteStartArray("targets");
@@ -2037,6 +2120,8 @@ internal static class ArcRelayTacticsMaterializer
             writer.WriteEndArray();
             writer.WriteString("style", style);
             writer.WriteNumber("chaseLimit", chaseLimit);
+            if (preferredRange is int range)
+                writer.WriteNumber("preferredRange", range);
             writer.WriteEndObject();
         };
 

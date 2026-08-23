@@ -32,15 +32,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         JsonElement document = receipt.RootElement;
 
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom4TacticalArtifactHash,
             document.GetProperty("artifactSha256").GetString());
         Assert.Equal(
-            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom4TacticalBuildInputHash,
             document.GetProperty("buildInputSha256").GetString());
     }
 
     [Fact]
-    public void Entrant_v35_removes_workshop_dormancy_while_v2_through_v34_remain_resolvable_history()
+    public void Entrant_v36_refreshes_signatures_while_v2_through_v35_remain_resolvable_history()
     {
         ArcRelayEntrantPlaylistDefinition current =
             ArcRelayEntrantPlaylistDefinition.Create();
@@ -110,22 +110,24 @@ public sealed class ArcRelayPlaylistDefinitionTests
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33();
         ArcRelayEntrantPlaylistDefinition broadloomV34 =
             ArcRelayEntrantPlaylistDefinition.CreateHistoricalV34();
+        ArcRelayEntrantPlaylistDefinition broadloomV35 =
+            ArcRelayEntrantPlaylistDefinition.CreateHistoricalV35();
 
-        Assert.Equal(35, current.PlaylistVersion);
-        Assert.Equal(ArcRelayLoopProfile.Broadloom3.MapId, current.Match.Map.Id);
+        Assert.Equal(36, current.PlaylistVersion);
+        Assert.Equal(ArcRelayLoopProfile.Broadloom4.MapId, current.Match.Map.Id);
         Assert.Equal("arc-relay-broadloom-01", current.Match.Map.Id);
         Assert.Equal(
-            ArcRelayLoopProfile.Broadloom3.RulesetId,
+            ArcRelayLoopProfile.Broadloom4.RulesetId,
             current.Match.Rules.RulesetId);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalArtifactHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom4TacticalArtifactHash,
             current.CanonicalDefinition);
         Assert.Contains("arc-relay-orders-v2", current.CanonicalDefinition);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockSheetId,
             current.CanonicalDefinition);
         Assert.Contains(
-            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalBuildInputHash,
+            ArcRelayEntrantPlaylistDefinition.Broadloom4TacticalBuildInputHash,
             current.CanonicalDefinition);
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockPlaybookSourceHash,
@@ -133,7 +135,7 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains(
             ArcRelayEntrantPlaylistDefinition.BroadloomStockMapPlanSourceHash,
             current.CanonicalDefinition);
-        Assert.Contains("ownerApprovedBroadloom3", current.Provenance);
+        Assert.Contains("ownerApprovedBroadloom4", current.Provenance);
         Assert.Contains("\"newImmutableMapIdentity\":false", current.Provenance);
         Assert.Contains("\"mapWidth\":37", current.Provenance);
         Assert.Contains("\"mapHeight\":27", current.Provenance);
@@ -158,7 +160,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Contains("delayedCentreOpening", current.Provenance);
         Assert.Contains("broadloomNativeMapPlansOnly", current.Provenance);
         Assert.Contains("temperedBroadloomTacticsStock", current.Provenance);
-        Assert.Contains("broadloom3TacticalArtifact", current.Provenance);
+        Assert.Contains("broadloom4TacticalArtifact", current.Provenance);
+        Assert.Contains("custodySafeVectorDash", current.Provenance);
+        Assert.Contains("damagingFrontPullTractorHook", current.Provenance);
+        Assert.Contains("authoredHookWallBreachTiles", current.Provenance);
+        Assert.Contains("hostileOnlyDamagingKineticBurst", current.Provenance);
+        Assert.Contains("surveyFlareTeamVisionRadius", current.Provenance);
+        Assert.Contains("custodySafeCarrierExchange", current.Provenance);
+        Assert.Contains("priorityAwareSmartSignatures", current.Provenance);
+        Assert.Contains("aggressiveRepulsorClosesForBurst", current.Provenance);
         Assert.Contains(
             "completeTacticalObservationProjection", current.Provenance);
         Assert.Contains("teamRelativeCoreCharge", current.Provenance);
@@ -176,6 +186,20 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.DoesNotContain("ownerApprovedTapline14", current.Provenance);
         Assert.DoesNotContain("frozenTemperedStandardStock", current.Provenance);
         Assert.DoesNotContain("ratingContinuityFromVersions", current.Provenance);
+        Assert.Equal(35, broadloomV35.PlaylistVersion);
+        Assert.Equal(
+            ArcRelayLoopProfile.Broadloom3.RulesetId,
+            broadloomV35.Match.Rules.RulesetId);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalArtifactHash,
+            broadloomV35.CanonicalDefinition);
+        Assert.Contains(
+            ArcRelayEntrantPlaylistDefinition.Broadloom3TacticalBuildInputHash,
+            broadloomV35.CanonicalDefinition);
+        Assert.Contains("ownerApprovedBroadloom3", broadloomV35.Provenance);
+        Assert.Contains("\"newImmutableMapIdentity\":false", broadloomV35.Provenance);
+        Assert.Contains("broadloom3TacticalArtifact", broadloomV35.Provenance);
+        Assert.DoesNotContain("custodySafeVectorDash", broadloomV35.Provenance);
         Assert.Equal(34, broadloomV34.PlaylistVersion);
         Assert.Equal(
             ArcRelayLoopProfile.Broadloom2.RulesetId,
@@ -545,7 +569,8 @@ public sealed class ArcRelayPlaylistDefinitionTests
                 claimableCoreV18, taplineV19, ordersV20, tapline3V21,
                 tapline4V22, tapline5V23, tapline6V24, tapline8V25,
                 tapline9V26, tapline10V27, tapline11V28, tapline12V29,
-                tapline13V30, tapline14V31, completeV32, current]);
+                tapline13V30, tapline14V31, completeV32, broadloomV33,
+                broadloomV34, broadloomV35, current]);
         Assert.Same(historicalV2, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.HistoricalVersion));
@@ -639,6 +664,15 @@ public sealed class ArcRelayPlaylistDefinitionTests
         Assert.Same(completeV32, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.CompleteObservationVersion));
+        Assert.Same(broadloomV33, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.BroadloomInitialVersion));
+        Assert.Same(broadloomV34, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Broadloom2Version));
+        Assert.Same(broadloomV35, registry.Resolve(
+            ArcRelayEntrantPlaylistDefinition.PlaylistKey,
+            ArcRelayEntrantPlaylistDefinition.Broadloom3Version));
         Assert.Same(current, registry.Resolve(
             ArcRelayEntrantPlaylistDefinition.PlaylistKey,
             ArcRelayEntrantPlaylistDefinition.Version));
@@ -1095,19 +1129,19 @@ public sealed class ArcRelayPlaylistDefinitionTests
         int participantId,
         ArcRelaySheetCompilation sheet,
         IGenericMindRuntimeFactory factory) => new()
-    {
-        ParticipantId = participantId,
-        TeamId = participantId,
-        Name = $"forward-parity-{participantId}",
-        MindRuntimeFactory = factory,
-        RuntimeKind = "forward-stock-parity-v1",
-        ArtifactHash = ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
-        MindDataHash = sheet.ContentHash,
-        MindEvaluationData = [.. sheet.LinkedData],
-        Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
-        LookId = "arc-relay-sheet",
-        ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
-    };
+        {
+            ParticipantId = participantId,
+            TeamId = participantId,
+            Name = $"forward-parity-{participantId}",
+            MindRuntimeFactory = factory,
+            RuntimeKind = "forward-stock-parity-v1",
+            ArtifactHash = ArcRelayPlaylistDefinition.ForwardStockArtifactHash,
+            MindDataHash = sheet.ContentHash,
+            MindEvaluationData = [.. sheet.LinkedData],
+            Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
+            LookId = "arc-relay-sheet",
+            ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
+        };
 
     private static (string Hash, GenericActorMatchResult Result) RunFull(
         ActorResolvedMatchDefinition definition,
@@ -1155,21 +1189,21 @@ public sealed class ArcRelayPlaylistDefinitionTests
         int participantId,
         ArcRelaySheetCompilation sheet,
         bool optimized) => new()
-    {
-        ParticipantId = participantId,
-        TeamId = participantId,
-        Name = $"sheet-{participantId}",
-        MindRuntimeFactory = new InProcessGenericMindRuntimeFactory(
+        {
+            ParticipantId = participantId,
+            TeamId = participantId,
+            Name = $"sheet-{participantId}",
+            MindRuntimeFactory = new InProcessGenericMindRuntimeFactory(
             static () => new global::ArcRelayStockMind(),
             trustedArcRelayStockProjection: optimized),
-        RuntimeKind = "trusted-stock-in-process-v1",
-        ArtifactHash = ArcRelayPlaylistDefinition.StockArtifactHash,
-        MindDataHash = sheet.ContentHash,
-        MindEvaluationData = [.. sheet.LinkedData],
-        Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
-        LookId = "arc-relay-sheet",
-        ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
-    };
+            RuntimeKind = "trusted-stock-in-process-v1",
+            ArtifactHash = ArcRelayPlaylistDefinition.StockArtifactHash,
+            MindDataHash = sheet.ContentHash,
+            MindEvaluationData = [.. sheet.LinkedData],
+            Accent = participantId == 0 ? "#22d3ee" : "#fb5360",
+            LookId = "arc-relay-sheet",
+            ProjectileLookId = ArcRelayH0ReplayPresentation.ProjectileLookId,
+        };
 
     private static string Sha256Text(string value) =>
         Convert.ToHexStringLower(

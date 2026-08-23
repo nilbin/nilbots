@@ -518,7 +518,7 @@ export function phaseShade(
 /** Each spatial signature's map glyph, from the design mock's vocabulary. */
 const SIGNATURE_ICONS: Record<string, string> = {
   mason: '▬', nest: '◎', minesmith: '▴', lantern: '✳', mortar: '✛',
-  veil: '☁', kestrel: '》', longshot: '━',
+  veil: '☁', kestrel: '》', longshot: '━', towline: '↝',
 };
 
 /** Spatial signature controls come directly from the shared authoring

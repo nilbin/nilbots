@@ -1490,7 +1490,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string path,
         ConsumerLedger consumers)
     {
-        Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"], ["zone"]);
+        Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"],
+            ["zone", "preferredRange"]);
         string[] targets = StringArray(
             value.GetProperty("targets"), $"{path}.fight.targets", 1, 5);
         foreach (string target in targets)
@@ -1501,6 +1502,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         OneOf(value, "style", $"{path}.fight", "advance", "hold", "kite");
         Range(value, "chaseLimit", $"{path}.fight", 0, 12);
+        if (value.TryGetProperty("preferredRange", out _))
+            Range(value, "preferredRange", $"{path}.fight", 1, 12);
         if (value.TryGetProperty("zone", out JsonElement zone))
         {
             string zoneId = StringValue(zone, $"{path}.fight.zone");
@@ -1567,14 +1570,14 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         {
             if (targetValue.ValueKind != JsonValueKind.Object)
                 throw Error($"{path}.use.target", "expected target name or object.");
-            string[] kinds = ["role", "selector", "route"];
+            string[] kinds = ["role", "selector", "route", "ray"];
             string[] found = kinds.Where(name =>
                 targetValue.TryGetProperty(name, out _)).ToArray();
             if (found.Length != 1)
             {
                 throw Error(
                     $"{path}.use.target",
-                    "target object needs exactly one of role/selector/route.");
+                    "target object needs exactly one of role/selector/route/ray.");
             }
             bool forwardRouteTarget = found[0] == "role"
                 && (targetValue.TryGetProperty("aheadVia", out _)
@@ -1614,6 +1617,18 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     $"{path}.use.target",
                     1,
                     5);
+            }
+            else if (targetKind == "ray")
+            {
+                if (!descriptor.Allows(
+                        ArcRelaySignatureTargetCapability.AuthoredRay))
+                {
+                    throw Error(
+                        $"{path}.use.target",
+                        $"'{skill}' cannot use an authored firing ray.");
+                }
+                IdentifierValue(target, $"{path}.use.target.ray", "route");
+                consumers.ReferenceRoute(target, path);
             }
             else if (targetKind == "role")
             {

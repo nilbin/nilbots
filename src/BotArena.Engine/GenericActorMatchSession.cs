@@ -1716,7 +1716,20 @@ public sealed class GenericActorMatchSession : IDisposable
                         projectile.OwnerActorId,
                         life.ActorId,
                         projectile.SignatureBoltHook.PullOrigin,
-                        projectile.SignatureBoltHook.MaxPullTiles));
+                        projectile.SignatureBoltHook.MaxPullTiles,
+                        projectile.SignatureBoltHook
+                            .AuthoredWallPenetrationTiles));
+                    if (projectile.SignatureBoltHook.Damage > 0)
+                    {
+                        contacts.Add(new PendingDamageContact(
+                            life.ActorId,
+                            projectile.OwnerTeamId,
+                            projectile.OwnerActorId,
+                            projectile.Id,
+                            projectile.SignatureBoltHook.Damage,
+                            projectile.Heading,
+                            contactOrdinal++));
+                    }
                 }
                 else if (contact.Damages)
                 {
@@ -2046,6 +2059,9 @@ public sealed class GenericActorMatchSession : IDisposable
             }
             if (signature is ArcRelaySignatureDefinition.Exchange)
             {
+                bool coordinatedCarrierExchange =
+                    signature is ArcRelaySignatureDefinition.Exchange
+                    { TargetRetainsCore: true };
                 GenericActorRuntimeActionArgument.UnitTarget target =
                     resolution.ValidatedAction.Arguments
                         .OfType<GenericActorRuntimeActionArgument
@@ -2063,7 +2079,7 @@ public sealed class GenericActorMatchSession : IDisposable
                             .Success
                     && _actions[targetResolution.ValidatedAction.ActionId].Kind
                         == ActorActionKind.Wait;
-                if (!targetWaited)
+                if (!coordinatedCarrierExchange && !targetWaited)
                 {
                     Block(resolution);
                     continue;
@@ -2127,7 +2143,9 @@ public sealed class GenericActorMatchSession : IDisposable
                         "hook-bolt",
                         new SignatureBoltHook(
                             grapple.Origin,
-                            grapple.MaxPullTiles)));
+                            grapple.MaxPullTiles,
+                            grapple.Damage,
+                            grapple.AuthoredWallPenetrationTiles)));
                     break;
                 case ArcRelaySignatureRuntime.Effect.Repair repair:
                     ApplySignatureRepair(mode, repair, events);
@@ -2236,15 +2254,18 @@ public sealed class GenericActorMatchSession : IDisposable
     {
         if (!_lives.TryGetValue(effect.Owner, out LifeState? life))
             return;
-        if (mode.TrySignatureDepartureDrop(
+        ArcRelaySignatureDefinition.VectorDash dashRule =
+            (ArcRelaySignatureDefinition.VectorDash)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        if (!dashRule.RetainsCore
+            && mode.TrySignatureDepartureDrop(
                 Tick,
                 effect.Owner,
                 out GenericActorModeEvent? drop))
         {
             EmitModeEvent(drop!, events);
         }
-        int range = ((ArcRelaySignatureDefinition.VectorDash)
-            mode.Signatures.DefinitionFor(effect.Owner)).MaxTiles;
+        int range = dashRule.MaxTiles;
         Position destination = FurthestLegalSignatureTile(
             life.ActorId,
             life.Position,
@@ -2262,7 +2283,9 @@ public sealed class GenericActorMatchSession : IDisposable
 
     private sealed record SignatureBoltHook(
         Position PullOrigin,
-        int MaxPullTiles);
+        int MaxPullTiles,
+        int Damage,
+        int AuthoredWallPenetrationTiles);
 
     private sealed record PendingSignatureBolt(
         string OperationId,
@@ -2277,7 +2300,8 @@ public sealed class GenericActorMatchSession : IDisposable
         ActorIdentity Owner,
         ActorIdentity Target,
         Position PullOrigin,
-        int MaxPullTiles);
+        int MaxPullTiles,
+        int WallPenetrationTiles);
 
     /// <summary>
     /// Grammar-2 signature bolts ride the ordinary projectile machinery:
@@ -2302,12 +2326,12 @@ public sealed class GenericActorMatchSession : IDisposable
             ActorAttackProfileDefinition profile = _definition.Rules
                 .AttackProfiles.Single(candidate => string.Equals(
                     candidate.Id, pending.ProfileId, StringComparison.Ordinal));
-            ImmutableArray<Position> path = TraceProjectilePath(
-                pending.Origin,
-                pending.Heading,
-                profile,
-                program: null,
-                extraTravelTiles: 0);
+            (ImmutableArray<Position> path, int remainingBreach) =
+                TraceSignatureBoltPath(
+                    pending.Origin,
+                    pending.Heading,
+                    profile,
+                    pending.HookPull?.AuthoredWallPenetrationTiles ?? 0);
             long projectileId = _nextProjectileId;
             _nextProjectileId = checked(_nextProjectileId + 1);
             var projectile = new ProjectileState(
@@ -2324,6 +2348,7 @@ public sealed class GenericActorMatchSession : IDisposable
             {
                 SignatureBoltOperationId = pending.OperationId,
                 SignatureBoltHook = pending.HookPull,
+                SignatureBreachRemaining = remainingBreach,
             };
             TraverseProjectile(
                 projectile,
@@ -2356,7 +2381,9 @@ public sealed class GenericActorMatchSession : IDisposable
             if (!_lives.TryGetValue(pull.Target, out LifeState? target))
                 continue;
             Position destination = target.Position;
-            for (int step = 0; step < pull.MaxPullTiles; step++)
+            int travelled = 0;
+            int wallPenetration = pull.WallPenetrationTiles;
+            while (travelled < pull.MaxPullTiles)
             {
                 int dx = Math.Sign(pull.PullOrigin.X - destination.X);
                 int dy = Math.Sign(pull.PullOrigin.Y - destination.Y);
@@ -2364,14 +2391,39 @@ public sealed class GenericActorMatchSession : IDisposable
                     break;
                 Position next = destination.Offset(dx, dy);
                 if (next == pull.PullOrigin
-                    || _definition.Map.IsWall(next)
                     || _lives.Values.Any(value =>
                         value.ActorId != target.ActorId
                         && value.Position == next))
                 {
                     break;
                 }
+                bool wall = _definition.Map.IsWall(next);
+                bool hostileHardlight =
+                    mode.Signatures.HasHostileHardlightAt(
+                        next, pull.Owner.TeamId, Tick);
+                if (wall || hostileHardlight)
+                {
+                    Position beyond = next.Offset(dx, dy);
+                    if (wallPenetration <= 0
+                        || travelled + 2 > pull.MaxPullTiles
+                        || beyond == pull.PullOrigin
+                        || _definition.Map.IsWall(beyond)
+                        || mode.Signatures.BlocksBody(beyond, Tick)
+                        || _lives.Values.Any(value =>
+                            value.ActorId != target.ActorId
+                            && value.Position == beyond))
+                    {
+                        break;
+                    }
+                    wallPenetration--;
+                    travelled += 2;
+                    destination = beyond;
+                    continue;
+                }
+                if (mode.Signatures.BlocksBody(next, Tick))
+                    break;
                 destination = next;
+                travelled++;
             }
             if (destination != target.Position)
             {
@@ -2448,7 +2500,11 @@ public sealed class GenericActorMatchSession : IDisposable
         {
             return;
         }
-        if (mode.TrySignatureDepartureDrop(
+        ArcRelaySignatureDefinition.Exchange exchangeRule =
+            (ArcRelaySignatureDefinition.Exchange)
+                mode.Signatures.DefinitionFor(effect.Owner);
+        if (!exchangeRule.TargetRetainsCore
+            && mode.TrySignatureDepartureDrop(
                 Tick,
                 target.ActorId,
                 out GenericActorModeEvent? drop))
@@ -2477,6 +2533,20 @@ public sealed class GenericActorMatchSession : IDisposable
                 effect.Targets.Contains(value.ActorId)
                 && value.Position.ChebyshevDistance(effect.Origin) == 1)
             .OrderBy(value => value.ActorId).ToArray();
+        if (effect.Damage > 0)
+        {
+            foreach (LifeState target in adjacent)
+            {
+                ApplySignatureDamage(
+                    mode,
+                    effect.OperationId,
+                    effect.Owner,
+                    target,
+                    effect.Damage,
+                    events);
+            }
+            adjacent = adjacent.Where(value => value.Health > 0).ToArray();
+        }
         Dictionary<ActorIdentity, Position> requested = adjacent.ToDictionary(
             value => value.ActorId,
             value => value.Position.Offset(
@@ -2491,6 +2561,7 @@ public sealed class GenericActorMatchSession : IDisposable
             Position destination = requested[target.ActorId];
             if (duplicateTargets.Contains(destination)
                 || _definition.Map.IsWall(destination)
+                || mode.Signatures.BlocksBody(destination, Tick)
                 || _lives.Values.Any(value =>
                     value.ActorId != target.ActorId
                     && value.Position == destination))
@@ -3009,7 +3080,7 @@ public sealed class GenericActorMatchSession : IDisposable
                      .ToArray())
         {
             if (AutomaticReturnRoute(life.FormId) is not
-                    { AutomaticReturn: { } trigger } route
+                { AutomaticReturn: { } trigger } route
                 || AutomaticReturnCount(life, trigger) < trigger.Threshold)
             {
                 continue;
@@ -3696,20 +3767,30 @@ public sealed class GenericActorMatchSession : IDisposable
             projectile.Position = next;
             entered.Add(next);
             projectile.RemainingTiles--;
-            if (_mode is ArcRelayActorMatchModeDriver arcRelay
-                && arcRelay.Signatures.TryConsumeProjectile(
+            if (_mode is ArcRelayActorMatchModeDriver arcRelay)
+            {
+                if (projectile.SignatureBreachRemaining > 0
+                    && arcRelay.Signatures.HasHostileHardlightAt(
+                        projectile.Position,
+                        projectile.OwnerTeamId,
+                        Tick))
+                {
+                    projectile.SignatureBreachRemaining--;
+                }
+                else if (arcRelay.Signatures.TryConsumeProjectile(
                     projectile.Position,
                     projectile.OwnerTeamId,
                     Tick,
                     ProjectileConstructDamage(projectile),
                     out GenericActorModeEvent? constructContact))
-            {
-                EmitModeEvent(constructContact!, events);
-                projectile.Consumed = true;
-                _projectiles.Remove(projectile);
-                terminal = new GenericActorProjectileTraversal
-                    .TerminalDisposition.WallOrPathExhausted();
-                break;
+                {
+                    EmitModeEvent(constructContact!, events);
+                    projectile.Consumed = true;
+                    _projectiles.Remove(projectile);
+                    terminal = new GenericActorProjectileTraversal
+                        .TerminalDisposition.WallOrPathExhausted();
+                    break;
+                }
             }
             LifeState? target = _lives.Values
                 .Where(life => life.Position == projectile.Position)
@@ -3729,7 +3810,9 @@ public sealed class GenericActorMatchSession : IDisposable
                 new GenericActorProjectileTraversal.TerminalDisposition
                     .ActorContact(
                         target.ActorId,
-                        contact.Damages && !hooked);
+                        contact.Damages
+                            && (!hooked
+                                || projectile.SignatureBoltHook!.Damage > 0));
             if (hooked)
             {
                 _pendingHookPulls.Add(new PendingHookPull(
@@ -3737,7 +3820,20 @@ public sealed class GenericActorMatchSession : IDisposable
                     projectile.OwnerActorId,
                     target.ActorId,
                     projectile.SignatureBoltHook!.PullOrigin,
-                    projectile.SignatureBoltHook.MaxPullTiles));
+                    projectile.SignatureBoltHook.MaxPullTiles,
+                    projectile.SignatureBoltHook
+                        .AuthoredWallPenetrationTiles));
+                if (projectile.SignatureBoltHook.Damage > 0)
+                {
+                    contacts.Add(new PendingDamageContact(
+                        target.ActorId,
+                        projectile.OwnerTeamId,
+                        projectile.OwnerActorId,
+                        projectile.Id,
+                        projectile.SignatureBoltHook.Damage,
+                        projectile.Heading,
+                        contactOrdinal++));
+                }
             }
             else if (contact.Damages)
             {
@@ -6383,6 +6479,56 @@ public sealed class GenericActorMatchSession : IDisposable
             program,
             extraTravelTiles);
 
+    /// <summary>
+    /// An explicitly authored, lockless Hook may spend one declared breach
+    /// charge to cross a wall/corner. The ordinary locked Smart Hook passes
+    /// zero and therefore uses the canonical projectile trace byte-for-byte.
+    /// Any unused charge remains available for one hostile Hardlight tile in
+    /// the traversal stage.
+    /// </summary>
+    private (ImmutableArray<Position> Path, int RemainingBreach)
+        TraceSignatureBoltPath(
+            Position origin,
+            ProjectileHeading heading,
+            ActorAttackProfileDefinition profile,
+            int breachTiles)
+    {
+        if (breachTiles <= 0)
+        {
+            return (TraceProjectilePath(
+                origin, heading, profile, program: null), 0);
+        }
+        var path = ImmutableArray.CreateBuilder<Position>();
+        Position position = origin;
+        int remaining = breachTiles;
+        var (dx, dy) = heading.Vector();
+        for (int step = 0;
+             step < profile.Projectile.MaxTravelTiles;
+             step++)
+        {
+            Position next = position.Offset(dx, dy);
+            if (next.X < 0 || next.Y < 0
+                || next.X >= _definition.Map.Width
+                || next.Y >= _definition.Map.Height)
+            {
+                break;
+            }
+            bool blocked = _definition.Map.IsWall(next)
+                || dx != 0
+                && dy != 0
+                && profile.Projectile.DiagonalCornersMustBeClear
+                && (_definition.Map.IsWall(position.Offset(dx, 0))
+                    || _definition.Map.IsWall(position.Offset(0, dy)));
+            if (blocked && remaining == 0)
+                break;
+            if (blocked)
+                remaining--;
+            position = next;
+            path.Add(position);
+        }
+        return (path.ToImmutable(), remaining);
+    }
+
     private ProjectileContact Contact(
         ProjectileState projectile,
         LifeState target)
@@ -7910,6 +8056,7 @@ public sealed class GenericActorMatchSession : IDisposable
         /// </summary>
         public string? SignatureBoltOperationId { get; init; }
         public SignatureBoltHook? SignatureBoltHook { get; init; }
+        public int SignatureBreachRemaining { get; set; }
 
         /// <summary>
         /// Set only on a bolt a projectile guard returned, to the tick it was

@@ -49,17 +49,20 @@ public abstract record ArcRelaySignatureDefinition
     public sealed record VectorDash : ArcRelaySignatureDefinition
     {
         public VectorDash(string signatureId, string classId, string actionId,
-            int tellTicks, int maxTiles, int cooldownTicks)
+            int tellTicks, int maxTiles, int cooldownTicks,
+            bool retainsCore = false)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequirePositive(tellTicks, nameof(tellTicks));
             RequirePositive(maxTiles, nameof(maxTiles));
             TellTicks = tellTicks;
             MaxTiles = maxTiles;
+            RetainsCore = retainsCore;
         }
         public override SignatureKind Kind => SignatureKind.VectorDash;
         public int TellTicks { get; }
         public int MaxTiles { get; }
+        public bool RetainsCore { get; }
     }
 
     public sealed record PrismWall : ArcRelaySignatureDefinition
@@ -150,23 +153,27 @@ public abstract record ArcRelaySignatureDefinition
     {
         public SurveyFlare(string signatureId, string classId, string actionId,
             int range, int travelTilesPerTick, int revealRadius,
-            int durationTicks, int cooldownTicks)
+            int durationTicks, int cooldownTicks,
+            int teamVisionRadius = 0)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequirePositive(range, nameof(range));
             RequirePositive(travelTilesPerTick, nameof(travelTilesPerTick));
             RequirePositive(revealRadius, nameof(revealRadius));
             RequirePositive(durationTicks, nameof(durationTicks));
+            RequireNonNegative(teamVisionRadius, nameof(teamVisionRadius));
             Range = range;
             TravelTilesPerTick = travelTilesPerTick;
             RevealRadius = revealRadius;
             DurationTicks = durationTicks;
+            TeamVisionRadius = teamVisionRadius;
         }
         public override SignatureKind Kind => SignatureKind.SurveyFlare;
         public int Range { get; }
         public int TravelTilesPerTick { get; }
         public int RevealRadius { get; }
         public int DurationTicks { get; }
+        public int TeamVisionRadius { get; }
     }
 
     public sealed record FallingStar : ArcRelaySignatureDefinition
@@ -252,17 +259,20 @@ public abstract record ArcRelaySignatureDefinition
     public sealed record Exchange : ArcRelaySignatureDefinition
     {
         public Exchange(string signatureId, string classId, string actionId,
-            int range, int tellTicks, int cooldownTicks)
+            int range, int tellTicks, int cooldownTicks,
+            bool targetRetainsCore = false)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequirePositive(range, nameof(range));
             RequirePositive(tellTicks, nameof(tellTicks));
             Range = range;
             TellTicks = tellTicks;
+            TargetRetainsCore = targetRetainsCore;
         }
         public override SignatureKind Kind => SignatureKind.Exchange;
         public int Range { get; }
         public int TellTicks { get; }
+        public bool TargetRetainsCore { get; }
     }
 
     public sealed record RailLine : ArcRelaySignatureDefinition
@@ -446,7 +456,8 @@ public abstract record ArcRelaySignatureDefinition
         public TractorHook2(string signatureId, string classId,
             string actionId, int range, int maxPullTiles,
             int boltTilesPerAdvance, int cooldownTicks,
-            int windupTicks = 0)
+            int windupTicks = 0, int damage = 0,
+            int authoredWallPenetrationTiles = 0)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequireNonNegative(windupTicks, nameof(windupTicks));
@@ -454,9 +465,15 @@ public abstract record ArcRelaySignatureDefinition
             RequirePositive(range, nameof(range));
             RequirePositive(maxPullTiles, nameof(maxPullTiles));
             RequirePositive(boltTilesPerAdvance, nameof(boltTilesPerAdvance));
+            RequireNonNegative(damage, nameof(damage));
+            RequireNonNegative(
+                authoredWallPenetrationTiles,
+                nameof(authoredWallPenetrationTiles));
             Range = range;
             MaxPullTiles = maxPullTiles;
             BoltTilesPerAdvance = boltTilesPerAdvance;
+            Damage = damage;
+            AuthoredWallPenetrationTiles = authoredWallPenetrationTiles;
         }
         public override SignatureKind Kind => SignatureKind.TractorHook2;
         /// <summary>Telegraphed windup before the grapple bolt leaves (owner
@@ -465,6 +482,8 @@ public abstract record ArcRelaySignatureDefinition
         public int Range { get; }
         public int MaxPullTiles { get; }
         public int BoltTilesPerAdvance { get; }
+        public int Damage { get; }
+        public int AuthoredWallPenetrationTiles { get; }
     }
 
     /// <summary>
@@ -559,22 +578,28 @@ public abstract record ArcRelaySignatureDefinition
     {
         public KineticBurst2(string signatureId, string classId,
             string actionId, int tellTicks, int pushTiles,
-            int cancelCooldownTicks, int cooldownTicks)
+            int cancelCooldownTicks, int cooldownTicks,
+            int damage = 0, bool hostilesOnly = false)
             : base(signatureId, classId, actionId, cooldownTicks)
         {
             RequirePositive(tellTicks, nameof(tellTicks));
             RequirePositive(pushTiles, nameof(pushTiles));
             RequirePositive(cancelCooldownTicks, nameof(cancelCooldownTicks));
+            RequireNonNegative(damage, nameof(damage));
             if (cancelCooldownTicks >= cooldownTicks)
                 throw new ArgumentOutOfRangeException(nameof(cancelCooldownTicks));
             TellTicks = tellTicks;
             PushTiles = pushTiles;
             CancelCooldownTicks = cancelCooldownTicks;
+            Damage = damage;
+            HostilesOnly = hostilesOnly;
         }
         public override SignatureKind Kind => SignatureKind.KineticBurst2;
         public int TellTicks { get; }
         public int PushTiles { get; }
         public int CancelCooldownTicks { get; }
+        public int Damage { get; }
+        public bool HostilesOnly { get; }
     }
 
     /// <summary>

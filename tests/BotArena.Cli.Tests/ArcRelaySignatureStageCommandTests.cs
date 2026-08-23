@@ -65,6 +65,8 @@ public sealed class ArcRelaySignatureStageCommandTests
     [Theory]
     [InlineData("arc-toss")]
     [InlineData("exchange")]
+    [InlineData("tractor-hook")]
+    [InlineData("kinetic-burst")]
     [InlineData("sentinel-seed")]
     public void FocusedStageRejectsSilentOrUnreadableSignatureDemos(
         string signatureId)

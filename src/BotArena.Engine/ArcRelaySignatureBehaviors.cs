@@ -740,7 +740,8 @@ internal sealed partial class ArcRelaySignatureRuntime
                         && value.Position.ChebyshevDistance(
                             operation.SourcePosition) == 1)
                     .OrderBy(value => value.ActorId)
-                    .Select(value => value.ActorId)]));
+                    .Select(value => value.ActorId)],
+                Damage: 0));
             runtime.Complete(operation, tick, "completed", events);
         }
     }
@@ -895,7 +896,11 @@ internal sealed partial class ArcRelaySignatureRuntime
                 operation.Heading!.Value,
                 hook.Range,
                 hook.MaxPullTiles,
-                hook.BoltTilesPerAdvance));
+                hook.BoltTilesPerAdvance,
+                hook.Damage,
+                operation.TargetActorId is null
+                    ? hook.AuthoredWallPenetrationTiles
+                    : 0));
         }
     }
 
@@ -1125,10 +1130,14 @@ internal sealed partial class ArcRelaySignatureRuntime
                 operation.SourcePosition,
                 [.. lives
                     .Where(value => value.ActorId != operation.OwnerActorId
+                        && (!burst.HostilesOnly
+                            || value.ActorId.TeamId
+                                != operation.OwnerActorId.TeamId)
                         && value.Position.ChebyshevDistance(
                             operation.SourcePosition) == 1)
                     .OrderBy(value => value.ActorId)
-                    .Select(value => value.ActorId)]));
+                    .Select(value => value.ActorId)],
+                burst.Damage));
             runtime.Complete(operation, tick, "completed", events);
         }
     }

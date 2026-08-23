@@ -32,8 +32,8 @@ public sealed class ArcRelayTaplineBankRechargeTests
         var currentMode = Assert.IsType<ArcRelayGameModeDefinition>(
             current.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Broadloom3, ArcRelayLoopProfile.Current);
-        Assert.Equal("broadloom-3", ArcRelayLoopProfile.Current.Id);
+        Assert.Same(ArcRelayLoopProfile.Broadloom4, ArcRelayLoopProfile.Current);
+        Assert.Equal("broadloom-4", ArcRelayLoopProfile.Current.Id);
         Assert.Equal("arc-relay-tapline-15", current.Rules.RulesetId);
         Assert.Equal("arc-relay-tapline-03", current.Map.Id);
         Assert.Equal(600, current.Rules.Limits.MaxTicks);

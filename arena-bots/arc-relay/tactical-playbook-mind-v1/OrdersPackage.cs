@@ -64,8 +64,8 @@ internal sealed class OrdersPackage
         var byUnit = new Dictionary<int, Role>();
         int unitId = 0;
         foreach (Role role in roles)
-        foreach (string _ in role.Classes)
-            byUnit.Add(unitId++, role);
+            foreach (string _ in role.Classes)
+                byUnit.Add(unitId++, role);
         RolesByUnit = byUnit;
     }
 
@@ -300,12 +300,12 @@ internal sealed class OrdersPackage
         Zone zone = _zones[zoneId];
         var result = new List<Position>();
         for (int y = zone.Rect[1]; y <= zone.Rect[3]; y++)
-        for (int x = zone.Rect[0]; x <= zone.Rect[2]; x++)
-        {
-            Position world = World(new Position(x, y));
-            if (ArenaBasics.CanEnter(map, world))
-                result.Add(world);
-        }
+            for (int x = zone.Rect[0]; x <= zone.Rect[2]; x++)
+            {
+                Position world = World(new Position(x, y));
+                if (ArenaBasics.CanEnter(map, world))
+                    result.Add(world);
+            }
         return [.. result];
     }
 
@@ -514,7 +514,10 @@ internal sealed class OrdersPackage
             .Select(target => target.GetString()!).ToArray(),
         value.GetProperty("style").GetString()!,
         value.GetProperty("chaseLimit").GetInt32(),
-        Optional(value, "zone"));
+        Optional(value, "zone"),
+        value.TryGetProperty("preferredRange", out JsonElement preferred)
+            ? preferred.GetInt32()
+            : null);
 
     private static ScanAction ParseScan(JsonElement value) => new(
         value.GetProperty("zone").GetString()!,
@@ -538,7 +541,9 @@ internal sealed class OrdersPackage
                 ? "role"
                 : target.TryGetProperty("route", out _)
                     ? "route"
-                    : "selector";
+                    : target.TryGetProperty("ray", out _)
+                        ? "ray"
+                        : "selector";
             targetValue = target.GetProperty(targetKind).GetString()!;
             if (target.TryGetProperty("aheadVia", out JsonElement route))
             {
@@ -677,19 +682,19 @@ internal sealed class OrdersPackage
                 throw new InvalidDataException($"Zone '{id}' leaves the map.");
             bool hasFloor = false;
             for (int y = zone.Rect[1]; y <= zone.Rect[3]; y++)
-            for (int x = zone.Rect[0]; x <= zone.Rect[2]; x++)
-                hasFloor |= ArenaBasics.CanEnter(map, World(new Position(x, y)));
+                for (int x = zone.Rect[0]; x <= zone.Rect[2]; x++)
+                    hasFloor |= ArenaBasics.CanEnter(map, World(new Position(x, y)));
             if (!hasFloor)
                 throw new InvalidDataException($"Zone '{id}' contains no floor.");
         }
         foreach ((string id, Route route) in routes)
-        foreach (Position waypoint in route.Waypoints)
-        {
-            Position world = World(waypoint);
-            if (!InBounds(map, world) || !ArenaBasics.CanEnter(map, world))
-                throw new InvalidDataException(
-                    $"Route '{id}' has blocked waypoint {waypoint}.");
-        }
+            foreach (Position waypoint in route.Waypoints)
+            {
+                Position world = World(waypoint);
+                if (!InBounds(map, world) || !ArenaBasics.CanEnter(map, world))
+                    throw new InvalidDataException(
+                        $"Route '{id}' has blocked waypoint {waypoint}.");
+            }
         foreach ((string id, Position anchor) in anchors)
         {
             Position world = World(anchor);
@@ -827,7 +832,8 @@ internal sealed class OrdersPackage
         string[] Targets,
         string Style,
         int ChaseLimit,
-        string? Zone) : OrderAction;
+        string? Zone,
+        int? PreferredRange) : OrderAction;
     internal sealed record ScanAction(
         string Zone,
         int FreshWithinTicks) : OrderAction;

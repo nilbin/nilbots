@@ -69,7 +69,7 @@ public sealed class ArcRelayExperimentCommandTests
 
         using JsonDocument document = JsonDocument.Parse(output.ToString());
         Assert.Equal(
-            "arc-relay-broadloom-3",
+            "arc-relay-broadloom-4",
             document.RootElement.GetProperty("rules").GetProperty("rulesetId")
                 .GetString());
         Assert.Equal(
@@ -85,7 +85,7 @@ public sealed class ArcRelayExperimentCommandTests
         Assert.Equal(1, workshops.GetProperty("xpAward").GetInt32());
         Assert.Equal(0, workshops.GetProperty("dormancyTicks").GetInt32());
         Assert.Equal(
-            3,
+            4,
             document.RootElement.GetProperty("rules")
                 .GetProperty("gameMode")
                 .GetProperty("signatureGrammarVersion")

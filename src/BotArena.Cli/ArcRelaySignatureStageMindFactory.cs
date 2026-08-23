@@ -9,12 +9,17 @@ internal sealed class ArcRelaySignatureStageMindFactory(
     int teamId) : IGenericMindRuntimeFactory
 {
     public static readonly Position CasterStart = new(13, 11);
+    public static readonly Position VectorDashCasterStart = new(17, 12);
+    public static readonly Position DisplacementCasterStart = new(17, 12);
+    public static readonly Position HookCasterStart = new(18, 12);
     public static readonly Position ArcTossCasterStart = new(14, 12);
     public static readonly Position ExchangeCasterStart = new(13, 11);
     public static readonly Position AllyStart = new(14, 12);
+    public static readonly Position ExchangeAllyStart = new(16, 12);
     public static readonly Position EnemyStart = new(16, 12);
-    public static readonly Position KineticEnemyStart = new(14, 12);
-    public static readonly Position ExchangeCasterReady = new(13, 10);
+    public static readonly Position HookEnemyStart = new(24, 12);
+    public static readonly Position KineticEnemyStart = new(18, 12);
+    public static readonly Position ExchangeCasterReady = new(13, 12);
     public static readonly Position ExchangeAllyReady = new(17, 12);
 
     private static readonly Position[] SentinelEnemyWaypoints =
@@ -31,7 +36,18 @@ internal sealed class ArcRelaySignatureStageMindFactory(
         {
             "arc-toss" => ArcTossCasterStart,
             "exchange" => ExchangeCasterStart,
+            "vector-dash" => VectorDashCasterStart,
+            "tractor-hook" => HookCasterStart,
+            "kinetic-burst" => DisplacementCasterStart,
             _ => CasterStart,
+        };
+
+    public static Position EnemyPosition(ArcRelaySignatureStageSpec value) =>
+        value.SignatureId switch
+        {
+            "tractor-hook" => HookEnemyStart,
+            "kinetic-burst" => KineticEnemyStart,
+            _ => EnemyStart,
         };
 
     public IGenericMindRuntime CreateRuntime() => new Runtime(spec, teamId);
@@ -119,7 +135,9 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                 GenericMindRuntimeObservation.ObservedBodyState? ally =
                     observation.Bodies.SingleOrDefault(value =>
                         value.UnitId == 1);
-                if (ally?.Position != ExchangeAllyReady)
+                if (ally?.Position != ExchangeAllyReady
+                    || spec.Context == ArcRelaySignatureStageContext.AllyCarrier
+                    && CarriedCore(observation, ally) is null)
                     return Wait(body, "signature-caster");
                 // Tapline-13 route travel faces the route. Explicitly acquire
                 // the partner after staging so this presentation proof does
@@ -177,14 +195,39 @@ internal sealed class ArcRelaySignatureStageMindFactory(
 
         private GenericMindCommand ExchangeAlly(
             GenericMindRuntimeObservation observation,
-            GenericMindRuntimeObservation.ObservedBodyState body) =>
-            _exchangeIssued || body.Position == ExchangeAllyReady
+            GenericMindRuntimeObservation.ObservedBodyState body)
+        {
+            if (spec.Context == ArcRelaySignatureStageContext.AllyCarrier
+                && CarriedCore(observation, body) is null)
+            {
+                ArcRelayCoreState? loose = ArcState(observation).VisibleCores
+                    .Where(value => value.Disposition
+                        == ArcRelayCoreState.CoreDisposition.Loose)
+                    .OrderBy(value =>
+                        body.Position.ChebyshevDistance(value.Position))
+                    .FirstOrDefault();
+                return loose is null
+                    ? body.Position == ExchangeAllyReady
+                        ? Wait(body, "stage-exchange-ally")
+                        : MoveToward(
+                            observation,
+                            body,
+                            ExchangeAllyReady,
+                            "stage-exchange-ally")
+                    : MoveToward(
+                        observation,
+                        body,
+                        loose.Position,
+                        "stage-exchange-ally");
+            }
+            return _exchangeIssued || body.Position == ExchangeAllyReady
                 ? Wait(body, "stage-exchange-ally")
                 : MoveToward(
                     observation,
                     body,
                     ExchangeAllyReady,
                     "stage-exchange-ally");
+        }
 
         private static GenericMindCommand Face(
             GenericMindRuntimeObservation.ObservedBodyState body,
@@ -252,12 +295,12 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                     "stage-context");
             }
             if (spec.SignatureId == "tractor-hook"
-                && body.Position != EnemyStart)
+                && body.Position != EnemyPosition(spec))
             {
                 return MoveToward(
                     observation,
                     body,
-                    EnemyStart,
+                    EnemyPosition(spec),
                     "stage-context");
             }
             return Wait(body, "stage-context");
@@ -296,25 +339,33 @@ internal sealed class ArcRelaySignatureStageMindFactory(
         {
             Position objective = spec.SignatureId switch
             {
-                "vector-dash" when body.Position.X <= 14 => new Position(17, 12),
-                "vector-dash" => StartPosition(spec),
+                "vector-dash" => new Position(18, 9),
                 "survey-flare" or "hardlight-block" or "smoke-canister"
                     => new Position(15, 14),
                 "arc-toss" => ArcTossObjective(body),
                 "trip-node" or "sentinel-seed" => new Position(14, 12),
-                _ => EnemyStart,
+                _ => EnemyPosition(spec),
             };
             GenericActorRuntimeActionArgument.UnitTarget unitTarget =
                 spec.Context is ArcRelaySignatureStageContext.AllyTarget
+                    or ArcRelaySignatureStageContext.AllyCarrier
                     or ArcRelaySignatureStageContext.RepairTarget
                     ? new GenericActorRuntimeActionArgument.UnitTarget(0, 1)
                     : new GenericActorRuntimeActionArgument.UnitTarget(1, 0);
-            return ArgumentsToward(
+            ImmutableArray<GenericActorRuntimeActionArgument> arguments =
+                ArgumentsToward(
                 legality,
                 body,
                 observation,
                 objective,
                 unitTarget);
+            // The Hook stage is the explicit Breach Hook proof: a player-drawn
+            // ray names its heading, not a tracked unit, and deliberately
+            // spends the grammar-4 single-wall allowance.
+            return spec.SignatureId == "tractor-hook"
+                ? [.. arguments.Where(value => value is not
+                    GenericActorRuntimeActionArgument.UnitTargetArgument)]
+                : arguments;
         }
 
         private Position ArcTossObjective(
@@ -353,35 +404,35 @@ internal sealed class ArcRelaySignatureStageMindFactory(
                         break;
                     case GenericActorRuntimeActionLegality.ArgumentConstraint
                         .ProjectileHeadingConstraint value:
-                    {
-                        ProjectileHeading desired = HeadingToward(
-                            body.Position,
-                            objective);
-                        arguments.Add(
-                            new GenericActorRuntimeActionArgument
-                                .ProjectileHeadingArgument(
-                                    value.AllowedValues.Contains(desired)
-                                        ? desired
-                                        : value.AllowedValues[0]));
-                        break;
-                    }
+                        {
+                            ProjectileHeading desired = HeadingToward(
+                                body.Position,
+                                objective);
+                            arguments.Add(
+                                new GenericActorRuntimeActionArgument
+                                    .ProjectileHeadingArgument(
+                                        value.AllowedValues.Contains(desired)
+                                            ? desired
+                                            : value.AllowedValues[0]));
+                            break;
+                        }
                     case GenericActorRuntimeActionLegality.ArgumentConstraint
                         .UnitTargetConstraint value:
-                    {
-                        GenericActorRuntimeActionArgument.UnitTarget? target =
-                            value.AllowedValues.Contains(unitTarget)
-                                ? unitTarget
-                                : value.AllowedValues.Cast<
-                                    GenericActorRuntimeActionArgument.UnitTarget?>()
-                                    .FirstOrDefault();
-                        if (target is not null)
                         {
-                            arguments.Add(
-                                new GenericActorRuntimeActionArgument.UnitTargetArgument(
-                                    target.Value));
+                            GenericActorRuntimeActionArgument.UnitTarget? target =
+                                value.AllowedValues.Contains(unitTarget)
+                                    ? unitTarget
+                                    : value.AllowedValues.Cast<
+                                        GenericActorRuntimeActionArgument.UnitTarget?>()
+                                        .FirstOrDefault();
+                            if (target is not null)
+                            {
+                                arguments.Add(
+                                    new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                                        target.Value));
+                            }
+                            break;
                         }
-                        break;
-                    }
                     case GenericActorRuntimeActionLegality.ArgumentConstraint
                         .PositionTargetConstraint value:
                         arguments.Add(

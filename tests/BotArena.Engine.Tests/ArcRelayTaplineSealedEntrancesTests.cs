@@ -21,9 +21,9 @@ public sealed class ArcRelayTaplineSealedEntrancesTests
     [Fact]
     public void Tapline9AddsOnlyTheSixApprovedWallsAndKeepsTapline8()
     {
-        Assert.Same(ArcRelayLoopProfile.Broadloom3, ArcRelayLoopProfile.Current);
-        Assert.Equal("broadloom-3", ArcRelayLoopProfile.Current.Id);
-        Assert.Equal("arc-relay-broadloom-3", ArcRelayLoopProfile.Current.RulesetId);
+        Assert.Same(ArcRelayLoopProfile.Broadloom4, ArcRelayLoopProfile.Current);
+        Assert.Equal("broadloom-4", ArcRelayLoopProfile.Current.Id);
+        Assert.Equal("arc-relay-broadloom-4", ArcRelayLoopProfile.Current.RulesetId);
         Assert.Equal("arc-relay-broadloom-01", ArcRelayLoopProfile.Current.MapId);
         Assert.Equal("arc-relay-tapline-02", ArcRelayLoopProfile.Tapline8.MapId);
 
@@ -75,26 +75,26 @@ public sealed class ArcRelayTaplineSealedEntrancesTests
         Assert.Equal(517, Reachable(map, floor[0], without: null));
         Assert.DoesNotContain(map.TileRows, row => row.Contains('A'));
         for (int y = 0; y < map.Height; y++)
-        for (int x = 0; x < map.Width; x++)
-        {
-            Assert.Equal(
-                map.IsWall(x, y),
-                map.IsWall(map.Width - 1 - x, map.Height - 1 - y));
-        }
+            for (int x = 0; x < map.Width; x++)
+            {
+                Assert.Equal(
+                    map.IsWall(x, y),
+                    map.IsWall(map.Width - 1 - x, map.Height - 1 - y));
+            }
 
         var falseCorners = new List<string>();
         foreach (Position tile in floor)
-        foreach ((int dx, int dy) in new[] { (1, 1), (1, -1) })
-        {
-            var diagonal = new Position(tile.X + dx, tile.Y + dy);
-            if (!Inside(map, diagonal) || map.IsWall(diagonal))
-                continue;
-            if (map.IsWall(new Position(tile.X + dx, tile.Y))
-                && map.IsWall(new Position(tile.X, tile.Y + dy)))
+            foreach ((int dx, int dy) in new[] { (1, 1), (1, -1) })
             {
-                falseCorners.Add($"{tile}-{diagonal}");
+                var diagonal = new Position(tile.X + dx, tile.Y + dy);
+                if (!Inside(map, diagonal) || map.IsWall(diagonal))
+                    continue;
+                if (map.IsWall(new Position(tile.X + dx, tile.Y))
+                    && map.IsWall(new Position(tile.X, tile.Y + dy)))
+                {
+                    falseCorners.Add($"{tile}-{diagonal}");
+                }
             }
-        }
         Assert.Empty(falseCorners);
 
         var cuts = new List<string>();
@@ -195,12 +195,12 @@ public sealed class ArcRelayTaplineSealedEntrancesTests
         Position from)
     {
         for (int dx = -1; dx <= 1; dx++)
-        for (int dy = -1; dy <= 1; dy++)
-        {
-            var next = new Position(from.X + dx, from.Y + dy);
-            if ((dx != 0 || dy != 0) && CanStep(map, from, next))
-                yield return next;
-        }
+            for (int dy = -1; dy <= 1; dy++)
+            {
+                var next = new Position(from.X + dx, from.Y + dy);
+                if ((dx != 0 || dy != 0) && CanStep(map, from, next))
+                    yield return next;
+            }
     }
 
     private static bool CanStep(
@@ -237,12 +237,12 @@ public sealed class ArcRelayTaplineSealedEntrancesTests
     {
         var leaves = new List<Position>();
         for (int y = minY; y <= maxY; y++)
-        for (int x = minX; x <= maxX; x++)
-        {
-            var tile = new Position(x, y);
-            if (!map.IsWall(tile) && Neighbours(map, tile).Take(2).Count() < 2)
-                leaves.Add(tile);
-        }
+            for (int x = minX; x <= maxX; x++)
+            {
+                var tile = new Position(x, y);
+                if (!map.IsWall(tile) && Neighbours(map, tile).Take(2).Count() < 2)
+                    leaves.Add(tile);
+            }
         Assert.Empty(leaves);
     }
 }

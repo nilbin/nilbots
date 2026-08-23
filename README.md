@@ -11,10 +11,10 @@ C# source ──▶ NativeAOT-LLVM ──▶ WASI core module ──▶ Wasmtime
 limits) ──▶ deterministic match engine ──▶ replay + hash ──▶ visual viewer
 ```
 
-The current local and hosted line is `tapline-1` on the tiered Tapline map.
-Hosted entrant playlist v19 pins that game, its native sheets, and the frozen
-stock algorithm. Season 1's v19 Tapline ratings start fresh at
-1200 with zero matches. Historical Duel and Frontline code remains for exact replay compatibility and the
+The current local and hosted line is `broadloom-4` on the 37x27 Broadloom map.
+Hosted entrant playlist v36 pins that game, its tactics sheets, and the frozen
+stock mind; v35 and earlier remain exact history. Historical Duel and Frontline
+code remains for exact replay compatibility and the
 labelled read-only archive; neither describes the product front door. See
 [`docs/ARC-RELAY-GLOSSARY.md`](docs/ARC-RELAY-GLOSSARY.md) for current vocabulary,
 [`docs/SHEET-AUTHORING.md`](docs/SHEET-AUTHORING.md) for the sheet contract, and

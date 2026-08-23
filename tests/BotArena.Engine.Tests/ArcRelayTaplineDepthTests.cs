@@ -363,9 +363,9 @@ public sealed class ArcRelayTaplineDepthTests
                 Assert.Single(events, value =>
                 value.Payload is GenericActorRuntimeObservation.EventPayload
                     .ArcRelay
-                    {
-                        Fact: ArcRelayEvent.VeterancyRetained,
-                    }).Payload);
+                {
+                    Fact: ArcRelayEvent.VeterancyRetained,
+                }).Payload);
         ArcRelayEvent.VeterancyRetained retained = Assert.IsType<
             ArcRelayEvent.VeterancyRetained>(payload.Fact);
         Assert.Equal(4, retained.PreviousLevel);
@@ -441,7 +441,7 @@ public sealed class ArcRelayTaplineDepthTests
         var candidateMode = Assert.IsType<ArcRelayGameModeDefinition>(
             candidate.Rules.GameMode);
 
-        Assert.Same(ArcRelayLoopProfile.Broadloom3, ArcRelayLoopProfile.Current);
+        Assert.Same(ArcRelayLoopProfile.Broadloom4, ArcRelayLoopProfile.Current);
         Assert.Equal("arc-relay-tapline-05", candidate.Rules.RulesetId);
         Assert.Equal(previous.Map.Id, candidate.Map.Id);
         Assert.True(previous.Map.TileRows.SequenceEqual(candidate.Map.TileRows));

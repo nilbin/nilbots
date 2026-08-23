@@ -8,21 +8,21 @@ paragraphs as one fact each, because they are the two things that get confused.
 **Locally it is first-class.** `nilbots arc-relay` is a top-level command with
 its own help. `nilbots experiment arc-relay` remains a permanent alias, so
 every script, brief and report that already spells it that way keeps working.
-The command defaults to `--loop-profile broadloom-3` (rules
-`arc-relay-broadloom-3`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
-geometry, complete signature grammar 3, promoted depth rules, neutral
+The command defaults to `--loop-profile broadloom-4` (rules
+`arc-relay-broadloom-4`, map `arc-relay-broadloom-01`): the 37x27 Broadloom
+geometry, complete signature grammar 4, promoted depth rules, neutral
 veterancy Workshops, 50% stable-slot XP retention, and harmless allied-body
 projectile blockers. Its joint movement step permits an acyclic convoy to
 advance into a pre-tick vacancy; same-target claims, swaps and closed cycles
 still block. Every historical profile remains an explicit immutable
 compatibility selection.
 
-**Hosted entrant playlist v35 pins Broadloom-3.** It uses the
+**Hosted entrant playlist v36 pins Broadloom-4.** It uses the
 `arc-relay-orders-v2` sheet format, Tempered Broadloom stock participant,
 authored movement urgency, body-local fight contact, repeatable Workshop
 training, and atomic EPIBT squad
-planning on the direct ATL2 executor. Playlists v34/v33 preserve Broadloom-2
-and first Broadloom respectively, and every older definition, artifact,
+planning on the direct ATL2 executor. Playlist v35 preserves Broadloom-3,
+v34/v33 preserve Broadloom-2 and first Broadloom respectively, and every older definition, artifact,
 rating and match remains readable history. Geometry is never projected between
 maps.
 
@@ -255,9 +255,34 @@ dependent chain. This is the engine contract required by coordinated squad
 planning; it is not permission to overlap bodies or resolve moves in command
 order.
 
+## Broadloom-4 signature depth (`arc-relay-broadloom-4`, 2026-08-23)
+
+`broadloom-4` is the current contract. It keeps Broadloom-3's exact map,
+Workshop cadence, scoring, supply, movement, and combat numbers while moving
+to signature grammar 4:
+
+- Kestrel Dash retains a carried Core and Smart follows custody/home/phase
+  route intent.
+- Towline Hook has range 6, deals 10, then pulls a survivor up to five tiles
+  to Towline's front. Smart is blockable and prioritizes carrier, weakest,
+  nearest. Only a two-point player-drawn line may breach one wall or hostile
+  Hardlight tile.
+- Repulsor Burst deals 10 to and pushes every adjacent hostile; allies are
+  untouched. Aggressive posture closes to adjacency while Burst is ready.
+- Lantern Flare supplies radius-4 team vision for its eight-tick lifetime.
+- Switchback Exchange retains a targeted carrier's Core and Smart advances a
+  carrier only for a safe gain of at least two homeward walking steps.
+- Sunder receives its own Paint bonus; Smart Paint prioritizes carrier,
+  veteran, weakest, nearest.
+
+All Smart behavior is ordinary compiled Instruction priority plus existing
+signature lifecycle. There is no signature scheduler or second tactical state
+machine. Hosted playlist v36 pins the rebuilt mind; v35 remains exact
+Broadloom-3 history.
+
 ## Broadloom and veterancy Workshops (`arc-relay-broadloom-3`, 2026-08-23)
 
-`broadloom-3` is the current contract. It keeps Broadloom-2's exact map,
+`broadloom-3` is the historical no-dormancy Workshop contract. It keeps Broadloom-2's exact map,
 combat, logistics and durable-career rules while removing only the Workshop
 post-channel cooldown under ruleset `arc-relay-broadloom-3`. Playlist v34
 preserves Broadloom-2's 45-tick dormancy and playlist v33 preserves first

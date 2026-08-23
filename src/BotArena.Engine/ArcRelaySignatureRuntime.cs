@@ -154,27 +154,33 @@ internal sealed partial class ArcRelaySignatureRuntime
         int teamId,
         int tick)
     {
-        if (!_sentryTeamVision)
-            return [];
         return _operations.Values
             .Where(operation => operation.OwnerActorId.TeamId == teamId
                 && operation.Phase
                     == ArcRelaySignatureState.SignaturePhase.Active
                 && !operation.Suppressed
                 && operation.EndsAtTick > tick
-                && operation.Definition is
-                    ArcRelaySignatureDefinition.SentinelSeed
-                        or ArcRelaySignatureDefinition.SentinelSeed2)
+                && ((_sentryTeamVision
+                        && operation.Definition is
+                            ArcRelaySignatureDefinition.SentinelSeed
+                                or ArcRelaySignatureDefinition.SentinelSeed2)
+                    || operation.Definition is
+                        ArcRelaySignatureDefinition.SurveyFlare
+                    { TeamVisionRadius: > 0 }))
             .OrderBy(operation => operation.OperationId, StringComparer.Ordinal)
             .Select(operation => new OmnidirectionalSensor(
                 operation.OwnerActorId,
-                operation.Positions[0],
+                operation.Definition is ArcRelaySignatureDefinition.SurveyFlare
+                    ? operation.TargetPosition!.Value
+                    : operation.Positions[0],
                 operation.Definition switch
                 {
                     ArcRelaySignatureDefinition.SentinelSeed value =>
                         value.Range,
                     ArcRelaySignatureDefinition.SentinelSeed2 value =>
                         value.Range,
+                    ArcRelaySignatureDefinition.SurveyFlare value =>
+                        value.TeamVisionRadius,
                     _ => throw new InvalidOperationException(),
                 }))
             .ToImmutableArray();
@@ -637,7 +643,11 @@ internal sealed partial class ArcRelaySignatureRuntime
                             path[0]),
                         hook.Range,
                         hook.MaxPullTiles,
-                        hook.BoltTilesPerAdvance));
+                        hook.BoltTilesPerAdvance,
+                        hook.Damage,
+                        operation.TargetActorId is null
+                            ? hook.AuthoredWallPenetrationTiles
+                            : 0));
                     Complete(operation, tick, "launched", events);
                     break;
                 default:
@@ -968,6 +978,18 @@ internal sealed partial class ArcRelaySignatureRuntime
             && value.EndsAtTick > tick
             && !value.Suppressed
             && value.Positions.Contains(position));
+
+    public bool HasHostileHardlightAt(
+        Position position,
+        int projectileTeamId,
+        int tick) =>
+        _operations.Values.Any(value =>
+            value.OwnerActorId.TeamId != projectileTeamId
+            && value.Definition is ArcRelaySignatureDefinition.HardlightBlock
+            && value.Phase == ArcRelaySignatureState.SignaturePhase.Active
+            && value.EndsAtTick > tick
+            && !value.Suppressed
+            && value.ProjectileCollisionPositions.Contains(position));
 
     public bool TryConsumeProjectile(
         Position position,
@@ -1596,7 +1618,8 @@ internal sealed partial class ArcRelaySignatureRuntime
             string Id,
             ActorIdentity Actor,
             Position Origin,
-            ImmutableArray<ActorIdentity> Targets) : Effect(Id, Actor);
+            ImmutableArray<ActorIdentity> Targets,
+            int Damage) : Effect(Id, Actor);
         internal sealed record SentinelFire(
             string Id,
             ActorIdentity Actor,
@@ -1617,7 +1640,9 @@ internal sealed partial class ArcRelaySignatureRuntime
             ProjectileHeading Heading,
             int Range,
             int MaxPullTiles,
-            int TilesPerAdvance) : Effect(Id, Actor);
+            int TilesPerAdvance,
+            int Damage,
+            int AuthoredWallPenetrationTiles) : Effect(Id, Actor);
     }
 
     private sealed class Operation

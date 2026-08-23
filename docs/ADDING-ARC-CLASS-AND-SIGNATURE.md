@@ -12,7 +12,8 @@ Keep these separate:
 - **Signature grammar version is roster-wide.** Every signature in a ruleset
   publishes the same grammar generation. Tapline-2 therefore places all sixteen
   launch signatures in grammar 3, including `initialPhase`, `maturityPhase`,
-  and `cooldownAnchor` for every entry.
+  and `cooldownAnchor` for every entry. Broadloom-4 advances the whole roster
+  to grammar 4 even though only six concrete mechanics gain fields or policy.
 - **Concrete definition versions are mechanic-specific.** Add a new C# record
   variant only when behavior, chronology, or canonical fields change. Tapline-2
   has four such changes. The other twelve signatures retain their established
@@ -56,7 +57,7 @@ or timing that the replay does not contain.
 2. Add the signature's concrete record and `SignatureKind` in
    `ArcRelaySignatureDefinition.cs`. Put every runtime number on that typed
    record; do not hide mechanic values in presentation code.
-3. Add its category, argument kind, engagement range, and grammar-3 lifecycle
+3. Add its category, argument kind, engagement range, and current-grammar lifecycle
    timing to `MetadataFor` and `TimingFor`.
 4. Add the class form, action, signature definition, and allowed action in
    `ArcRelayH0Definition.cs`.
@@ -109,8 +110,10 @@ but not rules, map, or match fingerprints. Absence selects the frozen legacy
 treatment; an unknown ID or signature renders a generic public phase/footprint
 marker instead of disappearing or borrowing today's treatment.
 
-Current Tapline-12 grammar-3 replays use `arc-relay-signatures-v4`. V4 adds the
-owner-attached Prism Screen presentation. V3 retains the instant Arc Toss plus
+Current Broadloom-4 grammar-4 replays still use `arc-relay-signatures-v4`:
+the refreshed mechanics need no new visual topology or public phase. Grammar
+and presentation-package versions are independent axes. V4 adds the
+owner-attached Prism Screen presentation; V3 retains the instant Arc Toss plus
 historical static Prism Wall; V2 remains the recognized one-tick Toss package,
 and V1 keeps its original audio bindings. A future visual change still mints a
 new package rather than mutating any historical read.
@@ -215,6 +218,6 @@ exports must be clean on a second run.
 
 The first complete implementation of this contract is retained in
 `art/reviews/arc-relay-presentation-batch-v1/runtime-proof`. Its two real
-Tapline WASM matches cover all sixteen grammar-3 signatures, all sixteen
+historical Tapline WASM matches cover all sixteen grammar-3 signatures, all sixteen
 projectile identities, browser seek/reduced-motion/device evidence, and the
 mobile sustained-render budget.

@@ -186,6 +186,134 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void TowlineLineMaterializesAsAnExplicitBreachRay()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["squad"]![5]!["class"] = "towline";
+        JsonObject marks = document["tactics"]![0]!["groups"]![0]!["sigs"]!
+            ["stage"]!.AsObject();
+        marks.Remove("longshot");
+        marks["towline"] = JsonNode.Parse(
+            """{"line":[[14,12],[20,12]]}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement use = Descendants(orders.RootElement)
+            .Where(node => node.ValueKind == JsonValueKind.Object
+                && node.TryGetProperty("use", out JsonElement action)
+                && action.GetProperty("skill").GetString() == "tractor-hook")
+            .Select(node => node.GetProperty("use"))
+            .Single(action => action.GetProperty("target").ValueKind
+                    == JsonValueKind.Object
+                && action.GetProperty("target").TryGetProperty("ray", out _));
+        string route = use.GetProperty("target").GetProperty("ray").GetString()!;
+
+        using JsonDocument mapPlan = JsonDocument.Parse(
+            compilation.MaterializedMapPlan!);
+        JsonElement waypoints = mapPlan.RootElement.GetProperty("routes")
+            .GetProperty(route).GetProperty("waypoints");
+        Assert.Equal(2, waypoints.GetArrayLength());
+    }
+
+    [Fact]
+    public void CarrierKestrelDashesAlongTheSameAuthoredCustodyCourse()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject phase = document["tactics"]![0]!["phases"]![1]!.AsObject();
+        phase["custody"] = JsonNode.Parse(
+            """{"plan":"escort","via":[[18,13],[12,16],[7,14],[3,13]]}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement vex = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "vex");
+        JsonElement[] leaves = Descendants(vex).Where(node =>
+            node.ValueKind == JsonValueKind.Object).ToArray();
+        JsonElement carrierDash = leaves.Single(node =>
+            node.TryGetProperty("id", out JsonElement id)
+            && id.GetString() == "t1-p2-g2-carrier-sig");
+        JsonElement bank = orders.RootElement.GetProperty("sharedOrders")
+            .GetProperty("t1-p2-g2-bank");
+
+        Assert.Contains("carrying-core", carrierDash.GetProperty("when")
+            .GetProperty("all").EnumerateArray()
+            .Select(value => value.GetString()));
+        Assert.Equal(
+            bank.GetProperty("move").GetProperty("via").GetString(),
+            carrierDash.GetProperty("use").GetProperty("target")
+                .GetProperty("route").GetString());
+    }
+
+    [Fact]
+    public void SmartKestrelCarryingUnderKeepDashesAlongItsPhaseRoute()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject phase = document["tactics"]![0]!["phases"]![1]!.AsObject();
+        phase["custody"] = JsonNode.Parse("""{"plan":"keep"}""");
+        phase["jobs"]!["flankers"] = JsonNode.Parse(
+            """
+            {"kind":"advance","posture":"aggressive","recovery":"fight-on",
+             "path":[[23,5],[20,8],[17,11],[15,12]]}
+            """);
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement vex = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "vex");
+        JsonElement carrierDash = Descendants(vex).Single(node =>
+            node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty("id", out JsonElement id)
+            && id.GetString() == "t1-p2-g2-carrier-sig");
+
+        Assert.Contains("carrying-core", carrierDash.GetProperty("when")
+            .GetProperty("all").EnumerateArray()
+            .Select(value => value.GetString()));
+        Assert.True(carrierDash.GetProperty("use").GetProperty("target")
+            .TryGetProperty("route", out _));
+    }
+
+    [Fact]
+    public void AggressiveRepulsorClosesOnlyWhileBurstIsReady()
+    {
+        JsonObject document = JsonNode.Parse(Fixture("pincer"))!.AsObject();
+        document["squad"]![0]!["class"] = "repulsor";
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement vex = orders.RootElement.GetProperty("roles")
+            .EnumerateArray().Single(role =>
+                role.GetProperty("id").GetString() == "vex");
+        JsonElement close = Descendants(vex).Single(node =>
+            node.ValueKind == JsonValueKind.Object
+            && node.TryGetProperty("id", out JsonElement id)
+            && id.GetString() == "t1-p2-g2-burst-close");
+
+        Assert.Equal(1,
+            close.GetProperty("fight").GetProperty("preferredRange").GetInt32());
+        Assert.Contains("signature-ready", close.GetProperty("when")
+            .GetProperty("all").EnumerateArray()
+            .Select(value => value.GetString()));
+    }
+
+    [Fact]
     public void MaximalDocumentStaysInsideTheRuntimeEnvelope()
     {
         // Eight tactics, three groups each, every feature on every tactic:
@@ -1951,14 +2079,14 @@ public sealed class ArcRelayTacticsMaterializerTests
         if (value.ValueKind == JsonValueKind.Object)
         {
             foreach (JsonProperty property in value.EnumerateObject())
-            foreach (JsonElement descendant in Descendants(property.Value))
-                yield return descendant;
+                foreach (JsonElement descendant in Descendants(property.Value))
+                    yield return descendant;
         }
         else if (value.ValueKind == JsonValueKind.Array)
         {
             foreach (JsonElement item in value.EnumerateArray())
-            foreach (JsonElement descendant in Descendants(item))
-                yield return descendant;
+                foreach (JsonElement descendant in Descendants(item))
+                    yield return descendant;
         }
     }
 

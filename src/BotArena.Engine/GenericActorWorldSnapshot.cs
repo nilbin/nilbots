@@ -734,9 +734,8 @@ public sealed class GenericActorWorldSnapshot
             || projectiles.Any(value =>
                 value.ProjectileId >= nextProjectileId
                 || !profiles.ContainsKey(value.AttackProfileId)
-                || !IsCurrentProjectileTileLegal(
-                    definition,
-                    value.Position)
+                || (!IsCurrentProjectileTileLegal(definition, value.Position)
+                    && !IsAuthoredHookWallPosition(definition, value))
                 || !IsCurrentProjectileTileLegal(
                     definition,
                     value.Origin)
@@ -814,7 +813,20 @@ public sealed class GenericActorWorldSnapshot
                     profile,
                     projectile.ShotProgram,
                     inferredExtraTravelTiles);
-            if (!projectile.CommittedPath.SequenceEqual(expectedPath))
+            int authoredBreach = AuthoredHookBreachTiles(
+                definition, projectile.AttackProfileId);
+            bool followsAuthoredBreach = authoredBreach > 0
+                && projectile.ShotProgram is null
+                && projectile.CommittedPath.SequenceEqual(
+                    TraceAuthoredBreachPath(
+                        definition.Map,
+                        projectile.Origin,
+                        projectile.LaunchHeading,
+                        profile,
+                        inferredExtraTravelTiles,
+                        authoredBreach));
+            if (!projectile.CommittedPath.SequenceEqual(expectedPath)
+                && !followsAuthoredBreach)
             {
                 throw new ArgumentException(
                     "A retained projectile must preserve its exact resolved committed path.",
@@ -822,9 +834,15 @@ public sealed class GenericActorWorldSnapshot
             }
 
             Position previous = projectile.Origin;
+            int remainingWallTiles = followsAuthoredBreach
+                ? authoredBreach
+                : 0;
             foreach (Position position in projectile.CommittedPath)
             {
-                if (!IsCurrentProjectileTileLegal(definition, position)
+                bool wall = definition.Map.IsWall(position);
+                bool permittedWall = wall && remainingWallTiles-- > 0;
+                if ((!IsCurrentProjectileTileLegal(definition, position)
+                        && !permittedWall)
                     || previous.ChebyshevDistance(position) != 1)
                 {
                     throw new ArgumentException(
@@ -850,6 +868,75 @@ public sealed class GenericActorWorldSnapshot
                     nameof(projectiles));
             }
         }
+    }
+
+    private static int AuthoredHookBreachTiles(
+        ActorResolvedMatchDefinition definition,
+        string attackProfileId)
+    {
+        if (!string.Equals(attackProfileId, "hook-bolt", StringComparison.Ordinal)
+            || definition.Rules.GameMode is not ArcRelayGameModeDefinition mode)
+        {
+            return 0;
+        }
+        return mode.Signatures
+            .OfType<ArcRelaySignatureDefinition.TractorHook2>()
+            .Select(value => value.AuthoredWallPenetrationTiles)
+            .SingleOrDefault();
+    }
+
+    private static bool IsAuthoredHookWallPosition(
+        ActorResolvedMatchDefinition definition,
+        ProjectileSnapshot projectile)
+    {
+        int breachTiles = AuthoredHookBreachTiles(
+            definition, projectile.AttackProfileId);
+        return breachTiles > 0
+            && definition.Map.IsWall(projectile.Position)
+            && projectile.NextPathIndex > 0
+            && projectile.NextPathIndex <= projectile.CommittedPath.Length
+            && projectile.Position
+                == projectile.CommittedPath[projectile.NextPathIndex - 1]
+            && projectile.CommittedPath
+                .Take(projectile.NextPathIndex)
+                .Count(definition.Map.IsWall) <= breachTiles;
+    }
+
+    private static ImmutableArray<Position> TraceAuthoredBreachPath(
+        ActorMapDefinition map,
+        Position origin,
+        ProjectileHeading heading,
+        ActorAttackProfileDefinition profile,
+        int extraTravelTiles,
+        int breachTiles)
+    {
+        var path = ImmutableArray.CreateBuilder<Position>();
+        Position position = origin;
+        int remaining = breachTiles;
+        var (dx, dy) = heading.Vector();
+        int reach = checked(
+            profile.Projectile.MaxTravelTiles + extraTravelTiles);
+        for (int step = 0; step < reach; step++)
+        {
+            Position next = position.Offset(dx, dy);
+            if (next.X < 0 || next.Y < 0
+                || next.X >= map.Width || next.Y >= map.Height)
+            {
+                break;
+            }
+            bool blocked = map.IsWall(next)
+                || dx != 0 && dy != 0
+                && profile.Projectile.DiagonalCornersMustBeClear
+                && (map.IsWall(position.Offset(dx, 0))
+                    || map.IsWall(position.Offset(0, dy)));
+            if (blocked && remaining == 0)
+                break;
+            if (blocked)
+                remaining--;
+            position = next;
+            path.Add(position);
+        }
+        return path.ToImmutable();
     }
 
     private static void ValidateLifecycleClaims(

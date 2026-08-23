@@ -194,6 +194,12 @@ builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV32());
 builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV33());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV34());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
+    _ => ArcRelayEntrantPlaylistDefinition.CreateHistoricalV35());
+builder.Services.AddSingleton<IHostedGenericMatchDefinition>(
     _ => ArcRelayEntrantPlaylistDefinition.Create());
 builder.Services.AddSingleton<HostedGenericMatchDefinitionRegistry>();
 

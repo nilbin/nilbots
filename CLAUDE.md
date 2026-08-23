@@ -75,7 +75,7 @@ bash scripts/generate-api-clients.sh       # OpenAPI document + web/mobile/CLI c
 bash scripts/e2e.sh                        # full pipeline incl. player-bot build + cache assert
 dotnet run --project src/BotArena.Cli -- play --bot hunter --opponent coward --seed 7
 dotnet run --project src/BotArena.Cli -- arc-relay --bot <mind> --opponent <mind> \
-  --loop-profile broadloom-3                           # the current local Arc Relay line
+  --loop-profile broadloom-4                           # the current local Arc Relay line
 dotnet run --project src/BotArena.Cli -- doctor        # toolchain status
 ```
 
@@ -208,7 +208,7 @@ Project boundaries that must not be violated:
 - **Arc Relay is a first-class command, not an experiment** (DECISIONS #247).
   `nilbots arc-relay` is top-level; `nilbots experiment arc-relay` is a
   permanent alias, so existing scripts and briefs keep their spelling.
-  `--loop-profile` defaults to `broadloom-3`, whose atomic occupancy contract
+  `--loop-profile` defaults to `broadloom-4`, whose atomic occupancy contract
   permits acyclic follow-into-vacated-tile chains while still rejecting swaps,
   closed cycles and contested destinations. Local/review execution defaults to
   the three-action EPIBT coordinated movement path; explicit
@@ -244,12 +244,16 @@ Project boundaries that must not be violated:
   stable-slot veterancy retention and harmless allied-body projectile blocks
   under a new ruleset identity. Broadloom-3 keeps that complete game but
   removes the post-channel Workshop dormancy, so protected training can repeat
-  every 15 ticks (DECISIONS #358–#361).
-  Immutable hosted entrant playlist v35 pins `broadloom-3`, the
+  every 15 ticks. Broadloom-4 keeps that map and economy while refreshing
+  signature depth: carrier-safe Dash/Exchange, damaging front-pull Hook with
+  explicit single-wall breach, hostile damaging Burst, team-vision Flare,
+  owner-inclusive Paint, and lightweight contextual Smart use (DECISIONS
+  #358–#361, #367).
+  Immutable hosted entrant playlist v36 pins `broadloom-4`, the
   tactics-authored `tempered-broadloom-v1` stock, Broadloom-native product
   templates (first-stand-v2, mid-pincer-v2, idle-field-v2, and the
   tactics-authored demolition-march-v2), and the rebuilt tactical mirror.
-  v34/v33 remain immutable Broadloom history, v32 remains immutable
+  v35/v34/v33 remain immutable Broadloom history, v32 remains immutable
   complete-observation Tapline-14 history, v31/v30
   Tapline-14/13, v29 `tapline-12`, v25
   replay-only Tapline-8 history, v24 Tapline-6, and v23

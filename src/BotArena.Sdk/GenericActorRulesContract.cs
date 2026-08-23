@@ -484,6 +484,21 @@ public sealed class GenericActorRulesContract
         public int? FireCooldownTicks { get; init; }
         public int? BoltTilesPerAdvance { get; init; }
         public int? AcquisitionTicks { get; init; }
+        /// <summary>True when this relocation keeps a carried Arc Relay
+        /// Core attached to its owner.</summary>
+        public bool? RetainsCore { get; init; }
+        /// <summary>Omnidirectional team sight granted while this deployed
+        /// sensor is active; null for reveal-only historical flares.</summary>
+        public int? TeamVisionRadius { get; init; }
+        /// <summary>True when Exchange relocates a targeted carrier without
+        /// forcing its Core to drop.</summary>
+        public bool? TargetRetainsCore { get; init; }
+        /// <summary>Number of wall or hostile Hardlight tiles an explicitly
+        /// authored, lockless line may cross. Smart locked casts use zero.</summary>
+        public int? AuthoredWallPenetrationTiles { get; init; }
+        /// <summary>True when an area displacement affects hostile bodies
+        /// only.</summary>
+        public bool? HostilesOnly { get; init; }
         /// <summary>
         /// Optional non-default joint-tick activation phase. Null means the
         /// ordinary before-combat signature action phase.

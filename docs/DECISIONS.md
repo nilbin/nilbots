@@ -9755,3 +9755,37 @@ and a `groupsSet` transition may prove readiness from the release-boundary
 position that caused the phase to advance. This removes false deviations in
 which the executor truthfully released a ready formation while the reader
 looked only at the preceding phase-labelled decision tick.
+
+## 367. Broadloom-4 makes signatures tactical without adding another executor
+
+Owner promotion ruling (2026-08-23): profile `broadloom-4`, ruleset
+`arc-relay-broadloom-4`, and hosted entrant playlist v36 keep Broadloom-3's
+map, economy, Workshops, combat scale, movement, and scoring while promoting
+signature grammar 4. Playlist v35 and its `2657d3…` tactical artifact are
+frozen in `broadloom-3-stock-v1`; v36 pins the rebuilt grammar-4 artifact and
+starts a fresh rating book.
+
+Kestrel Vector Dash retains a carried Core. Smart Kestrels use the phase's
+drawn custody route when one exists, otherwise the home reactor for a banking
+plan, and the ordinary phase route for a keep/none plan. Switchback Exchange
+retains the targeted carrier's Core; Smart Exchange advances a friendly
+carrier only when the landing gains at least two walking steps toward the own
+reactor and lies outside every currently visible enemy attack envelope.
+
+Towline Tractor Hook has range 6, deals 10 damage before displacement, and
+pulls a survivor up to five tiles to the nearest legal tile directly in front
+of the frozen caster origin. Smart Hook remains a visible, blockable cast and
+prioritizes carrier, weakest, then nearest. A player-drawn two-point breach
+line alone may cross exactly one map wall or hostile Hardlight tile; it may be
+blind, miss, and spend cooldown. Repulsor Kinetic Burst deals 10 to every
+adjacent hostile, then pushes survivors one legal tile outward; allies are
+unaffected. Aggressive Repulsors close to adjacency while Burst is ready, but
+there is no crowd optimizer or signature-specific movement state machine.
+
+Lantern Survey Flare grants its team omnidirectional radius-4 sight for its
+eight-tick lifetime and an exact authored mark is useful even without smoke.
+Sunder's own attacks receive Target Paint's bonus, and Smart Paint prioritizes
+carrier, veteran, weakest, then nearest. These choices compile through normal
+top-to-bottom Instructions and the existing signature lifecycle; there is no
+parallel priority system, scheduler, reservation model, or per-signature
+executor architecture.

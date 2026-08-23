@@ -599,6 +599,7 @@ public sealed class OrdersMovementSceneTests
         ArcRelayEvent.CorePickedUp? reclaim = null;
         ArcRelayEvent.CoreBanked? bank = null;
         int departureTick = -1;
+        bool departureHadPositiveForwardGain = false;
         bool reclaimInstruction = false;
         var relayReasons = new Queue<string>();
         var coreFacts = new Queue<string>();
@@ -606,6 +607,7 @@ public sealed class OrdersMovementSceneTests
         while (!session.IsCompleted && bank is null)
         {
             GenericActorMatchStepResult step = session.Step();
+            string? relayReasonThisTick = null;
             foreach (GenericMindCommandResolution command in step.MindTurns
                          .Single(turn => turn.TeamId == 0).Commands)
             {
@@ -613,6 +615,7 @@ public sealed class OrdersMovementSceneTests
                 Assert.False(string.IsNullOrWhiteSpace(reason));
                 if (command.Command.UnitId == 6)
                 {
+                    relayReasonThisTick = reason;
                     relayReasons.Enqueue($"{step.Tick}:{reason}");
                     if (relayReasons.Count > 8) relayReasons.Dequeue();
                 }
@@ -648,6 +651,10 @@ public sealed class OrdersMovementSceneTests
                 {
                     departure = dropped;
                     departureTick = step.Tick;
+                    departureHadPositiveForwardGain = relayReasonThisTick
+                        ?.Contains(
+                            "solo-forward-gain-",
+                            StringComparison.Ordinal) == true;
                     reclaim = null;
                     reclaimInstruction = false;
                 }
@@ -680,11 +687,8 @@ public sealed class OrdersMovementSceneTests
         Assert.True(reclaim is not null, diagnostic);
         Assert.True(bank is not null, diagnostic);
         Assert.Equal(new ActorIdentity(0, 6, 0), bank.CarrierActorId);
+        Assert.True(departureHadPositiveForwardGain, diagnostic);
         Assert.NotEqual(departure.Position, reclaim.Position);
-        Assert.True(
-            reclaim.Position.ChebyshevDistance(bank.Position)
-                < departure.Position.ChebyshevDistance(bank.Position),
-            diagnostic);
     }
 
     [Fact]

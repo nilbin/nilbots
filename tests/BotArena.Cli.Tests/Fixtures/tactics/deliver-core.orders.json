@@ -32,6 +32,20 @@
                   }
                 },
                 {
+                  "id": "t1-p1-g2-carrier-sig",
+                  "when": {
+                    "all": [
+                      "carrying-core",
+                      "signature-ready"
+                    ]
+                  },
+                  "use": {
+                    "skill": "vector-dash",
+                    "opportunity": "route-forward",
+                    "target": "own-reactor"
+                  }
+                },
+                {
                   "shared": "t1-p1-g2-carrier-defence"
                 },
                 {
@@ -108,8 +122,8 @@
                   },
                   "use": {
                     "skill": "exchange",
-                    "opportunity": "rescue-endangered-ally",
-                    "target": "healthiest-ally"
+                    "opportunity": "advance-friendly-carrier",
+                    "target": "nearest-friendly-core-carrier-behind"
                   }
                 },
                 {
@@ -977,6 +991,11 @@
       "operator": "equals",
       "value": 1
     },
+    "signature-ready": {
+      "fact": "signature-ready",
+      "operator": "equals",
+      "value": 1
+    },
     "enemy-no-longer-nearby": {
       "fact": "self-nearest-visible-enemy-distance",
       "operator": "greater-than",
@@ -1001,11 +1020,6 @@
         "solder",
         "cinder"
       ]
-    },
-    "signature-ready": {
-      "fact": "signature-ready",
-      "operator": "equals",
-      "value": 1
     },
     "c-t1-g3-no-carrier": {
       "fact": "friendly-carriers-in-roles",
