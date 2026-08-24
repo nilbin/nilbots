@@ -9927,3 +9927,24 @@ static 143-line sheet remains a 4–2 opponent for Shadow's adaptive 579-line
 sheet. Keep every entrant as regression/evolution evidence, but treat this
 compression as a balance and evaluation warning: future work needs a matchup
 matrix of genuinely different archetypes alongside the monotonic ladder.
+
+## 375. Forgeward Crown is Broadloom-7 ladder rung 10 and proves two adaptive allocations
+
+`forgeward-crown-v1` is admitted after winning every prior sheet's fixed
+mirrored six-cell series: 48 wins and six losses across 54 reactor-destruction
+matches. Every candidate cell is clean on the registered felt-degeneracy bars
+and unresolved-contact audit. Its eight-class roster opens with six temporary
+Groups, then public enemy-Well occupancy and Core/centre observations select
+either a two-pin/six-job enemy-return trap or a distributed three-Well economy
+with enemy-Workshop training and a level-2 Longshot transition. The fixed set
+replay-proves those two allocations; the document's exposed-Well all-in
+continuation remains explicitly unproven.
+
+The Tactics grammar and editor already permit one to eight Groups; only stale
+wizard copy still claimed three, and now states the actual ceiling. Forgeward
+uses five or six because each owns a distinct map intent, not as a recommended
+default authoring shape. During the rung, chronology validation was also fixed
+for the legal case where a Nest shares its non-blocking Sentry tile and an
+ordinary gun tell survives Sentry expiry. Broadloom's WASM tactical-mind fuel
+fault remains a baseline runtime issue—the old Loomsplit mirror reproduces it—
+so this ladder admission continues to rest on deterministic native replays.
