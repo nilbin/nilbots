@@ -125,13 +125,15 @@ public static class TacticalPosturePlanner
 /// Resolves the physical standoff around a followed body. A follower tracks
 /// the body, but the body's occupied tile is never its destination: following
 /// means staying beside the leader, not repeatedly asking the leader to leave
-/// its own ground. Posture may then select the front or rear edge of this ring
-/// through <see cref="TacticalPosturePlanner"/>.
+/// its own ground. Shared infrastructure such as the bank may also be reserved
+/// out of the ring. Posture may then select its front or rear edge through
+/// <see cref="TacticalPosturePlanner"/>.
 /// </summary>
 public static class TacticalFollowPlanner
 {
     public static Position[] StandoffGoals(
         Position leader,
+        Position reserved,
         Func<Position, bool> canStand)
     {
         ArgumentNullException.ThrowIfNull(canStand);
@@ -143,7 +145,7 @@ public static class TacticalFollowPlanner
                 if (dx == 0 && dy == 0)
                     continue;
                 Position candidate = leader.Offset(dx, dy);
-                if (canStand(candidate))
+                if (candidate != reserved && canStand(candidate))
                     result.Add(candidate);
             }
         }

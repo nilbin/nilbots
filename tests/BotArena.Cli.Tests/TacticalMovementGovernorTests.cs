@@ -94,12 +94,15 @@ public sealed class TacticalMovementGovernorTests
     public void FollowUsesAStandOffRingAndNeverTargetsTheLeaderTile()
     {
         var leader = new Position(10, 10);
+        var reserved = new Position(11, 11);
         Position[] goals = TacticalFollowPlanner.StandoffGoals(
             leader,
+            reserved,
             point => point != new Position(9, 9));
 
-        Assert.Equal(7, goals.Length);
+        Assert.Equal(6, goals.Length);
         Assert.DoesNotContain(leader, goals);
+        Assert.DoesNotContain(reserved, goals);
         Assert.DoesNotContain(new Position(9, 9), goals);
         Assert.All(goals, point => Assert.Equal(
             1, point.ChebyshevDistance(leader)));

@@ -964,6 +964,7 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     candidate.Position,
                     TacticalFollowPlanner.StandoffGoals(
                         candidate.Position,
+                        _ownReactor,
                         tile => ArenaBasics.IsLegalTerrainStep(
                             contract.Map, candidate.Position, tile)),
                     candidate.ActorId,

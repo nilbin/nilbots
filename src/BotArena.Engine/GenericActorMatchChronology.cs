@@ -1697,8 +1697,20 @@ public sealed record GenericActorMatchChronology
                 after.Scoreboard))
         {
             throw new ArgumentException(
-                $"Tick-start {tickStart.Tick} lifecycle processing cannot change participants, mode, projectile issuance, eligibility, or non-derived scores " +
-                $"(clock={before.NextTick == tickStart.Tick}, projectile={before.NextProjectileId == after.NextProjectileId}, participants={before.Participants.SequenceEqual(after.Participants)}, mode={Equals(before.Mode, after.Mode)}, arcEvidence={evidencedArcModeChange}, arcSchedule={derivedArcScheduleAdvance}, scoreboard={ScoreboardsStableAcrossLifecycleBoundary(before.Scoreboard, after.Scoreboard)}).",
+                $"Tick-start {tickStart.Tick} lifecycle processing cannot "
+                + "change participants, mode, projectile issuance, eligibility, "
+                + "or non-derived scores "
+                + $"(clock={before.NextTick == tickStart.Tick}, "
+                + "projectile="
+                + $"{before.NextProjectileId == after.NextProjectileId}, "
+                + "participants="
+                + $"{before.Participants.SequenceEqual(after.Participants)}, "
+                + $"mode={Equals(before.Mode, after.Mode)}, "
+                + $"arcEvidence={evidencedArcModeChange}, "
+                + $"arcSchedule={derivedArcScheduleAdvance}, "
+                + "scoreboard="
+                + $"{ScoreboardsStableAcrossLifecycleBoundary(before.Scoreboard, after.Scoreboard)}, "
+                + $"{DescribeArcLifecycleDifference(before.Mode, after.Mode, tickStart.Events)}).",
                 parameterName);
         }
 
@@ -1745,6 +1757,55 @@ public sealed record GenericActorMatchChronology
             tickStart.Events,
             tickStart.Traversals,
             parameterName);
+    }
+
+    private static string DescribeArcLifecycleDifference(
+        GenericActorRuntimeObservation.ModeObservationState before,
+        GenericActorRuntimeObservation.ModeObservationState after,
+        IReadOnlyCollection<GenericActorAuthoritativeEvent> events)
+    {
+        if (before is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay left
+            || after is not GenericActorRuntimeObservation.ModeObservationState
+                .ArcRelay right)
+        {
+            return "arc=n/a";
+        }
+
+        ImmutableArray<GenericActorRuntimeObservation
+            .ArcRelayPendingStrikeState> sessionLeft =
+                SessionOwnedPendingStrikes(left);
+        ImmutableArray<GenericActorRuntimeObservation
+            .ArcRelayPendingStrikeState> sessionRight =
+                SessionOwnedPendingStrikes(right);
+        int modeEvents = events.Count(value =>
+            value.UnredactedPayload is GenericActorRuntimeObservation
+                .EventPayload.ModeChanged);
+        bool pulseStable = left.LatestPulseTeamId == right.LatestPulseTeamId
+            && left.LatestPulseTick == right.LatestPulseTick;
+        static string PendingSummary(IEnumerable<GenericActorRuntimeObservation
+            .ArcRelayPendingStrikeState> strikes) => string.Join(
+                ";",
+                strikes.Select(value =>
+                    $"{value.Shooter}@{value.Origin}/t{value.ResolveAtTick}"));
+        return $"arc[wells={left.Wells.SequenceEqual(right.Wells)}, "
+            + $"reactors={left.Reactors.SequenceEqual(right.Reactors)}, "
+            + $"cores={left.VisibleCores.SequenceEqual(right.VisibleCores)}, "
+            + "signatures="
+            + $"{left.VisibleSignatures.SequenceEqual(right.VisibleSignatures)}, "
+            + $"pulse={pulseStable}, "
+            + $"nextWave={left.NextRespawnWaveTick == right.NextRespawnWaveTick}, "
+            + "waveTeams="
+            + $"{left.RespawnWaveTeams.SequenceEqual(right.RespawnWaveTeams)}, "
+            + "pending="
+            + $"{left.PendingStrikes.SequenceEqual(right.PendingStrikes)}"
+            + $"({left.PendingStrikes.Length}->{right.PendingStrikes.Length}), "
+            + "sessionPending="
+            + $"{sessionLeft.SequenceEqual(sessionRight)}"
+            + $"([{PendingSummary(sessionLeft)}]->"
+            + $"[{PendingSummary(sessionRight)}]), "
+            + $"workshops={left.Workshops.SequenceEqual(right.Workshops)}, "
+            + $"modeEvents={modeEvents}]";
     }
 
     private static bool ArcScheduleOnlyAdvance(
@@ -1851,12 +1912,12 @@ public sealed record GenericActorMatchChronology
                     // origin; the shared strike wire carries the shot's
                     // resolve tick, target and cone.
                     ? signature.Positions.Contains(strike.Origin)
-                    : signature.CompletesAtTick == strike.ResolveAtTick
-                        && signature.TargetActorId == strike.Target
-                        // The signature publishes the tracked LINE; the shared
-                        // strike wire publishes its frozen CONE. The former is
-                        // a subset of the latter by construction.
-                        && signature.Positions.All(strike.Tiles.Contains)));
+                    // Rail and Hook share one body action with its gun, so the
+                    // same owner cannot also have an ordinary strike maturing
+                    // on this operation's tick. Wall-breaching blind Hook
+                    // lines are deliberately not subsets of the frozen cone;
+                    // owner plus resolve tick is their stable identity.
+                    : signature.CompletesAtTick == strike.ResolveAtTick));
             if (matchingTell >= 0)
             {
                 lineTells.RemoveAt(matchingTell);

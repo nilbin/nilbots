@@ -325,6 +325,7 @@ public sealed class ArcRelaySignatureLockTests
         GenericActorMatchStepResult contact = arena.Step();
         Assert.Equal(40, arena.Body(contact, 1, 0).Health);
         Assert.Empty(contact.PostState.Projectiles);
+        Assert.NotEmpty(arena.Chronology.Ticks);
 
         GenericActorMatchStepResult pulled = arena.Step();
         Assert.Equal(new Position(3, 4), arena.Body(pulled, 1, 0).Position);
