@@ -176,48 +176,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         bool removedTargets = RemoveLegacyTransitionTargets(document);
         bool normalizedSignatures = NormalizeSignaturePlans(document);
-        bool normalizedPlaces = NormalizeSeatRelativeSelectors(document);
-        if (!migrateV1 && !removedTargets && !normalizedSignatures
-            && !normalizedPlaces)
+        if (!migrateV1 && !removedTargets && !normalizedSignatures)
             return tacticsSource;
         return Encoding.UTF8.GetBytes(document.ToJsonString(
             new JsonSerializerOptions { WriteIndented = true }));
-    }
-
-    /// <summary>
-    /// Tactics are authored once from the west-seat view and mirrored with
-    /// the entrant. The short-lived global north/south selectors therefore
-    /// violated the rest of the document's coordinate model. Preserve old
-    /// drafts by translating their west-view meaning to the seat-relative
-    /// vocabulary before validation and persistence: north is the enemy
-    /// side, south is the author's own side. Engine events and replay ids
-    /// remain globally north/south; only player-authored selectors migrate.
-    /// </summary>
-    private static bool NormalizeSeatRelativeSelectors(JsonNode? node)
-    {
-        bool changed = false;
-        if (node is JsonObject value)
-        {
-            foreach ((string key, JsonNode? child) in value.ToArray())
-            {
-                if (key is ("well" or "workshop")
-                    && child is JsonValue scalar
-                    && scalar.TryGetValue<string>(out string? selector)
-                    && selector is ("north" or "south"))
-                {
-                    value[key] = selector == "north" ? "enemy" : "own";
-                    changed = true;
-                    continue;
-                }
-                changed |= NormalizeSeatRelativeSelectors(child);
-            }
-        }
-        else if (node is JsonArray array)
-        {
-            foreach (JsonNode? child in array)
-                changed |= NormalizeSeatRelativeSelectors(child);
-        }
-        return changed;
     }
 
     /// <summary>

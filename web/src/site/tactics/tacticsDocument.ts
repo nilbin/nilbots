@@ -815,7 +815,7 @@ export function normalizeDocument(document: unknown): TacticsDocument {
   } else {
     throw new Error(`Not a tactics document: ${value?.schema}`);
   }
-  normalizeSeatRelativeSelectors(loaded);
+  rejectAbsoluteSideSelectors(loaded);
   // Self-healing on load. Backwards way-ins flip into travel order; posts
   // saved before they carried a `slot` are stamped with their positional
   // pairing (the only pairing that existed); and leftovers from a Group
@@ -907,13 +907,14 @@ export function normalizeDocument(document: unknown): TacticsDocument {
   return loaded;
 }
 
-/** Global north/south selectors briefly existed even though every drawn
- * coordinate is authored once from west and mirrored with the entrant.
- * Preserve those drafts by translating their west-view meaning on load;
- * new UI and validation expose only own/centre/enemy (or either Workshop). */
-function normalizeSeatRelativeSelectors(node: unknown): void {
+/** Every player document is authored once and mirrored with its entrant.
+ * Silently guessing that an old global side meant the west author's relative
+ * side can produce a different tactic than intended, so reject the retired
+ * aliases at the common load/save boundary. */
+function rejectAbsoluteSideSelectors(node: unknown, path = '$'): void {
   if (Array.isArray(node)) {
-    node.forEach(normalizeSeatRelativeSelectors);
+    node.forEach((child, index) =>
+      rejectAbsoluteSideSelectors(child, `${path}[${index}]`));
     return;
   }
   if (!node || typeof node !== 'object') return;
@@ -921,9 +922,12 @@ function normalizeSeatRelativeSelectors(node: unknown): void {
   for (const [key, child] of Object.entries(record)) {
     if ((key === 'well' || key === 'workshop')
       && (child === 'north' || child === 'south')) {
-      record[key] = child === 'north' ? 'enemy' : 'own';
+      throw new Error(
+        `${path}.${key}: '${child}' is not a mirrored sheet place; `
+        + `choose ${key === 'well' ? 'own, centre, or enemy' : 'own, enemy, or either'}.`,
+      );
     } else {
-      normalizeSeatRelativeSelectors(child);
+      rejectAbsoluteSideSelectors(child, `${path}.${key}`);
     }
   }
 }

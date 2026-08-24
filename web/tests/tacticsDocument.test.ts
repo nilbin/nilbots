@@ -839,7 +839,7 @@ test('a v1 document migrates to phases exactly like the server', () => {
   assert.throws(() => normalizeDocument({ schema: 'something-else' }));
 });
 
-test('global north and south drafts normalize to mirrored place choices', () => {
+test('global north and south aliases are rejected from mirrored sheets', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
   const tactic = drawnPincer(document);
@@ -854,16 +854,10 @@ test('global north and south drafts normalize to mirrored place choices', () => 
     required: { workshopReady: { workshop: 'south' } },
   }];
 
-  const normalized = normalizeDocument(legacy);
-  const normalizedTactic = normalized.tactics[0];
-  const core = normalizedTactic.phases[0].jobs[groupId].core!;
-  assert.equal(core.well, 'enemy');
-  assert.equal(core.preposition?.well, 'own');
-  assert.deepEqual(normalizedTactic.phases[0].continue![0].required?.coreBanked,
-    { well: 'enemy' });
-  assert.deepEqual(normalizedTactic.start.cases, [{
-    required: { workshopReady: { workshop: 'own' } },
-  }]);
+  assert.throws(
+    () => normalizeDocument(legacy),
+    /'south' is not a mirrored sheet place; choose own, enemy, or either/,
+  );
 });
 
 test('an editable saved draft rebinds to the current map without projecting its geometry', () => {

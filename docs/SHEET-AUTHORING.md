@@ -801,10 +801,10 @@ slots: those bots take the phase objective while the rest retain the Group's
 whole-Tactic Core default. This does not split formation or custody membership,
 so a support bot can remain an escort while declining a raider-only value
 filter. Player-owned sheets use only seat-relative `own`, `centre`, and `enemy`
-Well choices. Older Tactics drafts normalize from the west authoring view as
-north→enemy and south→own. Workshop authoring likewise uses `own`, `enemy`, or
-`either`. Global north/south ids remain in engine events and replay tools, not
-in either mirrored authoring grammar. Optional **Pre-position at / Return before birth** timing keeps
+Well choices. North/south aliases are rejected rather than guessed from one
+seat. Workshop authoring likewise uses `own`, `enemy`, or `either`. Global
+north/south ids remain in engine events and replay tools, not in either
+mirrored authoring grammar. Optional **Pre-position at / Return before birth** timing keeps
 that Group on its drawn posts or patrol while an independently selected Well's
 Core is active or the recharge is distant, then gives it an ordinary
 higher-priority move back to that Well

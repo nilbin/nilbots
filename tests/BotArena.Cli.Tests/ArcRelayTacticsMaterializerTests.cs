@@ -55,7 +55,7 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
-    public void GlobalPlaceDraftsNormalizeToSeatRelativeSelectors()
+    public void GlobalPlaceDraftsAreRejectedFromMirroredTactics()
     {
         JsonObject document = JsonNode.Parse(
             ArcRelayTacticalPlaybookCompiler.MigrateTactics(
@@ -70,28 +70,12 @@ public sealed class ArcRelayTacticsMaterializerTests
         tactic["start"]!["cases"] = JsonNode.Parse(
             """[{"required":{"workshopReady":{"workshop":"south"}}}]""");
 
-        byte[] normalized = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
-            Encoding.UTF8.GetBytes(document.ToJsonString()));
-        using JsonDocument parsed = JsonDocument.Parse(normalized);
-        JsonElement normalizedTactic = parsed.RootElement
-            .GetProperty("tactics")[0];
-        JsonElement core = normalizedTactic.GetProperty("phases")[0]
-            .GetProperty("jobs").GetProperty("flankers")
-            .GetProperty("core");
-        Assert.Equal("enemy", core.GetProperty("well").GetString());
-        Assert.Equal("own", core.GetProperty("preposition")
-            .GetProperty("well").GetString());
-        Assert.Equal("enemy", normalizedTactic.GetProperty("phases")[0]
-            .GetProperty("continue")[0].GetProperty("required")
-            .GetProperty("coreBanked").GetProperty("well").GetString());
-        Assert.Equal("own", normalizedTactic.GetProperty("start")
-            .GetProperty("cases")[0].GetProperty("required")
-            .GetProperty("workshopReady").GetProperty("workshop")
-            .GetString());
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
 
-        Assert.Equal(normalized,
-            ArcRelayTacticalPlaybookCompiler.MigrateTactics(normalized));
-        ArcRelayTacticalPlaybookCompiler.CompileTactics(normalized);
+        Assert.Contains("workshop must be own/enemy/either", error.Message,
+            StringComparison.Ordinal);
     }
 
     [Fact]

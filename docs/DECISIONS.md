@@ -9867,8 +9867,8 @@ typed parameters rather than owning parallel executors.
 
 Player-owned Tactics and lower-level Orders no longer offer global `north` or
 `south` as Well or Workshop selectors. Wells are `own`, `centre`, or `enemy`;
-Workshops are `own`, `enemy`, or `either`. Historical west-authored Tactics
-values migrate recursively as north→enemy and south→own. Global north/south room ids remain
+Workshops are `own`, `enemy`, or `either`. Historical global aliases are
+rejected rather than silently guessed from the west authoring view. Global north/south room ids remain
 authoritative engine, contract, event, and replay evidence; this change removes
 only a player-facing alias that changed meaning when one sheet entered from
 the opposite seat.

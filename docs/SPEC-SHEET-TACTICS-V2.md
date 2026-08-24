@@ -199,9 +199,9 @@ Selecting every member canonicalizes to an absent `slots`. This is ordinary
 per-role Instruction materialization, not a subgroup, reservation, or second
 runtime priority system.
 The optional filters name the Core's source Well and bank value. Every Well
-choice mirrors with the entrant: `own`, `centre`, or `enemy`. Older authored
-`north`/`south` selectors normalize from the west authoring view to
-`enemy`/`own`; global room ids remain replay evidence, not player vocabulary.
+choice mirrors with the entrant: `own`, `centre`, or `enemy`. Global
+`north`/`south` selectors are rejected because the same sheet enters from both
+seats; global room ids remain replay evidence, not player vocabulary.
 A filtered hunt follows only qualifying known loose Cores and selects only a
 visible qualifying carrier for its dedicated carrier fight. Ordinary posture
 fights remain ordinary fights. With one filtered Well,
@@ -235,8 +235,8 @@ binding, never from authored coordinates, so the same document stays honest
 on any future map revision. Own/enemy resolve at match time to the Workshop
 nearest/farthest from that team's own Well, so the choice mirrors with the
 entrant just like drawn ground; `either` keeps its deterministic
-availability/distance choice. Older north/south drafts normalize to these
-relative choices on load; global room ids remain engine and replay evidence.
+availability/distance choice. North/south drafts are rejected rather than
+guessed from one seat; global room ids remain engine and replay evidence.
 `travel` chooses the on-the-way behavior as usual; on arrival the body waits
 on the tile and the rules run the channel. Core custody outranks training: a
 `coreRule` that hands the trainee a Core suspends the channel until the Core
