@@ -253,7 +253,7 @@
             },
             "trainee": {
               "kind": "train",
-              "workshop": "north",
+              "workshop": "enemy",
               "posture": "wait",
               "travel": "observe",
               "recovery": "fight-on"

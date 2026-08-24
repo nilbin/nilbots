@@ -517,6 +517,10 @@ internal sealed class OrdersPackage
         Optional(value, "zone"),
         value.TryGetProperty("preferredRange", out JsonElement preferred)
             ? preferred.GetInt32()
+            : null,
+        Optional(value, "well"),
+        value.TryGetProperty("coreBankValue", out JsonElement coreBankValue)
+            ? ParseCoreBankValue(coreBankValue)
             : null);
 
     private static ScanAction ParseScan(JsonElement value) => new(
@@ -833,7 +837,9 @@ internal sealed class OrdersPackage
         string Style,
         int ChaseLimit,
         string? Zone,
-        int? PreferredRange) : OrderAction;
+        int? PreferredRange,
+        string? Well = null,
+        CoreBankValueFilter? CoreBankValue = null) : OrderAction;
     internal sealed record ScanAction(
         string Zone,
         int FreshWithinTicks) : OrderAction;

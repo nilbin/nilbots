@@ -23,7 +23,7 @@ import {
   tacticCanFinish, viaLegal,
   type CondKind, type CustodyPlan, type DrawKind, type JobKind,
   type MembershipPocket, type Posture,
-  type Recovery, type Tactic, type TacticGroup, type TacticTransition,
+  type Recovery, type CoreRule, type Tactic, type TacticGroup, type TacticTransition,
   type TacticsDocument, type WorkshopChoice,
 } from './tacticsDocument';
 import {
@@ -628,6 +628,10 @@ export function TransitionEditor(props: StepProps & { phaseIndex: number }) {
           slot: bot.slot,
           label: bot.name || `${bot.class} ${bot.slot + 1}`,
         }))}
+        groups={tactic.groups.map((group) => ({
+          id: group.id,
+          label: group.name,
+        }))}
         requiredKinds={[...TRANSITION_ROWS]}
         triggerKinds={noEveryoneRows(TRANSITION_ROWS)}
         unlessKinds={noReadinessRows(TRANSITION_ROWS)}
@@ -691,7 +695,10 @@ export function JobSection(props: StepProps & {
       // Escort only makes sense when someone can end up carrying — keyed off
       // content (a delivery plan or a Core habit), never off the recipe.
       || job.kind === 'escort' || tactic.delivery.plan !== 'none'
-      || tactic.groups.some((value) => value.coreRule !== 'ignore'))
+      || tactic.groups.some((value) => value.coreRule !== 'ignore')
+      || tactic.phases.some((phase) => Object.values(phase.jobs)
+        .some((candidate) => candidate.core?.rule !== undefined
+          && candidate.core.rule !== 'ignore')))
     .map((kind) => kind.id === 'none' && first
       ? { ...kind, label: 'No ground', blurb: 'Start loose — no assigned ground this phase.' }
       : kind);
@@ -807,7 +814,7 @@ export function JobSection(props: StepProps & {
           <li>One bot walks in and <b>waits on the tile</b>; the rules run the channel.</li>
           <li>The channel breaks if it <b>moves, attacks, takes damage</b> or picks a Core up.</li>
           <li>Living enemies in the room <b>pause</b> it — that is what the guards are for.</li>
-          <li>Your side and their side mirror with the entrant; north and south name a fixed room.</li>
+          <li>Your side and their side mirror with the entrant, just like the drawn tactic.</li>
         </ul>
         {job.recovery !== 'fight-on' && (
           <p className="mt-1 t-micro text-arena-warning">
@@ -976,6 +983,141 @@ export function JobSection(props: StepProps & {
           target.recovery = recovery as Recovery;
         })} />
       <p className="t-micro text-arena-dim">{RECOVERIES.find((value) => value.id === job.recovery)?.blurb}</p>
+      <div className="lab mt-2">Core objective — this phase <span className="text-arena-dim">(optional)</span></div>
+      <SegChips
+        options={[
+          { id: 'default', label: 'Tactic default' },
+          ...CORE_RULES.map(({ id, label }) => ({ id, label })),
+        ]}
+        value={job.core?.rule ?? 'default'}
+        accent={color}
+        onChange={(next) => mutateJob((target) => {
+          if (next === 'default') delete target.core;
+          else target.core = { rule: next as CoreRule };
+        })}
+      />
+      <p className="t-micro text-arena-dim">
+        {job.core
+          ? `${CORE_RULES.find((value) => value.id === job.core?.rule)?.blurb ?? ''} This replaces ${possessive(group.name)} default only while this phase is active.`
+          : `Using ${possessive(group.name)} whole-Tactic default: ${CORE_RULES.find((value) => value.id === group.coreRule)?.label ?? group.coreRule}.`}
+      </p>
+      {job.core && <fieldset className="mt-1">
+        <legend className="t-micro text-arena-dim">Bots following this Core objective</legend>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {group.slots.map((slot) => {
+            const bot = document.squad.find((entry) => entry.slot === slot);
+            const selected = job.core?.slots?.includes(slot) ?? true;
+            return <button
+              key={slot}
+              type="button"
+              className={`min-h-8 rounded-sm border px-2.5 t-micro transition-colors ${selected
+                ? 'bg-arena-raise font-semibold text-arena-text'
+                : 'border-arena-edge text-arena-dim hover:text-arena-text'}`}
+              style={selected ? {
+                borderColor: `color-mix(in oklab, ${color} 55%, var(--color-arena-edge2))`,
+                boxShadow: `inset 0 -2px 0 ${color}`,
+              } : undefined}
+              aria-pressed={selected}
+              onClick={() => mutateJob((target) => {
+                if (!target.core) return;
+                const current = new Set(target.core.slots ?? group.slots);
+                if (current.has(slot)) {
+                  // At least one bot must retain an authored override.
+                  if (current.size === 1) return;
+                  current.delete(slot);
+                } else {
+                  current.add(slot);
+                }
+                const ordered = group.slots.filter((value) => current.has(value));
+                if (ordered.length === group.slots.length) delete target.core.slots;
+                else target.core.slots = ordered;
+              })}>
+              {bot?.name ?? `Bot ${slot + 1}`}
+            </button>;
+          })}
+        </div>
+        <p className="t-micro mt-1 text-arena-dim">
+          Unselected bots keep the Group’s whole-Tactic Core default, but remain in its formation and custody escort.
+        </p>
+      </fieldset>}
+      {job.core && job.core.rule !== 'ignore' && (
+        <div className="mt-1 grid grid-cols-2 gap-2">
+          <label className="t-micro text-arena-dim">
+            Source Well
+            <select className="field mt-0.5 w-full" value={job.core.well ?? ''}
+              onChange={(event) => mutateJob((target) => {
+                if (!target.core) return;
+                const value = event.target.value;
+                if (value) target.core.well = value as NonNullable<typeof target.core.well>;
+                else delete target.core.well;
+              })}>
+              <option value="">Any Well</option>
+              <option value="own">Our Well</option>
+              <option value="centre">Centre Well</option>
+              <option value="enemy">Enemy Well</option>
+            </select>
+          </label>
+          <label className="t-micro text-arena-dim">
+            Core value
+            <select className="field mt-0.5 w-full"
+              value={job.core.coreBankValue
+                ? `${job.core.coreBankValue.operator}:${job.core.coreBankValue.value}`
+                : ''}
+              onChange={(event) => mutateJob((target) => {
+                if (!target.core) return;
+                const [operator, value] = event.target.value.split(':');
+                if (!operator) delete target.core.coreBankValue;
+                else target.core.coreBankValue = {
+                  operator: operator as 'equals' | 'at-least' | 'at-most',
+                  value: Number(value) as 1 | 2 | 3 | 4,
+                };
+              })}>
+              <option value="">Any value</option>
+              <option value="at-least:2">Worth 2+</option>
+              <option value="equals:4">Worth exactly 4</option>
+              <option value="at-most:2">Worth at most 2</option>
+            </select>
+          </label>
+          <label className="t-micro text-arena-dim">
+            Pre-position at
+            <select className="field mt-0.5 w-full"
+              value={job.core.preposition?.well ?? ''}
+              onChange={(event) => mutateJob((target) => {
+                if (!target.core) return;
+                const well = event.target.value as NonNullable<typeof target.core.preposition>['well'];
+                if (!well) delete target.core.preposition;
+                else target.core.preposition = {
+                  well,
+                  ticks: target.core.preposition?.ticks ?? 10,
+                };
+              })}>
+              <option value="">Do not pre-position</option>
+              <option value="own">Our Well</option>
+              <option value="centre">Centre Well</option>
+              <option value="enemy">Enemy Well</option>
+            </select>
+          </label>
+          <label className="t-micro text-arena-dim">
+            Return before birth
+            <select className="field mt-0.5 w-full"
+              value={job.core.preposition?.ticks ?? 10}
+              disabled={!job.core.preposition}
+              onChange={(event) => mutateJob((target) => {
+                if (!target.core?.preposition) return;
+                target.core.preposition.ticks = Number(event.target.value);
+              })}>
+              <option value="5">5 ticks</option>
+              <option value="10">10 ticks</option>
+              <option value="15">15 ticks</option>
+              <option value="20">20 ticks</option>
+              <option value="30">30 ticks</option>
+            </select>
+          </label>
+          <span className="t-micro col-span-2 text-arena-dim">
+            This can be a different Well from the Cores above: keep the ordinary job while it recharges, then peel off before birth.
+          </span>
+        </div>
+      )}
       {(spatialBots.length > 0 || passiveBots.length > 0) && (
         <div className="lab mt-2">Signatures — used during this phase</div>
       )}

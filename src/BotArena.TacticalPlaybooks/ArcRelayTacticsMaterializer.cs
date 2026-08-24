@@ -625,11 +625,12 @@ internal static class ArcRelayTacticsMaterializer
                         ZoneIds: zones),
                     $"c-{prefix}-not-fighting");
             }
-            if (rows.CoreBanked)
+            if (rows.CoreBanked is ArcRelayTacticCoreEvidenceRow banked)
             {
                 Add(new ConditionShape(
                         "friendly-core-banks", "at-least", 1,
-                        Since: "phase-entry"),
+                        Since: "phase-entry", Well: banked.Well,
+                        CoreBankValue: banked.CoreBankValue),
                     $"c-{prefix}-banked");
             }
             if (rows.CoreLost)
@@ -702,6 +703,12 @@ internal static class ArcRelayTacticsMaterializer
             for (int groupIndex = 0; groupIndex < tactic.Groups.Count; groupIndex++)
             {
                 ArcRelayTacticGroup group = tactic.Groups[groupIndex];
+                if (readiness.Groups is not null
+                    && !readiness.Groups.Contains(
+                        group.Id, StringComparer.Ordinal))
+                {
+                    continue;
+                }
                 ArcRelayTacticJob? job = EffectiveJob(tactic, phase, group.Id);
                 if (job is null)
                     continue;
@@ -822,12 +829,38 @@ internal static class ArcRelayTacticsMaterializer
                         : Zone(footprint, $"g-{prefix}-{groupTag}-set");
                 };
                 string custodyPlan = phase.Custody?.Plan ?? tactic.Delivery.Plan;
+                ArcRelayTacticCoreIntent fallbackCore =
+                    new(group.CoreRule, Well: null, CoreBankValue: null);
+                IReadOnlyList<int>? selectedCoreSlots = raw.Core?.Slots;
+                bool selectedCoreBot = selectedCoreSlots is null
+                    || selectedCoreSlots.Contains(bot.Slot);
+                ArcRelayTacticCoreIntent core = raw.Core is not null
+                    && selectedCoreBot
+                        ? raw.Core
+                        : fallbackCore;
+                // A partially scoped Core override creates at most two
+                // ordinary leaf cohorts inside the Group. Distinct leaf ids
+                // keep their conditions/actions honest while preserving the
+                // same phase wrapper, custody latch, posture and executor.
+                string coreLeafPrefix = "";
+                LeafScope coreScope = scope;
+                if (selectedCoreSlots is not null)
+                {
+                    coreLeafPrefix = selectedCoreBot
+                        ? "selected-"
+                        : "default-";
+                    int cohortSize = selectedCoreBot
+                        ? selectedCoreSlots.Count
+                        : group.Slots.Count - selectedCoreSlots.Count;
+                    coreScope = scope with { GroupSize = cohortSize };
+                }
                 AddSignatureCommitment(leaves, scope, bot);
                 AddCustodyTransfer(
                     leaves, scope, custodyPlan, phase, bot);
                 AddCoreRule(
-                    leaves, scope, group.CoreRule, group,
-                    excludeAttachedEscort: custodyPlan == "escort");
+                    leaves, coreScope, core, group,
+                    excludeAttachedEscort: custodyPlan == "escort",
+                    leafPrefix: coreLeafPrefix);
                 AddRecovery(
                     leaves, scope, raw.Recovery, groundZone,
                     custodyPlan == "escort" ? group : null);
@@ -852,8 +885,9 @@ internal static class ArcRelayTacticsMaterializer
                     leaves, scope, group, bot, raw.Posture, raw.Sigs,
                     effective, phase, custodyPlan);
                 AddCarrierHunt(
-                    leaves, scope, group.CoreRule, group,
-                    excludeAttachedEscort: custodyPlan == "escort");
+                    leaves, coreScope, core, group,
+                    excludeAttachedEscort: custodyPlan == "escort",
+                    leafPrefix: coreLeafPrefix);
                 AddCustodyFight(
                     leaves, scope, custodyPlan, group, raw.Posture);
                 AddPostureFight(leaves, scope, raw.Posture, bot,
@@ -1285,22 +1319,25 @@ internal static class ArcRelayTacticsMaterializer
         private void AddCoreRule(
             List<Node> leaves,
             LeafScope scope,
-            string coreRule,
+            ArcRelayTacticCoreIntent core,
             ArcRelayTacticGroup group,
-            bool excludeAttachedEscort)
+            bool excludeAttachedEscort,
+            string leafPrefix = "")
         {
             string[] FreeToCollect(params string[] rest) =>
                 excludeAttachedEscort
                     ? [EmptyHanded(), NoFriendlyCarrier(group, scope), .. rest]
                     : [EmptyHanded(), .. rest];
-            if (coreRule == "grab")
+            if (core.Rule == "grab")
             {
-                leaves.Add(GroupLeaf(scope, "grab", () => new Node
+                leaves.Add(GroupLeaf(scope, $"{leafPrefix}grab", () => new Node
                 {
                     When = Expr.All(FreeToCollect(Condition(
                         new ConditionShape(
                             "self-nearest-visible-loose-core-distance",
-                            "at-most", GrabWalkingSteps),
+                            "at-most", GrabWalkingSteps,
+                            Well: core.Well,
+                            CoreBankValue: core.CoreBankValue),
                         "core-in-reach"))),
                     CapacityName = "pair-per-core",
                     Action = writer =>
@@ -1308,19 +1345,54 @@ internal static class ArcRelayTacticsMaterializer
                         writer.WriteStartObject("move");
                         writer.WriteString("to", "nearest-visible-loose-core");
                         writer.WriteNumber("withinWalkingSteps", GrabWalkingSteps);
+                        WriteCoreFilters(writer, core);
                         writer.WriteEndObject();
                     },
                 }));
             }
-            else if (coreRule == "hunt")
+            else if (core.Rule == "hunt")
             {
-                leaves.Add(GroupLeaf(scope, "hunt-core", () => new Node
+                leaves.Add(GroupLeaf(scope, $"{leafPrefix}hunt-core", () => new Node
                 {
                     When = Expr.All(FreeToCollect(Condition(
-                        new ConditionShape("known-loose-cores", "at-least", 1),
+                        new ConditionShape(
+                            "known-loose-cores", "at-least", 1,
+                            Well: core.Well,
+                            CoreBankValue: core.CoreBankValue),
                         "loose-core-known"))),
                     CapacityName = "pair-per-core",
-                    Action = MoveToDynamic("nearest-known-loose-core"),
+                    Action = writer =>
+                    {
+                        writer.WriteStartObject("move");
+                        writer.WriteString("to", "nearest-known-loose-core");
+                        WriteCoreFilters(writer, core);
+                        writer.WriteEndObject();
+                    },
+                }));
+            }
+            if (core.Preposition is ArcRelayTacticCorePreposition preposition)
+            {
+                // Roam while a Well's Core is active or its recharge is
+                // distant, then peel off shortly before the next birth. The
+                // public birth clock is deliberately false while that Well's
+                // Core remains outstanding, so this cannot camp an empty
+                // socket or compete with the higher-priority loose-Core leaf.
+                leaves.Add(GroupLeaf(scope, $"{leafPrefix}preposition-core", () => new Node
+                {
+                    When = Expr.All(FreeToCollect(Condition(
+                        new ConditionShape(
+                            "well-ticks-until-birth", "at-most",
+                            preposition.Ticks, Well: preposition.Well),
+                        $"{preposition.Well}-core-birth-soon"))),
+                    Action = writer =>
+                    {
+                        writer.WriteStartObject("move");
+                        writer.WriteStartObject("to");
+                        writer.WriteString("well", preposition.Well);
+                        writer.WriteEndObject();
+                        writer.WriteString("posture", "rear");
+                        writer.WriteEndObject();
+                    },
                 }));
             }
         }
@@ -1328,23 +1400,49 @@ internal static class ArcRelayTacticsMaterializer
         private void AddCarrierHunt(
             List<Node> leaves,
             LeafScope scope,
-            string coreRule,
+            ArcRelayTacticCoreIntent core,
             ArcRelayTacticGroup group,
-            bool excludeAttachedEscort)
+            bool excludeAttachedEscort,
+            string leafPrefix = "")
         {
-            if (coreRule != "hunt")
+            if (core.Rule != "hunt")
                 return;
             string[] conditions = excludeAttachedEscort
                 ? [EmptyHanded(), NoFriendlyCarrier(group, scope)]
                 : [EmptyHanded()];
-            leaves.Add(GroupLeaf(scope, "hunt-carrier", () => new Node
+            leaves.Add(GroupLeaf(scope, $"{leafPrefix}hunt-carrier", () => new Node
             {
                 When = Expr.All([.. conditions, Condition(
                     new ConditionShape(
-                        "visible-enemy-carriers", "at-least", 1),
+                        "visible-enemy-carriers", "at-least", 1,
+                        Well: core.Well,
+                        CoreBankValue: core.CoreBankValue),
                     "enemy-carrier-visible")]),
-                Action = Fight(["carrier", "nearest"], "advance", 8),
+                Action = Fight(
+                    ["carrier", "nearest"], "advance", 8,
+                    well: core.Well,
+                    coreBankValue: core.CoreBankValue),
             }));
+        }
+
+        private static void WriteCoreFilters(
+            Utf8JsonWriter writer,
+            ArcRelayTacticCoreIntent core)
+        {
+            if (core.Well is not null)
+                writer.WriteString("well", core.Well);
+            if (core.CoreBankValue is not null)
+                WriteCoreBankValue(writer, core.CoreBankValue);
+        }
+
+        private static void WriteCoreBankValue(
+            Utf8JsonWriter writer,
+            ArcRelayTacticCoreBankValue value)
+        {
+            writer.WriteStartObject("coreBankValue");
+            writer.WriteString("operator", value.Operator);
+            writer.WriteNumber("value", value.Value);
+            writer.WriteEndObject();
         }
 
         private void AddPostureFight(
@@ -2111,7 +2209,9 @@ internal static class ArcRelayTacticsMaterializer
             string[] targets,
             string style,
             int chaseLimit,
-            int? preferredRange = null) => writer =>
+            int? preferredRange = null,
+            string? well = null,
+            ArcRelayTacticCoreBankValue? coreBankValue = null) => writer =>
         {
             writer.WriteStartObject("fight");
             writer.WriteStartArray("targets");
@@ -2122,6 +2222,10 @@ internal static class ArcRelayTacticsMaterializer
             writer.WriteNumber("chaseLimit", chaseLimit);
             if (preferredRange is int range)
                 writer.WriteNumber("preferredRange", range);
+            if (well is not null)
+                writer.WriteString("well", well);
+            if (coreBankValue is not null)
+                WriteCoreBankValue(writer, coreBankValue);
             writer.WriteEndObject();
         };
 
@@ -2280,7 +2384,8 @@ internal static class ArcRelayTacticsMaterializer
         string[]? Roles = null,
         string[]? ZoneIds = null,
         int? Level = null,
-        string? Workshop = null)
+        string? Workshop = null,
+        ArcRelayTacticCoreBankValue? CoreBankValue = null)
     {
         public string Key => string.Join('|',
             Fact, Operator, Value, Role, ZoneId, Well, FreshnessTicks,
@@ -2288,7 +2393,9 @@ internal static class ArcRelayTacticsMaterializer
             Roles is null ? null : string.Join(',', Roles),
             ZoneIds is null ? null : string.Join(',', ZoneIds),
             Level,
-            Workshop);
+            Workshop,
+            CoreBankValue?.Operator,
+            CoreBankValue?.Value);
     }
 
     private sealed record ConditionDef(string Id, ConditionShape Shape)
@@ -2316,6 +2423,13 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteString("well", Shape.Well);
             if (Shape.Workshop is not null)
                 writer.WriteString("workshop", Shape.Workshop);
+            if (Shape.CoreBankValue is not null)
+            {
+                writer.WriteStartObject("coreBankValue");
+                writer.WriteString("operator", Shape.CoreBankValue.Operator);
+                writer.WriteNumber("value", Shape.CoreBankValue.Value);
+                writer.WriteEndObject();
+            }
             if (Shape.FreshnessTicks is int freshness)
                 writer.WriteNumber("freshnessTicks", freshness);
             if (Shape.WindowTicks is int window)

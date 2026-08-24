@@ -3,7 +3,7 @@ import { CountStepper, TickRow, ZoneSelect } from './conditionControls';
 import { caseClause } from './summary';
 import { WELL_OPTIONS, WORKSHOP_OPTIONS, ZONE_OPTIONS } from './places';
 import type {
-  CondKind, TacticCase, TacticConds, WellChoice, WorkshopChoice, WorkshopTeam,
+  CondKind, CoreBankValueOperator, TacticCase, TacticConds, WellChoice, WorkshopChoice, WorkshopTeam,
   ZoneRef,
 } from './tacticsDocument';
 
@@ -41,7 +41,7 @@ const ROW_LABELS: Partial<Record<CondKind, string>> = {
 const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
   { label: 'Our team', kinds: ['groupsSet', 'healed', 'veterancy'] },
   { label: 'Enemies', kinds: ['contact', 'enemiesAt', 'enemiesDown', 'cleared', 'notFighting'] },
-  { label: 'Cores', kinds: ['coreLoose', 'coreSoon', 'coreAcquired'] },
+  { label: 'Cores', kinds: ['coreLoose', 'coreSoon', 'coreAcquired', 'coreBanked'] },
   {
     label: 'Workshops',
     kinds: [
@@ -53,7 +53,7 @@ const ROW_GROUPS: { label: string; kinds: CondKind[] }[] = [
 
 export function ConditionRows({
   conds, kinds, accent, watchSymbol = '⚡', watchAdjective,
-  slots, watching, onChange, onDrawWatch, onStopWatch, onBranch,
+  slots, groups, watching, onChange, onDrawWatch, onStopWatch, onBranch,
 }: {
   conds: TacticConds;
   kinds: ConditionRowKind[];
@@ -63,6 +63,7 @@ export function ConditionRows({
   /** Names the box's colour in the hint ("pale", "orange"). */
   watchAdjective?: string;
   slots?: { slot: number; label: string }[];
+  groups?: { id: string; label: string }[];
   /** Which drawable row of THIS rows object is being drawn right now. */
   watching?: { row: 'enemiesAt' | 'cleared' | 'notFighting'; zoneIndex: number } | null;
   onChange: (conds: TacticConds) => void;
@@ -166,8 +167,7 @@ export function ConditionRows({
       }])}>＋ Add another area</button>}
   </div>;
 
-  /** The Workshop picker every Workshop row shares. Workshop ids are GLOBAL
-   * map identities — north stays north for both seats, unlike drawn ground. */
+  /** The seat-relative Workshop picker every Workshop row shares. */
   const workshopSelect = (
     value: WorkshopChoice,
     onPick: (workshop: WorkshopChoice) => void,
@@ -233,17 +233,44 @@ export function ConditionRows({
     if (kind === 'groupsSet') {
       const on = Boolean(conds.groupsSet);
       const allowedLate = conds.groupsSet === true ? 0 : conds.groupsSet?.allowedLate ?? 0;
+      const selected = conds.groupsSet === true ? undefined : conds.groupsSet?.groups;
       rows.push(row('groupsSet', ROW_LABELS.groupsSet!, on && (
-        <select className="field !min-h-7 !w-auto !py-0 t-micro"
-          value={allowedLate}
-          onClick={(event) => event.stopPropagation()}
-          onChange={(event) => set((next) => {
-            next.groupsSet = { allowedLate: Number(event.target.value) as 0 | 1 | 2 };
-          })}>
-          <option value={0}>Everyone</option>
-          <option value={1}>All but one</option>
-          <option value={2}>All but two</option>
-        </select>
+        <div className="flex flex-wrap items-center justify-end gap-1" onClick={(event) => event.stopPropagation()}>
+          {(groups?.length ?? 0) > 1 && <>
+            <button type="button" className={`btn !min-h-6 !px-1.5 !text-[10px] ${!selected ? 'border-arena-accent text-arena-text' : ''}`}
+              onClick={() => set((next) => {
+                next.groupsSet = { allowedLate };
+              })}>All Groups</button>
+            {groups!.map((group) => {
+              const picked = selected?.includes(group.id) ?? false;
+              return <button key={group.id} type="button"
+                className={`btn !min-h-6 !px-1.5 !text-[10px] ${picked ? 'border-arena-accent text-arena-text' : ''}`}
+                onClick={() => set((next) => {
+                  const current = next.groupsSet === true
+                    ? [] : [...(next.groupsSet?.groups ?? [])];
+                  const changed = current.includes(group.id)
+                    ? current.filter((id) => id !== group.id)
+                    : [...current, group.id];
+                  next.groupsSet = {
+                    allowedLate,
+                    groups: changed.length ? changed : [group.id],
+                  };
+                })}>{group.label}</button>;
+            })}
+          </>}
+          <select className="field !min-h-7 !w-auto !py-0 t-micro"
+            value={allowedLate}
+            onChange={(event) => set((next) => {
+              next.groupsSet = {
+                allowedLate: Number(event.target.value) as 0 | 1 | 2,
+                ...(selected?.length ? { groups: selected } : {}),
+              };
+            })}>
+            <option value={0}>Everyone selected</option>
+            <option value={1}>Allow one late</option>
+            <option value={2}>Allow two late</option>
+          </select>
+        </div>
       ), on));
       return;
     }
@@ -323,6 +350,53 @@ export function ConditionRows({
           <option value="any">from any Well</option>
           {WELL_OPTIONS.map((well) => <option key={well.id} value={well.id}>from {well.label}</option>)}
         </select>
+      ), on));
+      return;
+    }
+    if (kind === 'coreBanked') {
+      const on = Boolean(conds.coreBanked);
+      const scoped = typeof conds.coreBanked === 'object' ? conds.coreBanked : null;
+      const bankValue = scoped?.coreBankValue;
+      rows.push(row('coreBanked', ROW_LABELS.coreBanked!, on && (
+        <div className="flex flex-wrap items-center justify-end gap-1"
+          onClick={(event) => event.stopPropagation()}>
+          <select className="field !min-h-7 !w-auto !py-0 t-micro"
+            value={scoped?.well ?? 'any'}
+            onChange={(event) => set((next) => {
+              next.coreBanked = event.target.value === 'any'
+                ? true
+                : {
+                  well: event.target.value as WellChoice,
+                  ...(bankValue ? { coreBankValue: bankValue } : {}),
+                };
+            })}>
+            <option value="any">from any Well</option>
+            {WELL_OPTIONS.map((well) =>
+              <option key={well.id} value={well.id}>from {well.label}</option>)}
+          </select>
+          {scoped && <select className="field !min-h-7 !w-auto !py-0 t-micro"
+            value={bankValue ? `${bankValue.operator}:${bankValue.value}` : 'any'}
+            onChange={(event) => set((next) => {
+              if (typeof next.coreBanked !== 'object') return;
+              if (event.target.value === 'any') {
+                delete next.coreBanked.coreBankValue;
+                return;
+              }
+              const [operator, value] = event.target.value.split(':');
+              next.coreBanked.coreBankValue = {
+                operator: operator as CoreBankValueOperator,
+                value: Number(value) as 1 | 2 | 3 | 4,
+              };
+            })}>
+            <option value="any">any score</option>
+            {[1, 2, 3, 4].map((value) =>
+              <option key={value} value={`equals:${value}`}>worth exactly {value}</option>)}
+            {[2, 3, 4].map((value) =>
+              <option key={`at-least-${value}`} value={`at-least:${value}`}>worth at least {value}</option>)}
+            {[1, 2, 3].map((value) =>
+              <option key={`at-most-${value}`} value={`at-most:${value}`}>worth at most {value}</option>)}
+          </select>}
+        </div>
       ), on));
       return;
     }
@@ -531,7 +605,7 @@ export function ConditionRows({
 export function CaseListEditor<T extends TacticCase>({
   cases, maximum = 3, accent, watchSymbol, watchAdjective,
   requiredKinds, triggerKinds, unlessKinds, makeCase, onChange,
-  caseFooter, slots, watching, onDrawWatch, onStopWatch,
+  caseFooter, slots, groups, watching, onDrawWatch, onStopWatch,
 }: {
   cases: T[];
   maximum?: number;
@@ -546,6 +620,7 @@ export function CaseListEditor<T extends TacticCase>({
   onChange: (cases: T[]) => void;
   caseFooter?: (value: T, update: (apply: (next: T) => void) => void, index: number) => React.ReactNode;
   slots?: { slot: number; label: string }[];
+  groups?: { id: string; label: string }[];
   /** Which case/side/row is being drawn on the map, if any. */
   watching?: { caseIndex: number; side: 'required' | 'triggers' | 'unless'; row: 'enemiesAt' | 'cleared' | 'notFighting'; zoneIndex: number } | null;
   onDrawWatch?: (caseIndex: number, side: 'required' | 'triggers' | 'unless', row: 'enemiesAt' | 'cleared' | 'notFighting', zoneIndex: number) => void;
@@ -651,6 +726,7 @@ export function CaseListEditor<T extends TacticCase>({
               kinds={positiveKinds}
               accent={accent}
               slots={slots}
+              groups={groups}
               watchSymbol={watchSymbol}
               watchAdjective={watchAdjective}
               watching={watching && watching.caseIndex === index
@@ -677,6 +753,7 @@ export function CaseListEditor<T extends TacticCase>({
                   kinds={unlessKinds!}
                   accent={accent}
                   slots={slots}
+                  groups={groups}
                   watchSymbol={watchSymbol}
                   watchAdjective={watchAdjective}
                   watching={watching && watching.caseIndex === index

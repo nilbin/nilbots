@@ -154,9 +154,13 @@ export function condClauses(conds: TacticConds | undefined): string[] {
   const out: string[] = [];
   if (conds.groupsSet) {
     const slack = conds.groupsSet === true ? 0 : conds.groupsSet.allowedLate;
-    out.push(slack === 0 ? 'the full formation is ready'
-      : slack === 1 ? 'the formation is ready, allowing one late bot'
-        : 'the formation is ready, allowing two late bots');
+    const selected = conds.groupsSet === true ? undefined : conds.groupsSet.groups;
+    const subject = selected?.length
+      ? `the ${selected.join(' + ')} formation${selected.length === 1 ? ' is' : 's are'} ready`
+      : 'the full formation is ready';
+    out.push(slack === 0 ? subject
+      : slack === 1 ? `${subject}, allowing one late bot`
+        : `${subject}, allowing two late bots`);
   }
   if (conds.held) out.push(`${conds.held.ticks} ticks have passed here`);
   if (conds.healed) out.push(`everyone is healed to ${conds.healed.percent}%`);
@@ -212,7 +216,20 @@ export function condClauses(conds: TacticConds | undefined): string[] {
       ? `${possessive(well.label)} Core is taken this phase`
       : 'a Core is taken this phase');
   }
-  if (conds.coreBanked) out.push('a Core is banked');
+  if (conds.coreBanked) {
+    if (typeof conds.coreBanked === 'object') {
+      const banked = conds.coreBanked;
+      const well = WELL_OPTIONS.find((value) => value.id === banked.well);
+      const score = banked.coreBankValue;
+      const scorePhrase = !score ? ''
+        : score.operator === 'equals' ? ` worth ${score.value}`
+          : score.operator === 'at-least' ? ` worth at least ${score.value}`
+            : ` worth at most ${score.value}`;
+      out.push(`${possessive(well?.label ?? 'the selected Well')} Core${scorePhrase} is banked`);
+    } else {
+      out.push('a Core is banked');
+    }
+  }
   if (conds.coreLost) out.push('the Core is lost');
   if (conds.reached) out.push('the destination is reached');
   if (conds.observed) out.push('the ground has been watched long enough');
@@ -310,7 +327,7 @@ export function subjectFor(tactic: Tactic, group: TacticGroup): string {
 }
 
 /** A Group of one doing a job that belongs to a BODY rather than to ground
- * reads better under the bot's own name: "Gantry trains at the north
+ * reads better under the bot's own name: "Gantry trains at their-side
  * Workshop" beats "One bot trains…". Everything else keeps the counted
  * subject, because a Group is what the player actually assigned. */
 function namedLead(

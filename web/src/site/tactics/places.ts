@@ -34,8 +34,8 @@ export const WELL_OPTIONS: { id: WellChoice; label: string }[] = [
   { id: 'enemy', label: 'their Well' },
 ];
 
-/** Seat-relative strategic choices come first. North/south remain available
- * when the physical room itself matters; either lets the executor choose. */
+/** Tactics are mirrored with the entrant, so every authored Workshop choice
+ * is seat-relative; either lets the executor choose at match time. */
 export const WORKSHOP_OPTIONS: { id: WorkshopChoice; label: string; blurb: string }[] = [
   {
     id: 'own',
@@ -48,16 +48,6 @@ export const WORKSHOP_OPTIONS: { id: WorkshopChoice; label: string; blurb: strin
     blurb: 'The Workshop nearest the enemy Well; this choice mirrors with your seat.',
   },
   {
-    id: 'north',
-    label: 'North Workshop',
-    blurb: 'The northern training room, the same room for both sides.',
-  },
-  {
-    id: 'south',
-    label: 'South Workshop',
-    blurb: 'The southern training room, the same room for both sides.',
-  },
-  {
     id: 'either',
     label: 'Either',
     blurb: 'Keep the channel you already hold, else take the nearest open room.',
@@ -67,8 +57,6 @@ export const WORKSHOP_OPTIONS: { id: WorkshopChoice; label: string; blurb: strin
 export function workshopLabel(workshop: WorkshopChoice | undefined): string {
   if (workshop === 'own') return 'your-side Workshop';
   if (workshop === 'enemy') return 'their-side Workshop';
-  if (workshop === 'north') return 'the north Workshop';
-  if (workshop === 'south') return 'the south Workshop';
   return 'either Workshop';
 }
 

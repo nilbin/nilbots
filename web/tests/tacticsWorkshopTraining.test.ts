@@ -41,7 +41,7 @@ function trainingTactic(document: TacticsDocument): Tactic {
   ];
   return {
     id: 'hold-and-train',
-    name: 'Hold Mid, train north',
+    name: 'Hold Mid, train their side',
     recipe: 'hold-area',
     start: { mode: 'always' },
     delivery: { plan: 'none' },
@@ -54,7 +54,7 @@ function trainingTactic(document: TacticsDocument): Tactic {
     ],
     phases: [{
       id: 'hold-and-train',
-      name: 'Hold Mid, train north',
+      name: 'Hold Mid, train their side',
       jobs: {
         holders: {
           kind: 'posts', posture: 'hold', recovery: 'heal-tile',
@@ -64,7 +64,7 @@ function trainingTactic(document: TacticsDocument): Tactic {
         },
         trainee: {
           kind: 'train', posture: 'wait', travel: 'observe',
-          recovery: 'fight-on', workshop: 'north',
+          recovery: 'fight-on', workshop: 'enemy',
         },
       },
     }],
@@ -92,7 +92,7 @@ test('a one-bot train job validates, counts as ground, and round-trips', () => {
   assert.equal(jobComplete(tactic, 0, 'trainee'), true);
   const reopened = JSON.parse(stringifyDocument(document)) as TacticsDocument;
   assert.equal(
-    reopened.tactics[0].phases[0].jobs.trainee.workshop, 'north');
+    reopened.tactics[0].phases[0].jobs.trainee.workshop, 'enemy');
 });
 
 test('training refuses a crowd, a fighting posture, marks and drawn ground', () => {
@@ -134,12 +134,12 @@ test('a train job needs its Workshop, and no other job may name one', () => {
   assert.equal(jobHasGeometry(missing.phases[0].jobs.trainee), false);
 
   const wrongKind = trainingTactic(makeBroadloomDocument(catalog));
-  wrongKind.phases[0].jobs.holders.workshop = 'south';
+  wrongKind.phases[0].jobs.holders.workshop = 'enemy';
   assert.ok(errorsFor(wrongKind).some((message) =>
     /Only a Train at Workshop job names a Workshop/.test(message)));
 
   const unknown = trainingTactic(makeBroadloomDocument(catalog));
-  unknown.phases[0].jobs.trainee.workshop = 'east' as 'north';
+  unknown.phases[0].jobs.trainee.workshop = 'east' as 'own';
   assert.ok(errorsFor(unknown).some((message) =>
     /is not a Workshop/.test(message)));
 });
@@ -185,7 +185,7 @@ test('an illegal Workshop row for its context is named, not silently dropped', (
   const tactic = trainingTactic(makeBroadloomDocument(catalog));
   tactic.start = {
     mode: 'when',
-    cases: [{ required: { workshopDone: { workshop: 'north', count: 2 } } }],
+    cases: [{ required: { workshopDone: { workshop: 'enemy', count: 2 } } }],
   };
   assert.ok(errorsFor(tactic).some((message) =>
     /'workshopDone' is not a condition this step takes/.test(message)));
@@ -240,7 +240,7 @@ test('Workshop row values are bounded exactly as the server bounds them', () => 
     return errorsFor(tactic);
   };
   assert.deepEqual(
-    withRows({ workshopDone: { workshop: 'north', count: 3 } }), []);
+    withRows({ workshopDone: { workshop: 'enemy', count: 3 } }), []);
   assert.deepEqual(
     withRows({ veterancy: { slots: [7], count: 1, level: 5 } }), []);
   assert.deepEqual(
@@ -249,23 +249,23 @@ test('Workshop row values are bounded exactly as the server bounds them', () => 
     withRows({ workshopReady: { workshop: 'own' } }), []);
   assert.deepEqual(
     withRows({ workshopContested: { workshop: 'enemy' } }), []);
-  assert.ok(withRows({ workshopDone: { workshop: 'north', count: 9 } })
+  assert.ok(withRows({ workshopDone: { workshop: 'enemy', count: 9 } })
     .some((message) => /from one to eight/.test(message)));
   assert.ok(withRows({ veterancy: { slots: [8], count: 1, level: 4 } })
     .some((message) => /distinct squad bots/.test(message)));
   assert.ok(withRows({ veterancy: { slots: [0], count: 1, level: 1 } })
     .some((message) => /from 2 to 5/.test(message)));
   assert.ok(withRows({
-    workshopTraining: { workshop: 'north', team: 'neutral' as 'any' },
+    workshopTraining: { workshop: 'enemy', team: 'neutral' as 'any' },
   }).some((message) => /is not a side/.test(message)));
-  assert.ok(withRows({ workshopReady: { workshop: 'middle' as 'north' } })
-    .some((message) => /needs your-side, their-side, north, south, or either/.test(message)));
+  assert.ok(withRows({ workshopReady: { workshop: 'middle' as 'own' } })
+    .some((message) => /needs your-side, their-side, or either/.test(message)));
 });
 
 test('Workshop rows count as active conditions on both sides of a case', () => {
-  assert.equal(activeCondCount({ workshopContested: { workshop: 'north' } }), 1);
+  assert.equal(activeCondCount({ workshopContested: { workshop: 'enemy' } }), 1);
   assert.equal(activeCaseCount({
-    required: { workshopReady: { workshop: 'north' } },
+    required: { workshopReady: { workshop: 'enemy' } },
     triggers: { veterancy: { slots: [1], count: 1, level: 3 } },
   }), 2);
   // A case whose only row is a Workshop row is a real case, not an empty one.
@@ -282,7 +282,7 @@ test('the readback names the trainee, the room, and every Workshop row', () => {
   const tactic = trainingTactic(document);
   document.squad[2].name = 'Gantry';
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
-  assert.match(sentence, /Gantry trains at the north Workshop/);
+  assert.match(sentence, /Gantry trains at their-side Workshop/);
 
   const rows = trainingTactic(document);
   rows.phases.push({
@@ -293,17 +293,17 @@ test('the readback names the trainee, the room, and every Workshop row', () => {
   });
   rows.phases[0].continue = [{
     required: {
-      workshopTraining: { workshop: 'north', team: 'enemy' },
-      workshopDone: { workshop: 'north', count: 2 },
+      workshopTraining: { workshop: 'enemy', team: 'enemy' },
+      workshopDone: { workshop: 'enemy', count: 2 },
       veterancy: { slots: [2], count: 1, level: 4 },
     },
-    unless: { workshopContested: { workshop: 'north' } },
+    unless: { workshopContested: { workshop: 'enemy' } },
   }];
   const answered = summarize(rows, (slot) => document.squad[slot]?.name ?? null);
-  assert.match(answered, /an enemy is training at the north Workshop/);
-  assert.match(answered, /we have finished two trainings at the north Workshop this phase/);
+  assert.match(answered, /an enemy is training at their-side Workshop/);
+  assert.match(answered, /we have finished two trainings at their-side Workshop this phase/);
   assert.match(answered, /1 of 1 selected bot reaches level 4/);
-  assert.match(answered, /unless enemies are standing in the north Workshop/);
+  assert.match(answered, /unless enemies are standing in their-side Workshop/);
 });
 
 test('the practice readback says what the trainee is doing and why it stalled', () => {
@@ -375,8 +375,8 @@ test('the practice readback says what the trainee is doing and why it stalled', 
 });
 
 test('the editor previews a trainee on the catalog’s own training tile', () => {
-  assert.deepEqual(workshopTrainingTile(catalog, 'north'), [18, 4]);
-  assert.deepEqual(workshopTrainingTile(catalog, 'south'), [18, 22]);
+  assert.deepEqual(workshopTrainingTile(catalog, 'enemy'), [18, 4]);
+  assert.deepEqual(workshopTrainingTile(catalog, 'own'), [18, 22]);
   // 'either' has to pick one for a preview; the executor's own choice is a
   // match-time fact the editor cannot know.
   assert.deepEqual(workshopTrainingTile(catalog, 'either'), [18, 4]);
@@ -468,6 +468,6 @@ test('the shipped Broadloom sheets the server compiles also open in the editor',
     .flatMap((tactic) => tactic.phases)
     .flatMap((phase) => Object.values(phase.jobs))
     .find((job) => job.kind === 'train');
-  assert.equal(trainee?.workshop, 'north');
+  assert.equal(trainee?.workshop, 'enemy');
   assert.equal(trainee?.posture, 'wait');
 });

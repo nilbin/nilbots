@@ -59,8 +59,8 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         };
 
     /// <summary>Facts that read one Workshop's public state and therefore
-    /// carry the 'workshop' selector
-    /// (north/south/own/enemy/either).</summary>
+    /// carry the seat-relative 'workshop' selector
+    /// (own/enemy/either).</summary>
     private static readonly HashSet<string> WorkshopFacts =
         new(StringComparer.Ordinal)
         {
@@ -141,6 +141,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             "friendly-core-pickups", "friendly-core-acquisitions",
             "friendly-core-banks", "friendly-core-drops",
             "friendly-core-losses", "friendly-core-resolutions",
+        };
+
+    /// <summary>Current-Core selectors whose candidates can be narrowed by
+    /// source Well and bank value without exposing any hidden state.</summary>
+    private static readonly HashSet<string> CoreFilterFacts =
+        new(StringComparer.Ordinal)
+        {
+            "self-nearest-visible-loose-core-distance",
+            "known-loose-cores", "visible-loose-cores",
+            "visible-enemy-carriers",
         };
 
     private static readonly HashSet<string> WellFacts =
@@ -354,11 +364,10 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             }
             if (hasWorkshop
                 && StringValue(workshopSelector, $"{at}.workshop")
-                    is not ("north" or "south" or "own" or "enemy"
-                        or "either"))
+                    is not ("own" or "enemy" or "either"))
             {
                 throw Error($"{at}.workshop",
-                    "workshop must be north/south/own/enemy/either.");
+                    "workshop must be own/enemy/either.");
             }
             OneOf(property.Value, "operator", at,
                 "at-least", "at-most", "equals", "less-than", "greater-than");
@@ -544,18 +553,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             {
                 if (!hasWell || well.ValueKind != JsonValueKind.String
                     || well.GetString() is not
-                        ("north" or "centre" or "south" or "own" or "enemy"))
+                        ("own" or "centre" or "enemy"))
                 {
                     throw Error(at,
-                        $"'{fact}' needs north/centre/south/own/enemy well.");
+                        $"'{fact}' needs own/centre/enemy well.");
                 }
             }
             else if ((CoreEvidenceFacts.Contains(fact)
+                    || CoreFilterFacts.Contains(fact)
                     || fact == "friendly-carriers-in-roles") && hasWell)
             {
                 if (well.ValueKind != JsonValueKind.String
                     || well.GetString() is not
-                        ("north" or "centre" or "south" or "own" or "enemy"))
+                        ("own" or "centre" or "enemy"))
                     throw Error(at, $"'{fact}' has an invalid Well filter.");
             }
             else if (hasWell)
@@ -590,6 +600,9 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             if (hasCoreBankValue)
             {
                 if (fact is not ("self-nearest-visible-loose-core-distance"
+                        or "known-loose-cores"
+                        or "visible-loose-cores"
+                        or "visible-enemy-carriers"
                         or "friendly-carriers-in-roles"
                         or "friendly-core-pickups"
                         or "friendly-core-acquisitions"
@@ -1345,7 +1358,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                             != "nearest-friendly-core-carrier"
                         || followedWell.ValueKind != JsonValueKind.String
                         || followedWell.GetString() is not
-                            ("north" or "centre" or "south" or "own" or "enemy"))
+                            ("own" or "centre" or "enemy"))
                         throw Error($"{path}.move.follow.well",
                             "choose a Well for nearest-friendly-core-carrier.");
                 }
@@ -1377,21 +1390,25 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         if (value.TryGetProperty("coreBankValue", out JsonElement targetValue))
         {
             if (dynamicTarget is not ("nearest-visible-loose-core"
-                    or "highest-bank-value-visible-loose-core"))
+                    or "highest-bank-value-visible-loose-core"
+                    or "nearest-known-loose-core"
+                    or "highest-bank-value-known-loose-core"))
                 throw Error($"{path}.move.coreBankValue",
-                    "Core value filters are legal only for visible-Core targets.");
+                    "Core value filters are legal only for loose-Core targets.");
             ValidateCoreBankValue(targetValue, $"{path}.move.coreBankValue");
         }
         if (value.TryGetProperty("well", out JsonElement targetWell))
         {
             if (dynamicTarget is not ("nearest-visible-loose-core"
-                    or "highest-bank-value-visible-loose-core")
+                    or "highest-bank-value-visible-loose-core"
+                    or "nearest-known-loose-core"
+                    or "highest-bank-value-known-loose-core")
                 || targetWell.ValueKind != JsonValueKind.String
                 || targetWell.GetString() is not
-                    ("north" or "centre" or "south" or "own" or "enemy"))
+                    ("own" or "centre" or "enemy"))
             {
                 throw Error($"{path}.move.well",
-                    "choose a source Well for a visible-Core target.");
+                    "choose a source Well for a loose-Core target.");
             }
         }
         if (!value.TryGetProperty("face", out JsonElement face))
@@ -1463,17 +1480,16 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string id = StringValue(value.GetProperty(found[0]), $"{path}.{found[0]}");
         if (found[0] == "well")
         {
-            if (id is not ("north" or "centre" or "south" or "own" or "enemy"))
-                throw Error(path, "well must be north/centre/south/own/enemy.");
+            if (id is not ("own" or "centre" or "enemy"))
+                throw Error(path, "well must be own/centre/enemy.");
             return;
         }
         if (found[0] == "workshop")
         {
-            if (id is not ("north" or "south" or "own" or "enemy"
-                    or "either"))
+            if (id is not ("own" or "enemy" or "either"))
             {
                 throw Error(path,
-                    "workshop must be north/south/own/enemy/either.");
+                    "workshop must be own/enemy/either.");
             }
             return;
         }
@@ -1491,7 +1507,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         ConsumerLedger consumers)
     {
         Object(value, $"{path}.fight", ["targets", "style", "chaseLimit"],
-            ["zone", "preferredRange"]);
+            ["zone", "preferredRange", "well", "coreBankValue"]);
         string[] targets = StringArray(
             value.GetProperty("targets"), $"{path}.fight.targets", 1, 5);
         foreach (string target in targets)
@@ -1504,6 +1520,28 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         Range(value, "chaseLimit", $"{path}.fight", 0, 12);
         if (value.TryGetProperty("preferredRange", out _))
             Range(value, "preferredRange", $"{path}.fight", 1, 12);
+        bool filtersCarrier = targets.Contains("carrier", StringComparer.Ordinal);
+        if (value.TryGetProperty("well", out JsonElement well))
+        {
+            if (!filtersCarrier || well.ValueKind != JsonValueKind.String
+                || well.GetString() is not
+                    ("own" or "centre" or "enemy"))
+            {
+                throw Error($"{path}.fight.well",
+                    "a source Well filter needs the carrier target.");
+            }
+        }
+        if (value.TryGetProperty(
+                "coreBankValue", out JsonElement coreBankValue))
+        {
+            if (!filtersCarrier)
+            {
+                throw Error($"{path}.fight.coreBankValue",
+                    "a Core value filter needs the carrier target.");
+            }
+            ValidateCoreBankValue(
+                coreBankValue, $"{path}.fight.coreBankValue");
+        }
         if (value.TryGetProperty("zone", out JsonElement zone))
         {
             string zoneId = StringValue(zone, $"{path}.fight.zone");

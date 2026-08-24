@@ -48,11 +48,11 @@ public static partial class ArcRelayTacticalPlaybookCompiler
 
     private static readonly HashSet<string> TacticWorkshopIds =
         new(StringComparer.Ordinal)
-        { "north", "south", "own", "enemy", "either" };
+        { "own", "enemy", "either" };
 
     private static readonly HashSet<string> TacticWells =
         new(StringComparer.Ordinal)
-        { "north", "centre", "south", "own", "enemy" };
+        { "centre", "own", "enemy" };
 
     private static readonly HashSet<string> TacticDurations =
         new(StringComparer.Ordinal) { "none", "brief", "standard", "long" };
@@ -176,10 +176,48 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
         bool removedTargets = RemoveLegacyTransitionTargets(document);
         bool normalizedSignatures = NormalizeSignaturePlans(document);
-        if (!migrateV1 && !removedTargets && !normalizedSignatures)
+        bool normalizedPlaces = NormalizeSeatRelativeSelectors(document);
+        if (!migrateV1 && !removedTargets && !normalizedSignatures
+            && !normalizedPlaces)
             return tacticsSource;
         return Encoding.UTF8.GetBytes(document.ToJsonString(
             new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    /// <summary>
+    /// Tactics are authored once from the west-seat view and mirrored with
+    /// the entrant. The short-lived global north/south selectors therefore
+    /// violated the rest of the document's coordinate model. Preserve old
+    /// drafts by translating their west-view meaning to the seat-relative
+    /// vocabulary before validation and persistence: north is the enemy
+    /// side, south is the author's own side. Engine events and replay ids
+    /// remain globally north/south; only player-authored selectors migrate.
+    /// </summary>
+    private static bool NormalizeSeatRelativeSelectors(JsonNode? node)
+    {
+        bool changed = false;
+        if (node is JsonObject value)
+        {
+            foreach ((string key, JsonNode? child) in value.ToArray())
+            {
+                if (key is ("well" or "workshop")
+                    && child is JsonValue scalar
+                    && scalar.TryGetValue<string>(out string? selector)
+                    && selector is ("north" or "south"))
+                {
+                    value[key] = selector == "north" ? "enemy" : "own";
+                    changed = true;
+                    continue;
+                }
+                changed |= NormalizeSeatRelativeSelectors(child);
+            }
+        }
+        else if (node is JsonArray array)
+        {
+            foreach (JsonNode? child in array)
+                changed |= NormalizeSeatRelativeSelectors(child);
+        }
+        return changed;
     }
 
     /// <summary>
@@ -834,13 +872,27 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                     "'reached' needs a group that converges or advances "
                     + "somewhere in this phase.");
             }
-            if (rows.GroupsSet is not null && phase.Jobs.Keys.Any(groupId =>
-                    !(ArcRelayTacticsMaterializer.EffectiveJob(
-                        phases, phaseIndex, groupId)?.HasGeometry ?? false)))
+            if (rows.GroupsSet is ArcRelayTacticReadiness readiness)
             {
-                throw Error(path,
-                    "'groupsSet' needs every group to have drawn "
-                    + "or carried-forward geometry in this phase.");
+                IReadOnlyList<string> selected = readiness.Groups
+                    ?? phase.Jobs.Keys.ToArray();
+                string? unknown = selected.FirstOrDefault(groupId =>
+                    !phase.Jobs.ContainsKey(groupId));
+                if (unknown is not null)
+                {
+                    throw Error(path,
+                        $"'groupsSet' names unknown group '{unknown}'.");
+                }
+                if (selected.Any(groupId =>
+                        !(ArcRelayTacticsMaterializer.EffectiveJob(
+                            phases, phaseIndex, groupId)?.HasGeometry ?? false)))
+                {
+                    throw Error(path,
+                        (readiness.Groups is null
+                            ? "'groupsSet' needs every group to have drawn "
+                            : "'groupsSet' needs every selected group to have drawn ")
+                        + "or carried-forward geometry in this phase.");
+                }
             }
             if (rows.Observed && !phases.Any(candidate =>
                     candidate.Jobs.Values.Any(job => job.HasGeometry)))
@@ -894,7 +946,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
     {
         string[] geometryKeys = ["posts", "rect", "path", "point"];
         Object(value, path, ["kind", "posture", "recovery"],
-            [.. geometryKeys, "via", "sigs", "travel", "workshop"]);
+            [.. geometryKeys, "via", "sigs", "travel", "workshop", "core"]);
         string kind = RequiredString(value, "kind", path);
         if (!TacticJobKinds.Contains(kind))
             throw Error($"{path}.kind", $"unknown job kind '{kind}'.");
@@ -907,7 +959,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             workshop = StringValue(workshopValue, $"{path}.workshop");
             if (!TacticWorkshopIds.Contains(workshop))
                 throw Error($"{path}.workshop",
-                    "workshop must be north/south/own/enemy/either.");
+                    "workshop must be own/enemy/either.");
         }
         if (kind == "train")
         {
@@ -953,6 +1005,85 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         string recovery = RequiredString(value, "recovery", path);
         if (!TacticRecoveries.Contains(recovery))
             throw Error($"{path}.recovery", $"unknown recovery '{recovery}'.");
+
+        ArcRelayTacticCoreIntent? core = null;
+        if (value.TryGetProperty("core", out JsonElement coreValue))
+        {
+            string coreAt = $"{path}.core";
+            Object(coreValue, coreAt, ["rule"],
+                ["slots", "well", "coreBankValue", "preposition"]);
+            string rule = OneOf(coreValue, "rule", coreAt,
+                "ignore", "grab", "hunt");
+            IReadOnlyList<int>? coreSlots = null;
+            if (coreValue.TryGetProperty("slots", out JsonElement slotsValue))
+            {
+                var selected = new List<int>();
+                foreach (JsonElement slotValue in BoundedArray(
+                    slotsValue, $"{coreAt}.slots", 1, group.Slots.Count))
+                {
+                    if (slotValue.ValueKind != JsonValueKind.Number
+                        || !slotValue.TryGetInt32(out int slot)
+                        || !group.Slots.Contains(slot)
+                        || selected.Contains(slot))
+                    {
+                        throw Error($"{coreAt}.slots",
+                            "selected Core bots must be distinct members of this Group.");
+                    }
+                    selected.Add(slot);
+                }
+                // All members is the canonical unscoped spelling.
+                if (selected.Count < group.Slots.Count)
+                    coreSlots = selected;
+            }
+            string? well = null;
+            if (coreValue.TryGetProperty("well", out JsonElement wellValue))
+            {
+                well = StringValue(wellValue, $"{coreAt}.well");
+                if (!TacticWells.Contains(well))
+                {
+                    throw Error($"{coreAt}.well",
+                        "well must be own/centre/enemy.");
+                }
+            }
+            ArcRelayTacticCoreBankValue? bankValue = null;
+            if (coreValue.TryGetProperty(
+                    "coreBankValue", out JsonElement bankValueValue))
+            {
+                ValidateCoreBankValue(bankValueValue,
+                    $"{coreAt}.coreBankValue");
+                bankValue = new ArcRelayTacticCoreBankValue(
+                    RequiredString(bankValueValue, "operator",
+                        $"{coreAt}.coreBankValue"),
+                    RequiredInt(bankValueValue, "value",
+                        $"{coreAt}.coreBankValue"));
+            }
+            ArcRelayTacticCorePreposition? preposition = null;
+            if (coreValue.TryGetProperty(
+                    "preposition", out JsonElement prepositionValue))
+            {
+                string prepositionAt = $"{coreAt}.preposition";
+                Object(prepositionValue, prepositionAt, ["well", "ticks"]);
+                string prepositionWell = RequiredString(
+                    prepositionValue, "well", prepositionAt);
+                if (!TacticWells.Contains(prepositionWell))
+                {
+                    throw Error($"{prepositionAt}.well",
+                        "well must be own/centre/enemy.");
+                }
+                preposition = new ArcRelayTacticCorePreposition(
+                    prepositionWell,
+                    Range(prepositionValue, "ticks", prepositionAt, 1, 120));
+            }
+            if (rule == "ignore"
+                && (well is not null || bankValue is not null
+                    || preposition is not null))
+            {
+                throw Error(coreAt,
+                    "an ignore override does not take filters or pre-positioning.");
+            }
+            core = new ArcRelayTacticCoreIntent(
+                rule, well, bankValue, preposition, coreSlots);
+        }
 
         string? expectedGeometry = kind switch
         {
@@ -1112,6 +1243,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             via, sigs)
         {
             Workshop = workshop,
+            Core = core,
         };
     }
 
@@ -1300,11 +1432,28 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             else
             {
                 string at = $"{path}.groupsSet";
-                Object(groupsSetValue, at, ["allowedLate"]);
+                Object(groupsSetValue, at, ["allowedLate"], ["groups"]);
                 allowedLate = Range(
                     groupsSetValue, "allowedLate", at, 0, 2);
+                IReadOnlyList<string>? groups = null;
+                if (groupsSetValue.TryGetProperty(
+                        "groups", out JsonElement groupsValue))
+                {
+                    groups = BoundedArray(groupsValue, $"{at}.groups", 1, 3)
+                        .Select((entry, index) => StringValue(
+                            entry, $"{at}.groups[{index}]"))
+                        .ToArray();
+                    if (groups.Distinct(StringComparer.Ordinal).Count()
+                        != groups.Count)
+                    {
+                        throw Error($"{at}.groups",
+                            "group ids must be unique.");
+                    }
+                }
+                groupsSet = new ArcRelayTacticReadiness(allowedLate, groups);
             }
-            groupsSet = new ArcRelayTacticReadiness(allowedLate);
+            if (groupsSetValue.ValueKind == JsonValueKind.True)
+                groupsSet = new ArcRelayTacticReadiness(allowedLate, null);
         }
         int? heldTicks = null;
         if (value.TryGetProperty("held", out JsonElement heldValue))
@@ -1374,7 +1523,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(coreLoose, at, ["well"]);
             coreLooseWell = RequiredString(coreLoose, "well", at);
             if (!TacticWells.Contains(coreLooseWell))
-                throw Error(at, "well must be north/centre/south/own/enemy.");
+                throw Error(at, "well must be own/centre/enemy.");
         }
         ArcRelayTacticCoreSoonRow? coreSoon = null;
         if (value.TryGetProperty("coreSoon", out JsonElement coreSoonValue))
@@ -1383,7 +1532,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             Object(coreSoonValue, at, ["well", "ticks"]);
             string well = RequiredString(coreSoonValue, "well", at);
             if (!TacticWells.Contains(well))
-                throw Error(at, "well must be north/centre/south/own/enemy.");
+                throw Error(at, "well must be own/centre/enemy.");
             coreSoon = new ArcRelayTacticCoreSoonRow(
                 well, Range(coreSoonValue, "ticks", at, 1, 120));
         }
@@ -1462,11 +1611,43 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 if (!TacticWells.Contains(coreAcquiredWell))
                 {
                     throw Error(acquiredAt,
-                        "well must be north/centre/south/own/enemy.");
+                        "well must be own/centre/enemy.");
                 }
             }
         }
-        bool coreBanked = FlagRow(value, "coreBanked", path);
+        ArcRelayTacticCoreEvidenceRow? coreBanked = null;
+        if (value.TryGetProperty("coreBanked", out JsonElement banked))
+        {
+            if (banked.ValueKind == JsonValueKind.True)
+            {
+                coreBanked = new ArcRelayTacticCoreEvidenceRow(null, null);
+            }
+            else
+            {
+                string bankedAt = $"{path}.coreBanked";
+                Object(banked, bankedAt, ["well"], ["coreBankValue"]);
+                string well = RequiredString(banked, "well", bankedAt);
+                if (!TacticWells.Contains(well))
+                {
+                    throw Error($"{bankedAt}.well",
+                        "well must be own/centre/enemy.");
+                }
+                ArcRelayTacticCoreBankValue? bankValue = null;
+                if (banked.TryGetProperty(
+                        "coreBankValue", out JsonElement bankValueValue))
+                {
+                    ValidateCoreBankValue(bankValueValue,
+                        $"{bankedAt}.coreBankValue");
+                    bankValue = new ArcRelayTacticCoreBankValue(
+                        RequiredString(bankValueValue, "operator",
+                            $"{bankedAt}.coreBankValue"),
+                        RequiredInt(bankValueValue, "value",
+                            $"{bankedAt}.coreBankValue"));
+                }
+                coreBanked = new ArcRelayTacticCoreEvidenceRow(
+                    well, bankValue);
+            }
+        }
         bool coreLost = FlagRow(value, "coreLost", path);
         bool reached = FlagRow(value, "reached", path);
         bool observed = FlagRow(value, "observed", path);
@@ -1479,7 +1660,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             string workshop = RequiredString(row, "workshop", at);
             if (!TacticWorkshopIds.Contains(workshop))
                 throw Error(at,
-                    "workshop must be north/south/own/enemy/either.");
+                    "workshop must be own/enemy/either.");
             return workshop;
         }
         string? workshopReady = WorkshopRow("workshopReady");
@@ -1494,7 +1675,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             string workshop = RequiredString(trainingRow, "workshop", at);
             if (!TacticWorkshopIds.Contains(workshop))
                 throw Error(at,
-                    "workshop must be north/south/own/enemy/either.");
+                    "workshop must be own/enemy/either.");
             string team = "any";
             if (trainingRow.TryGetProperty("team", out JsonElement teamValue))
             {
@@ -1513,7 +1694,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             string workshop = RequiredString(doneRow, "workshop", at);
             if (!TacticWorkshopIds.Contains(workshop))
                 throw Error(at,
-                    "workshop must be north/south/own/enemy/either.");
+                    "workshop must be own/enemy/either.");
             int count = doneRow.TryGetProperty("count", out _)
                 ? Range(doneRow, "count", at, 1, 8)
                 : 1;
@@ -1694,7 +1875,7 @@ internal sealed record ArcRelayTacticConditionRows(
     IReadOnlyList<ArcRelayTacticZoneRef>? Cleared,
     IReadOnlyList<ArcRelayTacticZoneRef>? NotFighting,
     bool CoreAcquired,
-    bool CoreBanked,
+    ArcRelayTacticCoreEvidenceRow? CoreBanked,
     bool CoreLost,
     bool Reached,
     bool Observed,
@@ -1711,7 +1892,8 @@ internal sealed record ArcRelayTacticConditionRows(
         + (Healed is null ? 0 : 1)
         + (Kills is null ? 0 : 1) + (Cleared is null ? 0 : 1)
         + (NotFighting is null ? 0 : 1)
-        + (CoreAcquired ? 1 : 0) + (CoreBanked ? 1 : 0) + (CoreLost ? 1 : 0)
+        + (CoreAcquired ? 1 : 0) + (CoreBanked is null ? 0 : 1)
+        + (CoreLost ? 1 : 0)
         + (Reached ? 1 : 0) + (Observed ? 1 : 0)
         + (KillsWithin is null ? 0 : 1)
         + (Veterancy is null ? 0 : 1)
@@ -1732,6 +1914,12 @@ internal sealed record ArcRelayTacticVeterancyRow(
     int Level,
     IReadOnlyList<int> Slots,
     int Count);
+
+/// <summary>A phase-anchored friendly bank, optionally narrowed to one
+/// seat-relative source Well and the Core's scoring value.</summary>
+internal sealed record ArcRelayTacticCoreEvidenceRow(
+    string? Well,
+    ArcRelayTacticCoreBankValue? CoreBankValue);
 
 /// <summary>"The {workshop} Workshop is training", optionally filtered to
 /// whose channel it is.</summary>
@@ -1756,7 +1944,9 @@ internal sealed record ArcRelayTacticEnemiesAtRow(
     int Count,
     IReadOnlyList<ArcRelayTacticZoneRef> Zones);
 
-internal sealed record ArcRelayTacticReadiness(int AllowedLate);
+internal sealed record ArcRelayTacticReadiness(
+    int AllowedLate,
+    IReadOnlyList<string>? Groups);
 
 internal sealed record ArcRelayTacticZoneRef(string? Name, int[] Rect);
 
@@ -1792,13 +1982,28 @@ internal sealed record ArcRelayTacticJob(
         Posts is not null || Rect is not null || Path is not null
         || Point is not null || Workshop is not null;
 
-    /// <summary>The 'train' job's Workshop selector: north/south name a
-    /// global room; own/enemy select by proximity to that side's Well;
-    /// either lets the executor choose. The exact training tile is
+    /// <summary>The 'train' job's seat-relative Workshop selector:
+    /// own/enemy select by proximity to that side's Well; either lets the
+    /// executor choose. The exact training tile is
     /// rules-owned and resolved by the executor from the match contract,
     /// never authored here.</summary>
     public string? Workshop { get; init; }
+
+    /// <summary>A phase-local Core habit. Absent means the Group's
+    /// tactic-wide coreRule; present replaces it for this phase only.</summary>
+    public ArcRelayTacticCoreIntent? Core { get; init; }
 }
+
+internal sealed record ArcRelayTacticCoreIntent(
+    string Rule,
+    string? Well,
+    ArcRelayTacticCoreBankValue? CoreBankValue,
+    ArcRelayTacticCorePreposition? Preposition = null,
+    IReadOnlyList<int>? Slots = null);
+
+internal sealed record ArcRelayTacticCorePreposition(string Well, int Ticks);
+
+internal sealed record ArcRelayTacticCoreBankValue(string Operator, int Value);
 
 internal sealed record ArcRelayTacticPost(
     int[] At, string Facing, IReadOnlyList<int[]>? Via = null);

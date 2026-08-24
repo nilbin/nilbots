@@ -118,6 +118,53 @@ test('an instantiated pincer with drawn geometry validates cleanly', () => {
   assert.deepEqual(issues.filter((issue) => issue.severity === 'error'), []);
 });
 
+test('phase-local Core intent round-trips Well and value filters', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  const group = tactic.groups[1];
+  tactic.phases[0].jobs[group.id].core = { rule: 'ignore' };
+  tactic.phases[1].jobs[group.id].core = {
+    rule: 'hunt', well: 'enemy',
+    slots: [group.slots[0]!, group.slots[2]!, group.slots[4]!],
+    coreBankValue: { operator: 'equals', value: 4 },
+    preposition: { well: 'own', ticks: 12 },
+  };
+  document.tactics.push(tactic);
+
+  const loaded = parseDocument(stringifyDocument(document));
+  assert.deepEqual(loaded.tactics[0].phases[0].jobs[group.id].core,
+    { rule: 'ignore' });
+  assert.deepEqual(loaded.tactics[0].phases[1].jobs[group.id].core, {
+    rule: 'hunt', well: 'enemy',
+    slots: [group.slots[0]!, group.slots[2]!, group.slots[4]!],
+    coreBankValue: { operator: 'equals', value: 4 },
+    preposition: { well: 'own', ticks: 12 },
+  });
+  assert.deepEqual(
+    validateDocument(loaded, catalog).filter((issue) => issue.severity === 'error'),
+    [],
+  );
+
+  loaded.tactics[0].phases[0].jobs[group.id].core = {
+    rule: 'ignore', well: 'centre',
+  };
+  assert.ok(validateDocument(loaded, catalog)
+    .some((issue) => /Ignore does not take/.test(issue.message)));
+
+  loaded.tactics[0].phases[0].jobs[group.id].core = {
+    rule: 'hunt', preposition: { well: 'own', ticks: 0 },
+  };
+  assert.ok(validateDocument(loaded, catalog)
+    .some((issue) => /Pre-position timing needs/.test(issue.message)));
+
+  loaded.tactics[0].phases[0].jobs[group.id].core = {
+    rule: 'hunt', slots: [group.slots[0]!, 99],
+  };
+  assert.ok(validateDocument(loaded, catalog)
+    .some((issue) => /distinct members/.test(issue.message)));
+});
+
 test('normal phase authoring exposes exactly the pruned vocabulary', () => {
   assert.deepEqual(JOB_KINDS.map((value) => value.id),
     ['posts', 'area', 'converge', 'patrol', 'train']);
@@ -133,9 +180,10 @@ test('readiness slack and one-to-three zone unions round-trip', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
   const tactic = drawnPincer(document);
+  const readinessGroup = tactic.groups[0].id;
   tactic.phases[0].continue = [{
     required: {
-      groupsSet: { allowedLate: 1 },
+      groupsSet: { allowedLate: 1, groups: [readinessGroup] },
       enemiesAt: {
         count: 4,
         zones: [
@@ -149,9 +197,19 @@ test('readiness slack and one-to-three zone unions round-trip', () => {
   document.tactics.push(tactic);
   const loaded = normalizeDocument(JSON.parse(JSON.stringify(document)));
   assert.deepEqual(loaded.tactics[0].phases[0].continue![0].required?.groupsSet,
-    { allowedLate: 1 });
+    { allowedLate: 1, groups: [readinessGroup] });
   assert.equal(loaded.tactics[0].phases[0].continue![0].required?.enemiesAt?.zones.length, 3);
   assert.deepEqual(validateDocument(loaded, catalog).filter((issue) => issue.severity === 'error'), []);
+
+  loaded.tactics[0].phases[0].continue![0].required!.groupsSet = {
+    allowedLate: 0,
+    groups: ['missing'],
+  };
+  assert.ok(validateDocument(loaded, catalog).some((issue) => /unknown Group/.test(issue.message)));
+  loaded.tactics[0].phases[0].continue![0].required!.groupsSet = {
+    allowedLate: 1,
+    groups: [readinessGroup],
+  };
 
   loaded.tactics[0].phases[0].continue![0].required!.enemiesAt!.zones = [];
   assert.ok(validateDocument(loaded, catalog).some((issue) => /one to three/.test(issue.message)));
@@ -160,6 +218,41 @@ test('readiness slack and one-to-three zone unions round-trip', () => {
     { rect: [5, 1, 6, 2] }, { rect: [7, 1, 8, 2] },
   ];
   assert.ok(validateDocument(loaded, catalog).some((issue) => /one to three/.test(issue.message)));
+});
+
+test('bank evidence can target one Well and Core score', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.phases.at(-1)!.continue = [{
+    required: {
+      coreBanked: {
+        well: 'enemy',
+        coreBankValue: { operator: 'equals', value: 4 },
+      },
+    },
+  }];
+  document.tactics.push(tactic);
+
+  const loaded = parseDocument(stringifyDocument(document));
+  assert.deepEqual(loaded.tactics[0].phases.at(-1)!.continue![0]
+    .required?.coreBanked, {
+    well: 'enemy',
+    coreBankValue: { operator: 'equals', value: 4 },
+  });
+  assert.deepEqual(
+    validateDocument(loaded, catalog).filter((issue) => issue.severity === 'error'),
+    [],
+  );
+
+  const scoped = loaded.tactics[0].phases.at(-1)!.continue![0]
+    .required!.coreBanked!;
+  assert.equal(typeof scoped, 'object');
+  if (typeof scoped === 'object') {
+    scoped.coreBankValue = { operator: 'equals', value: 9 as 4 };
+  }
+  assert.ok(validateDocument(loaded, catalog)
+    .some((issue) => /one to four/.test(issue.message)));
 });
 
 test('formation readiness accepts a previous phase assignment carried forward', () => {
@@ -746,6 +839,33 @@ test('a v1 document migrates to phases exactly like the server', () => {
   assert.throws(() => normalizeDocument({ schema: 'something-else' }));
 });
 
+test('global north and south drafts normalize to mirrored place choices', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  document.tactics.push(tactic);
+  const legacy = JSON.parse(JSON.stringify(document)) as any;
+  const groupId = legacy.tactics[0].groups[0].id;
+  legacy.tactics[0].phases[0].jobs[groupId].core = {
+    rule: 'hunt', well: 'north', preposition: { well: 'south', ticks: 8 },
+  };
+  legacy.tactics[0].phases[0].continue[0].required.coreBanked = { well: 'north' };
+  legacy.tactics[0].start.cases = [{
+    required: { workshopReady: { workshop: 'south' } },
+  }];
+
+  const normalized = normalizeDocument(legacy);
+  const normalizedTactic = normalized.tactics[0];
+  const core = normalizedTactic.phases[0].jobs[groupId].core!;
+  assert.equal(core.well, 'enemy');
+  assert.equal(core.preposition?.well, 'own');
+  assert.deepEqual(normalizedTactic.phases[0].continue![0].required?.coreBanked,
+    { well: 'enemy' });
+  assert.deepEqual(normalizedTactic.start.cases, [{
+    required: { workshopReady: { workshop: 'own' } },
+  }]);
+});
+
 test('an editable saved draft rebinds to the current map without projecting its geometry', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
@@ -847,6 +967,7 @@ test('splitting bots out of a Group takes their posts, ways in and marks along',
   const tactic = splitReady(document);
   document.tactics.push(tactic);
   const guard = tactic.groups[0];
+  tactic.phases[0].jobs[guard.id].core = { rule: 'ignore', slots: [2] };
   const before = membershipSnapshot(tactic);
   const fresh = freshGroup(tactic.groups);
   tactic.groups.push(fresh);
@@ -864,12 +985,14 @@ test('splitting bots out of a Group takes their posts, ways in and marks along',
     [[2, 16, 14]]);
   assert.deepEqual(seeded.posts![0].via, [[20, 20], [16, 14]]);
   assert.deepEqual(Object.keys(seeded.sigs ?? {}), ['2']);
+  assert.deepEqual(seeded.core, { rule: 'ignore' });
   // The old Group was cleaned: no post, no mark of the departed bot.
   const kept = tactic.phases[0].jobs[guard.id];
   assert.deepEqual(
     kept.posts!.map((post) => [post.slot, post.at[0], post.at[1]]),
     [[5, 14, 12]]);
   assert.equal(kept.sigs, undefined);
+  assert.equal(kept.core, undefined);
   // Nothing needs redrawing: the split document still validates cleanly.
   assert.deepEqual(
     validateDocument(document, catalog).filter((issue) => issue.severity === 'error'),

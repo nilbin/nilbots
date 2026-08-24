@@ -120,6 +120,31 @@ public sealed class ArcRelayTacticalPlaybookCompilerTests
         Assert.Contains("unknown field 'doctrines'", error.Message);
     }
 
+    [Theory]
+    [InlineData("well", "north")]
+    [InlineData("well", "south")]
+    [InlineData("workshop", "north")]
+    [InlineData("workshop", "south")]
+    public void AbsoluteSideSelectorsAreRejectedFromMirroredOrders(
+        string targetKind,
+        string selector)
+    {
+        JsonObject source = Source("starter-tapline-v2");
+        JsonObject move = source["roles"]![0]!["orders"]!.AsArray()
+            .Last()!["move"]!.AsObject();
+        move["to"] = new JsonObject { [targetKind] = selector };
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            Compile(source, MapPlan("starter-tapline-v2")));
+
+        Assert.Contains(
+            targetKind == "well"
+                ? "well must be own/centre/enemy"
+                : "workshop must be own/enemy/either",
+            error.Message,
+            StringComparison.Ordinal);
+    }
+
     [Fact]
     public void CompositionComesOnlyFromExactRoleClasses()
     {

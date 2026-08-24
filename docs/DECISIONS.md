@@ -9862,3 +9862,36 @@ The behavior is enabled by the contract's `delivery: declared-ray` capability,
 so historical rules and artifacts retain their exact behavior. The engine
 shares declared-strike projection and contact traversal; signatures contribute
 typed parameters rather than owning parallel executors.
+
+## 371. Player Tactics use mirrored places, and Core specialization need not split a Group
+
+Player-owned Tactics and lower-level Orders no longer offer global `north` or
+`south` as Well or Workshop selectors. Wells are `own`, `centre`, or `enemy`;
+Workshops are `own`, `enemy`, or `either`. Historical west-authored Tactics
+values migrate recursively as north→enemy and south→own. Global north/south room ids remain
+authoritative engine, contract, event, and replay evidence; this change removes
+only a player-facing alias that changed meaning when one sheet entered from
+the opposite seat.
+
+A phase-local Core objective may optionally name selected slots from its
+Group. Selected members use that phase override; unselected members retain the
+Group's whole-Tactic Core default while remaining in the same formation and
+pickup-phase custody escort. The materializer emits ordinary per-role leaf
+cohorts under the existing phase wrapper. This creates no subgroup runtime,
+reservation, scheduler, state machine, or competing priority system.
+
+## 372. Rail Shuttle Eclipse is Broadloom-7 ladder rung 8
+
+`rail-shuttle-eclipse-v1` is admitted after directly beating all seven prior
+Broadloom-7 sheets on the fixed mirrored six-cell set: 41 wins and one loss
+across 42 matches. All replays pass movement sanity and felt eligibility;
+conformance records 1,879 passes, zero deviations, and five ordinary Hold
+leash notes. The seven-class roster uses its one duplicate on two Relays with
+distinct centre and home-custody jobs. Repulsor and Longshot alone take the
+south Group's 2+ Core filter, proving the selected-slot Core vocabulary without
+changing Group custody.
+
+The admission is not a macro-depth settlement. Like Sevenfold, the sheet still
+allocates seven bodies to centre pressure and one to the own Well. The next
+counter should test a genuinely different spatial investment rather than
+assuming another refinement of the 7+1 shell is sufficient.

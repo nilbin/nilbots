@@ -1486,7 +1486,7 @@ function chebyshev([ax, ay]: Point, [bx, by]: Point): number {
  * choices resolve from the west perspective the whole canvas draws. */
 function wellCentre(catalog: TacticalSheetCatalog, choice: WellChoice): Point | null {
   const id = choice === 'centre' ? 'well-centre'
-    : choice === 'north' || choice === 'own' ? 'well-north'
+    : choice === 'enemy' ? 'well-north'
       : 'well-south';
   const region = catalog.map.regions.find((value) => value.id === id);
   if (!region || region.tiles.length === 0) return null;

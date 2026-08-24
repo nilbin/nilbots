@@ -545,6 +545,35 @@ class ReplayIndex:
         chosen = ordered[0] if selector == "own" else ordered[-1]
         return {str(chosen["workshopId"])}
 
+    def core_bank_value(self, core_id: dict[str, Any], team: int) -> int | None:
+        """Resolve the Core's awarded value, not the post-bank charge meter."""
+        game_mode = (self.contract.get("rules") or {}).get("gameMode") or {}
+        values = game_mode.get("teamRelativeCoreCharge") or {}
+        source = str(core_id.get("sourceWellId", ""))
+        if source == "centre":
+            return values.get("centreWell")
+
+        mode = self.initial_state.get("mode") or {}
+        reactors = [
+            value for value in mode.get("reactors") or []
+            if int(value["teamId"]) == team
+        ]
+        wells = list(mode.get("wells") or [])
+        if not reactors or not wells:
+            return None
+
+        def distance(start: tuple[int, int], end: tuple[int, int]) -> int:
+            measured = self.terrain_distance(start, end)
+            return sys.maxsize if measured is None else measured
+
+        reactor = point(reactors[0]["position"])
+        own = min(wells, key=lambda value: (
+            distance(reactor, point(value["position"])),
+            str(value["wellId"]),
+        ))
+        key = "ownWell" if source == str(own["wellId"]) else "enemyWell"
+        return values.get(key)
+
 
 def core_label(core_id: dict[str, Any] | None) -> str | None:
     if not core_id:
@@ -587,7 +616,10 @@ def event_summary(event: dict[str, Any]) -> str:
         fact = payload
         fact_kind = fact.get("kind", "arc-relay")
         if fact_kind == "core-banked":
-            return f"banked {core_label(fact.get('coreId'))} +{fact.get('chargePips')}"
+            return (
+                f"banked {core_label(fact.get('coreId'))} "
+                f"(reactor charge now {fact.get('chargePips')})"
+            )
         if fact_kind.startswith("workshop-"):
             return fact_kind
         return fact_kind
@@ -1245,6 +1277,9 @@ class TacticProjection:
                     "unitId": actor["unitId"],
                     "lifeId": actor["lifeId"],
                     "coreId": core_label(fact["coreId"]),
+                    "bankValue": self.index.core_bank_value(
+                        fact["coreId"], fact["teamId"]
+                    ),
                     "chargePips": fact["chargePips"],
                     "position": self.index.position_model(
                         point(fact["position"]), fact["teamId"]
@@ -1606,8 +1641,15 @@ class TacticProjection:
             for index, post in enumerate(posts)
         }
         findings = []
+        def waits_for_this_group(rule: dict[str, Any]) -> bool:
+            readiness = (rule.get("required") or {}).get("groupsSet")
+            if readiness is None:
+                return False
+            selected = readiness.get("groups") if isinstance(readiness, dict) else None
+            return not selected or group["id"] in selected
+
         readiness_release = any(
-            (rule.get("required") or {}).get("groupsSet") is not None
+            waits_for_this_group(rule)
             for rule in phase.get("continue") or []
         )
         for slot in group["slots"]:
@@ -2194,11 +2236,36 @@ class TacticProjection:
                         pickup_text = (
                             f"reacquired {core}; custody remains bound to {program}"
                         )
-                    status = "deviation" if group and group.get("coreRule") == "ignore" else "pass"
+                    phase_core = None
+                    if group and phase:
+                        phase_core = (
+                            (phase.get("jobs") or {}).get(group["id"], {})
+                            .get("core")
+                        )
+                    core_rule = (
+                        phase_core.get("rule")
+                        if phase_core else group.get("coreRule") if group else None
+                    )
+                    status = "deviation" if core_rule == "ignore" else "pass"
+                    filters = ""
+                    if phase_core:
+                        if phase_core.get("well"):
+                            filters += f" well={phase_core['well']}"
+                        if phase_core.get("coreBankValue"):
+                            value = phase_core["coreBankValue"]
+                            filters += (
+                                f" value={value.get('operator')}:{value.get('value')}"
+                            )
+                        if phase_core.get("preposition"):
+                            preposition = phase_core["preposition"]
+                            filters += (
+                                f" preposition={preposition.get('well')}"
+                                f"@{preposition.get('ticks')}t"
+                            )
                     summary = (
                         f"u{actor['unitId']} {pickup_text}; "
-                        f"group {group['name'] if group else 'unknown'} coreRule="
-                        f"{group.get('coreRule') if group else 'unknown'}"
+                        f"group {group['name'] if group else 'unknown'} "
+                        f"effectiveCoreRule={core_rule or 'unknown'}{filters}"
                     )
                     values.append(finding(
                         status,
@@ -2513,9 +2580,13 @@ def render_digest(model: dict[str, Any], seat_first: bool) -> list[str]:
     if not model["coreBanks"]:
         lines.append("  none")
     for value in model["coreBanks"]:
+        awarded = (
+            f"+{value['bankValue']}"
+            if value.get("bankValue") is not None else "+?"
+        )
         lines.append(
             f"  t{value['tick']} team {value['teamId']} u{value['unitId']} "
-            f"{value['coreId']} +{value['chargePips']} at "
+            f"{value['coreId']} {awarded} (charge now {value['chargePips']}) at "
             f"{format_position(value['position'], seat_first)}"
         )
     deaths = defaultdict(list)

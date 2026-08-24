@@ -19,6 +19,24 @@ export type JobKind =
 export type Posture = 'wait' | 'hold' | 'aggressive' | 'steal' | 'escort' | 'observe';
 export type Recovery = 'fight-on' | 'patch' | 'heal-tile' | 'heal-up';
 export type CoreRule = 'ignore' | 'grab' | 'hunt';
+export type CoreBankValueOperator = 'equals' | 'at-least' | 'at-most';
+
+export interface PhaseCoreIntent {
+  rule: CoreRule;
+  /** Optional subset of this Group. Absent means every member. This lets a
+   * specialist keep Group custody/formation membership without inheriting a
+   * narrower Core objective. */
+  slots?: number[];
+  /** Seat-relative source Well. */
+  well?: 'centre' | 'own' | 'enemy';
+  coreBankValue?: { operator: CoreBankValueOperator; value: 1 | 2 | 3 | 4 };
+  /** Leave the ordinary job and return to this (independent) Well shortly
+   * before its next Core birth. The loose-Core objective still wins. */
+  preposition?: {
+    well: 'centre' | 'own' | 'enemy';
+    ticks: number;
+  };
+}
 export type DeliveryPlan = 'none' | 'solo' | 'escort';
 export type MaxDuration = 'none' | 'brief' | 'standard' | 'long';
 export type StartMode = 'always' | 'when';
@@ -26,11 +44,10 @@ export type Build = 'balanced' | 'durable' | 'aggressive' | 'scout';
 export type RecipeId =
   | 'hold-area' | 'centre-rush' | 'pincer' | 'core-raid' | 'patrol'
   | 'deliver-core' | 'blank';
-export type WellChoice = 'north' | 'centre' | 'south' | 'own' | 'enemy';
-/** Which neutral veterancy Workshop a train job or Workshop row means.
- * North/south are global identities; own/enemy are seat-relative strategic
- * choices resolved against the team's Well. */
-export type WorkshopChoice = 'north' | 'south' | 'own' | 'enemy' | 'either';
+export type WellChoice = 'centre' | 'own' | 'enemy';
+/** Player-authored Workshop choices are seat-relative. Replays retain the
+ * authoritative global north/south room ids after resolution. */
+export type WorkshopChoice = 'own' | 'enemy' | 'either';
 /** Whose channel a `workshopTraining` row reads. */
 export type WorkshopTeam = 'self' | 'enemy' | 'any';
 
@@ -52,8 +69,9 @@ export interface ZoneSetRef {
 /** Every condition row any case context can carry. Which rows a given
  * context accepts is the ROWS_* lists below, mirroring the server. */
 export interface TacticConds {
-  /** Every Group is at its ground this phase — the dead excuse themselves. */
-  groupsSet?: true | { allowedLate: 0 | 1 | 2 };
+  /** Every selected Group (all when omitted) is at its ground this phase —
+   * the dead excuse themselves. */
+  groupsSet?: true | { allowedLate: 0 | 1 | 2; groups?: string[] };
   /** We have been at this phase for N ticks. */
   held?: { ticks: number };
   /** Every LIVING bot is at ≥N% health — the dead excuse themselves. */
@@ -81,7 +99,12 @@ export interface TacticConds {
   /** true = any Core taken since this phase began; a well narrows it to
    * that source's Core — the claim a Claim phase means. */
   coreAcquired?: true | { well: WellChoice };
-  coreBanked?: true;
+  /** true = any Core banked since this phase began; the object form narrows
+   * the evidence to one source Well and, optionally, its scoring value. */
+  coreBanked?: true | {
+    well: WellChoice;
+    coreBankValue?: { operator: CoreBankValueOperator; value: 1 | 2 | 3 | 4 };
+  };
   coreLost?: true;
   reached?: true;
   observed?: true;
@@ -120,7 +143,7 @@ export const ABORT_ROWS: CondKind[] = [
 ];
 
 export const WORKSHOP_CHOICES: WorkshopChoice[] = [
-  'own', 'enemy', 'north', 'south', 'either',
+  'own', 'enemy', 'either',
 ];
 export const WORKSHOP_TEAMS: WorkshopTeam[] = ['self', 'enemy', 'any'];
 
@@ -257,6 +280,9 @@ export interface TacticJob {
    * contract, so the editor never draws it and the document stays honest on
    * any later map revision. Refused on every other kind. */
   workshop?: WorkshopChoice;
+  /** Optional phase-local replacement for the Group's tactic-wide Core
+   * habit. Absent means use group.coreRule. */
+  core?: PhaseCoreIntent;
 }
 
 export type CustodyPlan = 'solo' | 'escort' | 'keep';
@@ -789,6 +815,7 @@ export function normalizeDocument(document: unknown): TacticsDocument {
   } else {
     throw new Error(`Not a tactics document: ${value?.schema}`);
   }
+  normalizeSeatRelativeSelectors(loaded);
   // Self-healing on load. Backwards way-ins flip into travel order; posts
   // saved before they carried a `slot` are stamped with their positional
   // pairing (the only pairing that existed); and leftovers from a Group
@@ -826,6 +853,18 @@ export function normalizeDocument(document: unknown): TacticsDocument {
           job.posts = job.posts.filter((post) =>
             post.slot != null && group.slots.includes(post.slot));
           if (job.posts.length === 0) delete job.posts;
+        }
+        if (job.core?.slots) {
+          job.core.slots = [...new Set(job.core.slots)]
+            .filter((slot) => group.slots.includes(slot));
+          // Never broaden a stale selected-bot override onto the remaining
+          // Group. No selected member means the override itself is gone;
+          // every member selected uses the canonical unscoped spelling.
+          if (job.core.slots.length === 0) {
+            delete job.core;
+          } else if (job.core.slots.length === group.slots.length) {
+            delete job.core.slots;
+          }
         }
         for (const post of job.posts ?? []) {
           const flipped = reversedWayIn(post.via, post.at);
@@ -866,6 +905,27 @@ export function normalizeDocument(document: unknown): TacticsDocument {
     }
   }
   return loaded;
+}
+
+/** Global north/south selectors briefly existed even though every drawn
+ * coordinate is authored once from west and mirrored with the entrant.
+ * Preserve those drafts by translating their west-view meaning on load;
+ * new UI and validation expose only own/centre/enemy (or either Workshop). */
+function normalizeSeatRelativeSelectors(node: unknown): void {
+  if (Array.isArray(node)) {
+    node.forEach(normalizeSeatRelativeSelectors);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+  const record = node as Record<string, unknown>;
+  for (const [key, child] of Object.entries(record)) {
+    if ((key === 'well' || key === 'workshop')
+      && (child === 'north' || child === 'south')) {
+      record[key] = child === 'north' ? 'enemy' : 'own';
+    } else {
+      normalizeSeatRelativeSelectors(child);
+    }
+  }
 }
 
 function normalizeZoneRows(rows: TacticConds | undefined): void {
@@ -1030,6 +1090,42 @@ export function validateDocument(
         validateJobGeometry(
           job, phaseIndex === 0, group, document.squad,
           `${phaseAt}.jobs.${group.id}`, catalog, error);
+        if (job.core) {
+          const coreAt = `${phaseAt}.jobs.${group.id}.core`;
+          if (!CORE_RULES.some((value) => value.id === job.core!.rule)) {
+            error(coreAt, `Unknown Core intent “${job.core.rule}”.`);
+          }
+          if (job.core.slots) {
+            const selected = new Set(job.core.slots);
+            if (job.core.slots.length < 1
+              || selected.size !== job.core.slots.length
+              || job.core.slots.some((slot) => !group.slots.includes(slot))) {
+              error(coreAt, 'Core intent bots must be distinct members of this Group.');
+            }
+          }
+          if (job.core.well
+            && !['centre', 'own', 'enemy'].includes(job.core.well)) {
+            error(coreAt, `“${job.core.well}” is not a source Well.`);
+          }
+          if (job.core.coreBankValue
+            && (!['equals', 'at-least', 'at-most'].includes(job.core.coreBankValue.operator)
+              || job.core.coreBankValue.value < 1
+              || job.core.coreBankValue.value > 4)) {
+            error(coreAt, 'Core value needs equals/at-least/at-most and a value from 1 to 4.');
+          }
+          if (job.core.preposition
+            && (!['centre', 'own', 'enemy']
+              .includes(job.core.preposition.well)
+              || !Number.isInteger(job.core.preposition.ticks)
+              || job.core.preposition.ticks < 1
+              || job.core.preposition.ticks > 120)) {
+            error(coreAt, 'Pre-position timing needs 1 to 120 ticks.');
+          }
+          if (job.core.rule === 'ignore'
+            && (job.core.well || job.core.coreBankValue || job.core.preposition)) {
+            error(coreAt, 'Ignore does not take filters or pre-positioning.');
+          }
+        }
         if (job.travel) {
           // Travel needs an arrival for the main posture to take over at;
           // patrol/return/escort are all march. Mirrors the server.
@@ -1123,9 +1219,25 @@ export function validateDocument(
             ['converge', 'advance'].includes(phase.jobs[group.id]?.kind ?? ''))) {
             error(ruleAt, '“Destination reached” needs a Group that converges or advances in this phase.');
           }
-          if (rows.groupsSet && tactic.groups.some((group) =>
-            !jobHasGeometry(effectiveJob(tactic, phaseIndex, group.id)))) {
-            error(ruleAt, '“Every Group is set” needs every Group to have drawn or carried-forward geometry in this phase.');
+          if (rows.groupsSet) {
+            const readiness = rows.groupsSet === true
+              ? { allowedLate: 0 as const }
+              : rows.groupsSet;
+            const selectedIds = readiness.groups
+              ?? tactic.groups.map((group) => group.id);
+            if (readiness.groups && (readiness.groups.length < 1
+              || readiness.groups.length > 3
+              || new Set(readiness.groups).size !== readiness.groups.length)) {
+              error(ruleAt, '“Formation is ready” needs one to three unique Groups.');
+            }
+            const unknown = selectedIds.find((id) =>
+              !tactic.groups.some((group) => group.id === id));
+            if (unknown) {
+              error(ruleAt, `“Formation is ready” names unknown Group “${unknown}”.`);
+            } else if (selectedIds.some((groupId) =>
+              !jobHasGeometry(effectiveJob(tactic, phaseIndex, groupId)))) {
+              error(ruleAt, '“Formation is ready” needs every selected Group to have drawn or carried-forward geometry in this phase.');
+            }
           }
           if (rows.observed && !tactic.phases.some((candidate) =>
             tactic.groups.some((group) => jobHasGeometry(candidate.jobs[group.id] ?? null)))) {
@@ -1136,7 +1248,10 @@ export function validateDocument(
     });
     const finishes = tacticCanFinish(tactic);
     if (finishes.holdsForever && tactic.delivery.plan === 'none'
-      && tactic.groups.some((group) => group.coreRule !== 'ignore')) {
+      && (tactic.groups.some((group) => group.coreRule !== 'ignore')
+        || tactic.phases.some((phase) => Object.values(phase.jobs)
+          .some((job) => job.core?.rule !== undefined
+            && job.core.rule !== 'ignore')))) {
       warn(`${at}`, `${tactic.name} holds forever and may pick up Cores with no delivery plan — carriers will break off to bank on their own.`);
     }
     if (finishes.finishCarrying && tactic.delivery.plan === 'none'
@@ -1206,6 +1321,19 @@ function validateCaseRows(
         error(`${at}.${side}.veterancy`, 'The required count cannot exceed the selected bots.');
       }
     }
+    if (rows.coreBanked && typeof rows.coreBanked === 'object') {
+      if (!(['centre', 'own', 'enemy'] as const)
+        .includes(rows.coreBanked.well)) {
+        error(`${at}.${side}.coreBanked`, 'Choose the Core\'s source Well.');
+      }
+      const bankValue = rows.coreBanked.coreBankValue;
+      if (bankValue
+        && (!['equals', 'at-least', 'at-most'].includes(bankValue.operator)
+          || !Number.isInteger(bankValue.value)
+          || bankValue.value < 1 || bankValue.value > 4)) {
+        error(`${at}.${side}.coreBanked`, 'Core score must compare a value from one to four.');
+      }
+    }
     for (const key of Object.keys(rows) as CondKind[]) {
       if (!allowed.includes(key)) {
         error(`${at}.${side}`, `'${key}' is not a condition this step takes.`);
@@ -1225,7 +1353,7 @@ function validateWorkshopRows(
 ) {
   const workshop = (kind: CondKind, value: WorkshopChoice | undefined) => {
     if (value !== undefined && !WORKSHOP_CHOICES.includes(value)) {
-      error(`${at}.${kind}`, `'${kind}' needs your-side, their-side, north, south, or either — not '${value}'.`);
+      error(`${at}.${kind}`, `'${kind}' needs your-side, their-side, or either — not '${value}'.`);
     } else if (value === undefined) {
       error(`${at}.${kind}`, `'${kind}' needs a Workshop chosen.`);
     }
@@ -1367,9 +1495,9 @@ function validateTrainJob(
     return;
   }
   if (!job.workshop) {
-    error(at, `${group.name} needs a Workshop chosen — your side, their side, north, south, or either.`);
+    error(at, `${group.name} needs a Workshop chosen — your side, their side, or either.`);
   } else if (!WORKSHOP_CHOICES.includes(job.workshop)) {
-    error(at, `“${job.workshop}” is not a Workshop — choose your side, their side, north, south, or either.`);
+    error(at, `“${job.workshop}” is not a Workshop — choose your side, their side, or either.`);
   }
   if (group.slots.length !== 1) {
     error(at, `Training is one bot’s job — ${group.name} has ${group.slots.length} bots. Put the trainee in a Group of one and give the guards their own posted Group.`);
@@ -1696,6 +1824,25 @@ export function followMembership(
       if (!job.sigs[String(slot)]) {
         job.sigs[String(slot)] = kept;
         followedSigs++;
+      }
+    }
+
+    // A phase Core override is optional per-bot configuration inside its
+    // Group. Keep only current members after a reshuffle. A freshly seeded
+    // split retains the movers selected; an unrelated destination keeps its
+    // own objective rather than inheriting hidden policy from the source.
+    for (const group of tactic.groups) {
+      const selected = phase.jobs[group.id]?.core?.slots;
+      if (!selected) continue;
+      const retained = selected.filter((slot) => group.slots.includes(slot));
+      const job = phase.jobs[group.id]!;
+      const core = job.core!;
+      if (retained.length === 0) {
+        delete job.core;
+      } else if (retained.length === group.slots.length) {
+        delete core.slots;
+      } else {
+        core.slots = retained;
       }
     }
 

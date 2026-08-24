@@ -1146,6 +1146,19 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                     // this purpose; standing beside it only strands every
                     // authorized collector on a task it cannot complete.
                     .Where(core => !reserved.Contains(core.Position));
+                if (move.Well is not null)
+                {
+                    string sourceWellId = ResolveWell(
+                        contract, arc, move.Well).WellId;
+                    candidates = candidates.Where(core =>
+                        core.CoreId.SourceWellId == sourceWellId);
+                }
+                if (move.CoreBankValue is not null)
+                {
+                    candidates = candidates.Where(core =>
+                        move.CoreBankValue.Matches(CoreBankValue(
+                            contract, arc, core.CoreId.SourceWellId)));
+                }
                 IOrderedEnumerable<KnownCore> ordered = move.Target
                     == "highest-bank-value-known-loose-core"
                     ? candidates
@@ -1332,10 +1345,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         out string? decline)
     {
         decline = null;
+        string? carrierWellId = fight.Well is null
+            ? null
+            : ResolveWell(contract, arc, fight.Well).WellId;
         HashSet<ActorIdentity> carriers = arc.VisibleCores
             .Where(core => core.Disposition
                 == GenericActorContext.ArcRelayCoreDisposition.Carried
                 && core.CarrierActorId?.TeamId != _teamId)
+            .Where(core => carrierWellId is null
+                || core.CoreId.SourceWellId == carrierWellId)
+            .Where(core => fight.CoreBankValue is null
+                || fight.CoreBankValue.Matches(CoreBankValue(
+                    contract, arc, core.CoreId.SourceWellId)))
             .Select(core => core.CarrierActorId!)
             .ToHashSet();
         HashSet<ActorIdentity> marked = arc.VisibleSignatures
@@ -4167,18 +4188,45 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
                         contract, arc, pair.Value.CoreId.SourceWellId))));
         }
         if (fact == "visible-enemy-carriers")
+        {
+            string? source = condition.Well is null
+                ? null
+                : ResolveWell(contract, arc, condition.Well).WellId;
             return arc.VisibleCores.Count(core =>
                 core.CarrierActorId?.TeamId != _teamId
                 && core.Disposition
-                    == GenericActorContext.ArcRelayCoreDisposition.Carried);
+                    == GenericActorContext.ArcRelayCoreDisposition.Carried
+                && (source is null || core.CoreId.SourceWellId == source)
+                && (condition.CoreBankValue is null
+                    || condition.CoreBankValue.Matches(CoreBankValue(
+                        contract, arc, core.CoreId.SourceWellId))));
+        }
         if (fact == "known-enemy-carriers")
             return _rememberedEnemies.Values.Count(enemy => enemy.Carrier
                 && mind.Tick - enemy.Tick <= condition.FreshnessTicks);
         if (fact == "known-loose-cores")
-            return _knownLooseCores.Count;
+        {
+            string? source = condition.Well is null
+                ? null
+                : ResolveWell(contract, arc, condition.Well).WellId;
+            return _knownLooseCores.Values.Count(core =>
+                (source is null || core.CoreId.SourceWellId == source)
+                && (condition.CoreBankValue is null
+                    || condition.CoreBankValue.Matches(CoreBankValue(
+                        contract, arc, core.CoreId.SourceWellId))));
+        }
         if (fact == "visible-loose-cores")
+        {
+            string? source = condition.Well is null
+                ? null
+                : ResolveWell(contract, arc, condition.Well).WellId;
             return arc.VisibleCores.Count(core => core.Disposition
-                == GenericActorContext.ArcRelayCoreDisposition.Loose);
+                == GenericActorContext.ArcRelayCoreDisposition.Loose
+                && (source is null || core.CoreId.SourceWellId == source)
+                && (condition.CoreBankValue is null
+                    || condition.CoreBankValue.Matches(CoreBankValue(
+                        contract, arc, core.CoreId.SourceWellId))));
+        }
         if (fact == "secured-cores")
             return carried.Keys.Count(actor => actor.TeamId == _teamId);
         GenericActorContext.ArcRelayReactorState own = arc.Reactors.Single(value =>

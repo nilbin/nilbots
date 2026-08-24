@@ -177,7 +177,7 @@
             {
               "triggers": {
                 "workshopTraining": {
-                  "workshop": "north",
+                  "workshop": "enemy",
                   "team": "enemy"
                 }
               }

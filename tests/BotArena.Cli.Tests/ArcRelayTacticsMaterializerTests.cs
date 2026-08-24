@@ -55,6 +55,46 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void GlobalPlaceDraftsNormalizeToSeatRelativeSelectors()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        JsonObject phase = tactic["phases"]![0]!.AsObject();
+        phase["jobs"]!["flankers"]!["core"] = JsonNode.Parse(
+            """{"rule":"hunt","well":"north","preposition":{"well":"south","ticks":8}}""");
+        phase["continue"]![0]!["required"]!["coreBanked"] =
+            JsonNode.Parse("""{"well":"north"}""");
+        tactic["start"]!["mode"] = "when";
+        tactic["start"]!["cases"] = JsonNode.Parse(
+            """[{"required":{"workshopReady":{"workshop":"south"}}}]""");
+
+        byte[] normalized = ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+            Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument parsed = JsonDocument.Parse(normalized);
+        JsonElement normalizedTactic = parsed.RootElement
+            .GetProperty("tactics")[0];
+        JsonElement core = normalizedTactic.GetProperty("phases")[0]
+            .GetProperty("jobs").GetProperty("flankers")
+            .GetProperty("core");
+        Assert.Equal("enemy", core.GetProperty("well").GetString());
+        Assert.Equal("own", core.GetProperty("preposition")
+            .GetProperty("well").GetString());
+        Assert.Equal("enemy", normalizedTactic.GetProperty("phases")[0]
+            .GetProperty("continue")[0].GetProperty("required")
+            .GetProperty("coreBanked").GetProperty("well").GetString());
+        Assert.Equal("own", normalizedTactic.GetProperty("start")
+            .GetProperty("cases")[0].GetProperty("required")
+            .GetProperty("workshopReady").GetProperty("workshop")
+            .GetString());
+
+        Assert.Equal(normalized,
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(normalized));
+        ArcRelayTacticalPlaybookCompiler.CompileTactics(normalized);
+    }
+
+    [Fact]
     public void RelayDeliveryMaterializesSoloTossThenOrdinaryReclaim()
     {
         TacticalPlaybookCompilation compilation =
@@ -71,6 +111,141 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Contains("\"target\": \"own-reactor\"", orders);
         Assert.DoesNotContain(
             "\"target\": \"nearest-ally-toward-own-reactor\"", orders);
+    }
+
+    [Fact]
+    public void PhaseCoreIntentOverridesGroupDefaultAndCarriesFilters()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        JsonArray phases = tactic["phases"]!.AsArray();
+        phases[0]!["jobs"]!["flankers"]!["core"] = JsonNode.Parse(
+            """{"rule":"ignore"}""");
+        phases[1]!["jobs"]!["flankers"]!["core"] = JsonNode.Parse(
+            """
+            {"rule":"hunt","well":"enemy",
+             "preposition":{"well":"own","ticks":12},
+             "coreBankValue":{"operator":"equals","value":4}}
+            """);
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
+        Assert.False(shared.TryGetProperty("t1-p1-g2-grab", out _));
+
+        JsonElement hunt = shared.GetProperty("t1-p2-g2-hunt-core")
+            .GetProperty("move");
+        Assert.Equal("nearest-known-loose-core",
+            hunt.GetProperty("to").GetString());
+        Assert.Equal("enemy", hunt.GetProperty("well").GetString());
+        Assert.Equal("equals", hunt.GetProperty("coreBankValue")
+            .GetProperty("operator").GetString());
+        Assert.Equal(4, hunt.GetProperty("coreBankValue")
+            .GetProperty("value").GetInt32());
+
+        JsonElement carrierFight = shared
+            .GetProperty("t1-p2-g2-hunt-carrier")
+            .GetProperty("fight");
+        Assert.Equal("enemy", carrierFight.GetProperty("well").GetString());
+        Assert.Equal(4, carrierFight.GetProperty("coreBankValue")
+            .GetProperty("value").GetInt32());
+
+        JsonElement preposition = shared
+            .GetProperty("t1-p2-g2-preposition-core");
+        Assert.Equal("own", preposition.GetProperty("move")
+            .GetProperty("to").GetProperty("well").GetString());
+        Assert.Equal("rear", preposition.GetProperty("move")
+            .GetProperty("posture").GetString());
+        string prepositionCondition = preposition.GetProperty("when")
+            .GetProperty("all").EnumerateArray()
+            .Select(value => value.GetString()!)
+            .Single(id => id.Contains("core-birth-soon", StringComparison.Ordinal));
+        JsonElement birthSoon = orders.RootElement.GetProperty("conditions")
+            .GetProperty(prepositionCondition);
+        Assert.Equal("well-ticks-until-birth",
+            birthSoon.GetProperty("fact").GetString());
+        Assert.Equal("own", birthSoon.GetProperty("well").GetString());
+        Assert.Equal(12, birthSoon.GetProperty("value").GetInt32());
+
+        Assert.Contains(orders.RootElement.GetProperty("conditions")
+            .EnumerateObject(), pair =>
+                pair.Value.TryGetProperty("fact", out JsonElement fact)
+                && fact.GetString()
+                    == "known-loose-cores"
+                && pair.Value.TryGetProperty("well", out JsonElement well)
+                && well.GetString() == "enemy"
+                && pair.Value.TryGetProperty(
+                    "coreBankValue", out JsonElement value)
+                && value.GetProperty("value").GetInt32() == 4);
+    }
+
+    [Fact]
+    public void CorePrepositioningNeedsACollectingRuleAndValidWindow()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject job = document["tactics"]![0]!["phases"]![0]!
+            ["jobs"]!["flankers"]!.AsObject();
+        job["core"] = JsonNode.Parse(
+            """{"rule":"hunt","preposition":{"well":"own","ticks":0}}""");
+        InvalidDataException badWindow = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("'ticks' must be in [1, 120]", badWindow.Message);
+
+        job["core"] = JsonNode.Parse(
+            """{"rule":"ignore","preposition":{"well":"own","ticks":12}}""");
+        InvalidDataException ignore = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("does not take filters or pre-positioning", ignore.Message);
+    }
+
+    [Fact]
+    public void PhaseCoreIntentCanTargetSomeGroupBotsWithoutSplittingCustody()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject job = document["tactics"]![0]!["phases"]![1]!
+            ["jobs"]!["flankers"]!.AsObject();
+        document["tactics"]![0]!["delivery"]!["plan"] = "escort";
+        job["core"] = JsonNode.Parse(
+            """
+            {"rule":"hunt","slots":[0,3,6],
+             "coreBankValue":{"operator":"at-least","value":2}}
+            """);
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement shared = orders.RootElement.GetProperty("sharedOrders");
+
+        // Three selected members share the filtered hunt; the other three
+        // retain the Group's ordinary grab rule. Both remain under the same
+        // group/phase custody wrapper rather than becoming new roles.
+        Assert.True(shared.TryGetProperty(
+            "t1-p2-g2-selected-hunt-core", out JsonElement selectedHunt));
+        Assert.True(shared.TryGetProperty(
+            "t1-p2-g2-default-grab", out JsonElement defaultGrab));
+        Assert.Equal(2, selectedHunt.GetProperty("move")
+            .GetProperty("coreBankValue").GetProperty("value").GetInt32());
+        Assert.False(defaultGrab.GetProperty("move")
+            .TryGetProperty("coreBankValue", out _));
+
+        string serialized = Encoding.UTF8.GetString(
+            compilation.MaterializedOrders!);
+        Assert.Contains("t1-p2-g2-screen-carrier", serialized);
+        Assert.Contains("t1-p2-g2-selected-hunt-carrier", serialized);
+        Assert.Contains("t1-p2-g2-default-grab", serialized);
     }
 
     [Fact]
@@ -500,6 +675,43 @@ public sealed class ArcRelayTacticsMaterializerTests
         JsonElement formation = orders.RootElement.GetProperty("conditions")
             .GetProperty("c-t1-p1-formation-ready");
         Assert.Equal(allowedLate, formation.GetProperty("value").GetInt32());
+    }
+
+    [Fact]
+    public void FormationReadinessCanWaitForNamedGroupsOnly()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["required"]!
+            ["groupsSet"] = JsonNode.Parse(
+                """{"allowedLate":0,"groups":["mid-guard"]}""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement formation = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p1-formation-ready");
+        Assert.Equal(2, formation.GetProperty("roles").GetArrayLength());
+        Assert.Equal(2, formation.GetProperty("zones").GetArrayLength());
+    }
+
+    [Fact]
+    public void FormationReadinessRejectsAnUnknownNamedGroup()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        document["tactics"]![0]!["phases"]![0]!["continue"]![0]!["required"]!
+            ["groupsSet"] = JsonNode.Parse(
+                """{"allowedLate":0,"groups":["missing"]}""");
+
+        InvalidDataException error = Assert.Throws<InvalidDataException>(() =>
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString())));
+        Assert.Contains("unknown group 'missing'", error.Message);
     }
 
     [Fact]
@@ -1142,6 +1354,35 @@ public sealed class ArcRelayTacticsMaterializerTests
             compilation.MaterializedMapPlan!);
         Assert.True(mapPlan.RootElement.GetProperty("routes")
             .TryGetProperty(route, out _));
+    }
+
+    [Fact]
+    public void CoreBankedRowCanFilterSourceWellAndScoringValue()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject phase = document["tactics"]![0]!["phases"]![0]!
+            .AsObject();
+        phase["continue"] = JsonNode.Parse(
+            """[{"required":{"coreBanked":{"well":"enemy","coreBankValue":{"operator":"equals","value":4}}}}]""");
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+        JsonElement bank = orders.RootElement.GetProperty("conditions")
+            .EnumerateObject()
+            .Select(property => property.Value)
+            .Single(value => value.GetProperty("fact").GetString()
+                == "friendly-core-banks");
+
+        Assert.Equal("phase-entry", bank.GetProperty("since").GetString());
+        Assert.Equal("enemy", bank.GetProperty("well").GetString());
+        JsonElement score = bank.GetProperty("coreBankValue");
+        Assert.Equal("equals", score.GetProperty("operator").GetString());
+        Assert.Equal(4, score.GetProperty("value").GetInt32());
     }
 
     [Fact]

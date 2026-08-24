@@ -16,7 +16,7 @@ export function workshopTrainingTile(
 ): Point | null {
   const order = workshop === 'own' ? ['south']
     : workshop === 'enemy' ? ['north']
-      : workshop === 'either' ? ['north', 'south'] : [workshop];
+      : ['north', 'south'];
   for (const id of order) {
     const tile = catalog.map.regions
       .find((region) => region.id === `veterancy-workshop-${id}-train`)?.tiles[0];

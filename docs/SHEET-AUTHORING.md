@@ -263,9 +263,9 @@ The finite fact catalog is:
 | Workshop | `workshop-ready`, `workshop-training`, `workshop-training-self`, `workshop-training-enemy`, `workshop-contested`, `workshop-dormant` |
 | history | `friendly-workshop-completions` (with the core-history facts above) |
 
-Role facts require `role`; zone facts require `zone`; Well facts require
-`well` (`north`, `centre`, `south`, `own`, or `enemy`). Workshop facts
-require `workshop` (`north`, `south`, `own`, `enemy`, or `either`) and read the veterancy
+Role facts require `role`; zone facts require `zone`; Well facts require the
+seat-relative `well` (`own`, `centre`, or `enemy`). Workshop facts require
+`workshop` (`own`, `enemy`, or `either`) and read the veterancy
 Workshop's public neutral state — the same state both teams always see, so
 none of them can leak a fogged position. `workshop-training` is true for any
 team's channel; the `-self`/`-enemy` forms narrow it.
@@ -283,7 +283,9 @@ current `signature` id plus `zone`; the latter also requires `role`.
 current carried Core came from that team-relative Well. `friendly-carriers-in-roles`
 requires one or more declared `roles` and may additionally filter by `well` and
 `coreBankValue`; it counts only current friendly carriers in that authored role
-scope. `self-nearest-visible-loose-core-distance` may take a `coreBankValue` filter,
+scope. `self-nearest-visible-loose-core-distance`, `known-loose-cores`,
+`visible-loose-cores`, and `visible-enemy-carriers` may take `well` and
+`coreBankValue` filters,
 and all three bounded service-distance facts are legal only as walking-step
 upper bounds. Core-history facts take the same explicit historical interval as
 the four zone-history facts, but no zone. They may filter by declared `roles`,
@@ -376,10 +378,10 @@ caster is free. This observes engine state; it is not an authored duration.
 - `{ "zone": "id" }`;
 - `{ "anchor": "id" }`; or
 - `{ "adjacentTo": "anchor-id" }`; or
-- `{ "well": "north|centre|south|own|enemy" }`; or
-- `{ "workshop": "north|south|own|enemy|either" }`, the veterancy Workshop's
-  rules-owned training tile. North/south name global rooms. Own/enemy select
-  the room nearest/farthest from this team's own Well, so strategic side
+- `{ "well": "own|centre|enemy" }`; or
+- `{ "workshop": "own|enemy|either" }`, the veterancy Workshop's
+  rules-owned training tile. Own/enemy select the room nearest/farthest from
+  this team's own Well, so strategic side
   intent mirrors with the entrant. `either` deterministically keeps the
   Workshop this team is already training at, else the nearest Ready one, else
   the nearest.
@@ -405,8 +407,9 @@ positioning relative to the destination, not a formation or combat behavior.
 
 `withinWalkingSteps` is legal only on `nearest-heal-zone` and the two visible
 Core targets. It measures the actual corner-strict terrain path, not bird's-eye
-distance; visible bodies remain transient traffic. `coreBankValue` is legal
-only on visible-Core moves and nearest-carrier Follow; the latter may also take
+distance; visible bodies remain transient traffic. `coreBankValue` and `well`
+are legal on visible- or known-loose-Core moves. `coreBankValue` is also legal
+on nearest-carrier Follow; the latter may also take
 `roles` and `well`. These are candidate filters, not hidden movement or pickup
 rules.
 
@@ -463,6 +466,12 @@ resets or advances its chase anchor.
 `style` is `advance`, `hold`, or `kite`.
 `chaseLimit` is `0..12` tiles from the body's position when the fight node
 entered; zero means fight in place.
+
+When `carrier` is among the targets, optional `well` and `coreBankValue`
+qualifiers restrict that selector to visible carriers holding a Core from the
+named source Well/value band. Other selectors in the same fight retain their
+ordinary meaning; use a carrier-only target list when the filter must be
+absolute.
 
 Tactics `hold` posture materializes a carrier-first Hold fight with a bounded
 five-tile defence leash. The fight may begin only from the body's authored
@@ -785,6 +794,25 @@ one-to-three-area union. Normal phase conditions show only formation/healing,
 contact/recent enemies/enemies down/verified clear/no local friendly fight, and
 Core loose/soon/acquired. Loaded hidden rows remain visible as Existing
 advanced until removed.
+
+Each phase job may also narrow its Group's Core objective to a source Well and
+Core value. It normally applies to the whole Group, but may name selected squad
+slots: those bots take the phase objective while the rest retain the Group's
+whole-Tactic Core default. This does not split formation or custody membership,
+so a support bot can remain an escort while declining a raider-only value
+filter. Player-owned sheets use only seat-relative `own`, `centre`, and `enemy`
+Well choices. Older Tactics drafts normalize from the west authoring view as
+north→enemy and south→own. Workshop authoring likewise uses `own`, `enemy`, or
+`either`. Global north/south ids remain in engine events and replay tools, not
+in either mirrored authoring grammar. Optional **Pre-position at / Return before birth** timing keeps
+that Group on its drawn posts or patrol while an independently selected Well's
+Core is active or the recharge is distant, then gives it an ordinary
+higher-priority move back to that Well
+inside the selected 1–120 tick window. A qualifying loose Core remains above
+the pre-position move, carriers remain under custody, and `ignore` cannot take
+this timing. This is compiler sugar over the public
+`well-ticks-until-birth` fact, not hidden Program state. The collection filter
+and pre-position Well may differ.
 
 Core custody is temporary inside the phase in which pickup happened. The
 carrier and, for an escorted plan, potential escorts from that carrier's

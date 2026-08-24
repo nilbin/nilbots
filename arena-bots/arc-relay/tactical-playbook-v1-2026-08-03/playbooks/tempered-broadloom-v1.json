@@ -191,7 +191,7 @@
                   "id": "t1-p1-g1-move",
                   "move": {
                     "to": {
-                      "workshop": "north"
+                      "workshop": "enemy"
                     },
                     "posture": "rear"
                   }

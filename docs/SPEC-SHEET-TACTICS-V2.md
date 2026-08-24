@@ -93,7 +93,7 @@ what phases are.
 
 | row | shape | legal in | meaning |
 |---|---|---|---|
-| `groupsSet` | `true` or `{ "allowedLate": 0..2 }` | continue (required only) | phase-entry lives are checked against their own ground; zero, one or two may remain late; dead/respawned lives cannot make readiness flap |
+| `groupsSet` | `true` or `{ "allowedLate": 0..2, "groups"?: [groupId, …] }` | continue (required only) | phase-entry lives in every selected Group (all Groups when omitted) are checked against their own ground; zero, one or two may remain late; dead/respawned lives cannot make readiness flap |
 | `held` | `{ "ticks": 1..600 }` | continue | this phase has been active N ticks |
 | `healed` | `{ "percent": 1..100 }` | all (required/unless only) | every LIVING bot is at ≥N% health — exact, per bot, the dead excuse themselves |
 | `enemiesAt` | `{ "count": 1..8, "zones": [{…}] }` | all | ≥N distinct enemies known across the one-to-three-zone union (team memory, 20-tick freshness) |
@@ -109,10 +109,11 @@ what phases are.
 | `cleared` | `{ "zones": [{…}] }` | all | every walkable tile in the one-to-three-zone union was checked through team vision in the rolling last 20 ticks and no unresolved enemy observation remains |
 | `notFighting` | `{ "zones": [{…}] }` | all | no selected friendly Fight intersects any tile in the union through its fighter, target or pending strike |
 | `coreAcquired` | `true` \| `{ "well": … }` | continue | a Core was PICKED UP since this phase began (the event, not the carrier snapshot — `carrier` is the snapshot); a well narrows it to that source's Core |
-| `coreBanked` / `coreLost` | `true` | continue (`coreLost` also abort) | Core evidence since phase entry |
+| `coreBanked` | `true` \| `{ "well": …, "coreBankValue"?: { "operator": "equals"\|"at-least"\|"at-most", "value": 1..4 } }` | continue | friendly bank evidence since phase entry; object form filters by the Core's source Well and scoring value |
+| `coreLost` | `true` | continue, abort | friendly Core-loss evidence since phase entry |
 | `reached` | `true` | continue | the phase's converge/advance group reached its destination |
 | `observed` | `true` | continue | the watchline stayed fully observed for 120 ticks |
-| `workshopReady` | `{ "workshop": "north"\|"south"\|"own"\|"enemy"\|"either" }` | start, continue | that Workshop (either = any) is publicly Ready |
+| `workshopReady` | `{ "workshop": "own"\|"enemy"\|"either" }` | start, continue | that seat-relative Workshop (either = any) is publicly Ready |
 | `workshopTraining` | `{ "workshop": …, "team"?: "self"\|"enemy"\|"any" }` | start, continue, abort | a body of that team is publicly channeling there (default any) |
 | `workshopContested` | `{ "workshop": … }` | start, continue, abort | living enemies stand in that Workshop's contest region |
 | `workshopDormant` | `{ "workshop": … }` | start, continue, abort | that Workshop is publicly recharging |
@@ -174,13 +175,43 @@ What a group DOES lives in each phase's job for it.
   "posts": [ { "at": [x,y], "facing": "n|e|s|w", "slot"?: n, "via"?: […] }, … ],
   "rect": [x1,y1,x2,y2], "path": [[x,y]… 2..16], "point": [x,y],
   "via": [[x,y]… 2..16],               // posts/area/line/approach/converge/return
-  "sigs": { "<classId>": mark }         // per phase now (was per stage/act)
+  "sigs": { "<classId>": mark },        // per phase now (was per stage/act)
+  "core"?: {                             // replace this Group's default HERE
+    "rule": "ignore|grab|hunt",
+    "slots"?: [0..7, ...],              // optional selected members; all when absent
+    "well"?: "own|centre|enemy",
+    "coreBankValue"?: { "operator": "equals|at-least|at-most", "value": 1..4 },
+    "preposition"?: { "well": "own|centre|enemy", "ticks": 1..120 }
+  }
 }
 ```
 
 Those are the normal authoring values. The parser retains the older job,
 posture, travel and recovery values as visible **Existing advanced** content;
 new controls do not create them.
+
+`core` is a phase-local Core objective. Absent means use the Group's
+whole-Tactic `coreRule`; present replaces it only while this phase is active.
+By default it applies to every Group member. Optional `slots` selects one or
+more distinct members of that Group; unselected members keep the whole-Tactic
+default while remaining in the same formation and pickup-phase custody escort.
+Selecting every member canonicalizes to an absent `slots`. This is ordinary
+per-role Instruction materialization, not a subgroup, reservation, or second
+runtime priority system.
+The optional filters name the Core's source Well and bank value. Every Well
+choice mirrors with the entrant: `own`, `centre`, or `enemy`. Older authored
+`north`/`south` selectors normalize from the west authoring view to
+`enemy`/`own`; global room ids remain replay evidence, not player vocabulary.
+A filtered hunt follows only qualifying known loose Cores and selects only a
+visible qualifying carrier for its dedicated carrier fight. Ordinary posture
+fights remain ordinary fights. With one filtered Well,
+`preposition` lets the Group keep its ordinary job while the independently
+named Well's Core is active or its recharge remains distant, then move to that
+Well shortly before its next birth. It need not match the Core filter: “hunt
+any low-value Core, but return to our Well before birth” is one ordinary Core
+intent. A qualifying loose Core remains the higher-priority objective. This is
+ordinary generated Instruction priority, not a timer or second scheduler.
+`ignore` takes no filters or pre-positioning.
 
 A post's optional `slot` names the bot it belongs to. Without it (older
 documents), posts pair with the group's `slots` by position. With it, every
@@ -198,13 +229,14 @@ Group's jobs rather than left behind.
 
 `kind: "train"` is **Train at Workshop**: the group must hold exactly one
 slot, `posture` must be `"wait"`, signature marks are refused, and the job
-carries `"workshop": "north"|"south"|"own"|"enemy"|"either"` instead of drawn geometry —
+carries `"workshop": "own"|"enemy"|"either"` instead of drawn geometry —
 the rules-owned training tile is resolved from the match contract's Workshop
 binding, never from authored coordinates, so the same document stays honest
-on any future map revision. North/south are global map identities. Own/enemy
-resolve at match time to the Workshop nearest/farthest from that team's own
-Well, so a strategic side choice mirrors with the entrant just like drawn
-ground; `either` keeps its deterministic availability/distance choice.
+on any future map revision. Own/enemy resolve at match time to the Workshop
+nearest/farthest from that team's own Well, so the choice mirrors with the
+entrant just like drawn ground; `either` keeps its deterministic
+availability/distance choice. Older north/south drafts normalize to these
+relative choices on load; global room ids remain engine and replay evidence.
 `travel` chooses the on-the-way behavior as usual; on arrival the body waits
 on the tile and the rules run the channel. Core custody outranks training: a
 `coreRule` that hands the trainee a Core suspends the channel until the Core
@@ -233,10 +265,10 @@ ground shares one tile instead of scattering to both.
 
 One Orders role per squad slot, as v1. Generated ids are ordinal and are the
 practice-attribution contract: per role, each tactic materializes ONE wrapper
-`t{n}` (tagged `phase:"t{n}"`) holding the tactic-scoped Core habits
-(delivery, coreRule — ids `t{n}-g{k}-{kind}`) and one wrapper per phase
-`t{n}-p{j}` (tagged `phase:"t{n}/p{j}"`) holding that phase's recovery,
-posture fight, signature and floor leaves (ids `t{n}-p{j}-g{k}-{kind}`).
+`t{n}` (tagged `phase:"t{n}"`) and one wrapper per phase `t{n}-p{j}`
+(tagged `phase:"t{n}/p{j}"`) holding that phase's Core objective, custody,
+recovery, posture fight, signature and floor leaves
+(ids `t{n}-p{j}-g{k}-{kind}`).
 Leaves are untagged — the wrappers are the whole gate. There is no release
 branch, per-body latch, stage wrapper, or `rejoin` anywhere.
 
@@ -247,9 +279,11 @@ keeps the ended Tactic dark on tick T; another eligible Tactic may begin on T,
 or the same one may begin fresh on T+1.
 
 `groupsSet` compiles to one squad-level `formation-late-count` fact. It freezes
-the lives present at phase entry, pairs every slot with its own effective
-ground, and compares the late count to `allowedLate`. A life dead at entry is
-excused; death while assembling excuses that life permanently for this phase;
+the lives present at phase entry in the selected Groups (or the whole tactic
+when `groups` is omitted), pairs every selected slot with its own effective
+ground, and compares the late count to `allowedLate`. This lets one front say
+“the raiders are set” without coupling release to an unrelated defending Group.
+A life dead at entry is excused; death while assembling excuses that life permanently for this phase;
 a respawn performs the active job but never re-enters the wait cohort. Posts
 always receive one per-slot Chebyshev-one zone, including eight-body groups, so
 one body cannot satisfy another slot's assigned post. `healed` compiles per bot:
