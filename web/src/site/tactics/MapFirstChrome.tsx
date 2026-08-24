@@ -118,8 +118,8 @@ export function MapFirstTimeline({
         <TacticsIconButton icon="core" label="Core plan"
           pressed={focus?.kind === 'cores'} contextTrigger
           onClick={() => onFocus({ kind: 'cores' })} />
-        <TacticsIconButton icon="abort"
-          label={`Abort: ${tactic.abort ? `${abortRows} condition${abortRows === 1 ? '' : 's'}` : 'not set'}`}
+      <TacticsIconButton icon="abort"
+          label={`Abort: ${tactic.abort ? `${abortRows} condition${abortRows === 1 ? '' : 's'}${tactic.abort.throughPhase ? ' · bounded' : ''}` : 'not set'}`}
           configured={Boolean(tactic.abort)} pressed={focus?.kind === 'abort'}
           testId="map-first-abort" contextTrigger
           onClick={() => onFocus({ kind: 'abort' })} />

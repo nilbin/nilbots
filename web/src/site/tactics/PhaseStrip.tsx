@@ -35,7 +35,9 @@ export function PhaseStrip({ tactic, big = false }: { tactic: Tactic; big?: bool
     finishes ? '✓ finish' : '∞ holds',
     finishes ? '#38d9c5' : '#b49cff',
     'end'));
-  if (tactic.abort) parts.push(chip('⨯ abort', '#f4526b', 'abort'));
+  if (tactic.abort) parts.push(chip(
+    tactic.abort.throughPhase ? '⨯ early abort' : '⨯ abort',
+    '#f4526b', 'abort'));
   return (
     <div className="mt-1 flex flex-wrap items-center gap-1 text-arena-dim">
       {parts}

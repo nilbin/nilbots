@@ -1,0 +1,579 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "shadow-dividend-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "aggressive", "name": "Vex" },
+    { "slot": 1, "class": "veil", "build": "scout", "name": "Shroud" },
+    { "slot": 2, "class": "towline", "build": "durable", "name": "Gaff" },
+    { "slot": 3, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 4, "class": "mason", "build": "durable", "name": "Flux" },
+    { "slot": 5, "class": "repulsor", "build": "durable", "name": "Hammer" },
+    { "slot": 6, "class": "hush", "build": "durable", "name": "Quiet" },
+    { "slot": 7, "class": "palisade", "build": "durable", "name": "Ember" }
+  ],
+  "tactics": [
+    {
+      "id": "shadow-dividend",
+      "name": "Shadow Dividend",
+      "recipe": "core-raid",
+      "start": {
+        "mode": "when",
+        "cases": [
+          {
+            "required": { "healed": { "percent": 1 } },
+            "unless": {
+              "enemiesAt": {
+                "count": 1,
+                "zones": [
+                  { "name": "enemy-well-lip", "rect": [24, 6, 26, 8] },
+                  { "name": "enemy-inner-ward", "rect": [24, 8, 26, 10] }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "abort": {
+        "throughPhase": "assemble-first",
+        "cases": [
+          {
+            "required": {
+              "enemiesAt": {
+                "count": 1,
+                "zones": [
+                  { "name": "enemy-well-lip", "rect": [24, 6, 26, 8] },
+                  { "name": "enemy-inner-ward", "rect": [24, 8, 26, 10] }
+                ]
+              }
+            }
+          }
+        ]
+      },
+      "delivery": { "plan": "escort", "preferredSlots": [0, 1, 2, 3] },
+      "groups": [
+        {
+          "id": "gallery-raiders",
+          "name": "Gallery raiders",
+          "slots": [0, 1, 2, 7],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "centre-screen",
+          "name": "Centre screen",
+          "slots": [5, 6],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "home-pair",
+          "name": "Home pair",
+          "slots": [3, 4],
+          "coreRule": "ignore"
+        }
+      ],
+      "phases": [
+        {
+          "id": "assemble-first",
+          "name": "Assemble the first breach",
+          "continue": [
+            {
+              "required": {
+                "groupsSet": {
+                  "allowedLate": 0,
+                  "groups": ["gallery-raiders"]
+                }
+              }
+            }
+          ],
+          "jobs": {
+            "gallery-raiders": {
+              "kind": "posts",
+              "posture": "observe",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "posts": [
+                {
+                  "at": [25, 3], "facing": "s", "slot": 0,
+                  "via": [[4, 9], [12, 2], [17, 1], [23, 3], [25, 3]]
+                },
+                {
+                  "at": [24, 6], "facing": "s", "slot": 1,
+                  "via": [[4, 9], [12, 2], [17, 1], [18, 4], [23, 6], [24, 6]]
+                },
+                {
+                  "at": [21, 5], "facing": "e", "slot": 2,
+                  "via": [[4, 9], [12, 2], [17, 1], [18, 4], [21, 5]]
+                },
+                {
+                  "at": [24, 3], "facing": "s", "slot": 7,
+                  "via": [[4, 9], [12, 2], [17, 1], [23, 3], [24, 3]]
+                }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": {
+                  "policy": "only",
+                  "line": [[21, 5], [27, 5]]
+                },
+                "7": { "policy": "smart" }
+              }
+            },
+            "centre-screen": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "posts": [
+                { "at": [14, 12], "facing": "e", "slot": 5 },
+                { "at": [13, 13], "facing": "e", "slot": 6 }
+              ],
+              "sigs": {
+                "5": { "policy": "smart" },
+                "6": { "policy": "smart" }
+              }
+            },
+            "home-pair": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "fight-on",
+              "posts": [
+                { "at": [9, 21], "facing": "e", "slot": 3 },
+                { "at": [10, 21], "facing": "e", "slot": 4 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" }
+              }
+            }
+          }
+        },
+        {
+          "id": "first-dividend",
+          "name": "Take the first four",
+          "custody": {
+            "plan": "escort",
+            "via": [[26, 7], [24, 4], [23, 3], [23, 1], [13, 1], [3, 13]]
+          },
+          "continue": [
+            {
+              "required": {
+                "coreBanked": {
+                  "well": "enemy",
+                  "coreBankValue": { "operator": "equals", "value": 4 }
+                }
+              }
+            }
+          ],
+          "jobs": {
+            "gallery-raiders": {
+              "kind": "posts",
+              "posture": "steal",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "slots": [0],
+                "well": "enemy",
+                "coreBankValue": { "operator": "equals", "value": 4 }
+              },
+              "posts": [
+                { "at": [26, 7], "facing": "e", "slot": 0 },
+                { "at": [27, 6], "facing": "e", "slot": 1 },
+                { "at": [24, 7], "facing": "e", "slot": 2 },
+                { "at": [24, 8], "facing": "e", "slot": 7 }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": { "policy": "smart" },
+                "7": { "policy": "smart" }
+              }
+            },
+            "centre-screen": {
+              "kind": "none",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "sigs": {
+                "5": { "policy": "smart" },
+                "6": { "policy": "smart" }
+              }
+            },
+            "home-pair": {
+              "kind": "none",
+              "posture": "hold",
+              "recovery": "fight-on",
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" }
+              }
+            }
+          }
+        },
+        {
+          "id": "reset-second-breach",
+          "name": "Rally for the second breach",
+          "continue": [
+            {
+              "required": {
+                "groupsSet": {
+                  "allowedLate": 1,
+                  "groups": ["gallery-raiders"]
+                },
+                "coreSoon": {
+                  "well": "enemy",
+                  "ticks": 5
+                }
+              }
+            },
+            {
+              "required": {
+                "groupsSet": {
+                  "allowedLate": 1,
+                  "groups": ["gallery-raiders"]
+                },
+                "held": { "ticks": 50 }
+              }
+            }
+          ],
+          "jobs": {
+            "gallery-raiders": {
+              "kind": "posts",
+              "posture": "observe",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "core": { "rule": "ignore" },
+              "posts": [
+                {
+                  "at": [25, 3], "facing": "s", "slot": 0,
+                  "via": [[3, 13], [13, 1], [18, 1], [23, 3], [25, 3]]
+                },
+                {
+                  "at": [26, 3], "facing": "s", "slot": 1,
+                  "via": [[3, 13], [13, 1], [18, 1], [23, 3], [26, 3]]
+                },
+                {
+                  "at": [21, 5], "facing": "e", "slot": 2,
+                  "via": [[3, 13], [13, 1], [18, 1], [21, 5]]
+                },
+                {
+                  "at": [24, 3], "facing": "s", "slot": 7,
+                  "via": [[3, 13], [13, 1], [18, 1], [23, 3], [24, 3]]
+                }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": {
+                  "policy": "only",
+                  "line": [[21, 5], [27, 5]]
+                },
+                "7": { "policy": "smart" }
+              }
+            },
+            "centre-screen": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "centre",
+                "coreBankValue": { "operator": "equals", "value": 2 }
+              },
+              "posts": [
+                { "at": [14, 12], "facing": "e", "slot": 5 },
+                { "at": [14, 14], "facing": "e", "slot": 6 }
+              ],
+              "sigs": {
+                "5": { "policy": "smart" },
+                "6": { "policy": "smart" }
+              }
+            },
+            "home-pair": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "fight-on",
+              "core": { "rule": "ignore" },
+              "posts": [
+                { "at": [9, 20], "facing": "s", "slot": 3 },
+                { "at": [10, 20], "facing": "s", "slot": 4 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" }
+              }
+            }
+          }
+        },
+        {
+          "id": "second-dividend",
+          "name": "Return for the second four",
+          "custody": {
+            "plan": "escort",
+            "via": [[26, 7], [24, 4], [23, 3], [23, 1], [13, 1], [3, 13]]
+          },
+          "continue": [
+            {
+              "required": {
+                "coreBanked": {
+                  "well": "enemy",
+                  "coreBankValue": { "operator": "equals", "value": 4 }
+                }
+              }
+            }
+          ],
+          "jobs": {
+            "gallery-raiders": {
+              "kind": "posts",
+              "posture": "steal",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "enemy",
+                "coreBankValue": { "operator": "equals", "value": 4 }
+              },
+              "posts": [
+                {
+                  "at": [26, 7], "facing": "e", "slot": 0,
+                  "via": [[25, 3], [26, 7]]
+                },
+                {
+                  "at": [27, 6], "facing": "e", "slot": 1,
+                  "via": [[26, 3], [27, 6]]
+                },
+                {
+                  "at": [26, 6], "facing": "e", "slot": 2,
+                  "via": [[21, 5], [26, 6]]
+                },
+                {
+                  "at": [24, 8], "facing": "e", "slot": 7,
+                  "via": [[24, 3], [24, 8]]
+                }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": { "policy": "smart" },
+                "7": { "policy": "smart" }
+              }
+            },
+            "centre-screen": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "centre",
+                "coreBankValue": { "operator": "equals", "value": 2 }
+              },
+              "posts": [
+                { "at": [14, 12], "facing": "e", "slot": 5 },
+                { "at": [14, 14], "facing": "e", "slot": 6 }
+              ],
+              "sigs": {
+                "5": { "policy": "smart" },
+                "6": { "policy": "smart" }
+              }
+            },
+            "home-pair": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "fight-on",
+              "core": { "rule": "ignore" },
+              "posts": [
+                { "at": [9, 20], "facing": "s", "slot": 3 },
+                { "at": [10, 20], "facing": "s", "slot": 4 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" }
+              }
+            }
+          }
+        },
+        {
+          "id": "second-centre-dividend",
+          "name": "Take the next two",
+          "custody": { "plan": "escort" },
+          "jobs": {
+            "gallery-raiders": {
+              "kind": "none",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "centre",
+                "coreBankValue": { "operator": "equals", "value": 2 }
+              },
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": { "policy": "smart" },
+                "7": { "policy": "smart" }
+              }
+            },
+            "centre-screen": {
+              "kind": "none",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "centre",
+                "coreBankValue": { "operator": "equals", "value": 2 }
+              },
+              "sigs": {
+                "5": { "policy": "smart" },
+                "6": { "policy": "smart" }
+              }
+            },
+            "home-pair": {
+              "kind": "none",
+              "posture": "hold",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "own",
+                "coreBankValue": { "operator": "equals", "value": 1 }
+              },
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "shadow-reversal",
+      "name": "Shadow Reversal",
+      "recipe": "pincer",
+      "start": { "mode": "always" },
+      "delivery": { "plan": "escort", "preferredSlots": [0, 1, 2, 3] },
+      "groups": [
+        {
+          "id": "reversal-raiders",
+          "name": "Rear jaw",
+          "slots": [0, 2, 6],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "reversal-front",
+          "name": "Front jaw",
+          "slots": [1, 5, 7],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "reversal-interdictor",
+          "name": "Lane interdictor",
+          "slots": [4],
+          "coreRule": "ignore"
+        },
+        {
+          "id": "reversal-home",
+          "name": "Home runner",
+          "slots": [3],
+          "coreRule": "ignore"
+        }
+      ],
+      "phases": [
+        {
+          "id": "close-on-centre",
+          "name": "Close on the centre",
+          "custody": { "plan": "escort" },
+          "jobs": {
+            "reversal-raiders": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "centre",
+                "coreBankValue": { "operator": "equals", "value": 2 }
+              },
+              "posts": [
+                { "at": [20, 10], "facing": "w", "slot": 0 },
+                { "at": [20, 12], "facing": "w", "slot": 2 },
+                { "at": [20, 14], "facing": "w", "slot": 6 }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "2": { "policy": "smart" },
+                "6": {
+                  "policy": "prefer",
+                  "points": [[23, 14]]
+                }
+              }
+            },
+            "reversal-front": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "centre",
+                "coreBankValue": { "operator": "equals", "value": 2 }
+              },
+              "posts": [
+                { "at": [17, 14], "facing": "e", "slot": 1 },
+                { "at": [17, 12], "facing": "e", "slot": 5 },
+                { "at": [17, 13], "facing": "e", "slot": 7 }
+              ],
+              "sigs": {
+                "1": { "policy": "smart" },
+                "5": { "policy": "smart" },
+                "7": { "policy": "smart" }
+              }
+            },
+            "reversal-interdictor": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "core": { "rule": "ignore" },
+              "posts": [
+                { "at": [19, 11], "facing": "s", "slot": 4 }
+              ],
+              "sigs": {
+                "4": {
+                  "policy": "only",
+                  "points": [[19, 12]]
+                }
+              }
+            },
+            "reversal-home": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "fight-on",
+              "core": {
+                "rule": "hunt",
+                "well": "own",
+                "coreBankValue": { "operator": "equals", "value": 1 }
+              },
+              "posts": [
+                { "at": [9, 20], "facing": "e", "slot": 3 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -9895,3 +9895,35 @@ The admission is not a macro-depth settlement. Like Sevenfold, the sheet still
 allocates seven bodies to centre pressure and one to the own Well. The next
 counter should test a genuinely different spatial investment rather than
 assuming another refinement of the 7+1 shell is sufficient.
+
+## 373. Player Tactics may split the squad into as many as eight Groups
+
+The former one-to-three Group limit was an editor-era simplification, not a
+runtime invariant. A whole-team Tactic may now contain one to eight Groups—the
+eight-bot squad size—and formation readiness may name up to all eight. The
+same bound applies to generated Orders custody groups. This permits two jaws,
+a dedicated deployment interdictor, a home runner, or even eight individually
+governed bodies without inventing nested roles or another priority system.
+
+Eight is a ceiling, not a recommended starting shape. Recipes remain free to
+create one to three comprehensible Groups. The editor supplies eight distinct
+Group colors and proves an eight one-body formation/readiness/custody document
+end to end.
+
+## 374. Shadow Dividend is Broadloom-7 ladder rung 9, with a macro warning
+
+`shadow-dividend-v1` is admitted after winning every prior sheet's fixed
+mirrored six-cell series: 42 wins and six losses across 48 reactor-destruction
+matches. All pass movement sanity and felt eligibility. The eight-class sheet
+observes two enemy-Well guard areas during assembly: an unguarded opening sends
+four outer-route raiders through plotted Hook/Screen opportunities for two +4
+Cores; a guarded opening aborts only that phase and falls through to two
+three-body centre jaws, one plotted Mason interdictor, and one own-Well Relay.
+
+The admission does not establish nine independent strategies. Sixfold,
+Shrouded, Eclipse, Sevenfold and Rail are mainly one Lattice/centre-
+concentration family, while Shadow retains a Lattice-like fallback. Rail's
+static 143-line sheet remains a 4–2 opponent for Shadow's adaptive 579-line
+sheet. Keep every entrant as regression/evolution evidence, but treat this
+compression as a balance and evaluation warning: future work needs a matchup
+matrix of genuinely different archetypes alongside the monotonic ladder.

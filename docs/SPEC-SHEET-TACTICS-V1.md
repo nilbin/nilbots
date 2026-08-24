@@ -54,7 +54,7 @@ booleans.
            | { "mode": "ready-when", "conds": { …rows… } },
   "finish":  { "outcomes": { …flags… }, "maxAttempt": "none|brief|standard|long" },
   "delivery": { "plan": "none|solo|escort", "preferredSlots": [6] },
-  "groups":  [ … 1..3 … ]
+  "groups":  [ … 1..8 … ]
 }
 ```
 

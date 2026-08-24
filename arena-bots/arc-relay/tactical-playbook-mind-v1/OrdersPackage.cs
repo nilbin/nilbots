@@ -244,7 +244,11 @@ internal sealed class OrdersPackage
                 tactic.TryGetProperty("rearm", out JsonElement rearm)
                     ? rearm.GetInt32()
                     : 0,
-                [.. phases]));
+                [.. phases],
+                tactic.TryGetProperty(
+                    "abortThroughPhase", out JsonElement abortThroughPhase)
+                    ? abortThroughPhase.GetString()
+                    : null));
         }
         return new SquadProgram([.. tactics]);
     }
@@ -765,7 +769,8 @@ internal sealed class OrdersPackage
         ProgramCase[]? Abort,
         int? MaxTicks,
         int Rearm,
-        ProgramPhase[] Phases);
+        ProgramPhase[] Phases,
+        string? AbortThroughPhase = null);
 
     internal sealed record ProgramPhase(
         string Id,

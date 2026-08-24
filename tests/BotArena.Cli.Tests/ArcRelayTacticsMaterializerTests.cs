@@ -55,6 +55,78 @@ public sealed class ArcRelayTacticsMaterializerTests
     }
 
     [Fact]
+    public void EightIndependentGroupsAndReadinessSelectionCompile()
+    {
+        JsonObject document = JsonNode.Parse(File.ReadAllBytes(Path.Combine(
+            TacticsFixtureDirectory(), "falling-star-prediction.json")))!
+            .AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        JsonArray phases = tactic["phases"]!.AsArray();
+        JsonObject firstPhase = phases[0]!.AsObject();
+        JsonObject sourceJobs = firstPhase["jobs"]!.AsObject();
+        var groups = new JsonArray();
+        var jobs = new JsonObject();
+        var groupIds = new JsonArray();
+
+        for (int slot = 0; slot < 8; slot++)
+        {
+            string id = $"unit-{slot + 1}";
+            string sourceId = slot == 2
+                ? "trainee"
+                : slot < 2 ? "raiders" : "holdings";
+            string coreRule = slot == 2
+                ? "ignore"
+                : slot < 2 ? "hunt" : "grab";
+            groups.Add(new JsonObject
+            {
+                ["id"] = id,
+                ["name"] = $"Unit {slot + 1}",
+                ["slots"] = new JsonArray(slot),
+                ["coreRule"] = coreRule,
+            });
+            groupIds.Add(id);
+
+            JsonObject job = sourceJobs[sourceId]!.DeepClone().AsObject();
+            if (sourceId == "holdings")
+            {
+                JsonNode post = job["posts"]!.AsArray().Single(value =>
+                    value!["slot"]!.GetValue<int>() == slot)!;
+                job["posts"] = new JsonArray(post.DeepClone());
+                if (slot != 3)
+                    job.Remove("sigs");
+            }
+            jobs[id] = job;
+        }
+
+        tactic["groups"] = groups;
+        firstPhase["jobs"] = jobs;
+        firstPhase["custody"] = new JsonObject { ["plan"] = "escort" };
+        firstPhase["continue"] = new JsonArray(new JsonObject
+        {
+            ["required"] = new JsonObject
+            {
+                ["groupsSet"] = new JsonObject
+                {
+                    ["allowedLate"] = 0,
+                    ["groups"] = groupIds,
+                },
+            },
+        });
+        JsonObject finalPhase = firstPhase.DeepClone().AsObject();
+        finalPhase["id"] = "hold-after-ready";
+        finalPhase["name"] = "Hold after ready";
+        finalPhase.Remove("continue");
+        phases.Add(finalPhase);
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+
+        Assert.True(compilation.UsesOrderTree);
+        Assert.Equal(8, compilation.Composition.Length);
+    }
+
+    [Fact]
     public void GlobalPlaceDraftsAreRejectedFromMirroredTactics()
     {
         JsonObject document = JsonNode.Parse(
@@ -573,6 +645,34 @@ public sealed class ArcRelayTacticsMaterializerTests
         Assert.Equal("workshop-training-enemy",
             condition.GetProperty("fact").GetString());
         Assert.Equal("enemy", condition.GetProperty("workshop").GetString());
+    }
+
+    [Fact]
+    public void AbortMayStopBeingCheckedAfterAnAuthoredCommitmentPhase()
+    {
+        JsonObject document = JsonNode.Parse(
+            ArcRelayTacticalPlaybookCompiler.MigrateTactics(
+                Fixture("pincer")))!.AsObject();
+        JsonObject tactic = document["tactics"]![0]!.AsObject();
+        string firstPhase = tactic["phases"]![0]!["id"]!.GetValue<string>();
+        tactic["abort"] = new JsonObject
+        {
+            ["throughPhase"] = firstPhase,
+            ["cases"] = JsonNode.Parse(
+                """[{"required":{"contact":true}}]"""),
+        };
+
+        TacticalPlaybookCompilation compilation =
+            ArcRelayTacticalPlaybookCompiler.CompileTactics(
+                Encoding.UTF8.GetBytes(document.ToJsonString()));
+        using JsonDocument orders = JsonDocument.Parse(
+            compilation.MaterializedOrders!);
+
+        JsonElement programTactic = orders.RootElement.GetProperty("program")
+            .GetProperty("tactics").EnumerateArray().First();
+        Assert.Equal("p1",
+            programTactic.GetProperty("abortThroughPhase").GetString());
+        Assert.Single(programTactic.GetProperty("abort").EnumerateArray());
     }
 
     [Fact]
@@ -1313,6 +1413,8 @@ public sealed class ArcRelayTacticsMaterializerTests
             """{"plan":"keep"}""");
         phases[1]!.AsObject()["custody"] = JsonNode.Parse(
             """{"plan":"escort","via":[[15,12],[8,8],[3,5]]}""");
+        phases[1]!["jobs"]!["flankers"]!["core"] = JsonNode.Parse(
+            """{"rule":"hunt","well":"enemy"}""");
         TacticalPlaybookCompilation compilation =
             ArcRelayTacticalPlaybookCompiler.CompileTactics(
                 Encoding.UTF8.GetBytes(document.ToJsonString()));
@@ -1326,11 +1428,17 @@ public sealed class ArcRelayTacticsMaterializerTests
             bank.GetProperty("move").GetProperty("to").GetString());
         string route = bank.GetProperty("move").GetProperty("via").GetString()!;
         Assert.Equal("g-t1-p2-carry", route);
-        // The corridor belongs to the phase's ground: the via'd bank gates
-        // on standing there, and a Core grabbed elsewhere banks direct.
+        // The routed Core choice is stable provenance, not the carrier's
+        // current tile: leaving the Well room must not hand control to the
+        // direct fallback and reverse the route.
         string[] bankWhen = bank.GetProperty("when").GetProperty("all")
             .EnumerateArray().Select(value => value.GetString()!).ToArray();
-        Assert.Contains("c-t1-p2-home-from-ground", bankWhen);
+        Assert.Contains("c-t1-p2-home-from-enemy-core", bankWhen);
+        JsonElement routeGate = orders.RootElement.GetProperty("conditions")
+            .GetProperty("c-t1-p2-home-from-enemy-core");
+        Assert.Equal("self-carrying-core-from-well",
+            routeGate.GetProperty("fact").GetString());
+        Assert.Equal("enemy", routeGate.GetProperty("well").GetString());
         JsonElement direct = shared.GetProperty("t1-p2-g2-bank-direct");
         Assert.False(direct.GetProperty("move").TryGetProperty("via", out _));
         Assert.True(shared.TryGetProperty("t1-p2-g2-screen-carrier", out _));

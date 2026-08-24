@@ -611,12 +611,19 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
 
         List<ArcRelayTacticCase>? abortCases = null;
+        string? abortThroughPhase = null;
         if (value.TryGetProperty("abort", out JsonElement abort))
         {
-            Object(abort, $"{path}.abort", ["cases"]);
+            Object(abort, $"{path}.abort", ["cases"], ["throughPhase"]);
             abortCases = ValidateCases(
                 abort.GetProperty("cases"), $"{path}.abort.cases",
                 width, height, TacticAbortRows, maximum: 2);
+            if (abort.TryGetProperty(
+                    "throughPhase", out JsonElement throughPhase))
+            {
+                abortThroughPhase = StringValue(
+                    throughPhase, $"{path}.abort.throughPhase");
+            }
         }
 
         string maxDuration = "none";
@@ -629,7 +636,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
         }
 
         JsonElement[] groupValues = BoundedArray(
-            value.GetProperty("groups"), $"{path}.groups", 1, 3);
+            value.GetProperty("groups"), $"{path}.groups", 1, 8);
         var groups = new List<ArcRelayTacticGroup>(groupValues.Length);
         var groupIds = new HashSet<string>(StringComparer.Ordinal);
         var assigned = new HashSet<int>();
@@ -732,6 +739,12 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 "the first phase needs at least one group with drawn "
                 + "geometry; later phases may carry it forward.");
         }
+        if (abortThroughPhase is not null
+            && !phaseIds.Contains(abortThroughPhase))
+        {
+            throw Error($"{path}.abort.throughPhase",
+                $"unknown phase '{abortThroughPhase}'.");
+        }
         // Transitions validate after every phase id is known: targets are
         // forward-only, and only the final phase may hold forever.
         for (int index = 0; index < phaseValues.Length; index++)
@@ -805,6 +818,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             id, name, recipe,
             startCases,
             abortCases,
+            abortThroughPhase,
             maxDuration,
             new ArcRelayTacticDelivery(plan, preferred),
             groups,
@@ -1401,7 +1415,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                 if (groupsSetValue.TryGetProperty(
                         "groups", out JsonElement groupsValue))
                 {
-                    groups = BoundedArray(groupsValue, $"{at}.groups", 1, 3)
+                    groups = BoundedArray(groupsValue, $"{at}.groups", 1, 8)
                         .Select((entry, index) => StringValue(
                             entry, $"{at}.groups[{index}]"))
                         .ToArray();
@@ -1785,6 +1799,7 @@ internal sealed record ArcRelayTactic(
     string Recipe,
     IReadOnlyList<ArcRelayTacticCase>? Start,
     IReadOnlyList<ArcRelayTacticCase>? Abort,
+    string? AbortThroughPhase,
     string MaxDuration,
     ArcRelayTacticDelivery Delivery,
     IReadOnlyList<ArcRelayTacticGroup> Groups,

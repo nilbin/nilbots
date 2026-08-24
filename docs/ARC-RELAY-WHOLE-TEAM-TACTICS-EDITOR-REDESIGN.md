@@ -29,7 +29,7 @@ is generated and not normally shown.
 ### Tactic
 
 Every Tactic is one complete operation for the entire team. All eight bots must
-belong to exactly one tactic-local Group. Normally a Tactic has one to three
+belong to exactly one tactic-local Group. A Tactic may have one to eight
 Groups.
 
 Groups replace the useful part of Roles without retaining their complexity:

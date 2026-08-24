@@ -713,7 +713,7 @@ The product loop is **change → practice → watch → change**.
 The player-owned document is `arc-relay-tactics-v2`
 ([SPEC-SHEET-TACTICS-V2.md](SPEC-SHEET-TACTICS-V2.md)): a squad of eight
 named bots plus an ordered list of whole-team **Tactics**. Each Tactic is one
-committed operation: Groups are membership (one to three, every bot in
+committed operation: Groups are membership (one to eight, every bot in
 exactly one), and ordered named **phases** say what every Group does. Normal
 authoring has four ground choices: assigned Posts, a convergence point, an
 area, or a patrol loop. A later phase that does not replace a Group's ground

@@ -1680,18 +1680,23 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             return ResolveSmartRailTargets(
                 contract, mind, arc, body, signature, out decline);
         }
+        // Explicit geometry is player intent and must resolve before the
+        // catalog's generic opportunity token. In particular, a plotted
+        // Towline ray is the only form allowed to spend authored wall breach;
+        // routing it through pull-enemy-carrier silently converted the line
+        // back into ordinary visible/locked Smart targeting.
+        if (use.TargetKind == "ray")
+        {
+            ResolvedTarget? ray = ResolveAuthoredRayUse(
+                contract, mind, arc, package, body, use, out decline);
+            return ray is null ? [] : [ray];
+        }
         if (ArenaBasics.ArcRules(contract)?.SignatureGrammarVersion >= 4
             && use.Opportunity is "pull-enemy-carrier"
                 or "paint-supported-enemy")
         {
             return ResolvePriorityEnemySignatureTargets(
                 contract, mind, arc, body, use, signature, out decline);
-        }
-        if (use.TargetKind == "ray")
-        {
-            ResolvedTarget? ray = ResolveAuthoredRayUse(
-                contract, mind, arc, package, body, use, out decline);
-            return ray is null ? [] : [ray];
         }
         if (use.TargetKind == "route")
         {
@@ -1987,7 +1992,18 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
             null,
             null,
             $"authored-ray-{use.Target}");
-        if (!CanExecuteUse(contract, body, target, use))
+        GenericActorRulesContract.ArcRelaySignature? signature =
+            ArenaBasics.ArcRules(contract)?.Signatures.FirstOrDefault(value =>
+                value.SignatureId == use.Skill || value.Kind == use.Skill);
+        bool legal = signature?.Kind == "tractor-hook"
+            ? ArenaBasics.CanUseAuthoredHeadingSignature(
+                contract,
+                body,
+                signature.Kind,
+                target.Position,
+                signature.AuthoredWallPenetrationTiles ?? 0)
+            : CanExecuteUse(contract, body, target, use);
+        if (!legal)
         {
             decline = $"signature-{use.Skill}-ray-illegal";
             return null;
@@ -3812,6 +3828,17 @@ public sealed class ArcRelayTacticalPlaybookMind : IGenericMindBot
         if (unit && target.Actor is ActorIdentity actor)
             return ArenaBasics.TryUnitSignature(
                 contract, body, signature.Kind, actor, trace);
+        if (heading && use.TargetKind == "ray"
+            && signature.Kind == "tractor-hook")
+        {
+            return ArenaBasics.TryAuthoredHeadingSignature(
+                contract,
+                body,
+                signature.Kind,
+                target.Position,
+                trace,
+                signature.AuthoredWallPenetrationTiles ?? 0);
+        }
         if (heading)
             return ArenaBasics.TryHeadingSignature(
                 contract, body, signature.Kind, target.Position, trace);

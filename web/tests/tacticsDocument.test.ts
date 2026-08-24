@@ -481,6 +481,46 @@ test('missing geometry and double assignment are named in player language', () =
   assert.ok(messages.some((message) => /needs one post per bot/.test(message)));
 });
 
+test('a tactic may govern all eight bots as eight independent Groups', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const { tactic } = instantiateRecipe(recipeById('hold-area'), document);
+  const sourceGroup = tactic.groups[0];
+  const phase = tactic.phases[0];
+  const sourceJob = phase.jobs[sourceGroup.id];
+
+  tactic.groups = document.squad.map((bot) => ({
+    id: `unit-${bot.slot + 1}`,
+    name: `Unit ${bot.slot + 1}`,
+    slots: [bot.slot],
+    coreRule: 'ignore',
+  }));
+  phase.jobs = Object.fromEntries(tactic.groups.map((group) => {
+    const job = freshJob('posts', 'hold');
+    job.travel = sourceJob.travel;
+    job.recovery = sourceJob.recovery;
+    job.posts = [{
+      at: [3 + group.slots[0], 5], facing: 'e', slot: group.slots[0],
+    }];
+    return [group.id, job];
+  }));
+  phase.continue = [{ required: { groupsSet: {
+    allowedLate: 0,
+    groups: tactic.groups.map((group) => group.id),
+  } } }];
+  document.tactics.push(tactic);
+
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'),
+    []);
+
+  tactic.groups.push({
+    id: 'unit-9', name: 'Unit 9', slots: [], coreRule: 'ignore',
+  });
+  assert.ok(validateDocument(document, catalog).some((issue) =>
+    /one to eight Groups/.test(issue.message)));
+});
+
 test('a post on a wall is caught before the server sees it', () => {
   const catalog = makeCatalog();
   const document = makeDocument(catalog);
@@ -688,6 +728,25 @@ test('current-state rows read in every context and healed inverts under unless',
     validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
   const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
   assert.match(sentence, /unless everyone is healed to 80%/);
+});
+
+test('an opening abort may stop being checked after an authored phase', () => {
+  const catalog = makeCatalog();
+  const document = makeDocument(catalog);
+  const tactic = drawnPincer(document);
+  tactic.abort = {
+    throughPhase: tactic.phases[0].id,
+    cases: [{ required: { contact: true } }],
+  };
+  document.tactics.push(tactic);
+
+  assert.deepEqual(
+    validateDocument(document, catalog).filter((issue) => issue.severity === 'error'), []);
+  const reparsed = parseDocument(stringifyDocument(document));
+  assert.equal(reparsed.tactics[0].abort?.throughPhase, tactic.phases[0].id);
+  const sentence = summarize(tactic, (slot) => document.squad[slot]?.name ?? null);
+  assert.match(sentence, /but only through/);
+  assert.match(sentence, new RegExp(tactic.phases[0].name));
 });
 
 test('a rout window pairs with an event row and reads back', () => {

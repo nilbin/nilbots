@@ -2065,11 +2065,34 @@ internal static class ArenaBasics
         string signatureKind,
         Position target,
         string reason)
+        => TryHeadingSignature(
+            contract, body, signatureKind, target, reason,
+            authoredWallPenetrationTiles: 0);
+
+    public static bool TryAuthoredHeadingSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        Position target,
+        string reason,
+        int authoredWallPenetrationTiles)
+        => TryHeadingSignature(
+            contract, body, signatureKind, target, reason,
+            authoredWallPenetrationTiles);
+
+    private static bool TryHeadingSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        Position target,
+        string reason,
+        int authoredWallPenetrationTiles)
     {
         if (!TryResolveHeadingSignature(
                 contract, body, signatureKind, target,
                 out GenericActorActionLegality? action,
-                out ProjectileHeading heading))
+                out ProjectileHeading heading,
+                authoredWallPenetrationTiles))
         {
             return false;
         }
@@ -2088,13 +2111,23 @@ internal static class ArenaBasics
         Position target) => TryResolveHeadingSignature(
             contract, body, signatureKind, target, out _, out _);
 
+    public static bool CanUseAuthoredHeadingSignature(
+        GenericActorResolvedMatchContract contract,
+        MindBody body,
+        string signatureKind,
+        Position target,
+        int authoredWallPenetrationTiles) => TryResolveHeadingSignature(
+            contract, body, signatureKind, target, out _, out _,
+            authoredWallPenetrationTiles);
+
     private static bool TryResolveHeadingSignature(
         GenericActorResolvedMatchContract contract,
         MindBody body,
         string signatureKind,
         Position target,
         out GenericActorActionLegality action,
-        out ProjectileHeading heading)
+        out ProjectileHeading heading,
+        int authoredWallPenetrationTiles = 0)
     {
         GenericActorRulesContract.ArcRelaySignature? signature = Signature(
             contract,
@@ -2115,7 +2148,12 @@ internal static class ArenaBasics
                 out int distance)
             || signature?.Range is int range && distance > range
             || !headings.AllowedValues.Contains(heading)
-            || !ClearRay(contract.Map, body.Position, target, true))
+            || !ClearRay(
+                contract.Map,
+                body.Position,
+                target,
+                strictCorners: true,
+                authoredWallPenetrationTiles))
         {
             return false;
         }
@@ -3306,26 +3344,43 @@ internal static class ArenaBasics
         GenericActorMapContract map,
         Position source,
         Position target,
-        bool strictCorners)
+        bool strictCorners,
+        int authoredWallPenetrationTiles = 0)
     {
+        if (authoredWallPenetrationTiles < 0)
+            return false;
         int dx = Math.Sign(target.X - source.X);
         int dy = Math.Sign(target.Y - source.Y);
         Position cursor = source;
+        int remainingWallTiles = authoredWallPenetrationTiles;
         while (cursor != target)
         {
             Position next = cursor.Offset(dx, dy);
-            if (next != target && !CanEnter(map, next))
-                return false;
-            if (strictCorners && dx != 0 && dy != 0
+            bool blocked = !CanEnter(map, next)
+                || strictCorners && dx != 0 && dy != 0
                 && (!CanEnter(map, cursor.Offset(dx, 0))
-                    || !CanEnter(map, cursor.Offset(0, dy))))
+                    || !CanEnter(map, cursor.Offset(0, dy)));
+            if (blocked && remainingWallTiles == 0)
             {
                 return false;
             }
+            if (blocked)
+                remainingWallTiles--;
             cursor = next;
         }
         return true;
     }
+
+    internal static bool AuthoredHeadingRayIsClear(
+        GenericActorMapContract map,
+        Position source,
+        Position target,
+        int authoredWallPenetrationTiles) => ClearRay(
+            map,
+            source,
+            target,
+            strictCorners: true,
+            authoredWallPenetrationTiles);
 
     internal static bool CanStep(
         GenericActorMapContract map,

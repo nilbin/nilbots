@@ -313,7 +313,10 @@ export interface Tactic {
   name: string;
   recipe: RecipeId;
   start: { mode: StartMode; cases?: TacticCase[] };
-  abort?: { cases: TacticCase[] };
+  /** Optional inclusive phase boundary. Absent means the abort remains live
+   * for the whole Tactic; a value means it is checked only through that
+   * authored phase. */
+  abort?: { cases: TacticCase[]; throughPhase?: string };
   /** Deliberately minor: absent means no limit. */
   maxDuration?: MaxDuration;
   delivery: { plan: DeliveryPlan; preferredSlots?: number[] };
@@ -515,7 +518,10 @@ export function postFacingIssue(
   return null;
 }
 
-export const GROUP_COLORS = ['#22d3ee', '#f0a35e', '#b49cff'];
+export const GROUP_COLORS = [
+  '#22d3ee', '#f0a35e', '#b49cff', '#4ade80',
+  '#fb7185', '#60a5fa', '#facc15', '#e879f9',
+];
 
 export function groupColor(tactic: Tactic, groupId: string): string {
   const index = tactic.groups.findIndex((group) => group.id === groupId);
@@ -832,6 +838,10 @@ export function normalizeDocument(document: unknown): TacticsDocument {
     };
     for (const entry of tactic.start.cases ?? []) normalizeCase(entry);
     for (const entry of tactic.abort?.cases ?? []) normalizeCase(entry);
+    if (tactic.abort?.throughPhase
+      && !tactic.phases?.some((phase) => phase.id === tactic.abort?.throughPhase)) {
+      delete tactic.abort.throughPhase;
+    }
     for (const phase of tactic.phases ?? []) {
       for (const rule of phase.continue ?? []) {
         // Explicit jumps were removed from the product. Array order is the
@@ -1042,8 +1052,8 @@ export function validateDocument(
   document.tactics.forEach((tactic, tacticIndex) => {
     const at = `tactics[${tacticIndex}]`;
     const assigned = new Set<number>();
-    if (tactic.groups.length === 0 || tactic.groups.length > 3) {
-      error(`${at}.groups`, `${tactic.name} needs one to three Groups.`);
+    if (tactic.groups.length === 0 || tactic.groups.length > 8) {
+      error(`${at}.groups`, `${tactic.name} needs one to eight Groups.`);
     }
     tactic.groups.forEach((group, groupIndex) => {
       const groupAt = `${at}.groups[${groupIndex}]`;
@@ -1073,6 +1083,11 @@ export function validateDocument(
     const phaseIds = tactic.phases.map((phase) => phase.id);
     if (new Set(phaseIds).size !== phaseIds.length) {
       error(`${at}.phases`, `${tactic.name} has two phases with the same id.`);
+    }
+    if (tactic.abort?.throughPhase
+      && !phaseIds.includes(tactic.abort.throughPhase)) {
+      error(`${at}.abort.throughPhase`,
+        `${tactic.name} checks its abort through a phase that no longer exists.`);
     }
     if (!tactic.phases[0]
       || !tactic.groups.some((group) =>
@@ -1230,9 +1245,9 @@ export function validateDocument(
             const selectedIds = readiness.groups
               ?? tactic.groups.map((group) => group.id);
             if (readiness.groups && (readiness.groups.length < 1
-              || readiness.groups.length > 3
+              || readiness.groups.length > 8
               || new Set(readiness.groups).size !== readiness.groups.length)) {
-              error(ruleAt, '“Formation is ready” needs one to three unique Groups.');
+              error(ruleAt, '“Formation is ready” needs one to eight unique Groups.');
             }
             const unknown = selectedIds.find((id) =>
               !tactic.groups.some((group) => group.id === id));

@@ -43,11 +43,14 @@ derive from names for attribution).
 {
   "id": "pincer-1", "name": "Mid Pincer", "recipe": "pincer",  // provenance only
   "start":  { "mode": "always" } | { "mode": "when", "cases": [ Case… ≤3 ] },
-  "abort":  { "cases": [ Case… ≤2 ] },          // optional, checked every phase
+  "abort":  {                                    // optional
+    "cases": [ Case… ≤2 ],
+    "throughPhase"?: "phase-id"                 // absent = checked every phase;
+  },                                              // present = inclusive boundary
   "maxDuration": "brief|standard|long",          // optional minor field;
                                                  //   absent = no limit
   "delivery": { "plan": "none|solo|escort", "preferredSlots": [6] },
-  "groups":  [ … 1..3, membership only … ],
+  "groups":  [ … 1..8, membership only … ],
   "phases":  [ … 1..8, ordered … ]
 }
 ```
@@ -160,6 +163,13 @@ What a group DOES lives in each phase's job for it.
   Tactic. An entered phase is never re-checked against its entry condition.
   New documents omit `to`; matching legacy `next`/`finish` spellings normalize
   away, while arbitrary jumps are rejected.
+- A Tactic abort normally remains live in every phase. Optional
+  `abort.throughPhase` makes that phase an inclusive commitment boundary: the
+  same abort cases are checked up to and including it, then are no longer
+  evaluated in later phases. This lets an observed opening defence cancel
+  staging without reinterpreting the same bodies as a retreat signal after an
+  authored assault has begun. It does not add a jump or a second priority
+  system; an actual abort still ends the Tactic and rereads the Sheet.
 - The first phase needs at least one group with drawn geometry.
 - An empty/absent `continue` on the final phase is the explicit persistent
   form: the operation holds there until abort, duration, or the match.
@@ -273,6 +283,7 @@ Leaves are untagged — the wrappers are the whole gate. There is no release
 branch, per-body latch, stage wrapper, or `rejoin` anywhere.
 
 The program table carries the lifecycle: start/abort cases row-for-row,
+an optional abort commitment boundary resolved to the phase's ordinal id,
 `maxDuration` → `maxTicks` (60/180/420), `rearm: 0`, and each phase's
 continue rules resolved to the next ordinal (`p{j}`) or finish. Completion
 keeps the ended Tactic dark on tick T; another eligible Tactic may begin on T,

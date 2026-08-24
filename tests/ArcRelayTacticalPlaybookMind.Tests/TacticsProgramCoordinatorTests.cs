@@ -204,6 +204,29 @@ public sealed class TacticsProgramCoordinatorTests
     }
 
     [Fact]
+    public void BoundedAbortStopsBeingCheckedAfterItsCommitmentPhase()
+    {
+        var coordinator = new TacticsProgramCoordinator(Program(
+            new OrdersPackage.ProgramTactic(
+                "t1", "t1", null, Aborts("defended"), null, 0,
+                [
+                    Phase("p1", Go("next", "release")),
+                    Phase("p2"),
+                ],
+                AbortThroughPhase: "p1")));
+        _facts.Add("release");
+        Step(coordinator, 0);
+        Assert.Equal("p2", Step(coordinator, 1).PhaseId);
+
+        _facts.Add("defended");
+        TacticsProgramCoordinator.View view = Step(coordinator, 2);
+
+        Assert.Null(view.Marker);
+        Assert.Equal("t1", view.TacticId);
+        Assert.Equal("p2", view.PhaseId);
+    }
+
+    [Fact]
     public void MaxTicksExpiresTheTacticFromItsEntryTick()
     {
         var coordinator = new TacticsProgramCoordinator(Program(

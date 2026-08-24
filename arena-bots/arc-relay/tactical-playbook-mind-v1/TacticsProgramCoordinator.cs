@@ -117,7 +117,11 @@ internal sealed class TacticsProgramCoordinator
                 End($"max-duration-{active.Id}");
                 Select();
             }
-            else if (AnyCase(active.Abort, phaseTicks, out int abortCase))
+            else if ((active.AbortThroughPhase is null
+                    || _phaseIndex <= Array.FindIndex(
+                        active.Phases,
+                        phase => phase.Id == active.AbortThroughPhase))
+                && AnyCase(active.Abort, phaseTicks, out int abortCase))
             {
                 End($"abort-{active.Id}[c{abortCase + 1}]");
                 Select();

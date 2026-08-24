@@ -168,12 +168,30 @@ export function StartStep({
             triggerKinds={noEveryoneRows(ABORT_ROWS)}
             unlessKinds={noReadinessRows(ABORT_ROWS)}
             makeCase={() => ({ required: {} })}
-            onChange={(cases) => change((next) => { next.abort = { cases }; })}
+            onChange={(cases) => change((next) => { next.abort!.cases = cases; })}
             watching={watchFor('abort')}
             onDrawWatch={(caseIndex, side, row, zoneIndex) =>
               startWatchTask({ scope: 'abort', caseIndex, side, row, zoneIndex })}
             onStopWatch={endTask}
           />
+          <label className="lab mt-2 block" htmlFor="abort-through-phase">
+            Keep checking this abort
+          </label>
+          <select id="abort-through-phase" className="field w-full"
+            value={tactic.abort.throughPhase ?? ''}
+            onChange={(event) => change((next) => {
+              if (event.target.value) next.abort!.throughPhase = event.target.value;
+              else delete next.abort!.throughPhase;
+            })}>
+            <option value="">Throughout the whole Tactic</option>
+            {tactic.phases.map((phase) => (
+              <option value={phase.id} key={phase.id}>Through “{phase.name}” only</option>
+            ))}
+          </select>
+          <p className="t-micro mt-1 text-arena-dim">
+            An opening read can stop after commitment: selecting a phase keeps the abort
+            active up to and including that phase, then leaves later phases latched.
+          </p>
           <p className="t-micro mt-1 text-arena-dim">After an abort the whole Sheet is reread —
             a higher emergency Tactic (a Regroup gated on the same losses) can take over,
             and this one may later restart from its first phase.</p>
@@ -398,7 +416,7 @@ export function GroupsStep({ catalog, document, wizard, change, arm, notify }: S
       </div>
     ))}
     <div className="flex items-center gap-2">
-      {tactic.groups.length < 3 && (
+      {tactic.groups.length < 8 && (
         <button type="button" className="btn"
           onClick={() => change((next) => {
             const group = freshGroup(next.groups);

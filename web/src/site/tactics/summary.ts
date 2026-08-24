@@ -305,7 +305,11 @@ export function startClause(tactic: Tactic): string | null {
 
 export function abortClause(tactic: Tactic): string | null {
   const clause = casesClause(tactic.abort?.cases);
-  return clause ? `Aborts if ${clause}` : null;
+  if (!clause) return null;
+  const through = tactic.abort?.throughPhase
+    ? tactic.phases.find((phase) => phase.id === tactic.abort?.throughPhase)
+    : null;
+  return `Aborts if ${clause}${through ? `, but only through “${through.name}”` : ''}`;
 }
 
 export function deliveryClause(

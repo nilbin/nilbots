@@ -697,7 +697,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
             JsonElement tactic = tactics[index];
             string at = $"{path}.tactics[{index}]";
             Object(tactic, at, ["id", "name", "phases"],
-                ["start", "abort", "maxTicks", "rearm"]);
+                ["start", "abort", "abortThroughPhase", "maxTicks", "rearm"]);
             string id = Identifier(tactic, "id", at);
             if (id.Length > 24)
                 throw Error($"{at}.id", "tactic id exceeds 24 characters.");
@@ -743,7 +743,7 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                         "custodyGroups", out JsonElement custodyGroups))
                 {
                     JsonElement[] groups = BoundedArray(
-                        custodyGroups, $"{phaseAt}.custodyGroups", 1, 3);
+                        custodyGroups, $"{phaseAt}.custodyGroups", 1, 8);
                     var seen = new HashSet<int>();
                     for (int group = 0; group < groups.Length; group++)
                     {
@@ -762,6 +762,22 @@ public static partial class ArcRelayTacticalPlaybookCompiler
                             }
                         }
                     }
+                }
+            }
+            if (tactic.TryGetProperty(
+                    "abortThroughPhase", out JsonElement abortThroughPhase))
+            {
+                if (!tactic.TryGetProperty("abort", out _))
+                {
+                    throw Error($"{at}.abortThroughPhase",
+                        "an abort phase boundary needs abort cases.");
+                }
+                string abortPhaseId = StringValue(
+                    abortThroughPhase, $"{at}.abortThroughPhase");
+                if (!phaseIds.Contains(abortPhaseId))
+                {
+                    throw Error($"{at}.abortThroughPhase",
+                        $"unknown phase '{abortPhaseId}'.");
                 }
             }
             consumers.DeclaredProgramTags.Add(id);

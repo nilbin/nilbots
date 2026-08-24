@@ -31,7 +31,7 @@ export default function DocsPage() {
         <p>
           A sheet is a squad of eight bots plus an ordered list of whole-team
           <b> Tactics</b>. Each Tactic is one committed operation in ordered, named
-          phases: every phase says what each of its one to three temporary Groups does
+          phases: every phase says what each of its one to eight temporary Groups does
           on the map — exact posts, an area, a picket line, a quiet approach, a
           convergence, a push, a patrol, the run home — and carries a latched
           “Continue when…” that moves the whole squad forward together. Transitions

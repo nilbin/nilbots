@@ -305,6 +305,10 @@ internal static class ArcRelayTacticsMaterializer
                 List<CaseSpec>? abort = tactic.Abort?
                     .Select(value => BuildCase(prefix, "abort", value, phase: null, tactic))
                     .ToList();
+                string? abortThroughPhase = tactic.AbortThroughPhase is null
+                    ? null
+                    : $"p{tactic.Phases.ToList().FindIndex(phase =>
+                        phase.Id == tactic.AbortThroughPhase) + 1}";
                 var phases = new List<ProgramPhaseSpec>();
                 for (int phaseIndex = 0; phaseIndex < tactic.Phases.Count; phaseIndex++)
                 {
@@ -356,7 +360,8 @@ internal static class ArcRelayTacticsMaterializer
                         _ => null,
                     },
                     RearmTicks,
-                    phases));
+                    phases,
+                    abortThroughPhase));
             }
             return new ProgramSpec(tactics);
         }
@@ -905,7 +910,8 @@ internal static class ArcRelayTacticsMaterializer
                             prefix, groupTag, effective!, group, bot));
                 }
                 AddCustodyMovement(
-                    leaves, scope, tactic, phase, group, bot,
+                    leaves, scope, tactic, phase, group,
+                    raw.Core ?? fallbackCore, bot,
                     prefix, phaseIndex, groundZone);
                 AddScanLeaves(
                     leaves, scope, tactic, phase, group, effective);
@@ -1128,6 +1134,7 @@ internal static class ArcRelayTacticsMaterializer
             ArcRelayTactic tactic,
             ArcRelayTacticPhaseDef phase,
             ArcRelayTacticGroup group,
+            ArcRelayTacticCoreIntent core,
             ArcRelayTacticsSquadBot bot,
             string prefix,
             int phaseIndex,
@@ -1156,20 +1163,30 @@ internal static class ArcRelayTacticsMaterializer
                 ? null
                 : Route(phase.Custody.Via,
                     $"g-{prefix}-p{phaseIndex + 1}-carry");
-            // The drawn way home belongs to THIS phase's ground: a carrier
-            // standing there banks by the corridor, and one who grabbed a
-            // Core elsewhere (a centre pickup mid-fight, or a phase swap
-            // mid-run) banks direct instead of marching to the corridor's
-            // far mouth first. Compiled as a gated pair so the choice is
-            // visible in the orders, not a planner heuristic.
-            string? onGround = via is null ? null : groundZone() is string zone
-                ? Condition(
-                    new ConditionShape("self-in-zone", "equals", 1,
-                        ZoneId: zone),
-                    $"c-{prefix}-p{phaseIndex + 1}-home-from-ground")
-                : null;
+            // Prefer stable Core provenance over the carrier's CURRENT tile.
+            // A route selected because this phase hunts the enemy-Well Core
+            // must remain selected after the carrier leaves the Well room;
+            // otherwise the direct fallback pulls it back across the route
+            // seam. The source-Well fact survives the whole Core lifecycle,
+            // including a drop and friendly recapture. A route with no
+            // authored source filter retains the older ground gate so an
+            // accidental mid-map pickup does not march to a far route mouth.
+            string? routedCarry = via is null
+                ? null
+                : core.Well is string well
+                    ? Condition(
+                        new ConditionShape(
+                            "self-carrying-core-from-well", "equals", 1,
+                            Well: well),
+                        $"c-{prefix}-p{phaseIndex + 1}-home-from-{well}-core")
+                    : groundZone() is string zone
+                        ? Condition(
+                            new ConditionShape("self-in-zone", "equals", 1,
+                                ZoneId: zone),
+                            $"c-{prefix}-p{phaseIndex + 1}-home-from-ground")
+                        : null;
             AddDeliveryLeaves(
-                leaves, scope, plan, via, group, onGround);
+                leaves, scope, plan, via, group, routedCarry);
         }
 
         private void AddSignatureCommitment(
@@ -2462,6 +2479,11 @@ internal static class ArcRelayTacticsMaterializer
                 writer.WriteString("name", tactic.Name);
                 WriteCases(writer, "start", tactic.Start);
                 WriteCases(writer, "abort", tactic.Abort);
+                if (tactic.AbortThroughPhase is not null)
+                {
+                    writer.WriteString(
+                        "abortThroughPhase", tactic.AbortThroughPhase);
+                }
                 if (tactic.MaxTicks is int maxTicks)
                     writer.WriteNumber("maxTicks", maxTicks);
                 writer.WriteNumber("rearm", tactic.Rearm);
@@ -2526,7 +2548,8 @@ internal static class ArcRelayTacticsMaterializer
         IReadOnlyList<CaseSpec>? Abort,
         int? MaxTicks,
         int Rearm,
-        IReadOnlyList<ProgramPhaseSpec> Phases);
+        IReadOnlyList<ProgramPhaseSpec> Phases,
+        string? AbortThroughPhase);
 
     private sealed record ProgramPhaseSpec(
         string Id,

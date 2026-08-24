@@ -223,6 +223,7 @@ runtime coordinator executes once per tick, before any body evaluates:
   "id": "t1", "name": "Mid Pincer",   // id ≤24 kebab; name ≤48 display
   "start":  [ Case… ],                // optional, 1..4; absent = always
   "abort":  [ Case… ],                // optional, 1..4; checked every phase
+  "abortThroughPhase": "p1",         // optional inclusive boundary; needs abort
   "maxTicks": 420,                    // optional, 1..1200, from tactic entry
   "rearm": 40,                        // 0..1200 ticks before reselection
   "phases": [ {                       // 1..8, ordered and named
@@ -246,6 +247,9 @@ Coordinator contract, in tick order:
 2. **Abort/duration**: on an active tactic (never on its entry tick),
    `abort` cases and `maxTicks` end the run, stamp `rearm`
    (`tick + 1 + rearm`), and reselect the list the same tick.
+   `abortThroughPhase`, when present, stops evaluating abort cases after that
+   phase; duration remains tactic-wide. The boundary names a declared phase
+   and does not itself cause a transition.
 3. **Transition**: the current phase's `continue` rules evaluate in authored
    order; the first true one fires — to the next phase, a strictly LATER
    named phase, or `finish` (which reselects like an abort). At most one
