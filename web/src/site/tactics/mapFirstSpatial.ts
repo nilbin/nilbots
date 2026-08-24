@@ -231,8 +231,12 @@ export function formationObjectivePoint(
   if (objective === 'mid') {
     return [Math.floor(catalog.map.width / 2), Math.floor(catalog.map.height / 2)];
   }
-  const id = objective === 'well-own' ? 'well-north'
-    : objective === 'well-centre' ? 'well-centre' : 'well-south';
+  // The canvas is the single west-seat authoring view: its own Well is the
+  // globally south room and its enemy Well is the globally north room. The
+  // saved document keeps only the seat-relative objective; match-time
+  // mirroring rotates the resulting ground for an east-seat entrant.
+  const id = objective === 'well-own' ? 'well-south'
+    : objective === 'well-centre' ? 'well-centre' : 'well-north';
   const region = catalog.map.regions.find((value) => value.id === id);
   const tile = region?.tiles[0];
   return tile ? [tile.x, tile.y] : null;

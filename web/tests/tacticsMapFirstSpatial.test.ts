@@ -153,3 +153,9 @@ test('suggested formations are deterministic, distinct, legal and face the objec
     else assert.equal(post.facing, dy >= 0 ? 's' : 'n');
   }
 });
+
+test('well formation objectives use the mirrored sheet perspective', () => {
+  assert.deepEqual(formationObjectivePoint(catalog, 'well-own'), [11, 7]);
+  assert.deepEqual(formationObjectivePoint(catalog, 'well-centre'), [7, 5]);
+  assert.deepEqual(formationObjectivePoint(catalog, 'well-enemy'), [4, 3]);
+});
