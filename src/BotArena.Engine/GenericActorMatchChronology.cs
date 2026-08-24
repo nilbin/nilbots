@@ -1821,12 +1821,19 @@ public sealed record GenericActorMatchChronology
         List<ArcRelaySignatureState> lineTells =
         [
             .. state.VisibleSignatures.Where(signature =>
-                signature.Phase
-                    == ArcRelaySignatureState.SignaturePhase.Tell
-                && signature.Kind is
-                    ArcRelaySignatureDefinition.SignatureKind.RailLine
-                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook2
-                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook3),
+                (signature.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Tell
+                    && signature.Kind is
+                        ArcRelaySignatureDefinition.SignatureKind.RailLine
+                        or ArcRelaySignatureDefinition.SignatureKind
+                            .TractorHook2
+                        or ArcRelaySignatureDefinition.SignatureKind
+                            .TractorHook3)
+                || (signature.Phase
+                        == ArcRelaySignatureState.SignaturePhase.Active
+                    && signature.Kind
+                        == ArcRelaySignatureDefinition.SignatureKind
+                            .SentinelSeed3)),
         ];
         var sessionOwned = ImmutableArray.CreateBuilder<
             GenericActorRuntimeObservation.ArcRelayPendingStrikeState>();
@@ -1835,12 +1842,21 @@ public sealed record GenericActorMatchChronology
         {
             int matchingTell = lineTells.FindIndex(signature =>
                 signature.OwnerActorId == strike.Shooter
-                && signature.CompletesAtTick == strike.ResolveAtTick
-                && signature.TargetActorId == strike.Target
-                // The signature publishes the tracked LINE; the shared strike
-                // wire publishes its frozen CONE. The former is a subset of
-                // the latter by construction.
-                && signature.Positions.All(strike.Tiles.Contains));
+                && (signature.Kind
+                        == ArcRelaySignatureDefinition.SignatureKind
+                            .SentinelSeed3
+                    // A planted Sentinel remains Active while its autonomous
+                    // shot owns a separate pending-line clock. Its operation
+                    // state therefore identifies the tell by owner and gun
+                    // origin; the shared strike wire carries the shot's
+                    // resolve tick, target and cone.
+                    ? signature.Positions.Contains(strike.Origin)
+                    : signature.CompletesAtTick == strike.ResolveAtTick
+                        && signature.TargetActorId == strike.Target
+                        // The signature publishes the tracked LINE; the shared
+                        // strike wire publishes its frozen CONE. The former is
+                        // a subset of the latter by construction.
+                        && signature.Positions.All(strike.Tiles.Contains)));
             if (matchingTell >= 0)
             {
                 lineTells.RemoveAt(matchingTell);

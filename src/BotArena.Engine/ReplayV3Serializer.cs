@@ -8170,7 +8170,7 @@ internal static class ReplayV3Serializer
         if (invalid)
         {
             throw new ArgumentException(
-                $"Replay-v3 {context} Arc Relay fact is invalid.");
+                $"Replay-v3 {context} Arc Relay fact is invalid: {fact}.");
         }
     }
 

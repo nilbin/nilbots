@@ -278,15 +278,22 @@ internal sealed class ArcRelayActorMatchModeDriver
         core.NextRelocationTick = checked(
             tick + _gameMode.CoreRelocationIntervalTicks);
         var events = ImmutableArray.CreateBuilder<GenericActorModeEvent>();
-        events.Add(Spatial(
-            new ArcRelayEvent.CoreRelocated(
-                core.CoreId,
-                CarrierActorId: null,
-                from,
-                landing,
-                core.NextRelocationTick,
-                ArcRelayEvent.CoreRelocationKind.ArcTossLanding),
-            landing));
+        // A ray that meets a wall on its first edge settles where it left.
+        // The landing still clears flight and advances the object-owned
+        // relocation clock, but it is not a relocation fact: replay-v3
+        // correctly reserves CoreRelocated for a real position change.
+        if (landing != from)
+        {
+            events.Add(Spatial(
+                new ArcRelayEvent.CoreRelocated(
+                    core.CoreId,
+                    CarrierActorId: null,
+                    from,
+                    landing,
+                    core.NextRelocationTick,
+                    ArcRelayEvent.CoreRelocationKind.ArcTossLanding),
+                landing));
+        }
         GenericActorModeActiveLife? catcher = world.ActiveLives
             .Where(value => value.ActorId.TeamId == ownerActorId.TeamId
                 && value.Position == landing

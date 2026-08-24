@@ -306,6 +306,10 @@ public sealed class ArcRelaySignatureLockTests
         Assert.Empty(contact.PostState.Projectiles);
         Assert.Equal(50, arena.Body(contact, 1, 0).Health);
         Assert.Equal(40, arena.Body(contact, 1, 1).Health);
+        // Materializing the chronology validates the boundary where the
+        // autonomous Sentinel tell disappears from the shared pending-strike
+        // wire while its durable deployment remains Active.
+        Assert.NotEmpty(arena.Chronology.Ticks);
     }
 
     [Fact]

@@ -179,6 +179,51 @@ public sealed class ArcRelayCoreInvariantTests
     }
 
     [Fact]
+    public void BlockedArcTossLandingSettlesWithoutANoOpRelocationFact()
+    {
+        ActorResolvedMatchDefinition definition = ArcRelayH0Definition.Create();
+        var driver = new ArcRelayActorMatchModeDriver(definition, matchSeed: 0);
+        Position centre = State(driver).Wells.Single(value =>
+            value.WellId == "centre").Position;
+        driver.PrepareTick(25, World(Life(Carrier, centre)));
+
+        var blocked = definition.Map.TileRows
+            .SelectMany((row, y) => row.Select((tile, x) =>
+                (Tile: tile, From: new Position(x, y),
+                    Requested: new Position(x + 1, y))))
+            .First(value => value.Tile != '#'
+                && definition.Map.IsWall(value.Requested));
+        Position from = blocked.From;
+        Position requested = blocked.Requested;
+        driver.ResolveForcedMovement(
+            27,
+            [Carrier],
+            World(Life(Carrier, from)));
+        Assert.NotEmpty(driver.LaunchArcToss(
+            29,
+            Carrier,
+            requested,
+            completesAtTick: 30));
+
+        ArcRelayEvent[] facts = Facts(driver.LandArcToss(
+            30,
+            Carrier,
+            requested,
+            World()));
+
+        Assert.Empty(facts.OfType<ArcRelayEvent.CoreRelocated>());
+        ArcRelayEvent.CoreDropped settled = Assert.Single(
+            facts.OfType<ArcRelayEvent.CoreDropped>());
+        Assert.Equal(ArcRelayEvent.CoreDropKind.ArcTossLanding, settled.Kind);
+        Assert.Equal(from, settled.Position);
+        ArcRelayCoreState core = State(driver).VisibleCores.Single();
+        Assert.Equal(from, core.Position);
+        Assert.Equal(32, core.NextRelocationTick);
+        Assert.Null(core.FlightTarget);
+        Assert.Null(core.FlightCompletesAtTick);
+    }
+
+    [Fact]
     public void PendingChargeRemainsPublicThroughoutItsRearmRing()
     {
         var driver = new ArcRelayActorMatchModeDriver(
