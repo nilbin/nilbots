@@ -65,7 +65,7 @@ test('the wizard runs Start → Groups → Phases → Cores → Review', () => {
     /'start'[\s\S]*?'groups'[\s\S]*?'phases'[\s\S]*?'cores'[\s\S]*?'review'/);
   assert.match(steps, /when does this Tactic apply at all\?/);
   assert.match(steps, /it is committed: it keeps control until it finishes, aborts/);
-  assert.match(steps, /Split the whole team into up to three temporary Groups/);
+  assert.match(steps, /Split the whole team into up to eight temporary Groups/);
   assert.match(steps, /The operation, phase by phase\./);
   assert.match(steps, /Abort when…/);
   assert.match(steps, /Read it back\. If the sentences say what you meant, it’s ready\./);

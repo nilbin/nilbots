@@ -313,6 +313,100 @@ public sealed class ArcRelaySignatureLockTests
     }
 
     [Fact]
+    public void ExpiringSentryDoesNotReclassifyItsOwnersOrdinaryGunTell()
+    {
+        // A deployment does not block movement, so its Nest can stand on the
+        // exact Sentry tile and declare an ordinary gun strike from the same
+        // origin. When the deployment expires at the next tick start, the
+        // unchanged gun tell remains session-owned; the lifecycle validator
+        // must not mistake that stable tell for a newly-created strike.
+        string[] nestSheet =
+        [
+            ArcRelayLaunchClassIds.Nest,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Veil,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Mortar,
+            ArcRelayLaunchClassIds.Minesmith,
+        ];
+        Position seed = Shooter.Offset(1, 0);
+        using Arena arena = Arena.Create(
+            Zero(Shooter),
+            One(new Position(6, 5)),
+            teamZeroClasses: nestSheet,
+            loopProfile: ArcRelayLoopProfile.Broadloom7);
+
+        arena.Step((0, 0, arena.Seed(seed)));
+        arena.Step((0, 0, Arena.Move(Direction.East)));
+        for (int tick = 2; tick < 30; tick++)
+            arena.Step();
+
+        GenericActorMatchStepResult declared = arena.Step(
+            (0, 0, arena.Shoot(ProjectileHeading.East, target: 0)));
+        ArcRelaySignatureState active = Assert.Single(
+            Arena.Signatures(declared),
+            value => value.Kind
+                == ArcRelaySignatureDefinition.SignatureKind.SentinelSeed3);
+        Assert.Equal(seed, Assert.Single(active.Positions));
+        Assert.Equal(31, active.EndsAtTick);
+        Assert.Contains(
+            Arena.PendingStrikes(declared),
+            value => value.Shooter.TeamId == 0
+                && value.Shooter.UnitId == 0
+                && value.Origin == seed
+                && value.ResolveAtTick == 31);
+
+        GenericActorMatchStepResult resolved = arena.Step();
+        Assert.DoesNotContain(
+            Arena.Signatures(resolved),
+            value => value.Kind
+                == ArcRelaySignatureDefinition.SignatureKind.SentinelSeed3);
+        Assert.Equal(40, arena.Body(resolved, 1, 0).Health);
+        Assert.NotEmpty(arena.Chronology.Ticks);
+    }
+
+    [Fact]
+    public void ExpiringSentryMayRemoveItsOwnAutonomousTellAtTickStart()
+    {
+        string[] nestSheet =
+        [
+            ArcRelayLaunchClassIds.Nest,
+            ArcRelayLaunchClassIds.Towline,
+            ArcRelayLaunchClassIds.Veil,
+            ArcRelayLaunchClassIds.Palisade,
+            ArcRelayLaunchClassIds.Patchbay,
+            ArcRelayLaunchClassIds.Lantern,
+            ArcRelayLaunchClassIds.Mortar,
+            ArcRelayLaunchClassIds.Minesmith,
+        ];
+        Position seed = Shooter.Offset(1, 0);
+        using Arena arena = Arena.Create(
+            Zero(Shooter),
+            One(new Position(6, 5)),
+            teamZeroClasses: nestSheet,
+            loopProfile: ArcRelayLoopProfile.Broadloom7);
+
+        arena.Step((0, 0, arena.Seed(seed)));
+        arena.Step((0, 0, Arena.Move(Direction.East)));
+        for (int tick = 2; tick < 30; tick++)
+            arena.Step();
+
+        GenericActorMatchStepResult declared = arena.Step(
+            (1, 0, Arena.Move(Direction.North)));
+        GenericActorRuntimeObservation.ArcRelayPendingStrikeState pending =
+            Assert.Single(Arena.PendingStrikes(declared));
+        Assert.Equal(seed, pending.Origin);
+        Assert.Equal(31, pending.ResolveAtTick);
+
+        GenericActorMatchStepResult expired = arena.Step();
+        Assert.Empty(Arena.PendingStrikes(expired));
+        Assert.Equal(50, arena.Body(expired, 1, 0).Health);
+        Assert.NotEmpty(arena.Chronology.Ticks);
+    }
+
+    [Fact]
     public void Broadloom7AuthoredBlindHookRayKeepsItsOneWallBreach()
     {
         using Arena arena = Arena.Create(
@@ -512,6 +606,25 @@ public sealed class ArcRelaySignatureLockTests
                         new GenericActorRuntimeActionArgument
                             .ProjectileHeadingArgument(heading),
                     ],
+                null);
+        }
+
+        public GenericActorRuntimeDecision Shoot(
+            ProjectileHeading heading,
+            int target)
+        {
+            ActorActionDefinition action = Action(
+                ArcRelayH0Definition.ShootActionId);
+            return new GenericActorRuntimeDecision(
+                action.Id,
+                action.Code,
+                [
+                    new GenericActorRuntimeActionArgument
+                        .ProjectileHeadingArgument(heading),
+                    new GenericActorRuntimeActionArgument.UnitTargetArgument(
+                        new GenericActorRuntimeActionArgument.UnitTarget(
+                            1, target)),
+                ],
                 null);
         }
 

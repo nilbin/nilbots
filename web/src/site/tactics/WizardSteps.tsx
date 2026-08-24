@@ -317,7 +317,7 @@ export function GroupsStep({ catalog, document, wizard, change, arm, notify }: S
   const hot = (target: string | null) =>
     dragSlot !== null && dropTarget === target;
   return <>
-    <p className="t-meta">Split the whole team into up to three temporary Groups. They live only
+    <p className="t-meta">Split the whole team into up to eight temporary Groups. They live only
       inside this Tactic — every bot belongs to exactly one, through every phase.</p>
     <div className="flex items-center gap-2">
       <span className="lab">Assigned</span>

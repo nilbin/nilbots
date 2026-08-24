@@ -1665,14 +1665,27 @@ public sealed record GenericActorMatchChronology
         // tells share that wire for the viewer, but remain driver-owned and
         // legitimately disappear when the tell matures at tick start. Compare
         // only the session-owned remainder across this boundary.
-        bool evidencedArcModeChange =
-            before.Mode is GenericActorRuntimeObservation
+        bool evidencedArcModeChange = false;
+        if (before.Mode is GenericActorRuntimeObservation
                 .ModeObservationState.ArcRelay strikesBefore
             && after.Mode is GenericActorRuntimeObservation
-                .ModeObservationState.ArcRelay strikesAfter
-            && SessionOwnedPendingStrikes(strikesBefore)
-                .SequenceEqual(SessionOwnedPendingStrikes(strikesAfter))
-                && tickStart.Events.Any(value =>
+                .ModeObservationState.ArcRelay strikesAfter)
+        {
+            // Raw equality is the strongest proof: no strike changed at this
+            // boundary. Keep the session-owned comparison as the second arm
+            // for a driver-owned Rail/Hook/Sentry tell that legitimately
+            // disappears with its mode operation. The raw arm also resolves
+            // the unavoidable same-origin ambiguity where a Nest stands on
+            // its non-blocking Sentry and declares an ordinary gun strike:
+            // once the Sentry expires, that unchanged strike must not look
+            // newly session-owned merely because the matching deployment
+            // state vanished.
+            bool strikesStable = strikesBefore.PendingStrikes.SequenceEqual(
+                    strikesAfter.PendingStrikes)
+                || PendingStrikesStableAcrossSignatureLifecycle(
+                    strikesBefore,
+                    strikesAfter);
+            bool exactModeEvent = tickStart.Events.Any(value =>
                 value.UnredactedPayload is GenericActorRuntimeObservation
                     .EventPayload.ModeChanged changed
                 && Equals(
@@ -1682,6 +1695,38 @@ public sealed record GenericActorMatchChronology
                         PendingStrikes = [],
                         RespawnWaveTeams = [],
                     }));
+            // A Sentry's autonomous line belongs to the signature operation.
+            // Expiry can therefore remove the deployment and that line in
+            // one lifecycle pass. The driver's ModeChanged snapshot is taken
+            // before the session decorates Arc Relay state with the shared
+            // strike wire, so prove this narrow case from the typed
+            // ModeChanged fact plus equality of every other mode field.
+            bool signatureLifecycleOnly =
+                !strikesBefore.VisibleSignatures.SequenceEqual(
+                    strikesAfter.VisibleSignatures)
+                && string.Equals(
+                    strikesBefore.ModeId,
+                    strikesAfter.ModeId,
+                    StringComparison.Ordinal)
+                && strikesBefore.Wells.SequenceEqual(strikesAfter.Wells)
+                && strikesBefore.Reactors.SequenceEqual(strikesAfter.Reactors)
+                && strikesBefore.VisibleCores.SequenceEqual(
+                    strikesAfter.VisibleCores)
+                && strikesBefore.LatestPulseTeamId
+                    == strikesAfter.LatestPulseTeamId
+                && strikesBefore.LatestPulseTick == strikesAfter.LatestPulseTick
+                && strikesBefore.NextRespawnWaveTick
+                    == strikesAfter.NextRespawnWaveTick
+                && strikesBefore.RespawnWaveTeams.SequenceEqual(
+                    strikesAfter.RespawnWaveTeams)
+                && strikesBefore.Workshops.SequenceEqual(
+                    strikesAfter.Workshops)
+                && tickStart.Events.Any(value =>
+                    value.UnredactedPayload is GenericActorRuntimeObservation
+                        .EventPayload.ModeChanged);
+            evidencedArcModeChange = strikesStable
+                && (exactModeEvent || signatureLifecycleOnly);
+        }
         bool derivedArcScheduleAdvance = ArcScheduleOnlyAdvance(
             before.Mode,
             after.Mode,
@@ -1926,6 +1971,75 @@ public sealed record GenericActorMatchChronology
             sessionOwned.Add(strike);
         }
         return sessionOwned.ToImmutable();
+    }
+
+    /// <summary>
+    /// Compare the shared strike wire across a lifecycle boundary after
+    /// removing only lines attributable to signature operations whose public
+    /// state changed at that boundary. This is deliberately narrower than
+    /// comparing the two independently-classified session-owned lists: a
+    /// non-blocking Sentry and its Nest may share an origin, and an expiring
+    /// Sentry can otherwise make the Nest's unchanged ordinary gun tell look
+    /// reclassified. Every unrelated strike remains exact-equality checked.
+    /// </summary>
+    private static bool PendingStrikesStableAcrossSignatureLifecycle(
+        GenericActorRuntimeObservation.ModeObservationState.ArcRelay before,
+        GenericActorRuntimeObservation.ModeObservationState.ArcRelay after)
+    {
+        Dictionary<string, ArcRelaySignatureState> left =
+            before.VisibleSignatures.ToDictionary(
+                value => value.OperationId,
+                StringComparer.Ordinal);
+        Dictionary<string, ArcRelaySignatureState> right =
+            after.VisibleSignatures.ToDictionary(
+                value => value.OperationId,
+                StringComparer.Ordinal);
+        ArcRelaySignatureState[] changed =
+        [
+            .. left.Keys.Concat(right.Keys)
+                .Distinct(StringComparer.Ordinal)
+                .Where(id => !left.TryGetValue(id, out ArcRelaySignatureState? a)
+                    || !right.TryGetValue(id, out ArcRelaySignatureState? b)
+                    || !Equals(a, b))
+                .SelectMany(id =>
+                {
+                    var values = new List<ArcRelaySignatureState>(2);
+                    if (left.TryGetValue(id, out ArcRelaySignatureState? a))
+                        values.Add(a);
+                    if (right.TryGetValue(id, out ArcRelaySignatureState? b))
+                        values.Add(b);
+                    return values;
+                }),
+        ];
+        if (changed.Length == 0)
+            return false;
+
+        bool SignatureOwns(
+            GenericActorRuntimeObservation.ArcRelayPendingStrikeState strike,
+            ArcRelaySignatureState signature)
+        {
+            if (signature.OwnerActorId != strike.Shooter)
+                return false;
+            return signature.Kind switch
+            {
+                ArcRelaySignatureDefinition.SignatureKind.RailLine
+                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook2
+                    or ArcRelaySignatureDefinition.SignatureKind.TractorHook3 =>
+                    signature.CompletesAtTick == strike.ResolveAtTick,
+                ArcRelaySignatureDefinition.SignatureKind.SentinelSeed3 =>
+                    signature.Positions.Contains(strike.Origin),
+                _ => false,
+            };
+        }
+
+        ImmutableArray<GenericActorRuntimeObservation
+            .ArcRelayPendingStrikeState> Unrelated(
+                ImmutableArray<GenericActorRuntimeObservation
+                    .ArcRelayPendingStrikeState> strikes) =>
+            [.. strikes.Where(strike =>
+                !changed.Any(signature => SignatureOwns(strike, signature)))];
+        return Unrelated(before.PendingStrikes).SequenceEqual(
+            Unrelated(after.PendingStrikes));
     }
 
     /// <summary>
