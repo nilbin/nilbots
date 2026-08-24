@@ -1,0 +1,138 @@
+{
+  "schema": "arc-relay-tactics-v2",
+  "sheetId": "eclipse-lattice-v1",
+  "mapId": "arc-relay-broadloom-01",
+  "mapWidth": 37,
+  "mapHeight": 27,
+  "squad": [
+    { "slot": 0, "class": "kestrel", "build": "aggressive", "name": "Vex" },
+    { "slot": 1, "class": "relay", "build": "balanced", "name": "Piston" },
+    { "slot": 2, "class": "mortar", "build": "aggressive", "name": "Comet" },
+    { "slot": 3, "class": "repulsor", "build": "durable", "name": "Hammer" },
+    { "slot": 4, "class": "patchbay", "build": "durable", "name": "Cinder" },
+    { "slot": 5, "class": "hush", "build": "durable", "name": "Quiet" },
+    { "slot": 6, "class": "nest", "build": "durable", "name": "Rook" },
+    { "slot": 7, "class": "minesmith", "build": "balanced", "name": "Latch" }
+  ],
+  "tactics": [
+    {
+      "id": "eclipse-lattice",
+      "name": "Eclipse Lattice",
+      "recipe": "centre-rush",
+      "start": { "mode": "always" },
+      "delivery": { "plan": "escort", "preferredSlots": [1, 0, 6, 7] },
+      "groups": [
+        { "id": "north-lattice", "name": "North battery", "slots": [0, 1, 2], "coreRule": "hunt" },
+        { "id": "south-lattice", "name": "South null", "slots": [3, 4, 5], "coreRule": "hunt" },
+        { "id": "home-trap", "name": "Home trap", "slots": [6, 7], "coreRule": "grab" }
+      ],
+      "phases": [
+        {
+          "id": "set-the-lattice",
+          "name": "Set the lattice",
+          "custody": { "plan": "escort" },
+          "continue": [
+            { "required": { "groupsSet": { "allowedLate": 0 } } }
+          ],
+          "jobs": {
+            "north-lattice": {
+              "kind": "posts",
+              "posture": "observe",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "posts": [
+                { "at": [12, 8], "facing": "s", "slot": 0 },
+                { "at": [14, 8], "facing": "s", "slot": 1 },
+                { "at": [16, 8], "facing": "s", "slot": 2 }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": { "policy": "smart" }
+              }
+            },
+            "south-lattice": {
+              "kind": "posts",
+              "posture": "observe",
+              "travel": "observe",
+              "recovery": "fight-on",
+              "posts": [
+                { "at": [12, 18], "facing": "n", "slot": 3 },
+                { "at": [14, 18], "facing": "n", "slot": 4 },
+                { "at": [16, 18], "facing": "n", "slot": 5 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" },
+                "5": { "policy": "smart" }
+              }
+            },
+            "home-trap": {
+              "kind": "posts",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "fight-on",
+              "posts": [
+                { "at": [9, 21], "facing": "n", "slot": 6 },
+                { "at": [11, 19], "facing": "n", "slot": 7 }
+              ],
+              "sigs": {
+                "6": { "policy": "prefer", "points": [[12, 18]] },
+                "7": { "policy": "only", "points": [[11, 18], [13, 19]] }
+              }
+            }
+          }
+        },
+        {
+          "id": "close-the-lattice",
+          "name": "Close the lattice",
+          "custody": { "plan": "escort" },
+          "jobs": {
+            "north-lattice": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [14, 12], "facing": "e", "slot": 0 },
+                { "at": [15, 12], "facing": "e", "slot": 1 },
+                { "at": [13, 13], "facing": "e", "slot": 2 }
+              ],
+              "sigs": {
+                "0": { "policy": "smart" },
+                "1": { "policy": "smart" },
+                "2": { "policy": "only", "points": [[21, 14], [22, 12]] }
+              }
+            },
+            "south-lattice": {
+              "kind": "posts",
+              "posture": "aggressive",
+              "travel": "aggressive",
+              "recovery": "heal-tile",
+              "posts": [
+                { "at": [14, 15], "facing": "e", "slot": 3 },
+                { "at": [15, 14], "facing": "e", "slot": 4 },
+                { "at": [15, 15], "facing": "e", "slot": 5 }
+              ],
+              "sigs": {
+                "3": { "policy": "smart" },
+                "4": { "policy": "smart" },
+                "5": { "policy": "prefer", "points": [[17, 13], [18, 14]] }
+              }
+            },
+            "home-trap": {
+              "kind": "none",
+              "posture": "hold",
+              "travel": "hold",
+              "recovery": "fight-on",
+              "sigs": {
+                "6": { "policy": "prefer", "points": [[12, 18]] },
+                "7": { "policy": "only", "points": [[11, 18], [13, 19]] }
+              }
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
