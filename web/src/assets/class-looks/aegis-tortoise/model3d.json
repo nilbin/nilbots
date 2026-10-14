@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "id": "aegis-tortoise",
+  "file": "model.glb",
+  "kind": "bot",
+  "part": "whole",
+  "facing": "+x",
+  "up": "+y"
+}
