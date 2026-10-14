@@ -372,7 +372,10 @@ function instanceMaterial(
   ) {
     material.color.copy(teamAccent);
     material.emissive.copy(teamAccent);
-    material.emissiveIntensity = Math.max(material.emissiveIntensity, 1.2);
+    // Semantic emitter strips are deliberately brighter than neutral apertures at
+    // gameplay distance. The neutral hull remains untouched; team identity comes
+    // from these authored strips plus the renderer's underbody light pool.
+    material.emissiveIntensity = Math.max(material.emissiveIntensity, 1.8);
   }
 
   return material;

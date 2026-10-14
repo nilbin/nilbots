@@ -531,11 +531,11 @@ export function buildActors(replay: ReplayModel): ArenaActors {
     chassis.add(scan);
     disposables.push(scanGeometry, scanMaterial);
 
-    // A pool of accent light under the bot, and the **only** place the owner's colour
-    // appears on a bot in this renderer — which makes it load-bearing rather than
-    // decoration. The flat renderer casts the same pool, so this is a match rather than an
-    // invention; it just has more work to do here, because a lit chassis wears its own
-    // paint and two players fielding the same look are otherwise the same object.
+    // A pool of accent light under the bot. Together with semantic emitter strips on
+    // models that provide them, this carries team identity without repainting the
+    // neutral hull. The flat renderer casts the same pool, so this is a match rather
+    // than an invention; it just has more work to do here, because two players
+    // fielding the same look are otherwise the same object.
     const glowGeometry = new THREE.PlaneGeometry(size * 2.4, size * 2.4);
     glowGeometry.rotateX(-Math.PI / 2);
     const glowMaterial = new THREE.MeshBasicMaterial({
