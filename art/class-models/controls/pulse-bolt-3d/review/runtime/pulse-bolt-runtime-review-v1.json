@@ -1,0 +1,153 @@
+{
+  "version": 1,
+  "generatedBy": "scripts/render-pulse-bolt-runtime-review.mjs",
+  "replay": {
+    "file": "../generic-labs-vertical-slice/sandbox/ledger-fly-v4-scratch-6e1b93/sweep-wasm/keel-104729-a/replay.json",
+    "sourceByteLength": 10713605,
+    "sourceSha256": "c5ed949382e021629c3aa954876c1e7d30d44c636c5be4adc5b94c144584a40b",
+    "sourceReplayHash": "412c021e1b90689d5e430db4eb250b33856c33a94947d204e8cd8a6e61411281",
+    "sourcePresentation": null,
+    "reviewByteLength": 10710062,
+    "reviewSha256": "890916593afde25ff1314de073f8ee350116047780ad037143eafe798c17c367",
+    "reviewIsUnhashedPartial": true,
+    "reviewPresentation": {
+      "themeId": "ember-forge",
+      "map": {
+        "boundaryWall": "perimeter",
+        "interiorWall": "cover",
+        "wallGroups": []
+      },
+      "forms": [
+        {
+          "formId": "fabricator-child",
+          "lookId": null,
+          "projectileLookId": "pulse-bolt"
+        },
+        {
+          "formId": "fabricator-prime",
+          "lookId": null,
+          "projectileLookId": "pulse-bolt"
+        }
+      ]
+    },
+    "tickCount": 313,
+    "participants": [
+      {
+        "participantId": 0,
+        "teamId": 0,
+        "accent": "#22d3ee",
+        "projectileLookId": "pulse-bolt"
+      },
+      {
+        "participantId": 1,
+        "teamId": 1,
+        "accent": "#22d3ee",
+        "projectileLookId": "pulse-bolt"
+      }
+    ],
+    "reviewedProjectiles": [
+      {
+        "projectileId": "0",
+        "ownerParticipantId": 0,
+        "ownerTeamId": 0,
+        "x": 9,
+        "y": 7,
+        "heading": "east"
+      },
+      {
+        "projectileId": "1",
+        "ownerParticipantId": 1,
+        "ownerTeamId": 1,
+        "x": 13,
+        "y": 7,
+        "heading": "west"
+      }
+    ]
+  },
+  "frame": {
+    "time": 6.5,
+    "cameraPitchDegrees": 58,
+    "autoFitCapture": true,
+    "closeCapture": {
+      "minSpanTiles": 8,
+      "method": "disable auto-fit, use the supported wheel gesture, and seek the paused product timeline"
+    },
+    "viewport": {
+      "width": 1600,
+      "height": 1000,
+      "deviceScaleFactor": 1
+    },
+    "canvas": {
+      "width": 926,
+      "height": 578,
+      "cssWidth": 926,
+      "cssHeight": 578
+    }
+  },
+  "model": {
+    "source": "web/src/assets/projectile-looks/pulse-bolt/model.glb",
+    "byteLength": 16032,
+    "sha256": "63f2b97cc2b6f427d6e4be989894f902e5547e03a866c6a0130030188dabfe6e",
+    "builtAsset": "assets/model-DVNN0uKA.glb",
+    "candidateRequest": {
+      "status": 200,
+      "urlPath": "/assets/model-DVNN0uKA.glb",
+      "contentLength": 16032
+    },
+    "forcedFallbackRequest": {
+      "status": 404,
+      "urlPath": "/assets/model-DVNN0uKA.glb",
+      "contentLength": 0
+    }
+  },
+  "assertions": {
+    "candidateModelServed": true,
+    "forcedModelRejected": true,
+    "glbAndSvgFallbackAreVisuallyDistinct": true,
+    "repeatedReplayTimeIsPixelIdentical": true,
+    "pageErrors": {
+      "candidate": [],
+      "fallback": []
+    }
+  },
+  "changedPixelBounds": {
+    "x": 101,
+    "y": 210,
+    "width": 715,
+    "height": 134,
+    "changedPixels": 850,
+    "threshold": 10
+  },
+  "screenshots": {
+    "auto": {
+      "file": "pulse-bolt-real-replay-auto-fit-v1.png",
+      "sha256": "028d5664e34e2ae122892ce61018431b19d88d351e121b0a8ce4281f378cb806"
+    },
+    "candidate": {
+      "file": "pulse-bolt-real-replay-authored-v1.png",
+      "sha256": "2a73bebe92813e84bd67cf10f14815a4aaf5aae4798924c042223b0c24912d56"
+    },
+    "candidateRepeat": {
+      "file": "pulse-bolt-real-replay-authored-repeat-v1.png",
+      "sha256": "2a73bebe92813e84bd67cf10f14815a4aaf5aae4798924c042223b0c24912d56"
+    },
+    "fallback": {
+      "file": "pulse-bolt-real-replay-svg-fallback-v1.png",
+      "sha256": "dbca8d040ab8605b1a8880c560510f39419fc42c5a6995e87c8fae84b54bff3d"
+    },
+    "comparison": {
+      "file": "pulse-bolt-real-replay-comparison-v1.png",
+      "sha256": "ed0cfec489b1d11e0df71d55108a746a7ce20ee2b1f90bc2e5321299edf3ccfa"
+    },
+    "detail": {
+      "file": "pulse-bolt-real-replay-difference-detail-v1.png",
+      "sha256": "93030a4f73d72897c8d78c3ee98f16c1ac5124cb6b6659642094fc33de84f073"
+    }
+  },
+  "limitations": [
+    "Gameplay frames come unchanged from the named real engine replay, while this review serves an explicitly unhashed partial copy with a presentation-only Ember Forge and Pulse Bolt overlay. It is not represented as the original canonical replay.",
+    "This compares the canonical Pulse Bolt GLB with its forced SVG-derived WebGL fallback; class-specific mechanical projectile models remain art-side until their corrections pass.",
+    "Renderer-owned trail, glow, hover, turn easing, impact, and team paint are unchanged between the two captures.",
+    "The review uses headless SwiftShader for reproducible evidence; a hardware-GPU visual pass remains part of integration QA."
+  ]
+}
