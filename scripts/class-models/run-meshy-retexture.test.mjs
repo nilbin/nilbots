@@ -20,6 +20,7 @@ import {
   inspectInputModel,
   main,
   parseArguments,
+  retextureCreditCeiling,
   retextureSettings,
   validateTextStylePrompt,
 } from "./run-meshy-retexture.mjs";
@@ -100,6 +101,20 @@ test("requires exactly one model source and one supported style source", () => {
   );
   assert.equal(uploaded.inputTaskId, undefined);
 
+  const highResolution = parseArguments([
+    "--input-model",
+    "art/class-models/authored/aegis-tortoise.glb",
+    "--look-id",
+    "aegis-tortoise",
+    "--purpose",
+    "authored geometry 4K texture gate",
+    "--texture-resolution",
+    "4k",
+    "--text-style-prompt",
+    "stylized matte game asset",
+  ]);
+  assert.equal(highResolution.textureResolution, "4k");
+
   assert.throws(
     () =>
       parseArguments([
@@ -174,6 +189,22 @@ test("requires exactly one model source and one supported style source", () => {
       ]),
     /cannot be combined/u,
   );
+  assert.throws(
+    () =>
+      parseArguments([
+        "--input-task-id",
+        "accepted-smart-task",
+        "--look-id",
+        "aegis-tortoise",
+        "--purpose",
+        "texture gate",
+        "--texture-resolution",
+        "16k",
+        "--text-style-prompt",
+        "matte",
+      ]),
+    /must be 2k, 4k, or 8k/u,
+  );
 });
 
 test("validates authored GLB v2, declared length, and upload ceiling", () => {
@@ -212,6 +243,9 @@ test("pins Meshy 6 original UVs and redacts every local data URI", () => {
     remove_lighting: true,
     target_formats: ["glb"],
   });
+  assert.equal(retextureSettings("4k").texture_resolution, "4k");
+  assert.equal(retextureSettings("8k").texture_resolution, "8k");
+  assert.throws(() => retextureSettings("16k"), /2k, 4k, or 8k/u);
 
   const payload = buildRequestPayload({
     inputTaskId: "accepted-smart-task",
@@ -282,7 +316,7 @@ test("pins Meshy 6 original UVs and redacts every local data URI", () => {
   );
 });
 
-test("enforces the documented prompt length and 10-credit ceiling", () => {
+test("enforces prompt length and resolution-aware credit ceilings", () => {
   assert.equal(validateTextStylePrompt("x".repeat(600)).length, 600);
   assert.throws(() => validateTextStylePrompt("x".repeat(601)), /1–600/u);
   assert.equal(assertCreditCeiling({ consumed_credits: 10 }), 10);
@@ -298,6 +332,14 @@ test("enforces the documented prompt length and 10-credit ceiling", () => {
   assert.throws(
     () => assertCreditCeiling({}),
     /cannot be verified/u,
+  );
+  assert.equal(retextureCreditCeiling("2k"), 10);
+  assert.equal(retextureCreditCeiling("4k"), 10);
+  assert.equal(retextureCreditCeiling("8k"), 15);
+  assert.equal(assertCreditCeiling({ consumed_credits: 15 }, 15), 15);
+  assert.throws(
+    () => assertCreditCeiling({ consumed_credits: 16 }, 15),
+    /0 through the 15-credit ceiling/u,
   );
 });
 

@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb948-3126-77bd-ae2f-764e072acdba",
+  "lookId": "aegis-tortoise-foundry-tritone-4k-ga003-worldbaked",
+  "purpose": "Meshy 6 text-guided 4K PBR premium stylized three-band Foundry store candidate on transform-baked GA-003",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 150342,
+      "sha256": "d18aa4c8dee6c670ea70a8327f8937ba3f028a0bcefb1a1bdbf46f862c0f91b3",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 28606456,
+      "sha256": "3b82960b8a836724d43b9ea67e4422fbac16a09e2defeaebb85e0ba3443527f3",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 24353803,
+      "sha256": "01906f8d89b698287e498362097e5cb124d285f8a6d3d189bbb88c43e6f5867a",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 56911,
+      "sha256": "6ce813eb77b3daab1eb631ea757dbdf75f11081a52126af0250574f849bac9b3",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1316401,
+      "sha256": "047af165012c70f62fec939f53f3b14579d344350474616c9dc36b2f61cf3dd4",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 29575492,
+      "sha256": "b45b763504098207accc55c5e368f3a8beb8fedeb4c6442b3de905c0c98b6a73",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1319039,
+      "sha256": "a9ede8902dccf72465d668b857ad1157cc8d5ee8f6ee074766274671644a0d99",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T17:45:43.737Z",
+  "balanceBefore": 545,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 2027708,
+    "sha256": "378e5d999c7e73bbab74d3b246d92b30fa4f69a6cf008b55dbc5bbe0304cf2ef",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2027708,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 2027708,
+    "sha256": "378e5d999c7e73bbab74d3b246d92b30fa4f69a6cf008b55dbc5bbe0304cf2ef",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2027708,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Premium stylized real-time game PBR, readable at 41px; clean illustration, not photoreal. Three broad matte bands: deep warm charcoal only in recesses, mid brown-graphite on most chassis, medium kiln-ash greige ceramic on large armor slabs, never pale white. Restrained solid lava-orange non-emissive enamel on inset plates and weapon hardware. Crisp plate-scale blocking, broad 2-5px tonal variation, sparse chunky edge wear. Rough satin, restrained metalness, neutral albedo; body emission black/off. Team-neutral. No text, decals, chrome, gloss, grime, rust, speckle or microdetail."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Premium stylized real-time game PBR, readable at 41px; clean illustration, not photoreal. Three broad matte bands: deep warm charcoal only in recesses, mid brown-graphite on most chassis, medium kiln-ash greige ceramic on large armor slabs, never pale white. Restrained solid lava-orange non-emissive enamel on inset plates and weapon hardware. Crisp plate-scale blocking, broad 2-5px tonal variation, sparse chunky edge wear. Rough satin, restrained metalness, neutral albedo; body emission black/off. Team-neutral. No text, decals, chrome, gloss, grime, rust, speckle or microdetail."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "0acf49e848fb15bac1ddf5e5bc5bc93ea202da0147730c8cbc5ca7655c6f9c37",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T17:48:23.498Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T17:48:23.509Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 535,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

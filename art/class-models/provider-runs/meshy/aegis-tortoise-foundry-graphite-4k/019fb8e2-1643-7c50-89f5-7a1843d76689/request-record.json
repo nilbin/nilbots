@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb8e2-1643-7c50-89f5-7a1843d76689",
+  "lookId": "aegis-tortoise-foundry-graphite-4k",
+  "purpose": "Meshy 6 4K PBR darker stylized Foundry Graphite texture-only donor for aegis-tortoise-ga-002",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 98160,
+      "sha256": "44d928c134cfae8aae1cc949dd4d2036d25ed21fe62e143233006951464e91f2",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 17592448,
+      "sha256": "765e9f0be35b27f3d8a99df9b2b518659818a0560ae3e9c2eee81d87b7d48be5",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 13279689,
+      "sha256": "b69b9bb4bee411e8ef95f8ebeb535122986ee28f369705d0c7e0adae983421a3",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 490425,
+      "sha256": "dc77e6cfeb815cb55a191e5053270e4a570760034139bdd7f3b081d07aeda54f",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 536684,
+      "sha256": "32544f847083b658033ece04f08efc4ec0b52e7c6aae559c9e5d15b68248b860",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 18336459,
+      "sha256": "5f02c00228ce3bb8d01f03d45b5abb5467193511e431acc66295303fb0f34c59",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 541198,
+      "sha256": "1ba9d38ee417712c3fda03f91c15caddb6895c90ca98aa9a4fd2897ea63b6e50",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T15:54:12.192Z",
+  "balanceBefore": 595,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue/red paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue/red paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "b31770300abb3c60864ab6e846ecb14e47bbca16a185b097b8db5d9bf0037c6d",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T15:57:02.349Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T15:57:02.358Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 585,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

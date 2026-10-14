@@ -1,0 +1,38 @@
+{
+  "id": "019fb909-8a9a-75d1-9928-6d99d3b5187a",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue, red, cyan or green paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785515841071,
+  "progress": 100,
+  "started_at": 1785515841467,
+  "finished_at": 1785516002222,
+  "expires_at": 1785775202222,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/<account>/tasks/019fb909-8a9a-75d1-9928-6d99d3b5187a/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "hd_texture": true,
+  "texture_resolution": "4k",
+  "consumed_credits": 10
+}

@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb8ab-bab2-7eda-a797-a30d0e95ff04",
+  "lookId": "aegis-tortoise-foundry",
+  "purpose": "Meshy 6 2K PBR Foundry Bastion texture-only donor for aegis-tortoise-ga-002",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 97548,
+      "sha256": "00a4b01c48b9f8e9ce2e884bac2d86e7751634ff56c8aa30f134ef848ea41d77",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 8695360,
+      "sha256": "8db2c9d2a07f38803d57f6ddfce7d38d06ff87a6444b2f58bda44cfd12d918ac",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 4341388,
+      "sha256": "04d68c57f4a544f68af0c46de43f774be7439b58b3b1a1078f9b0509d7659f69",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 873080,
+      "sha256": "ad2ee7d953e5e6d118ff27ed84251a37cb4bcefa52c7668515760fb70866bb26",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 505214,
+      "sha256": "6139d9f70e437cd225edd1d7b2429deb6bd5176e1ecb48dadaeb9ab014f46a39",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 5010594,
+      "sha256": "05208b8e9d7052537e2e2a1e059cee375ef20e062ff90057226dd1904257b932",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 504621,
+      "sha256": "b4c84301a3962465dcbaf2480c84d7fadd67dd5ed877910097fe1ca0e968a5f6",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T14:54:49.868Z",
+  "balanceBefore": 635,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface game asset, texture only. Warm ash-gray forged-iron armor and medium refractory-slate structure dominate; charcoal only in deep recesses. Restrained foundry lava-orange heat-ceramic enamel on outer armor cassettes and tower-vane shoulders, fixed non-emissive hull color. Broad value separation, matte powder coat, high roughness, low-medium metalness, sparse broad edge wear. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, gloss, micro-noise, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface game asset, texture only. Warm ash-gray forged-iron armor and medium refractory-slate structure dominate; charcoal only in deep recesses. Restrained foundry lava-orange heat-ceramic enamel on outer armor cassettes and tower-vane shoulders, fixed non-emissive hull color. Broad value separation, matte powder coat, high roughness, low-medium metalness, sparse broad edge wear. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, gloss, micro-noise, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "121f3ff9a965162cfa082104b698a741607cef2325f816367467d9c1c3b6c2b7",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T14:57:08.838Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T14:57:08.847Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 625,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

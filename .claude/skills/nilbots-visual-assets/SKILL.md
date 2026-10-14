@@ -65,6 +65,14 @@ derives a transparent raster avatar plus a separate lossless semantic
 team-mask pass; keep the previous SVG authoritative until the consuming
 runtime supports that mask pair.
 
+When the owner promotes a 3D concept, freeze one neutral family authority
+before authoring any skin. Give the family and authority stable IDs and pin the
+editable scene, neutral GLB, surface/UV, hierarchy/pivot, clip, camera-rig, and
+semantic-emitter digests. That neutral master—not a textured derivative or a
+provider return—owns geometry, animation, form choreography, and hover
+presentation. Never mutate it in place; a geometry or rig change creates a new
+authority revision and revalidates every dependent skin.
+
 1. Before modeling, add an art-side fidelity brief naming the current
    authority (3D-first brief or legacy 2D asset), intended gameplay read,
    required silhouette and negative-space anchors, rule-bearing hardware,
@@ -91,10 +99,12 @@ runtime supports that mask pair.
    the rules do not provide. If inferred depth introduces load-bearing feet,
    legs, or another locomotion cue, concept approval must also pin its rig and
    movement animation; never ship a walking silhouette that merely slides.
-   The initial three class families use presentation-only hover rather than
-   walking rigs: Striker skims higher and responds quickly, Fabricator
-   levitates calmly and level, and Bulwark stays in a very low, heavy hover
-   with a tight shadow and slow settle. Bulwark's corner modules are
+   Nilbots bot locomotion is levitation unless the owner explicitly revises
+   the game-wide premise; do not design feet, walking cycles, wheeled/tracked
+   travel, or grounded locomotion for a bot. Give each family a distinct
+   presentation-only hover profile instead: Striker skims higher and responds
+   quickly, Fabricator levitates calmly and level, and Bulwark stays in a very
+   low, heavy hover with a tight shadow and slow settle. Bulwark's corner modules are
    hover/lock pods, not feet; they telescope into planted anchors only during
    the authoritative Shell or Tower transition. Those planted forms do not
    bob or bank.
@@ -110,17 +120,25 @@ runtime supports that mask pair.
    materials should remain at least 90% of the visible body, while a few
    chunky team emitters and the renderer-owned floor glow must still survive
    the smallest reviewed gameplay frame. Hairline inlays that project below
-   one pixel do not pass.
+   one pixel do not pass; aim for a two-pixel minor dimension and several
+   separated chromatic clusters per deployed form before increasing emission.
+   Brighter sub-pixel geometry blooms toward white without becoming a larger,
+   more legible team mark.
 6. Review a fixed contact sheet containing the canonical 2D image, top-view
    overlay, untextured blockout, textured gameplay camera, and at least one
    non-team-color turntable angle. Also review the model in a real replay at
    normal zoom, with both team colors and a tight ground shadow. Use one pinned
    replay/time/viewport/camera for every before/after; label a comparison
    approximate when any of those differ.
-   Alternate forms/skins have a hard family gate: the same pinned 58° rig and
-   one-tile frame beside the parent mobile; matching value, material/PBR,
-   detail, edge wear, and fixed emission; only semantic team-mask differences.
-   Reject an attractive isolated render that reads as another chassis.
+   Forms and skins have different family gates. Within one skin, use the same
+   pinned 58° rig and one-tile frame for Mobile and every deployed form, with
+   matching value hierarchy, material/PBR language, detail, wear, and fixed
+   non-team emission. Different texture skins may deliberately diverge in
+   broad palette, material family, pattern, wear, and fixed accents, but must
+   preserve the exact geometry/UV, hierarchy, pivots, clips, hover profile, and
+   semantic team-emitter face set. A silhouette or moving-hardware change is a
+   new geometry/kit authority, not a texture skin. Reject an attractive
+   isolated render that reads as another chassis or locomotion type.
 7. Require every named anchor and forbidden cue to pass independently. Record
    deliberate deviations in the fidelity brief with the approval reason; do
    not average a missing identity anchor into a general quality score.
@@ -131,10 +149,13 @@ Generated surface quality and mechanically valid motion are separate stages.
 For a bot that changes stance or form, prefer one approved mobile base plus
 small rigid form kits over unrelated whole-model replacements.
 
-1. Design the complete family before generating a production mesh. The concept
-   must show where every moving plate, pod, barrel, mast, vane, rail, hinge,
-   socket, and stowed kit part exists in the mobile form. A final frame may not
-   invent geometry that no preceding frame contains.
+1. Design the complete family and ordered choreography before generating a
+   production mesh. The concept must show where every moving plate, pod,
+   barrel, mast, vane, rail, hinge, socket, and stowed kit part exists in the
+   mobile form. State which stage creates clearance for the next. For a nested
+   mechanism, the tower must rise clear of the body before the cannon kit
+   deploys from the tower top. A final frame may not invent geometry that no
+   preceding frame contains.
 2. Build an untextured Blender kinematic blockout before texture cleanup.
    Name every rigid object and record its parent, pivot, permitted axis/range,
    stowed transform, and deployed transform. Add the hidden back faces, hinge
@@ -151,7 +172,15 @@ small rigid form kits over unrelated whole-model replacements.
    and a separately stowed central crown may rise and unfold exactly eight
    equal radial weapon vanes for the non-facing Tower. The Shell leaves the
    other three quadrants visibly open. The Tower has no privileged nose and
-   each vane may recoil independently.
+   each vane may recoil independently. In Mobile and Shell, the complete
+   Tower kit stays inside the closed hull: nested keep stages occupy the
+   central well and the eight cannon carriers hang vertically in narrow crown
+   magazines. Use a real moving cover over a well that clears the complete
+   stowed kit; do not let the tower pass through a decorative static cap. Open
+   and stow that cover first, raise the lower and upper keep stages, slide the
+   still-vertical carriers radially through authored deck magazines, fold the
+   guns upward to horizontal, then telescope their barrels. Reverse exactly
+   that sequence for Tower-to-Mobile.
 5. Choose geometry ownership from the required motion. For a mobile body with
    no authored part motion, start with Meshy Smart Topology T2 or a later
    equivalent that offers explicit face-count control and native parts. For a
@@ -174,10 +203,38 @@ small rigid form kits over unrelated whole-model replacements.
    recoil where applicable. Record action names, frame ranges, endpoint
    transforms, and export hashes. No clip may free-run as gameplay state or
    finish a form change before the authoritative replay event.
-8. Review the actual keyframes, not only a rendered video. Validate named
-   objects, pivots, clip presence/duration, forward/reverse endpoints, no
-   interpenetration at sampled frames, retained UV/material assignment, and
-   the 58-degree gameplay read before adding polish.
+8. Review the actual keyframes, not only a rendered video. Render one neutral,
+   untextured approval sheet directly from the Blender authority: strict top,
+   front, side, rear, and gameplay-oblique views for Mobile and every deployed
+   endpoint, plus each clearance-critical intermediate stage. Validate names,
+   pivots, clips, endpoints, interpenetration, and gameplay read, then stop for
+   explicit owner approval before material work or provider spend. Freeze
+   hashes for the `.blend`, neutral animated GLB, approval sheet, and
+   hierarchy/pivot/clip report; pin the static upload's surface/UV digest
+   before Meshy. Geometry, pivot, clip, or UV changes invalidate the
+   corresponding gate. For nested machinery, measure the closed-form vertical
+   and radial containment margins and sample every exported frame against the
+   static hull, covers, stage meshes, neighboring form kits, emitters, and
+   moving parts; checking only the obvious child meshes is insufficient.
+   Require the cover to reach clearance before the first lift, each stage to
+   clear before its dependent motion, carrier slide before gun fold, and gun
+   fold before barrel extension. Decode the delivered animation with an
+   independent standard decoder and compare its first frame to the source PNG;
+   a valid header and frame count do not prove a playable preview. Before
+   freezing the UV authority, measure visible-body atlas occupancy, each major
+   mesh's share of 3D surface area versus UV area, and texel density versus its
+   projected pixel density in both the gameplay camera and any avatar/store
+   render. Pack body islands jointly with area and gameplay visibility
+   weighting; do not give every mesh an equal atlas cell. Exclude texture-free
+   semantic team meshes from the provider atlas/upload. Include coverage poses
+   that expose Mobile and every deployed Shell/Tower surface. When parent
+   pivots are excluded from a provider upload, bake each evaluated child world
+   transform into a temporary identity-root copy, then reimport the GLB and
+   prove names, triangle counts, world bounds, and distinct repeated-part
+   centers before spending credits. A nominal 2K/4K
+   label cannot rescue a main hull assigned only a tiny atlas island; revise
+   and re-approve the UV authority without changing geometry, pivots, or clips
+   before paying for texture generation.
 9. Gate motion at native gameplay size, not only in a close-up. A deploy must
    change the silhouette through multiple readable mechanical stages; a recoil
    must show both kick and recovery; and reverse sampling must visibly return
@@ -186,6 +243,13 @@ small rigid form kits over unrelated whole-model replacements.
    Bulwark family uses about 3–5 pixels of principal recoil travel as evidence,
    not as a universal constant. Reject a technically valid clip that reads as
    static or a one-frame pop in the real replay camera.
+10. Capture the textured candidate through the production WebGL viewer from a
+   fresh hash-verified native replay, never only a DCC render or injected pose.
+   Record replay-file SHA-256, canonical replay hash, tick/fraction, viewport,
+   DPR, camera, theme, renderer/build revision, and model hash. Baseline and
+   candidate must use the same replay state. Include Mobile, ordered deploy
+   stages, recoil, reverse, two runtime accents on the same neutral hull,
+   semantic emitters, and renderer-owned floor glow.
 
 ### Multiview-AI base-mesh vertical slice
 
@@ -272,14 +336,22 @@ review, and optimization remain separate required stages.
 
 Before any paid Meshy task or any production use of a Meshy result, read
 [`references/meshy-game-model-pipeline.md`](references/meshy-game-model-pipeline.md)
-completely. It pins the Smart-first geometry gate, web-app/API multi-view
+completely. It pins the geometry-ownership gate, web-app/API multi-view
 difference, credit boundary, texture stage, runtime optimization, animation
 ownership, provenance, credential handling, and projectile variant. The short
-rule is: approve clean views, buy geometry before texture, reject silhouette or
-part-boundary failures while cheap, prove required rigid pivots in Blender,
-texture only an accepted mesh, treat a provider retexture as a PBR donor until
-its geometry preservation is proven, and optimize the corrected result for
-gameplay rather than shipping provider output directly.
+rule is: choose geometry ownership before provider selection. Infer, build,
+animate, and owner-approve a mechanically traceable multipart family
+untextured in Blender; Meshy receives only a static UV-identical texture
+upload whose body atlas passes occupancy and texel-density preflight. Enable
+original UV, PBR, and lighting removal, quarantine and discard provider
+geometry, and transplant only a proven material payload. Prefer the provider's
+standalone lossless PNG maps over images recompressed inside its GLB; pin every
+source hash and combine metallic/roughness channels losslessly. Preserve a
+donor-exact art source, then calibrate an explicit runtime material derivative
+in the actual renderer. Keep semantic emitters texture-free and
+renderer-owned, and approve through hash-pinned same-replay native captures.
+Create every skin independently from the same hash-pinned neutral static
+upload; never retexture one skin to create another.
 
 #### Fused team-accent extraction
 

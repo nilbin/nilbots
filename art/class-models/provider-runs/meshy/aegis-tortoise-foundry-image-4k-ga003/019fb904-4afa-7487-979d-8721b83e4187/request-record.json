@@ -1,0 +1,125 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb904-4afa-7487-979d-8721b83e4187",
+  "lookId": "aegis-tortoise-foundry-image-4k-ga003",
+  "purpose": "Meshy 6 image-guided 4K PBR Foundry texture-only proof on padded Aegis Tortoise GA-003 UV authority",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 99612,
+      "sha256": "0c53414c02ac29ec8627905d120351db3e7624b5cf9f92c1718eb93cf8df9d74",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 24413572,
+      "sha256": "964e1483207eeef7ee5156ea64f25f7eb88b6700d532e03b92ea0185436c6760",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 20792217,
+      "sha256": "c14fc848116623767e4c4dcadb9dd770bb3816d6d68292d3988396312dd4785a",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 606374,
+      "sha256": "d2679e90505e26174cd5b4e208858933bd97da2ef1831d204e32617b346c64dc",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1036244,
+      "sha256": "c276fd75c5b76022268d5f09acda21e90fe591ca2021d51e5c66914cb3132f37",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 27108091,
+      "sha256": "dfb38dbb4d70e8ca8324d8d34482ad17f44cdae69538b5bd11692a491a372898",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1139764,
+      "sha256": "57de796385aac13ae4a1f18f7e4dd07f27cd1f01c1e48063606f9ef958189a01",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T16:31:33.862Z",
+  "balanceBefore": 585,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 1979528,
+    "sha256": "87cbaa15795b15a0c564ffcaa7fa51755de7b237fa32c95a5290519df1869e7f",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1979528,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 1979528,
+    "sha256": "87cbaa15795b15a0c564ffcaa7fa51755de7b237fa32c95a5290519df1869e7f",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1979528,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "image",
+    "file": "art/class-models/concept-targets/aegis-tortoise-foundry-texture-v2/mobile-texture-style-reference.png",
+    "bytes": 1720442,
+    "sha256": "384d81d6d53f49d4d7bdd41a5ff84e845f2be400388a7d531c97a182bd313c2e",
+    "mimeType": "image/png",
+    "width": 1254,
+    "height": 1254,
+    "transport": "local-png-data-uri"
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "image_style_url": "<redacted-data-uri>"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "9a09e8fe1e2bdad1d78a01da75956944ebae91fc1c005332e0b8a66ab7d9e5d6",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T16:34:12.548Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T16:34:12.556Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 575,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

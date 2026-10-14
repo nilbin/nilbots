@@ -1,0 +1,77 @@
+{
+  "schema": "nilbots-art-model-authority-1",
+  "familyId": "aegis-tortoise",
+  "classId": "bulwark",
+  "conceptId": "aegis-tortoise-elevated-tower-concept-v22",
+  "geometryAuthorityId": "aegis-tortoise-ga-002",
+  "predecessorGeometryAuthorityId": "aegis-tortoise-ga-001",
+  "status": "owner-approved-texture-gate",
+  "promotedOn": "2026-07-31",
+  "authority": {
+    "editableScene": {
+      "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-kinematic-master.blend",
+      "bytes": 586014,
+      "sha256": "eaf2e20e9e1c84a041366a73d6f81d99473c3bb173f09d42f56163c277b77a95"
+    },
+    "neutralAnimatedGlb": {
+      "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-neutral-animated.glb",
+      "bytes": 2149160,
+      "sha256": "6df9498d7ecf1ea3523755db5df059f03abce7d340f4000accd7732ace532f21"
+    },
+    "staticTextureUploadGlb": {
+      "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+      "bytes": 2046284,
+      "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1"
+    },
+    "validationReport": {
+      "path": "art/class-models/masters/aegis-tortoise-ga-002/validation/validation-report.json",
+      "bytes": 797230,
+      "sha256": "b638dc082d9fc5ba5dd69392bafc948e3925bf3ed9ad41fad8a2a6b53d5aff13"
+    },
+    "surfaceUvDigest": "d24e9473e9724d16826c43b4900b48b3a42bffd47c47620409f69e7c872f10b3",
+    "sceneRigEvidenceDigest": "ad78bb367510172be9887ffef6e5a883d51913b6995fa6ca706df35f0da48977",
+    "clipDigest": "717d2edaa4a8eec7caf3e5bddab471dc5924f9b3da98c6e2b0d30f29e32f864c",
+    "teamAccentSurfaceDigest": "c01a956d9868f7039ace02c2b5c6d3845110837c362d3a3daf4cfcc250abb9ae",
+    "cameraRigAuthority": "embedded-and-pinned-by-editableScene-sha256",
+    "bindFrame": 1,
+    "collection": "NB_Bulwark_Kinematic_Master"
+  },
+  "geometry": {
+    "meshes": 38,
+    "triangles": 30858,
+    "rigType": "rigid-object-pivots-and-nla-tracks",
+    "semanticClipCount": 14
+  },
+  "presentation": {
+    "locomotion": "low-hover",
+    "walkAnimation": false,
+    "cornerModules": "hover-lock-stabilizers",
+    "forbiddenTextureCues": [
+      "feet",
+      "legs",
+      "tracks",
+      "wheels",
+      "landing-gear"
+    ]
+  },
+  "teamAccent": {
+    "material": "NB_TeamAccent_Semantic",
+    "meshCount": 8,
+    "textureEligible": false,
+    "rendererOwned": [
+      "team-tint",
+      "emission-strength",
+      "bloom",
+      "floor-glow",
+      "hover-underglow"
+    ],
+    "visiblePixelsAt41": 63,
+    "fixedTopCoverageRatio": 0.04988277
+  },
+  "builder": {
+    "path": "scripts/class-models/build_bulwark_folded_tower_blender.py",
+    "sha256": "dad3c84872c016b144c0a0f14d5e8cba47f025b2ec4be4585380dbb20685e2e1",
+    "blender": "5.2.0 LTS"
+  }
+}
+

@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb8ae-556b-781d-b516-1d38933c3005",
+  "lookId": "aegis-tortoise-polar",
+  "purpose": "Meshy 6 2K PBR Polar Tungsten texture-only donor for aegis-tortoise-ga-002",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 91380,
+      "sha256": "48c7ed8c641b47dfcf42ac58c1aa148e38d311621b0e544797243d11126f995d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 8699996,
+      "sha256": "baac4f2ad9833fa6471ce4fac58dadf9986a2d5c2f38205496c2cd491a48b939",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 4429382,
+      "sha256": "e621ba6b456784057dd23036fdbe40b5681d19d918ebd89c83bd117727222f40",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 386517,
+      "sha256": "8539aaf03b92d285698fe94dc8de616fb40642ad0935db494c39bfbe3cc480bf",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 525183,
+      "sha256": "6af5ef19d4e735f3da4a99ded3f4ad0bb096cc6400f244a85a8ba6c5790da39b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 5262643,
+      "sha256": "29ca901af7f258287ee93370acbe4bc0525e09bf86da147428ba947342f8f2ff",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 540507,
+      "sha256": "82e0cfdd76bf20aeaf54db5de90ea3a663dd4dd13cd6586f7bb344bf7b69af19",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T14:57:40.392Z",
+  "balanceBefore": 625,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad pale zinc-gray tungsten armor, medium cool-steel structure, small muted sage-gray hardened inserts, charcoal only in joints, barrels and recesses. Industrial fortress metal, matte-blasted high-roughness finish, crisp large panel borders and sparse broad wear. Team-light surfaces stay flat neutral white. No ceramic, copper, bronze, gold, blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad pale zinc-gray tungsten armor, medium cool-steel structure, small muted sage-gray hardened inserts, charcoal only in joints, barrels and recesses. Industrial fortress metal, matte-blasted high-roughness finish, crisp large panel borders and sparse broad wear. Team-light surfaces stay flat neutral white. No ceramic, copper, bronze, gold, blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "bb455cfe6ec135fc487c450de2847a331e1d8a28369aa90a13362725b43f5e08",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T14:59:33.138Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T14:59:33.146Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 615,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

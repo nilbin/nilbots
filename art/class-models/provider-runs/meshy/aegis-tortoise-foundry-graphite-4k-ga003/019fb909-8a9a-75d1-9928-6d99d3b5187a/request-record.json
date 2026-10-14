@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb909-8a9a-75d1-9928-6d99d3b5187a",
+  "lookId": "aegis-tortoise-foundry-graphite-4k-ga003",
+  "purpose": "Meshy 6 text-guided 4K PBR darker stylized Foundry proof on padded Aegis Tortoise GA-003 UV authority",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 102434,
+      "sha256": "d042280f6f76b25e23f3eeb2a440aaca3433a1c93eedfd4e76d174d46349b43d",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 23914736,
+      "sha256": "4c0e9a57738791ca143acefd89f932a0cc5d97fb566f72a92b0dfd8dd1737f89",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 21066023,
+      "sha256": "dbba17b597ce6c6d98837579c1d36e0ead24f283f03b85f0ba63bb2f5a91b019",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 299658,
+      "sha256": "71878c2b27543314f54f62d441f49bc54e18a0e7ab11c076b54e48e0f3bc0535",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1082799,
+      "sha256": "8bdd457090d9a0e8f84df49222daae515a1dff5414e11535dae1ee70d27b39ba",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 27375787,
+      "sha256": "2174fb402de165c8a187c9b2954db888a1704e3a994083ecc345c92a5c0ac89b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1133711,
+      "sha256": "dd54bfd08dac2eb2d6226ec21dd8add12daa4c915a135364d8fce5dcaabdc8d6",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T16:37:17.825Z",
+  "balanceBefore": 575,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 1979528,
+    "sha256": "87cbaa15795b15a0c564ffcaa7fa51755de7b237fa32c95a5290519df1869e7f",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1979528,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 1979528,
+    "sha256": "87cbaa15795b15a0c564ffcaa7fa51755de7b237fa32c95a5290519df1869e7f",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1979528,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue, red, cyan or green paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue, red, cyan or green paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "09b4f36c5dfe4b5a657469ddde3dd74230c38ee9518b14b154a1df7c2719524c",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T16:40:02.910Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T16:40:02.918Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 565,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

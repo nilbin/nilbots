@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 import traceback
@@ -14,6 +15,13 @@ import bpy
 
 EXPECTED_BLENDER = (5, 2)
 MODEL_COLLECTION = "NB_TextureDonor_Test"
+COVERAGE_CLIPS = ["Shell_Deploy"]
+COVERAGE_FRAME = 10
+COVERAGE_TRANSFORM_POLICY = (
+    "Bake each evaluated coverage-pose world transform into a temporary "
+    "body-only mesh copy; export thirty identity-root named meshes with no "
+    "parent pivots"
+)
 DONOR_FACTORS = {
     "baseColor": [0.55, 0.7, 0.9, 1.0],
     "metallic": 0.35,
@@ -24,6 +32,10 @@ DONOR_FACTORS = {
     "occlusionStrength": 0.37,
     "doubleSided": True,
 }
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def parse_args() -> argparse.Namespace:
@@ -75,6 +87,49 @@ def triangle_object(
     owner.objects.link(obj)
     obj.parent = parent
     return obj
+
+
+def large_micro_overlap_pair(
+    *,
+    prefix: str,
+    owner: bpy.types.Collection,
+    parent: bpy.types.Object,
+    surface: bpy.types.Material,
+) -> tuple[bpy.types.Object, bpy.types.Object]:
+    """Create large 3D panels whose distinct tiny UV triangles overlap."""
+    first = triangle_object(
+        f"{prefix}_MicroOverlapA",
+        vertices=[
+            (-0.8, 0.5, 0.1),
+            (0.8, 0.5, 0.1),
+            (-0.8, 1.3, 0.1),
+        ],
+        uvs=[
+            (0.6, 0.6),
+            (0.6004, 0.6),
+            (0.6, 0.6004),
+        ],
+        owner=owner,
+        parent=parent,
+        surface=surface,
+    )
+    second = triangle_object(
+        f"{prefix}_MicroOverlapB",
+        vertices=[
+            (-0.8, 0.5, 0.2),
+            (0.8, 0.5, 0.2),
+            (-0.8, 1.3, 0.2),
+        ],
+        uvs=[
+            (0.60005, 0.60005),
+            (0.60045, 0.60005),
+            (0.60005, 0.60045),
+        ],
+        owner=owner,
+        parent=parent,
+        surface=surface,
+    )
+    return first, second
 
 
 def add_animation(pivot: bpy.types.Object) -> None:
@@ -297,6 +352,178 @@ def export_glb(path: Path, collection: bpy.types.Collection) -> None:
     )
 
 
+def export_world_baked_coverage_pose(
+    path: Path,
+    *,
+    sources: list[bpy.types.Object],
+    animated_objects: list[bpy.types.Object],
+    material_override: bpy.types.Material | None = None,
+) -> None:
+    """Mirror the production coverage exporter on a tiny animated fixture."""
+    scene = bpy.context.scene
+    original_frame = scene.frame_current
+    animation_state = [
+        (
+            obj,
+            obj.animation_data.action,
+            [
+                (track, bool(track.mute))
+                for track in obj.animation_data.nla_tracks
+            ],
+        )
+        for obj in animated_objects
+        if obj.animation_data is not None
+    ]
+    temporary_collection: bpy.types.Collection | None = None
+    baked_objects: list[bpy.types.Object] = []
+    baked_meshes: list[bpy.types.Mesh] = []
+    source_names: list[
+        tuple[bpy.types.Object, str, bpy.types.Mesh, str]
+    ] = []
+    try:
+        for obj, _action, tracks in animation_state:
+            obj.animation_data.action = None
+            for track, _mute in tracks:
+                track.mute = track.name not in set(COVERAGE_CLIPS)
+        scene.frame_set(COVERAGE_FRAME)
+        bpy.context.view_layer.update()
+
+        source_names = [
+            (obj, obj.name, obj.data, obj.data.name)
+            for obj in sources
+        ]
+        temporary_collection = bpy.data.collections.new(
+            "__NB_FIXTURE_COVERAGE_WORLD_BAKED__"
+        )
+        scene.collection.children.link(temporary_collection)
+        for index, (obj, _obj_name, mesh, _mesh_name) in enumerate(
+            source_names
+        ):
+            obj.name = f"__NB_FIXTURE_SOURCE_OBJECT_{index:02d}__"
+            mesh.name = f"__NB_FIXTURE_SOURCE_MESH_{index:02d}__"
+        for obj, object_name, mesh, mesh_name in source_names:
+            baked_mesh = mesh.copy()
+            baked_mesh.name = mesh_name
+            baked_mesh.transform(obj.matrix_world)
+            if material_override is not None:
+                baked_mesh.materials.clear()
+                baked_mesh.materials.append(material_override)
+            baked_mesh.update()
+            baked_obj = bpy.data.objects.new(object_name, baked_mesh)
+            temporary_collection.objects.link(baked_obj)
+            baked_objects.append(baked_obj)
+            baked_meshes.append(baked_mesh)
+
+        bpy.ops.object.select_all(action="DESELECT")
+        for baked_obj in baked_objects:
+            baked_obj.select_set(True)
+        bpy.context.view_layer.objects.active = baked_objects[0]
+        bpy.ops.export_scene.gltf(
+            filepath=str(path),
+            export_format="GLB",
+            use_selection=True,
+            export_materials="EXPORT",
+            export_cameras=False,
+            export_lights=False,
+            export_extras=True,
+            export_animations=False,
+            export_apply=True,
+            export_yup=True,
+        )
+    finally:
+        bpy.ops.object.select_all(action="DESELECT")
+        for baked_obj in baked_objects:
+            bpy.data.objects.remove(baked_obj, do_unlink=True)
+        for baked_mesh in baked_meshes:
+            if baked_mesh.users == 0:
+                bpy.data.meshes.remove(baked_mesh)
+        if temporary_collection is not None:
+            bpy.data.collections.remove(temporary_collection)
+        for obj, object_name, mesh, mesh_name in source_names:
+            obj.name = object_name
+            mesh.name = mesh_name
+        for obj, action, tracks in animation_state:
+            obj.animation_data.action = action
+            for track, mute in tracks:
+                track.mute = mute
+        scene.frame_set(original_frame)
+        bpy.context.view_layer.update()
+    if not path.is_file():
+        raise ValueError("Coverage fixture export produced no GLB")
+
+
+def write_coverage_validation_report(
+    path: Path,
+    *,
+    repo_root: Path,
+    authored: Path,
+    uploaded: Path,
+    body_objects: list[bpy.types.Object],
+) -> None:
+    object_names = [obj.name for obj in body_objects]
+    mesh_names = [obj.data.name for obj in body_objects]
+    triangles = sum(len(obj.data.polygons) for obj in body_objects)
+    report = {
+        "schema": "nilbots-aegis-uv-authority-candidate-2",
+        "status": "PASS",
+        "outputs": {
+            "editableCandidate": {
+                "path": authored.relative_to(repo_root).as_posix(),
+                "sha256": sha256(authored),
+                "bytes": authored.stat().st_size,
+            },
+            "bodyOnlyCoverageUpload": {
+                "path": uploaded.relative_to(repo_root).as_posix(),
+                "sha256": sha256(uploaded),
+                "bytes": uploaded.stat().st_size,
+            },
+        },
+        "coverageUpload": {
+            "pose": {
+                "activeClips": COVERAGE_CLIPS,
+                "frame": COVERAGE_FRAME,
+                "transformPolicy": COVERAGE_TRANSFORM_POLICY,
+            },
+            "validation": {
+                "checks": {
+                    "fixtureWorldBakeReproducedExactly": True,
+                },
+                "objectNames": object_names,
+                "meshNames": mesh_names,
+                "meshes": len(mesh_names),
+                "topology": {
+                    "expectedTriangles": triangles,
+                    "importedTriangles": triangles,
+                },
+                "worldBounds": {
+                    "maximumAbsoluteDelta": 0.0,
+                    "tolerance": 1.0e-6,
+                },
+                "distinctRepeatedPartCenters": {
+                    "groups": {
+                        "fixtureBodyParts": {
+                            "complete": True,
+                            "distinct": True,
+                        }
+                    }
+                },
+            },
+        },
+        "authorityPreservation": {
+            "inMemoryChecks": {"fixtureAuthorityUnchanged": True},
+            "persistedChecks": {"fixtureAuthorityUnchanged": True},
+            "animatedGlb": {
+                "checks": {"semanticClipPreserved": True},
+            },
+            "lowHoverSemantics": {"preserved": True},
+        },
+    }
+    path.write_text(
+        json.dumps(report, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
 def main() -> None:
     if bpy.app.version[:2] != EXPECTED_BLENDER:
         raise ValueError(
@@ -347,6 +574,34 @@ def main() -> None:
         parent=pivot,
         surface=accent,
     )
+    sliver_object = triangle_object(
+        "AUTH_ProviderDroppableSliver",
+        vertices=[
+            (-0.02, 0.48, 0.0),
+            (-0.0199, 0.48, 0.0),
+            (-0.02, 0.4801, 0.0),
+        ],
+        uvs=[(0.48, 0.48), (0.4801, 0.48), (0.48, 0.4801)],
+        owner=collection,
+        parent=pivot,
+        surface=body,
+    )
+    paired_micro_uv_object = triangle_object(
+        "AUTH_PairedMicroUv",
+        vertices=[
+            (0.02, 0.48, 0.0),
+            (0.0201, 0.48, 0.0),
+            (0.02, 0.4801, 0.0),
+        ],
+        uvs=[
+            (0.52, 0.48),
+            (0.52001, 0.48),
+            (0.52, 0.48001),
+        ],
+        owner=collection,
+        parent=pivot,
+        surface=body,
+    )
     add_animation(pivot)
     bpy.context.scene.frame_start = 1
     bpy.context.scene.frame_end = 10
@@ -357,6 +612,46 @@ def main() -> None:
     uploaded_path = output_dir / "uploaded-source.glb"
     bpy.ops.wm.save_as_mainfile(filepath=str(blend_path), check_existing=False)
     export_glb(uploaded_path, collection)
+
+    coverage_body_objects = [
+        body_object,
+        sliver_object,
+        paired_micro_uv_object,
+    ]
+    coverage_uploaded_path = output_dir / "coverage-uploaded-source.glb"
+    export_world_baked_coverage_pose(
+        coverage_uploaded_path,
+        sources=coverage_body_objects,
+        animated_objects=list(collection.all_objects),
+    )
+    coverage_report_path = output_dir / "coverage-validation-report.json"
+    write_coverage_validation_report(
+        coverage_report_path,
+        repo_root=repo_root,
+        authored=blend_path,
+        uploaded=coverage_uploaded_path,
+        body_objects=coverage_body_objects,
+    )
+
+    large_overlap_objects = large_micro_overlap_pair(
+        prefix="AUTH",
+        owner=collection,
+        parent=pivot,
+        surface=body,
+    )
+    large_overlap_blend_path = (
+        output_dir / "large-micro-overlap-authored.blend"
+    )
+    large_overlap_uploaded_path = (
+        output_dir / "large-micro-overlap-uploaded-source.glb"
+    )
+    bpy.ops.wm.save_as_mainfile(
+        filepath=str(large_overlap_blend_path),
+        check_existing=False,
+    )
+    export_glb(large_overlap_uploaded_path, collection)
+    for obj in large_overlap_objects:
+        bpy.data.objects.remove(obj, do_unlink=True)
 
     shared_material_blend_path = output_dir / "shared-material-authored.blend"
     outside_mesh = body_object.data.copy()
@@ -374,12 +669,26 @@ def main() -> None:
     bpy.data.meshes.remove(outside_mesh)
 
     donor = donor_material(output_dir=output_dir)
-    for obj in (body_object, accent_object):
+    coverage_donor_path = output_dir / "coverage-donor.glb"
+    export_world_baked_coverage_pose(
+        coverage_donor_path,
+        sources=coverage_body_objects,
+        animated_objects=list(collection.all_objects),
+        material_override=donor,
+    )
+
+    collection.objects.unlink(sliver_object)
+    for obj in (body_object, accent_object, paired_micro_uv_object):
         obj.name = obj.name.replace("AUTH_", "DONOR_")
         obj.data.materials.clear()
         obj.data.materials.append(donor)
     donor_path = output_dir / "donor.glb"
     export_glb(donor_path, collection)
+
+    collection.objects.unlink(body_object)
+    lossy_donor_path = output_dir / "lossy-donor.glb"
+    export_glb(lossy_donor_path, collection)
+    collection.objects.link(body_object)
 
     root.location = (0.27, -0.19, 0.41)
     root.scale = (1.7, 1.7, 1.7)
@@ -395,12 +704,26 @@ def main() -> None:
     root.location = (0.0, 0.0, 0.0)
     root.scale = (1.0, 1.0, 1.0)
 
+    large_overlap_donor_objects = large_micro_overlap_pair(
+        prefix="DONOR",
+        owner=collection,
+        parent=pivot,
+        surface=donor,
+    )
+    large_overlap_donor_path = (
+        output_dir / "large-micro-overlap-donor.glb"
+    )
+    export_glb(large_overlap_donor_path, collection)
+    for obj in large_overlap_donor_objects:
+        bpy.data.objects.remove(obj, do_unlink=True)
+
     uv_loop = body_object.data.uv_layers.active.data[0]
     original_uv = uv_loop.uv.copy()
     uv_loop.uv.x += 0.08
     bad_uv_donor_path = output_dir / "bad-uv-donor.glb"
     export_glb(bad_uv_donor_path, collection)
     uv_loop.uv = original_uv
+    body_object.data.update()
 
     body_object.data.vertices[0].co.x -= 0.08
     body_object.data.update()
@@ -410,11 +733,33 @@ def main() -> None:
     manifest = {
         "modelCollection": MODEL_COLLECTION,
         "authoredBlend": blend_path.relative_to(repo_root).as_posix(),
+        "largeMicroOverlapAuthoredBlend": (
+            large_overlap_blend_path.relative_to(repo_root).as_posix()
+        ),
         "sharedMaterialAuthoredBlend": (
             shared_material_blend_path.relative_to(repo_root).as_posix()
         ),
         "uploadedSourceGlb": uploaded_path.relative_to(repo_root).as_posix(),
+        "coverageUploadedSourceGlb": (
+            coverage_uploaded_path.relative_to(repo_root).as_posix()
+        ),
+        "coverageValidationReport": (
+            coverage_report_path.relative_to(repo_root).as_posix()
+        ),
+        "coveragePoseClips": COVERAGE_CLIPS,
+        "coveragePoseFrame": COVERAGE_FRAME,
+        "coverageTransformPolicy": COVERAGE_TRANSFORM_POLICY,
+        "largeMicroOverlapUploadedSourceGlb": (
+            large_overlap_uploaded_path.relative_to(repo_root).as_posix()
+        ),
         "donorGlb": donor_path.relative_to(repo_root).as_posix(),
+        "coverageDonorGlb": (
+            coverage_donor_path.relative_to(repo_root).as_posix()
+        ),
+        "lossyDonorGlb": lossy_donor_path.relative_to(repo_root).as_posix(),
+        "largeMicroOverlapDonorGlb": (
+            large_overlap_donor_path.relative_to(repo_root).as_posix()
+        ),
         "similarityDonorGlb": (
             similarity_donor_path.relative_to(repo_root).as_posix()
         ),

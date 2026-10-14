@@ -1,0 +1,36 @@
+{
+  "id": "019fb8b0-1f56-7869-83c6-cdbd536244f8",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Stylized top-down hard-surface arena game asset, texture only. Large uninterrupted olive-green powder-coated armor on outer cassettes and tower crown, warm sand-gray structural hull, medium iron weapon hardware, dark tones only in deep cavities. Bold clean fortress color blocking, high roughness, low-medium metalness and sparse broad wear. Team-light surfaces stay flat neutral white. No camouflage, blue/red paint, black-dominant hull, bronze, copper, photoreal micro-noise, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785509980999,
+  "progress": 100,
+  "started_at": 1785509981722,
+  "finished_at": 1785510093062,
+  "expires_at": 1785769293062,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/<account>/tasks/019fb8b0-1f56-7869-83c6-cdbd536244f8/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 10
+}

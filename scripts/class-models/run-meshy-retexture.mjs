@@ -37,7 +37,11 @@ import {
 } from "./run-meshy-smart-geometry.mjs";
 
 const API_ROOT = "https://api.meshy.ai/openapi/v1";
-const RETEXTURE_CREDIT_CEILING = 10;
+const RETEXTURE_CREDIT_CEILINGS = new Map([
+  ["2k", 10],
+  ["4k", 10],
+  ["8k", 15],
+]);
 const DEFAULT_POLL_INTERVAL_MS = 5_000;
 const DEFAULT_POLL_TIMEOUT_MS = 30 * 60_000;
 const API_REQUEST_TIMEOUT_MS = 30_000;
@@ -73,12 +77,14 @@ function usage() {
     "(--input-task-id <accepted-task-id> | --input-model <repo-glb>) " +
     "--look-id <id> " +
     "--purpose <text> --image-style-url <local-pinned-png> " +
-    "[--output-root <path>] [--keychain-service nilbots.meshy.api] --execute\n" +
+    "[--texture-resolution 2k|4k|8k] [--output-root <path>] " +
+    "[--keychain-service nilbots.meshy.api] --execute\n" +
     "Create with text style: run-meshy-retexture.mjs " +
     "(--input-task-id <accepted-task-id> | --input-model <repo-glb>) " +
     "--look-id <id> " +
     "--purpose <text> --text-style-prompt <text> " +
-    "[--output-root <path>] [--keychain-service nilbots.meshy.api] --execute\n" +
+    "[--texture-resolution 2k|4k|8k] [--output-root <path>] " +
+    "[--keychain-service nilbots.meshy.api] --execute\n" +
     "Resume: run-meshy-retexture.mjs --resume <retexture-task-id> " +
     "--look-id <id> [--purpose <text>] [--output-root <path>] " +
     "[--keychain-service nilbots.meshy.api] --execute"
@@ -132,6 +138,7 @@ export function parseArguments(argv) {
   const options = {
     keychainService: "nilbots.meshy.api",
     outputRoot: "art/class-models/provider-runs/meshy",
+    textureResolution: "2k",
     execute: false,
   };
   const state = { index: 0 };
@@ -157,6 +164,9 @@ export function parseArguments(argv) {
       case "--text-style-prompt":
         options.textStylePrompt = takeArgumentValue(argv, state, argument);
         break;
+      case "--texture-resolution":
+        options.textureResolution = takeArgumentValue(argv, state, argument);
+        break;
       case "--output-root":
         options.outputRoot = takeArgumentValue(argv, state, argument);
         break;
@@ -176,6 +186,9 @@ export function parseArguments(argv) {
 
   validateLookId(options.lookId);
   validatePurpose(options.purpose, !options.resumeTaskId);
+  if (!RETEXTURE_CREDIT_CEILINGS.has(options.textureResolution)) {
+    throw new Error("--texture-resolution must be 2k, 4k, or 8k.");
+  }
   if (!options.keychainService || /[\0\r\n]/u.test(options.keychainService)) {
     throw new Error("--keychain-service must be a non-empty single-line value.");
   }
@@ -241,15 +254,26 @@ export function parseArguments(argv) {
   return options;
 }
 
-export function retextureSettings() {
+export function retextureSettings(textureResolution = "2k") {
+  if (!RETEXTURE_CREDIT_CEILINGS.has(textureResolution)) {
+    throw new Error("Texture resolution must be 2k, 4k, or 8k.");
+  }
   return {
     ai_model: "meshy-6",
     enable_original_uv: true,
     enable_pbr: true,
-    texture_resolution: "2k",
+    texture_resolution: textureResolution,
     remove_lighting: true,
     target_formats: ["glb"],
   };
+}
+
+export function retextureCreditCeiling(textureResolution = "2k") {
+  const ceiling = RETEXTURE_CREDIT_CEILINGS.get(textureResolution);
+  if (!ceiling) {
+    throw new Error("Texture resolution must be 2k, 4k, or 8k.");
+  }
+  return ceiling;
 }
 
 export function inspectInputModel(buffer, label = "Meshy input model") {
@@ -880,18 +904,18 @@ async function pollTask({
   );
 }
 
-export function assertCreditCeiling(task) {
+export function assertCreditCeiling(task, creditCeiling = 10) {
   const consumedCredits = task?.consumed_credits;
   if (!Number.isFinite(consumedCredits)) {
     throw new Error(
       "Meshy retexture task did not report numeric consumed_credits; " +
-        "the 10-credit ceiling cannot be verified.",
+        `the ${creditCeiling}-credit ceiling cannot be verified.`,
     );
   }
-  if (consumedCredits < 0 || consumedCredits > RETEXTURE_CREDIT_CEILING) {
+  if (consumedCredits < 0 || consumedCredits > creditCeiling) {
     throw new Error(
       `Meshy retexture task reported ${consumedCredits} consumed credits; ` +
-        `expected a value from 0 through the ${RETEXTURE_CREDIT_CEILING}-credit ` +
+        `expected a value from 0 through the ${creditCeiling}-credit ` +
         "ceiling.",
     );
   }
@@ -1052,8 +1076,14 @@ async function completeKnownTask({
         : terminalTask.status === "CANCELED"
           ? "Meshy does not document refund behavior for CANCELED tasks."
           : null;
-    requestRecord.consumedCredits = assertCreditCeiling(terminalTask);
-    requestRecord.creditCeiling = RETEXTURE_CREDIT_CEILING;
+    const creditCeiling = Number.isFinite(requestRecord.expectedMaxCredits)
+      ? requestRecord.expectedMaxCredits
+      : 10;
+    requestRecord.consumedCredits = assertCreditCeiling(
+      terminalTask,
+      creditCeiling,
+    );
+    requestRecord.creditCeiling = creditCeiling;
     requestRecord.creditCeilingVerified = true;
     await atomicWriteJson(requestRecordPath, requestRecord);
 
@@ -1163,7 +1193,8 @@ async function createTask({
   fetchImpl,
   readApiKeyImpl,
 }) {
-  const settings = retextureSettings();
+  const settings = retextureSettings(options.textureResolution);
+  const creditCeiling = retextureCreditCeiling(options.textureResolution);
   const fingerprint = requestFingerprint(
     input,
     options.lookId,
@@ -1194,7 +1225,7 @@ async function createTask({
     ...(input.kind === "task"
       ? { inputTaskId: input.taskId }
       : { inputModel: input.record }),
-    expectedMaxCredits: RETEXTURE_CREDIT_CEILING,
+    expectedMaxCredits: creditCeiling,
     requestFingerprint: fingerprint,
     style: style.record,
     settings,
@@ -1215,11 +1246,11 @@ async function createTask({
   try {
     const apiKey = readApiKeyImpl(options.keychainService);
     intent.balanceBefore = await observeBalance(apiKey, fetchImpl);
-    if (intent.balanceBefore < RETEXTURE_CREDIT_CEILING) {
+    if (intent.balanceBefore < creditCeiling) {
       intent.state = "REJECTED_LOCALLY";
       intent.runnerError =
         `Balance ${intent.balanceBefore} is below the documented ` +
-        `${RETEXTURE_CREDIT_CEILING}-credit retexture cost.`;
+        `${creditCeiling}-credit retexture cost.`;
       await atomicWriteJson(intentPath, intent);
       throw new Error(intent.runnerError);
     }
@@ -1313,7 +1344,7 @@ async function createTask({
       style: style.record,
       settings,
       sanitizedRequest,
-      expectedMaxCredits: RETEXTURE_CREDIT_CEILING,
+      expectedMaxCredits: creditCeiling,
       requestFingerprint: fingerprint,
     };
     const record = await completeKnownTask({
@@ -1491,7 +1522,8 @@ export async function main(
     prepareInput(repositoryRoot, options),
     prepareStyle(repositoryRoot, options),
   ]);
-  const settings = retextureSettings();
+  const settings = retextureSettings(options.textureResolution);
+  const creditCeiling = retextureCreditCeiling(options.textureResolution);
   const sanitizedRequest = buildSanitizedRequestPreview(
     input,
     style,
@@ -1503,7 +1535,7 @@ export async function main(
     endpoint: "POST /openapi/v1/retexture",
     lookId: options.lookId,
     purpose: options.purpose,
-    expectedMaxCredits: RETEXTURE_CREDIT_CEILING,
+    expectedMaxCredits: creditCeiling,
     input: input.record,
     style: style.record,
     settings,
@@ -1519,7 +1551,7 @@ export async function main(
   if (!options.execute) {
     process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
     process.stdout.write(
-      "Dry run only. Add --execute to create a paid 10-credit task.\n",
+      `Dry run only. Add --execute to create a paid ${creditCeiling}-credit task.\n`,
     );
     return summary;
   }

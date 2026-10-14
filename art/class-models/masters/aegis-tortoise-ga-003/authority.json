@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "familyId": "aegis-tortoise",
+  "conceptId": "aegis-tortoise-elevated-tower-concept-v22",
+  "geometryAuthorityId": "aegis-tortoise-ga-003",
+  "status": "uv-authority-approved-for-texture-proof",
+  "lineage": {
+    "parentGeometryAuthorityId": "aegis-tortoise-ga-002",
+    "changeType": "uv-only",
+    "geometryChanged": false,
+    "hierarchyPivotsOrTransformsChanged": false,
+    "clipsChanged": false,
+    "teamAccentGeometryOrUvChanged": false
+  },
+  "locomotion": {
+    "kind": "low-hover",
+    "levitating": true,
+    "walkingCuesAllowed": false
+  },
+  "artifacts": {
+    "editableBlend": {
+      "file": "aegis-tortoise-kinematic-master.blend",
+      "sha256": "5eaf84fb61d7ed3c25b9ad6046ed8d32ff9e1531b78396e135b85ec7ea972bd3"
+    },
+    "neutralAnimatedGlb": {
+      "file": "aegis-tortoise-neutral-animated.glb",
+      "sha256": "f033237c1168d865bffc697be729b0eb1698c41570745f5f4de47d47079a2ca3"
+    },
+    "bodyOnlyTextureUpload": {
+      "file": "aegis-tortoise-texture-upload-coverage.glb",
+      "sha256": "378e5d999c7e73bbab74d3b246d92b30fa4f69a6cf008b55dbc5bbe0304cf2ef"
+    },
+    "validationReport": {
+      "file": "validation/uv-authority-report.json",
+      "sha256": "5112cdae04f9d3934cad1c734857f80074540e6bc773ff650992e2cc601c9c33"
+    }
+  },
+  "uvAuthority": {
+    "bodyAtlasCoverage": 0.646540584,
+    "packingMarginNormalized": 0.0005,
+    "recordedMinimumCoverage": 0.64,
+    "strictOverlapPairs": 0,
+    "mainHullUvArea": 0.423671956,
+    "mainHullAreaGainFromGa002": 163.56729045441548,
+    "mainHullLinearTexelGainFromGa002": 12.78934284685556,
+    "mainHullEquivalentSquareSideAt2k": 1333.04500344,
+    "paddingDecision": "Prefer the lower-occupancy padded atlas over the 70.62%/0.0001-margin diagnostic to reduce WebGL mip bleed."
+  },
+  "providerUpload": {
+    "bodyMeshes": 30,
+    "teamAccentMeshes": 0,
+    "materials": 1,
+    "animations": 0,
+    "coveragePose": "Shell_Deploy and Tower_Deploy at frame 96 for texture exposure only",
+    "worldTransformsBakedIntoTemporaryCopies": true,
+    "identityRootMeshes": 30,
+    "reimportWorldBoundsMaximumAbsoluteDelta": 2.9802322387695312e-8,
+    "reimportWorldBoundsTolerance": 0.00002,
+    "repeatedPartCentersDistinctAfterReimport": true
+  },
+  "runtimeAuthority": {
+    "teamAccentMeshes": 8,
+    "teamAccentTextureOwnedByRenderer": true,
+    "semanticClips": [
+      "Mobile_Recoil",
+      "PodPlant_HoverSettle",
+      "Shell_Deploy",
+      "Shell_Recoil",
+      "Tower_Deploy",
+      "Tower_Recoil",
+      "Tower_Recoil_01",
+      "Tower_Recoil_02",
+      "Tower_Recoil_03",
+      "Tower_Recoil_04",
+      "Tower_Recoil_05",
+      "Tower_Recoil_06",
+      "Tower_Recoil_07",
+      "Tower_Recoil_08"
+    ]
+  }
+}

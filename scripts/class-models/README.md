@@ -100,6 +100,39 @@ offline tests with:
 node --test scripts/class-models/run-meshy-retexture.test.mjs
 ```
 
+## Deterministic runtime PBR grade
+
+`grade_runtime_pbr.py` derives a game-facing skin from an already-PASS texture
+donor transplant without changing or overwriting that donor-exact source. The
+pinned `aegis-foundry-runtime-v1` profile uses integer-only RGB transforms to
+lift near-black graphite, compress neutral white islands to warm ash, reduce
+purple cast, and soft-mask Foundry orange back to its original samples. It
+copies the normal map byte-for-byte, applies a recorded roughness floor and
+metallic cap, and zeros the body emissive map so the texture-free semantic team
+material remains the only renderer-owned glow authority.
+
+```sh
+python3 scripts/class-models/grade_runtime_pbr.py \
+  --source-dir sandbox/<pass-donor-transplant> \
+  --expected-source-report-sha256 <exact-lowercase-sha256> \
+  --output-dir sandbox/<new-runtime-grade>
+```
+
+The wrapper requires a hash-pinned PASS report, validates every source
+artifact and texture, resolves pinned Blender 5.2, and refuses overwrite.
+Blender substitutes only the four PBR images and writes a report proving exact
+geometry, UV, hierarchy, pivot, skin, scene, and all animation samples against
+the source animated GLB. It also fingerprints the semantic team material in
+the source blend, saved blend, source GLB, and output GLB. Across different
+output directories, the PNGs and animated GLB are byte-reproducible; the
+editable `.blend` container records its save location, so its semantic
+authority snapshot—not its path-sensitive file hash—is the repeatability gate.
+Run the pixel boundary tests without Blender or network access:
+
+```sh
+python3 -m unittest scripts/class-models/test_grade_runtime_pbr.py
+```
+
 ## Bulwark semantic team-accent postprocess
 
 `add_bulwark_team_accents.py` is the offline Blender stage after the reviewed

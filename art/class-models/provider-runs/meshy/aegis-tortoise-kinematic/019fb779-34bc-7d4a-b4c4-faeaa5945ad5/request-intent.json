@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-31T09:20:00.909Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise-kinematic",
+  "purpose": "Meshy 6 2K PBR brighter stylized texture candidate for deterministic animated Bulwark family",
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "39517a25198a9487ca0ee38b0b2b09a9e5b1f58da1f5e3861a62e19a9e267f98",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized hard-surface real-time game asset readable at 41px from a 58-degree top-down camera. Broad cold ash-gray tungsten armor over charcoal structure and medium gunmetal mechanisms, with strong fortress-like value separation. Matte powder coat, high-roughness satin metal, crisp simple panel borders, sparse broad edge wear, neutral-white apertures. No near-black majority, monochrome blur, smeared metal, bronze/copper/gold, blue/red team color, chrome, glossy clearcoat, photoreal micro-scratches, dirt noise, text, logos, decals, or baked lighting. Preserve geometry."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized hard-surface real-time game asset readable at 41px from a 58-degree top-down camera. Broad cold ash-gray tungsten armor over charcoal structure and medium gunmetal mechanisms, with strong fortress-like value separation. Matte powder coat, high-roughness satin metal, crisp simple panel borders, sparse broad edge wear, neutral-white apertures. No near-black majority, monochrome blur, smeared metal, bronze/copper/gold, blue/red team color, chrome, glossy clearcoat, photoreal micro-scratches, dirt noise, text, logos, decals, or baked lighting. Preserve geometry."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 645,
+  "submittedAt": "2026-07-31T09:20:01.579Z",
+  "taskId": "019fb779-34bc-7d4a-b4c4-faeaa5945ad5",
+  "finishedAt": "2026-07-31T09:21:59.571Z"
+}

@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb8b0-1f56-7869-83c6-cdbd536244f8",
+  "lookId": "aegis-tortoise-verdant",
+  "purpose": "Meshy 6 2K PBR Verdant Rampart texture-only donor for aegis-tortoise-ga-002",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 91496,
+      "sha256": "4173f37c6c5efb5aa847f8fae27426c68a0e6e9222116709c564b125fa9e9f5c",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 8238548,
+      "sha256": "e079a1d995c64ca981e0d9040bc43252b99fe77c746f72edbed38c153762ec82",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 4164438,
+      "sha256": "1f3f6351bd3096056e8a54c3b07a389e483ad31ef98fbdf12182de88d757e83b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 135863,
+      "sha256": "999656be77753b40e55fc2a686ed209b33a96ee77200d336f04226bb084f1d0b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 267080,
+      "sha256": "92f7636b1b959a33cf9ea75a75fab1e748e99967bab506ab9341d20b046dab44",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 4989017,
+      "sha256": "39da705f6c9db40405432e878f4f5cbaddee5152bcf93a6b5323e645e2aec0f1",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 537024,
+      "sha256": "2fcfd6e937a04d528fa59bde17681d92397d0e56e36f34cdbf8197942b0dc9fc",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T14:59:37.622Z",
+  "balanceBefore": 615,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface arena game asset, texture only. Large uninterrupted olive-green powder-coated armor on outer cassettes and tower crown, warm sand-gray structural hull, medium iron weapon hardware, dark tones only in deep cavities. Bold clean fortress color blocking, high roughness, low-medium metalness and sparse broad wear. Team-light surfaces stay flat neutral white. No camouflage, blue/red paint, black-dominant hull, bronze, copper, photoreal micro-noise, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface arena game asset, texture only. Large uninterrupted olive-green powder-coated armor on outer cassettes and tower crown, warm sand-gray structural hull, medium iron weapon hardware, dark tones only in deep cavities. Bold clean fortress color blocking, high roughness, low-medium metalness and sparse broad wear. Team-light surfaces stay flat neutral white. No camouflage, blue/red paint, black-dominant hull, bronze, copper, photoreal micro-noise, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "33a4e10a868ac0cce44b05cfbe22bc75acc964200cd08ac2fcf4211d8eb9a24e",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T15:01:35.634Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T15:01:35.642Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 605,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

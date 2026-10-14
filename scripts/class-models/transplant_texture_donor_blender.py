@@ -2,10 +2,14 @@
 """Blender-side texture-only donor transplant.
 
 The provider GLB is inspected in disposable factory scenes and parsed as a
-container for PBR images/factors. The authored .blend is opened only after
-uploaded-source/donor geometry+UV correspondence passes. Opening the .blend
-purges every imported provider datablock before materials are rebuilt with
-deterministic local nodes.
+container for PBR images/factors/samplers. An opt-in v3 path replaces its image
+payload with five pinned standalone provider PNGs and losslessly composes glTF
+metallic/roughness channels. The authored .blend is opened only after uploaded-
+source/donor geometry+UV correspondence passes. Opening the .blend purges every
+imported provider datablock before materials are rebuilt with deterministic
+local nodes. An opt-in v4 path reconstructs a report-pinned coverage pose from
+temporary world-baked body copies for upload validation, then discards them and
+exports the untouched animated hierarchy.
 """
 
 from __future__ import annotations
@@ -27,15 +31,47 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from lossless_pbr_png import (  # noqa: E402
+    compose_metallic_roughness_png,
+    inspect_png,
+    sha256_bytes as png_sha256_bytes,
+)
+
 
 EXPECTED_BLENDER = (5, 2)
-REPORT_SCHEMA = "nilbots-texture-donor-transplant-1"
+REPORT_SCHEMA = "nilbots-texture-donor-transplant-2"
+LOSSLESS_PBR_REPORT_SCHEMA = "nilbots-texture-donor-transplant-3"
+COVERAGE_POSE_REPORT_SCHEMA = "nilbots-texture-donor-transplant-4"
+SIMPLE_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_. -]{0,127}$")
 SURFACE_QUANTUM = 1.0e-6
 NORMALIZED_SURFACE_QUANTUM = 1.0e-5
-SIMILARITY_MAX_NORMALIZED_RESIDUAL = 2.0e-5
-SIMILARITY_RMS_NORMALIZED_RESIDUAL = 2.0e-6
+SIMILARITY_MAX_NORMALIZED_RESIDUAL = 1.0e-4
+SIMILARITY_RMS_NORMALIZED_RESIDUAL = 5.0e-6
+SIMILARITY_P99_NORMALIZED_RESIDUAL = 2.0e-6
 UV_EPSILON = 1.0e-9
+CORRESPONDENCE_UV_AREA_EPSILON = 1.0e-14
+MAX_SOURCE_ONLY_TRIANGLES = 512
+MAX_SOURCE_ONLY_UV_AREA_RATIO = 1.0e-4
+MAX_SOURCE_ONLY_NORMALIZED_SPATIAL_AREA = 2.0e-4
+MAX_SOURCE_DEGENERATE_UV_TRIANGLES = 256
+ATLAS_MICRO_UV_TRIANGLE_AREA = 1.0e-9
+MAX_ATLAS_MICRO_UV_TRIANGLES = 512
+MAX_ATLAS_MICRO_UV_AREA_RATIO = 1.0e-5
+MAX_ATLAS_MICRO_NORMALIZED_SPATIAL_AREA = 1.0e-3
+MAX_ATLAS_MICRO_OVERLAP_TRIANGLE_AREA = 1.0e-7
+MAX_ATLAS_MICRO_OVERLAP_PAIRS = 2048
+MAX_ATLAS_MICRO_OVERLAP_UV_AREA_RATIO = 1.0e-4
+MAX_ATLAS_MICRO_OVERLAP_NORMALIZED_SPATIAL_AREA = 1.0e-3
 TEAM_ROLE = "team-accent"
+COVERAGE_TRANSFORM_POLICY = (
+    "Bake each evaluated coverage-pose world transform into a temporary "
+    "body-only mesh copy; export thirty identity-root named meshes with no "
+    "parent pivots"
+)
 GLTF_REPEAT = 10497
 GLTF_LINEAR = 9729
 GLTF_LINEAR_MIPMAP_LINEAR = 9987
@@ -43,6 +79,48 @@ SUPPORTED_IMAGES = {
     "image/png": (".png", b"\x89PNG\r\n\x1a\n"),
     "image/jpeg": (".jpg", b"\xff\xd8"),
 }
+STANDALONE_PBR_OPTIONS = (
+    (
+        "baseColor",
+        "pbr_base_color_png",
+        "expected_pbr_base_color_sha256",
+        "--pbr-base-color-png",
+        "--expected-pbr-base-color-sha256",
+        "pbrBaseColorPng",
+    ),
+    (
+        "metallic",
+        "pbr_metallic_png",
+        "expected_pbr_metallic_sha256",
+        "--pbr-metallic-png",
+        "--expected-pbr-metallic-sha256",
+        "pbrMetallicPng",
+    ),
+    (
+        "roughness",
+        "pbr_roughness_png",
+        "expected_pbr_roughness_sha256",
+        "--pbr-roughness-png",
+        "--expected-pbr-roughness-sha256",
+        "pbrRoughnessPng",
+    ),
+    (
+        "normal",
+        "pbr_normal_png",
+        "expected_pbr_normal_sha256",
+        "--pbr-normal-png",
+        "--expected-pbr-normal-sha256",
+        "pbrNormalPng",
+    ),
+    (
+        "emissive",
+        "pbr_emissive_png",
+        "expected_pbr_emissive_sha256",
+        "--pbr-emissive-png",
+        "--expected-pbr-emissive-sha256",
+        "pbrEmissivePng",
+    ),
+)
 
 
 def blender_arguments() -> list[str]:
@@ -63,6 +141,20 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--model-collection", required=True)
     parser.add_argument("--bind-frame", required=True, type=int)
     parser.add_argument("--output-dir", required=True, type=Path)
+    for (
+        _role,
+        path_destination,
+        hash_destination,
+        path_option,
+        hash_option,
+        _report_key,
+    ) in STANDALONE_PBR_OPTIONS:
+        parser.add_argument(path_option, dest=path_destination, type=Path)
+        parser.add_argument(hash_option, dest=hash_destination)
+    parser.add_argument("--coverage-validation-report", type=Path)
+    parser.add_argument("--expected-coverage-validation-report-sha256")
+    parser.add_argument("--coverage-pose-clip", action="append")
+    parser.add_argument("--coverage-pose-frame", type=int)
     return parser.parse_args(argv)
 
 
@@ -85,6 +177,121 @@ def resolve_repo_path(
     except ValueError as error:
         raise ValueError(f"{option} escaped the repository") from error
     return path, relative
+
+
+def resolve_standalone_pbr(
+    args: argparse.Namespace,
+    *,
+    repo_root: Path,
+) -> dict[str, dict[str, Any]] | None:
+    supplied: list[tuple[bool, str]] = []
+    for (
+        _role,
+        path_destination,
+        hash_destination,
+        path_option,
+        hash_option,
+        _report_key,
+    ) in STANDALONE_PBR_OPTIONS:
+        supplied.append((getattr(args, path_destination) is not None, path_option))
+        supplied.append((getattr(args, hash_destination) is not None, hash_option))
+    if not any(present for present, _option in supplied):
+        return None
+    missing = [option for present, option in supplied if not present]
+    if missing:
+        raise ValueError(
+            "Standalone PBR mode requires all five PNG paths and hashes; "
+            "missing: " + ", ".join(missing)
+        )
+
+    result: dict[str, dict[str, Any]] = {}
+    seen: set[Path] = set()
+    for (
+        role,
+        path_destination,
+        hash_destination,
+        path_option,
+        _hash_option,
+        report_key,
+    ) in STANDALONE_PBR_OPTIONS:
+        path, relative = resolve_repo_path(
+            getattr(args, path_destination),
+            repo_root=repo_root,
+            option=path_option,
+            strict=True,
+        )
+        if not path.is_file() or path.suffix.lower() != ".png":
+            raise ValueError(f"{path_option} must name an existing .png file")
+        if path in seen:
+            raise ValueError(
+                "Standalone PBR roles must reference five distinct PNG files"
+            )
+        seen.add(path)
+        expected = getattr(args, hash_destination)
+        if not isinstance(expected, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", expected
+        ):
+            raise ValueError(f"{path_option} has no valid pinned SHA-256")
+        result[role] = {
+            "path": path,
+            "relative": relative,
+            "sha256": expected,
+            "reportKey": report_key,
+        }
+    return result
+
+
+def resolve_coverage_pose(
+    args: argparse.Namespace,
+    *,
+    repo_root: Path,
+) -> dict[str, Any] | None:
+    supplied = {
+        "--coverage-validation-report": args.coverage_validation_report,
+        "--expected-coverage-validation-report-sha256": (
+            args.expected_coverage_validation_report_sha256
+        ),
+        "--coverage-pose-clip": args.coverage_pose_clip,
+        "--coverage-pose-frame": args.coverage_pose_frame,
+    }
+    if all(value is None for value in supplied.values()):
+        return None
+    missing = [option for option, value in supplied.items() if value is None]
+    if missing:
+        raise ValueError(
+            "Coverage-pose mode requires its report, hash, clip(s), and frame; "
+            "missing: " + ", ".join(missing)
+        )
+    clips = tuple(args.coverage_pose_clip)
+    if (
+        not clips
+        or len(set(clips)) != len(clips)
+        or any(not SIMPLE_NAME_RE.fullmatch(clip) for clip in clips)
+    ):
+        raise ValueError("Coverage-pose clips must be simple, non-empty, unique names")
+    if args.coverage_pose_frame < 0:
+        raise ValueError("--coverage-pose-frame must be non-negative")
+    path, relative = resolve_repo_path(
+        args.coverage_validation_report,
+        repo_root=repo_root,
+        option="--coverage-validation-report",
+        strict=True,
+    )
+    if not path.is_file() or path.suffix.lower() != ".json":
+        raise ValueError(
+            "--coverage-validation-report must name an existing .json file"
+        )
+    expected = args.expected_coverage_validation_report_sha256
+    if not isinstance(expected, str) or not re.fullmatch(r"[0-9a-f]{64}", expected):
+        raise ValueError("Coverage validation report has no valid pinned SHA-256")
+    return {
+        "path": path,
+        "relative": relative,
+        "sha256": expected,
+        "clips": clips,
+        "frame": args.coverage_pose_frame,
+        "reportKey": "coverageValidationReport",
+    }
 
 
 def sha256_bytes(payload: bytes) -> str:
@@ -493,6 +700,163 @@ def authority_validation_ledger(
     )
 
 
+def coverage_validation_ledger(
+    *,
+    coverage_pose: dict[str, Any],
+    authored: Path,
+    authored_relative: Path,
+    authored_sha256: str,
+    uploaded: Path,
+    uploaded_relative: Path,
+    uploaded_sha256: str,
+) -> dict[str, Any]:
+    path = coverage_pose["path"]
+    observed = sha256(path)
+    if observed != coverage_pose["sha256"]:
+        raise ValueError(
+            "Coverage validation report hash drifted before validation: "
+            f"{observed} != {coverage_pose['sha256']}"
+        )
+    ledger = json.loads(path.read_text(encoding="utf-8"))
+    if (
+        not isinstance(ledger, dict)
+        or ledger.get("schema") != "nilbots-aegis-uv-authority-candidate-2"
+        or ledger.get("status") != "PASS"
+    ):
+        raise ValueError("Coverage validation report is not the expected PASS schema")
+    outputs = ledger.get("outputs")
+    coverage = ledger.get("coverageUpload")
+    preservation = ledger.get("authorityPreservation")
+    if not all(isinstance(value, dict) for value in (outputs, coverage, preservation)):
+        raise ValueError("Coverage validation report is malformed")
+    editable = outputs.get("editableCandidate")
+    upload = outputs.get("bodyOnlyCoverageUpload")
+    if (
+        not isinstance(editable, dict)
+        or editable.get("sha256") != authored_sha256
+        or editable.get("bytes") != authored.stat().st_size
+    ):
+        raise ValueError("Coverage report does not pin the requested authored blend")
+    if (
+        not isinstance(upload, dict)
+        or upload.get("sha256") != uploaded_sha256
+        or upload.get("bytes") != uploaded.stat().st_size
+    ):
+        raise ValueError("Coverage report does not pin the requested upload GLB")
+    pose = coverage.get("pose")
+    validation = coverage.get("validation")
+    if not isinstance(pose, dict) or not isinstance(validation, dict):
+        raise ValueError("Coverage report omitted pose or validation evidence")
+    if (
+        pose.get("activeClips") != list(coverage_pose["clips"])
+        or pose.get("frame") != coverage_pose["frame"]
+        or pose.get("transformPolicy") != COVERAGE_TRANSFORM_POLICY
+    ):
+        raise ValueError("Coverage report pose does not match the explicit request")
+    validation_checks = validation.get("checks")
+    if (
+        not isinstance(validation_checks, dict)
+        or not validation_checks
+        or any(value is not True for value in validation_checks.values())
+    ):
+        raise ValueError("Coverage report contains a failed upload validation check")
+    in_memory = preservation.get("inMemoryChecks")
+    persisted = preservation.get("persistedChecks")
+    animated = preservation.get("animatedGlb")
+    low_hover = preservation.get("lowHoverSemantics")
+    if (
+        not isinstance(in_memory, dict)
+        or not in_memory
+        or any(value is not True for value in in_memory.values())
+        or not isinstance(persisted, dict)
+        or not persisted
+        or any(value is not True for value in persisted.values())
+        or not isinstance(animated, dict)
+        or not isinstance(animated.get("checks"), dict)
+        or not animated["checks"]
+        or any(value is not True for value in animated["checks"].values())
+        or not isinstance(low_hover, dict)
+        or low_hover.get("preserved") is not True
+    ):
+        raise ValueError("Coverage report does not preserve animated authority")
+    object_names = validation.get("objectNames")
+    mesh_names = validation.get("meshNames")
+    topology = validation.get("topology")
+    world_bounds = validation.get("worldBounds")
+    distinct = validation.get("distinctRepeatedPartCenters")
+    distinct_groups = distinct.get("groups") if isinstance(distinct, dict) else None
+    if (
+        not isinstance(object_names, list)
+        or not object_names
+        or any(not isinstance(name, str) or not name for name in object_names)
+        or len(set(object_names)) != len(object_names)
+        or not isinstance(mesh_names, list)
+        or not mesh_names
+        or any(not isinstance(name, str) or not name for name in mesh_names)
+        or len(set(mesh_names)) != len(mesh_names)
+        or not isinstance(topology, dict)
+        or topology.get("expectedTriangles") != topology.get("importedTriangles")
+        or topology.get("expectedTriangles", 0) <= 0
+        or validation.get("meshes") != len(mesh_names)
+        or len(object_names) != len(mesh_names)
+        or not isinstance(world_bounds, dict)
+        or world_bounds.get("maximumAbsoluteDelta", math.inf)
+        > world_bounds.get("tolerance", -math.inf)
+        or not isinstance(distinct, dict)
+        or not isinstance(distinct_groups, dict)
+        or not distinct_groups
+        or any(
+            not isinstance(group, dict)
+            or group.get("complete") is not True
+            or group.get("distinct") is not True
+            for group in distinct_groups.values()
+        )
+    ):
+        raise ValueError("Coverage report names/topology/world evidence is invalid")
+    return {
+        "present": True,
+        "path": coverage_pose["relative"].as_posix(),
+        "sha256": coverage_pose["sha256"],
+        "schema": ledger["schema"],
+        "status": ledger["status"],
+        "authoredBlend": {
+            "path": authored_relative.as_posix(),
+            "sha256": authored_sha256,
+            "bytes": authored.stat().st_size,
+        },
+        "uploadedSourceGlb": {
+            "path": uploaded_relative.as_posix(),
+            "sha256": uploaded_sha256,
+            "bytes": uploaded.stat().st_size,
+        },
+        "pose": {
+            "activeClips": list(coverage_pose["clips"]),
+            "frame": coverage_pose["frame"],
+            "transformPolicy": COVERAGE_TRANSFORM_POLICY,
+        },
+        "expected": {
+            "objectNames": object_names,
+            "meshNames": mesh_names,
+            "meshes": validation["meshes"],
+            "triangles": topology["expectedTriangles"],
+        },
+        "uploadValidationChecksSha256": stable_hash(validation_checks),
+        "authorityPreservationChecksSha256": stable_hash(
+            {
+                "inMemory": in_memory,
+                "persisted": persisted,
+                "animatedGlb": animated["checks"],
+                "lowHover": low_hover["preserved"],
+            }
+        ),
+        "worldBounds": {
+            "maximumAbsoluteDelta": world_bounds["maximumAbsoluteDelta"],
+            "tolerance": world_bounds["tolerance"],
+        },
+        "distinctRepeatedPartCentersSha256": stable_hash(distinct),
+    }
+
+
 def material_texture_info(
     material: dict[str, Any],
     role: str,
@@ -800,6 +1164,125 @@ def donor_material_source(
     return result
 
 
+def standalone_lossless_pbr_source(
+    *,
+    standalone_pbr: dict[str, dict[str, Any]],
+    donor_source: dict[str, Any],
+) -> dict[str, Any]:
+    """Replace only donor image bytes with pinned standalone provider PNGs."""
+    payloads: dict[str, bytes] = {}
+    source_records: dict[str, dict[str, Any]] = {}
+    for role in ("baseColor", "metallic", "roughness", "normal", "emissive"):
+        record = standalone_pbr[role]
+        payload = record["path"].read_bytes()
+        observed = png_sha256_bytes(payload)
+        if observed != record["sha256"]:
+            raise ValueError(
+                f"Standalone {role} PNG hash drifted before composition: "
+                f"{observed} != {record['sha256']}"
+            )
+        payloads[role] = payload
+        source_records[role] = inspect_png(
+            payload,
+            label=f"Standalone {role} PNG",
+        )
+
+    base_size = (
+        source_records["baseColor"]["width"],
+        source_records["baseColor"]["height"],
+    )
+    normal_size = (
+        source_records["normal"]["width"],
+        source_records["normal"]["height"],
+    )
+    if base_size != normal_size:
+        raise ValueError(
+            "Standalone base-color and normal PNG dimensions do not match: "
+            f"{base_size} != {normal_size}"
+        )
+
+    metallic_roughness, composition = compose_metallic_roughness_png(
+        metallic_payload=payloads["metallic"],
+        roughness_payload=payloads["roughness"],
+    )
+    standalone_output_roles = (
+        "baseColor",
+        "metallicRoughness",
+        "normal",
+        "emissive",
+    )
+    fallback_roles = tuple(
+        role for role in ("occlusion",) if role in donor_source["images"]
+    )
+    output_roles = standalone_output_roles + fallback_roles
+    missing_samplers = set(output_roles) - set(donor_source["samplers"])
+    if missing_samplers:
+        raise ValueError(
+            "Donor GLB does not define sampler authority for standalone role(s): "
+            + ", ".join(sorted(missing_samplers))
+        )
+
+    image_payloads = {
+        "baseColor": payloads["baseColor"],
+        "metallicRoughness": metallic_roughness,
+        "normal": payloads["normal"],
+        "emissive": payloads["emissive"],
+    }
+    images: dict[str, dict[str, Any]] = {
+        role: {
+            "bytesPayload": payload,
+            "bytes": len(payload),
+            "mimeType": "image/png",
+            "sha256": png_sha256_bytes(payload),
+        }
+        for role, payload in image_payloads.items()
+    }
+    for role in fallback_roles:
+        images[role] = donor_source["images"][role]
+    colorspaces = {
+        "baseColor": "sRGB",
+        "metallic": "Non-Color",
+        "roughness": "Non-Color",
+        "metallicRoughness": "Non-Color",
+        "normal": "Non-Color",
+        "emissive": "sRGB",
+    }
+    for role in fallback_roles:
+        colorspaces[role] = "Non-Color"
+    payload_set_sha256 = stable_hash(
+        {
+            "sourcePngSha256": {
+                role: source_records[role]["sha256"]
+                for role in sorted(source_records)
+            },
+            "outputTextureSha256": {
+                role: images[role]["sha256"] for role in sorted(images)
+            },
+            "colorspaces": colorspaces,
+            "metallicRoughnessCompositionSchema": composition["schema"],
+        }
+    )
+    return {
+        "images": images,
+        "samplers": {
+            role: donor_source["samplers"][role] for role in output_roles
+        },
+        "factors": donor_source["factors"],
+        "payloadMode": "standalone-lossless-png",
+        "payloadSetSha256": payload_set_sha256,
+        "standaloneSources": source_records,
+        "composition": composition,
+        "colorspaces": colorspaces,
+        "resolutionContract": {
+            "baseColorMatchesNormal": True,
+            "metallicMatchesRoughness": True,
+            "emissiveMayUseIndependentResolution": True,
+        },
+        "standaloneOutputRoles": list(standalone_output_roles),
+        "embeddedDonorFallbackRoles": list(fallback_roles),
+    }
+
+
 def reset_factory_scene() -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
@@ -846,6 +1329,7 @@ def capture_surface(objects: Iterable[bpy.types.Object]) -> dict[str, Any]:
             ...,
         ]
     ] = []
+    raw_triangle_objects: list[str] = []
     bounds_min = [math.inf, math.inf, math.inf]
     bounds_max = [-math.inf, -math.inf, -math.inf]
     vertex_count = 0
@@ -884,6 +1368,7 @@ def capture_surface(objects: Iterable[bpy.types.Object]) -> dict[str, Any]:
                     )
                 )
             raw_triangles.append(tuple(corners))
+            raw_triangle_objects.append(obj.name)
     if not raw_triangles:
         raise ValueError("Model surface contains no triangles")
     center = [
@@ -968,6 +1453,7 @@ def capture_surface(objects: Iterable[bpy.types.Object]) -> dict[str, Any]:
             },
         },
         "triangles": raw_triangles,
+        "triangleObjects": raw_triangle_objects,
     }
 
 
@@ -1005,7 +1491,7 @@ def canonical_oriented_uv_triangle(
         - (corners[1][2][1] - corners[0][2][1])
         * (corners[2][2][0] - corners[0][2][0])
     )
-    if abs(signed_twice_area) <= UV_EPSILON:
+    if abs(signed_twice_area) <= CORRESPONDENCE_UV_AREA_EPSILON:
         raise ValueError("Surface UV triangle is degenerate")
     winding = 1 if signed_twice_area > 0.0 else -1
     rotations = [
@@ -1023,14 +1509,71 @@ def canonical_oriented_uv_triangle(
     )
 
 
-def oriented_uv_surface_map(
+def uv_triangle_area(
+    triangle: tuple[
+        tuple[tuple[float, float, float], tuple[float, float]],
+        ...,
+    ],
+) -> float:
+    uvs = [corner[1] for corner in triangle]
+    return abs(
+        (uvs[1][0] - uvs[0][0]) * (uvs[2][1] - uvs[0][1])
+        - (uvs[1][1] - uvs[0][1]) * (uvs[2][0] - uvs[0][0])
+    ) * 0.5
+
+
+def spatial_triangle_area(
+    triangle: tuple[
+        tuple[tuple[float, float, float], tuple[float, float]],
+        ...,
+    ],
+) -> float:
+    points = [np.asarray(corner[0], dtype=np.float64) for corner in triangle]
+    return float(
+        np.linalg.norm(
+            np.cross(points[1] - points[0], points[2] - points[0])
+        )
+        * 0.5
+    )
+
+
+def oriented_uv_surface_evidence(
     capture: dict[str, Any],
     *,
     label: str,
-) -> dict[tuple[tuple[int, int], ...], dict[str, Any]]:
+    allow_source_degenerate: bool,
+) -> tuple[
+    dict[tuple[tuple[int, int], ...], dict[str, Any]],
+    dict[str, Any],
+]:
     records: dict[tuple[tuple[int, int], ...], dict[str, Any]] = {}
-    for triangle in capture["triangles"]:
-        key, positions, winding = canonical_oriented_uv_triangle(triangle)
+    discarded = []
+    triangle_objects = capture.get("triangleObjects")
+    if not isinstance(triangle_objects, list) or len(triangle_objects) != len(
+        capture["triangles"]
+    ):
+        raise ValueError(f"{label} surface evidence lost triangle ownership")
+    for triangle, object_name in zip(
+        capture["triangles"], triangle_objects, strict=True
+    ):
+        try:
+            key, positions, winding = canonical_oriented_uv_triangle(triangle)
+        except ValueError as error:
+            message = str(error)
+            if not allow_source_degenerate or message not in {
+                "Surface UV triangle has an ambiguous or degenerate corner",
+                "Surface UV triangle is degenerate",
+            }:
+                raise
+            discarded.append(
+                {
+                    "reason": message,
+                    "uvArea": uv_triangle_area(triangle),
+                    "spatialArea": spatial_triangle_area(triangle),
+                    "objectName": object_name,
+                }
+            )
+            continue
         if key in records:
             raise ValueError(
                 f"{label} contains an ambiguous duplicate oriented UV triangle"
@@ -1038,8 +1581,63 @@ def oriented_uv_surface_map(
         records[key] = {
             "positions": positions,
             "winding": winding,
+            "uvArea": uv_triangle_area(triangle),
+            "spatialArea": spatial_triangle_area(triangle),
+            "objectName": object_name,
         }
-    return records
+    return records, {
+        "count": len(discarded),
+        "uvArea": sum(record["uvArea"] for record in discarded),
+        "spatialArea": sum(
+            record["spatialArea"] for record in discarded
+        ),
+        "reasons": dict(
+            sorted(
+                {
+                    reason: sum(
+                        1 for record in discarded if record["reason"] == reason
+                    )
+                    for reason in {record["reason"] for record in discarded}
+                }.items()
+            )
+        ),
+        "objects": dict(
+            sorted(
+                {
+                    object_name: sum(
+                        1
+                        for record in discarded
+                        if record["objectName"] == object_name
+                    )
+                    for object_name in {
+                        record["objectName"] for record in discarded
+                    }
+                }.items()
+            )
+        ),
+        "objectMetrics": {
+            object_name: {
+                "triangles": sum(
+                    1
+                    for record in discarded
+                    if record["objectName"] == object_name
+                ),
+                "uvArea": sum(
+                    record["uvArea"]
+                    for record in discarded
+                    if record["objectName"] == object_name
+                ),
+                "spatialArea": sum(
+                    record["spatialArea"]
+                    for record in discarded
+                    if record["objectName"] == object_name
+                ),
+            }
+            for object_name in sorted(
+                {record["objectName"] for record in discarded}
+            )
+        },
+    }
 
 
 def orthogonal_fit(
@@ -1154,24 +1752,118 @@ def validate_provider_surface_correspondence(
 ) -> dict[str, Any]:
     source_signature = source["signature"]
     donor_signature = donor["signature"]
-    if source_signature["triangles"] != donor_signature["triangles"]:
+    if donor_signature["triangles"] > source_signature["triangles"]:
         raise ValueError(
-            "Donor surface triangle count differs from uploaded source"
+            "Donor surface introduced triangles beyond the uploaded source"
         )
     if donor_signature["vertices"] > source_signature["vertices"]:
         raise ValueError(
             "Donor surface introduced vertices beyond weld-only changes"
         )
-    source_map = oriented_uv_surface_map(
+    source_map, source_degenerate = oriented_uv_surface_evidence(
         source,
         label="Uploaded source",
+        allow_source_degenerate=True,
     )
-    donor_map = oriented_uv_surface_map(donor, label="Donor")
-    if set(source_map) != set(donor_map):
+    donor_map, donor_degenerate = oriented_uv_surface_evidence(
+        donor,
+        label="Donor",
+        allow_source_degenerate=False,
+    )
+    donor_only_keys = set(donor_map) - set(source_map)
+    if donor_only_keys:
         raise ValueError(
-            "Donor oriented UV-triangle surface differs from uploaded source"
+            "Donor introduced oriented UV triangles outside the uploaded source"
         )
-    ordered_keys = sorted(source_map)
+    source_only_keys = set(source_map) - set(donor_map)
+    ordered_keys = sorted(donor_map)
+    if not ordered_keys:
+        raise ValueError("Donor surface contains no pairable UV triangles")
+
+    source_only_triangle_count = (
+        len(source_only_keys) + source_degenerate["count"]
+    )
+    expected_source_only = (
+        source_signature["triangles"] - donor_signature["triangles"]
+    )
+    if source_only_triangle_count != expected_source_only:
+        raise ValueError(
+            "Donor triangle deficit is not fully explained by source-only UV "
+            "triangles"
+        )
+    source_uv_area = (
+        sum(record["uvArea"] for record in source_map.values())
+        + source_degenerate["uvArea"]
+    )
+    if not math.isfinite(source_uv_area) or source_uv_area <= 0.0:
+        raise ValueError("Uploaded source has invalid total UV area")
+    source_only_uv_area = (
+        sum(source_map[key]["uvArea"] for key in source_only_keys)
+        + source_degenerate["uvArea"]
+    )
+    source_only_spatial_area = (
+        sum(source_map[key]["spatialArea"] for key in source_only_keys)
+        + source_degenerate["spatialArea"]
+    )
+    source_only_by_object: dict[str, dict[str, float | int]] = defaultdict(
+        lambda: {"triangles": 0, "uvArea": 0.0, "spatialArea": 0.0}
+    )
+    for key in source_only_keys:
+        record = source_map[key]
+        metrics = source_only_by_object[record["objectName"]]
+        metrics["triangles"] += 1
+        metrics["uvArea"] += record["uvArea"]
+        metrics["spatialArea"] += record["spatialArea"]
+    for object_name, record in source_degenerate["objectMetrics"].items():
+        metrics = source_only_by_object[object_name]
+        metrics["triangles"] += record["triangles"]
+        metrics["uvArea"] += record["uvArea"]
+        metrics["spatialArea"] += record["spatialArea"]
+    source_span = float(source_signature["normalization"]["maximumSpan"])
+    if not math.isfinite(source_span) or source_span <= 0.0:
+        raise ValueError("Uploaded source span is invalid")
+    source_only = {
+        "triangles": source_only_triangle_count,
+        "orientedUvTriangles": len(source_only_keys),
+        "degenerateUvTriangles": source_degenerate["count"],
+        "triangleRatio": (
+            source_only_triangle_count / source_signature["triangles"]
+        ),
+        "uvArea": source_only_uv_area,
+        "uvAreaRatio": source_only_uv_area / source_uv_area,
+        "spatialArea": source_only_spatial_area,
+        "spatialAreaNormalizedToSourceSpanSquared": (
+            source_only_spatial_area / (source_span * source_span)
+        ),
+        "orientedUvTriangleSha256": stable_hash(
+            sorted(source_only_keys)
+        ),
+        "degenerateUvEvidence": source_degenerate,
+        "bySourceObject": {
+            object_name: {
+                "triangles": int(metrics["triangles"]),
+                "uvArea": float(metrics["uvArea"]),
+                "spatialArea": float(metrics["spatialArea"]),
+            }
+            for object_name, metrics in sorted(source_only_by_object.items())
+        },
+    }
+    source_only["withinBounds"] = bool(
+        source_only["triangles"] <= MAX_SOURCE_ONLY_TRIANGLES
+        and source_only["uvAreaRatio"] <= MAX_SOURCE_ONLY_UV_AREA_RATIO
+        and source_only[
+            "spatialAreaNormalizedToSourceSpanSquared"
+        ]
+        <= MAX_SOURCE_ONLY_NORMALIZED_SPATIAL_AREA
+        and source_only["degenerateUvTriangles"]
+        <= MAX_SOURCE_DEGENERATE_UV_TRIANGLES
+    )
+    if not source_only["withinBounds"]:
+        raise ValueError(
+            "Donor source-only micro-surface exceeds the bounded allowance: "
+            + json.dumps(source_only, sort_keys=True)
+        )
+
     source_points = []
     donor_points = []
     uv_winding_mismatches = 0
@@ -1210,14 +1902,48 @@ def validate_provider_surface_correspondence(
     )
     proper_report = fit_report(proper, span=donor_span)
     residual = proper_report["residualNormalizedToDonorSpan"]
+    normalized_corner_residuals = proper["residuals"] / donor_span
+    outlier_triangle_indices = {
+        index // 3
+        for index, value in enumerate(normalized_corner_residuals)
+        if value > SIMILARITY_MAX_NORMALIZED_RESIDUAL
+    }
+    outlier_uv_area = sum(
+        source_map[ordered_keys[index]]["uvArea"]
+        for index in outlier_triangle_indices
+    )
+    paired_uv_area = sum(
+        source_map[key]["uvArea"] for key in ordered_keys
+    )
+    outlier_spatial_area = sum(
+        source_map[ordered_keys[index]]["spatialArea"]
+        for index in outlier_triangle_indices
+    )
+    paired_spatial_area = sum(
+        source_map[key]["spatialArea"] for key in ordered_keys
+    )
     if (
         proper_report["reflection"]
         or residual["maximum"] > SIMILARITY_MAX_NORMALIZED_RESIDUAL
         or residual["rms"] > SIMILARITY_RMS_NORMALIZED_RESIDUAL
+        or residual["p99"] > SIMILARITY_P99_NORMALIZED_RESIDUAL
     ):
         raise ValueError(
             "Donor surface is not one tight orientation-preserving global "
-            "similarity transform of the uploaded source"
+            "similarity transform of the uploaded source: "
+            f"maximum normalized residual={residual['maximum']:.9g}, "
+            f"rms={residual['rms']:.9g}, "
+            f"p95={residual['p95']:.9g}, p99={residual['p99']:.9g}, "
+            f"outlier triangles={len(outlier_triangle_indices)}, "
+            f"outlier UV area ratio="
+            f"{outlier_uv_area / paired_uv_area:.9g}, "
+            f"outlier spatial area ratio="
+            f"{outlier_spatial_area / paired_spatial_area:.9g}, "
+            f"outlier spatial area/span^2="
+            f"{outlier_spatial_area / (source_span * source_span):.9g}, "
+            f"thresholds=({SIMILARITY_MAX_NORMALIZED_RESIDUAL:.9g}, "
+            f"{SIMILARITY_RMS_NORMALIZED_RESIDUAL:.9g}, "
+            f"{SIMILARITY_P99_NORMALIZED_RESIDUAL:.9g})"
         )
 
     predicted = proper["predicted"]
@@ -1271,10 +1997,14 @@ def validate_provider_surface_correspondence(
     )
     return {
         "triangles": len(ordered_keys),
+        "sourceTriangles": source_signature["triangles"],
+        "donorTriangles": donor_signature["triangles"],
         "pairedCorners": len(source_points),
-        "ambiguousOrDegenerateUvTriangles": 0,
+        "ambiguousOrDegenerateUvTriangles": donor_degenerate["count"],
         "orientedUvTriangleSha256": stable_hash(ordered_keys),
+        "sourceOrientedUvTriangleSha256": stable_hash(sorted(source_map)),
         "orientedUvEdgeSha256": stable_hash(source_edges),
+        "sourceOnly": source_only,
         "uvWindingParity": 1,
         "uvWindingMismatches": 0,
         "geometryWindingParity": 1,
@@ -1298,6 +2028,19 @@ def validate_provider_surface_correspondence(
             ),
             "rmsNormalizedResidual": (
                 SIMILARITY_RMS_NORMALIZED_RESIDUAL
+            ),
+            "p99NormalizedResidual": (
+                SIMILARITY_P99_NORMALIZED_RESIDUAL
+            ),
+            "maximumSourceOnlyTriangles": MAX_SOURCE_ONLY_TRIANGLES,
+            "maximumSourceOnlyUvAreaRatio": (
+                MAX_SOURCE_ONLY_UV_AREA_RATIO
+            ),
+            "maximumSourceOnlySpatialAreaNormalizedToSourceSpanSquared": (
+                MAX_SOURCE_ONLY_NORMALIZED_SPATIAL_AREA
+            ),
+            "maximumSourceDegenerateUvTriangles": (
+                MAX_SOURCE_DEGENERATE_UV_TRIANGLES
             ),
         },
     }
@@ -1442,10 +2185,22 @@ def strict_triangle_overlap(
 def validate_shared_uv_atlas(
     objects: Iterable[bpy.types.Object],
 ) -> dict[str, Any]:
+    objects = list(objects)
     triangles: list[
-        tuple[str, int, tuple[tuple[float, float], ...]]
+        tuple[str, int, tuple[tuple[float, float], ...], float]
     ] = []
+    micro_uv_triangles: list[dict[str, Any]] = []
     layer_names: set[str] = set()
+    bounds_min = [math.inf, math.inf, math.inf]
+    bounds_max = [-math.inf, -math.inf, -math.inf]
+    for obj in objects:
+        if obj.type != "MESH":
+            continue
+        for vertex in obj.data.vertices:
+            point = obj.matrix_world @ vertex.co
+            for axis in range(3):
+                bounds_min[axis] = min(bounds_min[axis], float(point[axis]))
+                bounds_max[axis] = max(bounds_max[axis], float(point[axis]))
     for obj in objects:
         if obj.type != "MESH":
             continue
@@ -1477,20 +2232,93 @@ def validate_shared_uv_atlas(
                 raise ValueError(
                     f"Body UV escaped the shared 0..1 atlas: {obj.name}"
                 )
-            if triangle_area_2d(triangle) <= UV_EPSILON:
-                raise ValueError(f"Body UV triangle is degenerate: {obj.name}")
+            uv_area = triangle_area_2d(triangle)
+            points = tuple(
+                obj.matrix_world @ mesh.vertices[vertex_index].co
+                for vertex_index in loop_triangle.vertices
+            )
+            spatial_area = float(
+                (
+                    (points[1] - points[0]).cross(points[2] - points[0])
+                ).length
+                * 0.5
+            )
+            if uv_area <= ATLAS_MICRO_UV_TRIANGLE_AREA:
+                micro_uv_triangles.append(
+                    {
+                        "object": obj.name,
+                        "polygon": int(loop_triangle.polygon_index),
+                        "uvArea": uv_area,
+                        "spatialArea": spatial_area,
+                    }
+                )
+                continue
             triangles.append(
-                (obj.name, int(loop_triangle.polygon_index), triangle)
+                (
+                    obj.name,
+                    int(loop_triangle.polygon_index),
+                    triangle,
+                    spatial_area,
+                )
             )
     if len(layer_names) != 1:
         raise ValueError("Model meshes do not share one UV layer name")
     if not triangles:
         raise ValueError("Shared body UV atlas contains no triangles")
 
+    maximum_span = max(
+        bounds_max[axis] - bounds_min[axis] for axis in range(3)
+    )
+    if not math.isfinite(maximum_span) or maximum_span <= 0.0:
+        raise ValueError("Model surface has invalid bounds")
+    micro_uv_spatial_area = sum(
+        record["spatialArea"] for record in micro_uv_triangles
+    )
+    micro_uv_area = sum(
+        record["uvArea"] for record in micro_uv_triangles
+    )
+    regular_uv_area = sum(triangle_area_2d(record[2]) for record in triangles)
+    total_uv_area = regular_uv_area + micro_uv_area
+    micro_uv_evidence = {
+        "triangles": len(micro_uv_triangles),
+        "uvArea": micro_uv_area,
+        "uvAreaRatio": micro_uv_area / total_uv_area,
+        "spatialArea": micro_uv_spatial_area,
+        "spatialAreaNormalizedToModelSpanSquared": (
+            micro_uv_spatial_area / (maximum_span * maximum_span)
+        ),
+        "triangleAreaThreshold": ATLAS_MICRO_UV_TRIANGLE_AREA,
+        "maximumTriangles": MAX_ATLAS_MICRO_UV_TRIANGLES,
+        "maximumUvAreaRatio": MAX_ATLAS_MICRO_UV_AREA_RATIO,
+        "maximumSpatialAreaNormalizedToModelSpanSquared": (
+            MAX_ATLAS_MICRO_NORMALIZED_SPATIAL_AREA
+        ),
+    }
+    micro_uv_evidence["withinBounds"] = bool(
+        micro_uv_evidence["triangles"] <= MAX_ATLAS_MICRO_UV_TRIANGLES
+        and micro_uv_evidence["uvAreaRatio"]
+        <= MAX_ATLAS_MICRO_UV_AREA_RATIO
+        and micro_uv_evidence[
+            "spatialAreaNormalizedToModelSpanSquared"
+        ]
+        <= MAX_ATLAS_MICRO_NORMALIZED_SPATIAL_AREA
+    )
+    if not micro_uv_evidence["withinBounds"]:
+        raise ValueError(
+            "Body micro-UV surface exceeds the bounded allowance: "
+            f"triangles={micro_uv_evidence['triangles']}, "
+            f"UV area ratio={micro_uv_evidence['uvAreaRatio']:.9g}, "
+            "spatial area/span^2="
+            f"{micro_uv_evidence['spatialAreaNormalizedToModelSpanSquared']:.9g}"
+        )
+
     grid_size = max(8, min(128, math.ceil(math.sqrt(len(triangles)))))
     buckets: dict[tuple[int, int], list[int]] = defaultdict(list)
     tested_pairs: set[tuple[int, int]] = set()
-    for index, (_name, _polygon, triangle) in enumerate(triangles):
+    micro_overlap_pairs: list[dict[str, Any]] = []
+    for index, (_name, _polygon, triangle, _spatial_area) in enumerate(
+        triangles
+    ):
         minimum_u = min(point[0] for point in triangle)
         maximum_u = max(point[0] for point in triangle)
         minimum_v = min(point[1] for point in triangle)
@@ -1525,15 +2353,92 @@ def validate_shared_uv_atlas(
                     ):
                         left = triangles[other_index]
                         right = triangles[index]
+                        left_area = triangle_area_2d(left[2])
+                        right_area = triangle_area_2d(right[2])
+                        if (
+                            max(left_area, right_area)
+                            <= MAX_ATLAS_MICRO_OVERLAP_TRIANGLE_AREA
+                        ):
+                            micro_overlap_pairs.append(
+                                {
+                                    "leftObject": left[0],
+                                    "leftPolygon": left[1],
+                                    "leftUvArea": left_area,
+                                    "rightObject": right[0],
+                                    "rightPolygon": right[1],
+                                    "rightUvArea": right_area,
+                                    "leftTriangleIndex": other_index,
+                                    "rightTriangleIndex": index,
+                                    "boundedUvArea": min(
+                                        left_area,
+                                        right_area,
+                                    ),
+                                }
+                            )
+                            continue
                         raise ValueError(
                             "Shared UV atlas overlaps between "
                             f"{left[0]} polygon {left[1]} and "
-                            f"{right[0]} polygon {right[1]}"
+                            f"{right[0]} polygon {right[1]} "
+                            f"(UV areas {triangle_area_2d(left[2]):.9g}, "
+                            f"{triangle_area_2d(right[2]):.9g})"
                         )
                 bucket.append(index)
+    micro_overlap_uv_area = sum(
+        pair["boundedUvArea"] for pair in micro_overlap_pairs
+    )
+    micro_overlap_triangle_indices = {
+        triangle_index
+        for pair in micro_overlap_pairs
+        for triangle_index in (
+            pair["leftTriangleIndex"],
+            pair["rightTriangleIndex"],
+        )
+    }
+    micro_overlap_spatial_area = sum(
+        triangles[index][3] for index in micro_overlap_triangle_indices
+    )
+    micro_overlap_evidence = {
+        "pairs": len(micro_overlap_pairs),
+        "uniqueTriangles": len(micro_overlap_triangle_indices),
+        "boundedUvArea": micro_overlap_uv_area,
+        "boundedUvAreaRatio": micro_overlap_uv_area / total_uv_area,
+        "uniqueTriangleSpatialArea": micro_overlap_spatial_area,
+        "uniqueTriangleSpatialAreaNormalizedToModelSpanSquared": (
+            micro_overlap_spatial_area / (maximum_span * maximum_span)
+        ),
+        "maximumTriangleArea": MAX_ATLAS_MICRO_OVERLAP_TRIANGLE_AREA,
+        "maximumPairs": MAX_ATLAS_MICRO_OVERLAP_PAIRS,
+        "maximumBoundedUvAreaRatio": (
+            MAX_ATLAS_MICRO_OVERLAP_UV_AREA_RATIO
+        ),
+        "maximumUniqueTriangleSpatialAreaNormalizedToModelSpanSquared": (
+            MAX_ATLAS_MICRO_OVERLAP_NORMALIZED_SPATIAL_AREA
+        ),
+    }
+    micro_overlap_evidence["withinBounds"] = bool(
+        micro_overlap_evidence["pairs"] <= MAX_ATLAS_MICRO_OVERLAP_PAIRS
+        and micro_overlap_evidence["boundedUvAreaRatio"]
+        <= MAX_ATLAS_MICRO_OVERLAP_UV_AREA_RATIO
+        and micro_overlap_evidence[
+            "uniqueTriangleSpatialAreaNormalizedToModelSpanSquared"
+        ]
+        <= MAX_ATLAS_MICRO_OVERLAP_NORMALIZED_SPATIAL_AREA
+    )
+    if not micro_overlap_evidence["withinBounds"]:
+        raise ValueError(
+            "Body micro-UV overlap exceeds the bounded allowance: "
+            f"pairs={micro_overlap_evidence['pairs']}, "
+            "bounded UV area ratio="
+            f"{micro_overlap_evidence['boundedUvAreaRatio']:.9g}, "
+            "unique triangle spatial area/span^2="
+            f"{micro_overlap_evidence['uniqueTriangleSpatialAreaNormalizedToModelSpanSquared']:.9g}"
+        )
     return {
         "layer": next(iter(layer_names)),
         "bodyTriangles": len(triangles),
+        "ignoredMicroUvSurface": micro_uv_evidence,
+        "ignoredMicroOverlap": micro_overlap_evidence,
         "overlapPairs": 0,
         "bounds": [0.0, 0.0, 1.0, 1.0],
     }
@@ -2326,6 +3231,7 @@ def rebuild_body_material(
     factors: dict[str, Any],
     images: dict[str, bpy.types.Image],
     donor_sha256: str,
+    payload_set_sha256: str | None = None,
 ) -> None:
     if material_role(material) == TEAM_ROLE:
         raise ValueError("Refusing to rebuild a team-accent material")
@@ -2463,6 +3369,9 @@ def rebuild_body_material(
     material.use_backface_culling = not factors["doubleSided"]
     material["nilbotsTextureSource"] = "texture-only-donor"
     material["nilbotsTextureDonorSha256"] = donor_sha256
+    if payload_set_sha256 is not None:
+        material["nilbotsTexturePayloadMode"] = "standalone-lossless-png"
+        material["nilbotsTexturePayloadSetSha256"] = payload_set_sha256
     material["nilbotsTeamColorOwnership"] = "renderer"
 
 
@@ -2471,6 +3380,7 @@ def validate_rebuilt_body_materials(
     *,
     donor_sha256: str,
     expected_roles: set[str],
+    payload_set_sha256: str | None = None,
 ) -> dict[str, list[str]]:
     node_names = {
         "baseColor": "NB.BaseColor",
@@ -2489,6 +3399,16 @@ def validate_rebuilt_body_materials(
         ):
             raise ValueError(
                 f"Body material lost donor provenance: {material.name}"
+            )
+        if payload_set_sha256 is not None and (
+            material.get("nilbotsTexturePayloadMode")
+            != "standalone-lossless-png"
+            or material.get("nilbotsTexturePayloadSetSha256")
+            != payload_set_sha256
+        ):
+            raise ValueError(
+                "Body material lost standalone payload provenance: "
+                f"{material.name}"
             )
         if not material.use_nodes or material.node_tree is None:
             raise ValueError(f"Body material lost its nodes: {material.name}")
@@ -2959,6 +3879,270 @@ def validate_uploaded_authority_baseline(
     }
 
 
+def export_coverage_pose_baseline(
+    *,
+    path: Path,
+    objects: list[bpy.types.Object],
+    coverage_pose: dict[str, Any],
+    coverage_ledger: dict[str, Any],
+) -> dict[str, Any]:
+    """Rebuild the pinned body-only, identity-root, world-baked upload pose."""
+    scene = bpy.context.scene
+    expected = coverage_ledger["expected"]
+    expected_objects = set(expected["objectNames"])
+    expected_meshes = set(expected["meshNames"])
+    by_name = {obj.name: obj for obj in objects}
+    if set(by_name) & expected_objects != expected_objects:
+        raise ValueError("Authored authority omitted a coverage-pose body object")
+    body = sorted((by_name[name] for name in expected_objects), key=lambda obj: obj.name)
+    if (
+        len(body) != expected["meshes"]
+        or any(obj.type != "MESH" for obj in body)
+        or {obj.data.name for obj in body} != expected_meshes
+        or len({obj.data.as_pointer() for obj in body}) != len(body)
+        or any(
+            any(material_role(material) == TEAM_ROLE for material in obj.data.materials)
+            for obj in body
+        )
+    ):
+        raise ValueError("Authored coverage-pose body mesh identity is invalid")
+
+    requested_clips = set(coverage_pose["clips"])
+    available_clips = {
+        track.name
+        for obj in objects
+        if obj.animation_data is not None
+        for track in obj.animation_data.nla_tracks
+    }
+    if not requested_clips.issubset(available_clips):
+        raise ValueError(
+            "Authored authority omitted coverage clip(s): "
+            + ", ".join(sorted(requested_clips - available_clips))
+        )
+    animation_state = {
+        obj.name: {
+            "action": obj.animation_data.action,
+            "tracks": [
+                (track, bool(track.mute))
+                for track in obj.animation_data.nla_tracks
+            ],
+        }
+        for obj in objects
+        if obj.animation_data is not None
+    }
+    original_frame = scene.frame_current
+    temporary_collection: bpy.types.Collection | None = None
+    baked_objects: list[bpy.types.Object] = []
+    baked_meshes: list[bpy.types.Mesh] = []
+    source_names: list[tuple[bpy.types.Object, str, bpy.types.Mesh, str]] = []
+    try:
+        for obj in objects:
+            data = obj.animation_data
+            if data is None:
+                continue
+            data.action = None
+            for track in data.nla_tracks:
+                track.mute = track.name not in requested_clips
+        scene.frame_set(coverage_pose["frame"])
+        bpy.context.view_layer.update()
+        source_names = [
+            (obj, obj.name, obj.data, obj.data.name)
+            for obj in body
+        ]
+        temporary_collection = bpy.data.collections.new(
+            "__NB_TRANSPLANT_COVERAGE_UPLOAD_WORLD_BAKED__"
+        )
+        scene.collection.children.link(temporary_collection)
+        for index, (obj, _object_name, mesh, _mesh_name) in enumerate(source_names):
+            obj.name = f"__NB_COVERAGE_SOURCE_OBJECT_{index:02d}__"
+            mesh.name = f"__NB_COVERAGE_SOURCE_MESH_{index:02d}__"
+        for obj, object_name, mesh, mesh_name in source_names:
+            baked_mesh = mesh.copy()
+            baked_mesh.name = mesh_name
+            baked_mesh.transform(obj.matrix_world)
+            baked_mesh.update()
+            baked_obj = bpy.data.objects.new(object_name, baked_mesh)
+            temporary_collection.objects.link(baked_obj)
+            baked_objects.append(baked_obj)
+            baked_meshes.append(baked_mesh)
+        bpy.ops.object.select_all(action="DESELECT")
+        for baked_obj in baked_objects:
+            baked_obj.select_set(True)
+        bpy.context.view_layer.objects.active = baked_objects[0]
+        bpy.ops.export_scene.gltf(
+            filepath=str(path),
+            export_format="GLB",
+            use_selection=True,
+            export_materials="EXPORT",
+            export_cameras=False,
+            export_lights=False,
+            export_extras=True,
+            export_animations=False,
+            export_apply=True,
+            export_yup=True,
+        )
+    finally:
+        bpy.ops.object.select_all(action="DESELECT")
+        for baked_obj in baked_objects:
+            if baked_obj.name in bpy.data.objects:
+                bpy.data.objects.remove(baked_obj, do_unlink=True)
+        for baked_mesh in baked_meshes:
+            if baked_mesh.name in bpy.data.meshes and baked_mesh.users == 0:
+                bpy.data.meshes.remove(baked_mesh)
+        if (
+            temporary_collection is not None
+            and temporary_collection.name in bpy.data.collections
+        ):
+            bpy.data.collections.remove(temporary_collection)
+        for obj, object_name, mesh, mesh_name in source_names:
+            obj.name = object_name
+            mesh.name = mesh_name
+        for object_name, state in animation_state.items():
+            obj = bpy.data.objects.get(object_name)
+            if obj is None or obj.animation_data is None:
+                continue
+            obj.animation_data.action = state["action"]
+            for track, mute in state["tracks"]:
+                track.mute = mute
+        scene.frame_set(original_frame)
+        bpy.context.view_layer.update()
+    if not path.is_file():
+        raise ValueError("Coverage-pose baseline export produced no GLB")
+    return {
+        "path": path.name,
+        "sha256": sha256(path),
+        "bytes": path.stat().st_size,
+        "activeClips": list(coverage_pose["clips"]),
+        "frame": coverage_pose["frame"],
+        "worldTransformsBakedIntoTemporaryCopies": True,
+        "identityRootMeshes": len(baked_objects),
+        "providerObjectsImportedIntoAuthorityScene": 0,
+    }
+
+
+def glb_triangle_counts(records: list[dict[str, Any]]) -> dict[str, int]:
+    result: dict[str, int] = {}
+    for mesh in records:
+        triangles = 0
+        for primitive in mesh["primitives"]:
+            if primitive["mode"] != 4:
+                raise ValueError("Coverage-pose upload contains a non-triangle primitive")
+            index_record = primitive["indices"]
+            count = (
+                index_record["count"]
+                if index_record is not None
+                else primitive["attributes"]["POSITION"]["count"]
+            )
+            if count % 3 != 0:
+                raise ValueError("Coverage-pose triangle accessor count is invalid")
+            triangles += count // 3
+        result[mesh["name"]] = triangles
+    return result
+
+
+def validate_uploaded_coverage_pose_baseline(
+    uploaded_path: Path,
+    baseline_path: Path,
+    *,
+    coverage_ledger: dict[str, Any],
+) -> dict[str, Any]:
+    uploaded, uploaded_binary = parse_glb(uploaded_path)
+    baseline, baseline_binary = parse_glb(baseline_path)
+    validate_embedded_glb(uploaded, uploaded_binary, label="Coverage upload GLB")
+    validate_embedded_glb(
+        baseline,
+        baseline_binary,
+        label="Fresh authored coverage-pose baseline GLB",
+    )
+    for label, document in (("upload", uploaded), ("baseline", baseline)):
+        if document.get("animations") or document.get("skins"):
+            raise ValueError(f"Coverage {label} must omit animations and skins")
+        if document.get("cameras") or document.get("lights"):
+            raise ValueError(f"Coverage {label} must omit cameras and lights")
+        materials = document.get("materials")
+        if not isinstance(materials, list) or len(materials) != 1:
+            raise ValueError(f"Coverage {label} must use one neutral material")
+
+    uploaded_geometry = glb_mesh_records(
+        uploaded,
+        uploaded_binary,
+        include_material_bindings=False,
+    )
+    baseline_geometry = glb_mesh_records(
+        baseline,
+        baseline_binary,
+        include_material_bindings=False,
+    )
+    if uploaded_geometry != baseline_geometry:
+        raise ValueError(
+            "Fresh authored coverage-pose geometry/accessors differ from the "
+            "pinned uploaded source GLB"
+        )
+    uploaded_nodes = glb_node_records(uploaded)
+    baseline_nodes = glb_node_records(baseline)
+    if uploaded_nodes != baseline_nodes:
+        raise ValueError(
+            "Fresh authored coverage-pose identity roots differ from upload"
+        )
+    expected = coverage_ledger["expected"]
+    if (
+        sorted(record["name"] for record in uploaded_nodes)
+        != sorted(expected["objectNames"])
+        or sorted(record["name"] for record in uploaded_geometry)
+        != sorted(expected["meshNames"])
+        or any(
+            record["parent"] is not None
+            or record["children"]
+            or record["mesh"] is None
+            or record["matrix"] is not None
+            or record["translation"] != [0.0, 0.0, 0.0]
+            or record["rotation"] != [0.0, 0.0, 0.0, 1.0]
+            or record["scale"] != [1.0, 1.0, 1.0]
+            or record["skin"] is not None
+            for record in uploaded_nodes
+        )
+    ):
+        raise ValueError("Coverage upload is not the expected flat identity-root set")
+    if any(
+        "POSITION" not in primitive["attributes"]
+        or "NORMAL" not in primitive["attributes"]
+        or "TEXCOORD_0" not in primitive["attributes"]
+        for mesh in uploaded_geometry
+        for primitive in mesh["primitives"]
+    ):
+        raise ValueError("Coverage upload omitted position, normal, or UV authority")
+    uploaded_triangles = glb_triangle_counts(uploaded_geometry)
+    baseline_triangles = glb_triangle_counts(baseline_geometry)
+    if (
+        uploaded_triangles != baseline_triangles
+        or sum(uploaded_triangles.values()) != expected["triangles"]
+    ):
+        raise ValueError("Coverage upload named triangle counts differ from authority")
+    uploaded_digest = raw_glb_surface_digest(uploaded, uploaded_binary)
+    baseline_digest = raw_glb_surface_digest(baseline, baseline_binary)
+    if uploaded_digest != baseline_digest:
+        raise ValueError("Fresh authored coverage-pose raw surface differs from upload")
+    return {
+        "mode": "pinned-world-baked-coverage-pose",
+        "uploadedRawSurfaceDigest": uploaded_digest,
+        "freshCoveragePoseRawSurfaceDigest": baseline_digest,
+        "uploadedGeometryAccessorsSha256": stable_hash(uploaded_geometry),
+        "freshCoveragePoseGeometryAccessorsSha256": stable_hash(
+            baseline_geometry
+        ),
+        "uploadedIdentityRootNodesSha256": stable_hash(uploaded_nodes),
+        "freshCoveragePoseIdentityRootNodesSha256": stable_hash(baseline_nodes),
+        "namedTriangleCountsSha256": stable_hash(uploaded_triangles),
+        "objects": len(uploaded_nodes),
+        "meshes": len(uploaded_geometry),
+        "triangles": sum(uploaded_triangles.values()),
+        "exactIndexPositionNormalUvTangentAndMorphAccessors": True,
+        "exactNamedFlatIdentityRoots": True,
+        "materialBindingsExcludedFromThisSeam": True,
+        "providerGeometryUsedAsOutput": False,
+    }
+
+
 def glb_skin_records(
     document: dict[str, Any],
     binary_chunk: bytes,
@@ -3355,6 +4539,7 @@ def validate_output_materials(
     accent_material_names: list[str],
     donor_source: dict[str, Any],
     donor_sha256: str,
+    payload_set_sha256: str | None = None,
 ) -> dict[str, Any]:
     materials = document.get("materials", [])
     meshes = document.get("meshes", [])
@@ -3401,6 +4586,15 @@ def validate_output_materials(
             or extras.get("nilbotsTeamColorOwnership") != "renderer"
         ):
             raise ValueError(f"Output body material lost provenance: {name}")
+        if payload_set_sha256 is not None and (
+            extras.get("nilbotsTexturePayloadMode")
+            != "standalone-lossless-png"
+            or extras.get("nilbotsTexturePayloadSetSha256")
+            != payload_set_sha256
+        ):
+            raise ValueError(
+                f"Output body material lost standalone payload provenance: {name}"
+            )
         factors = material_factor_record(material)
         if not factors_equal(factors, donor_source["factors"]):
             raise ValueError(
@@ -3548,6 +4742,7 @@ def validate_output_glb(
     accent_material_names: list[str],
     donor_source: dict[str, Any],
     donor_sha256: str,
+    payload_set_sha256: str | None = None,
 ) -> dict[str, Any]:
     document, binary_chunk = parse_glb(path)
     validate_embedded_glb(
@@ -3609,6 +4804,7 @@ def validate_output_glb(
         accent_material_names=accent_material_names,
         donor_source=donor_source,
         donor_sha256=donor_sha256,
+        payload_set_sha256=payload_set_sha256,
     )
     node_hash = stable_hash(nodes)
     mesh_hash = stable_hash(meshes)
@@ -3741,6 +4937,17 @@ def main() -> int:
         option="--donor-glb",
         strict=True,
     )
+    standalone_pbr = resolve_standalone_pbr(args, repo_root=repo_root)
+    coverage_pose = resolve_coverage_pose(args, repo_root=repo_root)
+    report_schema = (
+        COVERAGE_POSE_REPORT_SCHEMA
+        if coverage_pose is not None
+        else (
+            LOSSLESS_PBR_REPORT_SCHEMA
+            if standalone_pbr is not None
+            else REPORT_SCHEMA
+        )
+    )
     output_dir, output_relative = resolve_repo_path(
         args.output_dir,
         repo_root=repo_root,
@@ -3754,7 +4961,7 @@ def main() -> int:
         "var",
     }:
         raise ValueError("--output-dir must stay below sandbox/ or var/")
-    expected_inputs = (
+    expected_inputs = [
         (authored, args.expected_authored_sha256, "Authored .blend"),
         (
             uploaded,
@@ -3762,7 +4969,24 @@ def main() -> int:
             "Uploaded source GLB",
         ),
         (donor, args.expected_donor_sha256, "Donor GLB"),
-    )
+    ]
+    if standalone_pbr is not None:
+        expected_inputs.extend(
+            (
+                record["path"],
+                record["sha256"],
+                f"Standalone {role} PNG",
+            )
+            for role, record in standalone_pbr.items()
+        )
+    if coverage_pose is not None:
+        expected_inputs.append(
+            (
+                coverage_pose["path"],
+                coverage_pose["sha256"],
+                "Coverage validation report",
+            )
+        )
     for path, expected, label in expected_inputs:
         observed = sha256(path)
         if observed != expected:
@@ -3770,19 +4994,34 @@ def main() -> int:
                 f"{label} hash drifted before Blender processing: "
                 f"{observed} != {expected}"
             )
-    (
-        authority_ledger,
-        authority_ledger_path,
-        authority_ledger_sha256,
-    ) = authority_validation_ledger(
-        authored=authored,
-        authored_relative=authored_relative,
-        authored_sha256=args.expected_authored_sha256,
-        uploaded=uploaded,
-        uploaded_relative=uploaded_relative,
-        uploaded_sha256=args.expected_uploaded_source_sha256,
-        repo_root=repo_root,
-    )
+    if coverage_pose is None:
+        (
+            authority_ledger,
+            authority_ledger_path,
+            authority_ledger_sha256,
+        ) = authority_validation_ledger(
+            authored=authored,
+            authored_relative=authored_relative,
+            authored_sha256=args.expected_authored_sha256,
+            uploaded=uploaded,
+            uploaded_relative=uploaded_relative,
+            uploaded_sha256=args.expected_uploaded_source_sha256,
+            repo_root=repo_root,
+        )
+        coverage_ledger = {"present": False}
+    else:
+        authority_ledger = {"present": False}
+        authority_ledger_path = None
+        authority_ledger_sha256 = None
+        coverage_ledger = coverage_validation_ledger(
+            coverage_pose=coverage_pose,
+            authored=authored,
+            authored_relative=authored_relative,
+            authored_sha256=args.expected_authored_sha256,
+            uploaded=uploaded,
+            uploaded_relative=uploaded_relative,
+            uploaded_sha256=args.expected_uploaded_source_sha256,
+        )
 
     # Disposable provider/source scenes. Only canonical surface signatures and
     # byte-level PBR payloads survive this stage.
@@ -3808,7 +5047,16 @@ def main() -> int:
             donor_capture,
         )
     )
-    donor_source = donor_material_source(donor)
+    embedded_donor_source = donor_material_source(donor)
+    donor_source = (
+        standalone_lossless_pbr_source(
+            standalone_pbr=standalone_pbr,
+            donor_source=embedded_donor_source,
+        )
+        if standalone_pbr is not None
+        else embedded_donor_source
+    )
+    payload_set_sha256 = donor_source.get("payloadSetSha256")
 
     # Opening the authority is the hard contamination boundary: every donor
     # object, mesh, node, pivot, action, and imported image is discarded.
@@ -3846,11 +5094,27 @@ def main() -> int:
     output_dir.mkdir(parents=True)
     baseline_path = output_dir / ".authority-baseline.glb"
     export_animated_glb(path=baseline_path, collection=collection)
-    uploaded_authority_proof = validate_uploaded_authority_baseline(
-        uploaded,
-        baseline_path,
-        ledger=authority_ledger,
-    )
+    coverage_baseline_record: dict[str, Any] | None = None
+    if coverage_pose is None:
+        uploaded_authority_proof = validate_uploaded_authority_baseline(
+            uploaded,
+            baseline_path,
+            ledger=authority_ledger,
+        )
+    else:
+        coverage_baseline_path = output_dir / ".authority-coverage-baseline.glb"
+        coverage_baseline_record = export_coverage_pose_baseline(
+            path=coverage_baseline_path,
+            objects=objects,
+            coverage_pose=coverage_pose,
+            coverage_ledger=coverage_ledger,
+        )
+        uploaded_authority_proof = validate_uploaded_coverage_pose_baseline(
+            uploaded,
+            coverage_baseline_path,
+            coverage_ledger=coverage_ledger,
+        )
+        coverage_baseline_path.unlink()
     # The Blender exporter evaluates animation and may leave transient object
     # property values at its final sample. Reopen the pinned authority so the
     # material transplant starts from disk truth, not exporter evaluation state.
@@ -3884,10 +5148,26 @@ def main() -> int:
         role: [int(image.size[0]), int(image.size[1])]
         for role, image in loaded_images.items()
     }
+    loaded_colorspaces = {
+        role: image.colorspace_settings.name
+        for role, image in loaded_images.items()
+    }
     if any(width <= 0 or height <= 0 for width, height in dimensions.values()):
         raise ValueError("Donor texture has invalid dimensions")
-    if len({tuple(size) for size in dimensions.values()}) != 1:
+    if (
+        standalone_pbr is None
+        and len({tuple(size) for size in dimensions.values()}) != 1
+    ):
         raise ValueError("Donor PBR maps do not share one atlas resolution")
+    if standalone_pbr is not None and (
+        dimensions["baseColor"] != dimensions["normal"]
+        or dimensions["metallicRoughness"]
+        != [
+            donor_source["composition"]["output"]["width"],
+            donor_source["composition"]["output"]["height"],
+        ]
+    ):
+        raise ValueError("Standalone PBR output dimensions drifted after load")
 
     for material in body_materials:
         rebuild_body_material(
@@ -3895,6 +5175,7 @@ def main() -> int:
             factors=donor_source["factors"],
             images=loaded_images,
             donor_sha256=args.expected_donor_sha256,
+            payload_set_sha256=payload_set_sha256,
         )
 
     accent_after_in_memory = {
@@ -3928,6 +5209,7 @@ def main() -> int:
         accent_material_names=accent_material_names,
         donor_source=donor_source,
         donor_sha256=args.expected_donor_sha256,
+        payload_set_sha256=payload_set_sha256,
     )
     output_animation_names = sorted(
         animation["name"]
@@ -3937,13 +5219,23 @@ def main() -> int:
         raise ValueError(
             "Animated output GLB did not preserve semantic NLA clip names"
         )
+    fresh_animated_baseline_surface = (
+        surface_signature(import_glb_meshes(baseline_path))
+        if coverage_pose is not None
+        else None
+    )
     baseline_path.unlink()
 
     output_surface = surface_signature(import_glb_meshes(glb_path))
+    expected_output_surface = (
+        fresh_animated_baseline_surface
+        if coverage_pose is not None
+        else uploaded_surface
+    )
     if (
         output_surface["positionUvSurfaceSha256"]
-        != uploaded_surface["positionUvSurfaceSha256"]
-        or output_surface["triangles"] != uploaded_surface["triangles"]
+        != expected_output_surface["positionUvSurfaceSha256"]
+        or output_surface["triangles"] != expected_output_surface["triangles"]
     ):
         raise ValueError("Exported textured GLB geometry/UV drifted")
 
@@ -3957,6 +5249,7 @@ def main() -> int:
         persisted_body,
         donor_sha256=args.expected_donor_sha256,
         expected_roles=set(texture_paths),
+        payload_set_sha256=payload_set_sha256,
     )
     after_persisted = authority_snapshot(
         persisted_objects,
@@ -3991,11 +5284,14 @@ def main() -> int:
         )
     checks = {
         "pinnedBlender52": bpy.app.version[:2] == EXPECTED_BLENDER,
-        "uploadedSourceMatchesDonorSurfaceGeometryAndUv": (
+        "providerDonorSurfaceSubsetCorrespondenceWithinBounds": (
             provider_surface_correspondence[
                 "ambiguousOrDegenerateUvTriangles"
             ]
             == 0
+            and provider_surface_correspondence["sourceOnly"][
+                "withinBounds"
+            ]
             and provider_surface_correspondence["uvWindingMismatches"] == 0
             and provider_surface_correspondence[
                 "geometryWindingMismatches"
@@ -4005,10 +5301,14 @@ def main() -> int:
         ),
         "providerDonorExactOrientedUvTrianglePairing": (
             provider_surface_correspondence["triangles"]
-            == uploaded_surface["triangles"]
             == donor_surface["triangles"]
             and provider_surface_correspondence["pairedCorners"]
-            == uploaded_surface["triangles"] * 3
+            == donor_surface["triangles"] * 3
+            and provider_surface_correspondence["sourceOnly"]["triangles"]
+            == uploaded_surface["triangles"] - donor_surface["triangles"]
+        ),
+        "providerDonorSourceOnlyMicroSurfaceBounded": (
+            provider_surface_correspondence["sourceOnly"]["withinBounds"]
         ),
         "providerDonorGlobalSimilarityWithinFixedResidual": (
             provider_surface_correspondence["acceptedTransform"][
@@ -4019,6 +5319,10 @@ def main() -> int:
                 "residualNormalizedToDonorSpan"
             ]["rms"]
             <= SIMILARITY_RMS_NORMALIZED_RESIDUAL
+            and provider_surface_correspondence["acceptedTransform"][
+                "residualNormalizedToDonorSpan"
+            ]["p99"]
+            <= SIMILARITY_P99_NORMALIZED_RESIDUAL
         ),
         "providerDonorReflectionAndWindingRejected": (
             not provider_surface_correspondence["acceptedTransform"][
@@ -4035,13 +5339,25 @@ def main() -> int:
                 "uploadedGeometryAccessorsSha256"
             ]
             == uploaded_authority_proof[
-                "freshBaselineGeometryAccessorsSha256"
+                (
+                    "freshCoveragePoseGeometryAccessorsSha256"
+                    if coverage_pose is not None
+                    else "freshBaselineGeometryAccessorsSha256"
+                )
             ]
             and uploaded_authority_proof["uploadedRawSurfaceDigest"]
-            == uploaded_authority_proof["freshBaselineRawSurfaceDigest"]
+            == uploaded_authority_proof[
+                (
+                    "freshCoveragePoseRawSurfaceDigest"
+                    if coverage_pose is not None
+                    else "freshBaselineRawSurfaceDigest"
+                )
+            ]
         ),
-        "oneNonOverlappingSharedBodyUvAtlas": (
+        "sharedBodyUvAtlasHasOnlyBoundedMicroExceptions": (
             uv_atlas["overlapPairs"] == 0
+            and uv_atlas["ignoredMicroUvSurface"]["withinBounds"]
+            and uv_atlas["ignoredMicroOverlap"]["withinBounds"]
         ),
         "providerGeometryNeverEnteredOutput": (
             after_persisted["objectNames"] == before["objectNames"]
@@ -4129,27 +5445,195 @@ def main() -> int:
         "offlineProviderCallsZero": True,
         "offlineNetworkCallsZero": True,
     }
+    if standalone_pbr is not None:
+        checks.pop("allPbrMapsShareAtlasResolution")
+        output_body_materials = output_glb_validation["materials"][
+            "bodyMaterials"
+        ]
+        checks.update(
+            {
+                "standaloneBaseColorAndNormalDimensionsMatch": (
+                    dimensions["baseColor"] == dimensions["normal"]
+                ),
+                "standaloneMetallicAndRoughnessDimensionsMatch": (
+                    donor_source["standaloneSources"]["metallic"]["width"]
+                    == donor_source["standaloneSources"]["roughness"]["width"]
+                    and donor_source["standaloneSources"]["metallic"]["height"]
+                    == donor_source["standaloneSources"]["roughness"]["height"]
+                ),
+                "standalonePngColorSpacesAreRoleCorrect": (
+                    loaded_colorspaces
+                    == {
+                        role: donor_source["colorspaces"][role]
+                        for role in donor_source["images"]
+                    }
+                ),
+                "standalonePngPayloadsRemainLosslessInAnimatedGlb": all(
+                    all(
+                        body["textures"][role]["sha256"]
+                        == donor_source["images"][role]["sha256"]
+                        and body["textures"][role]["mimeType"]
+                        == "image/png"
+                        for role in donor_source["standaloneOutputRoles"]
+                    )
+                    for body in output_body_materials.values()
+                ),
+                "metallicRoughnessChannelsAreLosslesslyComposed": (
+                    donor_source["composition"]["channelProof"][
+                        "greenRoughnessSamplesSha256"
+                    ]
+                    == donor_source["composition"]["roughness"][
+                        "scalarSamplesSha256"
+                    ]
+                    and donor_source["composition"]["channelProof"][
+                        "blueMetallicSamplesSha256"
+                    ]
+                    == donor_source["composition"]["metallic"][
+                        "scalarSamplesSha256"
+                    ]
+                    and donor_source["composition"]["output"]["sha256"]
+                    == donor_source["images"]["metallicRoughness"]["sha256"]
+                ),
+                "standalonePngInputsRemainPinned": all(
+                    sha256(record["path"]) == record["sha256"]
+                    for record in standalone_pbr.values()
+                ),
+            }
+        )
+    if coverage_pose is not None:
+        checks.pop("authoredBlendMatchesUploadedSourceSurfaceGeometryAndUv")
+        checks.pop("outputAnimatedGlbMatchesAuthoredSurfaceGeometryAndUv")
+        checks.update(
+            {
+                "coverageValidationReportPinsAuthorityUploadPoseAndChecks": (
+                    coverage_ledger["present"]
+                    and coverage_ledger["authoredBlend"]["sha256"]
+                    == args.expected_authored_sha256
+                    and coverage_ledger["uploadedSourceGlb"]["sha256"]
+                    == args.expected_uploaded_source_sha256
+                    and coverage_ledger["pose"]["activeClips"]
+                    == list(coverage_pose["clips"])
+                    and coverage_ledger["pose"]["frame"]
+                    == coverage_pose["frame"]
+                ),
+                "authoredCoveragePoseExactlyReproducesUploadedGeometryUv": (
+                    uploaded_authority_proof[
+                        "uploadedGeometryAccessorsSha256"
+                    ]
+                    == uploaded_authority_proof[
+                        "freshCoveragePoseGeometryAccessorsSha256"
+                    ]
+                    and uploaded_authority_proof[
+                        "uploadedRawSurfaceDigest"
+                    ]
+                    == uploaded_authority_proof[
+                        "freshCoveragePoseRawSurfaceDigest"
+                    ]
+                ),
+                "authoredCoveragePoseExactlyReproducesNamedIdentityRoots": (
+                    uploaded_authority_proof[
+                        "uploadedIdentityRootNodesSha256"
+                    ]
+                    == uploaded_authority_proof[
+                        "freshCoveragePoseIdentityRootNodesSha256"
+                    ]
+                    and uploaded_authority_proof["objects"]
+                    == coverage_ledger["expected"]["meshes"]
+                    and uploaded_authority_proof["triangles"]
+                    == coverage_ledger["expected"]["triangles"]
+                ),
+                "coveragePoseUsesTemporaryWorldBakedBodyCopiesOnly": (
+                    coverage_baseline_record is not None
+                    and coverage_baseline_record[
+                        "worldTransformsBakedIntoTemporaryCopies"
+                    ]
+                    and coverage_baseline_record["identityRootMeshes"]
+                    == coverage_ledger["expected"]["meshes"]
+                    and coverage_baseline_record[
+                        "providerObjectsImportedIntoAuthorityScene"
+                    ]
+                    == 0
+                    and not any(
+                        name.startswith("__NB_TRANSPLANT_COVERAGE_")
+                        for name in after_persisted["objectNames"]
+                    )
+                ),
+                "outputAnimatedGlbMatchesFreshAnimatedAuthoritySurface": (
+                    fresh_animated_baseline_surface is not None
+                    and output_surface["positionUvSurfaceSha256"]
+                    == fresh_animated_baseline_surface[
+                        "positionUvSurfaceSha256"
+                    ]
+                    and output_surface["triangles"]
+                    == fresh_animated_baseline_surface["triangles"]
+                ),
+            }
+        )
     if any(value is not True for value in checks.values()):
         raise ValueError("Texture transplant validation did not pass")
 
+    report_inputs = {
+        "authoredBlend": {
+            "path": authored_relative.as_posix(),
+            "sha256": args.expected_authored_sha256,
+        },
+        "uploadedSourceGlb": {
+            "path": uploaded_relative.as_posix(),
+            "sha256": args.expected_uploaded_source_sha256,
+        },
+        "donorGlb": {
+            "path": donor_relative.as_posix(),
+            "sha256": args.expected_donor_sha256,
+        },
+    }
+    if standalone_pbr is not None:
+        report_inputs.update(
+            {
+                record["reportKey"]: {
+                    "path": record["relative"].as_posix(),
+                    "sha256": record["sha256"],
+                }
+                for record in standalone_pbr.values()
+            }
+        )
+    if coverage_pose is not None:
+        report_inputs[coverage_pose["reportKey"]] = {
+            "path": coverage_pose["relative"].as_posix(),
+            "sha256": coverage_pose["sha256"],
+        }
+    pbr_report = {
+        "factors": donor_source["factors"],
+        "samplers": donor_source["samplers"],
+        "dimensions": dimensions,
+        "textures": texture_records,
+        "bodyMaterialsRebuilt": body_material_names,
+        "persistedBodyMaterialMaps": persisted_pbr,
+        "teamAccentMaterialsUntouched": sorted(accent_before),
+        "materialConsumersInsideModelCollection": material_scope,
+    }
+    if standalone_pbr is not None:
+        pbr_report.update(
+            {
+                "payloadMode": donor_source["payloadMode"],
+                "payloadSetSha256": donor_source["payloadSetSha256"],
+                "standaloneSources": donor_source["standaloneSources"],
+                "metallicRoughnessComposition": donor_source["composition"],
+                "colorspaces": donor_source["colorspaces"],
+                "loadedColorspaces": loaded_colorspaces,
+                "resolutionContract": donor_source["resolutionContract"],
+                "standaloneOutputRoles": donor_source[
+                    "standaloneOutputRoles"
+                ],
+                "embeddedDonorFallbackRoles": donor_source[
+                    "embeddedDonorFallbackRoles"
+                ],
+            }
+        )
     report = {
-        "schema": REPORT_SCHEMA,
+        "schema": report_schema,
         "status": "PASS",
         "outputDirectory": output_relative.as_posix(),
-        "inputs": {
-            "authoredBlend": {
-                "path": authored_relative.as_posix(),
-                "sha256": args.expected_authored_sha256,
-            },
-            "uploadedSourceGlb": {
-                "path": uploaded_relative.as_posix(),
-                "sha256": args.expected_uploaded_source_sha256,
-            },
-            "donorGlb": {
-                "path": donor_relative.as_posix(),
-                "sha256": args.expected_donor_sha256,
-            },
-        },
+        "inputs": report_inputs,
         "blender": {
             "version": bpy.app.version_string,
             "expectedMajorMinor": list(EXPECTED_BLENDER),
@@ -4160,7 +5644,12 @@ def main() -> int:
             "providerCalls": 0,
             "networkCalls": 0,
             "geometryAuthority": "authored-blend-only",
-            "providerUse": "PBR image bytes and numeric material factors only",
+            "providerUse": (
+                "donor GLB geometry/UV validation plus material factors and "
+                "samplers; standalone lossless PNG image payloads only"
+                if standalone_pbr is not None
+                else "PBR image bytes and numeric material factors only"
+            ),
             "providerObjectsImportedIntoAuthorityScene": 0,
             "providerActionsImportedIntoAuthorityScene": 0,
             "providerNodeGraphsImportedIntoAuthorityScene": 0,
@@ -4171,6 +5660,9 @@ def main() -> int:
                 ),
                 "rmsNormalized": (
                     SIMILARITY_RMS_NORMALIZED_RESIDUAL
+                ),
+                "p99Normalized": (
+                    SIMILARITY_P99_NORMALIZED_RESIDUAL
                 ),
             },
             "bindFrame": args.bind_frame,
@@ -4188,16 +5680,7 @@ def main() -> int:
         },
         "authorityValidationLedger": authority_ledger,
         "uvAtlas": uv_atlas,
-        "pbr": {
-            "factors": donor_source["factors"],
-            "samplers": donor_source["samplers"],
-            "dimensions": dimensions,
-            "textures": texture_records,
-            "bodyMaterialsRebuilt": body_material_names,
-            "persistedBodyMaterialMaps": persisted_pbr,
-            "teamAccentMaterialsUntouched": sorted(accent_before),
-            "materialConsumersInsideModelCollection": material_scope,
-        },
+        "pbr": pbr_report,
         "authoritySnapshot": {
             "before": before,
             "after": after_persisted,
@@ -4207,6 +5690,23 @@ def main() -> int:
         "checks": checks,
         "artifacts": artifacts,
     }
+    if coverage_pose is not None:
+        report["method"].update(
+            {
+                "uploadValidationMode": "pinned-world-baked-coverage-pose",
+                "coveragePoseClips": list(coverage_pose["clips"]),
+                "coveragePoseFrame": coverage_pose["frame"],
+                "coveragePoseTransformPolicy": COVERAGE_TRANSFORM_POLICY,
+                "coveragePoseTemporaryGeometryPersisted": False,
+            }
+        )
+        report["surfaceCorrespondence"][
+            "authoredBlendCoveragePoseToUploadedSource"
+        ] = report["surfaceCorrespondence"].pop(
+            "authoredBlendFreshBaselineToUploadedSource"
+        )
+        report["coverageValidationLedger"] = coverage_ledger
+        report["coveragePoseReconstruction"] = coverage_baseline_record
     for path, expected, label in expected_inputs:
         observed = sha256(path)
         if observed != expected:

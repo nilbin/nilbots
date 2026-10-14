@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-31T14:54:49.293Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise-foundry",
+  "purpose": "Meshy 6 2K PBR Foundry Bastion texture-only donor for aegis-tortoise-ga-002",
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "121f3ff9a965162cfa082104b698a741607cef2325f816367467d9c1c3b6c2b7",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface game asset, texture only. Warm ash-gray forged-iron armor and medium refractory-slate structure dominate; charcoal only in deep recesses. Restrained foundry lava-orange heat-ceramic enamel on outer armor cassettes and tower-vane shoulders, fixed non-emissive hull color. Broad value separation, matte powder coat, high roughness, low-medium metalness, sparse broad edge wear. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, gloss, micro-noise, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface game asset, texture only. Warm ash-gray forged-iron armor and medium refractory-slate structure dominate; charcoal only in deep recesses. Restrained foundry lava-orange heat-ceramic enamel on outer armor cassettes and tower-vane shoulders, fixed non-emissive hull color. Broad value separation, matte powder coat, high roughness, low-medium metalness, sparse broad edge wear. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, gloss, micro-noise, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 635,
+  "submittedAt": "2026-07-31T14:54:49.868Z",
+  "taskId": "019fb8ab-bab2-7eda-a797-a30d0e95ff04",
+  "finishedAt": "2026-07-31T14:57:08.847Z"
+}

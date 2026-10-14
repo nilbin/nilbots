@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb924-500f-74d0-9d9f-b79c0aa446aa",
+  "lookId": "aegis-tortoise-foundry-graphic-4k-ga003-worldbaked",
+  "purpose": "Meshy 6 text-guided 4K PBR simplified graphic Foundry alternative on transform-baked GA-003",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 137536,
+      "sha256": "9ae1be5e5a0fa23ff7422aa9f0fea38ce075765b1a9ea165108cf5f4dd79c05b",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 26396560,
+      "sha256": "fc0abfe5f660957c2419f67f539757fbcd1484c9bed1e114c78a823678323558",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 22783332,
+      "sha256": "de3b8126932ef460d6592aecfff79973d3bb22063399e73cb7c83e2583b118de",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 318700,
+      "sha256": "18c73bb64611557c64b4c0ae22e944836491c10d1efd2c60f2cc97a205d5b4ec",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 1144861,
+      "sha256": "1956c5b201ae510ad007b160c2d4c9be253cc56ea73300bca93bdad0e327dacd",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 29334012,
+      "sha256": "7d5ab3d392bc56800f3337c19cd5b0e343c21d4392ad5633552830529b5aad7e",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 1251218,
+      "sha256": "5766c9a6d001f2afa166ce7a88b3e5c7de80ecdc4d72c3ef26297f2e2e8d196e",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T17:06:32.476Z",
+  "balanceBefore": 555,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 2027708,
+    "sha256": "378e5d999c7e73bbab74d3b246d92b30fa4f69a6cf008b55dbc5bbe0304cf2ef",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2027708,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-003/aegis-tortoise-texture-upload-coverage.glb",
+    "bytes": 2027708,
+    "sha256": "378e5d999c7e73bbab74d3b246d92b30fa4f69a6cf008b55dbc5bbe0304cf2ef",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2027708,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized low-poly game PBR for this levitating Bulwark bot, readable at 41px. Clean graphic armor blocks, not photoreal. All body armor is medium-dark warm graphite or lighter ash-slate; recesses charcoal, never black. Add bold matte foundry lava-orange ceramic inset plates on 10% of the body. Broad hand-painted value variation and sparse chunky edge wear only. Satin-matte roughness, low metalness, no baked light. Avoid white or silver armor, greebles, labels, letters, numbers, decals, rust, soot, grime, micro-scratches, speckle, chrome, gloss, blue, cyan, green, red. Preserve UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized low-poly game PBR for this levitating Bulwark bot, readable at 41px. Clean graphic armor blocks, not photoreal. All body armor is medium-dark warm graphite or lighter ash-slate; recesses charcoal, never black. Add bold matte foundry lava-orange ceramic inset plates on 10% of the body. Broad hand-painted value variation and sparse chunky edge wear only. Satin-matte roughness, low metalness, no baked light. Avoid white or silver armor, greebles, labels, letters, numbers, decals, rust, soot, grime, micro-scratches, speckle, chrome, gloss, blue, cyan, green, red. Preserve UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "ff6b17adf3db05309e7ff1eaa5134528580b19d707503859d420ddcb0edef07c",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T17:09:42.543Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T17:09:42.552Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 545,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

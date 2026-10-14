@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-31T15:54:11.625Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise-foundry-graphite-4k",
+  "purpose": "Meshy 6 4K PBR darker stylized Foundry Graphite texture-only donor for aegis-tortoise-ga-002",
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "b31770300abb3c60864ab6e846ecb14e47bbca16a185b097b8db5d9bf0037c6d",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue/red paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "4k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down game texture for a levitating Bulwark fortress bot. Dark warm graphite armor in large readable panels; ash-slate secondary plates; blackened steel only in recesses; restrained foundry lava-orange ceramic cassettes. Hand-painted PBR, deliberate panel value shifts, medium-scale heat staining, sparse chipped edges and broad forged marks, crisp at small size, rich but not photoreal. Team-light surfaces flat neutral white. No blue/red paint, uniform gray, near-black hull, gloss, chrome, fine speckle, noisy grime, text, logos, decals or baked lighting. Preserve UVs."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 595,
+  "submittedAt": "2026-07-31T15:54:12.192Z",
+  "taskId": "019fb8e2-1643-7c50-89f5-7a1843d76689",
+  "finishedAt": "2026-07-31T15:57:02.358Z"
+}

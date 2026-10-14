@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "status": "reference-only-uv-preflight-failed",
+  "taskId": "019fb8e2-1643-7c50-89f5-7a1843d76689",
+  "lookId": "aegis-tortoise-foundry-graphite-4k",
+  "consumedCredits": 10,
+  "decision": "Do not transplant or ship this donor. Preserve it as the controlled 4K/equal-cell-UV failure case.",
+  "positiveEvidence": [
+    "The darker graphite, ash-slate, and lava-orange direction is materially closer to the desired Foundry identity.",
+    "The provider returned 4K base-color and normal maps and the task archived all standalone PBR PNGs."
+  ],
+  "blockingEvidence": {
+    "bodyAtlasOccupancyPercent": 27.804,
+    "mainHullBodySurfaceAreaPercent": 62.65,
+    "mainHullUsedUvAreaPercent": 0.93,
+    "mainHullApproximateEffectiveSourcePixelsAt4k": "208x208",
+    "cause": "The frozen upload assigned each of 38 meshes an equal 0.12x0.12 UV cell rather than weighting atlas area by visible body surface/projected importance."
+  },
+  "nextGate": "Repack a reviewed UV-only authority revision, exclude semantic team meshes from the provider upload, then run one image-guided 4K Foundry proof using standalone lossless PNG transplant."
+}

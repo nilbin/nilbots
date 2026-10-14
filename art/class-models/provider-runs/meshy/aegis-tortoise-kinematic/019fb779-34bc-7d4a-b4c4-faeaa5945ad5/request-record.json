@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb779-34bc-7d4a-b4c4-faeaa5945ad5",
+  "lookId": "aegis-tortoise-kinematic",
+  "purpose": "Meshy 6 2K PBR brighter stylized texture candidate for deterministic animated Bulwark family",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 129513,
+      "sha256": "c5eef5f5546c76b5b85a4d3eee8bfb7a7cf176e26a73b2e5b33f86ea275ce491",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 9354996,
+      "sha256": "861aab2973434e76c3137b900572998d5f9ee29957cc8713bf9b0bf4b536f4eb",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 5588162,
+      "sha256": "f176474d720823da93d1b522c0a3c93d481deb54dc65f7049cd68ddb8e16c240",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 74328,
+      "sha256": "5b84bfa6cda2705fbb48d8c29bddc0da43b148ac17c8b0c1c810f3eff67c65a5",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 940937,
+      "sha256": "a90f6cc4c6c5ca134ddb18fec658b67e7762d9a8d2d58e679d57569563928bb8",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 6331240,
+      "sha256": "87e8c336ede7e5289f8dab83f1d4dabe38b908216653d394d4a32e278cdd75c4",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 895453,
+      "sha256": "274457b2f9ef30a84e612d30425c1ca99555d7632b54d3f020fd31fcb43f1d27",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T09:20:01.579Z",
+  "balanceBefore": 645,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-kinematic/aegis-tortoise-texture-upload.glb",
+    "bytes": 1466812,
+    "sha256": "f96a4cb61312e10f7f86ac73e092a3e0f341972c1d1bb8d97de0e2d31903b175",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 1466812,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized hard-surface real-time game asset readable at 41px from a 58-degree top-down camera. Broad cold ash-gray tungsten armor over charcoal structure and medium gunmetal mechanisms, with strong fortress-like value separation. Matte powder coat, high-roughness satin metal, crisp simple panel borders, sparse broad edge wear, neutral-white apertures. No near-black majority, monochrome blur, smeared metal, bronze/copper/gold, blue/red team color, chrome, glossy clearcoat, photoreal micro-scratches, dirt noise, text, logos, decals, or baked lighting. Preserve geometry."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized hard-surface real-time game asset readable at 41px from a 58-degree top-down camera. Broad cold ash-gray tungsten armor over charcoal structure and medium gunmetal mechanisms, with strong fortress-like value separation. Matte powder coat, high-roughness satin metal, crisp simple panel borders, sparse broad edge wear, neutral-white apertures. No near-black majority, monochrome blur, smeared metal, bronze/copper/gold, blue/red team color, chrome, glossy clearcoat, photoreal micro-scratches, dirt noise, text, logos, decals, or baked lighting. Preserve geometry."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "39517a25198a9487ca0ee38b0b2b09a9e5b1f58da1f5e3861a62e19a9e267f98",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T09:21:59.563Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T09:21:59.571Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 635,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}

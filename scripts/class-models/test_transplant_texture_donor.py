@@ -6,12 +6,14 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import shutil
 import struct
 import subprocess
 import sys
 import unittest
 import uuid
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +23,7 @@ REPO_ROOT = SCRIPT_DIR.parents[1]
 sys.path.insert(0, str(SCRIPT_DIR))
 
 import transplant_texture_donor as transplant  # noqa: E402
+import lossless_pbr_png as pbr_png  # noqa: E402
 
 
 def sha256(path: Path) -> str:
@@ -98,6 +101,40 @@ def write_glb(
     )
 
 
+def png_chunk(chunk_type: bytes, data: bytes) -> bytes:
+    crc = zlib.crc32(data, zlib.crc32(chunk_type)) & 0xFFFFFFFF
+    return (
+        struct.pack(">I", len(data))
+        + chunk_type
+        + data
+        + struct.pack(">I", crc)
+    )
+
+
+def encode_test_png(
+    *,
+    width: int,
+    height: int,
+    color_type: int,
+    samples: bytes,
+) -> bytes:
+    channels = {0: 1, 2: 3}[color_type]
+    if len(samples) != width * height * channels:
+        raise AssertionError("Test PNG sample count is invalid")
+    row_bytes = width * channels
+    filtered = b"".join(
+        b"\x00" + samples[offset : offset + row_bytes]
+        for offset in range(0, len(samples), row_bytes)
+    )
+    ihdr = struct.pack(">IIBBBBB", width, height, 8, color_type, 0, 0, 0)
+    return (
+        pbr_png.PNG_SIGNATURE
+        + png_chunk(b"IHDR", ihdr)
+        + png_chunk(b"IDAT", zlib.compress(filtered, level=6))
+        + png_chunk(b"IEND", b"")
+    )
+
+
 def mutated_glb(
     source: Path,
     destination: Path,
@@ -106,6 +143,38 @@ def mutated_glb(
     document, binary = parse_glb(source)
     mutation(document)
     write_glb(destination, document=document, binary=binary)
+    return destination
+
+
+def position_distorted_glb(
+    source: Path,
+    destination: Path,
+    *,
+    node_name: str,
+    delta_x: float,
+) -> Path:
+    document, binary = parse_glb(source)
+    node = next(
+        item for item in document["nodes"] if item.get("name") == node_name
+    )
+    primitive = document["meshes"][node["mesh"]]["primitives"][0]
+    accessor = document["accessors"][primitive["attributes"]["POSITION"]]
+    if accessor["componentType"] != 5126 or accessor["type"] != "VEC3":
+        raise AssertionError("fixture position accessor is not float VEC3")
+    view = document["bufferViews"][accessor["bufferView"]]
+    stride = view.get("byteStride", 12)
+    offset = view.get("byteOffset", 0) + accessor.get("byteOffset", 0)
+    payload = bytearray(binary)
+    original_x = struct.unpack_from("<f", payload, offset)[0]
+    struct.pack_into("<f", payload, offset, original_x + delta_x)
+    if accessor.get("min") and accessor.get("max"):
+        values = [
+            struct.unpack_from("<3f", payload, offset + index * stride)
+            for index in range(accessor["count"])
+        ]
+        accessor["min"] = [min(item[axis] for item in values) for axis in range(3)]
+        accessor["max"] = [max(item[axis] for item in values) for axis in range(3)]
+    write_glb(destination, document=document, binary=bytes(payload))
     return destination
 
 
@@ -273,6 +342,66 @@ class TextureDonorTransplantTests(unittest.TestCase):
         cls.fixture = json.loads(
             fixture_manifest.read_text(encoding="utf-8")
         )
+        standalone_payloads = {
+            "baseColor": encode_test_png(
+                width=4,
+                height=4,
+                color_type=2,
+                samples=bytes(
+                    component
+                    for index in range(16)
+                    for component in (
+                        20 + index,
+                        40 + index,
+                        60 + index,
+                    )
+                ),
+            ),
+            "metallic": encode_test_png(
+                width=2,
+                height=2,
+                color_type=0,
+                samples=bytes((0, 64, 128, 255)),
+            ),
+            "roughness": encode_test_png(
+                width=2,
+                height=2,
+                color_type=0,
+                samples=bytes((255, 192, 64, 0)),
+            ),
+            "normal": encode_test_png(
+                width=4,
+                height=4,
+                color_type=2,
+                samples=bytes((128, 128, 255)) * 16,
+            ),
+            "emissive": encode_test_png(
+                width=2,
+                height=2,
+                color_type=2,
+                samples=bytes(
+                    (
+                        4,
+                        8,
+                        12,
+                        16,
+                        20,
+                        24,
+                        28,
+                        32,
+                        36,
+                        40,
+                        44,
+                        48,
+                    )
+                ),
+            ),
+        }
+        cls.standalone_pbr: dict[str, Path] = {}
+        for role, payload in standalone_payloads.items():
+            path = cls.scratch / f"standalone-{role}.png"
+            path.write_bytes(payload)
+            cls.standalone_pbr[role] = path
 
     @classmethod
     def tearDownClass(cls) -> None:
@@ -294,10 +423,17 @@ class TextureDonorTransplantTests(unittest.TestCase):
         donor_key: str = "donorGlb",
         donor_path: Path | None = None,
         authored_key: str = "authoredBlend",
+        uploaded_key: str = "uploadedSourceGlb",
         output_name: str,
+        standalone_pbr: bool = False,
+        pbr_path_overrides: dict[str, Path] | None = None,
+        pbr_hash_overrides: dict[str, str] | None = None,
+        coverage_pose: bool = False,
+        coverage_frame: int | None = None,
+        coverage_clips: list[str] | None = None,
     ) -> subprocess.CompletedProcess[str]:
         authored = REPO_ROOT / self.fixture[authored_key]
-        uploaded = REPO_ROOT / self.fixture["uploadedSourceGlb"]
+        uploaded = REPO_ROOT / self.fixture[uploaded_key]
         donor = (
             donor_path.resolve(strict=True)
             if donor_path is not None
@@ -313,7 +449,7 @@ class TextureDonorTransplantTests(unittest.TestCase):
             "--expected-authored-sha256",
             sha256(authored),
             "--uploaded-source-glb",
-            self.fixture["uploadedSourceGlb"],
+            self.fixture[uploaded_key],
             "--expected-uploaded-source-sha256",
             sha256(uploaded),
             "--donor-glb",
@@ -327,6 +463,52 @@ class TextureDonorTransplantTests(unittest.TestCase):
             "--output-dir",
             output_relative.as_posix(),
         ]
+        if standalone_pbr:
+            path_overrides = pbr_path_overrides or {}
+            hash_overrides = pbr_hash_overrides or {}
+            options = {
+                "baseColor": "base-color",
+                "metallic": "metallic",
+                "roughness": "roughness",
+                "normal": "normal",
+                "emissive": "emissive",
+            }
+            for role, option_role in options.items():
+                path = path_overrides.get(role, self.standalone_pbr[role])
+                relative = path.resolve(strict=True).relative_to(REPO_ROOT)
+                command.extend(
+                    [
+                        f"--pbr-{option_role}-png",
+                        relative.as_posix(),
+                        f"--expected-pbr-{option_role}-sha256",
+                        hash_overrides.get(role, sha256(path)),
+                    ]
+                )
+        if coverage_pose:
+            coverage_report = (
+                REPO_ROOT / self.fixture["coverageValidationReport"]
+            )
+            command.extend(
+                [
+                    "--coverage-validation-report",
+                    self.fixture["coverageValidationReport"],
+                    "--expected-coverage-validation-report-sha256",
+                    sha256(coverage_report),
+                    "--coverage-pose-frame",
+                    str(
+                        self.fixture["coveragePoseFrame"]
+                        if coverage_frame is None
+                        else coverage_frame
+                    ),
+                ]
+            )
+            clips = (
+                self.fixture["coveragePoseClips"]
+                if coverage_clips is None
+                else coverage_clips
+            )
+            for clip in clips:
+                command.extend(["--coverage-pose-clip", clip])
         return subprocess.run(
             command,
             cwd=REPO_ROOT,
@@ -392,6 +574,17 @@ class TextureDonorTransplantTests(unittest.TestCase):
         self.assertFalse(contains_absolute_path(report))
         self.assertFalse(transplant.contains_absolute_path(report))
         self.assertTrue(all(report["checks"].values()))
+        self.assertEqual(
+            report["uvAtlas"]["ignoredMicroUvSurface"]["triangles"],
+            1,
+        )
+        self.assertTrue(
+            report["uvAtlas"]["ignoredMicroUvSurface"]["withinBounds"]
+        )
+        self.assertIn(
+            "uniqueTriangleSpatialAreaNormalizedToModelSpanSquared",
+            report["uvAtlas"]["ignoredMicroOverlap"],
+        )
         self.assertEqual(
             report["method"]["geometryAuthority"],
             "authored-blend-only",
@@ -587,6 +780,96 @@ class TextureDonorTransplantTests(unittest.TestCase):
         self.assertNotEqual(overwrite.returncode, 0)
         self.assertIn("refusing overwrite", overwrite.stderr)
 
+    def test_transplants_from_pinned_world_baked_coverage_pose(self) -> None:
+        completed = self.run_transplant(
+            donor_key="coverageDonorGlb",
+            uploaded_key="coverageUploadedSourceGlb",
+            output_name="coverage-pose-success",
+            coverage_pose=True,
+        )
+        self.assertEqual(
+            completed.returncode,
+            0,
+            completed.stdout[-6000:] + completed.stderr[-6000:],
+        )
+        output = self.scratch / "coverage-pose-success"
+        report = json.loads(
+            (output / "report.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            report["schema"],
+            transplant.COVERAGE_POSE_REPORT_SCHEMA,
+        )
+        self.assertEqual(report["status"], "PASS")
+        self.assertTrue(all(report["checks"].values()))
+        self.assertEqual(
+            report["method"]["coveragePoseClips"],
+            self.fixture["coveragePoseClips"],
+        )
+        self.assertEqual(
+            report["method"]["coveragePoseFrame"],
+            self.fixture["coveragePoseFrame"],
+        )
+        self.assertEqual(
+            report["method"]["coveragePoseTransformPolicy"],
+            self.fixture["coverageTransformPolicy"],
+        )
+        self.assertFalse(
+            report["method"]["coveragePoseTemporaryGeometryPersisted"]
+        )
+        self.assertEqual(
+            report["coverageValidationLedger"]["pose"],
+            {
+                "activeClips": self.fixture["coveragePoseClips"],
+                "frame": self.fixture["coveragePoseFrame"],
+                "transformPolicy": self.fixture[
+                    "coverageTransformPolicy"
+                ],
+            },
+        )
+        coverage_proof = report["surfaceCorrespondence"][
+            "authoredBlendCoveragePoseToUploadedSource"
+        ]
+        self.assertFalse(coverage_proof["providerGeometryUsedAsOutput"])
+        self.assertEqual(
+            report["method"]["providerObjectsImportedIntoAuthorityScene"],
+            0,
+        )
+        self.assertEqual(
+            report["outputGlbAnimationNames"],
+            self.fixture["coveragePoseClips"],
+        )
+        self.assertFalse(
+            (output / ".authority-coverage-baseline.glb").exists()
+        )
+        self.assertFalse(
+            any(
+                name.startswith("__NB_TRANSPLANT_COVERAGE_")
+                for name in report["authoritySnapshot"]["after"][
+                    "objectNames"
+                ]
+            )
+        )
+
+    def test_rejects_coverage_pose_that_differs_from_pinned_report(
+        self,
+    ) -> None:
+        completed = self.run_transplant(
+            donor_key="coverageDonorGlb",
+            uploaded_key="coverageUploadedSourceGlb",
+            output_name="coverage-pose-report-mismatch",
+            coverage_pose=True,
+            coverage_frame=self.fixture["coveragePoseFrame"] - 1,
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn(
+            "Coverage report pose does not match the explicit request",
+            completed.stdout + completed.stderr,
+        )
+        self.assertFalse(
+            (self.scratch / "coverage-pose-report-mismatch").exists()
+        )
+
     def test_preserves_noncanonical_raw_factor_decomposition(self) -> None:
         donor = REPO_ROOT / self.fixture["donorGlb"]
         mutated = self.scratch / "noncanonical-factors.glb"
@@ -651,6 +934,182 @@ class TextureDonorTransplantTests(unittest.TestCase):
             expected,
         )
 
+    def test_transplants_standalone_lossless_pbr_pngs(self) -> None:
+        completed = self.run_transplant(
+            donor_key="donorGlb",
+            output_name="standalone-pbr-success",
+            standalone_pbr=True,
+        )
+        self.assertEqual(
+            completed.returncode,
+            0,
+            completed.stdout[-6000:] + completed.stderr[-6000:],
+        )
+        output = self.scratch / "standalone-pbr-success"
+        report = json.loads(
+            (output / "report.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(
+            report["schema"],
+            transplant.LOSSLESS_PBR_REPORT_SCHEMA,
+        )
+        self.assertTrue(all(report["checks"].values()))
+        self.assertEqual(report["pbr"]["payloadMode"], "standalone-lossless-png")
+        self.assertEqual(
+            report["pbr"]["dimensions"],
+            {
+                "baseColor": [4, 4],
+                "emissive": [2, 2],
+                "metallicRoughness": [2, 2],
+                "normal": [4, 4],
+                "occlusion": [4, 4],
+            },
+        )
+        self.assertEqual(
+            report["pbr"]["loadedColorspaces"],
+            {
+                "baseColor": "sRGB",
+                "emissive": "sRGB",
+                "metallicRoughness": "Non-Color",
+                "normal": "Non-Color",
+                "occlusion": "Non-Color",
+            },
+        )
+        input_keys = {
+            "baseColor": "pbrBaseColorPng",
+            "metallic": "pbrMetallicPng",
+            "roughness": "pbrRoughnessPng",
+            "normal": "pbrNormalPng",
+            "emissive": "pbrEmissivePng",
+        }
+        for role, input_key in input_keys.items():
+            self.assertEqual(
+                report["inputs"][input_key]["sha256"],
+                sha256(self.standalone_pbr[role]),
+            )
+            self.assertEqual(
+                report["pbr"]["standaloneSources"][role]["sha256"],
+                sha256(self.standalone_pbr[role]),
+            )
+
+        output_document, output_binary = parse_glb(
+            output / "textured-animated.glb"
+        )
+        body = next(
+            material
+            for material in output_document["materials"]
+            if material["name"] == "AUTH_Body"
+        )
+        self.assertEqual(
+            body["extras"]["nilbotsTexturePayloadSetSha256"],
+            report["pbr"]["payloadSetSha256"],
+        )
+        for role, source_role in (
+            ("baseColor", "baseColor"),
+            ("normal", "normal"),
+            ("emissive", "emissive"),
+        ):
+            info = material_texture_info(body, role)
+            self.assertIsNotNone(info)
+            embedded = image_payload(
+                output_document,
+                output_binary,
+                texture_info=info,
+            )
+            self.assertEqual(embedded, self.standalone_pbr[source_role].read_bytes())
+
+        metallic, _metallic_record = pbr_png.scalar_plane(
+            self.standalone_pbr["metallic"].read_bytes(),
+            label="test metallic",
+        )
+        roughness, _roughness_record = pbr_png.scalar_plane(
+            self.standalone_pbr["roughness"].read_bytes(),
+            label="test roughness",
+        )
+        packed_info = material_texture_info(body, "metallicRoughness")
+        self.assertIsNotNone(packed_info)
+        packed_payload = image_payload(
+            output_document,
+            output_binary,
+            texture_info=packed_info,
+        )
+        packed = pbr_png.inspect_png(
+            packed_payload,
+            label="test packed metallic/roughness",
+            include_samples=True,
+        )
+        packed_samples = packed.pop("samples")
+        self.assertEqual(packed_samples[0::3], b"\xff" * len(metallic))
+        self.assertEqual(packed_samples[1::3], roughness)
+        self.assertEqual(packed_samples[2::3], metallic)
+        self.assertEqual(
+            packed["sha256"],
+            report["pbr"]["metallicRoughnessComposition"]["output"][
+                "sha256"
+            ],
+        )
+
+    def test_rejects_unsafe_mismatched_or_changed_standalone_pngs(self) -> None:
+        with self.assertRaisesRegex(ValueError, "repository-relative"):
+            transplant.resolve_source(
+                self.standalone_pbr["baseColor"].resolve(),
+                repo_root=REPO_ROOT,
+                option="--pbr-base-color-png",
+                extension=".png",
+            )
+
+        mismatched = self.scratch / "standalone-roughness-mismatched.png"
+        mismatched.write_bytes(
+            encode_test_png(
+                width=4,
+                height=4,
+                color_type=0,
+                samples=bytes(range(16)),
+            )
+        )
+        mismatch = self.run_transplant(
+            output_name="standalone-pbr-dimension-failure",
+            standalone_pbr=True,
+            pbr_path_overrides={"roughness": mismatched},
+        )
+        self.assertNotEqual(mismatch.returncode, 0)
+        self.assertIn(
+            "metallic and roughness PNG dimensions do not match",
+            mismatch.stdout + mismatch.stderr,
+        )
+        self.assertFalse(
+            (self.scratch / "standalone-pbr-dimension-failure").exists()
+        )
+
+        corrupt = self.scratch / "standalone-normal-corrupt.png"
+        corrupt_payload = bytearray(self.standalone_pbr["normal"].read_bytes())
+        corrupt_payload[-5] ^= 0x01
+        corrupt.write_bytes(corrupt_payload)
+        unsafe = self.run_transplant(
+            output_name="standalone-pbr-unsafe-failure",
+            standalone_pbr=True,
+            pbr_path_overrides={"normal": corrupt},
+        )
+        self.assertNotEqual(unsafe.returncode, 0)
+        self.assertRegex(
+            unsafe.stdout + unsafe.stderr,
+            "CRC does not match|invalid PNG IEND",
+        )
+        self.assertFalse(
+            (self.scratch / "standalone-pbr-unsafe-failure").exists()
+        )
+
+        changed = self.run_transplant(
+            output_name="standalone-pbr-hash-failure",
+            standalone_pbr=True,
+            pbr_hash_overrides={"baseColor": "0" * 64},
+        )
+        self.assertNotEqual(changed.returncode, 0)
+        self.assertIn("hash mismatch before Blender launch", changed.stderr)
+        self.assertFalse(
+            (self.scratch / "standalone-pbr-hash-failure").exists()
+        )
+
     def test_accepts_one_global_similarity_and_rejects_reflection(
         self,
     ) -> None:
@@ -673,8 +1132,12 @@ class TextureDonorTransplantTests(unittest.TestCase):
         proof = report["surfaceCorrespondence"][
             "uploadedSourceToDonor"
         ]
-        self.assertEqual(proof["triangles"], 2)
-        self.assertEqual(proof["pairedCorners"], 6)
+        self.assertEqual(proof["triangles"], 3)
+        self.assertEqual(proof["sourceTriangles"], 4)
+        self.assertEqual(proof["donorTriangles"], 3)
+        self.assertEqual(proof["pairedCorners"], 9)
+        self.assertEqual(proof["sourceOnly"]["triangles"], 1)
+        self.assertTrue(proof["sourceOnly"]["withinBounds"])
         self.assertEqual(proof["uvWindingMismatches"], 0)
         self.assertEqual(proof["geometryWindingMismatches"], 0)
         self.assertGreater(
@@ -694,6 +1157,10 @@ class TextureDonorTransplantTests(unittest.TestCase):
         self.assertLessEqual(
             residual["rms"],
             proof["thresholds"]["rmsNormalizedResidual"],
+        )
+        self.assertLessEqual(
+            residual["p99"],
+            proof["thresholds"]["p99NormalizedResidual"],
         )
 
         reflected = self.run_transplant(
@@ -883,9 +1350,41 @@ class TextureDonorTransplantTests(unittest.TestCase):
             (
                 "not one tight orientation-preserving"
                 "|oriented UV-triangle surface differs"
+                "|introduced oriented UV triangles"
             ),
         )
         self.assertFalse((self.scratch / "bad").exists())
+
+    def test_rejects_subtle_nonuniform_surface_distortion(self) -> None:
+        donor = position_distorted_glb(
+            REPO_ROOT / self.fixture["donorGlb"],
+            self.scratch / "subtle-distortion-donor.glb",
+            node_name="DONOR_BodyMesh",
+            delta_x=-0.000015,
+        )
+        completed = self.run_transplant(
+            donor_path=donor,
+            output_name="subtle-distortion",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        message = completed.stdout + completed.stderr
+        self.assertIn(
+            "not one tight orientation-preserving global similarity",
+            message,
+        )
+        metrics = re.search(
+            r"maximum normalized residual=([0-9.e+-]+), rms=([0-9.e+-]+), "
+            r"p95=([0-9.e+-]+), p99=([0-9.e+-]+)",
+            message,
+        )
+        self.assertIsNotNone(metrics)
+        maximum, rms, _p95, p99 = (
+            float(value) for value in metrics.groups()
+        )
+        self.assertLessEqual(maximum, 1.0e-4)
+        self.assertLessEqual(rms, 5.0e-6)
+        self.assertGreater(p99, 2.0e-6)
+        self.assertFalse((self.scratch / "subtle-distortion").exists())
 
     def test_mismatched_donor_uv_fails_before_output(self) -> None:
         completed = self.run_transplant(
@@ -893,11 +1392,37 @@ class TextureDonorTransplantTests(unittest.TestCase):
             output_name="bad-uv",
         )
         self.assertNotEqual(completed.returncode, 0)
-        self.assertIn(
-            "oriented UV-triangle surface differs",
+        self.assertRegex(
             completed.stdout + completed.stderr,
+            "oriented UV-triangle surface differs|introduced oriented UV triangles",
         )
         self.assertFalse((self.scratch / "bad-uv").exists())
+
+    def test_rejects_excessive_source_only_surface(self) -> None:
+        completed = self.run_transplant(
+            donor_key="lossyDonorGlb",
+            output_name="lossy-surface",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn(
+            "source-only micro-surface exceeds the bounded allowance",
+            completed.stdout + completed.stderr,
+        )
+        self.assertFalse((self.scratch / "lossy-surface").exists())
+
+    def test_rejects_spatially_large_tiny_uv_overlap(self) -> None:
+        completed = self.run_transplant(
+            donor_key="largeMicroOverlapDonorGlb",
+            authored_key="largeMicroOverlapAuthoredBlend",
+            uploaded_key="largeMicroOverlapUploadedSourceGlb",
+            output_name="large-micro-overlap",
+        )
+        self.assertNotEqual(completed.returncode, 0)
+        self.assertIn(
+            "Body micro-UV overlap exceeds the bounded allowance",
+            completed.stdout + completed.stderr,
+        )
+        self.assertFalse((self.scratch / "large-micro-overlap").exists())
 
 
 if __name__ == "__main__":

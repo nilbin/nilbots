@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "status": "texture-style-candidate",
+  "familyId": "aegis-tortoise",
+  "geometryAuthorityId": "aegis-tortoise-ga-002",
+  "lookId": "aegis-tortoise-foundry-v2",
+  "purpose": "Image-style reference for a darker, richer, stylized Foundry PBR pass after the UV-authority correction.",
+  "source": {
+    "kind": "imagegen-edit",
+    "input": "sandbox/aegis-tortoise-skin-comparison-runtime-calibrated-v2/renders/foundry/foundry-mobile-neutral.png",
+    "output": "art/class-models/concept-targets/aegis-tortoise-foundry-texture-v2/mobile-texture-style-reference.png",
+    "outputSha256": "384d81d6d53f49d4d7bdd41a5ff84e845f2be400388a7d531c97a182bd313c2e"
+  },
+  "multiFormReference": {
+    "kind": "imagegen-edit-triptych",
+    "inputs": [
+      "sandbox/aegis-tortoise-skin-comparison-runtime-calibrated-v2/renders/foundry/foundry-mobile-neutral.png",
+      "sandbox/aegis-tortoise-skin-comparison-runtime-calibrated-v2/renders/foundry/foundry-shell-neutral.png",
+      "sandbox/aegis-tortoise-skin-comparison-runtime-calibrated-v2/renders/foundry/foundry-tower-neutral.png",
+      "art/class-models/concept-targets/aegis-tortoise-foundry-texture-v2/mobile-texture-style-reference.png"
+    ],
+    "output": "art/class-models/concept-targets/aegis-tortoise-foundry-texture-v2/mobile-shell-tower-style-reference.png",
+    "outputSha256": "c08954b89400dfb206c16850343cdf7472675616f1a68a49680b8bfe637a3058",
+    "authorityNote": "The triptych is material-region guidance only. Generated part shapes or placements are not geometry evidence."
+  },
+  "styleIntent": {
+    "body": "dark warm graphite and refractory ash-slate",
+    "fixedAccent": "foundry lava-orange ceramic",
+    "surfaceLanguage": "hand-painted PBR with deliberate medium-scale forged marks, panel value variation, graphic bevel bands, restrained heat discoloration, and sparse controlled edge wear",
+    "teamAccent": "renderer-owned semantic surfaces remain neutral white in the donor and become the brightest controlled glow at runtime"
+  },
+  "invariants": [
+    "The reference guides texture style only; it is not geometry authority.",
+    "Preserve the approved levitating geometry, mesh partitions, pivots, and every animation clip.",
+    "Do not bake blue or red team color into body textures.",
+    "Avoid blurry camouflage, smeared patches, near-black silhouette, photoreal grime, and fine speckle noise."
+  ]
+}

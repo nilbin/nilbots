@@ -1,0 +1,36 @@
+{
+  "id": "019fb8ab-bab2-7eda-a797-a30d0e95ff04",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Stylized top-down hard-surface game asset, texture only. Warm ash-gray forged-iron armor and medium refractory-slate structure dominate; charcoal only in deep recesses. Restrained foundry lava-orange heat-ceramic enamel on outer armor cassettes and tower-vane shoulders, fixed non-emissive hull color. Broad value separation, matte powder coat, high roughness, low-medium metalness, sparse broad edge wear. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, gloss, micro-noise, dirt, text, logos, decals or baked lighting. Preserve original UVs.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785509693140,
+  "progress": 100,
+  "started_at": 1785509693196,
+  "finished_at": 1785509825329,
+  "expires_at": 1785769025329,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/<account>/tasks/019fb8ab-bab2-7eda-a797-a30d0e95ff04/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 10
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-31T15:01:39.555Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise-violet",
+  "purpose": "Meshy 6 2K PBR Violet Citadel texture-only donor for aegis-tortoise-ga-002",
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "9c1741c65141ea2ab21ea7166df3cbc090dcd4b20ec704fad691129e0f0e5c4a",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad muted violet powder-coated fortress armor on outer cassettes and crown plates, pale matte pewter central hull and tower stages, medium gunmetal barrels and joints, charcoal only in recesses. Strong clean value blocks, satin-matte metal, controlled roughness and sparse broad edge wear. Violet is fixed non-emissive hull color. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad muted violet powder-coated fortress armor on outer cassettes and crown plates, pale matte pewter central hull and tower stages, medium gunmetal barrels and joints, charcoal only in recesses. Strong clean value blocks, satin-matte metal, controlled roughness and sparse broad edge wear. Violet is fixed non-emissive hull color. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 605,
+  "submittedAt": "2026-07-31T15:01:40.123Z",
+  "taskId": "019fb8b1-fddd-75c6-b79c-9b763704941a",
+  "finishedAt": "2026-07-31T15:03:54.715Z"
+}

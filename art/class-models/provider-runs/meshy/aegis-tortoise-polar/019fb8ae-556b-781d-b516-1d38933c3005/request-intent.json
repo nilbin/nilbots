@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "createdAt": "2026-07-31T14:57:39.836Z",
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "lookId": "aegis-tortoise-polar",
+  "purpose": "Meshy 6 2K PBR Polar Tungsten texture-only donor for aegis-tortoise-ga-002",
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "bb455cfe6ec135fc487c450de2847a331e1d8a28369aa90a13362725b43f5e08",
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad pale zinc-gray tungsten armor, medium cool-steel structure, small muted sage-gray hardened inserts, charcoal only in joints, barrels and recesses. Industrial fortress metal, matte-blasted high-roughness finish, crisp large panel borders and sparse broad wear. Team-light surfaces stay flat neutral white. No ceramic, copper, bronze, gold, blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad pale zinc-gray tungsten armor, medium cool-steel structure, small muted sage-gray hardened inserts, charcoal only in joints, barrels and recesses. Industrial fortress metal, matte-blasted high-roughness finish, crisp large panel borders and sparse broad wear. Team-light surfaces stay flat neutral white. No ceramic, copper, bronze, gold, blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+  },
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "balanceBefore": 625,
+  "submittedAt": "2026-07-31T14:57:40.392Z",
+  "taskId": "019fb8ae-556b-781d-b516-1d38933c3005",
+  "finishedAt": "2026-07-31T14:59:33.146Z"
+}

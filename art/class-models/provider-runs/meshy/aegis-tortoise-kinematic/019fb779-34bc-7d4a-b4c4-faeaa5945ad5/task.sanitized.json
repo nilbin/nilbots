@@ -1,0 +1,36 @@
+{
+  "id": "019fb779-34bc-7d4a-b4c4-faeaa5945ad5",
+  "type": "retexture",
+  "name": "",
+  "art_style": "realistic",
+  "object_prompt": "",
+  "style_prompt": "",
+  "negative_prompt": "",
+  "texture_prompt": "",
+  "texture_image_url": "",
+  "text_style_prompt": "Stylized hard-surface real-time game asset readable at 41px from a 58-degree top-down camera. Broad cold ash-gray tungsten armor over charcoal structure and medium gunmetal mechanisms, with strong fortress-like value separation. Matte powder coat, high-roughness satin metal, crisp simple panel borders, sparse broad edge wear, neutral-white apertures. No near-black majority, monochrome blur, smeared metal, bronze/copper/gold, blue/red team color, chrome, glossy clearcoat, photoreal micro-scratches, dirt noise, text, logos, decals, or baked lighting. Preserve geometry.",
+  "image_style_url": "",
+  "status": "SUCCEEDED",
+  "created_at": 1785489604597,
+  "progress": 100,
+  "started_at": 1785489604724,
+  "finished_at": 1785489714420,
+  "expires_at": 1785748914420,
+  "task_error": null,
+  "model_url": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/model.glb",
+  "model_urls": {
+    "glb": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/model.glb"
+  },
+  "thumbnail_url": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/preview.png",
+  "texture_urls": [
+    {
+      "base_color": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/texture_0.png",
+      "metallic": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/texture_0_metallic.png",
+      "roughness": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/texture_0_roughness.png",
+      "normal": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/texture_0_normal.png",
+      "emission": "https://assets.meshy.ai/<account>/tasks/019fb779-34bc-7d4a-b4c4-faeaa5945ad5/output/texture_0_emission.png"
+    }
+  ],
+  "remove_lighting": true,
+  "consumed_credits": 10
+}

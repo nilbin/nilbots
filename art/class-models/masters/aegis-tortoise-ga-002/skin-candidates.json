@@ -1,0 +1,383 @@
+{
+  "schema": "nilbots-art-skin-candidates-1",
+  "familyId": "aegis-tortoise",
+  "geometryAuthorityId": "aegis-tortoise-ga-002",
+  "staticTextureUploadSha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+  "surfaceUvDigest": "d24e9473e9724d16826c43b4900b48b3a42bffd47c47620409f69e7c872f10b3",
+  "teamAccentSurfaceDigest": "c01a956d9868f7039ace02c2b5c6d3845110837c362d3a3daf4cfcc250abb9ae",
+  "derivedProofPolicy": {
+    "sandboxOutputRole": "reproducible-derived-proof",
+    "sandboxOutputsAreDurableBundleSources": false,
+    "durableBundleSources": {
+      "trackedNeutralAuthority": {
+        "authoredBlend": {
+          "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-kinematic-master.blend",
+          "sha256": "eaf2e20e9e1c84a041366a73d6f81d99473c3bb173f09d42f56163c277b77a95"
+        },
+        "textureUploadGlb": {
+          "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+          "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1"
+        }
+      },
+      "archivedProviderSource": "candidate.providerRun.archive",
+      "pinnedTransplant": {
+        "command": "python3 scripts/class-models/transplant_texture_donor.py",
+        "commandTemplate": "python3 scripts/class-models/transplant_texture_donor.py --authored-blend {trackedNeutralAuthority.authoredBlend.path} --expected-authored-sha256 {trackedNeutralAuthority.authoredBlend.sha256} --uploaded-source-glb {trackedNeutralAuthority.textureUploadGlb.path} --expected-uploaded-source-sha256 {trackedNeutralAuthority.textureUploadGlb.sha256} --donor-glb {candidate.providerRun.archive.donor.path} --expected-donor-sha256 {candidate.providerRun.archive.donor.sha256} --model-collection NB_Bulwark_Kinematic_Master --bind-frame 1 --output-dir {candidate.transplant.outputDirectory}",
+        "wrapper": {
+          "path": "scripts/class-models/transplant_texture_donor.py",
+          "sha256": "820cc6cc446eb5d5c3a6ccdeccffde7d9662127a86fde5b95ead2fa9e827ebb7"
+        },
+        "blenderWorker": {
+          "path": "scripts/class-models/transplant_texture_donor_blender.py",
+          "sha256": "8bf16ae73a04ba0878cf19edce679fd0b82fccb2d3cd448ced8cc19b2d6df9f4"
+        },
+        "reportSchema": "nilbots-texture-donor-transplant-2",
+        "blenderVersion": "5.2.0 LTS"
+      }
+    }
+  },
+  "sharedProviderSettings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "invariants": [
+    "same-neutral-geometry-authority",
+    "same-static-uv-identical-upload",
+    "same-low-hover-presentation",
+    "same-texture-free-team-emitter-surfaces",
+    "provider-geometry-discarded",
+    "blue-and-orange-team-review-at-41px"
+  ],
+  "candidates": [
+    {
+      "skinId": "aegis-tortoise-foundry",
+      "skinRevision": 1,
+      "label": "Foundry Bastion",
+      "role": "default-candidate",
+      "status": "transplant-passed",
+      "authority": {
+        "geometryAuthorityId": "aegis-tortoise-ga-002",
+        "locomotion": "levitating",
+        "presentation": "low-hover",
+        "teamAccent": {
+          "ownership": "renderer",
+          "textureFree": true,
+          "surfaceDigest": "c01a956d9868f7039ace02c2b5c6d3845110837c362d3a3daf4cfcc250abb9ae"
+        }
+      },
+      "providerRun": {
+        "provider": "Meshy",
+        "operation": "retexture",
+        "taskId": "019fb8ab-bab2-7eda-a797-a30d0e95ff04",
+        "status": "SUCCEEDED",
+        "consumedCredits": 10,
+        "archive": {
+          "directory": "art/class-models/provider-runs/meshy/aegis-tortoise-foundry/019fb8ab-bab2-7eda-a797-a30d0e95ff04",
+          "requestIntent": "art/class-models/provider-runs/meshy/aegis-tortoise-foundry/019fb8ab-bab2-7eda-a797-a30d0e95ff04/request-intent.json",
+          "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-foundry/019fb8ab-bab2-7eda-a797-a30d0e95ff04/request-record.json",
+          "taskRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-foundry/019fb8ab-bab2-7eda-a797-a30d0e95ff04/task.sanitized.json",
+          "providerPreview": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-foundry/019fb8ab-bab2-7eda-a797-a30d0e95ff04/provider-preview.png",
+            "sha256": "00a4b01c48b9f8e9ce2e884bac2d86e7751634ff56c8aa30f134ef848ea41d77"
+          },
+          "donor": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-foundry/019fb8ab-bab2-7eda-a797-a30d0e95ff04/raw-retextured-model.glb",
+            "sha256": "8db2c9d2a07f38803d57f6ddfce7d38d06ff87a6444b2f58bda44cfd12d918ac"
+          }
+        }
+      },
+      "transplant": {
+        "schema": "nilbots-texture-donor-transplant-2",
+        "status": "PASS",
+        "artifactRole": "reproducible-derived-proof",
+        "outputDirectory": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2",
+        "report": {
+          "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/report.json",
+          "sha256": "d6c70b1e048f314747c7861797dc28cbc5d6382dce1c92943475fabcd91576cf"
+        },
+        "artifacts": [
+          {
+            "kind": "blend",
+            "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/textured-authority.blend",
+            "sha256": "30b210115b7ae267655eb391e64f7f140ac9450a9c314d3db8b91f2cfddd7942"
+          },
+          {
+            "kind": "animated-glb",
+            "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/textured-animated.glb",
+            "sha256": "94451cacd5d470d0675602bd9d1a205227423ba492dcf48e17ec9569434ef9d3"
+          },
+          {
+            "kind": "texture-baseColor",
+            "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/textures/baseColor-11c44cb12cc06cc7.jpg",
+            "sha256": "11c44cb12cc06cc77dfab20ddccb7f67bc88d146ee7a6fbe4646fe524f118701"
+          },
+          {
+            "kind": "texture-metallicRoughness",
+            "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/textures/metallicRoughness-9f0dce64e514fe60.jpg",
+            "sha256": "9f0dce64e514fe60c213403965f8b7a9108d9faf45db33b8b67d81011d07ea0a"
+          },
+          {
+            "kind": "texture-normal",
+            "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/textures/normal-6a212c031bbe540a.jpg",
+            "sha256": "6a212c031bbe540a82c9fb346248a87ebb016f008265ba46037de89b30d265af"
+          },
+          {
+            "kind": "texture-emissive",
+            "path": "sandbox/aegis-tortoise-foundry-ga002-transplant-v2/textures/emissive-e0249b6773f9a66b.jpg",
+            "sha256": "e0249b6773f9a66b59e652fb69edc559e074dcb4037517a1064a6b35e6c0abde"
+          }
+        ]
+      },
+      "prompt": "Stylized top-down hard-surface game asset, texture only. Warm ash-gray forged-iron armor and medium refractory-slate structure dominate; charcoal only in deep recesses. Restrained foundry lava-orange heat-ceramic enamel on outer armor cassettes and tower-vane shoulders, fixed non-emissive hull color. Broad value separation, matte powder coat, high roughness, low-medium metalness, sparse broad edge wear. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, gloss, micro-noise, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+    },
+    {
+      "skinId": "aegis-tortoise-polar",
+      "skinRevision": 1,
+      "label": "Polar Tungsten",
+      "role": "entitlement-candidate",
+      "status": "transplant-passed",
+      "authority": {
+        "geometryAuthorityId": "aegis-tortoise-ga-002",
+        "locomotion": "levitating",
+        "presentation": "low-hover",
+        "teamAccent": {
+          "ownership": "renderer",
+          "textureFree": true,
+          "surfaceDigest": "c01a956d9868f7039ace02c2b5c6d3845110837c362d3a3daf4cfcc250abb9ae"
+        }
+      },
+      "providerRun": {
+        "provider": "Meshy",
+        "operation": "retexture",
+        "taskId": "019fb8ae-556b-781d-b516-1d38933c3005",
+        "status": "SUCCEEDED",
+        "consumedCredits": 10,
+        "archive": {
+          "directory": "art/class-models/provider-runs/meshy/aegis-tortoise-polar/019fb8ae-556b-781d-b516-1d38933c3005",
+          "requestIntent": "art/class-models/provider-runs/meshy/aegis-tortoise-polar/019fb8ae-556b-781d-b516-1d38933c3005/request-intent.json",
+          "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-polar/019fb8ae-556b-781d-b516-1d38933c3005/request-record.json",
+          "taskRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-polar/019fb8ae-556b-781d-b516-1d38933c3005/task.sanitized.json",
+          "providerPreview": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-polar/019fb8ae-556b-781d-b516-1d38933c3005/provider-preview.png",
+            "sha256": "48c7ed8c641b47dfcf42ac58c1aa148e38d311621b0e544797243d11126f995d"
+          },
+          "donor": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-polar/019fb8ae-556b-781d-b516-1d38933c3005/raw-retextured-model.glb",
+            "sha256": "baac4f2ad9833fa6471ce4fac58dadf9986a2d5c2f38205496c2cd491a48b939"
+          }
+        }
+      },
+      "transplant": {
+        "schema": "nilbots-texture-donor-transplant-2",
+        "status": "PASS",
+        "artifactRole": "reproducible-derived-proof",
+        "outputDirectory": "sandbox/aegis-tortoise-polar-ga002-transplant-v2",
+        "report": {
+          "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/report.json",
+          "sha256": "e7e314d393bf2152a65cdf0ebdaf4c00d8669d0d368b4b2e73beb8d578573ce9"
+        },
+        "artifacts": [
+          {
+            "kind": "blend",
+            "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/textured-authority.blend",
+            "sha256": "e4865eeb1bc9efc3c42f8e285bc8211f245dcfec48bb5b44f274e54019b00ed6"
+          },
+          {
+            "kind": "animated-glb",
+            "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/textured-animated.glb",
+            "sha256": "7eabd71a3d9148ddb90d5bda29934352a4c8c0e92c0ee9cf76f8de2366ac617d"
+          },
+          {
+            "kind": "texture-baseColor",
+            "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/textures/baseColor-f62a4afdd9a0d74b.jpg",
+            "sha256": "f62a4afdd9a0d74bb84cac561d3180df734644f0dc9a6b986f8f637ce9a915b1"
+          },
+          {
+            "kind": "texture-metallicRoughness",
+            "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/textures/metallicRoughness-852a92d62fec0bb2.jpg",
+            "sha256": "852a92d62fec0bb2bb1ad66999f3402141049ced8667dde274ae002a4622252e"
+          },
+          {
+            "kind": "texture-normal",
+            "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/textures/normal-449fdb2084802bfd.jpg",
+            "sha256": "449fdb2084802bfda5eaa3f9ddc1cc1ab50538c36a7a3d5c6161862a43f04e26"
+          },
+          {
+            "kind": "texture-emissive",
+            "path": "sandbox/aegis-tortoise-polar-ga002-transplant-v2/textures/emissive-98f9c2d21d005fb7.jpg",
+            "sha256": "98f9c2d21d005fb7e0eb58f1f477b31de6491e57d8dd37dfcdcbf0f0ef88cd0c"
+          }
+        ]
+      },
+      "prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad pale zinc-gray tungsten armor, medium cool-steel structure, small muted sage-gray hardened inserts, charcoal only in joints, barrels and recesses. Industrial fortress metal, matte-blasted high-roughness finish, crisp large panel borders and sparse broad wear. Team-light surfaces stay flat neutral white. No ceramic, copper, bronze, gold, blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals or baked lighting. Preserve original UVs."
+    },
+    {
+      "skinId": "aegis-tortoise-verdant",
+      "skinRevision": 1,
+      "label": "Verdant Rampart",
+      "role": "entitlement-candidate",
+      "status": "transplant-passed",
+      "authority": {
+        "geometryAuthorityId": "aegis-tortoise-ga-002",
+        "locomotion": "levitating",
+        "presentation": "low-hover",
+        "teamAccent": {
+          "ownership": "renderer",
+          "textureFree": true,
+          "surfaceDigest": "c01a956d9868f7039ace02c2b5c6d3845110837c362d3a3daf4cfcc250abb9ae"
+        }
+      },
+      "providerRun": {
+        "provider": "Meshy",
+        "operation": "retexture",
+        "taskId": "019fb8b0-1f56-7869-83c6-cdbd536244f8",
+        "status": "SUCCEEDED",
+        "consumedCredits": 10,
+        "archive": {
+          "directory": "art/class-models/provider-runs/meshy/aegis-tortoise-verdant/019fb8b0-1f56-7869-83c6-cdbd536244f8",
+          "requestIntent": "art/class-models/provider-runs/meshy/aegis-tortoise-verdant/019fb8b0-1f56-7869-83c6-cdbd536244f8/request-intent.json",
+          "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-verdant/019fb8b0-1f56-7869-83c6-cdbd536244f8/request-record.json",
+          "taskRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-verdant/019fb8b0-1f56-7869-83c6-cdbd536244f8/task.sanitized.json",
+          "providerPreview": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-verdant/019fb8b0-1f56-7869-83c6-cdbd536244f8/provider-preview.png",
+            "sha256": "4173f37c6c5efb5aa847f8fae27426c68a0e6e9222116709c564b125fa9e9f5c"
+          },
+          "donor": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-verdant/019fb8b0-1f56-7869-83c6-cdbd536244f8/raw-retextured-model.glb",
+            "sha256": "e079a1d995c64ca981e0d9040bc43252b99fe77c746f72edbed38c153762ec82"
+          }
+        }
+      },
+      "transplant": {
+        "schema": "nilbots-texture-donor-transplant-2",
+        "status": "PASS",
+        "artifactRole": "reproducible-derived-proof",
+        "outputDirectory": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2",
+        "report": {
+          "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/report.json",
+          "sha256": "ab61a0ada1098a35a46476e613928c4f3dfa597cffe6c4076339effc7b4b346a"
+        },
+        "artifacts": [
+          {
+            "kind": "blend",
+            "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/textured-authority.blend",
+            "sha256": "2d614dc8f27f704d059b1acb7b0e25dc7b90ce62f13ea9f68bbb315223ad532a"
+          },
+          {
+            "kind": "animated-glb",
+            "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/textured-animated.glb",
+            "sha256": "b30d5cce6f701bc9d935490202784f130db587f829ee8ff4054382634fad1cf5"
+          },
+          {
+            "kind": "texture-baseColor",
+            "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/textures/baseColor-fb13a37290921e43.jpg",
+            "sha256": "fb13a37290921e43157f8d888c7fc0c751b035bc3649d8c9638b483f90460edd"
+          },
+          {
+            "kind": "texture-metallicRoughness",
+            "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/textures/metallicRoughness-4737afa4398ed0d7.jpg",
+            "sha256": "4737afa4398ed0d7000ce33421a9079fc2783ac8be83992dc961f7f0590671b2"
+          },
+          {
+            "kind": "texture-normal",
+            "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/textures/normal-632856bf7f775486.jpg",
+            "sha256": "632856bf7f775486ff2af5a28c6a71a10556365eb0a5fecbe42f30f58b9270f7"
+          },
+          {
+            "kind": "texture-emissive",
+            "path": "sandbox/aegis-tortoise-verdant-ga002-transplant-v2/textures/emissive-a05afe61350d93e9.jpg",
+            "sha256": "a05afe61350d93e9bf08763c9c055a366d8f1db640f18f36f16cc3f9a65ca5e5"
+          }
+        ]
+      },
+      "prompt": "Stylized top-down hard-surface arena game asset, texture only. Large uninterrupted olive-green powder-coated armor on outer cassettes and tower crown, warm sand-gray structural hull, medium iron weapon hardware, dark tones only in deep cavities. Bold clean fortress color blocking, high roughness, low-medium metalness and sparse broad wear. Team-light surfaces stay flat neutral white. No camouflage, blue/red paint, black-dominant hull, bronze, copper, photoreal micro-noise, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+    },
+    {
+      "skinId": "aegis-tortoise-violet",
+      "skinRevision": 1,
+      "label": "Violet Citadel",
+      "role": "entitlement-candidate",
+      "status": "transplant-passed",
+      "authority": {
+        "geometryAuthorityId": "aegis-tortoise-ga-002",
+        "locomotion": "levitating",
+        "presentation": "low-hover",
+        "teamAccent": {
+          "ownership": "renderer",
+          "textureFree": true,
+          "surfaceDigest": "c01a956d9868f7039ace02c2b5c6d3845110837c362d3a3daf4cfcc250abb9ae"
+        }
+      },
+      "providerRun": {
+        "provider": "Meshy",
+        "operation": "retexture",
+        "taskId": "019fb8b1-fddd-75c6-b79c-9b763704941a",
+        "status": "SUCCEEDED",
+        "consumedCredits": 10,
+        "archive": {
+          "directory": "art/class-models/provider-runs/meshy/aegis-tortoise-violet/019fb8b1-fddd-75c6-b79c-9b763704941a",
+          "requestIntent": "art/class-models/provider-runs/meshy/aegis-tortoise-violet/019fb8b1-fddd-75c6-b79c-9b763704941a/request-intent.json",
+          "requestRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-violet/019fb8b1-fddd-75c6-b79c-9b763704941a/request-record.json",
+          "taskRecord": "art/class-models/provider-runs/meshy/aegis-tortoise-violet/019fb8b1-fddd-75c6-b79c-9b763704941a/task.sanitized.json",
+          "providerPreview": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-violet/019fb8b1-fddd-75c6-b79c-9b763704941a/provider-preview.png",
+            "sha256": "56eb81d80d31f6f703bcec24c8cb645547fe125d5defce78f27feea5b2e541e8"
+          },
+          "donor": {
+            "path": "art/class-models/provider-runs/meshy/aegis-tortoise-violet/019fb8b1-fddd-75c6-b79c-9b763704941a/raw-retextured-model.glb",
+            "sha256": "1891a86aff6b7283a2542b7c08d4c9e94671470bc27f9f71d500efb5307dfcee"
+          }
+        }
+      },
+      "transplant": {
+        "schema": "nilbots-texture-donor-transplant-2",
+        "status": "PASS",
+        "artifactRole": "reproducible-derived-proof",
+        "outputDirectory": "sandbox/aegis-tortoise-violet-ga002-transplant-v2",
+        "report": {
+          "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/report.json",
+          "sha256": "acec02caee66fb63ca2d9e8f8b06f07e97bde749d06c89d16517f716ce8602e7"
+        },
+        "artifacts": [
+          {
+            "kind": "blend",
+            "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/textured-authority.blend",
+            "sha256": "c45a1e2788f1967bcd39a998b5bd5037adb67c1260bb6118942725f496993516"
+          },
+          {
+            "kind": "animated-glb",
+            "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/textured-animated.glb",
+            "sha256": "65bc5e7451a21c1bfca98e0a68a48331a57e3b6ddf3715789c98122488233390"
+          },
+          {
+            "kind": "texture-baseColor",
+            "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/textures/baseColor-59e464f2935bcc7b.jpg",
+            "sha256": "59e464f2935bcc7bd3001158f7f8632928d08797238012b55822a1328f47f7fc"
+          },
+          {
+            "kind": "texture-metallicRoughness",
+            "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/textures/metallicRoughness-53a4a9fa1d0f46f6.jpg",
+            "sha256": "53a4a9fa1d0f46f6d17deee49088d6d340b5aa7ecf3b368ef5e699ddc351a844"
+          },
+          {
+            "kind": "texture-normal",
+            "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/textures/normal-b063caee6aff19af.jpg",
+            "sha256": "b063caee6aff19af363c5854f333db24f93f4a52cc2791ec13f067f14aae99bd"
+          },
+          {
+            "kind": "texture-emissive",
+            "path": "sandbox/aegis-tortoise-violet-ga002-transplant-v2/textures/emissive-4077bdeb4a421780.jpg",
+            "sha256": "4077bdeb4a4217806c48e214b93626d991ddd8d0b74704a9e5bdab46751ec9f1"
+          }
+        ]
+      },
+      "prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad muted violet powder-coated fortress armor on outer cassettes and crown plates, pale matte pewter central hull and tower stages, medium gunmetal barrels and joints, charcoal only in recesses. Strong clean value blocks, satin-matte metal, controlled roughness and sparse broad edge wear. Violet is fixed non-emissive hull color. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+    }
+  ]
+}

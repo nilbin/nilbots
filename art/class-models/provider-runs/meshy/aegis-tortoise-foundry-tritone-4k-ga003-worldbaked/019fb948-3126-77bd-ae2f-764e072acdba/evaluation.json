@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "status": "store-candidate-source-requires-runtime-grade",
+  "taskId": "019fb948-3126-77bd-ae2f-764e072acdba",
+  "lookId": "aegis-tortoise-foundry-tritone-4k-ga003-worldbaked",
+  "consumedCredits": 10,
+  "decision": "Preserve this as a distinct warm kiln-ash store-skin source, not as the default Foundry skin. It needs the same lossless donor proof and a deterministic runtime grade before any shipping decision.",
+  "positiveEvidence": [
+    "The base-color median luminance rose to 110/255, so the candidate is materially less prone to near-black runtime collapse than the Graphic and Graphite donors.",
+    "Meshy honored the explicit body-emission instruction: the downloaded 2048x2048 emission map is effectively black, with no pixel above value 5.",
+    "The warm charcoal, brown-graphite, and kiln-ash regions create a visibly different refractory/fortress identity that is worth retaining as a possible store skin.",
+    "The task returned standalone lossless 4096x4096 base-color and normal maps plus 2048x2048 metallic, roughness, and emission maps."
+  ],
+  "limitations": [
+    "The provider preview still reads more realistic and weathered than the requested clean illustrative game style.",
+    "Pure or near-white atlas islands remain: 8.070% of base-color pixels have every channel at or above 225.",
+    "The fixed lava-orange region is too restrained for the default Foundry identity: the broad color heuristic finds only 1.119% orange pixels.",
+    "The base map includes fine service detail and mottling that may disappear or look noisy at the roughly 41-pixel gameplay footprint.",
+    "The metallic map remains stronger than requested, with mean value 136.25/255; production lighting may require an explicit metallic cap."
+  ],
+  "measuredMaps": {
+    "baseColor": {
+      "dimensions": [4096, 4096],
+      "sha256": "01906f8d89b698287e498362097e5cb124d285f8a6d3d189bbb88c43e6f5867a",
+      "meanRgb": [112.91, 104.86, 92.10],
+      "luminancePercentilesP01P10P25P50P75P90P99": [1, 20, 52, 110, 139, 190, 253],
+      "nearWhitePercent": 8.070,
+      "nearBlackPercent": 10.322,
+      "orangeHeuristicPercent": 1.119
+    },
+    "normal": {
+      "dimensions": [4096, 4096],
+      "sha256": "b45b763504098207accc55c5e368f3a8beb8fedeb4c6442b3de905c0c98b6a73"
+    },
+    "metallic": {
+      "dimensions": [2048, 2048],
+      "sha256": "047af165012c70f62fec939f53f3b14579d344350474616c9dc36b2f61cf3dd4",
+      "meanValue": 136.25
+    },
+    "roughness": {
+      "dimensions": [2048, 2048],
+      "sha256": "a9ede8902dccf72465d668b857ad1157cc8d5ee8f6ee074766274671644a0d99",
+      "meanValue": 109.50
+    },
+    "emission": {
+      "dimensions": [2048, 2048],
+      "sha256": "6ce813eb77b3daab1eb631ea757dbdf75f11081a52126af0250574f849bac9b3",
+      "meanRgb": [0.00, 0.00, 0.00],
+      "maximumChannelValue": 5
+    }
+  },
+  "nextGate": "Run nilbots-texture-donor-transplant-4 against the exact GA-003 authority, then compare the donor-exact and a separately recorded stylized runtime derivative in the same production WebGL replay. Do not modify the texture-free semantic team material."
+}

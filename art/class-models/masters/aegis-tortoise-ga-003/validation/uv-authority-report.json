@@ -1,0 +1,3401 @@
+{
+  "authorityPreservation": {
+    "animatedGlb": {
+      "candidateAnimationSha256": "0373c9864475961ff94c5bed768028dee3d3fa155bbf26c70cdebda38540ef87",
+      "candidateGeometryWithoutUvSha256": "8e4e7086f7730155911afd35063a0d62c40ee378f45e2d1054261ea256facc0f",
+      "candidateNodeSha256": "f6484418b3928b8bfe1edd29a062436a20d2d19729d99d081943f7fcabeed4f0",
+      "checks": {
+        "animationSamplesExact": true,
+        "geometryTopologyNormalsAndBindingsExact": true,
+        "nodeHierarchyPivotsAndTransformsExact": true,
+        "semanticClipSetExact": true
+      },
+      "clips": [
+        {
+          "channels": 2,
+          "end": 0.7333333492279053,
+          "name": "Mobile_Recoil",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 5,
+          "end": 3.200000047683716,
+          "name": "PodPlant_HoverSettle",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 14,
+          "end": 3.200000047683716,
+          "name": "Shell_Deploy",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 4,
+          "end": 0.800000011920929,
+          "name": "Shell_Recoil",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 36,
+          "end": 3.200000047683716,
+          "name": "Tower_Deploy",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 24,
+          "end": 1.1333333253860474,
+          "name": "Tower_Recoil",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_01",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_02",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_03",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_04",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_05",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_06",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_07",
+          "start": 0.03333333507180214
+        },
+        {
+          "channels": 3,
+          "end": 0.7333333492279053,
+          "name": "Tower_Recoil_08",
+          "start": 0.03333333507180214
+        }
+      ],
+      "sourceAnimationSha256": "0373c9864475961ff94c5bed768028dee3d3fa155bbf26c70cdebda38540ef87",
+      "sourceGeometryWithoutUvSha256": "8e4e7086f7730155911afd35063a0d62c40ee378f45e2d1054261ea256facc0f",
+      "sourceNodeSha256": "f6484418b3928b8bfe1edd29a062436a20d2d19729d99d081943f7fcabeed4f0"
+    },
+    "animationAccessorPinning": {
+      "accessorPairsCopied": 103,
+      "reason": "UV-only export resampling differs by sub-1e-7 float noise; copy the already-approved GA-002 clip accessor bytes verbatim",
+      "sourceSha256": "6df9498d7ecf1ea3523755db5df059f03abce7d340f4000accd7732ace532f21"
+    },
+    "inMemoryChecks": {
+      "actionDataExact": true,
+      "actionNamesExact": true,
+      "animationBindingsExact": true,
+      "animationRangesAndEndpointsExact": true,
+      "geometryTopologyExact": true,
+      "hierarchyPivotsAndTransformsExact": true,
+      "materialBindingsExact": true,
+      "nlaTrackNamesExact": true,
+      "objectNamesExact": true,
+      "teamGeometryAndUvExact": true
+    },
+    "lowHoverSemantics": {
+      "preserved": true,
+      "reason": "geometry, transforms, clips, and renderer-owned locomotion metadata are unchanged; only body UV coordinates differ"
+    },
+    "persistedChecks": {
+      "actionDataExact": true,
+      "animationBindingsExact": true,
+      "animationRangesAndEndpointsExact": true,
+      "candidateBodyUvExact": true,
+      "geometryTopologyExact": true,
+      "hierarchyPivotsAndTransformsExact": true,
+      "teamGeometryAndUvExact": true
+    }
+  },
+  "blender": {
+    "expectedMajorMinor": [
+      5,
+      2
+    ],
+    "version": "5.2.0 LTS"
+  },
+  "candidateGeometryAuthorityId": "aegis-tortoise-ga-003-uv-candidate",
+  "candidateOnly": true,
+  "coverageUpload": {
+    "pose": {
+      "activeClips": [
+        "Shell_Deploy",
+        "Tower_Deploy"
+      ],
+      "frame": 96,
+      "purpose": "Expose Mobile hull, deployed Shell plates, hatches, keep, crown, vanes, and barrels to one texture-only provider pass",
+      "transformPolicy": "Bake each evaluated coverage-pose world transform into a temporary body-only mesh copy; export thirty identity-root named meshes with no parent pivots"
+    },
+    "validation": {
+      "checks": {
+        "animationOmitted": true,
+        "bodyMeshCountExact": true,
+        "cameraAndLightsOmitted": true,
+        "flatNamedMeshRootsExact": true,
+        "meshNamesExact": true,
+        "objectNamesExactAfterReimport": true,
+        "oneNeutralMaterial": true,
+        "repeatedPartCentersDistinctAfterReimport": true,
+        "teamMeshesExcluded": true,
+        "triangleCountsExactAfterReimport": true,
+        "worldBoundsWithinToleranceAfterReimport": true
+      },
+      "distinctRepeatedPartCenters": {
+        "groups": {
+          "pods": {
+            "complete": true,
+            "distinct": true,
+            "expectedCount": 4,
+            "expectedMinimumPairDistance": 0.6900181135014962,
+            "importedCenters": {
+              "Pod.NE.Anchor": [
+                0.3400000035762787,
+                0.39500001072883606,
+                0.04066503420472145
+              ],
+              "Pod.NW.Anchor": [
+                -0.3499999940395355,
+                0.38999998569488525,
+                0.04066503420472145
+              ],
+              "Pod.SE.Anchor": [
+                0.3400000035762787,
+                -0.39500001072883606,
+                0.04066503420472145
+              ],
+              "Pod.SW.Anchor": [
+                -0.3499999940395355,
+                -0.38999998569488525,
+                0.04066503420472145
+              ]
+            },
+            "importedMinimumPairDistance": 0.6900181135014962,
+            "members": [
+              "Pod.NE.Anchor",
+              "Pod.NW.Anchor",
+              "Pod.SE.Anchor",
+              "Pod.SW.Anchor"
+            ]
+          },
+          "shellPlates": {
+            "complete": true,
+            "distinct": true,
+            "expectedCount": 4,
+            "expectedMinimumPairDistance": 0.19152132688690668,
+            "importedCenters": {
+              "Shell.NorthInner.Plate": [
+                0.3718508258461952,
+                0.1252603828907013,
+                0.3475000113248825
+              ],
+              "Shell.NorthOuter.Plate": [
+                0.3562418892979622,
+                0.31613409519195557,
+                0.34950001537799835
+              ],
+              "Shell.SouthInner.Plate": [
+                0.3718508258461952,
+                -0.1252603828907013,
+                0.3475000113248825
+              ],
+              "Shell.SouthOuter.Plate": [
+                0.3562418892979622,
+                -0.31613409519195557,
+                0.34950001537799835
+              ]
+            },
+            "importedMinimumPairDistance": 0.19152131203613146,
+            "members": [
+              "Shell.NorthInner.Plate",
+              "Shell.NorthOuter.Plate",
+              "Shell.SouthInner.Plate",
+              "Shell.SouthOuter.Plate"
+            ]
+          },
+          "towerVanes": {
+            "complete": true,
+            "distinct": true,
+            "expectedCount": 8,
+            "expectedMinimumPairDistance": 0.20480815438239594,
+            "importedCenters": {
+              "Tower.Vane.01.Armor": [
+                0.18299999460577965,
+                0.0,
+                0.7635000646114349
+              ],
+              "Tower.Vane.02.Armor": [
+                0.10392900928854942,
+                0.1889289990067482,
+                0.7635000646114349
+              ],
+              "Tower.Vane.03.Armor": [
+                -0.08500000461935997,
+                0.2679999992251396,
+                0.7635000348091125
+              ],
+              "Tower.Vane.04.Armor": [
+                -0.27392899990081787,
+                0.1889289990067482,
+                0.7635000348091125
+              ],
+              "Tower.Vane.05.Armor": [
+                -0.3529999852180481,
+                -4.6566128730773926e-09,
+                0.7635000348091125
+              ],
+              "Tower.Vane.06.Armor": [
+                -0.27392901480197906,
+                -0.1889289915561676,
+                0.7635000348091125
+              ],
+              "Tower.Vane.07.Armor": [
+                -0.08500000089406967,
+                -0.2679999992251396,
+                0.7635000348091125
+              ],
+              "Tower.Vane.08.Armor": [
+                0.10392900183796883,
+                -0.1889290064573288,
+                0.7635000348091125
+              ]
+            },
+            "importedMinimumPairDistance": 0.20480815524151127,
+            "members": [
+              "Tower.Vane.01.Armor",
+              "Tower.Vane.02.Armor",
+              "Tower.Vane.03.Armor",
+              "Tower.Vane.04.Armor",
+              "Tower.Vane.05.Armor",
+              "Tower.Vane.06.Armor",
+              "Tower.Vane.07.Armor",
+              "Tower.Vane.08.Armor"
+            ]
+          }
+        },
+        "tolerance": 0.0001
+      },
+      "materials": [
+        "Aegis_Neutral_OriginalUV"
+      ],
+      "meshNames": [
+        "Mobile.GunBarrel.Mesh",
+        "Mobile.Hull.Static.Mesh",
+        "Pod.NE.Anchor.Mesh",
+        "Pod.NW.Anchor.Mesh",
+        "Pod.SE.Anchor.Mesh",
+        "Pod.SW.Anchor.Mesh",
+        "Shell.NorthInner.Plate.Mesh",
+        "Shell.NorthOuter.Plate.Mesh",
+        "Shell.SouthInner.Plate.Mesh",
+        "Shell.SouthOuter.Plate.Mesh",
+        "Tower.Crown.Mesh",
+        "Tower.Hatch.North.Leaf.Mesh",
+        "Tower.Hatch.South.Leaf.Mesh",
+        "Tower.UpperKeep.Mesh",
+        "Tower.Vane.01.Armor.Mesh",
+        "Tower.Vane.01.Barrel.Mesh",
+        "Tower.Vane.02.Armor.Mesh",
+        "Tower.Vane.02.Barrel.Mesh",
+        "Tower.Vane.03.Armor.Mesh",
+        "Tower.Vane.03.Barrel.Mesh",
+        "Tower.Vane.04.Armor.Mesh",
+        "Tower.Vane.04.Barrel.Mesh",
+        "Tower.Vane.05.Armor.Mesh",
+        "Tower.Vane.05.Barrel.Mesh",
+        "Tower.Vane.06.Armor.Mesh",
+        "Tower.Vane.06.Barrel.Mesh",
+        "Tower.Vane.07.Armor.Mesh",
+        "Tower.Vane.07.Barrel.Mesh",
+        "Tower.Vane.08.Armor.Mesh",
+        "Tower.Vane.08.Barrel.Mesh"
+      ],
+      "meshes": 30,
+      "objectNames": [
+        "Mobile.GunBarrel",
+        "Mobile.Hull.Static",
+        "Pod.NE.Anchor",
+        "Pod.NW.Anchor",
+        "Pod.SE.Anchor",
+        "Pod.SW.Anchor",
+        "Shell.NorthInner.Plate",
+        "Shell.NorthOuter.Plate",
+        "Shell.SouthInner.Plate",
+        "Shell.SouthOuter.Plate",
+        "Tower.Crown",
+        "Tower.Hatch.North.Leaf",
+        "Tower.Hatch.South.Leaf",
+        "Tower.UpperKeep",
+        "Tower.Vane.01.Armor",
+        "Tower.Vane.01.Barrel",
+        "Tower.Vane.02.Armor",
+        "Tower.Vane.02.Barrel",
+        "Tower.Vane.03.Armor",
+        "Tower.Vane.03.Barrel",
+        "Tower.Vane.04.Armor",
+        "Tower.Vane.04.Barrel",
+        "Tower.Vane.05.Armor",
+        "Tower.Vane.05.Barrel",
+        "Tower.Vane.06.Armor",
+        "Tower.Vane.06.Barrel",
+        "Tower.Vane.07.Armor",
+        "Tower.Vane.07.Barrel",
+        "Tower.Vane.08.Armor",
+        "Tower.Vane.08.Barrel"
+      ],
+      "topology": {
+        "expectedTriangles": 29994,
+        "importedTriangles": 29994,
+        "objects": {
+          "Mobile.GunBarrel": {
+            "exact": true,
+            "expected": 1332,
+            "imported": 1332
+          },
+          "Mobile.Hull.Static": {
+            "exact": true,
+            "expected": 5858,
+            "imported": 5858
+          },
+          "Pod.NE.Anchor": {
+            "exact": true,
+            "expected": 952,
+            "imported": 952
+          },
+          "Pod.NW.Anchor": {
+            "exact": true,
+            "expected": 952,
+            "imported": 952
+          },
+          "Pod.SE.Anchor": {
+            "exact": true,
+            "expected": 952,
+            "imported": 952
+          },
+          "Pod.SW.Anchor": {
+            "exact": true,
+            "expected": 952,
+            "imported": 952
+          },
+          "Shell.NorthInner.Plate": {
+            "exact": true,
+            "expected": 452,
+            "imported": 452
+          },
+          "Shell.NorthOuter.Plate": {
+            "exact": true,
+            "expected": 516,
+            "imported": 516
+          },
+          "Shell.SouthInner.Plate": {
+            "exact": true,
+            "expected": 452,
+            "imported": 452
+          },
+          "Shell.SouthOuter.Plate": {
+            "exact": true,
+            "expected": 516,
+            "imported": 516
+          },
+          "Tower.Crown": {
+            "exact": true,
+            "expected": 4716,
+            "imported": 4716
+          },
+          "Tower.Hatch.North.Leaf": {
+            "exact": true,
+            "expected": 516,
+            "imported": 516
+          },
+          "Tower.Hatch.South.Leaf": {
+            "exact": true,
+            "expected": 516,
+            "imported": 516
+          },
+          "Tower.UpperKeep": {
+            "exact": true,
+            "expected": 3632,
+            "imported": 3632
+          },
+          "Tower.Vane.01.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.01.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.02.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.02.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.03.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.03.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.04.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.04.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.05.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.05.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.06.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.06.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.07.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.07.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          },
+          "Tower.Vane.08.Armor": {
+            "exact": true,
+            "expected": 296,
+            "imported": 296
+          },
+          "Tower.Vane.08.Barrel": {
+            "exact": true,
+            "expected": 664,
+            "imported": 664
+          }
+        }
+      },
+      "worldBounds": {
+        "maximumAbsoluteDelta": 2.9802322387695312e-08,
+        "objects": {
+          "Mobile.GunBarrel": {
+            "absoluteDelta": {
+              "center": [
+                1.4901161193847656e-08,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                2.9802322387695312e-08,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.34800003468990326,
+                0.0,
+                0.22200001031160355
+              ],
+              "maximum": [
+                0.4840000569820404,
+                0.03754287213087082,
+                0.25954288244247437
+              ],
+              "minimum": [
+                0.2120000123977661,
+                -0.03754287213087082,
+                0.18445713818073273
+              ]
+            },
+            "imported": {
+              "center": [
+                0.34800001978874207,
+                0.0,
+                0.22200001031160355
+              ],
+              "maximum": [
+                0.484000027179718,
+                0.03754287213087082,
+                0.25954288244247437
+              ],
+              "minimum": [
+                0.2120000123977661,
+                -0.03754287213087082,
+                0.18445713818073273
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Mobile.Hull.Static": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.0206640362739563,
+                0.0,
+                0.1827990487217903
+              ],
+              "maximum": [
+                0.5299999713897705,
+                0.4660000205039978,
+                0.305392324924469
+              ],
+              "minimum": [
+                -0.4886718988418579,
+                -0.4660000205039978,
+                0.06020577251911163
+              ]
+            },
+            "imported": {
+              "center": [
+                0.0206640362739563,
+                0.0,
+                0.1827990487217903
+              ],
+              "maximum": [
+                0.5299999713897705,
+                0.4660000205039978,
+                0.305392324924469
+              ],
+              "minimum": [
+                -0.4886718988418579,
+                -0.4660000205039978,
+                0.06020577251911163
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Pod.NE.Anchor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3400000035762787,
+                0.39500001072883606,
+                0.04066503420472145
+              ],
+              "maximum": [
+                0.3873935639858246,
+                0.44239357113838196,
+                0.08133009821176529
+              ],
+              "minimum": [
+                0.2926064431667328,
+                0.34760645031929016,
+                -2.9802322387695312e-08
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3400000035762787,
+                0.39500001072883606,
+                0.04066503420472145
+              ],
+              "maximum": [
+                0.3873935639858246,
+                0.44239357113838196,
+                0.08133009821176529
+              ],
+              "minimum": [
+                0.2926064431667328,
+                0.34760645031929016,
+                -2.9802322387695312e-08
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Pod.NW.Anchor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.3499999940395355,
+                0.38999998569488525,
+                0.04066503420472145
+              ],
+              "maximum": [
+                -0.3026064336299896,
+                0.43739354610443115,
+                0.08133009821176529
+              ],
+              "minimum": [
+                -0.3973935544490814,
+                0.34260642528533936,
+                -2.9802322387695312e-08
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.3499999940395355,
+                0.38999998569488525,
+                0.04066503420472145
+              ],
+              "maximum": [
+                -0.3026064336299896,
+                0.43739354610443115,
+                0.08133009821176529
+              ],
+              "minimum": [
+                -0.3973935544490814,
+                0.34260642528533936,
+                -2.9802322387695312e-08
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Pod.SE.Anchor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3400000035762787,
+                -0.39500001072883606,
+                0.04066503420472145
+              ],
+              "maximum": [
+                0.3873935639858246,
+                -0.34760645031929016,
+                0.08133009821176529
+              ],
+              "minimum": [
+                0.2926064431667328,
+                -0.44239357113838196,
+                -2.9802322387695312e-08
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3400000035762787,
+                -0.39500001072883606,
+                0.04066503420472145
+              ],
+              "maximum": [
+                0.3873935639858246,
+                -0.34760645031929016,
+                0.08133009821176529
+              ],
+              "minimum": [
+                0.2926064431667328,
+                -0.44239357113838196,
+                -2.9802322387695312e-08
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Pod.SW.Anchor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.3499999940395355,
+                -0.38999998569488525,
+                0.04066503420472145
+              ],
+              "maximum": [
+                -0.3026064336299896,
+                -0.34260642528533936,
+                0.08133009821176529
+              ],
+              "minimum": [
+                -0.3973935544490814,
+                -0.43739354610443115,
+                -2.9802322387695312e-08
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.3499999940395355,
+                -0.38999998569488525,
+                0.04066503420472145
+              ],
+              "maximum": [
+                -0.3026064336299896,
+                -0.34260642528533936,
+                0.08133009821176529
+              ],
+              "minimum": [
+                -0.3973935544490814,
+                -0.43739354610443115,
+                -2.9802322387695312e-08
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Shell.NorthInner.Plate": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3718508258461952,
+                0.1252603828907013,
+                0.3475000113248825
+              ],
+              "maximum": [
+                0.5194363594055176,
+                0.2349960058927536,
+                0.3850000202655792
+              ],
+              "minimum": [
+                0.22426529228687286,
+                0.015524759888648987,
+                0.3100000023841858
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3718508258461952,
+                0.1252603828907013,
+                0.3475000113248825
+              ],
+              "maximum": [
+                0.5194363594055176,
+                0.2349960058927536,
+                0.3850000202655792
+              ],
+              "minimum": [
+                0.22426529228687286,
+                0.015524759888648987,
+                0.3100000023841858
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Shell.NorthOuter.Plate": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                2.9802322387695312e-08,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3562418892979622,
+                0.31613411009311676,
+                0.34950001537799835
+              ],
+              "maximum": [
+                0.6010392904281616,
+                0.4650546610355377,
+                0.38700002431869507
+              ],
+              "minimum": [
+                0.11144448816776276,
+                0.1672135591506958,
+                0.31200000643730164
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3562418892979622,
+                0.31613409519195557,
+                0.34950001537799835
+              ],
+              "maximum": [
+                0.6010392904281616,
+                0.46505463123321533,
+                0.38700002431869507
+              ],
+              "minimum": [
+                0.11144448816776276,
+                0.1672135591506958,
+                0.31200000643730164
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Shell.SouthInner.Plate": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3718508258461952,
+                -0.1252603828907013,
+                0.3475000113248825
+              ],
+              "maximum": [
+                0.5194363594055176,
+                -0.015524759888648987,
+                0.3850000202655792
+              ],
+              "minimum": [
+                0.22426529228687286,
+                -0.2349960058927536,
+                0.3100000023841858
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3718508258461952,
+                -0.1252603828907013,
+                0.3475000113248825
+              ],
+              "maximum": [
+                0.5194363594055176,
+                -0.015524759888648987,
+                0.3850000202655792
+              ],
+              "minimum": [
+                0.22426529228687286,
+                -0.2349960058927536,
+                0.3100000023841858
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Shell.SouthOuter.Plate": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                2.9802322387695312e-08,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3562418892979622,
+                -0.31613411009311676,
+                0.34950001537799835
+              ],
+              "maximum": [
+                0.6010392904281616,
+                -0.1672135591506958,
+                0.38700002431869507
+              ],
+              "minimum": [
+                0.11144448816776276,
+                -0.4650546610355377,
+                0.31200000643730164
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3562418892979622,
+                -0.31613409519195557,
+                0.34950001537799835
+              ],
+              "maximum": [
+                0.6010392904281616,
+                -0.1672135591506958,
+                0.38700002431869507
+              ],
+              "minimum": [
+                0.11144448816776276,
+                -0.46505463123321533,
+                0.31200000643730164
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Crown": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.08499999716877937,
+                0.0,
+                0.47999998927116394
+              ],
+              "maximum": [
+                0.054538093507289886,
+                0.13953809440135956,
+                0.574999988079071
+              ],
+              "minimum": [
+                -0.22453808784484863,
+                -0.13953809440135956,
+                0.38499999046325684
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.08499999716877937,
+                0.0,
+                0.47999998927116394
+              ],
+              "maximum": [
+                0.054538093507289886,
+                0.13953809440135956,
+                0.574999988079071
+              ],
+              "minimum": [
+                -0.22453808784484863,
+                -0.13953809440135956,
+                0.38499999046325684
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Hatch.North.Leaf": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.21000000834465027,
+                0.3146039620041847,
+                0.34036628901958466
+              ],
+              "maximum": [
+                0.0024635493755340576,
+                0.42198142409324646,
+                0.36591047048568726
+              ],
+              "minimum": [
+                -0.4224635660648346,
+                0.20722649991512299,
+                0.31482210755348206
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.21000000834465027,
+                0.3146039620041847,
+                0.34036628901958466
+              ],
+              "maximum": [
+                0.0024635493755340576,
+                0.42198142409324646,
+                0.36591047048568726
+              ],
+              "minimum": [
+                -0.4224635660648346,
+                0.20722649991512299,
+                0.31482210755348206
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Hatch.South.Leaf": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.21000000834465027,
+                -0.3146039620041847,
+                0.34036628901958466
+              ],
+              "maximum": [
+                0.0024635493755340576,
+                -0.20722649991512299,
+                0.36591047048568726
+              ],
+              "minimum": [
+                -0.4224635660648346,
+                -0.42198142409324646,
+                0.31482210755348206
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.21000000834465027,
+                -0.3146039620041847,
+                0.34036628901958466
+              ],
+              "maximum": [
+                0.0024635493755340576,
+                -0.20722649991512299,
+                0.36591047048568726
+              ],
+              "minimum": [
+                -0.4224635660648346,
+                -0.42198142409324646,
+                0.31482210755348206
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.UpperKeep": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.08499999716877937,
+                0.0,
+                0.6519999802112579
+              ],
+              "maximum": [
+                0.08752965182065964,
+                0.1725296527147293,
+                0.765999972820282
+              ],
+              "minimum": [
+                -0.2575296461582184,
+                -0.1725296527147293,
+                0.5379999876022339
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.08499999716877937,
+                0.0,
+                0.6519999802112579
+              ],
+              "maximum": [
+                0.08752965182065964,
+                0.1725296527147293,
+                0.765999972820282
+              ],
+              "minimum": [
+                -0.2575296461582184,
+                -0.1725296527147293,
+                0.5379999876022339
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Vane.01.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.18299999460577965,
+                0.0,
+                0.7635000646114349
+              ],
+              "maximum": [
+                0.2529999911785126,
+                0.02199999988079071,
+                0.7910000681877136
+              ],
+              "minimum": [
+                0.11299999803304672,
+                -0.02199999988079071,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                0.18299999460577965,
+                0.0,
+                0.7635000646114349
+              ],
+              "maximum": [
+                0.2529999911785126,
+                0.02199999988079071,
+                0.7910000681877136
+              ],
+              "minimum": [
+                0.11299999803304672,
+                -0.02199999988079071,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Vane.01.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                1.4901161193847656e-08,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                2.9802322387695312e-08,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.3554999679327011,
+                0.0,
+                0.7620000243186951
+              ],
+              "maximum": [
+                0.437999963760376,
+                0.0236967746168375,
+                0.785696804523468
+              ],
+              "minimum": [
+                0.27299997210502625,
+                -0.0236967746168375,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                0.3554999828338623,
+                0.0,
+                0.7620000243186951
+              ],
+              "maximum": [
+                0.437999963760376,
+                0.0236967746168375,
+                0.785696804523468
+              ],
+              "minimum": [
+                0.27300000190734863,
+                -0.0236967746168375,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.02.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                7.450580596923828e-09,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.10392900928854942,
+                0.1889290064573288,
+                0.7635000646114349
+              ],
+              "maximum": [
+                0.1592637598514557,
+                0.24426375329494476,
+                0.7910000681877136
+              ],
+              "minimum": [
+                0.04859425872564316,
+                0.13359425961971283,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                0.10392900928854942,
+                0.1889289990067482,
+                0.7635000646114349
+              ],
+              "maximum": [
+                0.1592637598514557,
+                0.24426375329494476,
+                0.7910000681877136
+              ],
+              "minimum": [
+                0.04859425872564316,
+                0.13359424471855164,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 1.4901161193847656e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.02.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                7.450580596923828e-09,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                2.9802322387695312e-08,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.22966250777244568,
+                0.31466249376535416,
+                0.7620000243186951
+              ],
+              "maximum": [
+                0.30078014731407166,
+                0.38578012585639954,
+                0.785696804523468
+              ],
+              "minimum": [
+                0.1585448682308197,
+                0.24354486167430878,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                0.22966250777244568,
+                0.31466250121593475,
+                0.7620000243186951
+              ],
+              "maximum": [
+                0.30078014731407166,
+                0.3857801556587219,
+                0.785696804523468
+              ],
+              "minimum": [
+                0.1585448682308197,
+                0.24354484677314758,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.03.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.08500000461935997,
+                0.2679999992251396,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.06300000101327896,
+                0.33799999952316284,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.10700000822544098,
+                0.1979999989271164,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.08500000461935997,
+                0.2679999992251396,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.06300000101327896,
+                0.33799999952316284,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.10700000822544098,
+                0.1979999989271164,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Vane.03.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                2.9802322387695312e-08,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.08500001206994057,
+                0.4404999762773514,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.061303235590457916,
+                0.5230000019073486,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.10869678854942322,
+                0.3579999506473541,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.08500001206994057,
+                0.4404999911785126,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.061303235590457916,
+                0.5230000019073486,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.10869678854942322,
+                0.3579999804496765,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.04.Armor": {
+            "absoluteDelta": {
+              "center": [
+                7.450580596923828e-09,
+                7.450580596923828e-09,
+                0.0
+              ],
+              "maximum": [
+                1.4901161193847656e-08,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.27392900735139847,
+                0.1889290064573288,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.2185942679643631,
+                0.24426375329494476,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.32926374673843384,
+                0.13359425961971283,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.27392899990081787,
+                0.1889289990067482,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.2185942530632019,
+                0.24426375329494476,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.32926374673843384,
+                0.13359424471855164,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 1.4901161193847656e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.04.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                1.4901161193847656e-08,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                2.9802322387695312e-08,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.399662509560585,
+                0.31466246396303177,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.32854488492012024,
+                0.38578009605407715,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.4707801342010498,
+                0.2435448318719864,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.39966249465942383,
+                0.31466246396303177,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.32854485511779785,
+                0.38578009605407715,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.4707801342010498,
+                0.2435448318719864,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.05.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                9.313225746154785e-10,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                1.862645149230957e-09,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.3529999852180481,
+                -5.587935447692871e-09,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.28299999237060547,
+                0.02199999801814556,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.4229999780654907,
+                -0.022000009194016457,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.3529999852180481,
+                -4.6566128730773926e-09,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.28299999237060547,
+                0.02199999801814556,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.4229999780654907,
+                -0.022000007331371307,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 1.862645149230957e-09,
+            "withinTolerance": true
+          },
+          "Tower.Vane.05.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                1.4901161193847656e-08,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                2.9802322387695312e-08,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.5254999846220016,
+                -2.7008354663848877e-08,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.4429999887943268,
+                0.023696748539805412,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.6079999804496765,
+                -0.02369680255651474,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.5254999995231628,
+                -2.7008354663848877e-08,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.44300001859664917,
+                0.023696748539805412,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.6079999804496765,
+                -0.02369680255651474,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.06.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.27392901480197906,
+                -0.1889289915561676,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.2185942530632019,
+                -0.13359424471855164,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.3292637765407562,
+                -0.24426373839378357,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.27392901480197906,
+                -0.1889289915561676,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.2185942530632019,
+                -0.13359424471855164,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.3292637765407562,
+                -0.24426373839378357,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Vane.06.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                7.450580596923828e-09,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.399662509560585,
+                -0.31466246396303177,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.32854485511779785,
+                -0.2435448318719864,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.4707801640033722,
+                -0.38578009605407715,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.399662509560585,
+                -0.31466247141361237,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.32854485511779785,
+                -0.24354484677314758,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.4707801640033722,
+                -0.38578009605407715,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 1.4901161193847656e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.07.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.08500000089406967,
+                -0.2679999992251396,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.06300000101327896,
+                -0.1979999989271164,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.10700000077486038,
+                -0.33799999952316284,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.08500000089406967,
+                -0.2679999992251396,
+                0.7635000348091125
+              ],
+              "maximum": [
+                -0.06300000101327896,
+                -0.1979999989271164,
+                0.7910000085830688
+              ],
+              "minimum": [
+                -0.10700000077486038,
+                -0.33799999952316284,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Vane.07.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                1.4901161193847656e-08,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                2.9802322387695312e-08,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                -0.08499999903142452,
+                -0.4404999762773514,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.06130322441458702,
+                -0.3579999506473541,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.10869677364826202,
+                -0.5230000019073486,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                -0.08499999903142452,
+                -0.4404999911785126,
+                0.7620000243186951
+              ],
+              "maximum": [
+                -0.06130322441458702,
+                -0.3579999804496765,
+                0.785696804523468
+              ],
+              "minimum": [
+                -0.10869677364826202,
+                -0.5230000019073486,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          },
+          "Tower.Vane.08.Armor": {
+            "absoluteDelta": {
+              "center": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "maximum": [
+                0.0,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                0.0,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.10392900183796883,
+                -0.1889290064573288,
+                0.7635000348091125
+              ],
+              "maximum": [
+                0.1592637449502945,
+                -0.13359424471855164,
+                0.7910000085830688
+              ],
+              "minimum": [
+                0.04859425872564316,
+                -0.24426376819610596,
+                0.7360000610351562
+              ]
+            },
+            "imported": {
+              "center": [
+                0.10392900183796883,
+                -0.1889290064573288,
+                0.7635000348091125
+              ],
+              "maximum": [
+                0.1592637449502945,
+                -0.13359424471855164,
+                0.7910000085830688
+              ],
+              "minimum": [
+                0.04859425872564316,
+                -0.24426376819610596,
+                0.7360000610351562
+              ]
+            },
+            "maximumAbsoluteDelta": 0.0,
+            "withinTolerance": true
+          },
+          "Tower.Vane.08.Barrel": {
+            "absoluteDelta": {
+              "center": [
+                1.4901161193847656e-08,
+                1.4901161193847656e-08,
+                0.0
+              ],
+              "maximum": [
+                2.9802322387695312e-08,
+                0.0,
+                0.0
+              ],
+              "minimum": [
+                0.0,
+                2.9802322387695312e-08,
+                0.0
+              ]
+            },
+            "expected": {
+              "center": [
+                0.2296624630689621,
+                -0.31466253846883774,
+                0.7620000243186951
+              ],
+              "maximum": [
+                0.3007800877094269,
+                -0.24354489147663116,
+                0.785696804523468
+              ],
+              "minimum": [
+                0.15854483842849731,
+                -0.3857801854610443,
+                0.7383032441139221
+              ]
+            },
+            "imported": {
+              "center": [
+                0.2296624779701233,
+                -0.31466252356767654,
+                0.7620000243186951
+              ],
+              "maximum": [
+                0.30078011751174927,
+                -0.24354489147663116,
+                0.785696804523468
+              ],
+              "minimum": [
+                0.15854483842849731,
+                -0.3857801556587219,
+                0.7383032441139221
+              ]
+            },
+            "maximumAbsoluteDelta": 2.9802322387695312e-08,
+            "withinTolerance": true
+          }
+        },
+        "tolerance": 2e-05
+      }
+    }
+  },
+  "geometryAuthoritySource": "aegis-tortoise-ga-002",
+  "outputs": {
+    "bodyOnlyCoverageUpload": {
+      "bytes": 2027708,
+      "path": "sandbox/aegis-tortoise-uv-authority-v2-world-baked-padded/aegis-tortoise-texture-upload-coverage-uv-v2.glb",
+      "sha256": "378e5d999c7e73bbab74d3b246d92b30fa4f69a6cf008b55dbc5bbe0304cf2ef"
+    },
+    "coverageGameplayProof": {
+      "bytes": 491240,
+      "path": "sandbox/aegis-tortoise-uv-authority-v2-world-baked-padded/coverage-pose-gameplay.png",
+      "sha256": "2c5da92a81ddd60c95d9752393589b680857db93be070082d2e28dea8711d6e4"
+    },
+    "coverageTopProof": {
+      "bytes": 478905,
+      "path": "sandbox/aegis-tortoise-uv-authority-v2-world-baked-padded/coverage-pose-top.png",
+      "sha256": "0a58a6c1f3489d985d7d8146b5e0df1336f7454b356a12352aac09b625cd5747"
+    },
+    "editableCandidate": {
+      "bytes": 587070,
+      "path": "sandbox/aegis-tortoise-uv-authority-v2-world-baked-padded/aegis-tortoise-uv-authority-v2.blend",
+      "sha256": "5eaf84fb61d7ed3c25b9ad6046ed8d32ff9e1531b78396e135b85ec7ea972bd3"
+    },
+    "neutralAnimatedCandidate": {
+      "bytes": 2149160,
+      "path": "sandbox/aegis-tortoise-uv-authority-v2-world-baked-padded/aegis-tortoise-neutral-animated-uv-v2.glb",
+      "sha256": "f033237c1168d865bffc697be729b0eb1698c41570745f5f4de47d47079a2ca3"
+    },
+    "uvLayout": {
+      "bytes": 4925174,
+      "path": "sandbox/aegis-tortoise-uv-authority-v2-world-baked-padded/uv-layout-v2.svg",
+      "sha256": "13aa781dd3c34adca54ec32b4d2126e70f37370d6250523c32f9420e3a1d5b73"
+    }
+  },
+  "providerCalls": 0,
+  "providerCredits": 0,
+  "schema": "nilbots-aegis-uv-authority-candidate-2",
+  "source": {
+    "animatedGlb": {
+      "bytes": 2149160,
+      "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-neutral-animated.glb",
+      "sha256": "6df9498d7ecf1ea3523755db5df059f03abce7d340f4000accd7732ace532f21"
+    },
+    "blend": {
+      "bytes": 586014,
+      "path": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-kinematic-master.blend",
+      "sha256": "eaf2e20e9e1c84a041366a73d6f81d99473c3bb173f09d42f56163c277b77a95"
+    },
+    "bodyGeometryWithoutUvSha256": "7dbdf60583b9c2ebeabaea9e6c206f72fbc7195f2812a37addb79a2a6800131f",
+    "bodyUvCoverage": 0.278043788,
+    "materialBindingsSha256": "ade7ebfc2f21aff860ae431f2ad859478825fb334ed7a21e6c6a9291e065743c"
+  },
+  "status": "PASS",
+  "uv": {
+    "allocation": {
+      "Mobile.GunBarrel": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.9769277802027043,
+        "surfaceArea": 0.07110631374644072,
+        "targetShare": 0.0094115505859465
+      },
+      "Mobile.Hull.Static": {
+        "gameplayWeight": 1.65,
+        "prePackScale": 15.905610942395223,
+        "surfaceArea": 4.200732671041351,
+        "targetShare": 0.655290646749682
+      },
+      "Pod.NE.Anchor": {
+        "gameplayWeight": 1.25,
+        "prePackScale": 0.7949181068829927,
+        "surfaceArea": 0.04023238225363457,
+        "targetShare": 0.004754564488708636
+      },
+      "Pod.NW.Anchor": {
+        "gameplayWeight": 1.25,
+        "prePackScale": 0.7949179822039775,
+        "surfaceArea": 0.04023238225363457,
+        "targetShare": 0.004754564488708636
+      },
+      "Pod.SE.Anchor": {
+        "gameplayWeight": 1.25,
+        "prePackScale": 0.7949180699670267,
+        "surfaceArea": 0.04023238225363457,
+        "targetShare": 0.004754564488708636
+      },
+      "Pod.SW.Anchor": {
+        "gameplayWeight": 1.25,
+        "prePackScale": 0.7949181764213608,
+        "surfaceArea": 0.04023238225363457,
+        "targetShare": 0.004754564488708636
+      },
+      "Shell.NorthInner.Plate": {
+        "gameplayWeight": 1.55,
+        "prePackScale": 1.2303656999248898,
+        "surfaceArea": 0.10987365275104821,
+        "targetShare": 0.016100903291250645
+      },
+      "Shell.NorthOuter.Plate": {
+        "gameplayWeight": 1.55,
+        "prePackScale": 1.9175361900204853,
+        "surfaceArea": 0.26407335425210476,
+        "targetShare": 0.03869735311561077
+      },
+      "Shell.SouthInner.Plate": {
+        "gameplayWeight": 1.55,
+        "prePackScale": 1.2303658719364385,
+        "surfaceArea": 0.10987365275104821,
+        "targetShare": 0.016100903291250645
+      },
+      "Shell.SouthOuter.Plate": {
+        "gameplayWeight": 1.55,
+        "prePackScale": 1.917535967298184,
+        "surfaceArea": 0.26407335425210476,
+        "targetShare": 0.03869735311561077
+      },
+      "Tower.Crown": {
+        "gameplayWeight": 1.5,
+        "prePackScale": 2.740767971063273,
+        "surfaceArea": 0.3396045175958875,
+        "targetShare": 0.04816035707914558
+      },
+      "Tower.Hatch.North.Leaf": {
+        "gameplayWeight": 1.45,
+        "prePackScale": 1.5208859370854426,
+        "surfaceArea": 0.15885764169746364,
+        "targetShare": 0.021777152562512555
+      },
+      "Tower.Hatch.South.Leaf": {
+        "gameplayWeight": 1.45,
+        "prePackScale": 1.5208857974130887,
+        "surfaceArea": 0.15885764169746364,
+        "targetShare": 0.021777152562512555
+      },
+      "Tower.UpperKeep": {
+        "gameplayWeight": 1.5,
+        "prePackScale": 3.2746595040615016,
+        "surfaceArea": 0.4821367977198747,
+        "targetShare": 0.0683732963965322
+      },
+      "Tower.Vane.01.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.5737217082912163,
+        "surfaceArea": 0.025492849139482132,
+        "targetShare": 0.003374204435793137
+      },
+      "Tower.Vane.01.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.5024755694970675,
+        "surfaceArea": 0.02253591194312321,
+        "targetShare": 0.002450179815163643
+      },
+      "Tower.Vane.02.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.5737215727356488,
+        "surfaceArea": 0.025492848003977997,
+        "targetShare": 0.0033742042854991044
+      },
+      "Tower.Vane.02.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.5015178565596525,
+        "surfaceArea": 0.02253591085559492,
+        "targetShare": 0.0024501796969239255
+      },
+      "Tower.Vane.03.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.573721826703789,
+        "surfaceArea": 0.025492849114925775,
+        "targetShare": 0.003374204432542885
+      },
+      "Tower.Vane.03.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.49803595447759014,
+        "surfaceArea": 0.02253591168505409,
+        "targetShare": 0.002450179787105504
+      },
+      "Tower.Vane.04.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.5737216680310092,
+        "surfaceArea": 0.025492848013072944,
+        "targetShare": 0.0033742042867029014
+      },
+      "Tower.Vane.04.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.48935057499609746,
+        "surfaceArea": 0.022535911013619625,
+        "targetShare": 0.0024501797141049005
+      },
+      "Tower.Vane.05.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.5737216504473217,
+        "surfaceArea": 0.02549284879114566,
+        "targetShare": 0.0033742043896877187
+      },
+      "Tower.Vane.05.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.49803575888955054,
+        "surfaceArea": 0.02253591171552216,
+        "targetShare": 0.0024501797904180945
+      },
+      "Tower.Vane.06.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.573721764598104,
+        "surfaceArea": 0.02549284879114566,
+        "targetShare": 0.0033742043896877187
+      },
+      "Tower.Vane.06.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.4892777216922235,
+        "surfaceArea": 0.022535911763952754,
+        "targetShare": 0.0024501797956836308
+      },
+      "Tower.Vane.07.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.5737218421144502,
+        "surfaceArea": 0.025492849114925775,
+        "targetShare": 0.003374204432542885
+      },
+      "Tower.Vane.07.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.49803577065731985,
+        "surfaceArea": 0.02253591168505409,
+        "targetShare": 0.002450179787105504
+      },
+      "Tower.Vane.08.Armor": {
+        "gameplayWeight": 1.4,
+        "prePackScale": 0.5737216382890307,
+        "surfaceArea": 0.025492849055353872,
+        "targetShare": 0.0033742044246580162
+      },
+      "Tower.Vane.08.Barrel": {
+        "gameplayWeight": 1.15,
+        "prePackScale": 0.49495332683945265,
+        "surfaceArea": 0.022535912093303523,
+        "targetShare": 0.0024501798314917494
+      }
+    },
+    "candidate": {
+      "coverage": 0.646540584,
+      "objects": {
+        "Mobile.GunBarrel": {
+          "bounds": [
+            0.052706294,
+            0.807621658,
+            0.97137332,
+            0.996438086
+          ],
+          "equivalentSquareSidePixelsAt2k": 159.756392317,
+          "equivalentSquareSidePixelsAt4k": 319.512784634,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.009411542,
+          "surfaceArea": 0.071106314,
+          "uvArea": 0.006084944
+        },
+        "Mobile.Hull.Static": {
+          "bounds": [
+            0.000499993,
+            0.000499971,
+            0.991541326,
+            0.995952845
+          ],
+          "equivalentSquareSidePixelsAt2k": 1333.04500344,
+          "equivalentSquareSidePixelsAt4k": 2666.090006881,
+          "gameplayWeight": 1.65,
+          "shareOfBodyUvArea": 0.655290584,
+          "surfaceArea": 4.200732671,
+          "uvArea": 0.423671956
+        },
+        "Pod.NE.Anchor": {
+          "bounds": [
+            0.032521568,
+            0.322808921,
+            0.975263536,
+            0.997068763
+          ],
+          "equivalentSquareSidePixelsAt2k": 113.548983521,
+          "equivalentSquareSidePixelsAt4k": 227.097967041,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.004754565,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.003074019
+        },
+        "Pod.NW.Anchor": {
+          "bounds": [
+            0.000500001,
+            0.376231462,
+            0.975969553,
+            0.997068763
+          ],
+          "equivalentSquareSidePixelsAt2k": 113.548905009,
+          "equivalentSquareSidePixelsAt4k": 227.097810018,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.004754559,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.003074015
+        },
+        "Pod.SE.Anchor": {
+          "bounds": [
+            0.042613879,
+            0.456365407,
+            0.975263476,
+            0.997068703
+          ],
+          "equivalentSquareSidePixelsAt2k": 113.549057933,
+          "equivalentSquareSidePixelsAt4k": 227.098115867,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.004754571,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.003074023
+        },
+        "Pod.SW.Anchor": {
+          "bounds": [
+            0.012336837,
+            0.402942806,
+            0.975263476,
+            0.997068763
+          ],
+          "equivalentSquareSidePixelsAt2k": 113.548927472,
+          "equivalentSquareSidePixelsAt4k": 227.097854944,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.00475456,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.003074016
+        },
+        "Shell.NorthInner.Plate": {
+          "bounds": [
+            0.147503257,
+            0.000625933,
+            0.987691939,
+            0.995806932
+          ],
+          "equivalentSquareSidePixelsAt2k": 208.955208369,
+          "equivalentSquareSidePixelsAt4k": 417.910416738,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.016100921,
+          "surfaceArea": 0.109873653,
+          "uvArea": 0.010409899
+        },
+        "Shell.NorthOuter.Plate": {
+          "bounds": [
+            0.001401213,
+            0.034957141,
+            0.993221462,
+            0.872219682
+          ],
+          "equivalentSquareSidePixelsAt2k": 323.942988012,
+          "equivalentSquareSidePixelsAt4k": 647.885976024,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.038697372,
+          "surfaceArea": 0.264073354,
+          "uvArea": 0.025019421
+        },
+        "Shell.SouthInner.Plate": {
+          "bounds": [
+            0.162010968,
+            0.075181842,
+            0.987692058,
+            0.995806873
+          ],
+          "equivalentSquareSidePixelsAt2k": 208.955150808,
+          "equivalentSquareSidePixelsAt4k": 417.910301616,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.016100912,
+          "surfaceArea": 0.109873653,
+          "uvArea": 0.010409893
+        },
+        "Shell.SouthOuter.Plate": {
+          "bounds": [
+            0.001433049,
+            0.07137651,
+            0.993221462,
+            0.872219682
+          ],
+          "equivalentSquareSidePixelsAt2k": 323.942873796,
+          "equivalentSquareSidePixelsAt4k": 647.885747591,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.038697345,
+          "surfaceArea": 0.264073354,
+          "uvArea": 0.025019404
+        },
+        "Tower.Crown": {
+          "bounds": [
+            0.105824575,
+            0.000499591,
+            0.996102989,
+            0.996385813
+          ],
+          "equivalentSquareSidePixelsAt2k": 361.38721353,
+          "equivalentSquareSidePixelsAt4k": 722.77442706,
+          "gameplayWeight": 1.5,
+          "shareOfBodyUvArea": 0.048160376,
+          "surfaceArea": 0.339604518,
+          "uvArea": 0.031137638
+        },
+        "Tower.Hatch.North.Leaf": {
+          "bounds": [
+            0.070857696,
+            0.140546039,
+            0.985727668,
+            0.952898204
+          ],
+          "equivalentSquareSidePixelsAt2k": 243.012456841,
+          "equivalentSquareSidePixelsAt4k": 486.024913682,
+          "gameplayWeight": 1.45,
+          "shareOfBodyUvArea": 0.021777167,
+          "surfaceArea": 0.158857642,
+          "uvArea": 0.014079822
+        },
+        "Tower.Hatch.South.Leaf": {
+          "bounds": [
+            0.069508851,
+            0.18075636,
+            0.985727668,
+            0.952898085
+          ],
+          "equivalentSquareSidePixelsAt2k": 243.01242316,
+          "equivalentSquareSidePixelsAt4k": 486.02484632,
+          "gameplayWeight": 1.45,
+          "shareOfBodyUvArea": 0.021777161,
+          "surfaceArea": 0.158857642,
+          "uvArea": 0.014079818
+        },
+        "Tower.UpperKeep": {
+          "bounds": [
+            0.000499997,
+            0.000500004,
+            0.993582368,
+            0.996227264
+          ],
+          "equivalentSquareSidePixelsAt2k": 430.597149203,
+          "equivalentSquareSidePixelsAt4k": 861.194298407,
+          "gameplayWeight": 1.5,
+          "shareOfBodyUvArea": 0.06837331,
+          "surfaceArea": 0.482136798,
+          "uvArea": 0.04420612
+        },
+        "Tower.Vane.01.Armor": {
+          "bounds": [
+            0.377341866,
+            0.000500003,
+            0.99381429,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656201725,
+          "equivalentSquareSidePixelsAt4k": 191.312403451,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374198,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.002181556
+        },
+        "Tower.Vane.01.Barrel": {
+          "bounds": [
+            0.741514742,
+            0.107719921,
+            0.993370116,
+            0.993202329
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.513039168,
+          "equivalentSquareSidePixelsAt4k": 163.026078336,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450183,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.001584143
+        },
+        "Tower.Vane.02.Armor": {
+          "bounds": [
+            0.357284695,
+            0.025379919,
+            0.99381429,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656261332,
+          "equivalentSquareSidePixelsAt4k": 191.312522665,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374202,
+          "surfaceArea": 0.025492848,
+          "uvArea": 0.002181559
+        },
+        "Tower.Vane.02.Barrel": {
+          "bounds": [
+            0.634954154,
+            0.21992673,
+            0.992160797,
+            0.993365228
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.513043614,
+          "equivalentSquareSidePixelsAt4k": 163.026087228,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450183,
+          "surfaceArea": 0.022535911,
+          "uvArea": 0.001584143
+        },
+        "Tower.Vane.03.Armor": {
+          "bounds": [
+            0.417456448,
+            0.014845512,
+            0.99381429,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656275877,
+          "equivalentSquareSidePixelsAt4k": 191.312551754,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374203,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.002181559
+        },
+        "Tower.Vane.03.Barrel": {
+          "bounds": [
+            0.768444777,
+            0.134588629,
+            0.993278801,
+            0.993096054
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.512987878,
+          "equivalentSquareSidePixelsAt4k": 163.025975756,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.00245018,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.001584141
+        },
+        "Tower.Vane.04.Armor": {
+          "bounds": [
+            0.362298965,
+            0.007672778,
+            0.993814349,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656233086,
+          "equivalentSquareSidePixelsAt4k": 191.312466172,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.0033742,
+          "surfaceArea": 0.025492848,
+          "uvArea": 0.002181557
+        },
+        "Tower.Vane.04.Barrel": {
+          "bounds": [
+            0.688123345,
+            0.288909376,
+            0.991818368,
+            0.993311942
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.513140339,
+          "equivalentSquareSidePixelsAt4k": 163.026280678,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450189,
+          "surfaceArea": 0.022535911,
+          "uvArea": 0.001584147
+        },
+        "Tower.Vane.05.Armor": {
+          "bounds": [
+            0.387370527,
+            0.043536548,
+            0.99381429,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656316116,
+          "equivalentSquareSidePixelsAt4k": 191.312632231,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374206,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.002181561
+        },
+        "Tower.Vane.05.Barrel": {
+          "bounds": [
+            0.782015145,
+            0.152607113,
+            0.993278742,
+            0.993095994
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.51289602,
+          "equivalentSquareSidePixelsAt4k": 163.025792041,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450174,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.001584137
+        },
+        "Tower.Vane.06.Armor": {
+          "bounds": [
+            0.367313236,
+            0.036363784,
+            0.99381429,
+            0.977980614
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656261296,
+          "equivalentSquareSidePixelsAt4k": 191.312522592,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374202,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.002181559
+        },
+        "Tower.Vane.06.Barrel": {
+          "bounds": [
+            0.714839697,
+            0.315531641,
+            0.991816282,
+            0.993309081
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.512842082,
+          "equivalentSquareSidePixelsAt4k": 163.025684163,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450171,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.001584135
+        },
+        "Tower.Vane.07.Armor": {
+          "bounds": [
+            0.402413517,
+            0.000500001,
+            0.993814349,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656268706,
+          "equivalentSquareSidePixelsAt4k": 191.312537411,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374203,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.002181559
+        },
+        "Tower.Vane.07.Barrel": {
+          "bounds": [
+            0.82272619,
+            0.143597886,
+            0.993278801,
+            0.993095994
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.512981779,
+          "equivalentSquareSidePixelsAt4k": 163.025963559,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450179,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.00158414
+        },
+        "Tower.Vane.08.Armor": {
+          "bounds": [
+            0.372327566,
+            0.022018304,
+            0.99381429,
+            0.977980554
+          ],
+          "equivalentSquareSidePixelsAt2k": 95.656341989,
+          "equivalentSquareSidePixelsAt4k": 191.312683979,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.003374208,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.002181562
+        },
+        "Tower.Vane.08.Barrel": {
+          "bounds": [
+            0.661532342,
+            0.172649562,
+            0.992287874,
+            0.993325412
+          ],
+          "equivalentSquareSidePixelsAt2k": 81.512907709,
+          "equivalentSquareSidePixelsAt4k": 163.025815418,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.002450175,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.001584137
+        }
+      }
+    },
+    "checks": {
+      "allBodyUvInBounds": true,
+      "bodyCoverageMeetsRecordedMinimumWithPadding": true,
+      "hullAreaGainAtLeast12x": true,
+      "hullCoverageAtLeast40Percent": true,
+      "strictNonOverlappingAtlas": true,
+      "teamUvUntouched": true
+    },
+    "hull": {
+      "areaGain": 163.56729045441548,
+      "candidateEquivalentSquareSideAt2k": 1333.04500344,
+      "candidateUvArea": 0.423671956,
+      "linearTexelGain": 12.78934284685556,
+      "sourceEquivalentSquareSideAt2k": 104.230922527,
+      "sourceUvArea": 0.0025902
+    },
+    "method": "preserve existing UV seams; scale each body mesh by square root of local surface area times explicit gameplay visibility weight; jointly pack every body island with Blender CONCAVE packing",
+    "overlapRepair": {
+      "detachedPolygons": 192,
+      "iterations": [
+        {
+          "detachedPolygons": 192,
+          "examples": [
+            [
+              "Tower.Crown",
+              933,
+              "Tower.Crown",
+              935
+            ],
+            [
+              "Tower.Crown",
+              933,
+              "Tower.Crown",
+              938
+            ],
+            [
+              "Tower.Crown",
+              933,
+              "Tower.Crown",
+              2013
+            ],
+            [
+              "Tower.Crown",
+              935,
+              "Tower.Crown",
+              936
+            ],
+            [
+              "Tower.Crown",
+              935,
+              "Tower.Crown",
+              2013
+            ]
+          ],
+          "iteration": 1,
+          "strictOverlapPairs": 384
+        },
+        {
+          "examples": [],
+          "iteration": 2,
+          "strictOverlapPairs": 0
+        }
+      ]
+    },
+    "packing": {
+      "margin": 0.0005,
+      "marginMethod": "FRACTION",
+      "mergeOverlap": false,
+      "rotate": true,
+      "rotateMethod": "ANY",
+      "scale": true,
+      "shapeMethod": "CONCAVE",
+      "unwrapAngleDegrees": 0.0
+    },
+    "source": {
+      "coverage": 0.278043788,
+      "objects": {
+        "Mobile.GunBarrel": {
+          "bounds": [
+            0.011428571,
+            0.011428571,
+            0.13142857,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 203.375242239,
+          "equivalentSquareSidePixelsAt4k": 406.750484478,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.035466887,
+          "surfaceArea": 0.071106314,
+          "uvArea": 0.009861347
+        },
+        "Mobile.Hull.Static": {
+          "bounds": [
+            0.154285714,
+            0.011428571,
+            0.274285704,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 104.230922527,
+          "equivalentSquareSidePixelsAt4k": 208.461845054,
+          "gameplayWeight": 1.65,
+          "shareOfBodyUvArea": 0.009315798,
+          "surfaceArea": 4.200732671,
+          "uvArea": 0.0025902
+        },
+        "Pod.NE.Anchor": {
+          "bounds": [
+            0.297142863,
+            0.011428571,
+            0.417142868,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 177.649068203,
+          "equivalentSquareSidePixelsAt4k": 355.298136406,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.027061556,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.007524298
+        },
+        "Pod.NW.Anchor": {
+          "bounds": [
+            0.439999998,
+            0.011428571,
+            0.560000002,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 177.649096066,
+          "equivalentSquareSidePixelsAt4k": 355.298192133,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.027061565,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.0075243
+        },
+        "Pod.SE.Anchor": {
+          "bounds": [
+            0.582857132,
+            0.011428571,
+            0.702857137,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 177.649076453,
+          "equivalentSquareSidePixelsAt4k": 355.298152906,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.027061559,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.007524298
+        },
+        "Pod.SW.Anchor": {
+          "bounds": [
+            0.725714266,
+            0.011428571,
+            0.845714271,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 177.649052662,
+          "equivalentSquareSidePixelsAt4k": 355.298105325,
+          "gameplayWeight": 1.25,
+          "shareOfBodyUvArea": 0.027061551,
+          "surfaceArea": 0.040232382,
+          "uvArea": 0.007524296
+        },
+        "Shell.NorthInner.Plate": {
+          "bounds": [
+            0.868571401,
+            0.011428571,
+            0.988571405,
+            0.13142857
+          ],
+          "equivalentSquareSidePixelsAt2k": 211.213103331,
+          "equivalentSquareSidePixelsAt4k": 422.426206662,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.038253274,
+          "surfaceArea": 0.109873653,
+          "uvArea": 0.010636085
+        },
+        "Shell.NorthOuter.Plate": {
+          "bounds": [
+            0.011428571,
+            0.154285714,
+            0.13142857,
+            0.274285704
+          ],
+          "equivalentSquareSidePixelsAt2k": 210.100464861,
+          "equivalentSquareSidePixelsAt4k": 420.200929722,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.037851311,
+          "surfaceArea": 0.264073354,
+          "uvArea": 0.010524322
+        },
+        "Shell.SouthInner.Plate": {
+          "bounds": [
+            0.154285714,
+            0.154285714,
+            0.274285704,
+            0.274285704
+          ],
+          "equivalentSquareSidePixelsAt2k": 211.213073802,
+          "equivalentSquareSidePixelsAt4k": 422.426147604,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.038253264,
+          "surfaceArea": 0.109873653,
+          "uvArea": 0.010636082
+        },
+        "Shell.SouthOuter.Plate": {
+          "bounds": [
+            0.297142863,
+            0.154285714,
+            0.417142838,
+            0.274285704
+          ],
+          "equivalentSquareSidePixelsAt2k": 210.100489264,
+          "equivalentSquareSidePixelsAt4k": 420.200978529,
+          "gameplayWeight": 1.55,
+          "shareOfBodyUvArea": 0.03785132,
+          "surfaceArea": 0.264073354,
+          "uvArea": 0.010524324
+        },
+        "Tower.Crown": {
+          "bounds": [
+            0.582857132,
+            0.297142863,
+            0.702857137,
+            0.417142868
+          ],
+          "equivalentSquareSidePixelsAt2k": 163.98439844,
+          "equivalentSquareSidePixelsAt4k": 327.968796879,
+          "gameplayWeight": 1.5,
+          "shareOfBodyUvArea": 0.023058548,
+          "surfaceArea": 0.339604518,
+          "uvArea": 0.006411286
+        },
+        "Tower.Hatch.North.Leaf": {
+          "bounds": [
+            0.725714266,
+            0.297142863,
+            0.845714271,
+            0.417142868
+          ],
+          "equivalentSquareSidePixelsAt2k": 198.716465959,
+          "equivalentSquareSidePixelsAt4k": 397.432931919,
+          "gameplayWeight": 1.45,
+          "shareOfBodyUvArea": 0.033860597,
+          "surfaceArea": 0.158857642,
+          "uvArea": 0.009414729
+        },
+        "Tower.Hatch.South.Leaf": {
+          "bounds": [
+            0.868571401,
+            0.297142863,
+            0.988571405,
+            0.417142838
+          ],
+          "equivalentSquareSidePixelsAt2k": 198.716484209,
+          "equivalentSquareSidePixelsAt4k": 397.432968418,
+          "gameplayWeight": 1.45,
+          "shareOfBodyUvArea": 0.033860603,
+          "surfaceArea": 0.158857642,
+          "uvArea": 0.00941473
+        },
+        "Tower.UpperKeep": {
+          "bounds": [
+            0.011428571,
+            0.439999998,
+            0.13142857,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 163.533624501,
+          "equivalentSquareSidePixelsAt4k": 327.067249002,
+          "gameplayWeight": 1.5,
+          "shareOfBodyUvArea": 0.022931952,
+          "surfaceArea": 0.482136798,
+          "uvArea": 0.006376087
+        },
+        "Tower.Vane.01.Armor": {
+          "bounds": [
+            0.154285714,
+            0.439999998,
+            0.274285704,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354929986,
+          "equivalentSquareSidePixelsAt4k": 414.709859971,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868514,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.010251061
+        },
+        "Tower.Vane.01.Barrel": {
+          "bounds": [
+            0.297142863,
+            0.439999998,
+            0.417142868,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 201.750202874,
+          "equivalentSquareSidePixelsAt4k": 403.500405747,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.034902365,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.009704386
+        },
+        "Tower.Vane.02.Armor": {
+          "bounds": [
+            0.439999998,
+            0.439999998,
+            0.560000002,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.35497436,
+          "equivalentSquareSidePixelsAt4k": 414.70994872,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868529,
+          "surfaceArea": 0.025492848,
+          "uvArea": 0.010251066
+        },
+        "Tower.Vane.02.Barrel": {
+          "bounds": [
+            0.582857132,
+            0.439999998,
+            0.702857137,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 202.135465992,
+          "equivalentSquareSidePixelsAt4k": 404.270931984,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.035035792,
+          "surfaceArea": 0.022535911,
+          "uvArea": 0.009741484
+        },
+        "Tower.Vane.03.Armor": {
+          "bounds": [
+            0.725714266,
+            0.439999998,
+            0.845714271,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354887089,
+          "equivalentSquareSidePixelsAt4k": 414.709774178,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868498,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.010251057
+        },
+        "Tower.Vane.03.Barrel": {
+          "bounds": [
+            0.868571401,
+            0.439999998,
+            0.988571405,
+            0.560000002
+          ],
+          "equivalentSquareSidePixelsAt2k": 203.548652649,
+          "equivalentSquareSidePixelsAt4k": 407.097305298,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.035527395,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.009878171
+        },
+        "Tower.Vane.04.Armor": {
+          "bounds": [
+            0.011428571,
+            0.582857132,
+            0.13142857,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354939955,
+          "equivalentSquareSidePixelsAt4k": 414.709879911,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868517,
+          "surfaceArea": 0.025492848,
+          "uvArea": 0.010251062
+        },
+        "Tower.Vane.04.Barrel": {
+          "bounds": [
+            0.154285714,
+            0.582857132,
+            0.274285704,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.161391392,
+          "equivalentSquareSidePixelsAt4k": 414.322782783,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.036799722,
+          "surfaceArea": 0.022535911,
+          "uvArea": 0.010231934
+        },
+        "Tower.Vane.05.Armor": {
+          "bounds": [
+            0.297142863,
+            0.582857132,
+            0.417142868,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354949475,
+          "equivalentSquareSidePixelsAt4k": 414.70989895,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868521,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.010251063
+        },
+        "Tower.Vane.05.Barrel": {
+          "bounds": [
+            0.439999998,
+            0.582857132,
+            0.560000002,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 203.548732724,
+          "equivalentSquareSidePixelsAt4k": 407.097465448,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.035527423,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.009878179
+        },
+        "Tower.Vane.06.Armor": {
+          "bounds": [
+            0.582857132,
+            0.582857132,
+            0.702857137,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354908218,
+          "equivalentSquareSidePixelsAt4k": 414.709816437,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868506,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.010251059
+        },
+        "Tower.Vane.06.Barrel": {
+          "bounds": [
+            0.725714266,
+            0.582857132,
+            0.845714271,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.192241109,
+          "equivalentSquareSidePixelsAt4k": 414.384482218,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.036810683,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.010234982
+        },
+        "Tower.Vane.07.Armor": {
+          "bounds": [
+            0.868571401,
+            0.582857132,
+            0.988571405,
+            0.702857137
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354881519,
+          "equivalentSquareSidePixelsAt4k": 414.709763039,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868496,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.010251056
+        },
+        "Tower.Vane.07.Barrel": {
+          "bounds": [
+            0.011428571,
+            0.725714266,
+            0.13142857,
+            0.845714271
+          ],
+          "equivalentSquareSidePixelsAt2k": 203.548727777,
+          "equivalentSquareSidePixelsAt4k": 407.097455554,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.035527421,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.009878179
+        },
+        "Tower.Vane.08.Armor": {
+          "bounds": [
+            0.154285714,
+            0.725714266,
+            0.274285704,
+            0.845714271
+          ],
+          "equivalentSquareSidePixelsAt2k": 207.354954944,
+          "equivalentSquareSidePixelsAt4k": 414.709909887,
+          "gameplayWeight": 1.4,
+          "shareOfBodyUvArea": 0.036868523,
+          "surfaceArea": 0.025492849,
+          "uvArea": 0.010251064
+        },
+        "Tower.Vane.08.Barrel": {
+          "bounds": [
+            0.297142863,
+            0.725714266,
+            0.417142868,
+            0.845714271
+          ],
+          "equivalentSquareSidePixelsAt2k": 204.816379496,
+          "equivalentSquareSidePixelsAt4k": 409.632758993,
+          "gameplayWeight": 1.15,
+          "shareOfBodyUvArea": 0.035971311,
+          "surfaceArea": 0.022535912,
+          "uvArea": 0.0100016
+        }
+      }
+    },
+    "strictAtlas": {
+      "bodyTriangles": 29898,
+      "bounds": [
+        0.0,
+        0.0,
+        1.0,
+        1.0
+      ],
+      "ignoredMicroOverlap": {
+        "boundedUvArea": 0,
+        "boundedUvAreaRatio": 0.0,
+        "maximumBoundedUvAreaRatio": 0.0001,
+        "maximumPairs": 2048,
+        "maximumTriangleArea": 1e-07,
+        "maximumUniqueTriangleSpatialAreaNormalizedToModelSpanSquared": 0.001,
+        "pairs": 0,
+        "uniqueTriangleSpatialArea": 0,
+        "uniqueTriangleSpatialAreaNormalizedToModelSpanSquared": 0.0,
+        "uniqueTriangles": 0,
+        "withinBounds": true
+      },
+      "ignoredMicroUvSurface": {
+        "maximumSpatialAreaNormalizedToModelSpanSquared": 0.001,
+        "maximumTriangles": 512,
+        "maximumUvAreaRatio": 1e-05,
+        "spatialArea": 1.88472499300619e-08,
+        "spatialAreaNormalizedToModelSpanSquared": 1.555722720245385e-08,
+        "triangleAreaThreshold": 1e-09,
+        "triangles": 96,
+        "uvArea": 0.0,
+        "uvAreaRatio": 0.0,
+        "withinBounds": true
+      },
+      "layer": "UVMap",
+      "overlapPairs": 0
+    },
+    "targets": {
+      "desiredBodyCoverage": 0.7,
+      "minimumHullAreaGain": 12.0,
+      "minimumHullCoverage": 0.4,
+      "minimumPaddedBodyCoverage": 0.64
+    },
+    "teamMeshes": {
+      "atlasEligible": false,
+      "count": 8,
+      "names": [
+        "TeamAccent.Shell.NorthInner.Emitter",
+        "TeamAccent.Shell.NorthOuter.Emitter",
+        "TeamAccent.Shell.SouthInner.Emitter",
+        "TeamAccent.Shell.SouthOuter.Emitter",
+        "TeamAccent.Tower.Crown.01.Emitter",
+        "TeamAccent.Tower.Crown.02.Emitter",
+        "TeamAccent.Tower.Crown.03.Emitter",
+        "TeamAccent.Tower.Crown.04.Emitter"
+      ],
+      "uploadEligible": false,
+      "uvAndGeometryPreservedInAnimatedAuthority": true
+    }
+  }
+}

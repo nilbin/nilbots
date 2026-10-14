@@ -1,0 +1,119 @@
+{
+  "provider": "Meshy",
+  "endpoint": "POST /openapi/v1/retexture",
+  "taskId": "019fb8b1-fddd-75c6-b79c-9b763704941a",
+  "lookId": "aegis-tortoise-violet",
+  "purpose": "Meshy 6 2K PBR Violet Citadel texture-only donor for aegis-tortoise-ga-002",
+  "credentialStore": {
+    "platform": "macOS Keychain",
+    "service": "nilbots.meshy.api",
+    "valueRecorded": false
+  },
+  "artifacts": [
+    {
+      "file": "provider-preview.png",
+      "bytes": 88590,
+      "sha256": "56eb81d80d31f6f703bcec24c8cb645547fe125d5defce78f27feea5b2e541e8",
+      "contentType": "image/png"
+    },
+    {
+      "file": "raw-retextured-model.glb",
+      "bytes": 7719432,
+      "sha256": "1891a86aff6b7283a2542b7c08d4c9e94671470bc27f9f71d500efb5307dfcee",
+      "contentType": "application/octet-stream"
+    },
+    {
+      "file": "texture-0-base-color.png",
+      "bytes": 3933445,
+      "sha256": "fac9e38ea8393747f54a7e68483e4f988fb39bdd112e208820801fc7414929b4",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-emission.png",
+      "bytes": 143363,
+      "sha256": "efd12da97619ade36781db2b85ca4f17ab62cf09ba25eff34faacb62161ee986",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-metallic.png",
+      "bytes": 476293,
+      "sha256": "fbde849c9be6441f8d1a56abdd32113c509fe494f90daa798177be7edc8a6a5c",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-normal.png",
+      "bytes": 5043959,
+      "sha256": "2bb9490110d47ae858d2a0f4f47eb9db80d77ec7af1d179d27cd3801c0008909",
+      "contentType": "image/png"
+    },
+    {
+      "file": "texture-0-roughness.png",
+      "bytes": 512497,
+      "sha256": "c631bec9cb7f65ea580c532d283186019694ae0d2b7de4e5fdccd15bf97027c5",
+      "contentType": "image/png"
+    }
+  ],
+  "schemaVersion": 1,
+  "state": "ARCHIVED",
+  "submittedAt": "2026-07-31T15:01:40.123Z",
+  "balanceBefore": 605,
+  "input": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "inputModel": {
+    "kind": "model",
+    "file": "art/class-models/masters/aegis-tortoise-ga-002/aegis-tortoise-texture-upload.glb",
+    "bytes": 2046284,
+    "sha256": "88e1ad5092685b8c291791f5c7df8d693cd1b7c7b33f6e397692b9b3e96c47d1",
+    "mimeType": "application/octet-stream",
+    "glbVersion": 2,
+    "declaredLength": 2046284,
+    "transport": "local-glb-data-uri"
+  },
+  "style": {
+    "kind": "text",
+    "prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad muted violet powder-coated fortress armor on outer cassettes and crown plates, pale matte pewter central hull and tower stages, medium gunmetal barrels and joints, charcoal only in recesses. Strong clean value blocks, satin-matte metal, controlled roughness and sparse broad edge wear. Violet is fixed non-emissive hull color. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+  },
+  "settings": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ]
+  },
+  "sanitizedRequest": {
+    "ai_model": "meshy-6",
+    "enable_original_uv": true,
+    "enable_pbr": true,
+    "texture_resolution": "2k",
+    "remove_lighting": true,
+    "target_formats": [
+      "glb"
+    ],
+    "model_url": "<redacted-data-uri>",
+    "text_style_prompt": "Stylized top-down hard-surface arena game asset, texture only. Broad muted violet powder-coated fortress armor on outer cassettes and crown plates, pale matte pewter central hull and tower stages, medium gunmetal barrels and joints, charcoal only in recesses. Strong clean value blocks, satin-matte metal, controlled roughness and sparse broad edge wear. Violet is fixed non-emissive hull color. Team-light surfaces stay flat neutral white. No blue/red paint, black-dominant hull, chrome, photoreal micro-detail, dirt, text, logos, decals, glossy clearcoat or baked lighting. Preserve original UVs."
+  },
+  "expectedMaxCredits": 10,
+  "requestFingerprint": "9c1741c65141ea2ab21ea7166df3cbc090dcd4b20ec704fad691129e0f0e5c4a",
+  "status": "SUCCEEDED",
+  "progress": 100,
+  "lastPolledAt": "2026-07-31T15:03:54.707Z",
+  "consumedCredits": 10,
+  "finishedAt": "2026-07-31T15:03:54.715Z",
+  "refundPolicy": null,
+  "creditCeiling": 10,
+  "creditCeilingVerified": true,
+  "balanceAfter": 595,
+  "observedBalanceDelta": 10,
+  "assetRetentionNote": "Meshy API outputs expire after at most three days; local artifacts and hashes are the durable record."
+}
