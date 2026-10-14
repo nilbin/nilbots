@@ -1,0 +1,501 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-shell",
+  "verdict": "evaluation-only-not-runtime",
+  "evaluator": {
+    "file": "evaluate_provider_surface_transfer.py",
+    "sha256": "0439384f74fc4d4964b1fbb8e11f039eb1adbd2dd3e8d8830640de457ab9c656",
+    "blenderRequired": "5.2.0",
+    "blenderActual": "5.2.0 LTS",
+    "paidCalls": 0,
+    "sourceBlendSaved": false
+  },
+  "source": {
+    "file": "aegis-tortoise-shell-editable.blend",
+    "bytes": 998838,
+    "sha256": "d67e22becd0290e3e784ed318e9ee2b9e4203e257e8ede5beb0178947c4d408c",
+    "armature": "Aegis.Shell.Rig"
+  },
+  "provider": {
+    "taskId": "019fb22d-c313-76f8-8eca-91ccbb46afd0",
+    "relativeDirectory": "aegis-tortoise-shell/019fb22d-c313-76f8-8eca-91ccbb46afd0",
+    "files": {
+      "raw-model.glb": {
+        "bytes": 51000780,
+        "sha256": "8a0a0129cc57afdf12a0c0e70159f2acd547b426501941330e4712d06b78c5ec"
+      },
+      "texture-0-base-color.png": {
+        "bytes": 28696588,
+        "sha256": "9a4749049079988989c2a1477584c05f8a4c5a5d7df7d53f468417eede9e8d75"
+      },
+      "texture-0-emission.png": {
+        "bytes": 464514,
+        "sha256": "836d9dc81598d8a73fd20647a43d30be5b9d18c6f3eed15353b506f883e82dd5"
+      },
+      "texture-0-metallic.png": {
+        "bytes": 636928,
+        "sha256": "de771b0ea97789f124a68bb9fa3bdfa646a161706ccb130da4c76d3fc808a1f8"
+      },
+      "texture-0-normal.png": {
+        "bytes": 33028364,
+        "sha256": "6095d6dc215d0fc8586a3cb918761bb235c85d57f1f94213e642104a44c82239"
+      },
+      "texture-0-roughness.png": {
+        "bytes": 1611814,
+        "sha256": "e5fc0e88a4d9649755db110e0dbf9ab43c8159ef6ee0fd5048389470c8f86b91"
+      }
+    },
+    "networkCalls": 0
+  },
+  "authorityTransform": {
+    "provider": {
+      "coordinateSystem": "imported Blender Z-up",
+      "authorityYawDegrees": 180.0,
+      "uniformScale": 0.5264958769128301,
+      "matrixAfterYaw": [
+        [
+          0.526495874,
+          0.0,
+          0.0,
+          -0.00049754
+        ],
+        [
+          0.0,
+          0.526495874,
+          0.0,
+          0.000613102
+        ],
+        [
+          0.0,
+          0.0,
+          0.526495874,
+          0.127731055
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "combinedAuthorityMatrix": [
+        [
+          -0.526495874,
+          -4.6e-08,
+          0.0,
+          -0.00049754
+        ],
+        [
+          4.6e-08,
+          -0.526495874,
+          0.0,
+          0.000613102
+        ],
+        [
+          0.0,
+          0.0,
+          0.526495874,
+          0.127731055
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "boundsAfterYawBeforeFit": {
+        "minimum": [
+          -0.948730052,
+          -0.707183063,
+          -0.242605999
+        ],
+        "maximum": [
+          0.950620055,
+          0.704854071,
+          0.242216006
+        ]
+      },
+      "boundsAfter": {
+        "minimum": [
+          -0.5,
+          -0.371715873,
+          0.0
+        ],
+        "maximum": [
+          0.5,
+          0.371715873,
+          0.255256772
+        ]
+      },
+      "rule": "authority yaw, then uniform one-tile planform; XY centred; minimum Z floored"
+    },
+    "authoredTarget": {
+      "coordinateSystem": "Blender Z-up",
+      "yawDegrees": 0,
+      "uniformScale": 1.0045642507927002,
+      "matrix": [
+        [
+          1.004564285,
+          0.0,
+          0.0,
+          -0.000295716
+        ],
+        [
+          0.0,
+          1.004564285,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.004564285,
+          -0.002009123
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "boundsBefore": {
+        "minimum": [
+          -0.497433871,
+          -0.368319571,
+          0.001999995
+        ],
+        "maximum": [
+          0.498022616,
+          0.368319571,
+          0.317000002
+        ]
+      },
+      "boundsAfter": {
+        "minimum": [
+          -0.5,
+          -0.37000069,
+          0.0
+        ],
+        "maximum": [
+          0.50000006,
+          0.37000069,
+          0.316437751
+        ]
+      },
+      "rule": "uniform one-tile planform; XY centred; minimum Z floored"
+    }
+  },
+  "staticLowTarget": {
+    "sourceObjects": [
+      "Shell.Guard.BronzeFrame",
+      "Shell.Guard.NavyFace",
+      "Shell.Guard.Recess",
+      "Shell.Hub.Armor",
+      "Shell.Hub.BronzeKey.North",
+      "Shell.Hub.BronzeKey.South",
+      "Shell.Hub.BronzeKey.West",
+      "Shell.Hub.BronzeRing",
+      "Shell.Hub.ClassEnergy",
+      "Shell.Hub.ClassEnergy.Inner",
+      "Shell.Hub.CoreBronzeBezel",
+      "Shell.Hub.CoreInnerSeal",
+      "Shell.Hub.CoreSocket",
+      "Shell.Hub.GraphiteSeal",
+      "Shell.Hub.LowerRing",
+      "Shell.Hub.OpenArmor.North",
+      "Shell.Hub.OpenArmor.North.Inset",
+      "Shell.Hub.OpenArmor.South",
+      "Shell.Hub.OpenArmor.South.Inset",
+      "Shell.Hub.OpenArmor.West",
+      "Shell.Hub.OpenArmor.West.Inset",
+      "Shell.Hub.RearBand.North",
+      "Shell.Hub.RearBand.North.Fastener.01",
+      "Shell.Hub.RearBand.North.Fastener.02",
+      "Shell.Hub.RearBand.South",
+      "Shell.Hub.RearBand.South.Fastener.01",
+      "Shell.Hub.RearBand.South.Fastener.02",
+      "Shell.Root.LowerArmor",
+      "Shell.Root.Underbody",
+      "Shell.Support.North.ArmorCap",
+      "Shell.Support.North.Foot",
+      "Shell.Support.North.ForkA",
+      "Shell.Support.North.ForkB",
+      "Shell.Support.North.Housing",
+      "Shell.Support.North.Lock",
+      "Shell.Support.North.Piston",
+      "Shell.Support.South.ArmorCap",
+      "Shell.Support.South.Foot",
+      "Shell.Support.South.ForkA",
+      "Shell.Support.South.ForkB",
+      "Shell.Support.South.Housing",
+      "Shell.Support.South.Lock",
+      "Shell.Support.South.Piston",
+      "Shell.Support.West.ArmorCap",
+      "Shell.Support.West.Foot",
+      "Shell.Support.West.ForkA",
+      "Shell.Support.West.ForkB",
+      "Shell.Support.West.Housing",
+      "Shell.Support.West.Lock",
+      "Shell.Support.West.Piston",
+      "Shell.TeamChannel.GuardNorth",
+      "Shell.TeamChannel.GuardSouth",
+      "Shell.TeamChannel.WestCentre",
+      "Shell.TeamInlay.GuardNorth",
+      "Shell.TeamInlay.GuardSouth",
+      "Shell.TeamInlay.WestCentre"
+    ],
+    "sourceObjectCount": 56,
+    "evaluatedVerticesBeforeLowTarget": 8064,
+    "evaluatedTrianglesBeforeLowTarget": 15920,
+    "requestedTriangleCeiling": 15920,
+    "trianglesBefore": 15920,
+    "trianglesAfter": 15920,
+    "verticesAfter": 8064,
+    "method": "deterministic collapse when required, followed by explicit triangulation",
+    "idleAction": "AegisShell_Idle",
+    "idleFrame": 1,
+    "topologyAndUvSha256": "bada272a4059700a2c0e76dbde976a27291ecbd702618dd50daf95fbc07e9069",
+    "sourcePolicy": "only non-REVIEW meshes parented beneath the expected authored rig were evaluated before provider import"
+  },
+  "uvAtlas": {
+    "layer": "ProviderSurfaceTransferUV",
+    "operator": "bpy.ops.uv.smart_project",
+    "angleLimitDegrees": 66,
+    "marginMethod": "FRACTION",
+    "rotateMethod": "AXIS_ALIGNED_Y",
+    "islandMargin": 0.018,
+    "areaWeight": 0.0,
+    "correctAspect": true,
+    "scaleToBounds": true
+  },
+  "cage": {
+    "kind": "explicit expanded same-topology cage",
+    "distance": 0.06,
+    "vertices": 8064,
+    "polygons": 15920,
+    "targetVertices": 8064,
+    "targetPolygons": 15920
+  },
+  "bake": {
+    "resolution": [
+      512,
+      512
+    ],
+    "engine": "Cycles CPU",
+    "samples": 1,
+    "selectedToActive": true,
+    "cageObject": "EVAL.ExplicitSameTopologyCage",
+    "cageExtrusionSetting": 0.0,
+    "maxRayDistance": 0.24,
+    "marginPixels": 12,
+    "normalSpace": "TANGENT",
+    "outputs": {
+      "basecolor": {
+        "file": "basecolor.png",
+        "bytes": 156603,
+        "sha256": "2aa97e6fb37b47292f26c2e7c7f71bc1fb982d879f168c42785ebf295a17dd93",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "sRGB"
+      },
+      "normal": {
+        "file": "normal.png",
+        "bytes": 204145,
+        "sha256": "a900c2b6793b2aa2e2bfa6aa305e5c9c79a9eae45948d8b8409b13686d084877",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      },
+      "roughness": {
+        "file": "roughness.png",
+        "bytes": 81960,
+        "sha256": "c48c43cda28bc454e0f4b0853dcca321732430b6c68a0732db02e9c54f0f8954",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      },
+      "metallic": {
+        "file": "metallic.png",
+        "bytes": 79865,
+        "sha256": "67690a6a01a4ec2a3e0847531b83406fa360f37550510679b4189c35346f361e",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      },
+      "coverage": {
+        "file": "coverage.png",
+        "bytes": 29427,
+        "sha256": "1f2484a2d98d0829639ca886a33539bbd8b773d4db5d40990d89ee34bdfbbd34",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      }
+    }
+  },
+  "metrics": {
+    "uvAtlas": {
+      "totalPixels": 262144,
+      "occupiedPixels": 6156,
+      "occupiedPercent": 2.34832763671875
+    },
+    "coverage": {
+      "coveredOccupiedPixels": 6027,
+      "uncoveredOccupiedPixels": 129,
+      "uncoveredPercentOfOccupied": 2.0955165692007798,
+      "threshold": "coverage RGB max >= 0.5"
+    },
+    "cyanContamination": {
+      "cyanCoveredPixels": 286,
+      "cyanPercentOfCovered": 4.745312759250042,
+      "classification": "B>=0.35, G>=0.25, B>=1.35R, G>=1.25R, |B-G|<=0.45 in baked image working values"
+    }
+  },
+  "review58Degrees": {
+    "artifact": {
+      "file": "baked-58deg.png",
+      "bytes": 752505,
+      "sha256": "04678a726309e3d3e459ac67d92211d255e583ddca668a69b9969bdfe2a3bf72",
+      "dimensions": [
+        768,
+        768
+      ]
+    },
+    "rig": {
+      "renderer": "Blender EEVEE",
+      "resolution": [
+        768,
+        768
+      ],
+      "viewTransformLook": "AgX - Medium High Contrast",
+      "exposure": -1.15,
+      "world": {
+        "color": "#0b1020",
+        "strength": 0.45
+      },
+      "floor": {
+        "color": "#252c36",
+        "metallic": 0.42,
+        "roughness": 0.72
+      },
+      "camera": {
+        "fovDegrees": 42,
+        "distance": 1.88,
+        "pitchDegrees": 58,
+        "location": [
+          -0.079999998,
+          0.996248245,
+          1.59433043
+        ],
+        "target": [
+          0.02,
+          0,
+          0.13
+        ]
+      },
+      "lights": [
+        {
+          "name": "Key",
+          "location": [
+            -1.6,
+            -1.8,
+            2.9
+          ],
+          "energy": 320,
+          "size": 3.0,
+          "color": [
+            0.9,
+            0.95,
+            1.0
+          ],
+          "target": [
+            0,
+            0,
+            0.12
+          ]
+        },
+        {
+          "name": "Fill",
+          "location": [
+            1.8,
+            0.8,
+            1.1
+          ],
+          "energy": 135,
+          "size": 2.2,
+          "color": [
+            0.34,
+            0.48,
+            0.72
+          ],
+          "target": [
+            0,
+            0,
+            0.12
+          ]
+        },
+        {
+          "name": "Rim",
+          "location": [
+            -0.8,
+            1.8,
+            1.8
+          ],
+          "energy": 190,
+          "size": 1.5,
+          "color": [
+            0.86,
+            0.64,
+            0.36
+          ],
+          "target": [
+            0,
+            0,
+            0.15
+          ]
+        },
+        {
+          "name": "SideFill",
+          "location": [
+            0,
+            -2.0,
+            1.25
+          ],
+          "energy": 125,
+          "size": 2.0,
+          "color": [
+            0.72,
+            0.82,
+            1.0
+          ],
+          "target": [
+            0,
+            0,
+            0.11
+          ]
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "directory": "aegis-tortoise-shell",
+    "sourceOrCandidateModified": false
+  },
+  "limitations": [
+    "Provider texture semantics are spatially tied to an inferred provider shape; this transfer is diagnostic evidence, not an accepted authored skin.",
+    "Independent authority normalization establishes scale, centre, floor, and yaw but cannot establish semantic correspondence between unlike panels.",
+    "The joined target intentionally discards rig and material partitions; no evaluation object is suitable for runtime installation.",
+    "Coverage and cyan contamination are texture-space diagnostics; the retained 58-degree render remains the perceptual family gate."
+  ]
+}

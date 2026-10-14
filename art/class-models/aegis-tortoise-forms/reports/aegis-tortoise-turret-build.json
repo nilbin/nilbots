@@ -1,0 +1,422 @@
+{
+  "assetId": "aegis-tortoise-turret",
+  "sourceAuthority": {
+    "svg": "web/src/assets/class-looks/aegis-tortoise-turret/sprite.svg",
+    "sha256": "f2a471ce82285a8bba848e193e4d3a3e4d23567ddf6da2777f811c230a12dd04",
+    "planform": "four exact 90-degree SVG sectors"
+  },
+  "providerReference": {
+    "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6",
+    "relative": "aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6/raw-model.glb",
+    "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac",
+    "bytes": 50525092
+  },
+  "authoredConstruction": {
+    "topology": "procedural authored meshes; no provider topology",
+    "objects": 133,
+    "uniqueVertices": 6416,
+    "uniqueTriangles": 12676,
+    "boundsBlenderZUp": {
+      "minimum": [
+        -0.498289,
+        -0.498289,
+        0.002
+      ],
+      "maximum": [
+        0.498289,
+        0.498289,
+        0.267
+      ]
+    },
+    "boundsRuntimeYUp": {
+      "minimum": [
+        -0.498289,
+        0.002,
+        -0.498289
+      ],
+      "maximum": [
+        0.498289,
+        0.267,
+        0.498289
+      ]
+    },
+    "planformSpan": 0.996578,
+    "height": 0.265,
+    "heightToPlanform": 0.26591,
+    "targetHeight": 0.26
+  },
+  "hierarchy": {
+    "armature": "Aegis.Turret.Rig",
+    "bones": [
+      "root",
+      "hub",
+      "arm_east",
+      "support_east",
+      "emitter_east",
+      "arm_north",
+      "support_north",
+      "emitter_north",
+      "arm_west",
+      "support_west",
+      "emitter_west",
+      "arm_south",
+      "support_south",
+      "emitter_south"
+    ],
+    "teamNodes": [
+      "Turret.Arm.East.TeamInlay",
+      "Turret.Arm.North.TeamInlay",
+      "Turret.Arm.West.TeamInlay",
+      "Turret.Arm.South.TeamInlay"
+    ]
+  },
+  "animations": [
+    {
+      "key": "deploy",
+      "name": "AegisTurret_Deploy",
+      "frames": [
+        1,
+        25
+      ]
+    },
+    {
+      "key": "idle",
+      "name": "AegisTurret_Idle",
+      "frames": [
+        1,
+        49
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "NB_CLASS_ENERGY_CYAN",
+      "images": []
+    },
+    {
+      "name": "NB_DARK_CONTACT",
+      "images": []
+    },
+    {
+      "name": "NB_GRAPHITE_MECHANICAL",
+      "images": [
+        "Aegis.Graphite.Albedo",
+        "Aegis.Graphite.MetallicRoughness",
+        "Aegis.Graphite.Normal"
+      ]
+    },
+    {
+      "name": "NB_NAVY_ARMOR",
+      "images": [
+        "Aegis.Navy.Albedo",
+        "Aegis.Navy.MetallicRoughness",
+        "Aegis.Navy.Normal"
+      ]
+    },
+    {
+      "name": "NB_TEAM_ACCENT",
+      "nilbotsRole": "team-accent",
+      "images": []
+    },
+    {
+      "name": "NB_WEATHERED_BRONZE",
+      "images": [
+        "Aegis.Bronze.Albedo",
+        "Aegis.Bronze.MetallicRoughness",
+        "Aegis.Bronze.Normal"
+      ]
+    }
+  ],
+  "symmetry": {
+    "anglesDegrees": [
+      0,
+      90,
+      180,
+      270
+    ],
+    "canonicalMeshGroups": {
+      "Turret.Arm.East.OuterBase": {
+        "nodes": [
+          "Turret.Arm.East.OuterBase",
+          "Turret.Arm.North.OuterBase",
+          "Turret.Arm.West.OuterBase",
+          "Turret.Arm.South.OuterBase"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.InnerArmor": {
+        "nodes": [
+          "Turret.Arm.East.InnerArmor",
+          "Turret.Arm.North.InnerArmor",
+          "Turret.Arm.West.InnerArmor",
+          "Turret.Arm.South.InnerArmor"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.NavyShoulder": {
+        "nodes": [
+          "Turret.Arm.East.NavyShoulder",
+          "Turret.Arm.North.NavyShoulder",
+          "Turret.Arm.West.NavyShoulder",
+          "Turret.Arm.South.NavyShoulder"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.Pod": {
+        "nodes": [
+          "Turret.Arm.East.Pod",
+          "Turret.Arm.North.Pod",
+          "Turret.Arm.West.Pod",
+          "Turret.Arm.South.Pod"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.BronzeFace": {
+        "nodes": [
+          "Turret.Arm.East.BronzeFace",
+          "Turret.Arm.North.BronzeFace",
+          "Turret.Arm.West.BronzeFace",
+          "Turret.Arm.South.BronzeFace"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.TeamChannel": {
+        "nodes": [
+          "Turret.Arm.East.TeamChannel",
+          "Turret.Arm.North.TeamChannel",
+          "Turret.Arm.West.TeamChannel",
+          "Turret.Arm.South.TeamChannel"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.TeamInlay": {
+        "nodes": [
+          "Turret.Arm.East.TeamInlay",
+          "Turret.Arm.North.TeamInlay",
+          "Turret.Arm.West.TeamInlay",
+          "Turret.Arm.South.TeamInlay"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.Underbeam": {
+        "nodes": [
+          "Turret.Arm.East.Underbeam",
+          "Turret.Arm.North.Underbeam",
+          "Turret.Arm.West.Underbeam",
+          "Turret.Arm.South.Underbeam"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.PistonNorth": {
+        "nodes": [
+          "Turret.Arm.East.PistonNorth",
+          "Turret.Arm.North.PistonNorth",
+          "Turret.Arm.West.PistonNorth",
+          "Turret.Arm.South.PistonNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.PistonSouth": {
+        "nodes": [
+          "Turret.Arm.East.PistonSouth",
+          "Turret.Arm.North.PistonSouth",
+          "Turret.Arm.West.PistonSouth",
+          "Turret.Arm.South.PistonSouth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.PodRailNorth": {
+        "nodes": [
+          "Turret.Arm.East.PodRailNorth",
+          "Turret.Arm.North.PodRailNorth",
+          "Turret.Arm.West.PodRailNorth",
+          "Turret.Arm.South.PodRailNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.PodRailSouth": {
+        "nodes": [
+          "Turret.Arm.East.PodRailSouth",
+          "Turret.Arm.North.PodRailSouth",
+          "Turret.Arm.West.PodRailSouth",
+          "Turret.Arm.South.PodRailSouth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.HingeNorth": {
+        "nodes": [
+          "Turret.Arm.East.HingeNorth",
+          "Turret.Arm.North.HingeNorth",
+          "Turret.Arm.West.HingeNorth",
+          "Turret.Arm.South.HingeNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.HingeSouth": {
+        "nodes": [
+          "Turret.Arm.East.HingeSouth",
+          "Turret.Arm.North.HingeSouth",
+          "Turret.Arm.West.HingeSouth",
+          "Turret.Arm.South.HingeSouth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.OuterLock": {
+        "nodes": [
+          "Turret.Arm.East.OuterLock",
+          "Turret.Arm.North.OuterLock",
+          "Turret.Arm.West.OuterLock",
+          "Turret.Arm.South.OuterLock"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.RootBandNorth": {
+        "nodes": [
+          "Turret.Arm.East.RootBandNorth",
+          "Turret.Arm.North.RootBandNorth",
+          "Turret.Arm.West.RootBandNorth",
+          "Turret.Arm.South.RootBandNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.RootFastenerNorth": {
+        "nodes": [
+          "Turret.Arm.East.RootFastenerNorth",
+          "Turret.Arm.North.RootFastenerNorth",
+          "Turret.Arm.West.RootFastenerNorth",
+          "Turret.Arm.South.RootFastenerNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.RootBandSouth": {
+        "nodes": [
+          "Turret.Arm.East.RootBandSouth",
+          "Turret.Arm.North.RootBandSouth",
+          "Turret.Arm.West.RootBandSouth",
+          "Turret.Arm.South.RootBandSouth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.RootFastenerSouth": {
+        "nodes": [
+          "Turret.Arm.East.RootFastenerSouth",
+          "Turret.Arm.North.RootFastenerSouth",
+          "Turret.Arm.West.RootFastenerSouth",
+          "Turret.Arm.South.RootFastenerSouth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.Fastener.01": {
+        "nodes": [
+          "Turret.Arm.East.Fastener.01",
+          "Turret.Arm.North.Fastener.01",
+          "Turret.Arm.West.Fastener.01",
+          "Turret.Arm.South.Fastener.01"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.Fastener.02": {
+        "nodes": [
+          "Turret.Arm.East.Fastener.02",
+          "Turret.Arm.North.Fastener.02",
+          "Turret.Arm.West.Fastener.02",
+          "Turret.Arm.South.Fastener.02"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.Fastener.03": {
+        "nodes": [
+          "Turret.Arm.East.Fastener.03",
+          "Turret.Arm.North.Fastener.03",
+          "Turret.Arm.West.Fastener.03",
+          "Turret.Arm.South.Fastener.03"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.Fastener.04": {
+        "nodes": [
+          "Turret.Arm.East.Fastener.04",
+          "Turret.Arm.North.Fastener.04",
+          "Turret.Arm.West.Fastener.04",
+          "Turret.Arm.South.Fastener.04"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.WebNorth": {
+        "nodes": [
+          "Turret.Arm.East.WebNorth",
+          "Turret.Arm.North.WebNorth",
+          "Turret.Arm.West.WebNorth",
+          "Turret.Arm.South.WebNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Arm.East.WebSouth": {
+        "nodes": [
+          "Turret.Arm.East.WebSouth",
+          "Turret.Arm.North.WebSouth",
+          "Turret.Arm.West.WebSouth",
+          "Turret.Arm.South.WebSouth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Support.East.Foot": {
+        "nodes": [
+          "Turret.Support.East.Foot",
+          "Turret.Support.North.Foot",
+          "Turret.Support.West.Foot",
+          "Turret.Support.South.Foot"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Support.East.Lock": {
+        "nodes": [
+          "Turret.Support.East.Lock",
+          "Turret.Support.North.Lock",
+          "Turret.Support.West.Lock",
+          "Turret.Support.South.Lock"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Support.East.Housing": {
+        "nodes": [
+          "Turret.Support.East.Housing",
+          "Turret.Support.North.Housing",
+          "Turret.Support.West.Housing",
+          "Turret.Support.South.Housing"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Support.East.ForkNorth": {
+        "nodes": [
+          "Turret.Support.East.ForkNorth",
+          "Turret.Support.North.ForkNorth",
+          "Turret.Support.West.ForkNorth",
+          "Turret.Support.South.ForkNorth"
+        ],
+        "sharedMesh": true
+      },
+      "Turret.Support.East.ForkSouth": {
+        "nodes": [
+          "Turret.Support.East.ForkSouth",
+          "Turret.Support.North.ForkSouth",
+          "Turret.Support.West.ForkSouth",
+          "Turret.Support.South.ForkSouth"
+        ],
+        "sharedMesh": true
+      }
+    }
+  },
+  "artifacts": {
+    "glb": {
+      "path": "art/class-models/aegis-tortoise-forms/candidate/aegis-tortoise-turret.glb",
+      "bytes": 2327388,
+      "sha256": "34827c91d7bf1b5aaf7a2f21ffefa827d6e358d91a193006974a044f52c0330d"
+    },
+    "blend": {
+      "path": "art/class-models/aegis-tortoise-forms/source/aegis-tortoise-turret-editable.blend",
+      "bytes": 972743,
+      "sha256": "d67608277b32c70f0fcc89c078cd688b474b3b68c7c5d039c22a6b997e7f52e3"
+    }
+  }
+}

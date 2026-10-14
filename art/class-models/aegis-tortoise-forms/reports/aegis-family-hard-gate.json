@@ -1,0 +1,191 @@
+{
+  "schemaVersion": 1,
+  "verdict": "hard-family-gate-evidence",
+  "authority": "approved authored mobile Aegis rendered by the same Blender review rig",
+  "board": {
+    "file": "review/aegis-family-hard-gate.png",
+    "dimensions": [
+      1620,
+      1435
+    ],
+    "bytes": 2270430,
+    "sha256": "3e29be26cac87d81e8aa6046c78e72d20575aec991cdbf5e4131e5fc1f0c8d5a",
+    "fullReviewFramePixels": 512,
+    "gameSizeFramePixels": 192,
+    "resamplingKernel": "Lanczos3"
+  },
+  "rigInvariant": "All six source renders use the exact same camera, lights, floor, exposure, team colours, and one-tile fit from build_aegis_forms.py.",
+  "assets": [
+    {
+      "id": "aegis-tortoise",
+      "blue": {
+        "file": "review/family-reference/aegis-tortoise-mobile-gameplay-blue.png",
+        "sha256": "a9cd14ae13077bdbcbbecea36f0abba577e49b8e58a678af39f7c093d32a2fd9"
+      },
+      "red": {
+        "file": "review/family-reference/aegis-tortoise-mobile-gameplay-red.png",
+        "sha256": "c592c1b8b2fb3f2544c1df233c43f9a8aa13ee57247c22b83cd189d1d14f5076"
+      },
+      "teamDiffFull": {
+        "frameSize": [
+          768,
+          768
+        ],
+        "pixels": 589824,
+        "changedOver4": 511,
+        "changedOver4Percent": 0.086636,
+        "changedOver16": 474,
+        "changedOver16Percent": 0.080363,
+        "meanMaxChannelDelta255": 0.038077,
+        "maximumChannelDelta255": 97,
+        "changedBoundsOver4": {
+          "minimum": [
+            543,
+            93
+          ],
+          "maximum": [
+            582,
+            338
+          ]
+        }
+      },
+      "teamDiffGameSize": {
+        "frameSize": [
+          192,
+          192
+        ],
+        "pixels": 36864,
+        "changedOver4": 55,
+        "changedOver4Percent": 0.149197,
+        "changedOver16": 36,
+        "changedOver16Percent": 0.097656,
+        "meanMaxChannelDelta255": 0.043864,
+        "maximumChannelDelta255": 62,
+        "changedBoundsOver4": {
+          "minimum": [
+            135,
+            23
+          ],
+          "maximum": [
+            145,
+            85
+          ]
+        }
+      }
+    },
+    {
+      "id": "aegis-tortoise-shell",
+      "blue": {
+        "file": "review/aegis-tortoise-shell/gameplay-blue.png",
+        "sha256": "7ef2823a3b6e653cc122e219f12904c5c376e96fad19b59085a8d302ddda282c"
+      },
+      "red": {
+        "file": "review/aegis-tortoise-shell/gameplay-red.png",
+        "sha256": "beffde2a7a2892903564dcb2622d00b227601157a177dcd41cb489b6a1f88346"
+      },
+      "teamDiffFull": {
+        "frameSize": [
+          768,
+          768
+        ],
+        "pixels": 589824,
+        "changedOver4": 1883,
+        "changedOver4Percent": 0.319248,
+        "changedOver16": 1789,
+        "changedOver16Percent": 0.303311,
+        "meanMaxChannelDelta255": 0.160904,
+        "maximumChannelDelta255": 103,
+        "changedBoundsOver4": {
+          "minimum": [
+            235,
+            195
+          ],
+          "maximum": [
+            340,
+            467
+          ]
+        }
+      },
+      "teamDiffGameSize": {
+        "frameSize": [
+          192,
+          192
+        ],
+        "pixels": 36864,
+        "changedOver4": 162,
+        "changedOver4Percent": 0.439453,
+        "changedOver16": 132,
+        "changedOver16Percent": 0.358073,
+        "meanMaxChannelDelta255": 0.173394,
+        "maximumChannelDelta255": 64,
+        "changedBoundsOver4": {
+          "minimum": [
+            58,
+            48
+          ],
+          "maximum": [
+            84,
+            116
+          ]
+        }
+      }
+    },
+    {
+      "id": "aegis-tortoise-turret",
+      "blue": {
+        "file": "review/aegis-tortoise-turret/gameplay-blue.png",
+        "sha256": "242ca55fe35b35bbe2c4dca8d8e80ee97c940f992dcf28f4f309373175d96cac"
+      },
+      "red": {
+        "file": "review/aegis-tortoise-turret/gameplay-red.png",
+        "sha256": "73287f8ed4bd5699e633556ed47e3ee692083630abb86013d86ee92772c5efb1"
+      },
+      "teamDiffFull": {
+        "frameSize": [
+          768,
+          768
+        ],
+        "pixels": 589824,
+        "changedOver4": 4116,
+        "changedOver4Percent": 0.697835,
+        "changedOver16": 3917,
+        "changedOver16Percent": 0.664096,
+        "meanMaxChannelDelta255": 0.335168,
+        "maximumChannelDelta255": 107,
+        "changedBoundsOver4": {
+          "minimum": [
+            167,
+            188
+          ],
+          "maximum": [
+            629,
+            569
+          ]
+        }
+      },
+      "teamDiffGameSize": {
+        "frameSize": [
+          192,
+          192
+        ],
+        "pixels": 36864,
+        "changedOver4": 379,
+        "changedOver4Percent": 1.028103,
+        "changedOver16": 297,
+        "changedOver16Percent": 0.805664,
+        "meanMaxChannelDelta255": 0.362495,
+        "maximumChannelDelta255": 63,
+        "changedBoundsOver4": {
+          "minimum": [
+            41,
+            47
+          ],
+          "maximum": [
+            158,
+            143
+          ]
+        }
+      }
+    }
+  ]
+}

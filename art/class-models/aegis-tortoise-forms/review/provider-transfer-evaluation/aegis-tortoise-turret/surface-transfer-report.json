@@ -1,0 +1,578 @@
+{
+  "schemaVersion": 1,
+  "assetId": "aegis-tortoise-turret",
+  "verdict": "evaluation-only-not-runtime",
+  "evaluator": {
+    "file": "evaluate_provider_surface_transfer.py",
+    "sha256": "0439384f74fc4d4964b1fbb8e11f039eb1adbd2dd3e8d8830640de457ab9c656",
+    "blenderRequired": "5.2.0",
+    "blenderActual": "5.2.0 LTS",
+    "paidCalls": 0,
+    "sourceBlendSaved": false
+  },
+  "source": {
+    "file": "aegis-tortoise-turret-editable.blend",
+    "bytes": 981748,
+    "sha256": "3a0d599f2cd6a2af42d985881c42cf5c87c3d2d8483ba4c88ec82ff9ce5c1720",
+    "armature": "Aegis.Turret.Rig"
+  },
+  "provider": {
+    "taskId": "019fb232-6e09-787f-85cc-dbaea29fb9b6",
+    "relativeDirectory": "aegis-tortoise-turret/019fb232-6e09-787f-85cc-dbaea29fb9b6",
+    "files": {
+      "raw-model.glb": {
+        "bytes": 50525092,
+        "sha256": "a845f48ac9f0861c8ff2860de9c0dc79b0afa728794663f9d8ff70f7187f9cac"
+      },
+      "texture-0-base-color.png": {
+        "bytes": 32855923,
+        "sha256": "29418bafb2c80aad3e43b47c75e345ce7531e3f1df60eaa1292da198f38cf0ae"
+      },
+      "texture-0-emission.png": {
+        "bytes": 539286,
+        "sha256": "c74d8072aeecf211103c224efaaf9a5b35a404f2a4e846cded927231f6e18cba"
+      },
+      "texture-0-metallic.png": {
+        "bytes": 1002711,
+        "sha256": "1e733e1785d67d9973ab97c74227b787987ff0491bb7c7e4e10c984d8d9939bf"
+      },
+      "texture-0-normal.png": {
+        "bytes": 34909212,
+        "sha256": "00bd5edb7bba31ab06e078034f2423cb018f772a1ae837ba4c5523bd92746559"
+      },
+      "texture-0-roughness.png": {
+        "bytes": 1755276,
+        "sha256": "ecd6ec7bc2f2d9fbae9bd3069c3ddccb1e578d1ab00932c6b6de46a288bf2b20"
+      }
+    },
+    "networkCalls": 0
+  },
+  "authorityTransform": {
+    "provider": {
+      "coordinateSystem": "imported Blender Z-up",
+      "authorityYawDegrees": 0.0,
+      "uniformScale": 0.5264898133048542,
+      "matrixAfterYaw": [
+        [
+          0.526489794,
+          0.0,
+          0.0,
+          0.000480164
+        ],
+        [
+          0.0,
+          0.526489794,
+          0.0,
+          -0.000519642
+        ],
+        [
+          0.0,
+          0.0,
+          0.526489794,
+          0.118462317
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "combinedAuthorityMatrix": [
+        [
+          0.526489794,
+          0.0,
+          0.0,
+          0.000480164
+        ],
+        [
+          0.0,
+          0.526489794,
+          0.0,
+          -0.000519642
+        ],
+        [
+          0.0,
+          0.0,
+          0.526489794,
+          0.118462317
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "boundsAfterYawBeforeFit": {
+        "minimum": [
+          -0.950598001,
+          -0.948614001,
+          -0.225004002
+        ],
+        "maximum": [
+          0.94877398,
+          0.950587988,
+          0.223055005
+        ]
+      },
+      "boundsAfter": {
+        "minimum": [
+          -0.5,
+          -0.499955237,
+          7e-09
+        ],
+        "maximum": [
+          0.5,
+          0.499955237,
+          0.235898495
+        ]
+      },
+      "rule": "authority yaw, then uniform one-tile planform; XY centred; minimum Z floored"
+    },
+    "authoredTarget": {
+      "coordinateSystem": "Blender Z-up",
+      "yawDegrees": 0,
+      "uniformScale": 1.0034342524274817,
+      "matrix": [
+        [
+          1.0034343,
+          0.0,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0034343,
+          0.0,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          1.0034343,
+          -0.002006856
+        ],
+        [
+          0.0,
+          0.0,
+          0.0,
+          1.0
+        ]
+      ],
+      "boundsBefore": {
+        "minimum": [
+          -0.498288751,
+          -0.498288751,
+          0.001999987
+        ],
+        "maximum": [
+          0.498288751,
+          0.498288751,
+          0.26699999
+        ]
+      },
+      "boundsAfter": {
+        "minimum": [
+          -0.5,
+          -0.5,
+          0.0
+        ],
+        "maximum": [
+          0.5,
+          0.5,
+          0.265910089
+        ]
+      },
+      "rule": "uniform one-tile planform; XY centred; minimum Z floored"
+    }
+  },
+  "staticLowTarget": {
+    "sourceObjects": [
+      "Turret.Arm.East.BronzeFace",
+      "Turret.Arm.East.Fastener.01",
+      "Turret.Arm.East.Fastener.02",
+      "Turret.Arm.East.Fastener.03",
+      "Turret.Arm.East.Fastener.04",
+      "Turret.Arm.East.HingeNorth",
+      "Turret.Arm.East.HingeSouth",
+      "Turret.Arm.East.InnerArmor",
+      "Turret.Arm.East.NavyShoulder",
+      "Turret.Arm.East.OuterBase",
+      "Turret.Arm.East.OuterLock",
+      "Turret.Arm.East.PistonNorth",
+      "Turret.Arm.East.PistonSouth",
+      "Turret.Arm.East.Pod",
+      "Turret.Arm.East.PodRailNorth",
+      "Turret.Arm.East.PodRailSouth",
+      "Turret.Arm.East.RootBandNorth",
+      "Turret.Arm.East.RootBandSouth",
+      "Turret.Arm.East.RootFastenerNorth",
+      "Turret.Arm.East.RootFastenerSouth",
+      "Turret.Arm.East.TeamChannel",
+      "Turret.Arm.East.TeamInlay",
+      "Turret.Arm.East.Underbeam",
+      "Turret.Arm.East.WebNorth",
+      "Turret.Arm.East.WebSouth",
+      "Turret.Arm.North.BronzeFace",
+      "Turret.Arm.North.Fastener.01",
+      "Turret.Arm.North.Fastener.02",
+      "Turret.Arm.North.Fastener.03",
+      "Turret.Arm.North.Fastener.04",
+      "Turret.Arm.North.HingeNorth",
+      "Turret.Arm.North.HingeSouth",
+      "Turret.Arm.North.InnerArmor",
+      "Turret.Arm.North.NavyShoulder",
+      "Turret.Arm.North.OuterBase",
+      "Turret.Arm.North.OuterLock",
+      "Turret.Arm.North.PistonNorth",
+      "Turret.Arm.North.PistonSouth",
+      "Turret.Arm.North.Pod",
+      "Turret.Arm.North.PodRailNorth",
+      "Turret.Arm.North.PodRailSouth",
+      "Turret.Arm.North.RootBandNorth",
+      "Turret.Arm.North.RootBandSouth",
+      "Turret.Arm.North.RootFastenerNorth",
+      "Turret.Arm.North.RootFastenerSouth",
+      "Turret.Arm.North.TeamChannel",
+      "Turret.Arm.North.TeamInlay",
+      "Turret.Arm.North.Underbeam",
+      "Turret.Arm.North.WebNorth",
+      "Turret.Arm.North.WebSouth",
+      "Turret.Arm.South.BronzeFace",
+      "Turret.Arm.South.Fastener.01",
+      "Turret.Arm.South.Fastener.02",
+      "Turret.Arm.South.Fastener.03",
+      "Turret.Arm.South.Fastener.04",
+      "Turret.Arm.South.HingeNorth",
+      "Turret.Arm.South.HingeSouth",
+      "Turret.Arm.South.InnerArmor",
+      "Turret.Arm.South.NavyShoulder",
+      "Turret.Arm.South.OuterBase",
+      "Turret.Arm.South.OuterLock",
+      "Turret.Arm.South.PistonNorth",
+      "Turret.Arm.South.PistonSouth",
+      "Turret.Arm.South.Pod",
+      "Turret.Arm.South.PodRailNorth",
+      "Turret.Arm.South.PodRailSouth",
+      "Turret.Arm.South.RootBandNorth",
+      "Turret.Arm.South.RootBandSouth",
+      "Turret.Arm.South.RootFastenerNorth",
+      "Turret.Arm.South.RootFastenerSouth",
+      "Turret.Arm.South.TeamChannel",
+      "Turret.Arm.South.TeamInlay",
+      "Turret.Arm.South.Underbeam",
+      "Turret.Arm.South.WebNorth",
+      "Turret.Arm.South.WebSouth",
+      "Turret.Arm.West.BronzeFace",
+      "Turret.Arm.West.Fastener.01",
+      "Turret.Arm.West.Fastener.02",
+      "Turret.Arm.West.Fastener.03",
+      "Turret.Arm.West.Fastener.04",
+      "Turret.Arm.West.HingeNorth",
+      "Turret.Arm.West.HingeSouth",
+      "Turret.Arm.West.InnerArmor",
+      "Turret.Arm.West.NavyShoulder",
+      "Turret.Arm.West.OuterBase",
+      "Turret.Arm.West.OuterLock",
+      "Turret.Arm.West.PistonNorth",
+      "Turret.Arm.West.PistonSouth",
+      "Turret.Arm.West.Pod",
+      "Turret.Arm.West.PodRailNorth",
+      "Turret.Arm.West.PodRailSouth",
+      "Turret.Arm.West.RootBandNorth",
+      "Turret.Arm.West.RootBandSouth",
+      "Turret.Arm.West.RootFastenerNorth",
+      "Turret.Arm.West.RootFastenerSouth",
+      "Turret.Arm.West.TeamChannel",
+      "Turret.Arm.West.TeamInlay",
+      "Turret.Arm.West.Underbeam",
+      "Turret.Arm.West.WebNorth",
+      "Turret.Arm.West.WebSouth",
+      "Turret.Hub.Armor",
+      "Turret.Hub.BronzeRing",
+      "Turret.Hub.ClassEnergy",
+      "Turret.Hub.ClassEnergy.Inner",
+      "Turret.Hub.CoreBronzeBezel",
+      "Turret.Hub.CoreInnerSeal",
+      "Turret.Hub.CoreSocket",
+      "Turret.Hub.Fastener.01",
+      "Turret.Hub.Fastener.02",
+      "Turret.Hub.Fastener.03",
+      "Turret.Hub.Fastener.04",
+      "Turret.Hub.GraphiteSeal",
+      "Turret.Hub.Lower",
+      "Turret.Support.East.Foot",
+      "Turret.Support.East.ForkNorth",
+      "Turret.Support.East.ForkSouth",
+      "Turret.Support.East.Housing",
+      "Turret.Support.East.Lock",
+      "Turret.Support.North.Foot",
+      "Turret.Support.North.ForkNorth",
+      "Turret.Support.North.ForkSouth",
+      "Turret.Support.North.Housing",
+      "Turret.Support.North.Lock",
+      "Turret.Support.South.Foot",
+      "Turret.Support.South.ForkNorth",
+      "Turret.Support.South.ForkSouth",
+      "Turret.Support.South.Housing",
+      "Turret.Support.South.Lock",
+      "Turret.Support.West.Foot",
+      "Turret.Support.West.ForkNorth",
+      "Turret.Support.West.ForkSouth",
+      "Turret.Support.West.Housing",
+      "Turret.Support.West.Lock"
+    ],
+    "sourceObjectCount": 133,
+    "evaluatedVerticesBeforeLowTarget": 19328,
+    "evaluatedTrianglesBeforeLowTarget": 38140,
+    "requestedTriangleCeiling": 12676,
+    "trianglesBefore": 38140,
+    "trianglesAfter": 12676,
+    "verticesAfter": 6596,
+    "method": "deterministic collapse when required, followed by explicit triangulation",
+    "idleAction": "AegisTurret_Idle",
+    "idleFrame": 1,
+    "topologyAndUvSha256": "0d45a7427b95345bee7d6f0e5b326694cc49ab58eb485a1f4215c08e01564fdb",
+    "sourcePolicy": "only non-REVIEW meshes parented beneath the expected authored rig were evaluated before provider import"
+  },
+  "uvAtlas": {
+    "layer": "ProviderSurfaceTransferUV",
+    "operator": "bpy.ops.uv.smart_project",
+    "angleLimitDegrees": 66,
+    "marginMethod": "FRACTION",
+    "rotateMethod": "AXIS_ALIGNED_Y",
+    "islandMargin": 0.018,
+    "areaWeight": 0.0,
+    "correctAspect": true,
+    "scaleToBounds": true
+  },
+  "cage": {
+    "kind": "explicit expanded same-topology cage",
+    "distance": 0.06,
+    "vertices": 6596,
+    "polygons": 12676,
+    "targetVertices": 6596,
+    "targetPolygons": 12676
+  },
+  "bake": {
+    "resolution": [
+      512,
+      512
+    ],
+    "engine": "Cycles CPU",
+    "samples": 1,
+    "selectedToActive": true,
+    "cageObject": "EVAL.ExplicitSameTopologyCage",
+    "cageExtrusionSetting": 0.0,
+    "maxRayDistance": 0.24,
+    "marginPixels": 12,
+    "normalSpace": "TANGENT",
+    "outputs": {
+      "basecolor": {
+        "file": "basecolor.png",
+        "bytes": 5807,
+        "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "sRGB"
+      },
+      "normal": {
+        "file": "normal.png",
+        "bytes": 5805,
+        "sha256": "02b88dbad749a9824293f6a05b6d46724b04db2c9614838405da13a7fdb41587",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      },
+      "roughness": {
+        "file": "roughness.png",
+        "bytes": 5804,
+        "sha256": "5c31911e89276ba08e1813cbb95bc7bb516a8d22ce188d6fc4a379ac9cb3e3a9",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      },
+      "metallic": {
+        "file": "metallic.png",
+        "bytes": 5807,
+        "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      },
+      "coverage": {
+        "file": "coverage.png",
+        "bytes": 5807,
+        "sha256": "55aea7bfe6f9c90c71df2379611c12eada3014444ccbce4f3352d3303077a44f",
+        "dimensions": [
+          512,
+          512
+        ],
+        "colorSpace": "Non-Color"
+      }
+    }
+  },
+  "metrics": {
+    "uvAtlas": {
+      "totalPixels": 262144,
+      "occupiedPixels": 0,
+      "occupiedPercent": 0.0
+    },
+    "coverage": {
+      "coveredOccupiedPixels": 0,
+      "uncoveredOccupiedPixels": 0,
+      "uncoveredPercentOfOccupied": 100.0,
+      "threshold": "coverage RGB max >= 0.5"
+    },
+    "cyanContamination": {
+      "cyanCoveredPixels": 0,
+      "cyanPercentOfCovered": 0.0,
+      "classification": "B>=0.35, G>=0.25, B>=1.35R, G>=1.25R, |B-G|<=0.45 in baked image working values"
+    }
+  },
+  "review58Degrees": {
+    "artifact": {
+      "file": "baked-58deg.png",
+      "bytes": 666885,
+      "sha256": "26ec558716608aca7ac6bf80a734af6a7e8a25d762e14c5a59dbebbaf5da5547",
+      "dimensions": [
+        768,
+        768
+      ]
+    },
+    "rig": {
+      "renderer": "Blender EEVEE",
+      "resolution": [
+        768,
+        768
+      ],
+      "viewTransformLook": "AgX - Medium High Contrast",
+      "exposure": -1.15,
+      "world": {
+        "color": "#0b1020",
+        "strength": 0.45
+      },
+      "floor": {
+        "color": "#252c36",
+        "metallic": 0.42,
+        "roughness": 0.72
+      },
+      "camera": {
+        "fovDegrees": 42,
+        "distance": 1.88,
+        "pitchDegrees": 58,
+        "location": [
+          -0.079999998,
+          0.996248245,
+          1.59433043
+        ],
+        "target": [
+          0.02,
+          0,
+          0.13
+        ]
+      },
+      "lights": [
+        {
+          "name": "Key",
+          "location": [
+            -1.6,
+            -1.8,
+            2.9
+          ],
+          "energy": 320,
+          "size": 3.0,
+          "color": [
+            0.9,
+            0.95,
+            1.0
+          ],
+          "target": [
+            0,
+            0,
+            0.12
+          ]
+        },
+        {
+          "name": "Fill",
+          "location": [
+            1.8,
+            0.8,
+            1.1
+          ],
+          "energy": 135,
+          "size": 2.2,
+          "color": [
+            0.34,
+            0.48,
+            0.72
+          ],
+          "target": [
+            0,
+            0,
+            0.12
+          ]
+        },
+        {
+          "name": "Rim",
+          "location": [
+            -0.8,
+            1.8,
+            1.8
+          ],
+          "energy": 190,
+          "size": 1.5,
+          "color": [
+            0.86,
+            0.64,
+            0.36
+          ],
+          "target": [
+            0,
+            0,
+            0.15
+          ]
+        },
+        {
+          "name": "SideFill",
+          "location": [
+            0,
+            -2.0,
+            1.25
+          ],
+          "energy": 125,
+          "size": 2.0,
+          "color": [
+            0.72,
+            0.82,
+            1.0
+          ],
+          "target": [
+            0,
+            0,
+            0.11
+          ]
+        }
+      ]
+    }
+  },
+  "outputs": {
+    "directory": "aegis-tortoise-turret",
+    "sourceOrCandidateModified": false
+  },
+  "limitations": [
+    "Provider texture semantics are spatially tied to an inferred provider shape; this transfer is diagnostic evidence, not an accepted authored skin.",
+    "Independent authority normalization establishes scale, centre, floor, and yaw but cannot establish semantic correspondence between unlike panels.",
+    "The joined target intentionally discards rig and material partitions; no evaluation object is suitable for runtime installation.",
+    "Coverage and cyan contamination are texture-space diagnostics; the retained 58-degree render remains the perceptual family gate."
+  ]
+}

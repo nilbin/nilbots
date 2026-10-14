@@ -1,0 +1,3209 @@
+{
+  "schemaVersion": 1,
+  "validatorVersion": "2.0.0-dev.3.10",
+  "verdict": "fail",
+  "assets": [
+    {
+      "assetId": "aegis-tortoise-shell",
+      "file": {
+        "name": "aegis-tortoise-shell.glb",
+        "bytes": 2654332,
+        "sha256": "f6e6f31075f980ee24f0b1a494862cfb59b9e90fe096a8d48aa3a8900e97fe12"
+      },
+      "verdict": "fail",
+      "validation": {
+        "uri": "aegis-tortoise-shell.glb",
+        "mimeType": "model/gltf-binary",
+        "validatorVersion": "2.0.0-dev.3.10",
+        "issues": {
+          "numErrors": 194,
+          "numWarnings": 0,
+          "numInfos": 1,
+          "numHints": 0,
+          "messages": [
+            {
+              "code": "UNUSED_OBJECT",
+              "message": "This object may be unused.",
+              "severity": 2,
+              "pointer": "/skins/0"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 36..38 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 304..306 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 400..402 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 564..566 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 644..646 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 704..706 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1008..1010 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1088..1090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1148..1150 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1376..1378 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1444..1446 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1676..1678 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1756..1758 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/3/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 36..38 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 304..306 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 400..402 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 564..566 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 644..646 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 704..706 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1008..1010 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1088..1090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1148..1150 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1376..1378 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1444..1446 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1676..1678 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1756..1758 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/4/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 28..30 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 160..162 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 404..406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 520..522 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 764..766 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1116..1118 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1244..1246 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1364..1366 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1500..1502 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1608..1610 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1732..1734 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1848..1850 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1976..1978 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2232..2234 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2356..2358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2468..2470 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2600..2602 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2712..2714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2844..2846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2960..2962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3088..3090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3204..3206 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3440..3442 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3556..3558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3684..3686 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3804..3806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3940..3942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4048..4050 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4172..4174 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4288..4290 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4416..4418 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4672..4674 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4796..4798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/26/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 28..30 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 160..162 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 404..406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 520..522 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 764..766 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1116..1118 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1244..1246 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1364..1366 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1500..1502 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1608..1610 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1732..1734 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1848..1850 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1976..1978 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2232..2234 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2356..2358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2468..2470 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2600..2602 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2712..2714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2844..2846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2960..2962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3088..3090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3204..3206 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3440..3442 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3556..3558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3684..3686 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3804..3806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3940..3942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4048..4050 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4172..4174 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4288..4290 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4416..4418 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4672..4674 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4796..4798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/27/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 28..30 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 160..162 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 404..406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 520..522 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 764..766 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1116..1118 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1244..1246 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1364..1366 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1500..1502 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1608..1610 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1732..1734 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1848..1850 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1976..1978 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2232..2234 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2356..2358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2468..2470 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2600..2602 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2712..2714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2844..2846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2960..2962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3088..3090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3204..3206 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3440..3442 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3556..3558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3684..3686 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3804..3806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3940..3942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4048..4050 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4172..4174 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4288..4290 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4416..4418 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4672..4674 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4796..4798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/29/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 28..30 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 160..162 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 404..406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 520..522 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 764..766 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1116..1118 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1244..1246 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1364..1366 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1500..1502 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1608..1610 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1732..1734 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1848..1850 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1976..1978 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2232..2234 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2356..2358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2468..2470 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2600..2602 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2712..2714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2844..2846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2960..2962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3088..3090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3204..3206 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3440..3442 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3556..3558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3684..3686 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3804..3806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3940..3942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4048..4050 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4172..4174 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4288..4290 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4416..4418 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4672..4674 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4796..4798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/30/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 36..38 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 188..190 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 236..238 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 316..318 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 412..414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 484..486 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 504..506 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 584..586 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 664..666 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 724..726 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 876..878 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 940..942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 960..962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1040..1042 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1120..1122 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1180..1182 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1332..1334 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1404..1406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1556..1558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1620..1622 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1640..1642 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1720..1722 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1800..1802 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/52/primitives/0/attributes/TANGENT"
+            }
+          ],
+          "truncated": false
+        },
+        "info": {
+          "version": "2.0",
+          "generator": "Nilbots deterministic Aegis forms / Blender 5.2.0",
+          "resources": [
+            {
+              "pointer": "/buffers/0",
+              "mimeType": "application/gltf-buffer",
+              "storage": "glb",
+              "byteLength": 2581672
+            },
+            {
+              "pointer": "/images/0",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/1",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/2",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/3",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/4",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/5",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/6",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 128,
+                "height": 128,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/7",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 128,
+                "height": 128,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/8",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 128,
+                "height": 128,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            }
+          ],
+          "animationCount": 2,
+          "materialCount": 6,
+          "hasMorphTargets": false,
+          "hasSkins": true,
+          "hasTextures": true,
+          "hasDefaultScene": true,
+          "drawCallCount": 56,
+          "totalVertexCount": 38444,
+          "totalTriangleCount": 15920,
+          "maxUVs": 1,
+          "maxInfluences": 0,
+          "maxAttributes": 4
+        }
+      }
+    },
+    {
+      "assetId": "aegis-tortoise-turret",
+      "file": {
+        "name": "aegis-tortoise-turret.glb",
+        "bytes": 2327388,
+        "sha256": "34827c91d7bf1b5aaf7a2f21ffefa827d6e358d91a193006974a044f52c0330d"
+      },
+      "verdict": "fail",
+      "validation": {
+        "uri": "aegis-tortoise-turret.glb",
+        "mimeType": "model/gltf-binary",
+        "validatorVersion": "2.0.0-dev.3.10",
+        "issues": {
+          "numErrors": 283,
+          "numWarnings": 0,
+          "numInfos": 1,
+          "numHints": 0,
+          "messages": [
+            {
+              "code": "UNUSED_OBJECT",
+              "message": "This object may be unused.",
+              "severity": 2,
+              "pointer": "/skins/0"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 20..22 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 140..142 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 400..402 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 620..622 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 760..762 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 988..990 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1120..1122 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1356..1358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1596..1598 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1712..1714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1844..1846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1972..1974 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2200..2202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2320..2322 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2444..2446 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2584..2586 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2804..2806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3044..3046 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3184..3186 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3412..3414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3544..3546 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3780..3782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4020..4022 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4136..4138 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4268..4270 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4396..4398 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4624..4626 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4744..4746 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/6/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 20..22 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 140..142 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 400..402 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 620..622 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 760..762 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 988..990 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1120..1122 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1356..1358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1596..1598 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1712..1714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1844..1846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1972..1974 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2200..2202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2320..2322 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2444..2446 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2584..2586 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2804..2806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3044..3046 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3184..3186 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3412..3414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3544..3546 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3780..3782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4020..4022 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4136..4138 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4268..4270 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4396..4398 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4624..4626 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4744..4746 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/7/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 20..22 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 140..142 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 400..402 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 620..622 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 760..762 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 988..990 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1120..1122 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1356..1358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1596..1598 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1712..1714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1844..1846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1972..1974 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2200..2202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2320..2322 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2444..2446 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2584..2586 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2804..2806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3044..3046 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3184..3186 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3412..3414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3544..3546 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3780..3782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4020..4022 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4136..4138 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4268..4270 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4396..4398 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4624..4626 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4744..4746 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/8/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 20..22 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 140..142 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 400..402 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 620..622 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 760..762 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 988..990 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1120..1122 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1356..1358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1596..1598 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1712..1714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1844..1846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1972..1974 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2200..2202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2320..2322 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2444..2446 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2584..2586 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2804..2806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3044..3046 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3184..3186 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3412..3414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3544..3546 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3780..3782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4020..4022 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4136..4138 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4268..4270 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4396..4398 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4624..4626 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4744..4746 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/9/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 28..30 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 160..162 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 404..406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 520..522 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 764..766 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1116..1118 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1244..1246 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1364..1366 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1500..1502 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1608..1610 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1732..1734 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1848..1850 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1976..1978 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2232..2234 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2356..2358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2468..2470 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2600..2602 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2712..2714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2844..2846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2960..2962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3088..3090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3204..3206 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3440..3442 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3556..3558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3684..3686 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3804..3806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3940..3942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4048..4050 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4172..4174 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4288..4290 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4416..4418 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4672..4674 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4796..4798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/23/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 28..30 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 160..162 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 404..406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 520..522 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 764..766 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1116..1118 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1244..1246 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1364..1366 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1500..1502 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1608..1610 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1732..1734 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1848..1850 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1976..1978 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2232..2234 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2356..2358 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2468..2470 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2600..2602 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2712..2714 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2844..2846 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2960..2962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3088..3090 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3204..3206 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3440..3442 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3556..3558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3684..3686 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3804..3806 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3940..3942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4048..4050 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4172..4174 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4288..4290 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4416..4418 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4672..4674 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4796..4798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/24/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 36..38 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 188..190 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 236..238 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 272..274 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 316..318 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 484..486 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 504..506 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 664..666 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 724..726 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 876..878 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 940..942 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 960..962 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1120..1122 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1180..1182 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1332..1334 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1404..1406 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1556..1558 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1620..1622 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1796..1798 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/25/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 32..34 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 276..278 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 524..526 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 768..770 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1724..1726 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1980..1982 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2224..2226 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2348..2350 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2464..2466 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2708..2710 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2956..2958 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3080..3082 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3200..3202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3432..3434 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4156..4158 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4412..4414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4656..4658 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4780..4782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/37/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 32..34 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 276..278 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 524..526 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 768..770 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1724..1726 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1980..1982 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2224..2226 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2348..2350 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2464..2466 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2708..2710 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2956..2958 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3080..3082 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3200..3202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3432..3434 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4156..4158 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4412..4414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4656..4658 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4780..4782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/38/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 32..34 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 276..278 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 524..526 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 768..770 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1724..1726 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1980..1982 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2224..2226 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2348..2350 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2464..2466 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2708..2710 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2956..2958 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3080..3082 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3200..3202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3432..3434 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4156..4158 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4412..4414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4656..4658 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4780..4782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/39/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 32..34 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 276..278 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 524..526 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 648..650 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 768..770 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1000..1002 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1724..1726 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 1980..1982 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2224..2226 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2348..2350 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2464..2466 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2708..2710 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 2956..2958 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3080..3082 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3200..3202 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 3432..3434 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4156..4158 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4412..4414 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4656..4658 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            },
+            {
+              "code": "ACCESSOR_VECTOR3_NON_UNIT",
+              "message": "Vector3 at accessor indices 4780..4782 is not of unit length: 0.",
+              "severity": 0,
+              "pointer": "/meshes/40/primitives/0/attributes/TANGENT"
+            }
+          ],
+          "truncated": false
+        },
+        "info": {
+          "version": "2.0",
+          "generator": "Nilbots deterministic Aegis forms / Blender 5.2.0",
+          "resources": [
+            {
+              "pointer": "/buffers/0",
+              "mimeType": "application/gltf-buffer",
+              "storage": "glb",
+              "byteLength": 2232700
+            },
+            {
+              "pointer": "/images/0",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/1",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/2",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/3",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 128,
+                "height": 128,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/4",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 128,
+                "height": 128,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/5",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 128,
+                "height": 128,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/6",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/7",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            },
+            {
+              "pointer": "/images/8",
+              "mimeType": "image/png",
+              "storage": "buffer-view",
+              "image": {
+                "width": 256,
+                "height": 256,
+                "format": "rgba",
+                "primaries": "srgb",
+                "transfer": "srgb",
+                "bits": 8
+              }
+            }
+          ],
+          "animationCount": 2,
+          "materialCount": 6,
+          "hasMorphTargets": false,
+          "hasSkins": true,
+          "hasTextures": true,
+          "hasDefaultScene": true,
+          "drawCallCount": 43,
+          "totalVertexCount": 30284,
+          "totalTriangleCount": 12676,
+          "maxUVs": 1,
+          "maxInfluences": 0,
+          "maxAttributes": 4
+        }
+      }
+    }
+  ]
+}
