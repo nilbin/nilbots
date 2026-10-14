@@ -1,0 +1,2660 @@
+{
+  "schemaVersion": 1,
+  "generatedBy": "scripts/render-class-projectile-v4-evidence.mjs",
+  "generatedAtUtc": "2026-07-30T11:35:00.514Z",
+  "integrationCommit": "d5b7fdefaa5c1c036e7a79f80dc16963ee36a6b3",
+  "constraints": {
+    "paidProviderCalls": 0,
+    "replayMutationAtReviewTime": false,
+    "presentationMutationAtReviewTime": false,
+    "servedReplayBytesAreExactSourceBytes": true,
+    "sourceReplayVerification": "Each replay passed nilbots verify immediately before capture."
+  },
+  "reviewBuild": {
+    "path": "web/dist-review",
+    "indexBytes": 1531,
+    "harness": "production Vite review build plus standalone replay ingress"
+  },
+  "frame": {
+    "viewport": {
+      "width": 1600,
+      "height": 1000,
+      "deviceScaleFactor": 1
+    },
+    "camera": {
+      "pitchDegrees": 58,
+      "framing": "production team-follow camera",
+      "minimumSpanTiles": 8,
+      "settlingMilliseconds": 2500
+    },
+    "rendererCandidate": "WebGL / Three.js / headless SwiftShader",
+    "rendererControl": "forced Canvas2D by rejecting WebGL context creation"
+  },
+  "replays": {
+    "trident-spark": {
+      "file": "sandbox/projectile-v4-evidence/native-striker/replay.json",
+      "bytes": 1615671,
+      "sha256": "7b17fdcfba15ca3cc89a69be54c4a7decf65b847501b33f734e64b5d93375cc6",
+      "canonicalReplayHash": "07cc5f67514bfad5eb2f3078b7bb36d0afb4a270ecd4e21492971a621ed56691",
+      "replayVersion": 3,
+      "partial": false,
+      "mapId": "frontline-labs-01-classes",
+      "dimensions": {
+        "width": 23,
+        "height": 15
+      },
+      "ticks": 100,
+      "presentation": {
+        "themeId": "ember-forge",
+        "map": {
+          "boundaryWall": "perimeter",
+          "interiorWall": "cover",
+          "wallGroups": []
+        },
+        "forms": [
+          {
+            "formId": "striker-child",
+            "lookId": "trident-wasp",
+            "projectileLookId": "trident-spark"
+          },
+          {
+            "formId": "striker-child-volley-stance",
+            "lookId": "trident-wasp-volley",
+            "projectileLookId": "trident-spark"
+          },
+          {
+            "formId": "striker-prime",
+            "lookId": "trident-wasp",
+            "projectileLookId": "trident-spark"
+          },
+          {
+            "formId": "striker-prime-volley-stance",
+            "lookId": "trident-wasp-volley",
+            "projectileLookId": "trident-spark"
+          }
+        ]
+      },
+      "participants": [
+        {
+          "participantId": 0,
+          "teamId": 0,
+          "name": "VectorEdge",
+          "accent": "#22d3ee",
+          "projectileLookId": "pulse-bolt"
+        },
+        {
+          "participantId": 1,
+          "teamId": 1,
+          "name": "ArcLight",
+          "accent": "#22d3ee",
+          "projectileLookId": "pulse-bolt"
+        }
+      ],
+      "verification": [
+        "Stored hash:   07cc5f67514bfad5eb2f3078b7bb36d0afb4a270ecd4e21492971a621ed56691",
+        "OK: canonical replay v3 content, contract, and hash verify."
+      ],
+      "generation": {
+        "runtime": "in-process diagnostic generic-actor runtime; canonical replay-v3 verified separately",
+        "seed": 104729,
+        "command": "dotnet run --no-build --project src/BotArena.Cli -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-4-2026-07-30/vector-edge --opponent arena-bots/frontline-labs/classes-wave-4-2026-07-30/arc-light --seed 104729 --classes striker-vs-striker --movement facing-locked --pendulum keel --skills kit --bend universal --stance-ground open --aim offset --runtime in-process --out sandbox/projectile-v4-evidence/native-striker",
+        "byteForByteRegenerationVerified": true,
+        "regeneratedSourceSha256": "7b17fdcfba15ca3cc89a69be54c4a7decf65b847501b33f734e64b5d93375cc6"
+      },
+      "projectile": {
+        "lookId": "trident-spark",
+        "flightCue": "axial-spin",
+        "modelSource": "web/src/assets/class-projectile-looks/trident-spark/model.glb",
+        "modelBytes": 301476,
+        "modelSha256": "7775011b33450bcd782f5ffcc5e67923641be19b0b4c46d59b2d08712cd1a82c",
+        "builtAsset": "web/dist-review/assets/model-CAc-hVlj.glb"
+      },
+      "causalEvents": {
+        "hit": {
+          "tick": 8,
+          "projectileId": "0",
+          "traversalGlobalOrdinal": "23",
+          "eventHandle": "authoritative-event:26",
+          "eventGlobalOrdinal": "26",
+          "targetActorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "terminal": {
+            "kind": "actor-contact",
+            "targetActorId": {
+              "teamId": 1,
+              "unitId": 0,
+              "lifeId": 0
+            },
+            "appliedDamage": true
+          }
+        },
+        "miss": {
+          "tick": 44,
+          "projectileId": "8",
+          "traversalGlobalOrdinal": "150",
+          "ownerTeamId": 1,
+          "terminal": {
+            "kind": "wall-or-path-exhausted"
+          },
+          "finalPosition": {
+            "x": 15,
+            "y": 6
+          },
+          "matchingDamageOrDeflectionEvent": null
+        }
+      }
+    },
+    "rebound-diamond": {
+      "file": "sandbox/projectile-v4-evidence/native-bulwark/replay.json",
+      "bytes": 4654683,
+      "sha256": "fbbd0971a8cba458b786f2367fd60ae54939fac3621711a0a4657b95f6eb454f",
+      "canonicalReplayHash": "8692a4cb240cabed127883b68c5ba97afc71b49e1034756aac5f9c30bd20f598",
+      "replayVersion": 3,
+      "partial": false,
+      "mapId": "frontline-labs-01-classes",
+      "dimensions": {
+        "width": 23,
+        "height": 15
+      },
+      "ticks": 159,
+      "presentation": {
+        "themeId": "ember-forge",
+        "map": {
+          "boundaryWall": "perimeter",
+          "interiorWall": "cover",
+          "wallGroups": []
+        },
+        "forms": [
+          {
+            "formId": "bulwark-child",
+            "lookId": "aegis-tortoise",
+            "projectileLookId": "rebound-diamond"
+          },
+          {
+            "formId": "bulwark-child-aegis-shell",
+            "lookId": "aegis-tortoise-shell",
+            "projectileLookId": "rebound-diamond"
+          },
+          {
+            "formId": "bulwark-child-turret",
+            "lookId": "aegis-tortoise-turret",
+            "projectileLookId": "rebound-diamond"
+          },
+          {
+            "formId": "bulwark-prime",
+            "lookId": "aegis-tortoise",
+            "projectileLookId": "rebound-diamond"
+          },
+          {
+            "formId": "bulwark-prime-aegis-shell",
+            "lookId": "aegis-tortoise-shell",
+            "projectileLookId": "rebound-diamond"
+          },
+          {
+            "formId": "bulwark-prime-turret",
+            "lookId": "aegis-tortoise-turret",
+            "projectileLookId": "rebound-diamond"
+          }
+        ]
+      },
+      "participants": [
+        {
+          "participantId": 0,
+          "teamId": 0,
+          "name": "GateStone",
+          "accent": "#8fa3b0",
+          "projectileLookId": "bulwark-gate-slug"
+        },
+        {
+          "participantId": 1,
+          "teamId": 1,
+          "name": "IronRoot",
+          "accent": "#7f8c3a",
+          "projectileLookId": "pulse-bolt"
+        }
+      ],
+      "verification": [
+        "Stored hash:   8692a4cb240cabed127883b68c5ba97afc71b49e1034756aac5f9c30bd20f598",
+        "OK: canonical replay v3 content, contract, and hash verify."
+      ],
+      "generation": {
+        "runtime": "in-process diagnostic generic-actor runtime; canonical replay-v3 verified separately",
+        "seed": 104729,
+        "command": "dotnet run --no-build --project src/BotArena.Cli -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-4-2026-07-30/gate-stone --opponent arena-bots/frontline-labs/classes-wave-4-2026-07-30/iron-root --seed 104729 --classes bulwark-vs-bulwark --movement facing-locked --pendulum keel --skills kit --bend universal --stance-ground open --aim offset --runtime in-process --out sandbox/projectile-v4-evidence/native-bulwark",
+        "byteForByteRegenerationVerified": true,
+        "regeneratedSourceSha256": "fbbd0971a8cba458b786f2367fd60ae54939fac3621711a0a4657b95f6eb454f"
+      },
+      "projectile": {
+        "lookId": "rebound-diamond",
+        "flightCue": "flat-spin",
+        "modelSource": "web/src/assets/class-projectile-looks/rebound-diamond/model.glb",
+        "modelBytes": 301504,
+        "modelSha256": "6dbb7f123d77ab3a69d470e2480df5e5e717a43f130878f66aab8b83727049a9",
+        "builtAsset": "web/dist-review/assets/model-BDUTZrbD.glb"
+      },
+      "causalEvents": {
+        "hit": {
+          "tick": 8,
+          "projectileId": "0",
+          "traversalGlobalOrdinal": "22",
+          "eventHandle": "authoritative-event:25",
+          "eventGlobalOrdinal": "25",
+          "targetActorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "terminal": {
+            "kind": "actor-contact",
+            "targetActorId": {
+              "teamId": 1,
+              "unitId": 0,
+              "lifeId": 0
+            },
+            "appliedDamage": true
+          }
+        },
+        "miss": {
+          "tick": 127,
+          "projectileId": "18",
+          "traversalGlobalOrdinal": "236",
+          "ownerTeamId": 0,
+          "terminal": {
+            "kind": "range-exhausted"
+          },
+          "finalPosition": {
+            "x": 20,
+            "y": 7
+          },
+          "matchingDamageOrDeflectionEvent": null
+        },
+        "deflection": {
+          "tick": 12,
+          "incomingProjectileId": "2",
+          "outgoingProjectileId": "3",
+          "eventHandle": "authoritative-event:32",
+          "eventGlobalOrdinal": "32",
+          "incomingTraversalGlobalOrdinal": "33",
+          "outgoingTraversalGlobalOrdinal": "34",
+          "sourceTeamId": 1,
+          "newOwnerTeamId": 0,
+          "targetActorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "targetFormId": "bulwark-prime-aegis-shell",
+          "position": {
+            "x": 10,
+            "y": 7
+          }
+        }
+      }
+    },
+    "lattice-rivet": {
+      "file": "sandbox/projectile-v4-evidence/native-fabricator/replay.json",
+      "bytes": 4143717,
+      "sha256": "050cf602a264b0d1d97193e903fe067fce457ef498493539aa6372450edc962e",
+      "canonicalReplayHash": "fad669aecdfab5b33f11907c93c968bb8c9d2cf947eb175aba419b7a69c6a671",
+      "replayVersion": 3,
+      "partial": false,
+      "mapId": "frontline-labs-01-classes",
+      "dimensions": {
+        "width": 23,
+        "height": 15
+      },
+      "ticks": 163,
+      "presentation": {
+        "themeId": "ember-forge",
+        "map": {
+          "boundaryWall": "perimeter",
+          "interiorWall": "cover",
+          "wallGroups": []
+        },
+        "forms": [
+          {
+            "formId": "fabricator-child",
+            "lookId": "lattice-loom",
+            "projectileLookId": "lattice-rivet"
+          },
+          {
+            "formId": "fabricator-prime",
+            "lookId": "lattice-loom",
+            "projectileLookId": "lattice-rivet"
+          }
+        ]
+      },
+      "participants": [
+        {
+          "participantId": 0,
+          "teamId": 0,
+          "name": "LedgerFly",
+          "accent": "#b45309",
+          "projectileLookId": "pulse-bolt"
+        },
+        {
+          "participantId": 1,
+          "teamId": 1,
+          "name": "SparkLine",
+          "accent": "#facc15",
+          "projectileLookId": "pulse-bolt"
+        }
+      ],
+      "verification": [
+        "Stored hash:   fad669aecdfab5b33f11907c93c968bb8c9d2cf947eb175aba419b7a69c6a671",
+        "OK: canonical replay v3 content, contract, and hash verify."
+      ],
+      "generation": {
+        "runtime": "in-process diagnostic generic-actor runtime; canonical replay-v3 verified separately",
+        "seed": 104729,
+        "command": "dotnet run --no-build --project src/BotArena.Cli -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-4-2026-07-30/ledger-fly --opponent arena-bots/frontline-labs/classes-wave-4-2026-07-30/spark-line --seed 104729 --classes fabricator-vs-fabricator --movement facing-locked --pendulum keel --skills kit --bend universal --five-slots wane --stance-ground open --aim offset --runtime in-process --out sandbox/projectile-v4-evidence/native-fabricator",
+        "byteForByteRegenerationVerified": true,
+        "regeneratedSourceSha256": "050cf602a264b0d1d97193e903fe067fce457ef498493539aa6372450edc962e"
+      },
+      "projectile": {
+        "lookId": "lattice-rivet",
+        "flightCue": "tumble",
+        "modelSource": "web/src/assets/class-projectile-looks/lattice-rivet/model.glb",
+        "modelBytes": 468276,
+        "modelSha256": "73606f2a94c9d848f2dab8c9a4b81214643eef06c2d15481e277e8cc14c92354",
+        "builtAsset": "web/dist-review/assets/model-CxvKQp6G.glb"
+      },
+      "causalEvents": {
+        "hit": {
+          "tick": 8,
+          "projectileId": "0",
+          "traversalGlobalOrdinal": "24",
+          "eventHandle": "authoritative-event:27",
+          "eventGlobalOrdinal": "27",
+          "targetActorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "terminal": {
+            "kind": "actor-contact",
+            "targetActorId": {
+              "teamId": 1,
+              "unitId": 0,
+              "lifeId": 0
+            },
+            "appliedDamage": true
+          }
+        },
+        "miss": {
+          "tick": 39,
+          "projectileId": "3",
+          "traversalGlobalOrdinal": "126",
+          "ownerTeamId": 0,
+          "terminal": {
+            "kind": "wall-or-path-exhausted"
+          },
+          "finalPosition": {
+            "x": 21,
+            "y": 7
+          },
+          "matchingDamageOrDeflectionEvent": null
+        }
+      }
+    },
+    "pulse-bolt": {
+      "file": "sandbox/projectile-v4-evidence/native-pulse/replay.json",
+      "bytes": 17319015,
+      "sha256": "9775b52e608004bb8d9953ad7eab8894674d0ad7819900d229a9bcf3137204b8",
+      "canonicalReplayHash": "f46421af2009f53d29611b93851a1dc15e2b2e8c1af0fecbdbe73871749acd76",
+      "replayVersion": 3,
+      "partial": false,
+      "mapId": "frontline-labs-01",
+      "dimensions": {
+        "width": 23,
+        "height": 15
+      },
+      "ticks": 500,
+      "presentation": {
+        "themeId": "ember-forge",
+        "map": {
+          "boundaryWall": "perimeter",
+          "interiorWall": "cover",
+          "wallGroups": []
+        },
+        "forms": []
+      },
+      "participants": [
+        {
+          "participantId": 0,
+          "teamId": 0,
+          "name": "VectorEdge",
+          "accent": "#22d3ee",
+          "projectileLookId": "pulse-bolt"
+        },
+        {
+          "participantId": 1,
+          "teamId": 1,
+          "name": "ArcLight",
+          "accent": "#22d3ee",
+          "projectileLookId": "pulse-bolt"
+        }
+      ],
+      "verification": [
+        "Stored hash:   f46421af2009f53d29611b93851a1dc15e2b2e8c1af0fecbdbe73871749acd76",
+        "OK: canonical replay v3 content, contract, and hash verify."
+      ],
+      "generation": {
+        "runtime": "in-process diagnostic generic-actor runtime; canonical replay-v3 verified separately",
+        "seed": 104729,
+        "command": "dotnet run --no-build --project src/BotArena.Cli -- experiment frontline-labs --bot arena-bots/frontline-labs/classes-wave-4-2026-07-30/vector-edge --opponent arena-bots/frontline-labs/classes-wave-4-2026-07-30/arc-light --seed 104729 --ignore-declared-classes --runtime in-process --out sandbox/projectile-v4-evidence/native-pulse",
+        "byteForByteRegenerationVerified": true,
+        "regeneratedSourceSha256": "9775b52e608004bb8d9953ad7eab8894674d0ad7819900d229a9bcf3137204b8"
+      },
+      "projectile": {
+        "lookId": "pulse-bolt",
+        "flightCue": null,
+        "modelSource": "web/src/assets/projectile-looks/pulse-bolt/model.glb",
+        "modelBytes": 16032,
+        "modelSha256": "63f2b97cc2b6f427d6e4be989894f902e5547e03a866c6a0130030188dabfe6e",
+        "builtAsset": "web/dist-review/assets/model-DVNN0uKA.glb"
+      },
+      "causalEvents": {}
+    }
+  },
+  "captures": [
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "travel-team-0-a",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/trident-spark-travel-team-0-a-webgl-v1.png",
+      "bytes": 392513,
+      "sha256": "bdaf92cd6cc5b7e334b690f00eb01212a7db7d06ec9bdd8e6e8dda3154ed511d",
+      "time": 66.25,
+      "tick": 66,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "projectile 11 · axial phase A",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CAc-hVlj.glb",
+        "status": 200,
+        "contentLength": 301476
+      },
+      "projectileIds": [
+        "11"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 13,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 2
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 18,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "travel-team-0-b",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/trident-spark-travel-team-0-b-webgl-v1.png",
+      "bytes": 560006,
+      "sha256": "9253dccd831535738e09c7b797943d44ee0c2237fc086fb80a52968d2b73d922",
+      "time": 66.7,
+      "tick": 66,
+      "fraction": 0.7,
+      "teamFocus": 0,
+      "note": "projectile 11 · axial phase B",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CAc-hVlj.glb",
+        "status": 200,
+        "contentLength": 301476
+      },
+      "projectileIds": [
+        "11"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 13,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 2
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 18,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "travel-team-1",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/trident-spark-travel-team-1-webgl-v1.png",
+      "bytes": 520746,
+      "sha256": "613b790d3fe1026a9b0896d8a7df7398850874946ae647e6df7a17020d3933cd",
+      "time": 97.35,
+      "tick": 97,
+      "fraction": 0.35,
+      "teamFocus": 1,
+      "note": "projectile 17 · opposing team",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CAc-hVlj.glb",
+        "status": 200,
+        "contentLength": 301476
+      },
+      "projectileIds": [
+        "16",
+        "17",
+        "18"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 19,
+            "y": 8
+          },
+          "facing": "north"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 3
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 19,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "hit",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/trident-spark-hit-webgl-v1.png",
+      "bytes": 468181,
+      "sha256": "fe756362774e66cb86282c4f082ec43b3f0eb23e19b67bc0e0dc4c8e9ce7a3af",
+      "time": 9.18,
+      "tick": 9,
+      "fraction": 0.18,
+      "teamFocus": 0,
+      "note": "projectile 0 exact damaging terminal",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CAc-hVlj.glb",
+        "status": 200,
+        "contentLength": 301476
+      },
+      "projectileIds": [
+        "1"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 11,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "miss",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/trident-spark-miss-webgl-v1.png",
+      "bytes": 616011,
+      "sha256": "c814616b4d5f14ace8e17408235f4fb014b73d0dba7a5ffdcc3c60d5e952ffc3",
+      "time": 45.18,
+      "tick": 45,
+      "fraction": 0.18,
+      "teamFocus": 1,
+      "note": "projectile 8 exact wall/path terminal",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CAc-hVlj.glb",
+        "status": 200,
+        "contentLength": 301476
+      },
+      "projectileIds": [],
+      "activeForms": []
+    },
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "canvas-control",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/trident-spark-canvas-control-canvas-v1.png",
+      "bytes": 438735,
+      "sha256": "434673229ab1da0e17013263ef17312c77ab003bbf9f004356a197f3e304152e",
+      "time": 66.25,
+      "tick": 66,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "same replay/time/camera as WebGL travel-team-0-a",
+      "rendererId": "canvas",
+      "renderer": "Canvas2D fallback",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": null,
+      "projectileIds": [
+        "11"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 13,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 2
+          },
+          "formId": "striker-prime",
+          "position": {
+            "x": 18,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "travel-both-teams-a",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-travel-both-teams-a-webgl-v1.png",
+      "bytes": 465082,
+      "sha256": "f66ee5141e8c2036dcea0879b5be53d0f0b8b45c96ef1055f95aff0ed3dad450",
+      "time": 7.25,
+      "tick": 7,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "projectiles 0 + 1 · both teams · flat-spin phase A",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [
+        "0",
+        "1"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 9,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 13,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "travel-both-teams-b",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-travel-both-teams-b-webgl-v1.png",
+      "bytes": 586433,
+      "sha256": "06afefcc4d6ff0240a5fc515689420174ca8f6046f42cbb7fe1b602d3bc8a5f4",
+      "time": 7.7,
+      "tick": 7,
+      "fraction": 0.7,
+      "teamFocus": 0,
+      "note": "projectiles 0 + 1 · flat-spin phase B",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [
+        "0",
+        "1"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 9,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 13,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "travel-team-1",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-travel-team-1-webgl-v1.png",
+      "bytes": 576362,
+      "sha256": "7e8f46398bac2edb3ce067016f808e8b0090f97244a1dee599b67a2b9274192e",
+      "time": 11.35,
+      "tick": 11,
+      "fraction": 0.35,
+      "teamFocus": 1,
+      "note": "projectile 2 · opposing owner before deflection",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [
+        "2"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime-aegis-shell",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "hit",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-hit-webgl-v1.png",
+      "bytes": 504575,
+      "sha256": "2093ab4a7925ddf1bb9370919b22a05c821d16947344e7ecb6289f25755fbf52",
+      "time": 9.18,
+      "tick": 9,
+      "fraction": 0.18,
+      "teamFocus": 0,
+      "note": "projectiles 0 + 1 exact damaging terminals",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime-aegis-shell",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "facing": "south"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "deflection",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-deflection-webgl-v1.png",
+      "bytes": 577769,
+      "sha256": "d96dbc1800d8213b51593c307b0423ba7bb6a221624fec9492788718d3272767",
+      "time": 12.18,
+      "tick": 12,
+      "fraction": 0.18,
+      "teamFocus": 0,
+      "note": "incoming 2 becomes team-flipped projectile 3",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [
+        "2",
+        "3"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime-aegis-shell",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "miss",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-miss-webgl-v1.png",
+      "bytes": 541519,
+      "sha256": "c11fd63b083daed03c973ca5c59cc71b5aea4219627b9a79e0be464c29c1d20f",
+      "time": 128.18,
+      "tick": 128,
+      "fraction": 0.18,
+      "teamFocus": 0,
+      "note": "projectile 18 exact range terminal",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 1,
+            "lifeId": 0
+          },
+          "formId": "bulwark-child",
+          "position": {
+            "x": 16,
+            "y": 8
+          },
+          "facing": "south"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 1,
+            "lifeId": 0
+          },
+          "formId": "bulwark-child",
+          "position": {
+            "x": 18,
+            "y": 9
+          },
+          "facing": "north"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "mobile-cover-recoil",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-mobile-cover-recoil-webgl-v1.png",
+      "bytes": 617481,
+      "sha256": "80603dd50664ff54d56a78405adec911600d1e004298f3770dfed16c5c86a103",
+      "time": 48.68,
+      "tick": 48,
+      "fraction": 0.68,
+      "teamFocus": 0,
+      "note": "genuine Mobile GLB · projectile 10 recoil · confirmed west-cover overlap",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [
+        "10",
+        "11"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 17,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "shell-cover-adjacent",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-shell-cover-adjacent-webgl-v1.png",
+      "bytes": 489591,
+      "sha256": "0ca7d17fc45162f660256791a9c393a2f6cfdbc8485bf05d0837aa4d6d4edaf9",
+      "time": 50.5,
+      "tick": 50,
+      "fraction": 0.5,
+      "teamFocus": 0,
+      "note": "current Shell SVG/extrusion fallback adjacent to west cover",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime-aegis-shell",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 17,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "mobile-cover-clearance-control",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-mobile-cover-clearance-control-webgl-v1.png",
+      "bytes": 600136,
+      "sha256": "aacbd836fcd8daed18a57ad50351b142beb61ba2f2b9f6f2590444ac3cd25ee8",
+      "time": 70.64,
+      "tick": 70,
+      "fraction": 0.64,
+      "teamFocus": 1,
+      "note": "genuine Mobile GLB stable minimum-clearance control beside east cover",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime-aegis-shell",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 16,
+            "y": 5
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "turret-cover-adjacent",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-turret-cover-adjacent-webgl-v1.png",
+      "bytes": 488721,
+      "sha256": "aa44b8be2a6b542c22ca6172f24aa5a129f191dbb459f9750e1a6062c88cc1b8",
+      "time": 145.68,
+      "tick": 145,
+      "fraction": 0.68,
+      "teamFocus": 0,
+      "note": "current Turret SVG-sector fallback peak fire scale beside west cover",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-BDUTZrbD.glb",
+        "status": 200,
+        "contentLength": 301504
+      },
+      "projectileIds": [
+        "28",
+        "29"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 19,
+            "y": 8
+          },
+          "facing": "north"
+        },
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 1,
+            "lifeId": 0
+          },
+          "formId": "bulwark-child-turret",
+          "position": {
+            "x": 18,
+            "y": 8
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 2
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 20,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "canvas-control",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/rebound-diamond-canvas-control-canvas-v1.png",
+      "bytes": 542536,
+      "sha256": "a105be64fa1abccd9a77624b545b8d1fdd452ace127c34db021c3845850382ba",
+      "time": 7.25,
+      "tick": 7,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "same replay/time/camera as WebGL travel-both-teams-a",
+      "rendererId": "canvas",
+      "renderer": "Canvas2D fallback",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": null,
+      "projectileIds": [
+        "0",
+        "1"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 9,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "bulwark-prime",
+          "position": {
+            "x": 13,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "travel-team-0-a",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-travel-team-0-a-webgl-v1.png",
+      "bytes": 440125,
+      "sha256": "55091f4e7a847d7b14eda32d85a4d454c2e09e1fdad24b9d7b0bcb24ddc2f161",
+      "time": 36.25,
+      "tick": 36,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "projectile 3 · tumble phase A",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CxvKQp6G.glb",
+        "status": 200,
+        "contentLength": 468276
+      },
+      "projectileIds": [
+        "3"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 16,
+            "y": 6
+          },
+          "facing": "north"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "travel-team-0-b",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-travel-team-0-b-webgl-v1.png",
+      "bytes": 607884,
+      "sha256": "bf8a49bdf356ef2936868cc1bbdf88714703ef00566b4afe540546bc85d268d8",
+      "time": 36.7,
+      "tick": 36,
+      "fraction": 0.7,
+      "teamFocus": 0,
+      "note": "projectile 3 · tumble phase B",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CxvKQp6G.glb",
+        "status": 200,
+        "contentLength": 468276
+      },
+      "projectileIds": [
+        "3"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 16,
+            "y": 6
+          },
+          "facing": "north"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "travel-team-1",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-travel-team-1-webgl-v1.png",
+      "bytes": 591771,
+      "sha256": "a1e476edbc0b3120e874bdfb53eee9ae229b33a3e855dcd6185431b0437466f1",
+      "time": 8.35,
+      "tick": 8,
+      "fraction": 0.35,
+      "teamFocus": 1,
+      "note": "projectile 1 · opposing team",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CxvKQp6G.glb",
+        "status": 200,
+        "contentLength": 468276
+      },
+      "projectileIds": [
+        "0",
+        "1"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "hit",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-hit-webgl-v1.png",
+      "bytes": 471385,
+      "sha256": "b4efd6675a73acb1e453030968512170bbc4d7c46247b0165ad38a81b082dd07",
+      "time": 9.18,
+      "tick": 9,
+      "fraction": 0.18,
+      "teamFocus": 0,
+      "note": "projectile 0 exact damaging terminal",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CxvKQp6G.glb",
+        "status": 200,
+        "contentLength": 468276
+      },
+      "projectileIds": [
+        "1",
+        "2"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "miss",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-miss-webgl-v1.png",
+      "bytes": 567530,
+      "sha256": "cedf8932afa07ff39701da9a0d0cc3fa013a3569c8488f93373c3bb14837cf88",
+      "time": 40.18,
+      "tick": 40,
+      "fraction": 0.18,
+      "teamFocus": 0,
+      "note": "projectile 3 exact wall/path terminal",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CxvKQp6G.glb",
+        "status": 200,
+        "contentLength": 468276
+      },
+      "projectileIds": [],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 16,
+            "y": 6
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "mixed-teams",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-mixed-teams-webgl-v1.png",
+      "bytes": 610407,
+      "sha256": "647ca2da11e0cdb80189e9bc1176e235f2c141dfa4574fa85072cfb82d613341",
+      "time": 106.35,
+      "tick": 106,
+      "fraction": 0.35,
+      "teamFocus": 1,
+      "note": "projectiles 16 + 17 + 18 · both teams",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-CxvKQp6G.glb",
+        "status": 200,
+        "contentLength": 468276
+      },
+      "projectileIds": [
+        "16",
+        "17",
+        "18"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 2
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 10,
+            "y": 7
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 1,
+            "lifeId": 1
+          },
+          "formId": "fabricator-child",
+          "position": {
+            "x": 8,
+            "y": 7
+          },
+          "facing": "west"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 2
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 12,
+            "y": 8
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "canvas-control",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/lattice-rivet-canvas-control-canvas-v1.png",
+      "bytes": 489112,
+      "sha256": "7c139f9f13c2f612766827fde95352f96cef219772a9fdf0ca7b6eedbe8db5ae",
+      "time": 36.25,
+      "tick": 36,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "same replay/time/camera as WebGL travel-team-0-a",
+      "rendererId": "canvas",
+      "renderer": "Canvas2D fallback",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": null,
+      "projectileIds": [
+        "3"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 15,
+            "y": 6
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 1
+          },
+          "formId": "fabricator-prime",
+          "position": {
+            "x": 16,
+            "y": 6
+          },
+          "facing": "north"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "pulse-bolt",
+      "captureId": "travel-team-0-a",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/pulse-bolt-travel-team-0-a-webgl-v1.png",
+      "bytes": 445029,
+      "sha256": "56de838d28b64b0e768cb33f9d93226df2c84651beddd8b00b6673c639b5797c",
+      "time": 14.25,
+      "tick": 14,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "projectile 4 · stable control phase A",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-DVNN0uKA.glb",
+        "status": 200,
+        "contentLength": 16032
+      },
+      "projectileIds": [
+        "4"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 10,
+            "y": 8
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 12,
+            "y": 8
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "pulse-bolt",
+      "captureId": "travel-team-0-b",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/pulse-bolt-travel-team-0-b-webgl-v1.png",
+      "bytes": 593553,
+      "sha256": "4405331b48f8b1e19ce197ffa0f92915124d5ef6c52a7b9073ca75ddec80cbeb",
+      "time": 14.7,
+      "tick": 14,
+      "fraction": 0.7,
+      "teamFocus": 0,
+      "note": "projectile 4 · stable control phase B",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-DVNN0uKA.glb",
+        "status": 200,
+        "contentLength": 16032
+      },
+      "projectileIds": [
+        "4"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 10,
+            "y": 8
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 12,
+            "y": 8
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "pulse-bolt",
+      "captureId": "travel-team-1",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/pulse-bolt-travel-team-1-webgl-v1.png",
+      "bytes": 591837,
+      "sha256": "9a1cb13f9bb98d4c010ecba128ce3e976dd21e837964ce9b0c07ada240a06f2b",
+      "time": 9.35,
+      "tick": 9,
+      "fraction": 0.35,
+      "teamFocus": 1,
+      "note": "projectile 1 · opposing team",
+      "rendererId": "webgl",
+      "renderer": "WebGL / Three.js / SwiftShader",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": {
+        "url": "model-DVNN0uKA.glb",
+        "status": 200,
+        "contentLength": 16032
+      },
+      "projectileIds": [
+        "1"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 10,
+            "y": 8
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 12,
+            "y": 7
+          },
+          "facing": "west"
+        }
+      ]
+    },
+    {
+      "projectileLookId": "pulse-bolt",
+      "captureId": "canvas-control",
+      "file": "art/class-models/class-projectiles/review/runtime-v4/pulse-bolt-canvas-control-canvas-v1.png",
+      "bytes": 518619,
+      "sha256": "6a5c338bb5398eae5c226018a1bc1a3192da9b65367e8d97ae5002d2162d4435",
+      "time": 14.25,
+      "tick": 14,
+      "fraction": 0.25,
+      "teamFocus": 0,
+      "note": "same replay/time/camera as WebGL travel-team-0-a",
+      "rendererId": "canvas",
+      "renderer": "Canvas2D fallback",
+      "camera": {
+        "pitchDegrees": 58,
+        "framing": "production team-follow camera",
+        "minimumSpanTiles": 8,
+        "settlingMilliseconds": 2500
+      },
+      "viewport": {
+        "width": 1600,
+        "height": 1000,
+        "deviceScaleFactor": 1
+      },
+      "canvas": {
+        "width": 926,
+        "height": 578,
+        "cssWidth": 926,
+        "cssHeight": 578
+      },
+      "contextRequests": [
+        "2d",
+        "webgl2"
+      ],
+      "modelRequest": null,
+      "projectileIds": [
+        "4"
+      ],
+      "activeForms": [
+        {
+          "actorId": {
+            "teamId": 0,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 10,
+            "y": 8
+          },
+          "facing": "east"
+        },
+        {
+          "actorId": {
+            "teamId": 1,
+            "unitId": 0,
+            "lifeId": 0
+          },
+          "formId": "prime-mobile",
+          "position": {
+            "x": 12,
+            "y": 8
+          },
+          "facing": "west"
+        }
+      ]
+    }
+  ],
+  "gameplayDetails": [
+    {
+      "projectileLookId": "trident-spark",
+      "captureId": "travel-team-0-b",
+      "projectileId": "11",
+      "crop": {
+        "x": 450,
+        "y": 205,
+        "width": 180,
+        "height": 160
+      },
+      "annotatedProjectileCentre": {
+        "x": 548,
+        "y": 286
+      },
+      "source": "Enlarged and annotated crop of the unmodified authored WebGL capture."
+    },
+    {
+      "projectileLookId": "rebound-diamond",
+      "captureId": "travel-both-teams-b",
+      "projectileId": "0",
+      "crop": {
+        "x": 450,
+        "y": 195,
+        "width": 180,
+        "height": 160
+      },
+      "annotatedProjectileCentre": {
+        "x": 540,
+        "y": 276
+      },
+      "source": "Enlarged and annotated crop of the unmodified authored WebGL capture."
+    },
+    {
+      "projectileLookId": "lattice-rivet",
+      "captureId": "travel-team-0-b",
+      "projectileId": "3",
+      "crop": {
+        "x": 380,
+        "y": 210,
+        "width": 190,
+        "height": 170
+      },
+      "annotatedProjectileCentre": {
+        "x": 472,
+        "y": 303
+      },
+      "source": "Enlarged and annotated crop of the unmodified authored WebGL capture."
+    },
+    {
+      "projectileLookId": "pulse-bolt",
+      "captureId": "travel-team-0-b",
+      "projectileId": "4",
+      "crop": {
+        "x": 500,
+        "y": 160,
+        "width": 180,
+        "height": 160
+      },
+      "annotatedProjectileCentre": {
+        "x": 590,
+        "y": 244
+      },
+      "source": "Enlarged and annotated crop of the unmodified authored WebGL capture."
+    }
+  ],
+  "bulwarkClearance": {
+    "assetTruthAtIntegrationCommit": {
+      "mobile": {
+        "lookId": "aegis-tortoise",
+        "representation": "genuine GLB",
+        "model": "web/src/assets/class-looks/aegis-tortoise/model.glb",
+        "modelSha256": "f30bfe4a956b50108bba618693484544376801360aff95cd0d1961a559831e66"
+      },
+      "shell": {
+        "lookId": "aegis-tortoise-shell",
+        "representation": "SVG-derived extrusion plus renderer Aegis hardware",
+        "modelGlbPresent": false,
+        "model3dJsonPresent": false
+      },
+      "turret": {
+        "lookId": "aegis-tortoise-turret",
+        "representation": "four cropped SVG front sectors plus renderer scan",
+        "modelGlbPresent": false,
+        "model3dJsonPresent": false
+      }
+    },
+    "replayExercise": {
+      "shellAdjacentToCover": {
+        "position": {
+          "x": 15,
+          "y": 6
+        },
+        "wall": {
+          "x": 14,
+          "y": 6
+        },
+        "postStateTickRanges": [
+          "49-60",
+          "62-126"
+        ],
+        "nearestWallCentreTiles": 1,
+        "futureStaticGlbClearanceProven": false
+      },
+      "turretAdjacentToCover": {
+        "position": {
+          "x": 18,
+          "y": 8
+        },
+        "wall": {
+          "x": 17,
+          "y": 8
+        },
+        "postStateTickRanges": [
+          "142-158"
+        ],
+        "nearestWallCentreTiles": 1,
+        "futureStaticGlbClearanceProven": false
+      },
+      "adjacentToPerimeter": false
+    },
+    "genuineMobileResult": {
+      "measurementMethod": "Exact GLB bind transform, sampled authored animation, and production idle/sway/yaw/recoil transforms compared against the rounded V4 cover-wall face tip.",
+      "sourceReferences": [
+        "web/src/render3d/arenaActors.ts (live scale and firing recoil)",
+        "web/src/render3d/arenaScene.ts (WALL_OPEN_EDGE_INSET and cover-wall geometry)"
+      ],
+      "productionRuntimeScale": 1.044,
+      "v4RoundedWallFaceTipFromActorCentreTiles": 0.64462,
+      "confirmedClip": {
+        "replayTime": 48.683,
+        "captureTime": 48.68,
+        "position": {
+          "x": 15,
+          "y": 6
+        },
+        "facing": "east",
+        "adjacentCover": {
+          "x": 14,
+          "y": 6
+        },
+        "eventHandle": "authoritative-event:141",
+        "projectileId": "10",
+        "cause": "renderer-owned firing recoil moves the body backward",
+        "transformedWestAabbExtentTiles": 0.742324,
+        "aabbOverlapTiles": 0.097704,
+        "minimumProvenVertexPenetrationAtRoundedFaceTipTiles": 0.015914
+      },
+      "stableClearanceControl": {
+        "replayTime": 70.64,
+        "position": {
+          "x": 16,
+          "y": 5
+        },
+        "facing": "west",
+        "adjacentCover": {
+          "x": 17,
+          "y": 5
+        },
+        "minimumMeasuredMarginTiles": 0.029208,
+        "clipObserved": false
+      }
+    }
+  },
+  "boards": {
+    "rendererControl": {
+      "file": "art/class-models/class-projectiles/review/runtime-v4/projectile-v4-webgl-vs-canvas-v1.png",
+      "bytes": 3004815,
+      "sha256": "c36c39fe38c3901b4ac179fef999064e0c4393a2c849fd2de4f6d63b92d1da25"
+    },
+    "flightAndTeams": {
+      "file": "art/class-models/class-projectiles/review/runtime-v4/projectile-v4-flight-and-teams-v1.png",
+      "bytes": 4812873,
+      "sha256": "f66c0843383408e06101aef7f69566646eee1c5605859d7625aa29eab51e2777"
+    },
+    "causalTerminals": {
+      "file": "art/class-models/class-projectiles/review/runtime-v4/projectile-v4-causal-terminals-v1.png",
+      "bytes": 3021394,
+      "sha256": "37c6218c4428b2aa45e08cc53f7c1ed2e53ac0a8d00fe4337e0b0186ba22e2cc"
+    },
+    "gameplayDetail": {
+      "file": "art/class-models/class-projectiles/review/runtime-v4/projectile-v4-gameplay-detail-v1.png",
+      "bytes": 931842,
+      "sha256": "277ce67bb45a978d70f23f26e596e6ce2661fb7a2ce73af7f1e2265d8dbda05d"
+    },
+    "bulwarkClearance": {
+      "file": "art/class-models/class-projectiles/review/runtime-v4/bulwark-v4-cover-clearance-v1.png",
+      "bytes": 1403875,
+      "sha256": "796b422746738870f36d8c122685947b221833a49b5115bd9ab439a10d2c29bc"
+    }
+  },
+  "assertions": {
+    "everyReplayIsV3": true,
+    "everyReplayIsComplete": true,
+    "everyReplayHasNativeEmberPresentation": true,
+    "everyWebglCaptureServedItsAuthoredModel": true,
+    "everyCanvasControlBlockedWebgl": true,
+    "everyGameplayDetailReferencesItsProjectile": true,
+    "bulwarkMobileAssetMatchesAuditedGlb": true,
+    "bulwarkStaticShellAndTurretModelsAbsentAtIntegrationCommit": true,
+    "noPageErrors": true
+  },
+  "limitations": [
+    "Replay generation used the in-process diagnostic runtime. The artifacts pass canonical replay-v3 contract/content/hash verification, but this visual review is not a WASM parity claim.",
+    "Captures use headless Chromium SwiftShader for repeatability; hardware-GPU QA remains a separate integration check.",
+    "The gameplay-detail board enlarges and annotates untouched authored-WebGL pixels; it is a readability aid rather than a second renderer pass.",
+    "A still pair proves the deterministic cue changes the authored head transform between pinned phases; it does not replace an interactive playback review.",
+    "The class replays use the participants’ native submitted accents. When both submitted accents are identical, the production renderer resolves its documented blue/orange team fallback.",
+    "Deflection is a Bulwark Aegis mechanic and therefore has exact native evidence only in the Rebound Diamond replay.",
+    "The integration commit contains no Shell or Turret GLB. Their adjacent-cover captures document the current SVG/procedural fallback only; future static-model clearance is unproven.",
+    "The native Bulwark replay proves a genuine Mobile GLB recoil clip beside cover at t=48.683. Fixing that renderer/map-clearance issue is outside this evidence-only branch."
+  ]
+}
